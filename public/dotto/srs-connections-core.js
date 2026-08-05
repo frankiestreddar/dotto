@@ -2,7 +2,7 @@ import { kindLabel, kindSize } from './add-menu.js';
 import { stripHtml } from './ai-assistant-suggestions.js';
 import { removePlacementGhost } from './copy-paste.js';
 import { addMenu, appState, btnAdd, canvas, drawBackBtn, drawColorInput, drawEraserBtn, drawFrontBtn, drawPenBtn, drawSettings, drawSizeInput, effectiveMode, world, zoomTrack } from './core-state.js';
-import { computeConnectorPoints, createConnection, drawColor, drawLayer, drawMode, drawSize, drawTool, drawing, ensureConnections, ensureDrawings, findLinkedTable, findTableById, itemRect, livePath, liveSvg, makeLayerSVG, pathNearPoint, pointsToLinePath, pointsToPath } from './drawing-connections.js';
+import { computeConnectorPoints, createConnection, ensureConnections, ensureDrawings, findLinkedTable, findTableById, itemRect, makeLayerSVG, pathNearPoint, pointsToLinePath, pointsToPath } from './drawing-connections.js';
 import { defaultFlashcardDeck } from './games-flashcard-typeright.js';
 import { ZOOM_MAX, ZOOM_MIN, applyTransform, saveSnapshot, scheduleApplyTransform, undoStack } from './history-autosave.js';
 import { broadcastEditingState } from './live-presence.js';
@@ -12,6 +12,7 @@ import { awardUserPoints, bumpAchievementStat } from './profile-achievements-pri
 import { outlineActiveIndex, outlineRows, setOutlineActive, toggleHamburgerMenu } from './shared-canvases-outline.js';
 import { pushNotification, searchInput } from './stopwatch-search-notifications.js';
 import { render, renderSelectedOutlines, startBoxSelection, syncWaypointToDb } from './waypoints-render-loop.js';
+
 
     // ---------- SM-2 Spaced Repetition ----------
     // Per-row memory state lives on the table itself (table.srsMeta[rowIndex]), keyed by the
@@ -762,11 +763,11 @@ import { render, renderSelectedOutlines, startBoxSelection, syncWaypointToDb } f
 
 
     function setDrawMode(on) {
-        drawMode = on;
-        btnAdd.classList.toggle('active', drawMode);
-        canvas.classList.toggle('crosshair', drawMode || !!appState.addingKind);
-        drawSettings.style.display = drawMode ? 'flex' : 'none';
-        if (drawMode) { appState.addingKind = null; appState.addingStatKind = null; addMenu.style.display = 'none'; removePlacementGhost(); }
+        appState.drawMode = on;
+        btnAdd.classList.toggle('active', appState.drawMode);
+        canvas.classList.toggle('crosshair', appState.drawMode || !!appState.addingKind);
+        drawSettings.style.display = appState.drawMode ? 'flex' : 'none';
+        if (appState.drawMode) { appState.addingKind = null; appState.addingStatKind = null; addMenu.style.display = 'none'; removePlacementGhost(); }
     }
     function cancelAddingKind() {
         appState.addingKind = null;
@@ -797,29 +798,29 @@ import { render, renderSelectedOutlines, startBoxSelection, syncWaypointToDb } f
         if (!isEditingText && (e.key === 'n' || e.key === 'N')) { e.preventDefault(); pushNotification({ type: 'debug', message: 'this is an example notification' }); return; }
     });
 
-    function toggleDrawFromMenu() { addMenu.style.display = 'none'; setDrawMode(!drawMode); }
-    drawColorInput.oninput = (e) => { drawColor = e.target.value; };
-    drawSizeInput.oninput = (e) => { drawSize = parseInt(e.target.value); };
+    function toggleDrawFromMenu() { addMenu.style.display = 'none'; setDrawMode(!appState.drawMode); }
+    drawColorInput.oninput = (e) => { appState.drawColor = e.target.value; };
+    drawSizeInput.oninput = (e) => { appState.drawSize = parseInt(e.target.value); };
     function updateDrawToolBtns() {
-        drawPenBtn.classList.toggle('active', drawTool === 'pen');
-        drawEraserBtn.classList.toggle('active', drawTool === 'eraser');
+        drawPenBtn.classList.toggle('active', appState.drawTool === 'pen');
+        drawEraserBtn.classList.toggle('active', appState.drawTool === 'eraser');
     }
-    drawPenBtn.onclick = (e) => { e.stopPropagation(); drawTool = 'pen'; updateDrawToolBtns(); };
-    drawEraserBtn.onclick = (e) => { e.stopPropagation(); drawTool = 'eraser'; updateDrawToolBtns(); };
+    drawPenBtn.onclick = (e) => { e.stopPropagation(); appState.drawTool = 'pen'; updateDrawToolBtns(); };
+    drawEraserBtn.onclick = (e) => { e.stopPropagation(); appState.drawTool = 'eraser'; updateDrawToolBtns(); };
     function updateDrawLayerBtns() {
-        drawFrontBtn.classList.toggle('active', drawLayer === 'front');
-        drawBackBtn.classList.toggle('active', drawLayer === 'back');
+        drawFrontBtn.classList.toggle('active', appState.drawLayer === 'front');
+        drawBackBtn.classList.toggle('active', appState.drawLayer === 'back');
     }
-    drawFrontBtn.onclick = (e) => { e.stopPropagation(); drawLayer = 'front'; updateDrawLayerBtns(); };
-    drawBackBtn.onclick = (e) => { e.stopPropagation(); drawLayer = 'back'; updateDrawLayerBtns(); };
+    drawFrontBtn.onclick = (e) => { e.stopPropagation(); appState.drawLayer = 'front'; updateDrawLayerBtns(); };
+    drawBackBtn.onclick = (e) => { e.stopPropagation(); appState.drawLayer = 'back'; updateDrawLayerBtns(); };
 
     function startDrawStroke(e) {
         const rect = canvas.getBoundingClientRect();
 
-        if (drawTool === 'eraser') {
+        if (appState.drawTool === 'eraser') {
             saveSnapshot();
             const dwList = ensureDrawings(appState.folders[appState.currentFolderId]);
-            const eraseRadius = Math.max(drawSize, 8) / 2;
+            const eraseRadius = Math.max(appState.drawSize, 8) / 2;
             const eraseAt = (wx, wy) => {
                 for (let i = dwList.length - 1; i >= 0; i--) {
                     if (pathNearPoint(dwList[i].d, wx, wy, eraseRadius + (dwList[i].width || 3) / 2)) {
@@ -839,32 +840,32 @@ import { render, renderSelectedOutlines, startBoxSelection, syncWaypointToDb } f
 
         saveSnapshot();
         const wx = (e.clientX - rect.left - appState.tx) / appState.scale, wy = (e.clientY - rect.top - appState.ty) / appState.scale;
-        drawing = { points: [[wx, wy]], color: drawColor, layer: drawLayer, width: drawSize };
-        liveSvg = makeLayerSVG(drawLayer === 'back' ? 0 : 2);
-        livePath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-        livePath.setAttribute('stroke', drawColor);
-        livePath.setAttribute('stroke-width', String(drawSize));
-        livePath.setAttribute('fill', 'none');
-        livePath.setAttribute('stroke-linecap', 'round');
-        livePath.setAttribute('stroke-linejoin', 'round');
-        liveSvg.appendChild(livePath);
-        if (drawLayer === 'back') world.insertBefore(liveSvg, world.firstChild); else world.appendChild(liveSvg);
+        appState.drawing = { points: [[wx, wy]], color: appState.drawColor, layer: appState.drawLayer, width: appState.drawSize };
+        appState.liveSvg = makeLayerSVG(appState.drawLayer === 'back' ? 0 : 2);
+        appState.livePath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+        appState.livePath.setAttribute('stroke', appState.drawColor);
+        appState.livePath.setAttribute('stroke-width', String(appState.drawSize));
+        appState.livePath.setAttribute('fill', 'none');
+        appState.livePath.setAttribute('stroke-linecap', 'round');
+        appState.livePath.setAttribute('stroke-linejoin', 'round');
+        appState.liveSvg.appendChild(appState.livePath);
+        if (appState.drawLayer === 'back') world.insertBefore(appState.liveSvg, world.firstChild); else world.appendChild(appState.liveSvg);
 
         const move = (me) => {
             const wx2 = (me.clientX - rect.left - appState.tx) / appState.scale, wy2 = (me.clientY - rect.top - appState.ty) / appState.scale;
-            drawing.points.push([wx2, wy2]);
-            livePath.setAttribute('d', pointsToPath(drawing.points));
+            appState.drawing.points.push([wx2, wy2]);
+            appState.livePath.setAttribute('d', pointsToPath(appState.drawing.points));
         };
         const up = () => {
             window.removeEventListener('pointermove', move);
             window.removeEventListener('pointerup', up);
-            if (drawing.points.length > 1) {
-                ensureDrawings(appState.folders[appState.currentFolderId]).push({ color: drawing.color, layer: drawing.layer, d: pointsToPath(drawing.points), width: drawing.width });
+            if (appState.drawing.points.length > 1) {
+                ensureDrawings(appState.folders[appState.currentFolderId]).push({ color: appState.drawing.color, layer: appState.drawing.layer, d: pointsToPath(appState.drawing.points), width: appState.drawing.width });
             } else {
                 undoStack.pop();
             }
-            if (liveSvg) liveSvg.remove();
-            liveSvg = null; livePath = null; drawing = null;
+            if (appState.liveSvg) appState.liveSvg.remove();
+            appState.liveSvg = null; appState.livePath = null; appState.drawing = null;
             render();
         };
         window.addEventListener('pointermove', move); window.addEventListener('pointerup', up);
@@ -877,7 +878,7 @@ import { render, renderSelectedOutlines, startBoxSelection, syncWaypointToDb } f
         // handleDataModeClick) rather than leaving it armed indefinitely.
         if (appState.dataLinkPendingId != null) clearDataLinkPending();
 
-        if (drawMode) { startDrawStroke(e); return; }
+        if (appState.drawMode) { startDrawStroke(e); return; }
 
         if (appState.addingKind) {
             const rect = canvas.getBoundingClientRect();
@@ -1047,6 +1048,5 @@ import { render, renderSelectedOutlines, startBoxSelection, syncWaypointToDb } f
         (folderObj.items || []).forEach(deleteClonedItemFolders);
         delete appState.folders[item.folderId];
     }
-
 
 export { CardStreamIO, SM2_QUALITY, add, applyConnections, applyFilterToRows, calculateSM2, cancelAddingKind, clearDataLinkPending, collectAvailableFilterTags, deepCloneItem, defaultSrsState, deleteClonedItemFolders, diffRatings, isValidConnection, renderConnectionsLayer, setDrawMode, startConnectionDrag, startDrawStroke, toggleDrawFromMenu, updateDrawLayerBtns };

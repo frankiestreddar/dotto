@@ -1,15 +1,16 @@
-import { clearSearch, dotbotAlignedRegistry, dotbotErrorMessage, dotbotSearchGeneration, dotbotSuggestAbortController, dotbotSuggestDebounceTimer, escapeHtml, handleSearchFocus, searchActiveIndex, searchCardConnections, searchCardContext, setSearchActive, stripHtml, updateSearchDropdown } from './ai-assistant-suggestions.js';
+import { clearSearch, dotbotErrorMessage, dotbotSuggestAbortController, dotbotSuggestDebounceTimer, escapeHtml, handleSearchFocus, setSearchActive, stripHtml, updateSearchDropdown } from './ai-assistant-suggestions.js';
 import { appState } from './core-state.js';
 import { cancelDotbotScheduleConversation, dotbotScheduleConversation, submitDotbotScheduleAnswer } from './dotbot-schedule-notifications.js';
 import { ensureConnections } from './drawing-connections.js';
 import { saveSnapshot, scheduleWorkspaceSave } from './history-autosave.js';
 import { miniLabelForItem } from './live-presence.js';
 import { commenceSearchOrMnemonic, computeCanvasMatches, computeSourceMatches, renderAnswerBlocksPanel, renderCanvasResultsPanel, renderDictionaryPanel, renderDotbotAnswerPanel, renderExamplesPanel, renderRecommendedSearchesPanel, renderTranslationPanel } from './mnemonic-search-matching.js';
-import { bumpAchievementStat, dotbotUpgradePromptedForFullness, openDotbotUpgradeModal, refreshDotbotUsage } from './profile-achievements-pricing.js';
+import { bumpAchievementStat, openDotbotUpgradeModal, refreshDotbotUsage } from './profile-achievements-pricing.js';
 import { colgroupHTML } from './source-table.js';
 import { applyAiAddRowsToSource, createSourceFromAI } from './source-tags-ai.js';
-import { autoGrowSearchInput, searchDictionary, searchDotbotAnswer, searchExamples, searchImageResult, searchInput, searchInputWrap, searchRecommended, searchResults, searchSpinner, searchSuggestions, updateSearchSpaceHint } from './stopwatch-search-notifications.js';
+import { autoGrowSearchInput, searchCardConnections, searchCardContext, searchDictionary, searchDotbotAnswer, searchExamples, searchImageResult, searchInput, searchInputWrap, searchRecommended, searchResults, searchSpinner, searchSuggestions, updateSearchSpaceHint } from './stopwatch-search-notifications.js';
 import { render } from './waypoints-render-loop.js';
+
 
     // ---------- Orchestrated search: one AI call decides which panels are useful. Canvas
     // results keep the fixed slot they already rendered into synchronously, before the network
@@ -26,7 +27,7 @@ import { render } from './waypoints-render-loop.js';
         searchSuggestions.appendChild(errEl);
         searchSuggestions.style.display = 'block';
         updateSearchDropdown();
-        if (reason === 'no_credits') { dotbotUpgradePromptedForFullness = true; openDotbotUpgradeModal(); }
+        if (reason === 'no_credits') { appState.dotbotUpgradePromptedForFullness = true; openDotbotUpgradeModal(); }
     }
 
     // A short, plain-text description of one attached card for the AI's context block — reuses
@@ -74,7 +75,7 @@ import { render } from './waypoints-render-loop.js';
         query = (query || '').trim();
         if (!query || dotbotScheduleConversation) return;
         searchInputWrap.classList.remove('idle-pulsing'); // redundant when reached via commenceSearchOrMnemonic, needed for direct callers like selectionToolbarLookUp
-        dotbotSearchGeneration++; // same reasoning — redundant via commenceSearchOrMnemonic, needed for direct callers
+        appState.dotbotSearchGeneration++; // same reasoning — redundant via commenceSearchOrMnemonic, needed for direct callers
         bumpAchievementStat('twenty_searches');
         const folderObj = appState.folders[appState.currentFolderId];
         if (!folderObj) return;
@@ -140,7 +141,7 @@ import { render } from './waypoints-render-loop.js';
         // and any answerBlocks example pills) registers itself here so the examples panel's
         // color-coding toggle can re-render them in place (see applyAlignHighlightToggle); a
         // stale registry would otherwise keep referencing long-gone elements from a prior search.
-        dotbotAlignedRegistry = [];
+        appState.dotbotAlignedRegistry = [];
         const textPanel = panels.find(p => p.type === 'dotbot_text');
         renderDotbotAnswerPanel(textPanel ? textPanel.text : null);
         // Its own small panel, shown above the dictionary panel — only for direct
@@ -457,8 +458,8 @@ import { render } from './waypoints-render-loop.js';
             // search bar open/closed depending on which state it's already in. Checked before the
             // general Enter-submits-search handler below, so a non-empty box still submits as usual.
             if (e.key === 'Enter' && searchInput.value.trim() === '') { e.preventDefault(); clearSearch(); searchInput.blur(); return; }
-            if (e.key === 'ArrowDown' && searchResults.style.display === 'block') { e.preventDefault(); setSearchActive(searchActiveIndex + 1); return; }
-            if (e.key === 'ArrowUp' && searchResults.style.display === 'block') { e.preventDefault(); setSearchActive(searchActiveIndex - 1); return; }
+            if (e.key === 'ArrowDown' && searchResults.style.display === 'block') { e.preventDefault(); setSearchActive(appState.searchActiveIndex + 1); return; }
+            if (e.key === 'ArrowUp' && searchResults.style.display === 'block') { e.preventDefault(); setSearchActive(appState.searchActiveIndex - 1); return; }
             // 1-4 pick a visible result directly (see the pill on each row — always max 4 shown,
             // see the .slice(0, 4) in matchesFor), the same one-key jump ArrowDown+Enter would
             // take several presses to reach. Only hijacks the digit when there's actually a
@@ -472,9 +473,9 @@ import { render } from './waypoints-render-loop.js';
             if (e.key === 'Enter') {
                 e.preventDefault();
                 // Arrowed down to a specific canvas match — Enter jumps to that, same as clicking it.
-                if (searchResults.style.display === 'block' && searchActiveIndex >= 0) {
+                if (searchResults.style.display === 'block' && appState.searchActiveIndex >= 0) {
                     const items = Array.from(searchResults.querySelectorAll('.search-result-item'));
-                    const target = items[searchActiveIndex];
+                    const target = items[appState.searchActiveIndex];
                     if (target) { target.click(); return; }
                 }
                 // Otherwise, Enter on whatever's typed commences a Dotbot search — or, for a
@@ -486,6 +487,5 @@ import { render } from './waypoints-render-loop.js';
             }
         });
     }
-
 
 export { commenceDotbotSearch, showSelectionToolbarFor };

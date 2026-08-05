@@ -6,6 +6,7 @@ import { closeAllPanels, panelPinned, pinOnInsideClick, scheduleHoverClose } fro
 import { bumpAchievementStat, renderAvatarInto } from './profile-achievements-pricing.js';
 import { pushNotification } from './stopwatch-search-notifications.js';
 
+
     // ---------- Collaborators Pill/Panel Controls ----------
     const collabBubble = document.getElementById('collab-bubble'), collabPanel = document.getElementById('collab-panel');
     const collabSearchInput = document.getElementById('collab-search');
@@ -256,7 +257,6 @@ import { pushNotification } from './stopwatch-search-notifications.js';
     // whatever's already pending when the app loads isn't "just received"), every run after that
     // notifies for any request id that wasn't in the set yet.
     let seenIncomingFriendRequestIds = null;
-    let activeConvoId = null;
 
     async function refreshFriendsData() {
         if (!supabase || !appState.currentUser.id) return;
@@ -383,10 +383,9 @@ import { pushNotification } from './stopwatch-search-notifications.js';
     // Accept/Decline each) — same drill-down pattern as hubCollabView in the Collaborations hub
     // panel, right down to reusing its "Requests" row/count-badge/back-row styling. The Requests
     // row itself only ever shows when there's actually something in it, exactly like that panel.
-    let msgView = 'main';
     async function renderMsgList(query) {
         await refreshFriendsData();
-        if (msgView === 'requests') { renderMsgRequests(); return; }
+        if (appState.msgView === 'requests') { renderMsgRequests(); return; }
         msgList.innerHTML = '';
         const q = (query || '').trim().toLowerCase();
 
@@ -394,7 +393,7 @@ import { pushNotification } from './stopwatch-search-notifications.js';
             const reqRow = document.createElement('div');
             reqRow.className = 'outline-item requests-row';
             reqRow.innerHTML = `<span class="outline-label">Requests</span><span class="requests-count">${incomingRequests.length}</span>`;
-            reqRow.onclick = (e) => { e.stopPropagation(); msgView = 'requests'; renderMsgRequests(); };
+            reqRow.onclick = (e) => { e.stopPropagation(); appState.msgView = 'requests'; renderMsgRequests(); };
             msgList.appendChild(reqRow);
         }
 
@@ -452,7 +451,7 @@ import { pushNotification } from './stopwatch-search-notifications.js';
         const backRow = document.createElement('div');
         backRow.className = 'requests-back-row';
         backRow.innerHTML = `<span>&larr;</span><span>Requests</span>`;
-        backRow.onclick = (e) => { e.stopPropagation(); msgView = 'main'; renderMsgList(msgSearchInput.value); };
+        backRow.onclick = (e) => { e.stopPropagation(); appState.msgView = 'main'; renderMsgList(msgSearchInput.value); };
         msgList.appendChild(backRow);
 
         if (!incomingRequests.length) {
@@ -586,7 +585,7 @@ import { pushNotification } from './stopwatch-search-notifications.js';
                     if (!live) return; // unfriended (or a stale refresh) since this fired
                     if (live.messages.some(existing => existing.id === m.id)) return; // already have it somehow
                     live.messages.push({ id: m.id, senderId: m.sender_id, text: m.body, canvasSnapshot: m.canvas_snapshot, createdAt: m.created_at });
-                    const isActivelyViewing = activeConvoId === live.id && messagesPanel.classList.contains('open');
+                    const isActivelyViewing = appState.activeConvoId === live.id && messagesPanel.classList.contains('open');
                     if (isActivelyViewing) {
                         renderConvoBody(live);
                     } else {
@@ -606,5 +605,4 @@ import { pushNotification } from './stopwatch-search-notifications.js';
         });
     }
 
-
-export { activeConvoId, closeCollabPanel, collabPanel, friends, handleCollabSearch, handleMsgSearch, initials, msgView, openCollabPanel, refreshCanvasCollabForCurrentFolder, refreshFriendsData, renderCollabPill, renderMsgList, syncCanvasCollabTitle };
+export { closeCollabPanel, collabPanel, friends, handleCollabSearch, handleMsgSearch, initials, openCollabPanel, refreshCanvasCollabForCurrentFolder, refreshFriendsData, renderCollabPill, renderMsgList, syncCanvasCollabTitle };

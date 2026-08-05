@@ -1,13 +1,14 @@
 import { searchTypeLabel } from './add-menu.js';
-import { applyAlignHighlightToggle, buildAlignedSentenceEls, clearSearch, dotbotAlignHighlightOn, dotbotErrorMessage, dotbotSearchGeneration, dotbotSuggestAbortController, dotbotSuggestDebounceTimer, escapeHtml, getItemSearchText, isLatinScriptText, searchActiveIndex, setupDotbotResultDrag, speakerIconHTML, stripHtml, typewriterReveal, updateSearchDropdown } from './ai-assistant-suggestions.js';
+import { applyAlignHighlightToggle, buildAlignedSentenceEls, clearSearch, dotbotAlignHighlightOn, dotbotErrorMessage, dotbotSuggestAbortController, dotbotSuggestDebounceTimer, escapeHtml, getItemSearchText, isLatinScriptText, setupDotbotResultDrag, speakerIconHTML, stripHtml, typewriterReveal, updateSearchDropdown } from './ai-assistant-suggestions.js';
 import { appState, canvas } from './core-state.js';
 import { saveSnapshot, smoothPanTo } from './history-autosave.js';
 import { findItemById } from './live-presence.js';
-import { dotbotUpgradePromptedForFullness, openDotbotUpgradeModal, refreshDotbotUsage } from './profile-achievements-pricing.js';
+import { openDotbotUpgradeModal, refreshDotbotUsage } from './profile-achievements-pricing.js';
 import { commenceDotbotSearch } from './search-orchestration-selection.js';
 import { kindIconHTML } from './shared-canvases-outline.js';
 import { autoGrowSearchInput, searchDictionary, searchDotbotAnswer, searchExamples, searchImageResult, searchInput, searchInputWrap, searchRecommended, searchResults, searchSuggestions, searchTranslation } from './stopwatch-search-notifications.js';
 import { expandWaypointCard, render } from './waypoints-render-loop.js';
+
 
     // ---------- Mnemonic story / image (explicit, separate actions — not part of the
     // orchestrated search flow below, so kept simple: one result, no multi-panel handling) ----------
@@ -113,7 +114,7 @@ import { expandWaypointCard, render } from './waypoints-render-loop.js';
         searchSuggestions.appendChild(errEl);
         searchSuggestions.style.display = 'block';
         updateSearchDropdown();
-        if (reason === 'no_credits') { dotbotUpgradePromptedForFullness = true; openDotbotUpgradeModal(); }
+        if (reason === 'no_credits') { appState.dotbotUpgradePromptedForFullness = true; openDotbotUpgradeModal(); }
     }
     // The generated image gets its OWN dedicated panel (#search-image-result — see the
     // fragment/CSS) rather than sharing #search-suggestions with the story card, so a story and
@@ -136,7 +137,7 @@ import { expandWaypointCard, render } from './waypoints-render-loop.js';
         searchImageResult.innerHTML = `<div class="search-suggestion-item search-image-loading">${escapeHtml(dotbotErrorMessage(reason))}</div>`;
         searchImageResult.style.display = 'block';
         updateSearchDropdown();
-        if (reason === 'no_credits') { dotbotUpgradePromptedForFullness = true; openDotbotUpgradeModal(); }
+        if (reason === 'no_credits') { appState.dotbotUpgradePromptedForFullness = true; openDotbotUpgradeModal(); }
     }
     function renderImageResultPanel(imageDataUrl) {
         if (!searchImageResult) return;
@@ -244,7 +245,7 @@ import { expandWaypointCard, render } from './waypoints-render-loop.js';
         // from before this point as stale (see scheduleLiveSuggestions) — otherwise a suggestions
         // list that was already loading can land right as/after this submit and overwrite the
         // "thinking..." loading state it's about to show.
-        dotbotSearchGeneration++;
+        appState.dotbotSearchGeneration++;
         clearTimeout(dotbotSuggestDebounceTimer);
         if (dotbotSuggestAbortController) dotbotSuggestAbortController.abort();
         const intent = parseMnemonicIntent(query);
@@ -327,14 +328,14 @@ import { expandWaypointCard, render } from './waypoints-render-loop.js';
     }
     function renderCanvasResultsPanel(matches, isSourceFolder) {
         searchResults.innerHTML = '';
-        if (!matches.length) { searchResults.style.display = 'none'; searchActiveIndex = -1; return; }
+        if (!matches.length) { searchResults.style.display = 'none'; appState.searchActiveIndex = -1; return; }
         matches.forEach((m, i) => {
             const div = renderMatchRow(m, isSourceFolder, i);
             div.dataset.index = i;
             searchResults.appendChild(div);
         });
         searchResults.style.display = 'block';
-        searchActiveIndex = -1;
+        appState.searchActiveIndex = -1;
     }
     function goToCanvasItem(id) {
         const it = findItemById(id);
@@ -717,6 +718,5 @@ import { expandWaypointCard, render } from './waypoints-render-loop.js';
         searchDotbotAnswer.appendChild(wrap);
         searchDotbotAnswer.style.display = 'block';
     }
-
 
 export { commenceSearchOrMnemonic, computeCanvasMatches, computeSourceMatches, flashCanvasElement, renderAnswerBlocksPanel, renderCanvasResultsPanel, renderDictionaryPanel, renderDotbotAnswerPanel, renderExamplesPanel, renderRecommendedSearchesPanel, renderTranslationPanel };

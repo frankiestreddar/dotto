@@ -15,6 +15,7 @@ import { layoutSourceTableColumns } from './source-table.js';
 import { closeCellTagPicker } from './source-tags-ai.js';
 import { clearDataLinkPending } from './srs-connections-core.js';
 
+
     // ---------- Source page: per-cell Add / Upload / Tags buttons (hover-only, no global toolbars) ----------
     const sourceAddMenu = document.getElementById('source-add-menu');
     const cellTagPicker = document.getElementById('cell-tag-picker');
@@ -154,6 +155,5 @@ import { clearDataLinkPending } from './srs-connections-core.js';
         modeToolbar.classList.remove('expanded');
         updateModeToolbarUI();
     };
-
 
 export { applyCursorMode, audioRecordIndicator, cellTagPicker, closeSourceAddMenu, modeToolbar, openCellAddMenu, scheduleToolbar, sourceAddMenu };

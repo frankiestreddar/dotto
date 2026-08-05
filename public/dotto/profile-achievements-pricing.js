@@ -5,6 +5,7 @@ import { hmenuAction } from './hamburger-collab.js';
 import { closeAllPanels, panelPinned, pinOnInsideClick, scheduleHoverClose } from './panels-hamburger.js';
 import { pushNotification } from './stopwatch-search-notifications.js';
 
+
     // ---------- Profile Panel Controls ----------
     const profileBtn = document.getElementById('btn-profile'), profilePanel = document.getElementById('profile-panel');
 
@@ -245,7 +246,6 @@ import { pushNotification } from './stopwatch-search-notifications.js';
     // per 6h, generation: 100 per month — see lib/dotbot.js) plus the client-computed blocks
     // count. Bar-only, no numbers anywhere; each fills UP as usage goes up. Mirrors each RPC's
     // own lazy-reset logic purely for display, without writing anything.
-    let dotbotUpgradePromptedForFullness = false;
     // Same "warn once per cycle" pattern as dotbotUpgradePromptedForFullness above — reset back
     // to false once the credits actually reset (searchExpired/genExpired below), so the next
     // cycle can warn again.
@@ -320,9 +320,9 @@ import { pushNotification } from './stopwatch-search-notifications.js';
         document.getElementById('profile-usage-blocks-tooltip').textContent = `${blocksUsed}/${BLOCKS_CAP}`;
 
         if (searchRemaining <= 0) {
-            if (!dotbotUpgradePromptedForFullness) { dotbotUpgradePromptedForFullness = true; openDotbotUpgradeModal(); }
+            if (!appState.dotbotUpgradePromptedForFullness) { appState.dotbotUpgradePromptedForFullness = true; openDotbotUpgradeModal(); }
         } else {
-            dotbotUpgradePromptedForFullness = false;
+            appState.dotbotUpgradePromptedForFullness = false;
         }
     }
     function openDotbotUpgradeModal() { document.getElementById('dotbot-upgrade-overlay').classList.add('open'); }
@@ -407,5 +407,4 @@ import { pushNotification } from './stopwatch-search-notifications.js';
     profilePanel.addEventListener('mouseleave', () => scheduleHoverClose('profile', [profileBtn, profilePanel], closeProfilePanel));
     pinOnInsideClick('profile', [profilePanel]);
 
-
-export { awardUserPoints, bumpAchievementStat, closeDotbotUpgradeModal, closePricingOverlay, closeProfilePanel, dotbotUpgradePromptedForFullness, openDotbotUpgradeModal, openPricingOverlay, profilePanel, refreshDotbotUsage, renderAvatarInto };
+export { awardUserPoints, bumpAchievementStat, closeDotbotUpgradeModal, closePricingOverlay, closeProfilePanel, openDotbotUpgradeModal, openPricingOverlay, profilePanel, refreshDotbotUsage, renderAvatarInto };

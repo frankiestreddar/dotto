@@ -1,101 +1,13 @@
 import { shortUrl } from './cards-misc.js';
 import { appState, canvas } from './core-state.js';
 import { dotbotScheduleConversation } from './dotbot-schedule-notifications.js';
-import { ensureConnections } from './drawing-connections.js';
 import { saveSnapshot, scheduleWorkspaceSave } from './history-autosave.js';
-import { findItemById, renderInlineCanvas, sanitizeFlashcardSnapshot, snapshotItem } from './live-presence.js';
+import { findItemById } from './live-presence.js';
 import { commenceSearchOrMnemonic, computeCanvasMatches, computeSourceMatches, renderCanvasResultsPanel } from './mnemonic-search-matching.js';
 import { closeAllPanels } from './panels-hamburger.js';
-import { autoGrowSearchInput, searchCardPill, searchCardPillLabel, searchDictionary, searchDotbotAnswer, searchDropdown, searchExamples, searchImageResult, searchInput, searchInputWrap, searchRecommended, searchResults, searchSuggestions, searchTranslation, updateSearchSpaceHint } from './stopwatch-search-notifications.js';
+import { autoGrowSearchInput, searchDictionary, searchDotbotAnswer, searchDropdown, searchExamples, searchImageResult, searchInput, searchInputWrap, searchRecommended, searchResults, searchSuggestions, searchTranslation, updateSearchSpaceHint } from './stopwatch-search-notifications.js';
 import { render } from './waypoints-render-loop.js';
 
-    // ---------- Card context: cards dragged into the search box as AI context ----------
-    // Persists across searches (unlike the text input, which clears after every search) so
-    // follow-up questions about the same attached cards don't require redragging — only cleared
-    // by the global outside-click handler, alongside every other ephemeral search-state reset.
-    let searchCardContext = []; // { id, snapshot }
-    let searchCardConnections = []; // { fromId, toId } — copied across from the live folder for
-    // any pair that was dragged in together, so a data-mode link between two dragged cards
-    // survives into the popup preview.
-
-    function renderSearchCardPill() {
-        if (!searchCardPill) return;
-        const n = searchCardContext.length;
-        searchCardPill.classList.toggle('visible', n > 0);
-        searchInput.classList.toggle('has-pill', n > 0);
-        searchCardPillLabel.textContent = n > 0 ? `${n} card${n === 1 ? '' : 's'}` : '';
-        autoGrowSearchInput();
-    }
-
-    // Adds `ids` (a drag gesture's card ids — a single card or a multi-selection) to the
-    // persistent card-context set. Each is snapshotted and sanitized exactly like a
-    // marketplace/chat export (see sanitizeFlashcardSnapshot) using the OTHER ids in this same
-    // call as the batch, so a flashcard dragged together with its source keeps real data, but
-    // dragged alone it's generic-ified — same source-of-truth rule either way. Connections
-    // between two cards that are both part of this drag are copied across too, so the link
-    // itself (not just the two cards) survives into the popup preview.
-    function addCardsToSearchContext(ids) {
-        const folder = appState.folders[appState.currentFolderId];
-        if (!folder) return;
-        ids.forEach(id => {
-            if (searchCardContext.some(c => c.id === id)) return;
-            const it = findItemById(id);
-            if (!it) return;
-            searchCardContext.push({ id, snapshot: sanitizeFlashcardSnapshot(snapshotItem(it), ids) });
-        });
-        const conns = ensureConnections(folder);
-        conns.forEach(c => {
-            if (!ids.includes(c.fromId) || !ids.includes(c.toId)) return;
-            if (searchCardConnections.some(sc => sc.fromId === c.fromId && sc.toId === c.toId)) return;
-            searchCardConnections.push({ fromId: c.fromId, toId: c.toId });
-        });
-        renderSearchCardPill();
-    }
-
-    function removeSearchCardContextItem(id) {
-        searchCardContext = searchCardContext.filter(c => c.id !== id);
-        searchCardConnections = searchCardConnections.filter(c => c.fromId !== id && c.toId !== id);
-        renderSearchCardPill();
-        if (!searchCardContext.length) { closeSearchCardsModal(); return; }
-        if (document.getElementById('search-cards-modal-overlay').classList.contains('open')) openSearchCardsModal();
-    }
-
-    // The pill's hover-reveal "✕" — clears every attached card at once, unlike
-    // removeSearchCardContextItem which only drops one.
-    function clearSearchCardContext() {
-        searchCardContext = [];
-        searchCardConnections = [];
-        renderSearchCardPill();
-        closeSearchCardsModal();
-    }
-
-    // Packs a flat set of snapshots into a neat grid (ceil(sqrt(n)) columns, uniform spacing
-    // derived from the largest card's own w/h) purely for the popup preview — mutates copies
-    // only, never the stored snapshot's original x/y (which is meaningless outside its original
-    // canvas anyway) or anything on the live canvas.
-    function layoutSnapshotsInGrid(snapshots) {
-        const n = snapshots.length;
-        const cols = Math.max(1, Math.ceil(Math.sqrt(n)));
-        const maxW = Math.max(100, ...snapshots.map(s => s.w || 100));
-        const maxH = Math.max(60, ...snapshots.map(s => s.h || 60));
-        const gap = 40;
-        return snapshots.map((s, i) => Object.assign({}, s, {
-            x: (i % cols) * (maxW + gap),
-            y: Math.floor(i / cols) * (maxH + gap),
-        }));
-    }
-
-    function openSearchCardsModal() {
-        if (!searchCardContext.length) return;
-        const laidOut = layoutSnapshotsInGrid(searchCardContext.map(c => c.snapshot));
-        const body = document.getElementById('search-cards-modal-body');
-        body.innerHTML = '';
-        body.appendChild(renderInlineCanvas(laidOut, false, searchCardConnections, (id) => removeSearchCardContextItem(id)));
-        document.getElementById('search-cards-modal-overlay').classList.add('open');
-    }
-    function closeSearchCardsModal() {
-        document.getElementById('search-cards-modal-overlay').classList.remove('open');
-    }
 
     // ---------- Animated Placeholder (types out & deletes a looping series of suggestions) ----------
     (function animateSearchPlaceholder() {
@@ -132,13 +44,12 @@ import { render } from './waypoints-render-loop.js';
         tick();
     })();
 
-    let searchActiveIndex = -1;
     function setSearchActive(idx) {
         const items = Array.from(searchResults.querySelectorAll('.search-result-item'));
         if (!items.length) return;
         idx = ((idx % items.length) + items.length) % items.length;
         items.forEach(el => el.classList.remove('active'));
-        searchActiveIndex = idx;
+        appState.searchActiveIndex = idx;
         items[idx].classList.add('active');
         items[idx].scrollIntoView({ block: 'nearest' });
     }
@@ -212,10 +123,9 @@ import { render } from './waypoints-render-loop.js';
     // whole cards — cleared at the top of renderOrchestrateResult each time a fresh result comes
     // in, so it never grows to reference stale, long-gone elements.
     let dotbotAlignHighlightOn = true;
-    let dotbotAlignedRegistry = [];
     function applyAlignHighlightToggle(on) {
         dotbotAlignHighlightOn = on;
-        dotbotAlignedRegistry.forEach(entry => {
+        appState.dotbotAlignedRegistry.forEach(entry => {
             entry.el.innerHTML = alignedSentenceHTML(entry.str, entry.alignment, entry.pick);
         });
     }
@@ -271,7 +181,7 @@ import { render } from './waypoints-render-loop.js';
         const textEl = document.createElement('div');
         textEl.className = 'dotbot-example-sentence';
         textEl.innerHTML = alignedSentenceHTML(s.text, s.alignment, (p) => p.sourcePhrase);
-        dotbotAlignedRegistry.push({ el: textEl, str: s.text, alignment: s.alignment, pick: (p) => p.sourcePhrase });
+        appState.dotbotAlignedRegistry.push({ el: textEl, str: s.text, alignment: s.alignment, pick: (p) => p.sourcePhrase });
         let translitEl = null;
         if (s.romanization && !isLatinScriptText(s.text)) {
             translitEl = document.createElement('div');
@@ -283,7 +193,7 @@ import { render } from './waypoints-render-loop.js';
             translationEl = document.createElement('div');
             translationEl.className = 'dotbot-example-translation';
             translationEl.innerHTML = alignedSentenceHTML(s.translation, s.alignment, (p) => p.targetPhrase);
-            dotbotAlignedRegistry.push({ el: translationEl, str: s.translation, alignment: s.alignment, pick: (p) => p.targetPhrase });
+            appState.dotbotAlignedRegistry.push({ el: translationEl, str: s.translation, alignment: s.alignment, pick: (p) => p.targetPhrase });
         }
         return { textEl, translitEl, translationEl };
     }
@@ -301,7 +211,6 @@ import { render } from './waypoints-render-loop.js';
     // submit happened while it was waiting, even in the edge case where its response arrives
     // right as/after Enter is pressed (too late for the abort() below to actually cancel it) —
     // otherwise it would clobber the "thinking..." loading state with a stale suggestions list.
-    let dotbotSearchGeneration = 0;
 
     function clearSearch() {
         if (!searchInput) return;
@@ -381,7 +290,7 @@ import { render } from './waypoints-render-loop.js';
         if (dotbotSuggestAbortController) dotbotSuggestAbortController.abort();
         const q = value.trim();
         if (q.length < 2) { searchSuggestions.innerHTML = ''; searchSuggestions.style.display = 'none'; updateSearchDropdown(); return; }
-        const generationAtScheduleTime = dotbotSearchGeneration;
+        const generationAtScheduleTime = appState.dotbotSearchGeneration;
         dotbotSuggestDebounceTimer = setTimeout(async () => {
             dotbotSuggestAbortController = new AbortController();
             let suggestions = [];
@@ -398,7 +307,7 @@ import { render } from './waypoints-render-loop.js';
                 // shows its own "thinking..." loading state in this same #search-suggestions
                 // element, which these stale suggestions would otherwise clobber the instant this
                 // response lands, even though abort() above didn't catch it in time.
-                if (generationAtScheduleTime !== dotbotSearchGeneration) return;
+                if (generationAtScheduleTime !== appState.dotbotSearchGeneration) return;
                 suggestions = data.suggestions || [];
             } catch (e) {
                 if (e.name === 'AbortError') return;
@@ -565,5 +474,4 @@ import { render } from './waypoints-render-loop.js';
         clearSearch();
     }
 
-
-export { addCardsToSearchContext, applyAlignHighlightToggle, buildAlignedSentenceEls, clearSearch, clearSearchCardContext, closeSearchCardsModal, countSourceEntries, dotbotAlignHighlightOn, dotbotAlignedRegistry, dotbotErrorMessage, dotbotSearchGeneration, dotbotSuggestAbortController, dotbotSuggestDebounceTimer, escapeHtml, findParentFolderId, getItemSearchText, handleSearchFocus, handleSearchInput, isLatinScriptText, openSearchCardsModal, searchActiveIndex, searchCardConnections, searchCardContext, setSearchActive, setupDotbotResultDrag, speakerIconHTML, stripHtml, truncateCenter, typewriterReveal, updateSearchDropdown };
+export { applyAlignHighlightToggle, buildAlignedSentenceEls, clearSearch, countSourceEntries, dotbotAlignHighlightOn, dotbotErrorMessage, dotbotSuggestAbortController, dotbotSuggestDebounceTimer, escapeHtml, findParentFolderId, getItemSearchText, handleSearchFocus, handleSearchInput, isLatinScriptText, setSearchActive, setupDotbotResultDrag, speakerIconHTML, stripHtml, truncateCenter, typewriterReveal, updateSearchDropdown };

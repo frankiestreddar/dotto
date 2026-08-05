@@ -5,6 +5,7 @@ import { findItemById } from './live-presence.js';
 import { showSelectionToolbarFor } from './search-orchestration-selection.js';
 import { render } from './waypoints-render-loop.js';
 
+
     // ---------- Media card ----------
     function renderMediaHTML(it) {
         if (it.mediaUploading) {
@@ -358,6 +359,5 @@ import { render } from './waypoints-render-loop.js';
 
         return wrap;
     }
-
 
 export { buildEpubViewer, buildPdfViewer, clearMedia, renderMediaHTML, setMediaFromLink, triggerMediaUpload };

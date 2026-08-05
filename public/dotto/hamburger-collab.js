@@ -5,9 +5,10 @@ import { saveWorkspaceNow, smoothPanTo } from './history-autosave.js';
 import { flashCanvasElement } from './mnemonic-search-matching.js';
 import { closeHamburgerMenu, hubCollabSearchInput } from './panels-hamburger.js';
 import { closeProfilePanel, openPricingOverlay, renderAvatarInto } from './profile-achievements-pricing.js';
-import { announceEnteredCollaboration, ensureSharedFolderLoaded, openSharedCanvas, outlineIcon, preSharedViewState, sharedFolderKey } from './shared-canvases-outline.js';
+import { announceEnteredCollaboration, ensureSharedFolderLoaded, openSharedCanvas, outlineIcon, sharedFolderKey } from './shared-canvases-outline.js';
 import { pushNotification } from './stopwatch-search-notifications.js';
 import { deleteCanvasCollabsForFolder, expandWaypointCard, openFolder, render } from './waypoints-render-loop.js';
+
 
     // ---------- Hamburger "Collaborations" panel ----------
     // Two views sharing #hub-collab-list: the main list (a "Requests" row with a pending-count
@@ -15,7 +16,6 @@ import { deleteCanvasCollabsForFolder, expandWaypointCard, openFolder, render } 
     // openSharedCanvas) and the Requests view (every pending invite, Accept/Decline each) —
     // swapped via hubCollabView rather than a separate hub-subpanel, since it's a drill-down
     // within Collaborations, not a distinct top-level hamburger menu item.
-    let hubCollabView = 'main';
     let incomingCanvasRequests = []; // [{id, folderId, folderTitle, ownerId, ownerName}]
     let acceptedCanvasCollaborations = []; // [{id, folderId, folderTitle, ownerId, ownerName, ownerAvatarId, ownerAvatarUrl}] — shared WITH this user
     let ownedCanvasCollaborations = []; // [{folderId, folderTitle, collaborators:[{id,username,displayName,avatarId,avatarUrl}]}] — shared BY this user
@@ -85,7 +85,7 @@ import { deleteCanvasCollabsForFolder, expandWaypointCard, openFolder, render } 
     // makes which is which obvious.
     async function renderHubCollabList(query) {
         await refreshCanvasCollabData();
-        if (hubCollabView === 'requests') { renderHubCollabRequests(); return; }
+        if (appState.hubCollabView === 'requests') { renderHubCollabRequests(); return; }
         const list = document.getElementById('hub-collab-list');
         list.innerHTML = '';
 
@@ -93,7 +93,7 @@ import { deleteCanvasCollabsForFolder, expandWaypointCard, openFolder, render } 
             const reqRow = document.createElement('div');
             reqRow.className = 'outline-item requests-row';
             reqRow.innerHTML = `<span class="outline-label">Requests</span><span class="requests-count">${incomingCanvasRequests.length}</span>`;
-            reqRow.onclick = (e) => { e.stopPropagation(); hubCollabView = 'requests'; renderHubCollabRequests(); };
+            reqRow.onclick = (e) => { e.stopPropagation(); appState.hubCollabView = 'requests'; renderHubCollabRequests(); };
             list.appendChild(reqRow);
         }
 
@@ -200,7 +200,7 @@ import { deleteCanvasCollabsForFolder, expandWaypointCard, openFolder, render } 
         const backRow = document.createElement('div');
         backRow.className = 'requests-back-row';
         backRow.innerHTML = `<span>&larr;</span><span>Requests</span>`;
-        backRow.onclick = (e) => { e.stopPropagation(); hubCollabView = 'main'; renderHubCollabList(hubCollabSearchInput.value); };
+        backRow.onclick = (e) => { e.stopPropagation(); appState.hubCollabView = 'main'; renderHubCollabList(hubCollabSearchInput.value); };
         list.appendChild(backRow);
 
         if (!incomingCanvasRequests.length) {
@@ -308,10 +308,10 @@ import { deleteCanvasCollabsForFolder, expandWaypointCard, openFolder, render } 
             if (it) peekWaypointCard(folderId, it);
             return;
         }
-        const isFreshEntry = !preSharedViewState;
-        if (isFreshEntry) preSharedViewState = { currentFolderId: appState.currentFolderId, historyStack: appState.historyStack.slice(), historyIndex: appState.historyIndex };
+        const isFreshEntry = !appState.preSharedViewState;
+        if (isFreshEntry) appState.preSharedViewState = { currentFolderId: appState.currentFolderId, historyStack: appState.historyStack.slice(), historyIndex: appState.historyIndex };
         const localKeys = await resolveSharedFolderChain(ownerId, folderId);
-        if (!localKeys) { if (isFreshEntry) preSharedViewState = null; return; }
+        if (!localKeys) { if (isFreshEntry) appState.preSharedViewState = null; return; }
         appState.currentFolderId = localKeys[localKeys.length - 1];
         appState.historyStack = localKeys;
         appState.historyIndex = localKeys.length - 1;
@@ -340,5 +340,4 @@ import { deleteCanvasCollabsForFolder, expandWaypointCard, openFolder, render } 
     drawSettings.addEventListener('click', (e) => e.stopPropagation());
     addMenu.addEventListener('click', (e) => e.stopPropagation());
 
-
-export { hmenuAction, hubCollabView, renderHubCollabList, renderWaypointsList, resolveSharedFolderChain };
+export { hmenuAction, renderHubCollabList, renderWaypointsList, resolveSharedFolderChain };

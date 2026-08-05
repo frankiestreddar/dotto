@@ -15,6 +15,7 @@ import { updateDrawLayerBtns } from './srs-connections-core.js';
 import { currentNotification, searchDropdown } from './stopwatch-search-notifications.js';
 import { cascadeDeleteFolderContents, centerOnContent, deleteWaypointFromDb, render, renderSelectedOutlines } from './waypoints-render-loop.js';
 
+
     // ---------- Element Resize System ----------
     function setupResizing(el, it) {
         const handle = el.querySelector('.resize');
@@ -182,6 +183,7 @@ import { cascadeDeleteFolderContents, centerOnContent, deleteWaypointFromDb, ren
     })();
     refreshFriendsData().then(() => renderCollabPill());
     refreshDotbotUsage();
+
 
 
 export { deleteSelectedCards, findNextFreeSlot, setTableAlign, setupResizing };

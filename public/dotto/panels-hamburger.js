@@ -1,12 +1,14 @@
 import { clearSearch } from './ai-assistant-suggestions.js';
 import { closeAddMenu } from './copy-paste.js';
+import { appState } from './core-state.js';
 import { closeCollabPanel } from './friends-presence.js';
-import { hubCollabView, renderHubCollabList, renderWaypointsList } from './hamburger-collab.js';
+import { renderHubCollabList, renderWaypointsList } from './hamburger-collab.js';
 import { closeCartPanel } from './marketplace.js';
 import { closeMessagesPanel } from './messages-schedule.js';
 import { closeProfilePanel } from './profile-achievements-pricing.js';
 import { buildOutline, closeBreadcrumbMapPanel } from './shared-canvases-outline.js';
 import { closeSourceAddMenu } from './source-buttons-cursor-mode.js';
+
 
     // ---------- Hover/Pin Panel Helper ----------
     // Panels can be opened two ways: hovering the trigger button opens them temporarily
@@ -113,11 +115,10 @@ import { closeSourceAddMenu } from './source-buttons-cursor-mode.js';
     }
     function openWaypointsPanel() { openHubSubpanel(waypointsPanel, waypointsSearchInput, renderWaypointsList); }
     function openHubCollabPanel() {
-        hubCollabView = 'main'; // always land on the main list, never mid-Requests from last time
+        appState.hubCollabView = 'main'; // always land on the main list, never mid-Requests from last time
         openHubSubpanel(hubCollabPanel, hubCollabSearchInput, renderHubCollabList);
     }
     function handleWaypointsSearch(v) { renderWaypointsList(v); }
     function handleHubCollabSearch(v) { renderHubCollabList(v); }
-
 
 export { accountMenu, closeAllPanels, closeHamburgerMenu, hamburgerBtn, handleHubCollabSearch, handleWaypointsSearch, hubCollabSearchInput, openHubCollabPanel, openWaypointsPanel, outlineMenu, panelPinned, pinOnInsideClick, scheduleHoverClose };

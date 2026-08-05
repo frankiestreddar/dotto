@@ -7,6 +7,7 @@ import { accountMenu, closeAllPanels, closeHamburgerMenu, hamburgerBtn, outlineM
 import { pushNotification } from './stopwatch-search-notifications.js';
 import { applyFolderView, centerOnContent, expandWaypointCard, openFolder, render } from './waypoints-render-loop.js';
 
+
     // ---------- Live-shared canvases (accepted canvas_collaborations — see the hamburger
     // Collaborations panel) ----------
     // A canvas someone else owns isn't part of this user's own folder tree at all — it's fetched
@@ -25,7 +26,7 @@ import { applyFolderView, centerOnContent, expandWaypointCard, openFolder, rende
     // OWN containing folder is fetched (see injectSharedFolder) — so a later openFolder() on one
     // of those items resolves to a shared: key too, and ensureSharedFolderLoaded fetches it lazily
     // the first time it's actually navigated into, exactly like the entry point was.
-    let preSharedViewState = null; // { currentFolderId, historyStack, historyIndex } from just before entering the top-level shared canvas — restored by exitSharedCanvas
+ // { currentFolderId, historyStack, historyIndex } from just before entering the top-level shared canvas — restored by exitSharedCanvas
     const sharedOwnerNameCache = {}; // ownerId -> display name, populated wherever it's already known (openSharedCanvas's caller) — see announceEnteredCollaboration/renderHubCollabList
     function sharedFolderKey(ownerId, folderId) { return `shared:${ownerId}:${folderId}`; }
     function parseSharedFolderKey(key) {
@@ -104,8 +105,8 @@ import { applyFolderView, centerOnContent, expandWaypointCard, openFolder, rende
         }
         const localKey = injectSharedFolder(ownerId, folderId, data);
         if (title) appState.folders[localKey].title = data.title || title;
-        const isFreshEntry = !preSharedViewState;
-        if (isFreshEntry) preSharedViewState = { currentFolderId: appState.currentFolderId, historyStack: appState.historyStack.slice(), historyIndex: appState.historyIndex };
+        const isFreshEntry = !appState.preSharedViewState;
+        if (isFreshEntry) appState.preSharedViewState = { currentFolderId: appState.currentFolderId, historyStack: appState.historyStack.slice(), historyIndex: appState.historyIndex };
         appState.currentFolderId = localKey;
         appState.historyStack = [localKey];
         appState.historyIndex = 0;
@@ -141,9 +142,9 @@ import { applyFolderView, centerOnContent, expandWaypointCard, openFolder, rende
     // (see renderBreadcrumbMapPanel) is specifically meant as an unconditional "take me home"
     // affordance, always available regardless of how deep into someone else's canvas you are).
     function exitSharedCanvasToRoot() {
-        if (!preSharedViewState) return;
+        if (!appState.preSharedViewState) return;
         for (const id in appState.folders) { if (id.startsWith('shared:')) delete appState.folders[id]; }
-        preSharedViewState = null;
+        appState.preSharedViewState = null;
         appState.currentFolderId = 'root';
         appState.historyStack = ['root'];
         appState.historyIndex = 0;
@@ -506,5 +507,4 @@ import { applyFolderView, centerOnContent, expandWaypointCard, openFolder, rende
         }
     }
 
-
-export { announceEnteredCollaboration, buildOutline, closeBreadcrumbMapPanel, ensureSharedFolderLoaded, goToOutlineItem, jumpToHistoryIndex, kindIconHTML, namespaceSharedFolderIds, openBreadcrumbMapPanel, openSharedCanvas, outlineActiveIndex, outlineIcon, outlineRows, parseSharedFolderKey, preSharedViewState, setOutlineActive, sharedFolderKey, stripSharedFolderIds, toggleHamburgerMenu };
+export { announceEnteredCollaboration, buildOutline, closeBreadcrumbMapPanel, ensureSharedFolderLoaded, goToOutlineItem, jumpToHistoryIndex, kindIconHTML, namespaceSharedFolderIds, openBreadcrumbMapPanel, openSharedCanvas, outlineActiveIndex, outlineIcon, outlineRows, parseSharedFolderKey, setOutlineActive, sharedFolderKey, stripSharedFolderIds, toggleHamburgerMenu };

@@ -1,12 +1,12 @@
-import { addMenuSearching, currentAddTab, kindSize, switchAddTab } from './add-menu.js';
+import { currentAddTab, kindSize, switchAddTab } from './add-menu.js';
 import { addMenu, appState, canvas, world } from './core-state.js';
-import { drawMode } from './drawing-connections.js';
 import { saveSnapshot } from './history-autosave.js';
 import { findItemById } from './live-presence.js';
 import { closeAllPanels, panelPinned, scheduleHoverClose } from './panels-hamburger.js';
 import { deleteSelectedCards } from './resize-shortcuts-init.js';
 import { setDrawMode } from './srs-connections-core.js';
 import { render, renderSelectedOutlines } from './waypoints-render-loop.js';
+
 
     // ---------- Copy / Cut / Paste (Cmd/Ctrl+C / X / V — see the keydown handler above) ----------
     // Independent of the OS clipboard — an in-memory snapshot of whatever was selected at copy
@@ -117,12 +117,12 @@ import { render, renderSelectedOutlines } from './waypoints-render-loop.js';
     const addToolbar = document.getElementById('add-toolbar');
     function closeAddMenu() { addMenu.style.display = 'none'; panelPinned.add = false; }
     function openAddMenu(pin) {
-        if (drawMode) setDrawMode(false);
+        if (appState.drawMode) setDrawMode(false);
         closeAllPanels('add');
         addMenu.style.display = 'flex';
         // Always reopens showing tabs, never mid-search from a previous visit.
-        if (addMenuSearching) {
-            addMenuSearching = false;
+        if (appState.addMenuSearching) {
+            appState.addMenuSearching = false;
             document.getElementById('add-menu-tabs').classList.remove('searching');
             document.getElementById('add-menu-search-btn').classList.remove('active');
         }
@@ -147,6 +147,5 @@ import { render, renderSelectedOutlines } from './waypoints-render-loop.js';
     addToolbar.addEventListener('mouseleave', () => scheduleHoverClose('add', addMenuHoverEls, closeAddMenu));
     addMenu.addEventListener('mouseleave', () => scheduleHoverClose('add', addMenuHoverEls, closeAddMenu));
     addMenuActions.addEventListener('mouseleave', () => scheduleHoverClose('add', addMenuHoverEls, closeAddMenu));
-
 
 export { addToolbar, cardClipboard, closeAddMenu, copySelectedCards, cutSelectedCards, pasteClipboardCards, prepareAdd, removePlacementGhost };

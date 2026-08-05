@@ -7,7 +7,7 @@
 // than hand-editing — the list has to stay provably complete against the actual call sites.
 
 import { handleAddMenuSearchInput, newSourceClicked, switchAddTab, toggleAddMenuSearch } from './add-menu.js';
-import { clearSearchCardContext, closeSearchCardsModal, handleSearchFocus, handleSearchInput, openSearchCardsModal } from './ai-assistant-suggestions.js';
+import { handleSearchFocus, handleSearchInput } from './ai-assistant-suggestions.js';
 import { addTask, editBookmark, editEmbed, removeTask, toggleTask, updateTaskDeadline, updateTaskText } from './cards-misc.js';
 import { prepareAdd } from './copy-paste.js';
 import { handleCollabSearch, handleMsgSearch, openCollabPanel } from './friends-presence.js';
@@ -25,7 +25,7 @@ import { setTableAlign } from './resize-shortcuts-init.js';
 import { openCellAddMenu } from './source-buttons-cursor-mode.js';
 import { addTableCol, addTableRow, handleTableKeydown, startCellAudioRecording, stopCellAudioRecording, triggerCellAudioUpload, triggerCellImageUpload, updateTableCell } from './source-table.js';
 import { closeCellTagPicker, closeTagContextMenu, commitTagRename, createTagFromCellPicker, deleteActiveTag, handleTagRenameKeydown, openTagContextMenu, startRenameActiveTag, toggleCellTag, triggerSourceUpload } from './source-tags-ai.js';
-import { filterShelfRows, handleShelfSourceRowClick, runNotificationAction, setFilterMode, shelfSelectSession, startRenameShelfName, startRenameShelfSourceRow, swTogglePause, swToggleRun, toggleFilterTag } from './stopwatch-search-notifications.js';
+import { clearSearchCardContext, closeSearchCardsModal, filterShelfRows, handleShelfSourceRowClick, openSearchCardsModal, runNotificationAction, setFilterMode, shelfSelectSession, startRenameShelfName, startRenameShelfSourceRow, swTogglePause, swToggleRun, toggleFilterTag } from './stopwatch-search-notifications.js';
 
 window.addGameColumnSlot = addGameColumnSlot;
 window.addItemToCustomFolderById = addItemToCustomFolderById;

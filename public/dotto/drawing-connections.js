@@ -5,9 +5,8 @@ import { bumpAchievementStat } from './profile-achievements-pricing.js';
 import { isValidConnection } from './srs-connections-core.js';
 import { render } from './waypoints-render-loop.js';
 
+
     // ---------- Drawing mode ----------
-    let drawMode = false, drawColor = '#ffffff', drawLayer = 'front', drawTool = 'pen', drawSize = 3;
-    let liveSvg = null, livePath = null, drawing = null;
 
     function pathToPoints(d) {
         const nums = d.match(/-?\d+(\.\d+)?/g);
@@ -210,5 +209,4 @@ import { render } from './waypoints-render-loop.js';
         return findTableById(id) || findItemById(id);
     }
 
-
-export { computeConnectorPoints, createConnection, drawColor, drawLayer, drawMode, drawSize, drawTool, drawing, ensureConnections, ensureDrawings, findLinkedTable, findTableById, folderIdForConnectedSource, folderTitleForConnectedSource, itemRect, linkSelectedCards, livePath, liveSvg, makeLayerSVG, pathNearPoint, pointsToLinePath, pointsToPath, resolveTableForEdit };
+export { computeConnectorPoints, createConnection, ensureConnections, ensureDrawings, findLinkedTable, findTableById, folderIdForConnectedSource, folderTitleForConnectedSource, itemRect, linkSelectedCards, makeLayerSVG, pathNearPoint, pointsToLinePath, pointsToPath, resolveTableForEdit };

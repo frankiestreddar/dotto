@@ -1,11 +1,12 @@
-import { escapeHtml, searchCardContext } from './ai-assistant-suggestions.js';
+import { escapeHtml } from './ai-assistant-suggestions.js';
 import { appState } from './core-state.js';
-import { folderIdForConnectedSource, folderTitleForConnectedSource } from './drawing-connections.js';
+import { ensureConnections, folderIdForConnectedSource, folderTitleForConnectedSource } from './drawing-connections.js';
 import { syncCanvasCollabTitle } from './friends-presence.js';
 import { saveSnapshot, scheduleWorkspaceSave } from './history-autosave.js';
-import { broadcastEditingState, findItemById } from './live-presence.js';
+import { broadcastEditingState, findItemById, renderInlineCanvas, sanitizeFlashcardSnapshot, snapshotItem } from './live-presence.js';
 import { applyFilterToRows, collectAvailableFilterTags, diffRatings } from './srs-connections-core.js';
 import { openFolder, render } from './waypoints-render-loop.js';
+
 
     // ---------- Stopwatch card ----------
     function swFormatTime(ms) {
@@ -552,5 +553,92 @@ import { openFolder, render } from './waypoints-render-loop.js';
         if (searchInput.scrollHeight > searchInput.clientHeight) searchInput.scrollTop = searchInput.scrollHeight;
     }
 
+    // ---------- Card context: cards dragged into the search box as AI context ----------
+    // Persists across searches (unlike the text input, which clears after every search) so
+    // follow-up questions about the same attached cards don't require redragging — only cleared
+    // by the global outside-click handler, alongside every other ephemeral search-state reset.
+    let searchCardContext = []; // { id, snapshot }
+    let searchCardConnections = []; // { fromId, toId } — copied across from the live folder for
+    // any pair that was dragged in together, so a data-mode link between two dragged cards
+    // survives into the popup preview.
 
-export { autoGrowSearchInput, currentNotification, filterShelfRows, handleShelfSourceRowClick, pushNotification, renderFilterHTML, renderShelfHTML, renderStopwatchHTML, runNotificationAction, searchCardPill, searchCardPillLabel, searchDictionary, searchDotbotAnswer, searchDropdown, searchExamples, searchImageResult, searchInput, searchInputWrap, searchRecommended, searchResults, searchSpinner, searchSuggestions, searchTranslation, setFilterMode, shelfSelectSession, startRenameShelfName, startRenameShelfSourceRow, swCurrentElapsedMs, swFormatTime, swTogglePause, swToggleRun, toggleFilterTag, updateSearchSpaceHint };
+    function renderSearchCardPill() {
+        if (!searchCardPill) return;
+        const n = searchCardContext.length;
+        searchCardPill.classList.toggle('visible', n > 0);
+        searchInput.classList.toggle('has-pill', n > 0);
+        searchCardPillLabel.textContent = n > 0 ? `${n} card${n === 1 ? '' : 's'}` : '';
+        autoGrowSearchInput();
+    }
+
+    // Adds `ids` (a drag gesture's card ids — a single card or a multi-selection) to the
+    // persistent card-context set. Each is snapshotted and sanitized exactly like a
+    // marketplace/chat export (see sanitizeFlashcardSnapshot) using the OTHER ids in this same
+    // call as the batch, so a flashcard dragged together with its source keeps real data, but
+    // dragged alone it's generic-ified — same source-of-truth rule either way. Connections
+    // between two cards that are both part of this drag are copied across too, so the link
+    // itself (not just the two cards) survives into the popup preview.
+    function addCardsToSearchContext(ids) {
+        const folder = appState.folders[appState.currentFolderId];
+        if (!folder) return;
+        ids.forEach(id => {
+            if (searchCardContext.some(c => c.id === id)) return;
+            const it = findItemById(id);
+            if (!it) return;
+            searchCardContext.push({ id, snapshot: sanitizeFlashcardSnapshot(snapshotItem(it), ids) });
+        });
+        const conns = ensureConnections(folder);
+        conns.forEach(c => {
+            if (!ids.includes(c.fromId) || !ids.includes(c.toId)) return;
+            if (searchCardConnections.some(sc => sc.fromId === c.fromId && sc.toId === c.toId)) return;
+            searchCardConnections.push({ fromId: c.fromId, toId: c.toId });
+        });
+        renderSearchCardPill();
+    }
+
+    function removeSearchCardContextItem(id) {
+        searchCardContext = searchCardContext.filter(c => c.id !== id);
+        searchCardConnections = searchCardConnections.filter(c => c.fromId !== id && c.toId !== id);
+        renderSearchCardPill();
+        if (!searchCardContext.length) { closeSearchCardsModal(); return; }
+        if (document.getElementById('search-cards-modal-overlay').classList.contains('open')) openSearchCardsModal();
+    }
+
+    // The pill's hover-reveal "✕" — clears every attached card at once, unlike
+    // removeSearchCardContextItem which only drops one.
+    function clearSearchCardContext() {
+        searchCardContext = [];
+        searchCardConnections = [];
+        renderSearchCardPill();
+        closeSearchCardsModal();
+    }
+
+    // Packs a flat set of snapshots into a neat grid (ceil(sqrt(n)) columns, uniform spacing
+    // derived from the largest card's own w/h) purely for the popup preview — mutates copies
+    // only, never the stored snapshot's original x/y (which is meaningless outside its original
+    // canvas anyway) or anything on the live canvas.
+    function layoutSnapshotsInGrid(snapshots) {
+        const n = snapshots.length;
+        const cols = Math.max(1, Math.ceil(Math.sqrt(n)));
+        const maxW = Math.max(100, ...snapshots.map(s => s.w || 100));
+        const maxH = Math.max(60, ...snapshots.map(s => s.h || 60));
+        const gap = 40;
+        return snapshots.map((s, i) => Object.assign({}, s, {
+            x: (i % cols) * (maxW + gap),
+            y: Math.floor(i / cols) * (maxH + gap),
+        }));
+    }
+
+    function openSearchCardsModal() {
+        if (!searchCardContext.length) return;
+        const laidOut = layoutSnapshotsInGrid(searchCardContext.map(c => c.snapshot));
+        const body = document.getElementById('search-cards-modal-body');
+        body.innerHTML = '';
+        body.appendChild(renderInlineCanvas(laidOut, false, searchCardConnections, (id) => removeSearchCardContextItem(id)));
+        document.getElementById('search-cards-modal-overlay').classList.add('open');
+    }
+    function closeSearchCardsModal() {
+        document.getElementById('search-cards-modal-overlay').classList.remove('open');
+    }
+
+export { addCardsToSearchContext, autoGrowSearchInput, clearSearchCardContext, closeSearchCardsModal, currentNotification, filterShelfRows, handleShelfSourceRowClick, openSearchCardsModal, pushNotification, renderFilterHTML, renderShelfHTML, renderStopwatchHTML, runNotificationAction, searchCardConnections, searchCardContext, searchDictionary, searchDotbotAnswer, searchDropdown, searchExamples, searchImageResult, searchInput, searchInputWrap, searchRecommended, searchResults, searchSpinner, searchSuggestions, searchTranslation, setFilterMode, shelfSelectSession, startRenameShelfName, startRenameShelfSourceRow, swCurrentElapsedMs, swFormatTime, swTogglePause, swToggleRun, toggleFilterTag, updateSearchSpaceHint };

@@ -1,18 +1,19 @@
-import { clearSearch, closeSearchCardsModal } from './ai-assistant-suggestions.js';
+import { clearSearch } from './ai-assistant-suggestions.js';
 import { cardClipboard, copySelectedCards, cutSelectedCards, pasteClipboardCards } from './copy-paste.js';
 import { appState, canvas, canvasContextMenu, contextMenu, dotLayer, recomputeTopCardZIndex, supabase, world, zoomFill, zoomThumb, zoomTrack } from './core-state.js';
 import { cancelDotbotScheduleConversation, dotbotScheduleConversation } from './dotbot-schedule-notifications.js';
-import { drawMode, resolveTableForEdit } from './drawing-connections.js';
+import { resolveTableForEdit } from './drawing-connections.js';
 import { resolveSharedFolderChain } from './hamburger-collab.js';
 import { broadcastCursorPositionThrottled, closeSharedCanvasView, ensureCanvasPresenceChannel, findItemById, queueSyncDiff, repositionAllRemoteCursors } from './live-presence.js';
-import { exitScheduleViewMode, scheduleViewMode, scheduledEvents } from './messages-schedule.js';
+import { exitScheduleViewMode, scheduleViewMode } from './messages-schedule.js';
 import { closeAllPanels } from './panels-hamburger.js';
 import { closeDotbotUpgradeModal, closePricingOverlay } from './profile-achievements-pricing.js';
-import { preSharedViewState, stripSharedFolderIds } from './shared-canvases-outline.js';
+import { stripSharedFolderIds } from './shared-canvases-outline.js';
 import { closeCellTagPicker } from './source-tags-ai.js';
 import { cancelAddingKind, setDrawMode } from './srs-connections-core.js';
-import { searchInput, swCurrentElapsedMs, swFormatTime } from './stopwatch-search-notifications.js';
+import { closeSearchCardsModal, searchInput, swCurrentElapsedMs, swFormatTime } from './stopwatch-search-notifications.js';
 import { centerOnContent, render } from './waypoints-render-loop.js';
+
 
     // ---------- Undo / Redo ----------
     let undoStack = [], redoStack = [];
@@ -82,9 +83,9 @@ import { centerOnContent, render } from './waypoints-render-loop.js';
         // since that key wouldn't mean anything on a fresh load without re-fetching.
         const localFolders = {};
         for (const id in appState.folders) { if (!id.startsWith('shared:')) localFolders[id] = appState.folders[id]; }
-        const resumeFolderId = preSharedViewState ? preSharedViewState.currentFolderId : appState.currentFolderId;
-        const resumeStack = preSharedViewState ? preSharedViewState.historyStack : appState.historyStack;
-        const resumeIndex = preSharedViewState ? preSharedViewState.historyIndex : appState.historyIndex;
+        const resumeFolderId = appState.preSharedViewState ? appState.preSharedViewState.currentFolderId : appState.currentFolderId;
+        const resumeStack = appState.preSharedViewState ? appState.preSharedViewState.historyStack : appState.historyStack;
+        const resumeIndex = appState.preSharedViewState ? appState.preSharedViewState.historyIndex : appState.historyIndex;
         // A shared canvas isn't reachable from resumeFolderId alone (it's someone else's tree,
         // fetched on demand — see the comment above) — so a refresh/reload used to always silently
         // drop back to wherever this user's own navigation was just before entering, kicking them
@@ -110,7 +111,7 @@ import { centerOnContent, render } from './waypoints-render-loop.js';
             // for any other reason captures wherever the camera currently is, and pagehide/
             // visibilitychange below call this directly so a plain refresh or tab close always
             // gets one in first.
-            data: { folders: localFolders, idCounter: appState.idCounter, historyStack: resumeStack, historyIndex: resumeIndex, scheduledEvents, tx: appState.tx, ty: appState.ty, scale: appState.scale, lastSharedView },
+            data: { folders: localFolders, idCounter: appState.idCounter, historyStack: resumeStack, historyIndex: resumeIndex, scheduledEvents: appState.scheduledEvents, tx: appState.tx, ty: appState.ty, scale: appState.scale, lastSharedView },
             current_folder_id: resumeFolderId,
             updated_at: new Date().toISOString()
         });
@@ -147,7 +148,7 @@ import { centerOnContent, render } from './waypoints-render-loop.js';
         appState.folders = data.data.folders;
         appState.idCounter = data.data.idCounter;
         recomputeTopCardZIndex();
-        if (Array.isArray(data.data.scheduledEvents)) scheduledEvents = data.data.scheduledEvents;
+        if (Array.isArray(data.data.scheduledEvents)) appState.scheduledEvents = data.data.scheduledEvents;
 
         const savedStack = data.data.historyStack;
         if (Array.isArray(savedStack) && savedStack.length && savedStack[0] === 'root' &&
@@ -173,14 +174,14 @@ import { centerOnContent, render } from './waypoints-render-loop.js';
         // not just the collaboration's top level.
         if (data.data.lastSharedView && data.data.lastSharedView.ownerId && data.data.lastSharedView.folderId) {
             const { ownerId, folderId } = data.data.lastSharedView;
-            preSharedViewState = { currentFolderId: appState.currentFolderId, historyStack: appState.historyStack.slice(), historyIndex: appState.historyIndex };
+            appState.preSharedViewState = { currentFolderId: appState.currentFolderId, historyStack: appState.historyStack.slice(), historyIndex: appState.historyIndex };
             const localKeys = await resolveSharedFolderChain(ownerId, folderId);
             if (localKeys) {
                 appState.currentFolderId = localKeys[localKeys.length - 1];
                 appState.historyStack = localKeys;
                 appState.historyIndex = localKeys.length - 1;
             } else {
-                preSharedViewState = null; // couldn't resume — stay on this user's own canvas instead
+                appState.preSharedViewState = null; // couldn't resume — stay on this user's own canvas instead
             }
         }
 
@@ -345,7 +346,7 @@ import { centerOnContent, render } from './waypoints-render-loop.js';
             if (dotbotScheduleConversation) cancelDotbotScheduleConversation();
             clearSearch();
             if (searchInput) searchInput.blur();
-            if (drawMode) setDrawMode(false);
+            if (appState.drawMode) setDrawMode(false);
             if (appState.addingKind) cancelAddingKind();
             if (scheduleViewMode) exitScheduleViewMode();
             // Escape switching the cursor back to Normal mode (tap vs. hold, same as the
@@ -508,6 +509,5 @@ import { centerOnContent, render } from './waypoints-render-loop.js';
         zoomFill.style.height = y + 'px';
         zoomThumb.style.bottom = y + 'px';
     }
-
 
 export { ZOOM_MAX, ZOOM_MIN, applyTransform, deleteContextColumn, deleteContextRow, ensureSwTicking, hideCanvasContextMenu, highlightContextColumn, highlightContextRow, loadWorkspace, redo, saveSnapshot, saveWorkspaceNow, scheduleApplyTransform, scheduleWorkspaceSave, smoothPanTo, undo, undoStack, updateContextMenuPosition };

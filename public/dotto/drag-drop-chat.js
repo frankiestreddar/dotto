@@ -1,14 +1,14 @@
-import { addCardsToSearchContext } from './ai-assistant-suggestions.js';
 import { appState, bringCardToFront, canvas, effectiveMode, supabase, world } from './core-state.js';
 import { startScheduleConversation } from './dotbot-schedule-notifications.js';
-import { drawMode } from './drawing-connections.js';
-import { activeConvoId, friends, renderMsgList } from './friends-presence.js';
+import { friends, renderMsgList } from './friends-presence.js';
 import { applyTransform, saveSnapshot, undoStack } from './history-autosave.js';
 import { broadcastItemDragPositions, findItemById, renderConvoBody, sanitizeFlashcardSnapshot, snapshotItem } from './live-presence.js';
 import { cartPanel, packageSelectedAsTemplate } from './marketplace.js';
 import { messagesPanel, scheduleBtn } from './messages-schedule.js';
 import { deepCloneItem, deleteClonedItemFolders, startConnectionDrag, startDrawStroke } from './srs-connections-core.js';
+import { addCardsToSearchContext } from './stopwatch-search-notifications.js';
 import { performMerge, render, renderSelectedOutlines } from './waypoints-render-loop.js';
+
 
     // ---------- Element Drag and Drop System ----------
     function setupDraggingAndClicking(el, it) {
@@ -56,7 +56,7 @@ import { performMerge, render, renderSelectedOutlines } from './waypoints-render
                 return;
             }
 
-            if (drawMode) {
+            if (appState.drawMode) {
                 if (appState.folders[appState.currentFolderId] && appState.folders[appState.currentFolderId].isSource) return;
                 e.stopPropagation();
                 startDrawStroke(e);
@@ -321,8 +321,8 @@ import { performMerge, render, renderSelectedOutlines } from './waypoints-render
 
     // ---------- Dispatch to Chat Interaction ----------
     async function dispatchSelectedToChat(targetIt) {
-        if (!activeConvoId) return;
-        const f = friends.find(x => x.id === activeConvoId);
+        if (!appState.activeConvoId) return;
+        const f = friends.find(x => x.id === appState.activeConvoId);
         if (!f) return;
 
         saveSnapshot();
@@ -349,6 +349,5 @@ import { performMerge, render, renderSelectedOutlines } from './waypoints-render
         renderConvoBody(f);
         renderMsgList('');
     }
-
 
 export { setupDraggingAndClicking };

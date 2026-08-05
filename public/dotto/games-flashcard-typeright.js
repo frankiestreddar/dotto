@@ -5,6 +5,7 @@ import { awardUserPoints, bumpAchievementStat } from './profile-achievements-pri
 import { SM2_QUALITY, calculateSM2, defaultSrsState } from './srs-connections-core.js';
 import { render } from './waypoints-render-loop.js';
 
+
     // ---------- Game options (right-click front/back column config) ----------
     // Shared by every game card kind that has a real front/back notion today (flashcard,
     // typeright). A row's raw per-column HTML (row.cells, see extractCardsFromSource) came from
@@ -637,6 +638,5 @@ import { render } from './waypoints-render-loop.js';
         it.trChecked = false;
         render();
     }
-
 
 export { addGameColumnSlot, closeGameOptionsPanel, defaultFlashcardDeck, fcFlip, fcRate, fcToggleMode, openGameOptionsPanel, removeGameColumnSlot, renderFlashcardHTML, renderTypeRightHTML, setGameColumnSlot, trCheck, trFocusInput, trNext, trToggleMode, trUpdateInput };

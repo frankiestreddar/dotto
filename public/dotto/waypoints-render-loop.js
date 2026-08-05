@@ -17,6 +17,7 @@ import { closeCellTagPicker } from './source-tags-ai.js';
 import { applyConnections, renderConnectionsLayer } from './srs-connections-core.js';
 import { renderFilterHTML, renderShelfHTML, renderStopwatchHTML } from './stopwatch-search-notifications.js';
 
+
     // ---------- Waypoint card expand/collapse ----------
     // Three entry points, all sharing the same expand/collapse machinery: hovering the card
     // (read-only, stays open until mouseleave — see the waypoint branch in render()), a direct
@@ -986,6 +987,5 @@ import { renderFilterHTML, renderShelfHTML, renderStopwatchHTML } from './stopwa
         appState.historyIndex++;
         applyFolderView(folderId);
     }
-
 
 export { applyFolderView, cascadeDeleteFolderContents, centerOnContent, deleteCanvasCollabsForFolder, deleteWaypointFromDb, expandWaypointCard, openFolder, performMerge, render, renderSelectedOutlines, startBoxSelection, syncWaypointToDb };

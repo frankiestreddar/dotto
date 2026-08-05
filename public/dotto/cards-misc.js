@@ -4,6 +4,7 @@ import { saveSnapshot, scheduleWorkspaceSave } from './history-autosave.js';
 import { findItemById } from './live-presence.js';
 import { render } from './waypoints-render-loop.js';
 
+
     // ---------- Bookmark card ----------
     function shortUrl(url) {
         try { return new URL(url).hostname; } catch (e) { return url.slice(0, 24); }
@@ -170,6 +171,5 @@ import { render } from './waypoints-render-loop.js';
         it.tasks = it.tasks.filter(x => x.id !== tid);
         render();
     }
-
 
 export { addTask, editBookmark, editEmbed, removeTask, renderChecklistHTML, renderEmbedHTML, renderStatcardHTML, shortUrl, toggleTask, updateTaskDeadline, updateTaskText };

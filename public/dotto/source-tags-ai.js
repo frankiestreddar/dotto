@@ -1,5 +1,5 @@
 import { kindSize } from './add-menu.js';
-import { escapeHtml, searchCardContext, stripHtml } from './ai-assistant-suggestions.js';
+import { escapeHtml, stripHtml } from './ai-assistant-suggestions.js';
 import { appState } from './core-state.js';
 import { resolveTableForEdit } from './drawing-connections.js';
 import { saveSnapshot, scheduleWorkspaceSave } from './history-autosave.js';
@@ -7,7 +7,9 @@ import { closeAllPanels } from './panels-hamburger.js';
 import { cellTagPicker, closeSourceAddMenu } from './source-buttons-cursor-mode.js';
 import { importDelimitedIntoSource } from './source-table.js';
 import { add } from './srs-connections-core.js';
+import { searchCardContext } from './stopwatch-search-notifications.js';
 import { render } from './waypoints-render-loop.js';
+
 
     // ---------- Dotbot-generated source content (see the "sourceAction" panel in
     // app/api/dotbot/orchestrate/route.js) ----------
@@ -300,6 +302,5 @@ import { render } from './waypoints-render-loop.js';
         }
         appState.activeTagRow = null;
     }
-
 
 export { applyAiAddRowsToSource, closeCellTagPicker, closeTagContextMenu, commitTagRename, createSourceFromAI, createTagFromCellPicker, deleteActiveTag, handleTagRenameKeydown, openRowTagPicker, openTagContextMenu, startRenameActiveTag, tagPillsHTML, toggleCellTag, triggerSourceUpload };

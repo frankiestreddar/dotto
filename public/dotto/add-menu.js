@@ -1,5 +1,7 @@
 import { prepareAdd } from './copy-paste.js';
+import { appState } from './core-state.js';
 import { toggleDrawFromMenu } from './srs-connections-core.js';
+
 
     // ---------- Add menu data ----------
     // icon paths point at /public/assets/icons/<name>.png — most of these files don't exist yet
@@ -43,31 +45,6 @@ import { toggleDrawFromMenu } from './srs-connections-core.js';
 
     // Shaped to match the eventual `marketplace_listings` table (creatorId
     // joins to `profiles`, price is metadata only for now — no real payments).
-    let trendingMarketplace = [
-        { id: 'm1', title: 'Spanish Conjugation Matrix', price: '$4.99', creatorId: 'u101', creatorUsername: 'LanguagePros', description: 'Complete map of irregular roots and structural tables. Perfect for conjugation visual tracking.',
-          canvasSnapshot: [
-            { id: 'p1a', x: 0, y: 0, w: 200, h: 50, kind: 'title', level: 2, html: 'Irregular Verbs' },
-            { id: 'p1b', x: 0, y: 70, w: 280, h: 180, kind: 'table', tableData: [['Verb', 'Yo', 'Tú'], ['ser', 'soy', 'eres'], ['ir', 'voy', 'vas'], ['tener', 'tengo', 'tienes']] },
-            { id: 'p1c', x: 310, y: 70, w: 200, h: 112, kind: 'note', html: 'Practice these daily — focus on stem changes.' }
-          ] },
-        { id: 'm2', title: 'React Performance Blueprint', price: '$8.00', creatorId: 'u102', creatorUsername: 'TechArchitect', description: 'Performance tracing models, custom hook trackers and render speed visual pathways.',
-          canvasSnapshot: [
-            { id: 'p2a', x: 0, y: 0, w: 220, h: 50, kind: 'title', level: 2, html: 'Render Pipeline' },
-            { id: 'p2b', x: 0, y: 70, w: 220, h: 112, kind: 'note', html: 'Memoize expensive components with React.memo.' },
-            { id: 'p2c', x: 250, y: 70, w: 220, h: 160, kind: 'checklist', tasks: [{ id: 1, text: 'Profile with DevTools', done: true }, { id: 2, text: 'Audit re-renders', done: false }, { id: 3, text: 'Add useMemo hooks', done: false }] }
-          ] },
-        { id: 'm3', title: 'Organic Chemistry Pathways', price: '$5.50', creatorId: 'u103', creatorUsername: 'ScienceVisuals', description: 'Advanced drawings with organic pathways designed to trigger visual memory pathways.',
-          canvasSnapshot: [
-            { id: 'p3a', x: 0, y: 0, w: 220, h: 50, kind: 'title', level: 2, html: 'Reaction Pathways' },
-            { id: 'p3b', x: 0, y: 70, w: 280, h: 180, kind: 'table', tableData: [['Reactant', 'Product'], ['Alkene', 'Alcohol'], ['Alcohol', 'Ketone']] }
-          ] },
-        { id: 'm4', title: 'Business Model Canvas Pack', price: '$3.00', creatorId: 'u104', creatorUsername: 'CorpStrategy', description: 'Classic analytical matrix layouts formatted directly onto interactive tables for strategy.',
-          canvasSnapshot: [
-            { id: 'p4a', x: 0, y: 0, w: 220, h: 50, kind: 'title', level: 2, html: 'Business Model' },
-            { id: 'p4b', x: 0, y: 70, w: 220, h: 112, kind: 'note', html: 'Key Partners' },
-            { id: 'p4c', x: 250, y: 70, w: 220, h: 112, kind: 'note', html: 'Revenue Streams' }
-          ] }
-    ];
 
     let userLibrary = {
         purchased: [],
@@ -75,11 +52,6 @@ import { toggleDrawFromMenu } from './srs-connections-core.js';
         published: [],
         customFolders: []
     };
-    let activeCartTab = 'discover';
-    let activeLibraryFolder = null;
-    let librarySearchQuery = '';
-    let marketplaceSearchQuery = '';
-    let selectedMarketItem = null;
 
     function kindLabel(kind) {
         if (kind === 'sentence') return 'Sentence';
@@ -141,13 +113,12 @@ import { toggleDrawFromMenu } from './srs-connections-core.js';
     // filters block types BY NAME across every tab at once, rather than one tab at a time — the
     // pill itself never hides (no data-tab attribute, so #add-menu-tabs.searching's hiding rule
     // skips it), so clicking it again always toggles back out to the tabs.
-    let addMenuSearching = false;
     let addMenuSearchQuery = '';
     function toggleAddMenuSearch() {
-        addMenuSearching = !addMenuSearching;
-        document.getElementById('add-menu-tabs').classList.toggle('searching', addMenuSearching);
-        document.getElementById('add-menu-search-btn').classList.toggle('active', addMenuSearching);
-        if (addMenuSearching) {
+        appState.addMenuSearching = !appState.addMenuSearching;
+        document.getElementById('add-menu-tabs').classList.toggle('searching', appState.addMenuSearching);
+        document.getElementById('add-menu-search-btn').classList.toggle('active', appState.addMenuSearching);
+        if (appState.addMenuSearching) {
             addMenuSearchQuery = '';
             const input = document.getElementById('add-menu-search-input');
             input.value = '';
@@ -165,7 +136,7 @@ import { toggleDrawFromMenu } from './srs-connections-core.js';
         const list = document.getElementById('add-menu-list');
         list.innerHTML = '';
         let items;
-        if (addMenuSearching) {
+        if (appState.addMenuSearching) {
             const query = addMenuSearchQuery.trim().toLowerCase();
             // Empty query shows nothing rather than every block type across all 5 tabs (21 items
             // wouldn't fit the fixed, non-scrolling 5-row list anyway — see #add-menu-list).
@@ -204,5 +175,4 @@ import { toggleDrawFromMenu } from './srs-connections-core.js';
         prepareAdd('source');
     }
 
-
-export { activeCartTab, activeLibraryFolder, addMenuSearching, currentAddTab, handleAddMenuSearchInput, kindLabel, kindSize, librarySearchQuery, marketplaceSearchQuery, newSourceClicked, searchKindLabel, searchTypeLabel, selectedMarketItem, switchAddTab, toggleAddMenuSearch, trendingMarketplace, userLibrary };
+export { currentAddTab, handleAddMenuSearchInput, kindLabel, kindSize, newSourceClicked, searchKindLabel, searchTypeLabel, switchAddTab, toggleAddMenuSearch, userLibrary };

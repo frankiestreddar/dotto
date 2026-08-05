@@ -7,6 +7,7 @@ import { audioRecordIndicator, closeSourceAddMenu } from './source-buttons-curso
 import { openRowTagPicker, tagPillsHTML } from './source-tags-ai.js';
 import { render } from './waypoints-render-loop.js';
 
+
     // ---------- Table card ----------
     function colgroupHTML(numCols) {
         if (!numCols) return '';
@@ -745,6 +746,5 @@ import { render } from './waypoints-render-loop.js';
         if (ni < newRows.length) tableItem.tableData.push(...newRows.slice(ni));
         render();
     }
-
 
 export { addTableCol, addTableRow, attachStaticTableHoverZones, colgroupHTML, distributeTableSizing, handleTableKeydown, importDelimitedIntoSource, layoutSourceTableColumns, renderStaticTableHTML, renderTableHTML, startCellAudioRecording, stopCellAudioRecording, triggerCellAudioUpload, triggerCellImageUpload, updateTableCell };

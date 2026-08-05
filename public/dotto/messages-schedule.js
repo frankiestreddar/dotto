@@ -1,12 +1,13 @@
 import { clearSearch } from './ai-assistant-suggestions.js';
 import { addToolbar } from './copy-paste.js';
 import { appState, canvas, zoomControl } from './core-state.js';
-import { msgView, renderMsgList } from './friends-presence.js';
+import { renderMsgList } from './friends-presence.js';
 import { applyTransform, scheduleWorkspaceSave } from './history-autosave.js';
 import { closeConvo, renderRealCardPreview } from './live-presence.js';
 import { closeAllPanels, panelPinned, pinOnInsideClick, scheduleHoverClose } from './panels-hamburger.js';
 import { modeToolbar } from './source-buttons-cursor-mode.js';
 import { openFolder } from './waypoints-render-loop.js';
+
 
     // ---------- Messages Panel Controls ----------
     const messagesBtn = document.getElementById('btn-messages'), messagesPanel = document.getElementById('messages-panel');
@@ -34,7 +35,7 @@ import { openFolder } from './waypoints-render-loop.js';
         messagesPanel.classList.add('open');
         messagesBtn.classList.add('active');
         closeConvo();
-        msgView = 'main'; // always land on the main list, never mid-Requests from last time
+        appState.msgView = 'main'; // always land on the main list, never mid-Requests from last time
         msgSearchInput.value = '';
         renderMsgList('');
         positionMessagesPanel();
@@ -54,7 +55,7 @@ import { openFolder } from './waypoints-render-loop.js';
     // Scheduling itself happens conversationally through Dotbot (see the "Dotbot Scheduling
     // Conversation" section below); the schedule button instead puts the whole canvas into a
     // read-only agenda view (see "Schedule View Mode") for browsing what's scheduled.
-    let scheduledEvents = []; // { id, itemId, folderId, title, date: 'YYYY-MM-DD', time: 'HH:MM' }
+ // { id, itemId, folderId, title, date: 'YYYY-MM-DD', time: 'HH:MM' }
     let scheduleViewDate = new Date();
 
     const scheduleBtn = document.getElementById('btn-schedule');
@@ -175,7 +176,7 @@ import { openFolder } from './waypoints-render-loop.js';
         // (scheduling itself always records the folderId you were in at the time).
         const folderObj = appState.folders[appState.currentFolderId];
         const list = (folderObj ? folderObj.items : [])
-            .map(it => ({ it, ev: scheduledEvents.find(e => e.folderId === appState.currentFolderId && e.itemId === it.id && e.date === key) }))
+            .map(it => ({ it, ev: appState.scheduledEvents.find(e => e.folderId === appState.currentFolderId && e.itemId === it.id && e.date === key) }))
             .filter(x => x.ev)
             .sort((a, b) => a.ev.time.localeCompare(b.ev.time));
 
@@ -241,5 +242,4 @@ import { openFolder } from './waypoints-render-loop.js';
         });
     }
 
-
-export { closeMessagesPanel, dateKey, exitScheduleViewMode, formatDateLabel, formatTimeLabel, messagesPanel, msgConvo, msgList, msgSearchInput, openMessagesPanel, pad2, scheduleAgendaShift, scheduleBtn, scheduleViewMode, scheduledEvents };
+export { closeMessagesPanel, dateKey, exitScheduleViewMode, formatDateLabel, formatTimeLabel, messagesPanel, msgConvo, msgList, msgSearchInput, openMessagesPanel, pad2, scheduleAgendaShift, scheduleBtn, scheduleViewMode };

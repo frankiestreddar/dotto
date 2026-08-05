@@ -2,11 +2,12 @@ import { clearSearch, typewriterReveal, updateSearchDropdown } from './ai-assist
 import { appState } from './core-state.js';
 import { scheduleWorkspaceSave } from './history-autosave.js';
 import { findItemById, miniLabelForItem, renderInlineCanvas, renderRealCardPreview } from './live-presence.js';
-import { dateKey, formatDateLabel, formatTimeLabel, pad2, scheduledEvents } from './messages-schedule.js';
+import { dateKey, formatDateLabel, formatTimeLabel, pad2 } from './messages-schedule.js';
 import { closeAllPanels } from './panels-hamburger.js';
 import { bumpAchievementStat, openPricingOverlay } from './profile-achievements-pricing.js';
 import { goToOutlineItem } from './shared-canvases-outline.js';
 import { autoGrowSearchInput, pushNotification, searchInput, searchResults, searchSuggestions } from './stopwatch-search-notifications.js';
+
 
     // ---------- Dotbot Scheduling Conversation ----------
     // Dragging a card (or a multi-card selection) onto the schedule button hands off to Dotbot
@@ -80,10 +81,10 @@ import { autoGrowSearchInput, pushNotification, searchInput, searchResults, sear
         itemIds.forEach(id => {
             const it = findItemById(id);
             if (!it) return;
-            const existing = scheduledEvents.find(e => e.itemId === id && e.folderId === appState.currentFolderId);
+            const existing = appState.scheduledEvents.find(e => e.itemId === id && e.folderId === appState.currentFolderId);
             if (existing) { existing.date = parsed.date; existing.time = parsed.time; existing.title = miniLabelForItem(it); }
             else {
-                scheduledEvents.push({ id: 'ev_' + appState.idCounter++, itemId: id, folderId: appState.currentFolderId, title: miniLabelForItem(it), date: parsed.date, time: parsed.time });
+                appState.scheduledEvents.push({ id: 'ev_' + appState.idCounter++, itemId: id, folderId: appState.currentFolderId, title: miniLabelForItem(it), date: parsed.date, time: parsed.time });
                 bumpAchievementStat('five_scheduled');
             }
         });
@@ -109,7 +110,7 @@ import { autoGrowSearchInput, pushNotification, searchInput, searchResults, sear
         const now = new Date();
         const nowKey = dateKey(now);
         const nowMinutes = now.getHours() * 60 + now.getMinutes();
-        scheduledEvents.forEach(ev => {
+        appState.scheduledEvents.forEach(ev => {
             if (notifiedScheduledEventIds.has(ev.id)) return;
             if (ev.date !== nowKey) return;
             const [h, m] = ev.time.split(':').map(Number);
@@ -247,6 +248,5 @@ import { autoGrowSearchInput, pushNotification, searchInput, searchResults, sear
         if (!dateFound && !time) return null;
         return { date: dateKey(dateBase), time: time || '09:00' };
     }
-
 
 export { cancelDotbotScheduleConversation, dotbotScheduleConversation, startScheduleConversation, submitDotbotScheduleAnswer };

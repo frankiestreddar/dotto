@@ -3,7 +3,7 @@ import { countSourceEntries, escapeHtml, stripHtml } from './ai-assistant-sugges
 import { renderChecklistHTML, renderStatcardHTML, shortUrl } from './cards-misc.js';
 import { appState, canvas, cursorOverlay, supabase } from './core-state.js';
 import { ensureConnections } from './drawing-connections.js';
-import { activeConvoId, closeCollabPanel, friends, initials } from './friends-presence.js';
+import { closeCollabPanel, friends, initials } from './friends-presence.js';
 import { defaultFlashcardDeck, renderFlashcardHTML, renderTypeRightHTML } from './games-flashcard-typeright.js';
 import { saveSnapshot, smoothPanTo } from './history-autosave.js';
 import { renderMediaHTML } from './media-pdf-epub.js';
@@ -14,6 +14,7 @@ import { renderTableHTML } from './source-table.js';
 import { CardStreamIO } from './srs-connections-core.js';
 import { renderShelfHTML, renderStopwatchHTML } from './stopwatch-search-notifications.js';
 import { render } from './waypoints-render-loop.js';
+
 
     // ---------- Live canvas presence (Figma-style cursors) + real-time content sync ----------
     // Distinct from #collab-bubble/#collab-panel (inviting a collaborator to a canvas) and
@@ -754,7 +755,7 @@ import { render } from './waypoints-render-loop.js';
     }
 
     function openConvo(friendId) {
-        activeConvoId = friendId;
+        appState.activeConvoId = friendId;
         const f = friends.find(x => x.id === friendId);
         if (!f) return;
         renderAvatarInto(document.getElementById('msg-convo-avatar'), { id: f.avatarId ?? 0, url: f.avatarUrl || null }, initials(f.displayName));
@@ -1383,7 +1384,7 @@ import { render } from './waypoints-render-loop.js';
     }
     function closeConvo() {
         msgConvo.classList.remove('open');
-        activeConvoId = null;
+        appState.activeConvoId = null;
         // No unsubscribe here — messages are subscribed per-friendship globally now (see
         // subscribeToAllFriendMessages), not per open conversation.
         document.getElementById('msg-search-wrap').style.display = '';
@@ -1392,8 +1393,8 @@ import { render } from './waypoints-render-loop.js';
     async function sendMsg() {
         const input = document.getElementById('msg-convo-input');
         const text = input.value.trim();
-        if (!text || !activeConvoId) return;
-        const f = friends.find(x => x.id === activeConvoId);
+        if (!text || !appState.activeConvoId) return;
+        const f = friends.find(x => x.id === appState.activeConvoId);
         if (!f) return;
         input.value = '';
         updateMsgSendState();
@@ -1482,6 +1483,5 @@ import { render } from './waypoints-render-loop.js';
         sel.removeAllRanges();
         sel.addRange(range);
     }
-
 
 export { broadcastCursorPositionThrottled, broadcastEditingState, broadcastItemDragPositions, broadcastItemResize, closeConvo, closeSharedCanvasView, ensureCanvasPresenceChannel, findItemById, goToCollaboratorCursor, importSharedCardsAtScreenPoint, miniLabelForItem, openConvo, placeCaretEnd, queueSyncDiff, remoteCursors, renderConvoBody, renderInlineCanvas, renderRealCardPreview, repositionAllRemoteCursors, sanitizeFlashcardSnapshot, sendMsg, setTitleLevel, snapshotItem, syncColorPicker, titleFontSize };

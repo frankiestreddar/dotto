@@ -4,6 +4,7 @@ import { renderInlineCanvas } from './live-presence.js';
 import { btnCart, cartPanel, refreshMyLibrary, renderLibrary, switchLibraryFolder } from './marketplace.js';
 import { panelPinned } from './panels-hamburger.js';
 
+
     // ---------- Library Item Detail View (drafts / published / purchased) ----------
     let detailItem = null;
     let detailSourceFolder = null;
@@ -216,6 +217,5 @@ import { panelPinned } from './panels-hamburger.js';
         await refreshMyLibrary();
         switchLibraryFolder('published');
     }
-
 
 export { blurPublishFlowName, commitItemDetailDesc, commitItemDetailTitle, confirmPublishFlow, deleteDetailDraft, focusPublishFlowName, onItemDetailFieldChange, openItemDetail, startPublishFlow, unpublishDetailItem, updateDetailItem };
