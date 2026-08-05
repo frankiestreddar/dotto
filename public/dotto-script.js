@@ -6880,7 +6880,12 @@
     const pdfDocCache = new Map(); // mediaSrc -> Promise<PDFDocumentProxy>
     function getCachedPdfDoc(src) {
         if (!pdfDocCache.has(src)) {
-            pdfDocCache.set(src, loadPdfjs().then(lib => lib.getDocument(src).promise));
+            // getDocument only accepts a DocumentInitParameters object (`function getDocument(e={})`
+            // in the vendored build) — it does NOT special-case a bare string into { url } the way
+            // older pdf.js versions did, so passing `src` directly throws "expected either `data`,
+            // `range`, or `url` parameter" (every property read off the raw string comes back
+            // undefined).
+            pdfDocCache.set(src, loadPdfjs().then(lib => lib.getDocument({ url: src }).promise));
         }
         return pdfDocCache.get(src);
     }
