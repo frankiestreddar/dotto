@@ -1509,6 +1509,13 @@
         transform:rotate(var(--rotate)) scaleX(var(--scale-x)) scale(var(--min-font-size-inv));
     }
     .pdf-text-layer .markedContent{display:contents;}
+    /* Without this, a selected span falls back to the BROWSER's own default ::selection style —
+       which doesn't reliably keep color:transparent in every engine, and even where it does,
+       leaves whatever that browser's default (usually a fairly opaque, fairly saturated blue)
+       selection background is. Pinning both explicitly is what actually makes a selection read
+       as "the real page getting highlighted" rather than "a separate layer of text appearing." */
+    .pdf-text-layer ::selection{background:rgba(37, 99, 235, 0.2);color:transparent;}
+    .pdf-text-layer ::-moz-selection{background:rgba(37, 99, 235, 0.2);color:transparent;}
     /* cursor:grab as a visual hint that this bar (not the document above it) is what actually
        moves the card now — see buildPdfViewer's own comment on page.onmousedown/nav's mousedown. */
     .pdf-viewer-nav{flex:0 0 auto;display:flex;align-items:center;justify-content:center;gap:10px;padding:6px;background:#111;border-top:1px solid var(--card-border);cursor:grab;}
