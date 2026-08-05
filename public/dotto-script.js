@@ -6942,13 +6942,25 @@
             const scale = targetWidth / baseViewport.width;
             const viewport = pdfPage.getViewport({ scale });
             page.style.width = viewport.width + 'px'; page.style.height = viewport.height + 'px';
-            canvas.width = viewport.width; canvas.height = viewport.height;
+            // Canvas *display* size (CSS px, logical) stays at the viewport's own size — only the
+            // backing pixel buffer is rendered larger, by devicePixelRatio, and the render call
+            // scales its drawing into that larger buffer via `transform`. Without this, a Retina/
+            // HiDPI screen (dpr 2-3x) stretches a 1x-resolution buffer to fill the same CSS box,
+            // which is exactly what "pixelated" looks like — same standard fix pdf.js's own
+            // reference viewer/examples use.
+            const outputScale = window.devicePixelRatio || 1;
+            canvas.style.width = viewport.width + 'px'; canvas.style.height = viewport.height + 'px';
+            canvas.width = Math.floor(viewport.width * outputScale);
+            canvas.height = Math.floor(viewport.height * outputScale);
+            const transform = outputScale !== 1 ? [outputScale, 0, 0, outputScale, 0, 0] : null;
             // Feeds pdf.js's own --total-scale-factor:calc(var(--scale-factor) * var(--user-unit))
             // chain (see .pdf-text-layer's CSS) — the same mechanism pdf.js's reference viewer uses
-            // to size each text span correctly at the current zoom.
+            // to size each text span correctly at the current zoom. Deliberately the LOGICAL scale,
+            // not multiplied by outputScale — text-layer spans position themselves in the same CSS
+            // coordinate space the canvas is DISPLAYED at, not its backing buffer's pixel count.
             textLayer.style.setProperty('--scale-factor', scale);
             if (renderTask) renderTask.cancel();
-            renderTask = pdfPage.render({ canvasContext: canvas.getContext('2d'), viewport });
+            renderTask = pdfPage.render({ canvasContext: canvas.getContext('2d'), viewport, transform });
             try { await renderTask.promise; } catch (e) { return; } // canceled by a newer renderPage() call — the newer one owns the canvas now
             textLayer.innerHTML = '';
             const lib = await loadPdfjs();
