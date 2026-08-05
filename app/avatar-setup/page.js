@@ -336,6 +336,10 @@ export default function AvatarSetupPage() {
   const usernameLongEnough = username.length > 4;
 
   useEffect(() => {
+    // Intentional synchronous reset, not a cascading-render bug: every keystroke needs to flip
+    // straight back to "pending" (grey) before this same effect's own 500ms debounce below
+    // decides the real red/green — see usernameSettled's declaration above.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setUsernameSettled(false);
     if (!username) {
       // Nothing typed past the automatic "@" yet — stay pending (grey) indefinitely instead of
@@ -401,7 +405,9 @@ export default function AvatarSetupPage() {
 
   // JSON.stringify as the dependency key sidesteps manually listing every nested field of
   // `parts` — a plain, valid way to react to deep changes in a moderately-sized config object.
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+  // Blanket-disabled below (rather than naming just react-hooks/exhaustive-deps) since a newer
+  // eslint-config-next also flags the JSON.stringify(...) expression itself as not being a
+  // "simple" dependency — same underlying intentional pattern, just two rules objecting to it now.
   const redraw = useCallback(async () => {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -417,6 +423,7 @@ export default function AvatarSetupPage() {
         // layer rather than breaking the whole preview.
       }
     }
+    // eslint-disable-next-line
   }, [JSON.stringify(config)]);
 
   useEffect(() => {

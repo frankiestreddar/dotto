@@ -1,5 +1,32 @@
 # Phase 2 roadmap: componentizing dotto-script.js
 
+## Status (updated — see the restructuring plan this was folded into)
+
+This document was written when `dotto-script.js` was 5,144 lines. It's now **12,825 lines**
+across **579 functions** and **~70 named sections** (`grep "// ----------"`) — roughly 7,700 lines
+of new features (achievements, live collaboration/presence, PDF/EPUB viewing, copy/paste, and
+more) landed in the same monolith this document was written to get out of, before any of the
+migration below started.
+
+Current phase numbering (supersedes "Phase 2 increment N" below):
+
+- **Phase 0 — safety net: done.** CI (`.github/workflows/ci.yml`, lint + build on every push/PR),
+  `QA_CHECKLIST.md` (the manual regression pass CI can't do — no test infra exists yet), and this
+  repo is now in git and pushed to GitHub.
+- **Phase 1 — re-inventory, then mechanically modularize `dotto-script.js` into real ES modules**
+  along subsystem boundaries, zero behavior change. Not started. The subsystem inventory below is
+  the *starting point* for this, not the finished list — a fresh section-marker scan turned up
+  named blocks with no home in it yet: **Copy/Cut/Paste**, **Achievements**, **Pricing/upgrade**,
+  **Dotbot Scheduling Conversation**, **due-time / day-change / paid-tier-ad notifications**,
+  **Collaborators Pill/Panel**, **Friend presence**, **Live canvas presence + real-time content
+  sync**, **PDF viewer** / **EPUB viewer** (media sub-kinds), **cell tag picker + tag right-click
+  menu**, **Dotbot-generated source content**, **card-dragged-into-search AI context**, **animated
+  placeholder / live AI suggestions**, **mnemonic story/image**, **text-selection toolbar / add-to-
+  source popup**, **library item detail view**, **publish flow**. Folding these into named buckets
+  (new ones where they don't fit an existing one) is Phase 1's first task, before any extraction.
+- **Phase 2+ — convert each module to real React state**, one subsystem at a time, per the
+  migration order below (updated once Phase 1's re-inventory lands).
+
 ## Where things stand
 
 Phase 1 (lift-and-shim) is done and verified: the app runs under Next.js

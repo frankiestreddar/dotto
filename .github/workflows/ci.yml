@@ -1,0 +1,32 @@
+name: CI
+
+# Automated floor for every push/PR — see PHASE2_ROADMAP.md Phase 0. This can't catch a
+# behavioral regression in public/dotto-script.js (no test infra exists yet for that), but it
+# catches syntax errors, ESLint violations, and a broken Next.js build before anything merges.
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run build
+        env:
+          # Dummy values so `next build` can complete — no route is actually hit at build time,
+          # but several lib/ modules read these at import time (see lib/supabase/client.js,
+          # lib/groq.js, etc.) and Next's build step fails outright if they're undefined rather
+          # than lazily missing. Real values live only in Vercel's env config, never in CI.
+          NEXT_PUBLIC_SUPABASE_URL: https://placeholder.supabase.co
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: placeholder-anon-key
+          GROQ_API_KEY: placeholder
+          HUGGINGFACE_API_KEY: placeholder
