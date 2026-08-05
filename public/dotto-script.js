@@ -6827,7 +6827,11 @@
         if (!supabase || !appState.currentUser.id) { alert('Sign in to upload documents.'); return; }
         saveSnapshot();
         it.mediaType = docType; it.mediaSrc = null; it.mediaName = file.name; it.mediaUploading = true;
-        it.w = 340; it.h = 440;
+        // PDFs default ~2.5x bigger than the base 340x440 (850x1100) — a page of real body text
+        // needs to be legibly big enough at first glance, not resized by hand every time. EPUBs
+        // keep the smaller default; their own reflowable viewer doesn't have the same "a whole
+        // page has to fit and stay readable" constraint a fixed-size PDF page render does.
+        if (docType === 'pdf') { it.w = 850; it.h = 1100; } else { it.w = 340; it.h = 440; }
         render();
         const path = `${appState.currentUser.id}/${Date.now()}-${file.name.replace(/[^\w.\-]+/g, '_')}`;
         const { error } = await supabase.storage.from('documents').upload(path, file, { contentType: file.type || undefined });
@@ -6908,6 +6912,13 @@
         // to land in the right place over the canvas.
         const page = document.createElement('div');
         page.className = 'pdf-viewer-page';
+        // The generic per-card drag-to-move system (see setupDraggingAndClicking) arms itself on
+        // ANY mousedown that reaches the card's root element uninterrupted — without this, trying
+        // to click-and-drag to select text anywhere over the document starts moving the whole
+        // card instead of letting the browser's native text-selection drag happen. Stopping it
+        // here (not on `wrap`) is deliberate: the nav bar below stays draggable on purpose (see
+        // its own comment) — only the actual page content opts out.
+        page.onmousedown = (e) => e.stopPropagation();
         const canvas = document.createElement('canvas');
         canvas.className = 'pdf-viewer-canvas';
         const textLayer = document.createElement('div');
@@ -6915,13 +6926,17 @@
         page.append(canvas, textLayer);
         const nav = document.createElement('div');
         nav.className = 'pdf-viewer-nav';
-        nav.onmousedown = (e) => e.stopPropagation();
+        // Deliberately NOT stopping mousedown propagation here (unlike page.onmousedown above) —
+        // this bar is the card's actual drag handle now that the document itself can't be, so
+        // grabbing anywhere on it (other than the two buttons themselves) moves the card normally.
         const prevBtn = document.createElement('button');
         prevBtn.type = 'button'; prevBtn.className = 'pdf-viewer-nav-btn'; prevBtn.textContent = '‹';
+        prevBtn.onmousedown = (e) => e.stopPropagation(); // a precise click target, not part of the drag handle
         const pageLabel = document.createElement('span');
         pageLabel.className = 'pdf-viewer-page-label';
         const nextBtn = document.createElement('button');
         nextBtn.type = 'button'; nextBtn.className = 'pdf-viewer-nav-btn'; nextBtn.textContent = '›';
+        nextBtn.onmousedown = (e) => e.stopPropagation();
         nav.append(prevBtn, pageLabel, nextBtn);
         wrap.append(page, nav);
 

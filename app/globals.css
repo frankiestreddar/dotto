@@ -1495,7 +1495,9 @@
         transform:rotate(var(--rotate)) scaleX(var(--scale-x)) scale(var(--min-font-size-inv));
     }
     .pdf-text-layer .markedContent{display:contents;}
-    .pdf-viewer-nav{flex:0 0 auto;display:flex;align-items:center;justify-content:center;gap:10px;padding:6px;background:#111;border-top:1px solid var(--card-border);}
+    /* cursor:grab as a visual hint that this bar (not the document above it) is what actually
+       moves the card now — see buildPdfViewer's own comment on page.onmousedown/nav's mousedown. */
+    .pdf-viewer-nav{flex:0 0 auto;display:flex;align-items:center;justify-content:center;gap:10px;padding:6px;background:#111;border-top:1px solid var(--card-border);cursor:grab;}
     .pdf-viewer-nav-btn{background:none;border:none;color:var(--ink);font-size:16px;line-height:1;cursor:pointer;padding:2px 8px;}
     .pdf-viewer-nav-btn:hover{color:var(--brand);}
     .pdf-viewer-page-label{font-size:12px;color:var(--ink-soft);}
