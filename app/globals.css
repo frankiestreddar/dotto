@@ -1467,6 +1467,20 @@
         text-align:initial;
         --user-unit:1;
         --total-scale-factor:calc(var(--scale-factor, 1) * var(--user-unit));
+        /* pdf.js's TextLayer CONSTRUCTOR (not .render()) calls its own internal
+           setLayerDimensions(container, viewport) — before any of our own JS ever runs — which
+           sets the container's width/height directly via an inline
+           `round(down, var(--total-scale-factor) * <rawPageWidth>px, var(--scale-round-x))`
+           style, using --scale-round-x/--scale-round-y as the rounding interval. Those two custom
+           properties are only ever defined in pdf.js's OWN reference CSS (.pdfViewer .page in
+           pdfjs-dist/web/pdf_viewer.css) — nothing here ever defined them, which makes that
+           round() expression invalid, which makes the WHOLE inline width/height declaration
+           invalid. The container's actual rendered size then silently drifts from the canvas's
+           real size, and since every span's top/left are percentages OF that container, the
+           drift compounds the further down the page a line sits — correct-looking near the top,
+           increasingly offset toward the bottom. This is what that actually looked like. */
+        --scale-round-x:1px;
+        --scale-round-y:1px;
         /* pdf.js's TextLayer.render() (see public/vendor/pdfjs/pdf.min.mjs) sets --font-height/
            --scale-x/--rotate as inline custom properties on each span rather than literal
            font-size/transform values directly — these two rules are what actually consume them
@@ -1495,6 +1509,13 @@
         transform:rotate(var(--rotate)) scaleX(var(--scale-x)) scale(var(--min-font-size-inv));
     }
     .pdf-text-layer .markedContent{display:contents;}
+    /* Without this, a selected span falls back to the BROWSER's own default ::selection style —
+       which doesn't reliably keep color:transparent in every engine, and even where it does,
+       leaves whatever that browser's default (usually a fairly opaque, fairly saturated blue)
+       selection background is. Pinning both explicitly is what actually makes a selection read
+       as "the real page getting highlighted" rather than "a separate layer of text appearing." */
+    .pdf-text-layer ::selection{background:rgba(37, 99, 235, 0.2);color:transparent;}
+    .pdf-text-layer ::-moz-selection{background:rgba(37, 99, 235, 0.2);color:transparent;}
     /* cursor:grab as a visual hint that this bar (not the document above it) is what actually
        moves the card now — see buildPdfViewer's own comment on page.onmousedown/nav's mousedown. */
     .pdf-viewer-nav{flex:0 0 auto;display:flex;align-items:center;justify-content:center;gap:10px;padding:6px;background:#111;border-top:1px solid var(--card-border);cursor:grab;}
@@ -1731,6 +1752,12 @@
     .item.note:hover .resize{opacity:1;}
     .item.flashcard .resize{display:flex;}
     .item.flashcard:hover .resize{opacity:1;}
+    /* Covers all three media sub-kinds (plain image/video, PDF, EPUB) — see renderMediaHTML/
+       buildPdfViewer/buildEpubViewer, all of which now include a .resize handle; setupResizing
+       locks their drag to the content's own aspect ratio instead of table/note/flashcard's free
+       independent width/height. */
+    .item.media .resize{display:flex;background:rgba(0,0,0,0.35);border-radius:4px 0 0 0;}
+    .item.media:hover .resize{opacity:1;}
     .resize:hover{color:var(--ink);}
 
     #placement-ghost{position:absolute;}
