@@ -1467,6 +1467,20 @@
         text-align:initial;
         --user-unit:1;
         --total-scale-factor:calc(var(--scale-factor, 1) * var(--user-unit));
+        /* pdf.js's TextLayer CONSTRUCTOR (not .render()) calls its own internal
+           setLayerDimensions(container, viewport) — before any of our own JS ever runs — which
+           sets the container's width/height directly via an inline
+           `round(down, var(--total-scale-factor) * <rawPageWidth>px, var(--scale-round-x))`
+           style, using --scale-round-x/--scale-round-y as the rounding interval. Those two custom
+           properties are only ever defined in pdf.js's OWN reference CSS (.pdfViewer .page in
+           pdfjs-dist/web/pdf_viewer.css) — nothing here ever defined them, which makes that
+           round() expression invalid, which makes the WHOLE inline width/height declaration
+           invalid. The container's actual rendered size then silently drifts from the canvas's
+           real size, and since every span's top/left are percentages OF that container, the
+           drift compounds the further down the page a line sits — correct-looking near the top,
+           increasingly offset toward the bottom. This is what that actually looked like. */
+        --scale-round-x:1px;
+        --scale-round-y:1px;
         /* pdf.js's TextLayer.render() (see public/vendor/pdfjs/pdf.min.mjs) sets --font-height/
            --scale-x/--rotate as inline custom properties on each span rather than literal
            font-size/transform values directly — these two rules are what actually consume them

@@ -6944,6 +6944,7 @@
         let pdfDoc = null;
         let pageNum = it.docPage || 1;
         let renderTask = null;
+        let lastRenderedWidth = null; // see the ResizeObserver below
 
         async function renderPage() {
             if (!pdfDoc) return;
@@ -6975,6 +6976,8 @@
             const scale = targetWidth / baseViewport.width;
             const viewport = pdfPage.getViewport({ scale });
             page.style.width = viewport.width + 'px'; page.style.height = viewport.height + 'px';
+            page.style.transform = ''; // clear the ResizeObserver's live-preview scale — this real render replaces it
+            lastRenderedWidth = viewport.width;
             // Canvas *display* size (CSS px, logical) stays at the viewport's own size — only the
             // backing pixel buffer is rendered larger, by devicePixelRatio, and the render call
             // scales its drawing into that larger buffer via `transform`. Without this, a Retina/
@@ -7011,14 +7014,21 @@
         nextBtn.onclick = (e) => { e.stopPropagation(); goToPage(pageNum + 1); };
 
         // Dragging the card's own resize handle (see setupResizing) changes wrap's real measured
-        // size, but nothing about that re-fits the already-rendered page to it — without this,
-        // the page just sat at whatever size it was last rendered at, clipped or gapped by
-        // .pdf-viewer-page's overflow:auto rather than actually rescaling. Debounced rather than
-        // re-rendering on every single resize tick (a real re-render awaits a page fetch + canvas
-        // paint + text-layer rebuild — too slow to run on every pixel of a drag), so it re-fits
-        // shortly after the size settles instead of mid-drag.
+        // size on every frame, but a REAL re-render (page fetch + canvas paint + text-layer
+        // rebuild) is too slow to run that often — waiting for it made the whole drag feel
+        // jumpy, frozen at the old size until a render finally landed. So this does two things on
+        // every resize tick: an instant, free CSS transform:scale of the already-rendered page up
+        // to the new size (smooth, in sync with the box every frame, since transform affects the
+        // text layer along with the canvas as one unit — they stay aligned with each other even
+        // mid-scale, just not perfectly crisp), and a debounced REAL renderPage() that only fires
+        // once the size actually settles, which is what makes it crisp again and clears the
+        // transform (see renderPage's own `page.style.transform = ''`).
         let resizeSettleTimer = null;
         const resizeObserver = new ResizeObserver(() => {
+            if (lastRenderedWidth) {
+                page.style.transformOrigin = '0 0';
+                page.style.transform = `scale(${wrap.clientWidth / lastRenderedWidth})`;
+            }
             if (resizeSettleTimer) clearTimeout(resizeSettleTimer);
             resizeSettleTimer = setTimeout(renderPage, 150);
         });
