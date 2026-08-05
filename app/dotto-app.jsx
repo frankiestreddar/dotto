@@ -22,7 +22,9 @@ import ItemContextMenu from "./dotto/sections/ItemContextMenu";
 import CanvasContextMenu from "./dotto/sections/CanvasContextMenu";
 import Footer from "./dotto/sections/Footer";
 
-// Phase 1 "lift and shim" + Phase 2 increment 1 ("shell componentization").
+// Phase 1 "lift and shim" + Phase 2 increment 1 ("shell componentization") + Phase 1 (the
+// dotto-script.js restructuring one, see PHASE2_ROADMAP.md — the numbering collides with the
+// increment above, both predate the restructuring plan) module split.
 //
 // The original Dotto.html was one file: static markup followed by a single
 // giant classic (non-module) <script> that queries the DOM with
@@ -40,21 +42,28 @@ import Footer from "./dotto/sections/Footer";
 //      organizational (confirmed no CSS/JS in the original relies on these
 //      containers being direct children of <body> or on their exact sibling
 //      order via `:nth-child`), so this is still zero behavior change.
-//   2. The legacy script is loaded from /public/dotto-script.js as a plain
-//      classic <script src> tag (next/script, strategy="afterInteractive"),
-//      so it runs after all the markup above is already in the DOM — exactly
-//      like it did at the bottom of <body> in the original file. It keeps
-//      declaring top-level `function`s (which attach to window) and
-//      `const`/`let` state exactly as before.
+//   2. public/dotto-script.js is no longer the whole app in one classic
+//      script — it's now a thin ES module entry point that just imports
+//      every file under public/dotto/ (in the original file's own top-to-
+//      bottom order — see PHASE2_ROADMAP.md Phase 1) plus a generated
+//      window-bridge.js at the end, which is what makes every inline
+//      onclick="..." attribute above still resolve: real ES modules don't
+//      attach their top-level functions to `window` the way a classic
+//      script did, so window-bridge.js explicitly does that for every name
+//      actually called by name from HTML. `type="module"` on the <Script>
+//      tag below is the one change that makes the browser load it as such.
 //
 // Phase 2 will continue by peeling pieces of dotto-script.js into real React
 // state/hooks, subsystem by subsystem (see PHASE2_ROADMAP.md), replacing
 // this shim a bit at a time rather than all at once.
 //
-// dotto-script.js is a classic (non-module) script, so it can't `import` the
-// Supabase client itself. Instead this component — which hydrates before the
-// afterInteractive script runs — hangs a shared client on `window` for it to
-// use, alongside the signed-in user's profile.
+// dotto-script.js's entry point can't top-level `import` the Supabase client
+// itself without creating a real dependency edge into app/ from public/ (and
+// every module it loads still expects a plain global, not an import, since
+// they were mechanically extracted from the original classic script — see
+// Phase 1 in PHASE2_ROADMAP.md). Instead this component — which hydrates
+// before the afterInteractive script runs — hangs a shared client on
+// `window` for it to use, alongside the signed-in user's profile.
 if (typeof window !== "undefined" && !window.__dottoSupabase) {
   window.__dottoSupabase = createClient();
 }
@@ -96,7 +105,7 @@ export default function DottoApp({ sections, currentUser }) {
         <CanvasContextMenu html={sections["canvas-context-menu"]} />
         <Footer html={sections["footer"]} />
       </div>
-      <Script src="/dotto-script.js" strategy="afterInteractive" />
+      <Script src="/dotto-script.js" type="module" strategy="afterInteractive" />
     </>
   );
 }
