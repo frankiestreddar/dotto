@@ -1,0 +1,51 @@
+<!-- Profile Panel -->
+<div id="profile-panel" onclick="event.stopPropagation()">
+    <div class="profile-block" id="profile-identity-block">
+        <div class="profile-avatar-lg" id="profile-avatar"></div>
+        <div class="profile-identity-text">
+            <div id="profile-username"></div>
+            <div class="profile-level-streak-row">
+                <span id="profile-level-pill" class="profile-level-pill"><span class="profile-level-pill-text"></span></span>
+                <span class="profile-streak">
+                    <span class="profile-streak-icon icon-mask" style="mask-image:url(/assets/icons/flame.png);-webkit-mask-image:url(/assets/icons/flame.png)"></span>
+                    <span id="profile-streak-count"></span>
+                </span>
+            </div>
+        </div>
+    </div>
+    <div class="profile-block" id="profile-upgrade-block">
+        <button id="profile-upgrade-btn" type="button" onclick="event.stopPropagation(); hmenuAction('upgrade');">
+            <span>Try Dotto Pro</span>
+            <span class="profile-upgrade-crown icon-mask" style="mask-image:url(/assets/icons/crown.png);-webkit-mask-image:url(/assets/icons/crown.png)"></span>
+        </button>
+    </div>
+    <div class="profile-block" id="profile-usage-block">
+        <div class="profile-block-content">
+            <div class="profile-usage-row">
+                <div class="profile-usage-label">Block usage</div>
+                <div class="profile-usage-track"><div class="profile-usage-fill" id="profile-usage-blocks-fill"></div></div>
+                <div class="profile-usage-tooltip" id="profile-usage-blocks-tooltip"></div>
+            </div>
+            <div class="profile-usage-row">
+                <div class="profile-usage-label">Search usage</div>
+                <div class="profile-usage-track"><div class="profile-usage-fill" id="profile-usage-search-fill"></div></div>
+                <div class="profile-usage-tooltip" id="profile-usage-search-tooltip"></div>
+            </div>
+            <div class="profile-usage-row">
+                <div class="profile-usage-label">Generation usage</div>
+                <div class="profile-usage-track"><div class="profile-usage-fill" id="profile-usage-generation-fill"></div></div>
+                <div class="profile-usage-tooltip" id="profile-usage-generation-tooltip"></div>
+            </div>
+        </div>
+        <div id="profile-usage-upgrade-hint" onclick="event.stopPropagation(); openPricingOverlay();">Upgrade for more</div>
+    </div>
+    <!-- Always shows the full sprite set (no compact/expand toggle) and just scrolls — fills
+         whatever viewport height remains below the blocks above (see #profile-spritebook-block
+         in globals.css and positionProfilePanel in dotto-script.js). Scroll position resets to
+         top every time the panel opens (see openProfilePanel). -->
+    <div class="profile-block" id="profile-spritebook-block">
+        <div id="profile-spritebook-scroll">
+            <div id="profile-sprite-grid"></div>
+        </div>
+    </div>
+</div>

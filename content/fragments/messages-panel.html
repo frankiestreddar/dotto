@@ -1,0 +1,20 @@
+<!-- Messages Panel -->
+<div id="messages-panel" onclick="event.stopPropagation()">
+    <div id="msg-search-wrap">
+        <input id="msg-search" type="text" placeholder="Search chats or find a username..." oninput="handleMsgSearch(this.value)">
+    </div>
+    <div id="msg-list"></div>
+    <div id="msg-convo">
+        <div id="msg-convo-header">
+            <button id="msg-convo-back" onclick="closeConvo()">←</button>
+            <div class="msg-avatar" id="msg-convo-avatar"></div>
+            <div id="msg-convo-title"></div>
+        </div>
+        <div id="msg-convo-body"></div>
+        <div id="msg-convo-input-wrap">
+            <input id="msg-convo-input" type="text" placeholder="Message..." onkeydown="if(event.key==='Enter')sendMsg();">
+            <button id="msg-convo-send" onclick="sendMsg()">➤</button>
+        </div>
+    </div>
+</div>
+

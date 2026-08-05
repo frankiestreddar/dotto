@@ -1,0 +1,45 @@
+<!-- Shared Canvas Preview Modal -->
+<div id="canvas-modal-overlay" class="canvas-modal-overlay" onclick="closeSharedCanvasView()">
+    <div class="canvas-modal-box" onclick="event.stopPropagation()">
+        <div class="canvas-modal-header">
+            <span id="canvas-modal-title">Shared Canvas</span>
+            <span class="canvas-modal-close" onclick="closeSharedCanvasView()">✕</span>
+        </div>
+        <div id="canvas-modal-body"></div>
+    </div>
+</div>
+
+<!-- Dotbot "out of credits" upgrade popup -->
+<div id="dotbot-upgrade-overlay" class="canvas-modal-overlay" onclick="closeDotbotUpgradeModal()">
+    <div class="canvas-modal-box dotbot-upgrade-box" onclick="event.stopPropagation()">
+        <div class="canvas-modal-header">
+            <span>Dotbot</span>
+            <span class="canvas-modal-close" onclick="closeDotbotUpgradeModal()">✕</span>
+        </div>
+        <div class="dotbot-upgrade-title">You've used up today's Dotbot usage</div>
+        <div class="dotbot-upgrade-text">Upgrade to keep asking questions, generating mnemonics, and creating images without waiting for tomorrow's reset.</div>
+        <button class="dotbot-upgrade-btn" onclick="closeDotbotUpgradeModal()">Got it</button>
+    </div>
+</div>
+
+<!-- Full-screen plan comparison — opened from the profile menu's "Try Dotto Pro" button and the
+     paid-tier-ad notification's "Upgrade" button (see openPricingOverlay/PRICING_PLANS in
+     dotto-script.js). Cards are built entirely in JS from PRICING_PLANS/PRICING_FEATURE_ROWS. -->
+<div id="pricing-overlay" onclick="closePricingOverlay()">
+    <div class="pricing-page" onclick="event.stopPropagation()">
+        <div class="pricing-page-header">
+            <div class="pricing-page-title">Upgrade your plan</div>
+            <button class="pricing-page-close" type="button" onclick="closePricingOverlay()">✕</button>
+        </div>
+        <div id="pricing-cards"></div>
+    </div>
+</div>
+
+<!-- Search card-context preview popup -->
+<div id="search-cards-modal-overlay" class="canvas-modal-overlay" onclick="closeSearchCardsModal()">
+    <div id="search-cards-modal-box" onclick="event.stopPropagation()">
+        <button id="search-cards-modal-close" type="button" onclick="closeSearchCardsModal()">✕</button>
+        <div id="search-cards-modal-body"></div>
+    </div>
+</div>
+

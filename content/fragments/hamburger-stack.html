@@ -1,0 +1,25 @@
+<!-- Hamburger Panels (stacked) -->
+<div id="hamburger-stack">
+    <div id="account-menu" class="hmenu-panel">
+        <div class="hmenu-item hmenu-simple" onclick="openWaypointsPanel()"><span class="hmenu-item-icon icon-mask" style="mask-image:url(/assets/icons/waypoint.png);-webkit-mask-image:url(/assets/icons/waypoint.png)"></span><span>Waypoints</span></div>
+        <div class="hmenu-item hmenu-simple" onclick="openHubCollabPanel()"><span class="hmenu-item-icon icon-mask" style="mask-image:url(/assets/icons/collaboration.png);-webkit-mask-image:url(/assets/icons/collaboration.png)"></span><span>Collaborations</span></div>
+    </div>
+    <div id="outline-menu" class="hmenu-panel">
+        <div id="hmenu-outline-container"></div>
+    </div>
+    <!-- Each of these two replaces #account-menu + #outline-menu while open (see
+         openWaypointsPanel/openHubCollabPanel) — one per hamburger row above, each its own
+         independent panel rather than a shared view. -->
+    <div id="hub-collab-panel" class="hmenu-panel hub-subpanel" onclick="event.stopPropagation()">
+        <div class="hub-subpanel-search-wrap">
+            <input id="hub-collab-search" class="hub-subpanel-search" type="text" placeholder="Search..." oninput="handleHubCollabSearch(this.value)">
+        </div>
+        <div id="hub-collab-list" class="hub-subpanel-list"></div>
+    </div>
+    <div id="waypoints-panel" class="hmenu-panel hub-subpanel" onclick="event.stopPropagation()">
+        <div class="hub-subpanel-search-wrap">
+            <input id="waypoints-search" class="hub-subpanel-search" type="text" placeholder="Search..." oninput="handleWaypointsSearch(this.value)">
+        </div>
+        <div id="waypoints-list" class="hub-subpanel-list"></div>
+    </div>
+</div>

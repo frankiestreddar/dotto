@@ -1,0 +1,10 @@
+<!-- Card right-click Schedule/Delete are gone (see startScheduleConversation/
+     deleteSelectedCards) — this now only ever shows #align-pill, for table cards. -->
+<div id="context-menu" onclick="event.stopPropagation()">
+    <div id="align-pill">
+        <button data-align="left" onclick="setTableAlign('left')" title="Align left">⟸</button>
+        <button data-align="center" onclick="setTableAlign('center')" title="Align center">≡</button>
+        <button data-align="right" onclick="setTableAlign('right')" title="Align right">⟹</button>
+    </div>
+</div>
+

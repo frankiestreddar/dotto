@@ -1,0 +1,12 @@
+<div id="cell-tag-picker" onclick="event.stopPropagation(); closeTagContextMenu();">
+    <div id="cell-tag-picker-list"></div>
+    <div id="cell-tag-picker-new-row">
+        <input type="color" id="cell-tag-picker-new-color" value="#6366f1" title="Tag colour">
+        <input type="text" id="cell-tag-picker-new-name" placeholder="New tag name" onkeydown="if(event.key==='Enter'){event.preventDefault();createTagFromCellPicker();} if(event.key==='Escape'){event.preventDefault();closeCellTagPicker();}">
+    </div>
+</div>
+<div id="tag-context-menu" onclick="event.stopPropagation()">
+    <div onclick="startRenameActiveTag()">Rename</div>
+    <div onclick="deleteActiveTag()">Delete</div>
+</div>
+

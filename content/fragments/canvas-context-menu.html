@@ -1,0 +1,7 @@
+<div id="canvas-context-menu">
+    <div class="menu-item" id="canvas-ctx-undo" onclick="undo(); hideCanvasContextMenu();">Undo</div>
+    <div class="menu-item" id="canvas-ctx-redo" onclick="redo(); hideCanvasContextMenu();">Redo</div>
+    <div class="menu-item" id="canvas-ctx-del-col" onclick="deleteContextColumn()" onmouseenter="highlightContextColumn(true)" onmouseleave="highlightContextColumn(false)" style="display:none;">Delete column</div>
+    <div class="menu-item" id="canvas-ctx-del-row" onclick="deleteContextRow()" onmouseenter="highlightContextRow(true)" onmouseleave="highlightContextRow(false)" style="display:none;">Delete row</div>
+</div>
+

@@ -1,0 +1,79 @@
+<div id="top-bar">
+    <div id="top-bar-left">
+        <div class="bubble" style="flex:0 0 auto;">
+            <button id="btn-back" class="btn">←</button>
+            <button id="btn-forward" class="btn">→</button>
+        </div>
+        <button id="btn-menu" class="btn" title="Menu"><img src="/assets/icons/menu-btn.png" alt=""></button>
+        <div class="bubble" id="breadcrumbs"></div>
+        <div class="bubble" id="collab-bubble">
+            <div id="collab-content"></div>
+            <div class="collab-tooltip" id="collab-tooltip"></div>
+        </div>
+    </div>
+    <div id="search-bar" onclick="event.stopPropagation()">
+        <div id="search-input-wrap">
+            <textarea id="search-input" rows="1" placeholder="" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" oninput="handleSearchInput(this.value)" onfocus="handleSearchFocus()"></textarea>
+            <svg id="search-loading-ring" aria-hidden="true">
+                <rect class="search-loading-ring-base"></rect>
+                <rect class="search-loading-ring-chase" pathLength="100"></rect>
+                <!-- Idle (focused, not yet submitted) state — see handleSearchFocus/searchInputWrap's
+                     .idle-pulsing toggle. Four copies of the same eased lap, phase-shifted a hair
+                     apart via negative animation-delay (not a spatial offset) so they trail the
+                     leader correctly even though the lap speed itself isn't constant, each a bit
+                     fainter than the last for the leading-to-trailing fade. -->
+                <rect class="search-idle-chase search-idle-chase-4" pathLength="100"></rect>
+                <rect class="search-idle-chase search-idle-chase-3" pathLength="100"></rect>
+                <rect class="search-idle-chase search-idle-chase-2" pathLength="100"></rect>
+                <rect class="search-idle-chase search-idle-chase-1" pathLength="100"></rect>
+            </svg>
+            <div id="search-spinner" aria-hidden="true"></div>
+            <div id="search-space-hint" class="visible" aria-hidden="true">Space</div>
+            <div id="search-card-pill">
+                <span id="search-card-pill-label" onclick="event.stopPropagation(); openSearchCardsModal();"></span>
+                <button id="search-card-pill-clear" type="button" title="Clear attached cards" onclick="event.stopPropagation(); clearSearchCardContext();">✕</button>
+            </div>
+            <!-- Replaces #search-input's visible content (not its value) while a notification is
+                 showing — see pushNotification/showNotification. -->
+            <div id="search-notification" onclick="event.stopPropagation()">
+                <img id="search-notification-image" alt="">
+                <div id="search-notification-text"></div>
+                <button id="search-notification-action" type="button" onclick="runNotificationAction()"></button>
+            </div>
+        </div>
+        <div id="search-dropdown">
+            <div id="search-dotbot-answer"></div>
+            <div id="search-results"></div>
+            <div id="search-translation"></div>
+            <div id="search-dictionary"></div>
+            <div id="search-examples"></div>
+            <div id="search-recommended"></div>
+            <!-- The mnemonic story lands in #search-suggestions above (see
+                 renderMnemonicResultCard) — this stays LAST so its image always renders below
+                 that text, never above it. -->
+            <div id="search-suggestions"></div>
+            <div id="search-image-result"></div>
+        </div>
+        <!-- Full breadcrumb map — opened by clicking ".." in the breadcrumb (see render()'s
+             breadcrumb block and openBreadcrumbMapPanel/renderBreadcrumbMapPanel). Shows the
+             user's own root canvas plus, when currently inside a shared canvas, that collaboration
+             and its own nested path, all indented to show real structural nesting. -->
+        <div id="breadcrumb-map-panel" onclick="event.stopPropagation()">
+            <div id="breadcrumb-map-list"></div>
+        </div>
+    </div>
+    <div id="top-bar-right">
+        <button id="btn-cart" class="btn" title="Template Marketplace"><img src="/assets/icons/market-button.png" alt=""></button>
+        <button id="btn-messages" class="btn" title="Messages"><img src="/assets/icons/chats-btn.png" alt=""></button>
+        <button id="btn-profile" title="Profile">
+            <div class="profile-avatar-sm" id="profile-avatar-sm">YO</div>
+            <!-- Shown instead of the avatar above on hover/while the profile panel is open (see
+                 #btn-profile:hover/.active in globals.css) — clicking in that state logs out instead
+                 of opening the panel (see the profileBtn click handler). -->
+            <svg id="btn-profile-power-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M12 2v10"></path>
+                <path d="M18.36 6.64a9 9 0 1 1-12.73 0"></path>
+            </svg>
+        </button>
+    </div>
+</div>
