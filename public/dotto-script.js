@@ -6950,15 +6950,28 @@
             pageNum = Math.max(1, Math.min(pageNum, pdfDoc.numPages));
             pageLabel.textContent = `${pageNum} / ${pdfDoc.numPages}`;
             const pdfPage = await pdfDoc.getPage(pageNum);
-            // Fit the page's own natural width to whatever the card currently measures — read
-            // fresh on every call rather than assumed, so a resized card (or one reopened at a
-            // different width) always renders sharp instead of stretched.
-            const targetWidth = wrap.clientWidth || 320;
             const baseViewport = pdfPage.getViewport({ scale: 1 });
             // The PDF page's own true aspect ratio (independent of whatever size the card
             // currently happens to be) — setupResizing's media branch locks dragging to this
             // instead of the card's current (possibly still-default, not-yet-page-shaped) w/h.
             it.docAspectRatio = baseViewport.width / baseViewport.height;
+            // Keep the card's own box exactly the right shape for its content, width-anchored —
+            // recomputed every render (a no-op once it already matches) rather than only once, so
+            // this both corrects an upload's still-default, not-yet-page-shaped box on first load
+            // AND self-heals any minor grid-snap rounding drift from a resize drag. Without this,
+            // the box and the actual page could end up a slightly different shape, which is what
+            // made resizing look like it was cropping the page instead of scaling it uniformly —
+            // the page was always rendered at ITS OWN correct ratio, but the surrounding box
+            // (with overflow:auto) wasn't guaranteed to match it.
+            const cardEl = wrap.closest('.item');
+            if (cardEl) {
+                const wantedH = Math.max(112, Math.round((it.w / it.docAspectRatio) / 28) * 28);
+                if (wantedH !== it.h) { it.h = wantedH; cardEl.style.height = it.h + 'px'; }
+            }
+            // Fit the page's own natural width to whatever the card currently measures — read
+            // fresh on every call rather than assumed, so a resized card (or one reopened at a
+            // different width) always renders sharp instead of stretched.
+            const targetWidth = wrap.clientWidth || 320;
             const scale = targetWidth / baseViewport.width;
             const viewport = pdfPage.getViewport({ scale });
             page.style.width = viewport.width + 'px'; page.style.height = viewport.height + 'px';
@@ -6996,6 +7009,20 @@
         }
         prevBtn.onclick = (e) => { e.stopPropagation(); goToPage(pageNum - 1); };
         nextBtn.onclick = (e) => { e.stopPropagation(); goToPage(pageNum + 1); };
+
+        // Dragging the card's own resize handle (see setupResizing) changes wrap's real measured
+        // size, but nothing about that re-fits the already-rendered page to it — without this,
+        // the page just sat at whatever size it was last rendered at, clipped or gapped by
+        // .pdf-viewer-page's overflow:auto rather than actually rescaling. Debounced rather than
+        // re-rendering on every single resize tick (a real re-render awaits a page fetch + canvas
+        // paint + text-layer rebuild — too slow to run on every pixel of a drag), so it re-fits
+        // shortly after the size settles instead of mid-drag.
+        let resizeSettleTimer = null;
+        const resizeObserver = new ResizeObserver(() => {
+            if (resizeSettleTimer) clearTimeout(resizeSettleTimer);
+            resizeSettleTimer = setTimeout(renderPage, 150);
+        });
+        resizeObserver.observe(wrap);
 
         getCachedPdfDoc(it.mediaSrc).then(doc => { pdfDoc = doc; renderPage(); }).catch(err => {
             console.error('[media] pdf load failed:', err);
@@ -12713,6 +12740,12 @@
         const b = el.querySelector('.body'), moreBtn = el.querySelector('.more-btn');
         handle.addEventListener('pointerdown', (e) => {
             e.stopPropagation();
+            // stopPropagation alone only stops the drag system's own listener from firing — it
+            // does nothing to the browser's own native default action for a mousedown-and-drag,
+            // which for a media card is "start a text selection" if the drag happens to sweep
+            // near/across the invisible PDF text layer sitting nearby. preventDefault suppresses
+            // that native default outright, so dragging this handle is only ever a resize.
+            e.preventDefault();
             saveSnapshot();
             if (it.kind === 'table' && !it.userSized) {
                 it.w = el.offsetWidth; it.h = el.offsetHeight;
