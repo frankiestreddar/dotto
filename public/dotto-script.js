@@ -12,64 +12,67 @@
         drawSizeInput = document.getElementById('draw-size'),
         canvasContextMenu = document.getElementById('canvas-context-menu');
     
-    // Set by dotto-app.jsx before this script runs (see app/dotto-app.jsx).
-    // Declared first since profile-panel setup further down reads currentUser
-    // immediately — as `let`/`const`, either would throw "cannot access before
-    // initialization" (and silently abort the rest of this script) if read
-    // before its declaration runs.
-    let currentUser = window.__DOTTO_USER__ || { id: null, username: 'guest', displayName: 'You' };
     const supabase = window.__dottoSupabase || null;
 
-    let tx = 0, ty = 0, scale = 1, idCounter = 10, currentEditingEl = null;
-    let contextMenuItemId = null;
-    // Source-page table state: which data cell last had focus (so the bottom-bar Add menu
-    // knows where to insert images/audio), which cell's tag picker is currently open, and
-    // the in-progress MediaRecorder session (if any) for the Audio > Record option.
-    let lastFocusedCell = null;
-    let activeTagRow = null;
-    let renamingTagId = null; // tag currently being renamed inline in the tag picker list, if any
-    let contextMenuTagId = null; // tag the right-click context menu (rename/delete) is currently targeting
-    let cellAudioRecorder = null, cellAudioChunks = [];
-    let historyStack = ['root'], historyIndex = 0, currentFolderId = 'root';
-    
-    // Core data mapping of our multiple folder structures
-    let folders = { 
-        'root': { 
-            id: 'root', 
-            title: 'Home', 
-            items: [
-                { id: 1, x: 100, y: 150, w: 308, h: 140, kind: 'note', html: 'Welcome to Dotter!<br>Explore the app, report any bugs, and learn some languages!' },
-            ], 
-            drawings: [] 
-        } 
+    // Every piece of shared, cross-function mutable app state, consolidated into one owned
+    // object rather than scattered top-level `let`s — see PHASE2_ROADMAP.md Phase 1. This is
+    // what makes the eventual real-ES-module split possible at all: an ES module import is a
+    // read-only live binding (you can't do `import { tx } from './x.js'; tx = 5;`), so every
+    // piece of state that gets reassigned (not just mutated in place) from outside the module
+    // that declares it has to live as a property of something that module still owns, like
+    // this object, rather than as its own top-level binding.
+    const appState = {
+        // Set by dotto-app.jsx before this script runs (see app/dotto-app.jsx). Declared first
+        // since profile-panel setup further down reads currentUser immediately.
+        currentUser: window.__DOTTO_USER__ || { id: null, username: 'guest', displayName: 'You' },
+        tx: 0, ty: 0, scale: 1, idCounter: 10, currentEditingEl: null,
+        contextMenuItemId: null,
+        // Source-page table state: which data cell last had focus (so the bottom-bar Add menu
+        // knows where to insert images/audio), which cell's tag picker is currently open, and
+        // the in-progress MediaRecorder session (if any) for the Audio > Record option.
+        lastFocusedCell: null,
+        activeTagRow: null,
+        renamingTagId: null, // tag currently being renamed inline in the tag picker list, if any
+        contextMenuTagId: null, // tag the right-click context menu (rename/delete) is currently targeting
+        cellAudioRecorder: null, cellAudioChunks: [],
+        historyStack: ['root'], historyIndex: 0, currentFolderId: 'root',
+        // Core data mapping of our multiple folder structures
+        folders: {
+            'root': {
+                id: 'root',
+                title: 'Home',
+                items: [
+                    { id: 1, x: 100, y: 150, w: 308, h: 140, kind: 'note', html: 'Welcome to Dotter!<br>Explore the app, report any bugs, and learn some languages!' },
+                ],
+                drawings: []
+            }
+        },
+        addingKind: null,
+        addingStatKind: null, // optional variant config threaded through to add() for kinds like 'statcard' that come in multiple flavors (e.g. Progress vs Accuracy)
+        placementGhost: null,
+        selectedCardIds: [],
+        // The card "armed" by a first click in data mode, awaiting a second click on a different
+        // card to complete the link — see handleDataModeClick/clearDataLinkPending. Click-to-link is
+        // a second way to create the exact same {fromId,toId} connection that dragging between two
+        // cards already does (see startConnectionDrag), for when dragging across a large canvas
+        // distance is inconvenient.
+        dataLinkPendingId: null,
+        // ---- Card interaction modes: 'normal' (move/click), 'data' (draw connections), 'select' (multi-select) ----
+        cardMode: 'normal',
+        modeOverrideKey: null, // 'shift' | 'd' | 'escape' | null — temporary override while a mode key is held
+        topCardZIndex: 10,
     };
-    
-    let addingKind = null;
-    let addingStatKind = null; // optional variant config threaded through to add() for kinds like 'statcard' that come in multiple flavors (e.g. Progress vs Accuracy)
-    let placementGhost = null;
-    
-    let selectedCardIds = [];
-    // The card "armed" by a first click in data mode, awaiting a second click on a different
-    // card to complete the link — see handleDataModeClick/clearDataLinkPending. Click-to-link is
-    // a second way to create the exact same {fromId,toId} connection that dragging between two
-    // cards already does (see startConnectionDrag), for when dragging across a large canvas
-    // distance is inconvenient.
-    let dataLinkPendingId = null;
-    // ---- Card interaction modes: 'normal' (move/click), 'data' (draw connections), 'select' (multi-select) ----
-    let cardMode = 'normal';
-    let modeOverrideKey = null; // 'shift' | 'd' | 'escape' | null — temporary override while a mode key is held
     function effectiveMode() {
-        if (modeOverrideKey === 'shift') return 'select';
-        if (modeOverrideKey === 'd') return 'data';
-        if (modeOverrideKey === 'escape') return 'normal';
-        return cardMode;
+        if (appState.modeOverrideKey === 'shift') return 'select';
+        if (appState.modeOverrideKey === 'd') return 'data';
+        if (appState.modeOverrideKey === 'escape') return 'normal';
+        return appState.cardMode;
     }
-    let topCardZIndex = 10;
     function bringCardToFront(it, el) {
         if (!it) return;
-        topCardZIndex++;
-        it.zIndex = topCardZIndex;
-        if (el) el.style.zIndex = topCardZIndex;
+        appState.topCardZIndex++;
+        it.zIndex = appState.topCardZIndex;
+        if (el) el.style.zIndex = appState.topCardZIndex;
     }
     // Every card's zIndex is persisted with the workspace, but topCardZIndex itself always
     // restarts at its hardcoded default above on a fresh page load — so without this, a card
@@ -79,11 +82,11 @@
     // loadWorkspace) so "click brings to front" is guaranteed to actually mean "in front of
     // literally everything," not just everything clicked so far this session.
     function recomputeTopCardZIndex() {
-        let max = topCardZIndex;
-        Object.values(folders).forEach(f => {
+        let max = appState.topCardZIndex;
+        Object.values(appState.folders).forEach(f => {
             (f && f.items || []).forEach(it => { if (typeof it.zIndex === 'number' && it.zIndex > max) max = it.zIndex; });
         });
-        topCardZIndex = max;
+        appState.topCardZIndex = max;
     }
 
     // ---------- Add menu data ----------
@@ -295,7 +298,7 @@
     // ---------- Stopwatch live ticking ----------
     let swTickInterval = null;
     function ensureSwTicking() {
-        const hasRunning = folders[currentFolderId] && folders[currentFolderId].items.some(i => i.kind === 'stopwatch' && i.swRunning && !i.swPaused);
+        const hasRunning = appState.folders[appState.currentFolderId] && appState.folders[appState.currentFolderId].items.some(i => i.kind === 'stopwatch' && i.swRunning && !i.swPaused);
         if (hasRunning && !swTickInterval) {
             swTickInterval = setInterval(swTick, 1000);
         } else if (!hasRunning && swTickInterval) {
@@ -303,11 +306,11 @@
         }
     }
     function swTick() {
-        if (!folders[currentFolderId]) return;
-        if (currentEditingEl) {
+        if (!appState.folders[appState.currentFolderId]) return;
+        if (appState.currentEditingEl) {
             // Don't yank focus away from whatever text the user is editing — just patch the
             // visible timer digits directly instead of a full re-render.
-            folders[currentFolderId].items.forEach(it => {
+            appState.folders[appState.currentFolderId].items.forEach(it => {
                 if (it.kind === 'stopwatch' && it.swRunning) {
                     const el = document.getElementById('item-' + it.id);
                     const timeEl = el && el.querySelector('.sw-time');
@@ -320,7 +323,7 @@
     }
 
     function saveSnapshot() {
-        undoStack.push(JSON.stringify({ folders, idCounter }));
+        undoStack.push(JSON.stringify({ folders: appState.folders, idCounter: appState.idCounter }));
         if (undoStack.length > 60) undoStack.shift();
         redoStack = [];
     }
@@ -333,21 +336,21 @@
     // "close the window" can't lose more than the debounce window.
     let workspaceSaveTimer = null;
     function scheduleWorkspaceSave() {
-        if (!supabase || !currentUser.id) return;
+        if (!supabase || !appState.currentUser.id) return;
         // Live presence/content-sync — see the "Live canvas presence" section further down. This,
         // not render(), is the real universal "something changed" signal: render() itself always
         // calls this first, but a lot of mutations (committing a text edit on blur, rating a
         // flashcard, etc.) call ONLY this, never render() — so anchoring on render() alone silently
         // missed every one of those for sync purposes, even though the change was saved/undoable
         // fine locally. This is a strict superset of what render()-anchoring caught.
-        const folderObj = folders[currentFolderId];
+        const folderObj = appState.folders[appState.currentFolderId];
         if (folderObj) { ensureCanvasPresenceChannel(); queueSyncDiff(folderObj); }
         clearTimeout(workspaceSaveTimer);
         workspaceSaveTimer = setTimeout(saveWorkspaceNow, 800);
     }
     async function saveWorkspaceNow() {
         clearTimeout(workspaceSaveTimer);
-        if (!supabase || !currentUser.id) return;
+        if (!supabase || !appState.currentUser.id) return;
 
         // shared:owner:folderId entries (see openSharedCanvas) are someone else's canvas fetched
         // on demand, not this user's own — they must never be written into this user's own
@@ -356,10 +359,10 @@
         // navigation was just before entering it (preSharedViewState), not the shared key itself,
         // since that key wouldn't mean anything on a fresh load without re-fetching.
         const localFolders = {};
-        for (const id in folders) { if (!id.startsWith('shared:')) localFolders[id] = folders[id]; }
-        const resumeFolderId = preSharedViewState ? preSharedViewState.currentFolderId : currentFolderId;
-        const resumeStack = preSharedViewState ? preSharedViewState.historyStack : historyStack;
-        const resumeIndex = preSharedViewState ? preSharedViewState.historyIndex : historyIndex;
+        for (const id in appState.folders) { if (!id.startsWith('shared:')) localFolders[id] = appState.folders[id]; }
+        const resumeFolderId = preSharedViewState ? preSharedViewState.currentFolderId : appState.currentFolderId;
+        const resumeStack = preSharedViewState ? preSharedViewState.historyStack : appState.historyStack;
+        const resumeIndex = preSharedViewState ? preSharedViewState.historyIndex : appState.historyIndex;
         // A shared canvas isn't reachable from resumeFolderId alone (it's someone else's tree,
         // fetched on demand — see the comment above) — so a refresh/reload used to always silently
         // drop back to wherever this user's own navigation was just before entering, kicking them
@@ -368,13 +371,13 @@
         // resolveSharedFolderChain) fixes that — this doesn't replace resumeFolderId/resumeStack
         // above, which still correctly describe where to land if the shared view can't be resumed
         // for any reason (e.g. access was revoked in the meantime).
-        const activeShared = folders[currentFolderId];
+        const activeShared = appState.folders[appState.currentFolderId];
         const lastSharedView = (activeShared && activeShared.isSharedView)
             ? { ownerId: activeShared.sharedOwnerId, folderId: activeShared.sharedRemoteFolderId }
             : null;
 
         const { error } = await supabase.from('workspaces').upsert({
-            user_id: currentUser.id,
+            user_id: appState.currentUser.id,
             // historyStack/historyIndex are saved alongside folders so the full
             // breadcrumb trail (root -> ... -> current folder) survives a reload —
             // saving only the leaf folder id previously made whatever nested
@@ -385,7 +388,7 @@
             // for any other reason captures wherever the camera currently is, and pagehide/
             // visibilitychange below call this directly so a plain refresh or tab close always
             // gets one in first.
-            data: { folders: localFolders, idCounter, historyStack: resumeStack, historyIndex: resumeIndex, scheduledEvents, tx, ty, scale, lastSharedView },
+            data: { folders: localFolders, idCounter: appState.idCounter, historyStack: resumeStack, historyIndex: resumeIndex, scheduledEvents, tx: appState.tx, ty: appState.ty, scale: appState.scale, lastSharedView },
             current_folder_id: resumeFolderId,
             updated_at: new Date().toISOString()
         });
@@ -393,7 +396,7 @@
 
         // A currently-open shared canvas is saved separately — patches just that one folder in
         // the OWNER's own workspace row (see update_shared_folder), never this user's own.
-        const openShared = folders[currentFolderId];
+        const openShared = appState.folders[appState.currentFolderId];
         if (openShared && openShared.isSharedView) {
             const { isSharedView, sharedOwnerId, sharedRemoteFolderId, id, ...folderData } = openShared;
             // The owner's canonical storage always uses bare, un-namespaced folder ids — this
@@ -411,32 +414,32 @@
     // skip its own default centerOnContent() in that case, the same way applyFolderView already
     // prefers a folder's own saved lastView over re-centering when one exists.
     async function loadWorkspace() {
-        if (!supabase || !currentUser.id) return false;
+        if (!supabase || !appState.currentUser.id) return false;
         const { data, error } = await supabase
             .from('workspaces')
             .select('data, current_folder_id')
-            .eq('user_id', currentUser.id)
+            .eq('user_id', appState.currentUser.id)
             .maybeSingle();
         if (error) { console.error('[workspace] load failed:', error); return false; }
         if (!data) return false; // first-ever login — keep the built-in starter content
-        folders = data.data.folders;
-        idCounter = data.data.idCounter;
+        appState.folders = data.data.folders;
+        appState.idCounter = data.data.idCounter;
         recomputeTopCardZIndex();
         if (Array.isArray(data.data.scheduledEvents)) scheduledEvents = data.data.scheduledEvents;
 
         const savedStack = data.data.historyStack;
         if (Array.isArray(savedStack) && savedStack.length && savedStack[0] === 'root' &&
-            savedStack.every(id => folders[id]) &&
+            savedStack.every(id => appState.folders[id]) &&
             Number.isInteger(data.data.historyIndex) && data.data.historyIndex >= 0 && data.data.historyIndex < savedStack.length) {
-            historyStack = savedStack;
-            historyIndex = data.data.historyIndex;
-            currentFolderId = historyStack[historyIndex];
-        } else if (data.current_folder_id && folders[data.current_folder_id]) {
+            appState.historyStack = savedStack;
+            appState.historyIndex = data.data.historyIndex;
+            appState.currentFolderId = appState.historyStack[appState.historyIndex];
+        } else if (data.current_folder_id && appState.folders[data.current_folder_id]) {
             // Older save made before historyStack was persisted — best effort:
             // still show root as root rather than treating the leaf as root.
-            currentFolderId = data.current_folder_id;
-            historyStack = currentFolderId === 'root' ? ['root'] : ['root', currentFolderId];
-            historyIndex = historyStack.length - 1;
+            appState.currentFolderId = data.current_folder_id;
+            appState.historyStack = appState.currentFolderId === 'root' ? ['root'] : ['root', appState.currentFolderId];
+            appState.historyIndex = appState.historyStack.length - 1;
         }
 
         // Resume a collaboration session across a reload instead of it silently kicking the user
@@ -448,19 +451,19 @@
         // not just the collaboration's top level.
         if (data.data.lastSharedView && data.data.lastSharedView.ownerId && data.data.lastSharedView.folderId) {
             const { ownerId, folderId } = data.data.lastSharedView;
-            preSharedViewState = { currentFolderId, historyStack: historyStack.slice(), historyIndex };
+            preSharedViewState = { currentFolderId: appState.currentFolderId, historyStack: appState.historyStack.slice(), historyIndex: appState.historyIndex };
             const localKeys = await resolveSharedFolderChain(ownerId, folderId);
             if (localKeys) {
-                currentFolderId = localKeys[localKeys.length - 1];
-                historyStack = localKeys;
-                historyIndex = localKeys.length - 1;
+                appState.currentFolderId = localKeys[localKeys.length - 1];
+                appState.historyStack = localKeys;
+                appState.historyIndex = localKeys.length - 1;
             } else {
                 preSharedViewState = null; // couldn't resume — stay on this user's own canvas instead
             }
         }
 
         if (typeof data.data.tx === 'number' && typeof data.data.ty === 'number' && typeof data.data.scale === 'number') {
-            tx = data.data.tx; ty = data.data.ty; scale = data.data.scale;
+            appState.tx = data.data.tx; appState.ty = data.data.ty; appState.scale = data.data.scale;
             return true;
         }
         return false; // older save made before tx/ty/scale was persisted — nothing to restore
@@ -481,10 +484,10 @@
         document.execCommand('insertText', false, text);
     });
     function afterHistoryChange() {
-        if (!folders[currentFolderId]) {
-            currentFolderId = 'root';
-            historyStack = [currentFolderId];
-            historyIndex = 0;
+        if (!appState.folders[appState.currentFolderId]) {
+            appState.currentFolderId = 'root';
+            appState.historyStack = [appState.currentFolderId];
+            appState.historyIndex = 0;
             render();
             centerOnContent();
             return;
@@ -497,16 +500,16 @@
     }
     function undo() {
         if (!undoStack.length) return;
-        redoStack.push(JSON.stringify({ folders, idCounter }));
+        redoStack.push(JSON.stringify({ folders: appState.folders, idCounter: appState.idCounter }));
         const state = JSON.parse(undoStack.pop());
-        folders = state.folders; idCounter = state.idCounter;
+        appState.folders = state.folders; appState.idCounter = state.idCounter;
         afterHistoryChange();
     }
     function redo() {
         if (!redoStack.length) return;
-        undoStack.push(JSON.stringify({ folders, idCounter }));
+        undoStack.push(JSON.stringify({ folders: appState.folders, idCounter: appState.idCounter }));
         const state = JSON.parse(redoStack.pop());
-        folders = state.folders; idCounter = state.idCounter;
+        appState.folders = state.folders; appState.idCounter = state.idCounter;
         afterHistoryChange();
     }
     // Set by openTableCellContextMenu when a source-table cell is right-clicked, so the
@@ -535,7 +538,7 @@
         e.preventDefault();
         e.stopPropagation();
         contextMenu.style.display = 'none';
-        contextMenuItemId = null;
+        appState.contextMenuItemId = null;
         contextMenuTableCtx = null;
         showCanvasContextMenu(e.clientX, e.clientY);
     });
@@ -545,7 +548,7 @@
         e.preventDefault();
         e.stopPropagation();
         contextMenu.style.display = 'none';
-        contextMenuItemId = null;
+        appState.contextMenuItemId = null;
         contextMenuTableCtx = { tableId, r, c };
         showCanvasContextMenu(e.clientX, e.clientY);
     }
@@ -621,7 +624,7 @@
             clearSearch();
             if (searchInput) searchInput.blur();
             if (drawMode) setDrawMode(false);
-            if (addingKind) cancelAddingKind();
+            if (appState.addingKind) cancelAddingKind();
             if (scheduleViewMode) exitScheduleViewMode();
             // Escape switching the cursor back to Normal mode (tap vs. hold, same as the
             // other mode keys) is handled by the dedicated keydown/keyup pair further below —
@@ -642,12 +645,12 @@
         // drag. isEditingText/shiftKey/altKey are all excluded so this never steals an ordinary
         // text copy/cut/paste happening inside a note body, table cell, or title, and Cmd+X never
         // fires alongside Shift+X's unrelated "link selected cards" shortcut.
-        if (!isEditingText && !e.shiftKey && !e.altKey && (e.key === 'c' || e.key === 'C') && selectedCardIds.length > 0) {
+        if (!isEditingText && !e.shiftKey && !e.altKey && (e.key === 'c' || e.key === 'C') && appState.selectedCardIds.length > 0) {
             e.preventDefault();
             copySelectedCards();
             return;
         }
-        if (!isEditingText && !e.shiftKey && !e.altKey && (e.key === 'x' || e.key === 'X') && selectedCardIds.length > 0) {
+        if (!isEditingText && !e.shiftKey && !e.altKey && (e.key === 'x' || e.key === 'X') && appState.selectedCardIds.length > 0) {
             e.preventDefault();
             cutSelectedCards();
             return;
@@ -693,7 +696,7 @@
     // wobble).
     function wrapPhase(v, period) { return ((v % period) + period) % period; }
     function applyTransform() {
-        world.style.transform = `translate(${tx}px, ${ty}px) scale(${scale})`;
+        world.style.transform = `translate(${appState.tx}px, ${appState.ty}px) scale(${appState.scale})`;
         // background-size on #dot-layer is a fixed 28px (see CSS) and never touched here — the
         // zoom is applied purely through this `scale()`, a compositor-only operation, so the
         // tile is only ever rasterized once and simply scaled smoothly from there on, instead
@@ -702,10 +705,10 @@
         // Same `scale` the cards themselves use (see world.style.transform above) — no separate
         // floor — so a card's position on the grid stays exact at every zoom level, not just
         // above some threshold.
-        const period = 28 * scale;
-        const dx = wrapPhase(tx - dotLayerBaseX, period);
-        const dy = wrapPhase(ty - dotLayerBaseY, period);
-        dotLayer.style.transform = `translate(${dx}px, ${dy}px) scale(${scale})`;
+        const period = 28 * appState.scale;
+        const dx = wrapPhase(appState.tx - dotLayerBaseX, period);
+        const dy = wrapPhase(appState.ty - dotLayerBaseY, period);
+        dotLayer.style.transform = `translate(${dx}px, ${dy}px) scale(${appState.scale})`;
         updateZoomUI();
         updateContextMenuPosition();
         repositionAllRemoteCursors();
@@ -728,7 +731,7 @@
         const transitionValue = `transform ${durationMs / 1000}s ease`;
         world.style.transition = transitionValue;
         dotLayer.style.transition = transitionValue;
-        tx = targetTx; ty = targetTy; scale = targetScale;
+        appState.tx = targetTx; appState.ty = targetTy; appState.scale = targetScale;
         applyTransform();
         clearTimeout(cameraTweenTimeout);
         cameraTweenTimeout = setTimeout(() => {
@@ -768,16 +771,16 @@
         applyTransformRafId = requestAnimationFrame(() => { applyTransformRafId = null; applyTransform(); });
     }
     function updateContextMenuPosition() {
-        if (contextMenu.style.display !== 'flex' || contextMenuItemId == null) return;
-        const it = findItemById(contextMenuItemId);
-        const el = document.getElementById('item-' + contextMenuItemId);
-        if (!it || !el) { contextMenu.style.display = 'none'; contextMenuItemId = null; return; }
+        if (contextMenu.style.display !== 'flex' || appState.contextMenuItemId == null) return;
+        const it = findItemById(appState.contextMenuItemId);
+        const el = document.getElementById('item-' + appState.contextMenuItemId);
+        if (!it || !el) { contextMenu.style.display = 'none'; appState.contextMenuItemId = null; return; }
         const w = el.offsetWidth;
-        contextMenu.style.left = (tx + (it.x + w) * scale + 8) + 'px';
-        contextMenu.style.top = (ty + it.y * scale) + 'px';
+        contextMenu.style.left = (appState.tx + (it.x + w) * appState.scale + 8) + 'px';
+        contextMenu.style.top = (appState.ty + it.y * appState.scale) + 'px';
     }
     function updateZoomUI() {
-        const pct = Math.max(0, Math.min(1, (scale - ZOOM_MIN) / (ZOOM_MAX - ZOOM_MIN)));
+        const pct = Math.max(0, Math.min(1, (appState.scale - ZOOM_MIN) / (ZOOM_MAX - ZOOM_MIN)));
         const h = zoomTrack.clientHeight;
         const y = pct * h;
         zoomFill.style.height = y + 'px';
@@ -830,7 +833,7 @@
     // Shared by every place a new data-mode link gets created (Shift+X batch-link, click-to-link,
     // drag-to-link) so the fifty_links achievement counts all three the same way.
     function createConnection(conns, fromId, toId) {
-        const conn = { id: 'conn_' + idCounter++, fromId, toId };
+        const conn = { id: 'conn_' + appState.idCounter++, fromId, toId };
         conns.push(conn);
         bumpAchievementStat('fifty_links');
         return conn;
@@ -841,11 +844,11 @@
     // by hand. The first-selected card becomes the source; a connection is drawn from it to
     // every other selected card (a no-op for pairs that are already connected).
     function linkSelectedCards() {
-        if (!folders[currentFolderId] || folders[currentFolderId].isSource) return;
-        if (selectedCardIds.length < 2) return;
+        if (!appState.folders[appState.currentFolderId] || appState.folders[appState.currentFolderId].isSource) return;
+        if (appState.selectedCardIds.length < 2) return;
         saveSnapshot();
-        const conns = ensureConnections(folders[currentFolderId]);
-        const [sourceId, ...targetIds] = selectedCardIds;
+        const conns = ensureConnections(appState.folders[appState.currentFolderId]);
+        const [sourceId, ...targetIds] = appState.selectedCardIds;
         let madeAny = false;
         targetIds.forEach(targetId => {
             const exists = conns.some(c => c.fromId === sourceId && c.toId === targetId);
@@ -939,8 +942,8 @@
     // streaming connection pipeline below.
     function findLinkedTable(fromItem) {
         if (fromItem.kind === 'table') return fromItem;
-        if ((fromItem.kind === 'folder' || fromItem.kind === 'source') && fromItem.folderId && folders[fromItem.folderId]) {
-            return folders[fromItem.folderId].items.find(i => i.kind === 'table') || null;
+        if ((fromItem.kind === 'folder' || fromItem.kind === 'source') && fromItem.folderId && appState.folders[fromItem.folderId]) {
+            return appState.folders[fromItem.folderId].items.find(i => i.kind === 'table') || null;
         }
         return null;
     }
@@ -950,8 +953,8 @@
     // CardStreamIO.shelf) reach a table that belongs to a DIFFERENT source's own subfolder than
     // whatever's currently on screen (see applySrsUpdateStream).
     function findTableById(tableId) {
-        for (const fid in folders) {
-            const f = folders[fid];
+        for (const fid in appState.folders) {
+            const f = appState.folders[fid];
             const found = f && f.items && f.items.find(i => i.kind === 'table' && i.id === tableId);
             if (found) return found;
         }
@@ -972,7 +975,7 @@
     // renderShelfHTML) to show which sources it's currently aggregating.
     function folderTitleForConnectedSource(sourceItemId) {
         const srcCard = connectedSourceCard(sourceItemId);
-        return (srcCard && folders[srcCard.folderId] && folders[srcCard.folderId].title) || 'Source';
+        return (srcCard && appState.folders[srcCard.folderId] && appState.folders[srcCard.folderId].title) || 'Source';
     }
     // Same lookup as folderTitleForConnectedSource, but returns the folder id itself rather than
     // its title — used by startRenameShelfSourceRow to find what to actually write a rename back
@@ -1436,7 +1439,7 @@
         // Rule 1: no self-links.
         if (fromId === toId) return false;
 
-        const folder = folders[currentFolderId];
+        const folder = appState.folders[appState.currentFolderId];
         if (!folder) return false;
         const fromItem = folder.items.find(i => i.id === fromId);
         const toItem = folder.items.find(i => i.id === toId);
@@ -1492,11 +1495,11 @@
     // the "armed" highlight from whichever card was first-clicked. Safe to call even when
     // nothing is pending.
     function clearDataLinkPending() {
-        if (dataLinkPendingId != null) {
-            const prevEl = document.getElementById('item-' + dataLinkPendingId);
+        if (appState.dataLinkPendingId != null) {
+            const prevEl = document.getElementById('item-' + appState.dataLinkPendingId);
             if (prevEl) prevEl.classList.remove('link-source-armed');
         }
-        dataLinkPendingId = null;
+        appState.dataLinkPendingId = null;
     }
     // The click-based counterpart to dragging a connection line from one card to another (see
     // startConnectionDrag) — called when a data-mode gesture on `it` turns out to be a plain
@@ -1506,17 +1509,17 @@
     // same isValidConnection rules. Clicking the already-armed card again cancels it instead of
     // linking it to itself.
     function handleDataModeClick(it, el) {
-        if (dataLinkPendingId == null) {
-            dataLinkPendingId = it.id;
+        if (appState.dataLinkPendingId == null) {
+            appState.dataLinkPendingId = it.id;
             el.classList.add('link-source-armed');
             return;
         }
-        const fromId = dataLinkPendingId;
+        const fromId = appState.dataLinkPendingId;
         clearDataLinkPending();
         if (fromId === it.id) return; // clicked the armed card again — just cancel
         if (!isValidConnection(fromId, it.id)) return;
         saveSnapshot();
-        const conns = ensureConnections(folders[currentFolderId]);
+        const conns = ensureConnections(appState.folders[appState.currentFolderId]);
         createConnection(conns, fromId, it.id);
         render();
     }
@@ -1687,9 +1690,9 @@
         world.appendChild(previewSvg);
 
         let hoveredTarget = null;
-        const allItems = folders[currentFolderId] ? folders[currentFolderId].items : [];
+        const allItems = appState.folders[appState.currentFolderId] ? appState.folders[appState.currentFolderId].items : [];
         const updatePreview = (clientX, clientY) => {
-            const wx = (clientX - rect.left - tx) / scale, wy = (clientY - rect.top - ty) / scale;
+            const wx = (clientX - rect.left - appState.tx) / appState.scale, wy = (clientY - rect.top - appState.ty) / appState.scale;
             const obstacles = allItems.filter(i => i.id !== it.id && i.id !== hoveredTarget).map(itemRect);
             const points = computeConnectorPoints(it, { x: wx, y: wy }, false, obstacles);
             previewPath.setAttribute('d', pointsToLinePath(points));
@@ -1716,7 +1719,7 @@
             previewSvg.remove();
             document.querySelectorAll('.item.link-target-hover, .item.link-target-invalid').forEach(x => x.classList.remove('link-target-hover', 'link-target-invalid'));
             if (hoveredTarget != null && isValidConnection(it.id, hoveredTarget)) {
-                const conns = ensureConnections(folders[currentFolderId]);
+                const conns = ensureConnections(appState.folders[appState.currentFolderId]);
                 createConnection(conns, it.id, hoveredTarget);
                 render();
             } else if (!moved) {
@@ -1740,13 +1743,13 @@
     function setDrawMode(on) {
         drawMode = on;
         btnAdd.classList.toggle('active', drawMode);
-        canvas.classList.toggle('crosshair', drawMode || !!addingKind);
+        canvas.classList.toggle('crosshair', drawMode || !!appState.addingKind);
         drawSettings.style.display = drawMode ? 'flex' : 'none';
-        if (drawMode) { addingKind = null; addingStatKind = null; addMenu.style.display = 'none'; removePlacementGhost(); }
+        if (drawMode) { appState.addingKind = null; appState.addingStatKind = null; addMenu.style.display = 'none'; removePlacementGhost(); }
     }
     function cancelAddingKind() {
-        addingKind = null;
-        addingStatKind = null;
+        appState.addingKind = null;
+        appState.addingStatKind = null;
         canvas.classList.remove('crosshair');
         removePlacementGhost();
     }
@@ -1794,7 +1797,7 @@
 
         if (drawTool === 'eraser') {
             saveSnapshot();
-            const dwList = ensureDrawings(folders[currentFolderId]);
+            const dwList = ensureDrawings(appState.folders[appState.currentFolderId]);
             const eraseRadius = Math.max(drawSize, 8) / 2;
             const eraseAt = (wx, wy) => {
                 for (let i = dwList.length - 1; i >= 0; i--) {
@@ -1804,7 +1807,7 @@
                     }
                 }
             };
-            const toWorld = (ce) => [(ce.clientX - rect.left - tx) / scale, (ce.clientY - rect.top - ty) / scale];
+            const toWorld = (ce) => [(ce.clientX - rect.left - appState.tx) / appState.scale, (ce.clientY - rect.top - appState.ty) / appState.scale];
             const [wx0, wy0] = toWorld(e);
             eraseAt(wx0, wy0);
             const move = (me) => { const [wx, wy] = toWorld(me); eraseAt(wx, wy); };
@@ -1814,7 +1817,7 @@
         }
 
         saveSnapshot();
-        const wx = (e.clientX - rect.left - tx) / scale, wy = (e.clientY - rect.top - ty) / scale;
+        const wx = (e.clientX - rect.left - appState.tx) / appState.scale, wy = (e.clientY - rect.top - appState.ty) / appState.scale;
         drawing = { points: [[wx, wy]], color: drawColor, layer: drawLayer, width: drawSize };
         liveSvg = makeLayerSVG(drawLayer === 'back' ? 0 : 2);
         livePath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
@@ -1827,7 +1830,7 @@
         if (drawLayer === 'back') world.insertBefore(liveSvg, world.firstChild); else world.appendChild(liveSvg);
 
         const move = (me) => {
-            const wx2 = (me.clientX - rect.left - tx) / scale, wy2 = (me.clientY - rect.top - ty) / scale;
+            const wx2 = (me.clientX - rect.left - appState.tx) / appState.scale, wy2 = (me.clientY - rect.top - appState.ty) / appState.scale;
             drawing.points.push([wx2, wy2]);
             livePath.setAttribute('d', pointsToPath(drawing.points));
         };
@@ -1835,7 +1838,7 @@
             window.removeEventListener('pointermove', move);
             window.removeEventListener('pointerup', up);
             if (drawing.points.length > 1) {
-                ensureDrawings(folders[currentFolderId]).push({ color: drawing.color, layer: drawing.layer, d: pointsToPath(drawing.points), width: drawing.width });
+                ensureDrawings(appState.folders[appState.currentFolderId]).push({ color: drawing.color, layer: drawing.layer, d: pointsToPath(drawing.points), width: drawing.width });
             } else {
                 undoStack.pop();
             }
@@ -1847,57 +1850,57 @@
     }
     canvas.addEventListener('pointerdown', (e) => {
         if (e.target !== canvas) return;
-        if (folders[currentFolderId] && folders[currentFolderId].isSource) return;
+        if (appState.folders[appState.currentFolderId] && appState.folders[appState.currentFolderId].isSource) return;
 
         // Clicking blank canvas cancels a click-to-link gesture in progress (see
         // handleDataModeClick) rather than leaving it armed indefinitely.
-        if (dataLinkPendingId != null) clearDataLinkPending();
+        if (appState.dataLinkPendingId != null) clearDataLinkPending();
 
         if (drawMode) { startDrawStroke(e); return; }
 
-        if (addingKind) {
+        if (appState.addingKind) {
             const rect = canvas.getBoundingClientRect();
-            const { w, h } = kindSize(addingKind);
-            const x = Math.round((((e.clientX - rect.left - tx) / scale) - w / 2) / 28) * 28;
-            const y = Math.round((((e.clientY - rect.top - ty) / scale) - h / 2) / 28) * 28;
-            add(addingKind, x, y, addingStatKind);
-            addingKind = null; addingStatKind = null; canvas.classList.remove('crosshair');
+            const { w, h } = kindSize(appState.addingKind);
+            const x = Math.round((((e.clientX - rect.left - appState.tx) / appState.scale) - w / 2) / 28) * 28;
+            const y = Math.round((((e.clientY - rect.top - appState.ty) / appState.scale) - h / 2) / 28) * 28;
+            add(appState.addingKind, x, y, appState.addingStatKind);
+            appState.addingKind = null; appState.addingStatKind = null; canvas.classList.remove('crosshair');
             removePlacementGhost();
             return;
         }
-        if(currentEditingEl) { currentEditingEl.classList.remove('editing'); currentEditingEl.querySelector('.body').contentEditable = false; currentEditingEl = null; broadcastEditingState(false); }
+        if(appState.currentEditingEl) { appState.currentEditingEl.classList.remove('editing'); appState.currentEditingEl.querySelector('.body').contentEditable = false; appState.currentEditingEl = null; broadcastEditingState(false); }
         
         // Multi-selection: Shift+drag (or Select mode) on empty canvas draws a selection window instead of panning
         if (e.shiftKey || effectiveMode() === 'select') {
             startBoxSelection(e);
             return;
         }
-        selectedCardIds = [];
+        appState.selectedCardIds = [];
         renderSelectedOutlines();
 
-        let startX = e.clientX - tx, startY = e.clientY - ty;
+        let startX = e.clientX - appState.tx, startY = e.clientY - appState.ty;
         document.body.classList.add('dragging');
-        const move = (me) => { tx = me.clientX - startX; ty = me.clientY - startY; applyTransform(); };
+        const move = (me) => { appState.tx = me.clientX - startX; appState.ty = me.clientY - startY; applyTransform(); };
         const up = () => { document.body.classList.remove('dragging'); window.removeEventListener('pointermove', move); window.removeEventListener('pointerup', up); };
         window.addEventListener('pointermove', move); window.addEventListener('pointerup', up);
     });
 
     canvas.addEventListener('wheel', (e) => {
         if (scheduleViewMode) return; // let the agenda's own vertical-only scroll handle it natively
-        if (folders[currentFolderId] && folders[currentFolderId].isSource) return;
+        if (appState.folders[appState.currentFolderId] && appState.folders[appState.currentFolderId].isSource) return;
         const bodyEl = e.target.closest && e.target.closest('.item.note .body');
         if (bodyEl && bodyEl.scrollHeight > bodyEl.clientHeight) return;
         e.preventDefault();
         if (e.ctrlKey) {
             const factor = Math.pow(1.1, -e.deltaY / 60);
-            const mouseX = e.clientX - tx, mouseY = e.clientY - ty;
-            const newScale = Math.min(Math.max(scale * factor, ZOOM_MIN), ZOOM_MAX);
-            tx = e.clientX - (mouseX * (newScale / scale));
-            ty = e.clientY - (mouseY * (newScale / scale));
-            scale = newScale;
+            const mouseX = e.clientX - appState.tx, mouseY = e.clientY - appState.ty;
+            const newScale = Math.min(Math.max(appState.scale * factor, ZOOM_MIN), ZOOM_MAX);
+            appState.tx = e.clientX - (mouseX * (newScale / appState.scale));
+            appState.ty = e.clientY - (mouseY * (newScale / appState.scale));
+            appState.scale = newScale;
         } else {
-            tx -= e.deltaX;
-            ty -= e.deltaY;
+            appState.tx -= e.deltaX;
+            appState.ty -= e.deltaY;
         }
         scheduleApplyTransform();
     }, { passive: false });
@@ -1908,10 +1911,10 @@
         pct = Math.max(0, Math.min(1, pct));
         const newScale = ZOOM_MIN + pct * (ZOOM_MAX - ZOOM_MIN);
         const cx = window.innerWidth / 2, cy = window.innerHeight / 2;
-        const worldX = (cx - tx) / scale, worldY = (cy - ty) / scale;
-        tx = cx - worldX * newScale;
-        ty = cy - worldY * newScale;
-        scale = newScale;
+        const worldX = (cx - appState.tx) / appState.scale, worldY = (cy - appState.ty) / appState.scale;
+        appState.tx = cx - worldX * newScale;
+        appState.ty = cy - worldY * newScale;
+        appState.scale = newScale;
         applyTransform();
     }
     zoomTrack.addEventListener('pointerdown', (e) => {
@@ -1933,29 +1936,29 @@
         e.stopPropagation();
         const newScale = 1;
         const cx = window.innerWidth / 2, cy = window.innerHeight / 2;
-        const worldX = (cx - tx) / scale, worldY = (cy - ty) / scale;
-        tx = cx - worldX * newScale;
-        ty = cy - worldY * newScale;
-        scale = newScale;
+        const worldX = (cx - appState.tx) / appState.scale, worldY = (cy - appState.ty) / appState.scale;
+        appState.tx = cx - worldX * newScale;
+        appState.ty = cy - worldY * newScale;
+        appState.scale = newScale;
         applyTransform();
     });
 
     function add(kind, x = 100, y = 100, statKind = null) {
         saveSnapshot();
         const { w, h } = kindSize(kind);
-        const base = { id: idCounter++, x, y, w, h, kind };
+        const base = { id: appState.idCounter++, x, y, w, h, kind };
         if (kind === 'title') { base.html = ''; base.level = 1; }
         else if (kind === 'folder') {
-            const fid = 'folder-' + idCounter++;
-            folders[fid] = { id: fid, title: 'New Canvas', items: [], drawings: [], collaborators: [] };
+            const fid = 'folder-' + appState.idCounter++;
+            appState.folders[fid] = { id: fid, title: 'New Canvas', items: [], drawings: [], collaborators: [] };
             base.folderId = fid;
         }
         else if (kind === 'source') {
-            const fid = 'folder-' + idCounter++;
-            folders[fid] = { id: fid, title: 'New Source', isSource: true, items: [
+            const fid = 'folder-' + appState.idCounter++;
+            appState.folders[fid] = { id: fid, title: 'New Source', isSource: true, items: [
                 // Header cells start blank — "Column 1"/"Column 2" show only as placeholder
                 // text (see renderStaticTableHTML) until the user actually names them.
-                { id: idCounter++, x: 28, y: 28, w: 560, h: 360, kind: 'table', tableData: [['', ''], ['', ''], ['', ''], ['', '']] }
+                { id: appState.idCounter++, x: 28, y: 28, w: 560, h: 360, kind: 'table', tableData: [['', ''], ['', ''], ['', ''], ['', '']] }
             ], drawings: [], collaborators: [] };
             base.folderId = fid;
         }
@@ -1975,13 +1978,13 @@
         }
         else if (kind === 'shelf') { base.shelfSessions = []; base.shelfSelectedId = null; }
         else if (kind === 'filter') { base.filterTagIds = []; base.filterMode = 'or'; base.incomingRows = []; }
-        else if (kind === 'waypoint') { base.creatorId = currentUser.id; }
+        else if (kind === 'waypoint') { base.creatorId = appState.currentUser.id; }
         else { base.html = (kind === 'note') ? '' : `<strong>${kindLabel(kind)}</strong>`; }
-        folders[currentFolderId].items.push(base);
+        appState.folders[appState.currentFolderId].items.push(base);
         render();
         awardUserPoints('add_canvas_block', 5);
         bumpAchievementStat('first_block');
-        if (kind === 'waypoint') syncWaypointToDb(currentFolderId, base);
+        if (kind === 'waypoint') syncWaypointToDb(appState.currentFolderId, base);
     }
 
     // Deep-clones a LIVE canvas item for a true, independent duplicate (Alt-drag). Critically,
@@ -1995,16 +1998,16 @@
     // sharing OUTSIDE this account — this one stays local and reuses a fresh folder id instead.)
     function deepCloneItem(it) {
         const clone = JSON.parse(JSON.stringify(it));
-        clone.id = idCounter++;
-        if ((clone.kind === 'folder' || clone.kind === 'source') && clone.folderId && folders[clone.folderId]) {
-            const srcFolder = folders[clone.folderId];
-            const newFid = 'folder-' + idCounter++;
+        clone.id = appState.idCounter++;
+        if ((clone.kind === 'folder' || clone.kind === 'source') && clone.folderId && appState.folders[clone.folderId]) {
+            const srcFolder = appState.folders[clone.folderId];
+            const newFid = 'folder-' + appState.idCounter++;
             const newFolder = JSON.parse(JSON.stringify(srcFolder));
             newFolder.id = newFid;
             newFolder.collaborators = []; // a duplicate starts with no collaborators of its own
             delete newFolder.isSharedView; delete newFolder.sharedOwnerId; delete newFolder.sharedRemoteFolderId;
             newFolder.items = srcFolder.items.map(deepCloneItem); // recursive — nested folders/sources get their own fresh folder ids too
-            folders[newFid] = newFolder;
+            appState.folders[newFid] = newFolder;
             clone.folderId = newFid;
         }
         return clone;
@@ -2018,10 +2021,10 @@
     // folder data behind forever, quietly bloating every future workspace save.
     function deleteClonedItemFolders(item) {
         if (!item || (item.kind !== 'folder' && item.kind !== 'source') || !item.folderId) return;
-        const folderObj = folders[item.folderId];
+        const folderObj = appState.folders[item.folderId];
         if (!folderObj) return;
         (folderObj.items || []).forEach(deleteClonedItemFolders);
-        delete folders[item.folderId];
+        delete appState.folders[item.folderId];
     }
 
     // ---------- Copy / Cut / Paste (Cmd/Ctrl+C / X / V — see the keydown handler above) ----------
@@ -2042,8 +2045,8 @@
     // one needs to round-trip back into real, live folders[] data via materializeClipboardItem.
     function snapshotItemForClipboard(it) {
         const clone = JSON.parse(JSON.stringify(it));
-        if ((it.kind === 'folder' || it.kind === 'source') && it.folderId && folders[it.folderId]) {
-            const srcFolder = folders[it.folderId];
+        if ((it.kind === 'folder' || it.kind === 'source') && it.folderId && appState.folders[it.folderId]) {
+            const srcFolder = appState.folders[it.folderId];
             clone.clipboardFolder = JSON.parse(JSON.stringify(srcFolder));
             clone.clipboardFolder.items = srcFolder.items.map(snapshotItemForClipboard); // recursive — nested folders/sources capture their own subtree too
         }
@@ -2055,35 +2058,35 @@
     // Alt-drag duplicate, just sourced from a stored snapshot instead of a still-live item.
     function materializeClipboardItem(snap) {
         const clone = JSON.parse(JSON.stringify(snap));
-        clone.id = idCounter++;
+        clone.id = appState.idCounter++;
         delete clone.clipboardFolder;
         if (snap.clipboardFolder) {
-            const newFid = 'folder-' + idCounter++;
+            const newFid = 'folder-' + appState.idCounter++;
             const newFolder = JSON.parse(JSON.stringify(snap.clipboardFolder));
             newFolder.id = newFid;
             newFolder.collaborators = []; // a paste starts with no collaborators of its own, same as an Alt-drag duplicate
             delete newFolder.isSharedView; delete newFolder.sharedOwnerId; delete newFolder.sharedRemoteFolderId;
             newFolder.items = snap.clipboardFolder.items.map(materializeClipboardItem); // recursive — nested folders/sources get their own fresh ids too
-            folders[newFid] = newFolder;
+            appState.folders[newFid] = newFolder;
             clone.folderId = newFid;
         }
         return clone;
     }
     function copySelectedCards() {
-        if (!selectedCardIds.length) return;
-        const items = selectedCardIds.map(id => findItemById(id)).filter(Boolean);
+        if (!appState.selectedCardIds.length) return;
+        const items = appState.selectedCardIds.map(id => findItemById(id)).filter(Boolean);
         if (!items.length) return;
         cardClipboard = items.map(snapshotItemForClipboard);
         clipboardPasteCount = 0;
     }
     function cutSelectedCards() {
-        if (!selectedCardIds.length) return;
+        if (!appState.selectedCardIds.length) return;
         copySelectedCards();
         if (!cardClipboard.length) return;
         deleteSelectedCards(); // its own confirm()/saveSnapshot()/cascade cleanup — see its own comment
     }
     function pasteClipboardCards() {
-        if (!cardClipboard.length || !folders[currentFolderId]) return;
+        if (!cardClipboard.length || !appState.folders[appState.currentFolderId]) return;
         saveSnapshot();
         clipboardPasteCount++;
         const offset = clipboardPasteCount * 28; // cascades further with each repeated paste, so stamping Cmd+V several times doesn't stack copies exactly on top of each other
@@ -2091,45 +2094,45 @@
             const clone = materializeClipboardItem(snap);
             clone.x = (clone.x || 0) + offset;
             clone.y = (clone.y || 0) + offset;
-            topCardZIndex++; clone.zIndex = topCardZIndex;
+            appState.topCardZIndex++; clone.zIndex = appState.topCardZIndex;
             return clone;
         });
-        folders[currentFolderId].items.push(...pasted);
-        selectedCardIds = pasted.map(it => it.id);
+        appState.folders[appState.currentFolderId].items.push(...pasted);
+        appState.selectedCardIds = pasted.map(it => it.id);
         render();
         renderSelectedOutlines();
     }
 
     function removePlacementGhost() {
-        if (placementGhost) { placementGhost.remove(); placementGhost = null; }
+        if (appState.placementGhost) { appState.placementGhost.remove(); appState.placementGhost = null; }
     }
     function showPlacementGhost(kind) {
         removePlacementGhost();
         const { w, h } = kindSize(kind);
-        placementGhost = document.createElement('div');
-        placementGhost.id = 'placement-ghost';
-        placementGhost.className = `item ${kind}`;
-        placementGhost.style.width = w + 'px';
-        placementGhost.style.height = h + 'px';
-        placementGhost.style.opacity = '0.5';
-        placementGhost.style.background = 'transparent';
-        placementGhost.style.pointerEvents = 'none';
-        placementGhost.style.zIndex = '999';
-        world.appendChild(placementGhost);
-        placementGhost.style.left = '-9999px';
-        placementGhost.style.top = '-9999px';
+        appState.placementGhost = document.createElement('div');
+        appState.placementGhost.id = 'placement-ghost';
+        appState.placementGhost.className = `item ${kind}`;
+        appState.placementGhost.style.width = w + 'px';
+        appState.placementGhost.style.height = h + 'px';
+        appState.placementGhost.style.opacity = '0.5';
+        appState.placementGhost.style.background = 'transparent';
+        appState.placementGhost.style.pointerEvents = 'none';
+        appState.placementGhost.style.zIndex = '999';
+        world.appendChild(appState.placementGhost);
+        appState.placementGhost.style.left = '-9999px';
+        appState.placementGhost.style.top = '-9999px';
     }
     canvas.addEventListener('pointermove', (e) => {
-        if (!addingKind || !placementGhost) return;
+        if (!appState.addingKind || !appState.placementGhost) return;
         const rect = canvas.getBoundingClientRect();
-        const { w, h } = kindSize(addingKind);
-        const x = Math.round((((e.clientX - rect.left - tx) / scale) - w / 2) / 28) * 28;
-        const y = Math.round((((e.clientY - rect.top - ty) / scale) - h / 2) / 28) * 28;
-        placementGhost.style.left = x + 'px';
-        placementGhost.style.top = y + 'px';
+        const { w, h } = kindSize(appState.addingKind);
+        const x = Math.round((((e.clientX - rect.left - appState.tx) / appState.scale) - w / 2) / 28) * 28;
+        const y = Math.round((((e.clientY - rect.top - appState.ty) / appState.scale) - h / 2) / 28) * 28;
+        appState.placementGhost.style.left = x + 'px';
+        appState.placementGhost.style.top = y + 'px';
     });
 
-    function prepareAdd(kind, statKind) { addingKind = kind; addingStatKind = statKind || null; addMenu.style.display = 'none'; panelPinned.add = false; canvas.classList.add('crosshair'); setDrawMode(false); showPlacementGhost(kind); }
+    function prepareAdd(kind, statKind) { appState.addingKind = kind; appState.addingStatKind = statKind || null; addMenu.style.display = 'none'; panelPinned.add = false; canvas.classList.add('crosshair'); setDrawMode(false); showPlacementGhost(kind); }
     const addToolbar = document.getElementById('add-toolbar');
     function closeAddMenu() { addMenu.style.display = 'none'; panelPinned.add = false; }
     function openAddMenu(pin) {
@@ -2175,7 +2178,7 @@
         const it = findItemById(id); if (!it) return;
         closeAllPanels(null);
         closeCellTagPicker();
-        lastFocusedCell = { id, r, c };
+        appState.lastFocusedCell = { id, r, c };
         const rect = btnEl.getBoundingClientRect();
         sourceAddMenu.style.left = Math.min(rect.left, window.innerWidth - 190) + 'px';
         sourceAddMenu.style.top = (rect.bottom + 6) + 'px';
@@ -2192,10 +2195,10 @@
         const eff = effectiveMode();
         modeButtons.forEach(b => {
             b.classList.toggle('mode-visible', b.dataset.mode === eff);
-            b.classList.toggle('active', b.dataset.mode === cardMode);
+            b.classList.toggle('active', b.dataset.mode === appState.cardMode);
             // Keep whichever mode is currently pinned anchored at the bottom (order 3),
             // so expanding the pill always grows upward from the same spot.
-            b.style.order = b.dataset.mode === cardMode ? '3' : String(MODE_ORDER_WEIGHT[b.dataset.mode]);
+            b.style.order = b.dataset.mode === appState.cardMode ? '3' : String(MODE_ORDER_WEIGHT[b.dataset.mode]);
         });
     }
     function applyCursorMode() {
@@ -2211,7 +2214,7 @@
     modeButtons.forEach(btn => {
         btn.addEventListener('click', (e) => {
             e.stopPropagation();
-            cardMode = btn.dataset.mode;
+            appState.cardMode = btn.dataset.mode;
             modeToolbar.classList.remove('expanded');
             applyCursorMode();
         });
@@ -2233,17 +2236,17 @@
     const MODE_HOLD_THRESHOLD_MS = 180;
     let modeKeyHoldStart = null;
     function beginModeOverride(key) {
-        if (modeOverrideKey === key) return;
-        modeOverrideKey = key;
+        if (appState.modeOverrideKey === key) return;
+        appState.modeOverrideKey = key;
         modeKeyHoldStart = Date.now();
         applyCursorMode();
     }
     function endModeOverride(key, mode) {
-        if (modeOverrideKey !== key) return;
+        if (appState.modeOverrideKey !== key) return;
         const elapsed = modeKeyHoldStart !== null ? Date.now() - modeKeyHoldStart : Infinity;
-        modeOverrideKey = null;
+        appState.modeOverrideKey = null;
         modeKeyHoldStart = null;
-        if (elapsed < MODE_HOLD_THRESHOLD_MS) cardMode = mode; // quick tap — make the switch stick
+        if (elapsed < MODE_HOLD_THRESHOLD_MS) appState.cardMode = mode; // quick tap — make the switch stick
         applyCursorMode();
     }
     document.addEventListener('keydown', (e) => {
@@ -2252,7 +2255,7 @@
         // Shift+X: a discrete shortcut (not a held-mode override) that links the current
         // multi-selection. Handled first so it never falls through into the Normal-mode
         // override logic below and briefly flips the cursor away from Data-linking context.
-        if (!isEditingText && e.shiftKey && (e.key === 'x' || e.key === 'X') && selectedCardIds.length >= 2) {
+        if (!isEditingText && e.shiftKey && (e.key === 'x' || e.key === 'X') && appState.selectedCardIds.length >= 2) {
             e.preventDefault();
             linkSelectedCards();
             return;
@@ -2260,7 +2263,7 @@
         // Deletes whatever's currently selected (shift-click or select-cursor-mode click — see
         // setupDraggingAndClicking) — the only way to delete a card now that the per-card
         // right-click "Delete" menu item is gone.
-        if (!isEditingText && e.key === 'Backspace' && selectedCardIds.length > 0) {
+        if (!isEditingText && e.key === 'Backspace' && appState.selectedCardIds.length > 0) {
             e.preventDefault();
             deleteSelectedCards();
             return;
@@ -2274,12 +2277,12 @@
         else if (e.key === 'd' || e.key === 'D') endModeOverride('d', 'data');
         else if (e.key === 'Escape') endModeOverride('escape', 'normal');
     });
-    window.addEventListener('blur', () => { if (modeOverrideKey) { modeOverrideKey = null; modeKeyHoldStart = null; applyCursorMode(); } });
+    window.addEventListener('blur', () => { if (appState.modeOverrideKey) { appState.modeOverrideKey = null; modeKeyHoldStart = null; applyCursorMode(); } });
 
     // Re-run the source table's column sizing whenever the window resizes, since column
     // widths are derived from the (viewport-based) rendered width of the table container.
     window.addEventListener('resize', () => {
-        const folderObj = folders[currentFolderId];
+        const folderObj = appState.folders[appState.currentFolderId];
         if (!folderObj || !folderObj.isSource) return;
         const tableItem = folderObj.items.find(i => i.kind === 'table');
         const el = document.querySelector('.item.static-table');
@@ -2291,7 +2294,7 @@
         closeSourceAddMenu();
         closeCellTagPicker();
         contextMenu.style.display = 'none';
-        contextMenuItemId = null;
+        appState.contextMenuItemId = null;
         hideCanvasContextMenu();
         closeHamburgerMenu();
         closeMessagesPanel();
@@ -2430,15 +2433,15 @@
     // that wasn't in the set yet.
     let seenIncomingCanvasRequestIds = null;
     async function refreshCanvasCollabData() {
-        if (!supabase || !currentUser.id) { incomingCanvasRequests = []; acceptedCanvasCollaborations = []; ownedCanvasCollaborations = []; return; }
+        if (!supabase || !appState.currentUser.id) { incomingCanvasRequests = []; acceptedCanvasCollaborations = []; ownedCanvasCollaborations = []; return; }
         const [sharedWithMeRes, ownedRes] = await Promise.all([
             supabase.from('canvas_collaborations')
                 .select('id, folder_id, folder_title, status, owner:profiles!canvas_collaborations_owner_id_fkey(id, username, display_name, avatar_id, avatar_url)')
-                .eq('collaborator_id', currentUser.id)
+                .eq('collaborator_id', appState.currentUser.id)
                 .in('status', ['pending', 'accepted']),
             supabase.from('canvas_collaborations')
                 .select('folder_id, folder_title, collaborator:profiles!canvas_collaborations_collaborator_id_fkey(id, username, display_name, avatar_id, avatar_url)')
-                .eq('owner_id', currentUser.id)
+                .eq('owner_id', appState.currentUser.id)
                 .eq('status', 'accepted'),
         ]);
         if (sharedWithMeRes.error) console.error('[collab] failed to load canvas collaborations:', sharedWithMeRes.error);
@@ -2512,7 +2515,7 @@
         // any match found, since we're the owner and can actually fix it from here.
         const ownedCandidates = ownedCanvasCollaborations.filter(c => !q || c.folderTitle.toLowerCase().includes(q));
         const ownedShown = ownedCandidates.filter(c => {
-            if (folders[c.folderId]) return true;
+            if (appState.folders[c.folderId]) return true;
             deleteCanvasCollabsForFolder(c.folderId);
             return false;
         });
@@ -2526,7 +2529,7 @@
         // the owner's own next panel render is what actually cleans up their row.
         const sharedCandidates = acceptedCanvasCollaborations.filter(c => !q || c.folderTitle.toLowerCase().includes(q));
         const sharedStillExists = await Promise.all(sharedCandidates.map(async (c) => {
-            if (folders[sharedFolderKey(c.ownerId, c.folderId)]) return true; // already loaded locally this session
+            if (appState.folders[sharedFolderKey(c.ownerId, c.folderId)]) return true; // already loaded locally this session
             const { data, error } = await supabase.rpc('get_shared_folder', { p_owner_id: c.ownerId, p_folder_id: c.folderId });
             return !error && data != null;
         }));
@@ -2553,7 +2556,7 @@
         ownedShown.forEach(c => {
             const row = document.createElement('div');
             row.className = 'outline-item hub-collab-canvas-row';
-            const liveTitle = (folders[c.folderId] && folders[c.folderId].title) || c.folderTitle;
+            const liveTitle = (appState.folders[c.folderId] && appState.folders[c.folderId].title) || c.folderTitle;
             const shown = c.collaborators.slice(0, 3);
             let avatarsHtml = '<div class="collab-avatars">';
             shown.forEach((f, i) => { avatarsHtml += `<div class="collab-avatar" data-idx="${i}"></div>`; });
@@ -2588,7 +2591,7 @@
             const row = document.createElement('div');
             row.className = 'outline-item hub-collab-canvas-row';
             const sharedKey = sharedFolderKey(c.ownerId, c.folderId);
-            const liveTitle = (folders[sharedKey] && folders[sharedKey].title) || c.folderTitle;
+            const liveTitle = (appState.folders[sharedKey] && appState.folders[sharedKey].title) || c.folderTitle;
             row.innerHTML = `${outlineIcon('folder')}
                 <div class="hub-collab-row-meta">
                     <span class="outline-label">${escapeHtml(liveTitle)}</span>
@@ -2647,11 +2650,11 @@
     async function renderWaypointsList(query) {
         const list = document.getElementById('waypoints-list');
         list.innerHTML = '';
-        if (!supabase || !currentUser.id) return;
+        if (!supabase || !appState.currentUser.id) return;
         const q = (query || '').trim().toLowerCase();
         const { data, error } = await supabase.from('waypoints')
             .select('owner_id, folder_id, item_id, name')
-            .eq('creator_id', currentUser.id)
+            .eq('creator_id', appState.currentUser.id)
             .order('updated_at', { ascending: false });
         if (error) { console.error('[waypoints] failed to load waypoints:', error); return; }
         const rows = (data || []).filter(r => !q || (r.name || 'New Waypoint').toLowerCase().includes(q));
@@ -2695,7 +2698,7 @@
     // array of local (shared:owner:id) keys in root-to-target order, or null if any level failed
     // to resolve/load.
     async function resolveSharedFolderChain(ownerId, folderId) {
-        if (!supabase || !currentUser.id) return null;
+        if (!supabase || !appState.currentUser.id) return null;
         const { data: chain, error } = await supabase.rpc('get_folder_ancestor_chain', { p_owner_id: ownerId, p_folder_id: folderId });
         if (error || !chain || !chain.length) { console.error('[collab] failed to resolve shared folder path:', error); return null; }
         const localKeys = [];
@@ -2708,23 +2711,23 @@
     }
     async function goToWaypointCard(ownerId, folderId, itemId) {
         closeHamburgerMenu();
-        if (ownerId === currentUser.id) {
-            if (currentFolderId !== folderId) openFolder(folderId);
-            const it = folders[folderId] && folders[folderId].items.find(i => String(i.id) === String(itemId));
+        if (ownerId === appState.currentUser.id) {
+            if (appState.currentFolderId !== folderId) openFolder(folderId);
+            const it = appState.folders[folderId] && appState.folders[folderId].items.find(i => String(i.id) === String(itemId));
             if (it) peekWaypointCard(folderId, it);
             return;
         }
         const isFreshEntry = !preSharedViewState;
-        if (isFreshEntry) preSharedViewState = { currentFolderId, historyStack: historyStack.slice(), historyIndex };
+        if (isFreshEntry) preSharedViewState = { currentFolderId: appState.currentFolderId, historyStack: appState.historyStack.slice(), historyIndex: appState.historyIndex };
         const localKeys = await resolveSharedFolderChain(ownerId, folderId);
         if (!localKeys) { if (isFreshEntry) preSharedViewState = null; return; }
-        currentFolderId = localKeys[localKeys.length - 1];
-        historyStack = localKeys;
-        historyIndex = localKeys.length - 1;
+        appState.currentFolderId = localKeys[localKeys.length - 1];
+        appState.historyStack = localKeys;
+        appState.historyIndex = localKeys.length - 1;
         render();
         if (isFreshEntry) announceEnteredCollaboration(localKeys[0]);
-        const it = folders[currentFolderId] && folders[currentFolderId].items.find(i => String(i.id) === String(itemId));
-        if (it) peekWaypointCard(currentFolderId, it);
+        const it = appState.folders[appState.currentFolderId] && appState.folders[appState.currentFolderId].items.find(i => String(i.id) === String(itemId));
+        if (it) peekWaypointCard(appState.currentFolderId, it);
     }
     function hmenuAction(action) {
         console.log('[Menu] action:', action);
@@ -2789,13 +2792,13 @@
     // profile level display live on success so the user sees the change immediately, without
     // needing a page refresh.
     async function awardUserPoints(actionType, points) {
-        if (!supabase || !currentUser.id) return { ok: false, reason: 'no_session' };
-        const oldLevel = calculateUserLevel(currentUser.totalScore);
-        const { data, error } = await supabase.rpc('award_user_points', { p_user_id: currentUser.id, p_action_type: actionType, p_points: points });
+        if (!supabase || !appState.currentUser.id) return { ok: false, reason: 'no_session' };
+        const oldLevel = calculateUserLevel(appState.currentUser.totalScore);
+        const { data, error } = await supabase.rpc('award_user_points', { p_user_id: appState.currentUser.id, p_action_type: actionType, p_points: points });
         if (error) { console.error('[leveling] award_user_points failed:', error); return { ok: false, reason: 'error' }; }
-        currentUser.totalScore = data;
+        appState.currentUser.totalScore = data;
         renderProfileLevel();
-        const newLevel = calculateUserLevel(currentUser.totalScore);
+        const newLevel = calculateUserLevel(appState.currentUser.totalScore);
         if (newLevel.absoluteLevel > oldLevel.absoluteLevel) {
             pushNotification({ type: 'level_up', message: `Level up! You're now ${newLevel.displayName}` }); // no buttons, auto-dismisses — no dismiss function
         }
@@ -2812,8 +2815,8 @@
         return `hsl(${hue}, 62%, 38%)`;
     }
     function renderProfileLevel() {
-        if (!currentUser.id) return;
-        const lvl = calculateUserLevel(currentUser.totalScore);
+        if (!appState.currentUser.id) return;
+        const lvl = calculateUserLevel(appState.currentUser.totalScore);
         const pillEl = document.getElementById('profile-level-pill');
         if (!pillEl) return;
         const textEl = pillEl.querySelector('.profile-level-pill-text');
@@ -2825,9 +2828,9 @@
     // server-side once per page load (see bump_login_streak / app/page.js) — there's nothing to
     // recompute client-side, this just displays it.
     function renderProfileStreak() {
-        if (!currentUser.id) return;
+        if (!appState.currentUser.id) return;
         const el = document.getElementById('profile-streak-count');
-        if (el) el.textContent = currentUser.loginStreak || 0;
+        if (el) el.textContent = appState.currentUser.loginStreak || 0;
     }
     // `avatar` is { id, url } — url is the saved custom avatar-builder composite (Supabase
     // Storage public URL, once a user completes /avatar-setup) and always wins when present;
@@ -2844,11 +2847,11 @@
         el.innerHTML = '';
         el.appendChild(img);
     }
-    if (currentUser.id) {
-        document.getElementById('profile-username').textContent = currentUser.displayName;
-        const avatar = { id: currentUser.avatarId ?? 0, url: currentUser.avatarUrl || null };
-        renderAvatarInto(document.getElementById('profile-avatar'), avatar, initials(currentUser.displayName));
-        renderAvatarInto(document.getElementById('profile-avatar-sm'), avatar, initials(currentUser.displayName));
+    if (appState.currentUser.id) {
+        document.getElementById('profile-username').textContent = appState.currentUser.displayName;
+        const avatar = { id: appState.currentUser.avatarId ?? 0, url: appState.currentUser.avatarUrl || null };
+        renderAvatarInto(document.getElementById('profile-avatar'), avatar, initials(appState.currentUser.displayName));
+        renderAvatarInto(document.getElementById('profile-avatar-sm'), avatar, initials(appState.currentUser.displayName));
         renderProfileLevel();
         renderProfileStreak();
     }
@@ -2869,7 +2872,7 @@
         { id: 'master_250_words', statKey: 'words_mastered',   threshold: 250,   name: 'Master 250 words',               spriteIndex: 7 },
         { id: 'day_in_platform',  statKey: 'platform_seconds', threshold: 86400, name: 'Spend 24 hours in the platform', spriteIndex: 8 },
     ];
-    const unlockedAchievementIds = new Set(currentUser.unlockedAchievementIds || []);
+    const unlockedAchievementIds = new Set(appState.currentUser.unlockedAchievementIds || []);
 
     // Bumps one achievement's stat counter and, if it just crossed its threshold, unlocks it: the
     // spritebook re-renders live and two notifications queue up in order — "Achievement unlocked!
@@ -2882,12 +2885,12 @@
     // regardless of who sent/accepted the request, so it just needs to be synced in, never
     // regressed).
     async function bumpAchievementStat(achievementId, delta = 1, absolute = false) {
-        if (!supabase || !currentUser.id) return;
+        if (!supabase || !appState.currentUser.id) return;
         if (unlockedAchievementIds.has(achievementId)) return; // already unlocked — stop paying for RPC calls
         const def = ACHIEVEMENTS.find(a => a.id === achievementId);
         if (!def) return;
         const { data, error } = await supabase.rpc('bump_achievement_stat', {
-            p_user_id: currentUser.id, p_stat_key: def.statKey, p_achievement_id: def.id,
+            p_user_id: appState.currentUser.id, p_stat_key: def.statKey, p_achievement_id: def.id,
             p_threshold: def.threshold, p_delta: delta, p_absolute: absolute,
         });
         if (error) { console.error('[achievements] bump_achievement_stat failed:', error); return; }
@@ -2979,7 +2982,7 @@
     // memory. Never resets; the only way down is deleting cards (or, eventually, upgrading).
     const BLOCKS_CAP = 100;
     function totalBlocksUsed() {
-        return Object.values(folders).reduce((sum, f) => sum + (f.items ? f.items.length : 0), 0);
+        return Object.values(appState.folders).reduce((sum, f) => sum + (f.items ? f.items.length : 0), 0);
     }
 
     // Fills all three usage bars — split across the two independent credit pools (search: 30
@@ -3010,7 +3013,7 @@
     });
     async function refreshDotbotUsage() {
         const searchFill = document.getElementById('profile-usage-search-fill');
-        if (!searchFill || !supabase || !currentUser.id) return;
+        if (!searchFill || !supabase || !appState.currentUser.id) return;
         const blocksFillEl = document.getElementById('profile-usage-blocks-fill');
         const genFillEl = document.getElementById('profile-usage-generation-fill');
         // Every time the panel opens, the bars should visibly fill up from empty — not animate
@@ -3024,7 +3027,7 @@
         const { data, error } = await supabase
             .from('profiles')
             .select('search_credits_remaining, search_credits_reset_at, generation_credits_remaining, generation_credits_reset_at')
-            .eq('id', currentUser.id)
+            .eq('id', appState.currentUser.id)
             .single();
         if (error || !data) return;
 
@@ -3214,7 +3217,7 @@
     // away, and still see it in the agenda), so lookups here can't rely on findItemById
     // (which only searches the current folder).
     function findItemInFolder(folderId, itemId) {
-        const f = folders[folderId];
+        const f = appState.folders[folderId];
         return f ? f.items.find(i => i.id === itemId) : null;
     }
 
@@ -3267,8 +3270,8 @@
         modeToolbar.style.display = 'none';
         addToolbar.style.display = 'none';
         zoomControl.style.display = 'none';
-        scheduleViewSavedTransform = { tx, ty, scale };
-        scale = 1; tx = 0; ty = 0;
+        scheduleViewSavedTransform = { tx: appState.tx, ty: appState.ty, scale: appState.scale };
+        appState.scale = 1; appState.tx = 0; appState.ty = 0;
         applyTransform();
         scheduleViewDate = new Date();
         scheduleView.classList.add('active');
@@ -3284,7 +3287,7 @@
         zoomControl.style.display = '';
         scheduleView.classList.remove('active');
         if (scheduleViewSavedTransform) {
-            ({ tx, ty, scale } = scheduleViewSavedTransform);
+            ({ tx: appState.tx, ty: appState.ty, scale: appState.scale } = scheduleViewSavedTransform);
             scheduleViewSavedTransform = null;
             applyTransform();
         }
@@ -3313,9 +3316,9 @@
         const key = dateKey(scheduleViewDate);
         // Scoped to the current canvas only — matches every other schedule entry point
         // (scheduling itself always records the folderId you were in at the time).
-        const folderObj = folders[currentFolderId];
+        const folderObj = appState.folders[appState.currentFolderId];
         const list = (folderObj ? folderObj.items : [])
-            .map(it => ({ it, ev: scheduledEvents.find(e => e.folderId === currentFolderId && e.itemId === it.id && e.date === key) }))
+            .map(it => ({ it, ev: scheduledEvents.find(e => e.folderId === appState.currentFolderId && e.itemId === it.id && e.date === key) }))
             .filter(x => x.ev)
             .sort((a, b) => a.ev.time.localeCompare(b.ev.time));
 
@@ -3453,10 +3456,10 @@
         itemIds.forEach(id => {
             const it = findItemById(id);
             if (!it) return;
-            const existing = scheduledEvents.find(e => e.itemId === id && e.folderId === currentFolderId);
+            const existing = scheduledEvents.find(e => e.itemId === id && e.folderId === appState.currentFolderId);
             if (existing) { existing.date = parsed.date; existing.time = parsed.time; existing.title = miniLabelForItem(it); }
             else {
-                scheduledEvents.push({ id: 'ev_' + idCounter++, itemId: id, folderId: currentFolderId, title: miniLabelForItem(it), date: parsed.date, time: parsed.time });
+                scheduledEvents.push({ id: 'ev_' + appState.idCounter++, itemId: id, folderId: appState.currentFolderId, title: miniLabelForItem(it), date: parsed.date, time: parsed.time });
                 bumpAchievementStat('five_scheduled');
             }
         });
@@ -3625,7 +3628,7 @@
     const collabBubble = document.getElementById('collab-bubble'), collabPanel = document.getElementById('collab-panel');
     const collabSearchInput = document.getElementById('collab-search');
     function getCurrentCollaboratorIds() {
-        const folderObj = folders[currentFolderId];
+        const folderObj = appState.folders[appState.currentFolderId];
         return (folderObj && folderObj.collaborators) ? folderObj.collaborators : [];
     }
     function closeCollabPanel() { collabPanel.classList.remove('open'); panelPinned.collab = false; }
@@ -3673,13 +3676,13 @@
     // always level-specific (never inherited), so that part stays an exact-folder query.
     let outgoingCanvasInvitePendingIds = new Set();
     async function refreshCanvasCollabForCurrentFolder() {
-        if (!supabase || !currentUser.id) { outgoingCanvasInvitePendingIds = new Set(); return; }
-        const folderObj = folders[currentFolderId];
+        if (!supabase || !appState.currentUser.id) { outgoingCanvasInvitePendingIds = new Set(); return; }
+        const folderObj = appState.folders[appState.currentFolderId];
         if (!folderObj) return;
         const [effective, pendingRes] = await Promise.all([
-            supabase.rpc('get_effective_collaborators', { p_owner_id: currentUser.id, p_folder_id: currentFolderId }),
+            supabase.rpc('get_effective_collaborators', { p_owner_id: appState.currentUser.id, p_folder_id: appState.currentFolderId }),
             supabase.from('canvas_collaborations').select('collaborator_id')
-                .eq('owner_id', currentUser.id).eq('folder_id', currentFolderId).eq('status', 'pending'),
+                .eq('owner_id', appState.currentUser.id).eq('folder_id', appState.currentFolderId).eq('status', 'pending'),
         ]);
         if (effective.error) console.error('[collab] failed to load effective collaborators:', effective.error);
         if (pendingRes.error) console.error('[collab] failed to load pending canvas invites:', pendingRes.error);
@@ -3696,11 +3699,11 @@
         ensureCanvasPresenceChannel();
     }
     async function sendCanvasCollabInvite(collaboratorId) {
-        if (!supabase || !currentUser.id) return;
-        const folderObj = folders[currentFolderId];
+        if (!supabase || !appState.currentUser.id) return;
+        const folderObj = appState.folders[appState.currentFolderId];
         if (!folderObj) return;
         const { error } = await supabase.from('canvas_collaborations').insert({
-            owner_id: currentUser.id, folder_id: currentFolderId,
+            owner_id: appState.currentUser.id, folder_id: appState.currentFolderId,
             folder_title: folderObj.title, collaborator_id: collaboratorId,
         });
         if (error) { console.error('[collab] failed to send canvas collaboration invite:', error); return; }
@@ -3710,8 +3713,8 @@
     // only inherited from a parent canvas — see revoke_canvas_collaboration. Their access to any
     // sibling canvas (or the parent itself) is untouched.
     async function revokeCanvasCollab(collaboratorId) {
-        if (!supabase || !currentUser.id) return;
-        const { error } = await supabase.rpc('revoke_canvas_collaboration', { p_folder_id: currentFolderId, p_collaborator_id: collaboratorId });
+        if (!supabase || !appState.currentUser.id) return;
+        const { error } = await supabase.rpc('revoke_canvas_collaboration', { p_folder_id: appState.currentFolderId, p_collaborator_id: collaboratorId });
         if (error) console.error('[collab] failed to remove collaborator:', error);
     }
     // Keeps the Collaborations panel's cached folder_title in sync after a rename — that column is
@@ -3723,10 +3726,10 @@
     // rename_canvas_collaborations (SECURITY DEFINER) rather than a raw table update since a
     // collaborator has no RLS-visible row of their own to satisfy an owner-only update policy with.
     async function syncCanvasCollabTitle(folderId, newTitle) {
-        if (!supabase || !currentUser.id) return;
-        const folderObj = folders[folderId];
+        if (!supabase || !appState.currentUser.id) return;
+        const folderObj = appState.folders[folderId];
         if (!folderObj) return;
-        const ownerId = folderObj.isSharedView ? folderObj.sharedOwnerId : currentUser.id;
+        const ownerId = folderObj.isSharedView ? folderObj.sharedOwnerId : appState.currentUser.id;
         const realFolderId = folderObj.isSharedView ? folderObj.sharedRemoteFolderId : folderId;
         const { error } = await supabase.rpc('rename_canvas_collaborations', {
             p_owner_id: ownerId, p_folder_id: realFolderId, p_new_title: newTitle,
@@ -3739,7 +3742,7 @@
         await Promise.all([refreshFriendsData(), refreshCanvasCollabForCurrentFolder()]);
         const list = document.getElementById('collab-list');
         list.innerHTML = '';
-        const folderObj = folders[currentFolderId];
+        const folderObj = appState.folders[appState.currentFolderId];
         if (!folderObj) return;
         folderObj.collaborators = folderObj.collaborators || [];
         const q = (query || '').trim().toLowerCase();
@@ -3822,7 +3825,7 @@
     function handleCollabSearch(v) { renderCollabList(v); }
 
     function renderCollabPill() {
-        const folderObj = folders[currentFolderId];
+        const folderObj = appState.folders[appState.currentFolderId];
         // The root canvas is always private to the user, so no collaborators indicator there —
         // checked by identity (currentFolderId === 'root'), not historyIndex === 0. Those used to
         // coincide, but historyIndex now tracks raw click-order navigation history (back/forward),
@@ -3830,7 +3833,7 @@
         // the hamburger menu can all land you back on root without historyIndex resetting to 0 —
         // see findParentFolderId/the breadcrumb "..", which had the same bug for the same reason).
         // A canvas someone else shared with you isn't yours to invite further collaborators on.
-        if (!folderObj || currentFolderId === 'root' || folderObj.isSharedView) {
+        if (!folderObj || appState.currentFolderId === 'root' || folderObj.isSharedView) {
             collabBubble.classList.remove('show');
             closeCollabPanel();
             return;
@@ -3874,17 +3877,17 @@
     let activeConvoId = null;
 
     async function refreshFriendsData() {
-        if (!supabase || !currentUser.id) return;
+        if (!supabase || !appState.currentUser.id) return;
 
         const { data: accepted, error: acceptedErr } = await supabase
             .from('friendships')
             .select('id, requester_id, addressee_id, requester:profiles!friendships_requester_id_fkey(id, username, display_name, avatar_id, avatar_url), addressee:profiles!friendships_addressee_id_fkey(id, username, display_name, avatar_id, avatar_url)')
             .eq('status', 'accepted')
-            .or(`requester_id.eq.${currentUser.id},addressee_id.eq.${currentUser.id}`);
+            .or(`requester_id.eq.${appState.currentUser.id},addressee_id.eq.${appState.currentUser.id}`);
         if (acceptedErr) console.error('[friends] failed to load friendships:', acceptedErr);
 
         friends = (accepted || []).map(row => {
-            const other = row.requester_id === currentUser.id ? row.addressee : row.requester;
+            const other = row.requester_id === appState.currentUser.id ? row.addressee : row.requester;
             return {
                 id: other.id,
                 friendshipId: row.id,
@@ -3927,7 +3930,7 @@
             .from('friendships')
             .select('id, requester:profiles!friendships_requester_id_fkey(id, username, display_name)')
             .eq('status', 'pending')
-            .eq('addressee_id', currentUser.id);
+            .eq('addressee_id', appState.currentUser.id);
         if (incomingErr) console.error('[friends] failed to load incoming requests:', incomingErr);
         incomingRequests = incoming || [];
         if (seenIncomingFriendRequestIds === null) {
@@ -3952,7 +3955,7 @@
             .from('friendships')
             .select('addressee_id')
             .eq('status', 'pending')
-            .eq('requester_id', currentUser.id);
+            .eq('requester_id', appState.currentUser.id);
         if (outgoingErr) console.error('[friends] failed to load outgoing requests:', outgoingErr);
         outgoingPendingIds = new Set((outgoing || []).map(r => r.addressee_id));
 
@@ -3960,10 +3963,10 @@
     }
 
     async function sendFriendRequest(userId) {
-        if (!supabase || !currentUser.id) return;
+        if (!supabase || !appState.currentUser.id) return;
         const { error } = await supabase
             .from('friendships')
-            .insert({ requester_id: currentUser.id, addressee_id: userId });
+            .insert({ requester_id: appState.currentUser.id, addressee_id: userId });
         if (error) { console.error('[friends] failed to send request:', error); return; }
         outgoingPendingIds.add(userId);
     }
@@ -3982,7 +3985,7 @@
             .from('profiles')
             .select('id, username, display_name')
             .ilike('username', `%${query}%`)
-            .neq('id', currentUser.id)
+            .neq('id', appState.currentUser.id)
             .limit(10);
         if (error) { console.error('[friends] failed to search users:', error); return []; }
         const friendIds = new Set(friends.map(f => f.id));
@@ -4193,10 +4196,10 @@
             if (friendMessageChannels.has(f.friendshipId)) return; // already subscribed
             const friendshipId = f.friendshipId;
             const channel = supabase
-                .channel(`messages:${friendshipId}`, { config: { presence: { key: currentUser.id } } })
+                .channel(`messages:${friendshipId}`, { config: { presence: { key: appState.currentUser.id } } })
                 .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages', filter: `friendship_id=eq.${friendshipId}` }, (payload) => {
                     const m = payload.new;
-                    if (m.sender_id === currentUser.id) return; // our own message — already added optimistically by sendMsg
+                    if (m.sender_id === appState.currentUser.id) return; // our own message — already added optimistically by sendMsg
                     const live = friends.find(x => x.friendshipId === friendshipId);
                     if (!live) return; // unfriended (or a stale refresh) since this fired
                     if (live.messages.some(existing => existing.id === m.id)) return; // already have it somehow
@@ -4252,11 +4255,11 @@
     // shared:owner:folderId view — mirrors parseSharedFolderKey's own logic so every viewer of the
     // exact same real canvas computes the identical channel name independently.
     function resolvePresenceFolderKey() {
-        if (currentFolderId.startsWith('shared:')) {
-            const { ownerId, remoteFolderId } = parseSharedFolderKey(currentFolderId);
+        if (appState.currentFolderId.startsWith('shared:')) {
+            const { ownerId, remoteFolderId } = parseSharedFolderKey(appState.currentFolderId);
             return { ownerId, folderId: remoteFolderId };
         }
-        return { ownerId: currentUser.id, folderId: currentFolderId };
+        return { ownerId: appState.currentUser.id, folderId: appState.currentFolderId };
     }
 
     let canvasPresenceChannel = null;
@@ -4304,8 +4307,8 @@
     // through the ~100+ individual mutation call sites elsewhere. No-ops unless the resolved
     // (owner,folder) pair actually changed since the last call.
     function ensureCanvasPresenceChannel() {
-        const folderObj = folders[currentFolderId];
-        if (!supabase || !currentUser.id || !folderObj) { teardownCanvasPresenceChannel(); return; }
+        const folderObj = appState.folders[appState.currentFolderId];
+        if (!supabase || !appState.currentUser.id || !folderObj) { teardownCanvasPresenceChannel(); return; }
         // Only a shared: view (someone else's canvas) or an owned folder that currently has
         // collaborators is ever worth a live channel — a private canvas nobody else can reach gets
         // no realtime overhead at all.
@@ -4317,7 +4320,7 @@
         teardownCanvasPresenceChannel();
         canvasPresenceKey = key;
         lastBroadcastSnapshot = snapshotFolderForBroadcast(folderObj);
-        const channel = supabase.channel(`presence:${ownerId}:${folderId}`, { config: { presence: { key: currentUser.id } } })
+        const channel = supabase.channel(`presence:${ownerId}:${folderId}`, { config: { presence: { key: appState.currentUser.id } } })
             .on('presence', { event: 'sync' }, () => handleCanvasPresenceSync(channel))
             .on('presence', { event: 'leave' }, ({ key: leftUserId }) => removeRemoteCursor(leftUserId))
             // A newly-joined collaborator has no way to know we're already mid-edit (the 'editing'
@@ -4325,8 +4328,8 @@
             // we're actively editing when someone else joins, resend our current state just for
             // them. Cheap (only fires while genuinely editing) and self-contained.
             .on('presence', { event: 'join' }, ({ key: joinedUserId }) => {
-                if (joinedUserId !== currentUser.id && localEditingState.editing) {
-                    channel.send({ type: 'broadcast', event: 'editing', payload: { userId: currentUser.id, editing: true, editingTarget: localEditingState.editingTarget, caret: localEditingState.caret || computeLocalCaret() } });
+                if (joinedUserId !== appState.currentUser.id && localEditingState.editing) {
+                    channel.send({ type: 'broadcast', event: 'editing', payload: { userId: appState.currentUser.id, editing: true, editingTarget: localEditingState.editingTarget, caret: localEditingState.caret || computeLocalCaret() } });
                 }
             })
             .on('broadcast', { event: 'cursor' }, ({ payload }) => handleRemoteCursorBroadcast(payload))
@@ -4346,8 +4349,8 @@
                     // tell which is current. Identity fields never change after this single initial
                     // track(), so that ambiguity never matters here.
                     channel.track({
-                        displayName: currentUser.displayName, avatarId: currentUser.avatarId ?? 0,
-                        avatarUrl: currentUser.avatarUrl || null, color: assignCursorColor(currentUser.id),
+                        displayName: appState.currentUser.displayName, avatarId: appState.currentUser.avatarId ?? 0,
+                        avatarUrl: appState.currentUser.avatarUrl || null, color: assignCursorColor(appState.currentUser.id),
                     });
                 }
             });
@@ -4360,7 +4363,7 @@
         const state = channel.presenceState();
         const seenIds = new Set();
         Object.keys(state).forEach(userId => {
-            if (userId === currentUser.id) return; // never render our own cursor
+            if (userId === appState.currentUser.id) return; // never render our own cursor
             seenIds.add(userId);
             const metas = state[userId];
             const meta = metas[metas.length - 1];
@@ -4439,10 +4442,10 @@
         entry.selectionEls.forEach((el, i) => {
             const r = rects[i];
             el.style.color = entry.color;
-            el.style.left = (tx + r.x * scale) + 'px';
-            el.style.top = (ty + r.y * scale) + 'px';
-            el.style.width = (r.w * scale) + 'px';
-            el.style.height = (r.h * scale) + 'px';
+            el.style.left = (appState.tx + r.x * appState.scale) + 'px';
+            el.style.top = (appState.ty + r.y * appState.scale) + 'px';
+            el.style.width = (r.w * appState.scale) + 'px';
+            el.style.height = (r.h * appState.scale) + 'px';
         });
     }
     // travel (bool): true only on a genuine cursor->typing mode flip (see applyRemoteCursorMode),
@@ -4506,9 +4509,9 @@
             // The typist's actual measured caret position (see getCaretScreenRect/
             // broadcastCaretPosition), converted through OUR OWN live tx/ty/scale — same
             // projection positionRemoteCursor uses for the floating cursor.
-            left = tx + entry.caretX * scale;
-            top = ty + entry.caretY * scale;
-            height = entry.caretHeight != null ? Math.max(12, entry.caretHeight * scale) : 18;
+            left = appState.tx + entry.caretX * appState.scale;
+            top = appState.ty + entry.caretY * appState.scale;
+            height = entry.caretHeight != null ? Math.max(12, entry.caretHeight * appState.scale) : 18;
         } else if (target) {
             // No caret broadcast has landed yet (right after entering typing mode) — approximate
             // with the target's own top-left corner for one frame until the real position arrives.
@@ -4547,8 +4550,8 @@
         remoteCursors.delete(userId);
     }
     function positionRemoteCursor(entry) {
-        entry.el.style.left = (tx + entry.x * scale) + 'px';
-        entry.el.style.top = (ty + entry.y * scale) + 'px';
+        entry.el.style.left = (appState.tx + entry.x * appState.scale) + 'px';
+        entry.el.style.top = (appState.ty + entry.y * appState.scale) + 'px';
     }
     // Mirror of showRemoteTypingIndicator's travel case, for the reverse (typing -> cursor) mode
     // flip: snap the floating cursor to wherever the typing indicator currently sits (no
@@ -4584,15 +4587,15 @@
         const entry = remoteCursors.get(userId);
         if (!entry) return;
         closeCollabPanel();
-        const targetScale = Math.max(scale, 1);
+        const targetScale = Math.max(appState.scale, 1);
         if (entry.highlightedEl) {
             // Currently typing somewhere — jump to what they're actually editing, not their last
             // known mouse position (irrelevant right now, since the cursor itself is hidden while
             // they're typing — see applyRemoteCursorMode).
             const rect = entry.highlightedEl.getBoundingClientRect();
             const canvasRect = canvas.getBoundingClientRect();
-            const cx = (rect.left + rect.width / 2 - canvasRect.left - tx) / scale;
-            const cy = (rect.top + rect.height / 2 - canvasRect.top - ty) / scale;
+            const cx = (rect.left + rect.width / 2 - canvasRect.left - appState.tx) / appState.scale;
+            const cy = (rect.top + rect.height / 2 - canvasRect.top - appState.ty) / appState.scale;
             smoothPanTo(window.innerWidth / 2 - cx * targetScale, window.innerHeight / 2 - cy * targetScale, targetScale);
             // A one-off navigation flash, distinct from (and not drawn during) normal typing — the
             // block itself otherwise stays plain per the current design, so the color is set just
@@ -4606,7 +4609,7 @@
         }
     }
     function handleRemoteCursorBroadcast(payload) {
-        if (!payload || payload.userId === currentUser.id) return;
+        if (!payload || payload.userId === appState.currentUser.id) return;
         const entry = remoteCursors.get(payload.userId);
         if (!entry) return; // presence sync hasn't created their node yet — the next broadcast will land once it has
         entry.x = payload.x; entry.y = payload.y;
@@ -4621,7 +4624,7 @@
     // queueSyncDiff/applyRemoteSyncBroadcast) — this is just what makes the drag itself visible
     // in between, instead of the card only jumping to its new spot once dropped.
     function handleRemoteItemDrag(payload) {
-        if (!payload || payload.userId === currentUser.id || !Array.isArray(payload.items)) return;
+        if (!payload || payload.userId === appState.currentUser.id || !Array.isArray(payload.items)) return;
         payload.items.forEach(({ id, x, y }) => {
             const el = document.getElementById('item-' + id);
             if (!el) return;
@@ -4644,7 +4647,7 @@
         const rect = canvas.getBoundingClientRect();
         canvasPresenceChannel.send({
             type: 'broadcast', event: 'cursor',
-            payload: { userId: currentUser.id, x: (lastPointerClientX - rect.left - tx) / scale, y: (lastPointerClientY - rect.top - ty) / scale },
+            payload: { userId: appState.currentUser.id, x: (lastPointerClientX - rect.left - appState.tx) / appState.scale, y: (lastPointerClientY - rect.top - appState.ty) / appState.scale },
         });
     }
     canvas.addEventListener('pointermove', (e) => {
@@ -4665,14 +4668,14 @@
             return it ? { id: it.id, x: it.x, y: it.y } : null;
         }).filter(Boolean);
         if (!items.length) return;
-        canvasPresenceChannel.send({ type: 'broadcast', event: 'item-drag', payload: { userId: currentUser.id, items } });
+        canvasPresenceChannel.send({ type: 'broadcast', event: 'item-drag', payload: { userId: appState.currentUser.id, items } });
     }
     // Live, purely-visual size streaming while someone else is actively dragging a card's resize
     // handle — see the throttled send in setupResizing's own `move` handler below. Same DOM-only
     // shape as handleRemoteItemDrag: the item's actual w/h only becomes durable once the drag ends
     // and scheduleWorkspaceSave's normal content-sync diff picks it up.
     function handleRemoteItemResize(payload) {
-        if (!payload || payload.userId === currentUser.id) return;
+        if (!payload || payload.userId === appState.currentUser.id) return;
         const el = document.getElementById('item-' + payload.id);
         if (!el) return;
         el.style.width = payload.w + 'px';
@@ -4682,7 +4685,7 @@
     function broadcastItemResize(id, w, h) {
         if (!canvasPresenceChannel || itemResizeBroadcastThrottleId) return;
         itemResizeBroadcastThrottleId = setTimeout(() => { itemResizeBroadcastThrottleId = null; }, 50);
-        canvasPresenceChannel.send({ type: 'broadcast', event: 'item-resize', payload: { userId: currentUser.id, id, w, h } });
+        canvasPresenceChannel.send({ type: 'broadcast', event: 'item-resize', payload: { userId: appState.currentUser.id, id, w, h } });
     }
     // Applies an incoming 'editing' broadcast — see broadcastEditingState for why this is a plain
     // broadcast rather than presence.track(). The broadcast itself now carries the caret position
@@ -4692,7 +4695,7 @@
     // spot for a beat and then jumped once real typing began. Carrying it in the same message
     // means the very first paint is already in the right place.
     function handleRemoteEditingBroadcast(payload) {
-        if (!payload || payload.userId === currentUser.id) return;
+        if (!payload || payload.userId === appState.currentUser.id) return;
         const entry = remoteCursors.get(payload.userId);
         if (!entry) return; // presence sync hasn't created their node yet — the join-time catch-up resend covers this once it has
         clearTimeout(entry.editingBlurTimer);
@@ -4720,14 +4723,14 @@
         }
     }
     function handleRemoteCaretBroadcast(payload) {
-        if (!payload || payload.userId === currentUser.id) return;
+        if (!payload || payload.userId === appState.currentUser.id) return;
         const entry = remoteCursors.get(payload.userId);
         if (!entry || !entry.editingTarget) return;
         entry.caretX = payload.x; entry.caretY = payload.y; entry.caretHeight = payload.height;
         positionTypingIndicator(entry);
     }
     function handleRemoteSelectionBroadcast(payload) {
-        if (!payload || payload.userId === currentUser.id) return;
+        if (!payload || payload.userId === appState.currentUser.id) return;
         const entry = remoteCursors.get(payload.userId);
         if (!entry) return; // presence sync hasn't created their node yet — the next broadcast will land once it has
         entry.selectionRects = Array.isArray(payload.rects) ? payload.rects : [];
@@ -4782,9 +4785,9 @@
         const rect = getCaretScreenRect(el);
         const canvasRect = canvas.getBoundingClientRect();
         return {
-            x: (rect.left - canvasRect.left - tx) / scale,
-            y: (rect.top - canvasRect.top - ty) / scale,
-            height: rect.height / scale,
+            x: (rect.left - canvasRect.left - appState.tx) / appState.scale,
+            y: (rect.top - canvasRect.top - appState.ty) / appState.scale,
+            height: rect.height / appState.scale,
         };
     }
     // Re-measures and broadcasts the caret position on every subsequent selectionchange (typing,
@@ -4797,7 +4800,7 @@
         const caret = computeLocalCaret();
         if (!caret) return;
         localEditingState.caret = caret;
-        canvasPresenceChannel.send({ type: 'broadcast', event: 'caret', payload: { userId: currentUser.id, ...caret } });
+        canvasPresenceChannel.send({ type: 'broadcast', event: 'caret', payload: { userId: appState.currentUser.id, ...caret } });
     }
     // Measures the current live text SELECTION (not just the caret) within whatever's being
     // edited — same canvas-space coordinates/projection as computeLocalCaret, but one rect per
@@ -4817,10 +4820,10 @@
         if (!el.contains(range.startContainer) || !el.contains(range.endContainer)) return [];
         const canvasRect = canvas.getBoundingClientRect();
         return Array.from(range.getClientRects()).map(r => ({
-            x: (r.left - canvasRect.left - tx) / scale,
-            y: (r.top - canvasRect.top - ty) / scale,
-            w: r.width / scale,
-            h: r.height / scale,
+            x: (r.left - canvasRect.left - appState.tx) / appState.scale,
+            y: (r.top - canvasRect.top - appState.ty) / appState.scale,
+            w: r.width / appState.scale,
+            h: r.height / appState.scale,
         }));
     }
     // Broadcasts the current user's own live text selection so every collaborator sees the exact
@@ -4829,7 +4832,7 @@
     // handleRemoteSelectionBroadcast/positionSelectionHighlight.
     function broadcastLocalSelection() {
         if (!canvasPresenceChannel) return;
-        canvasPresenceChannel.send({ type: 'broadcast', event: 'selection', payload: { userId: currentUser.id, rects: computeLocalSelectionRects() } });
+        canvasPresenceChannel.send({ type: 'broadcast', event: 'selection', payload: { userId: appState.currentUser.id, rects: computeLocalSelectionRects() } });
     }
     let caretBroadcastThrottleId = null;
     document.addEventListener('selectionchange', () => {
@@ -4862,13 +4865,13 @@
         if (!canvasPresenceChannel) return;
         canvasPresenceChannel.send({
             type: 'broadcast', event: 'editing',
-            payload: { userId: currentUser.id, editing: isEditing, editingTarget: localEditingState.editingTarget, caret: localEditingState.caret },
+            payload: { userId: appState.currentUser.id, editing: isEditing, editingTarget: localEditingState.editingTarget, caret: localEditingState.caret },
         });
         // Blurring normally collapses/moves the selection too (which the selectionchange listener
         // above would already catch), but that's not guaranteed for every call site — explicit and
         // immediate here so a collaborator's screen never has to wait for a maybe-not-firing event
         // to clear a stale highlight.
-        if (!isEditing) canvasPresenceChannel.send({ type: 'broadcast', event: 'selection', payload: { userId: currentUser.id, rects: [] } });
+        if (!isEditing) canvasPresenceChannel.send({ type: 'broadcast', event: 'selection', payload: { userId: appState.currentUser.id, rects: [] } });
     }
 
     // ---- Content sync: diff-and-broadcast on render(), not per-mutation-site instrumentation ----
@@ -4929,7 +4932,7 @@
     // lastBroadcastSnapshot to match (critical: this is what stops the render() this triggers from
     // re-diffing this exact change as "new" and immediately echoing it straight back out).
     function applyRemoteSyncBroadcast(payload) {
-        const folderObj = folders[currentFolderId];
+        const folderObj = appState.folders[appState.currentFolderId];
         if (!folderObj || !payload) return;
         let changed = false;
         if (payload.title !== undefined && payload.title !== folderObj.title) {
@@ -5055,9 +5058,9 @@
     // into a nested folder/source card and actually show something, for anyone who views it.
     function snapshotItem(it) {
         const clone = JSON.parse(JSON.stringify(it));
-        if ((it.kind === 'folder' || it.kind === 'source') && folders[it.folderId]) {
-            clone.snapshotChildren = folders[it.folderId].items.map(snapshotItem);
-            clone.snapshotTitle = folders[it.folderId].title;
+        if ((it.kind === 'folder' || it.kind === 'source') && appState.folders[it.folderId]) {
+            clone.snapshotChildren = appState.folders[it.folderId].items.map(snapshotItem);
+            clone.snapshotTitle = appState.folders[it.folderId].title;
         }
         return clone;
     }
@@ -5070,7 +5073,7 @@
     // only the copy. Call right after snapshotItem(it), passing every id in the same gesture.
     function sanitizeFlashcardSnapshot(snapshot, batchItemIds) {
         if (snapshot.kind !== 'flashcard' && snapshot.kind !== 'typeright') return snapshot;
-        const folder = folders[currentFolderId];
+        const folder = appState.folders[appState.currentFolderId];
         const conns = folder ? ensureConnections(folder) : [];
         const sourceComesToo = conns.some(c => {
             const otherId = c.fromId === snapshot.id ? c.toId : (c.toId === snapshot.id ? c.fromId : null);
@@ -5108,7 +5111,7 @@
         if (item.kind === 'stopwatch') return 'Stopwatch';
         if (item.kind === 'shelf') return item.shelfName || 'Stack';
         if (item.kind === 'bookmark') return item.html || (item.bookmarkUrl ? shortUrl(item.bookmarkUrl) : 'Link');
-        if (item.kind === 'folder' || item.kind === 'source') return (folders[item.folderId] && folders[item.folderId].title) || 'Folder';
+        if (item.kind === 'folder' || item.kind === 'source') return (appState.folders[item.folderId] && appState.folders[item.folderId].title) || 'Folder';
         const text = stripHtml(item.html || '');
         return text ? text.slice(0, 24) : (item.kind ? item.kind[0].toUpperCase() + item.kind.slice(1) : 'Card');
     }
@@ -5121,13 +5124,13 @@
         el.className = `item ${it.kind}`;
 
         if (it.kind === 'folder') {
-            const f = folders[it.folderId];
+            const f = appState.folders[it.folderId];
             el.innerHTML = `<div style="display:flex;flex-direction:column;justify-content:space-between;width:100%;height:100%;">
                 <div style="font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:flex;align-items:center;gap:6px;"><span style="opacity:0.8;">↗</span>${f ? f.title : 'Folder'}</div>
                 <div style="font-size:12px;opacity:0.6;">${f ? f.items.length : 0} items</div>
             </div>`;
         } else if (it.kind === 'source') {
-            const f = folders[it.folderId];
+            const f = appState.folders[it.folderId];
             const count = countSourceEntries(it.folderId);
             el.innerHTML = `${kindIconHTML('source', null, 'source-card-icon')}
             <div class="source-card-info">
@@ -5517,16 +5520,16 @@
     function importSharedCardsAtScreenPoint(items, clientX, clientY) {
         saveSnapshot();
         const rect = canvas.getBoundingClientRect();
-        const dropX = Math.round(((clientX - rect.left - tx) / scale) / 28) * 28;
-        const dropY = Math.round(((clientY - rect.top - ty) / scale) / 28) * 28;
+        const dropX = Math.round(((clientX - rect.left - appState.tx) / appState.scale) / 28) * 28;
+        const dropY = Math.round(((clientY - rect.top - appState.ty) / appState.scale) / 28) * 28;
         let minX = Infinity, minY = Infinity;
         items.forEach(it => { minX = Math.min(minX, it.x); minY = Math.min(minY, it.y); });
         items.forEach(it => {
             const clone = JSON.parse(JSON.stringify(it));
-            clone.id = idCounter++;
+            clone.id = appState.idCounter++;
             clone.x = dropX + (it.x - minX);
             clone.y = dropY + (it.y - minY);
-            folders[currentFolderId].items.push(clone);
+            appState.folders[appState.currentFolderId].items.push(clone);
         });
         render();
         closeMessagesPanel();
@@ -5557,7 +5560,7 @@
             body.appendChild(empty);
         } else {
             f.messages.forEach(m => {
-                const isMine = m.senderId === currentUser.id;
+                const isMine = m.senderId === appState.currentUser.id;
                 const wrapper = document.createElement('div');
                 wrapper.className = 'flex flex-col ' + (isMine ? 'items-end' : 'items-start') + ' w-full';
 
@@ -5605,7 +5608,7 @@
         updateMsgSendState();
         const { data, error } = await supabase
             .from('messages')
-            .insert({ friendship_id: f.friendshipId, sender_id: currentUser.id, body: text })
+            .insert({ friendship_id: f.friendshipId, sender_id: appState.currentUser.id, body: text })
             .select()
             .single();
         if (error) { console.error('[chat] failed to send message:', error); return; }
@@ -5641,7 +5644,7 @@
 
     function titleFontSize(level) { return level === 3 ? 18 : level === 2 ? 22 : 28; }
     function setTitleLevel(id, level) {
-        const it = folders[currentFolderId].items.find(i => i.id === id);
+        const it = appState.folders[appState.currentFolderId].items.find(i => i.id === id);
         if (!it) return;
         saveSnapshot();
         it.level = parseInt(level);
@@ -5677,7 +5680,7 @@
     }
 
     function findItemById(id) {
-        return folders[currentFolderId].items.find(i => i.id === id);
+        return appState.folders[appState.currentFolderId].items.find(i => i.id === id);
     }
     function placeCaretEnd(el) {
         el.focus();
@@ -5984,7 +5987,7 @@
             // Frozen entirely while ANY row-tag picker on this page is open — the tagged row's
             // button/indent must stay exactly as they were until the picker closes, not chase
             // the cursor onto whatever other row it happens to pass over in the meantime.
-            if (activeTagRow) return;
+            if (appState.activeTagRow) return;
             // "Add column" needs to react to the *visible* right edge of the table area
             // (wrap's own rect), not table-rounded's actual content edge — once a table has
             // more than 3 columns, table-rounded is wider than the viewport, so its real edge
@@ -6069,7 +6072,7 @@
             // Stays put while this table's row-tag picker is open (see openRowTagPicker /
             // closeCellTagPicker) — the cursor leaving the table to go interact with the
             // picker's popover shouldn't un-indent the row it's currently tagging.
-            if (activeTagRow && activeTagRow.id === tableItem.id) return;
+            if (appState.activeTagRow && appState.activeTagRow.id === tableItem.id) return;
             if (hoveredRowEl) {
                 hoveredRowEl = null;
                 wrap.classList.remove('show-row-tag');
@@ -6239,7 +6242,7 @@
     }
 
     // ---------- Source page: insert image/audio into the focused cell ----------
-    function setLastFocusedCell(id, r, c) { lastFocusedCell = { id, r, c }; }
+    function setLastFocusedCell(id, r, c) { appState.lastFocusedCell = { id, r, c }; }
     // Appends HTML (an <img>/<audio> tag) to whichever data cell last had focus. Works even
     // if focus has since moved to the toolbar button that triggered the insert, since it goes
     // straight through the DOM + tableData rather than relying on a live text-selection/caret.
@@ -6247,13 +6250,13 @@
         // lastFocusedCell can go stale (e.g. the user switched to a different source page
         // without focusing a cell there yet) — findItemById is scoped to the *current* folder,
         // so this also catches that case rather than silently doing nothing.
-        const it = lastFocusedCell && findItemById(lastFocusedCell.id);
-        const { r, c } = lastFocusedCell || {};
+        const it = appState.lastFocusedCell && findItemById(appState.lastFocusedCell.id);
+        const { r, c } = appState.lastFocusedCell || {};
         if (!it || !it.tableData[r] || it.tableData[r][c] == null) {
             alert('Click into a cell first, then use Add to insert an image or audio clip there.');
             return;
         }
-        const id = lastFocusedCell.id;
+        const id = appState.lastFocusedCell.id;
         saveSnapshot();
         const td = document.querySelector(`#item-${id} .cell-text[data-r="${r}"][data-c="${c}"]`);
         if (td) {
@@ -6290,26 +6293,26 @@
     }
     function startCellAudioRecording() {
         closeSourceAddMenu();
-        if (!lastFocusedCell || !findItemById(lastFocusedCell.id)) { alert('Click into a cell first, then use Audio > Record.'); return; }
+        if (!appState.lastFocusedCell || !findItemById(appState.lastFocusedCell.id)) { alert('Click into a cell first, then use Audio > Record.'); return; }
         if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) { alert('Microphone recording isn\'t supported in this browser.'); return; }
         navigator.mediaDevices.getUserMedia({ audio: true }).then(stream => {
-            cellAudioChunks = [];
-            cellAudioRecorder = new MediaRecorder(stream);
-            cellAudioRecorder.ondataavailable = (e) => { if (e.data && e.data.size) cellAudioChunks.push(e.data); };
-            cellAudioRecorder.onstop = () => {
+            appState.cellAudioChunks = [];
+            appState.cellAudioRecorder = new MediaRecorder(stream);
+            appState.cellAudioRecorder.ondataavailable = (e) => { if (e.data && e.data.size) appState.cellAudioChunks.push(e.data); };
+            appState.cellAudioRecorder.onstop = () => {
                 stream.getTracks().forEach(t => t.stop());
                 audioRecordIndicator.classList.remove('recording');
-                const blob = new Blob(cellAudioChunks, { type: 'audio/webm' });
+                const blob = new Blob(appState.cellAudioChunks, { type: 'audio/webm' });
                 const reader = new FileReader();
                 reader.onload = () => insertIntoActiveCell(`<audio class="cell-media-audio" controls src="${reader.result}"></audio>`);
                 reader.readAsDataURL(blob);
             };
-            cellAudioRecorder.start();
+            appState.cellAudioRecorder.start();
             audioRecordIndicator.classList.add('recording');
         }).catch(() => alert('Microphone access was denied or is unavailable.'));
     }
     function stopCellAudioRecording() {
-        if (cellAudioRecorder && cellAudioRecorder.state !== 'inactive') cellAudioRecorder.stop();
+        if (appState.cellAudioRecorder && appState.cellAudioRecorder.state !== 'inactive') appState.cellAudioRecorder.stop();
     }
 
     // ---------- Source page: import a file (merges new rows into the source's table) ----------
@@ -6352,7 +6355,7 @@
     function importDelimitedIntoSource(text, delim) {
         const rows = parseDelimited(text, delim);
         if (!rows.length) { alert('No data found in that file.'); return; }
-        const folderObj = folders[currentFolderId];
+        const folderObj = appState.folders[appState.currentFolderId];
         if (!folderObj || !folderObj.isSource) return;
         const csvHeader = rows[0].map(h => (h || '').trim());
         const csvDataRows = rows.length > 1 ? rows.slice(1) : [];
@@ -6362,7 +6365,7 @@
         if (!tableItem) {
             // No existing table yet — the file's own headers become the new table's columns
             // outright, in the order they appear in the file.
-            tableItem = { id: idCounter++, x: 0, y: 0, w: 0, h: 0, kind: 'table', tableData: [csvHeader.slice()] };
+            tableItem = { id: appState.idCounter++, x: 0, y: 0, w: 0, h: 0, kind: 'table', tableData: [csvHeader.slice()] };
             folderObj.items.push(tableItem);
         }
         const isCellEmpty = c => !(c || '').trim();
@@ -6453,12 +6456,12 @@
     function applyAiAddRowsToSource(targetIndex, columns, rows) {
         const ctx = searchCardContext[(targetIndex || 1) - 1];
         if (!ctx || ctx.snapshot.kind !== 'source') return false;
-        const folderObj = folders[ctx.snapshot.folderId];
+        const folderObj = appState.folders[ctx.snapshot.folderId];
         if (!folderObj) return false;
         saveSnapshot();
         let tableItem = folderObj.items.find(i => i.kind === 'table');
         if (!tableItem) {
-            tableItem = { id: idCounter++, x: 28, y: 28, w: 560, h: 360, kind: 'table', tableData: [['']] };
+            tableItem = { id: appState.idCounter++, x: 28, y: 28, w: 560, h: 360, kind: 'table', tableData: [['']] };
             folderObj.items.push(tableItem);
         }
         const isCellEmpty = c => !stripHtml(c || '').trim();
@@ -6495,12 +6498,12 @@
     function createSourceFromAI(title, columns, rows) {
         const { w, h } = kindSize('source');
         const cx = window.innerWidth / 2, cy = window.innerHeight / 2;
-        const x = Math.round((((cx - tx) / scale) - w / 2) / 28) * 28;
-        const y = Math.round((((cy - ty) / scale) - h / 2) / 28) * 28;
+        const x = Math.round((((cx - appState.tx) / appState.scale) - w / 2) / 28) * 28;
+        const y = Math.round((((cy - appState.ty) / appState.scale) - h / 2) / 28) * 28;
         add('source', x, y);
-        const items = folders[currentFolderId].items;
+        const items = appState.folders[appState.currentFolderId].items;
         const created = items[items.length - 1];
-        const folderObj = folders[created.folderId];
+        const folderObj = appState.folders[created.folderId];
         const width = Math.max(1, Math.min(AI_SOURCE_MAX_COLS, (columns && columns.length) || 2));
         const header = new Array(width).fill('').map((_, i) => escapeHtml((columns && columns[i]) || `Column ${i + 1}`));
         const dataRows = (rows || []).slice(0, AI_SOURCE_MAX_ROWS).map(r => aiRowToCells(r, width));
@@ -6576,8 +6579,8 @@
     function openRowTagPicker(id, r, btnEl) {
         const it = resolveTableForEdit(id); if (!it) return;
         closeAllPanels(null);
-        activeTagRow = { id, r };
-        renamingTagId = null;
+        appState.activeTagRow = { id, r };
+        appState.renamingTagId = null;
         closeTagContextMenu();
         document.getElementById('cell-tag-picker-new-color').value = '#6366f1';
         document.getElementById('cell-tag-picker-new-name').value = '';
@@ -6588,14 +6591,14 @@
         cellTagPicker.style.display = 'flex';
     }
     function renderCellTagPickerList() {
-        if (!activeTagRow) return;
-        const { id, r } = activeTagRow;
+        if (!appState.activeTagRow) return;
+        const { id, r } = appState.activeTagRow;
         const it = resolveTableForEdit(id); if (!it) return;
         const tags = ensureTableTags(it);
         const assigned = new Set((ensureCellTags(it)[r]) || []);
         const list = document.getElementById('cell-tag-picker-list');
         list.innerHTML = tags.map(t => {
-            if (t.id === renamingTagId) {
+            if (t.id === appState.renamingTagId) {
                 return `<div class="cell-tag-picker-row${assigned.has(t.id) ? ' selected' : ''}" data-tag-id="${t.id}">
                     <span class="tag-swatch" style="background:${t.color}"></span>
                     <input type="text" class="tag-picker-rename-input" value="${escapeHtml(t.name)}" onclick="event.stopPropagation()" onkeydown="handleTagRenameKeydown(event, '${t.id}')" onblur="commitTagRename('${t.id}', this.value)">
@@ -6609,21 +6612,21 @@
         }).join('');
         // The divider above the new-tag input only makes sense once there's something above it.
         document.getElementById('cell-tag-picker-new-row').classList.toggle('has-divider', tags.length > 0);
-        if (renamingTagId) {
+        if (appState.renamingTagId) {
             const input = list.querySelector('.tag-picker-rename-input');
             if (input) { input.focus(); input.select(); }
         }
     }
     function createTagFromCellPicker() {
-        if (!activeTagRow) return;
-        const { id, r } = activeTagRow;
+        if (!appState.activeTagRow) return;
+        const { id, r } = appState.activeTagRow;
         const it = resolveTableForEdit(id); if (!it) return;
         const nameInput = document.getElementById('cell-tag-picker-new-name');
         const colorInput = document.getElementById('cell-tag-picker-new-color');
         const name = nameInput.value.trim();
         if (!name) return;
         saveSnapshot();
-        const tag = { id: 'tag_' + idCounter++, name, color: colorInput.value };
+        const tag = { id: 'tag_' + appState.idCounter++, name, color: colorInput.value };
         ensureTableTags(it).push(tag);
         const cellTags = ensureCellTags(it);
         const set = new Set(cellTags[r] || []);
@@ -6649,7 +6652,7 @@
     function openTagContextMenu(event, tagId) {
         event.preventDefault();
         event.stopPropagation();
-        contextMenuTagId = tagId;
+        appState.contextMenuTagId = tagId;
         const menu = document.getElementById('tag-context-menu');
         menu.style.left = event.clientX + 'px';
         menu.style.top = event.clientY + 'px';
@@ -6658,24 +6661,24 @@
     function closeTagContextMenu() {
         const menu = document.getElementById('tag-context-menu');
         if (menu) menu.style.display = 'none';
-        contextMenuTagId = null;
+        appState.contextMenuTagId = null;
     }
     function startRenameActiveTag() {
-        const tagId = contextMenuTagId;
+        const tagId = appState.contextMenuTagId;
         closeTagContextMenu();
         if (!tagId) return;
-        renamingTagId = tagId;
+        appState.renamingTagId = tagId;
         renderCellTagPickerList();
     }
     function handleTagRenameKeydown(e, tagId) {
         if (e.key === 'Enter') { e.preventDefault(); e.target.blur(); }
-        else if (e.key === 'Escape') { e.preventDefault(); renamingTagId = null; renderCellTagPickerList(); }
+        else if (e.key === 'Escape') { e.preventDefault(); appState.renamingTagId = null; renderCellTagPickerList(); }
     }
     function commitTagRename(tagId, newValue) {
-        if (renamingTagId !== tagId) return; // already cancelled via Escape
-        renamingTagId = null;
-        if (!activeTagRow) return;
-        const it = resolveTableForEdit(activeTagRow.id);
+        if (appState.renamingTagId !== tagId) return; // already cancelled via Escape
+        appState.renamingTagId = null;
+        if (!appState.activeTagRow) return;
+        const it = resolveTableForEdit(appState.activeTagRow.id);
         if (it) {
             const tag = ensureTableTags(it).find(t => t.id === tagId);
             const trimmed = newValue.trim();
@@ -6688,10 +6691,10 @@
         renderCellTagPickerList();
     }
     function deleteActiveTag() {
-        const tagId = contextMenuTagId;
+        const tagId = appState.contextMenuTagId;
         closeTagContextMenu();
-        if (!tagId || !activeTagRow) return;
-        const it = resolveTableForEdit(activeTagRow.id); if (!it) return;
+        if (!tagId || !appState.activeTagRow) return;
+        const it = resolveTableForEdit(appState.activeTagRow.id); if (!it) return;
         saveSnapshot();
         it.tags = ensureTableTags(it).filter(t => t.id !== tagId);
         const cellTags = ensureCellTags(it);
@@ -6709,15 +6712,15 @@
     function closeCellTagPicker() {
         cellTagPicker.style.display = 'none';
         closeTagContextMenu();
-        renamingTagId = null;
-        if (activeTagRow) {
+        appState.renamingTagId = null;
+        if (appState.activeTagRow) {
             // The rendered page's own container is always keyed by the CURRENTLY OPEN source's
             // table id, not necessarily activeTagRow.id.
-            const localTable = folders[currentFolderId] && folders[currentFolderId].items.find(i => i.kind === 'table');
+            const localTable = appState.folders[appState.currentFolderId] && appState.folders[appState.currentFolderId].items.find(i => i.kind === 'table');
             const container = localTable && document.getElementById('item-' + localTable.id);
             if (container && container._resetRowTagHover) container._resetRowTagHover();
         }
-        activeTagRow = null;
+        appState.activeTagRow = null;
     }
 
     // ---------- Media card ----------
@@ -6821,12 +6824,12 @@
     // does) — the user can still resize the card normally afterward.
     async function uploadDocumentToStorage(id, file, docType) {
         const it = findItemById(id); if (!it) return;
-        if (!supabase || !currentUser.id) { alert('Sign in to upload documents.'); return; }
+        if (!supabase || !appState.currentUser.id) { alert('Sign in to upload documents.'); return; }
         saveSnapshot();
         it.mediaType = docType; it.mediaSrc = null; it.mediaName = file.name; it.mediaUploading = true;
         it.w = 340; it.h = 440;
         render();
-        const path = `${currentUser.id}/${Date.now()}-${file.name.replace(/[^\w.\-]+/g, '_')}`;
+        const path = `${appState.currentUser.id}/${Date.now()}-${file.name.replace(/[^\w.\-]+/g, '_')}`;
         const { error } = await supabase.storage.from('documents').upload(path, file, { contentType: file.type || undefined });
         const live = findItemById(id);
         if (!live) return; // card got deleted while the upload was in flight
@@ -7183,7 +7186,7 @@
     function addTask(id) {
         const it = findItemById(id); if (!it) return;
         saveSnapshot();
-        it.tasks.push({ id: idCounter++, text: '', done: false, deadline: '' });
+        it.tasks.push({ id: appState.idCounter++, text: '', done: false, deadline: '' });
         render();
     }
     function toggleTask(id, tid) {
@@ -7859,7 +7862,7 @@
         if (!it.swRunning) {
             it.swRunning = true; it.swPaused = false; it.swLastResumeAt = Date.now();
             it.swSessionActive = true;
-            it.swSessionId = 'sess_' + (idCounter++);
+            it.swSessionId = 'sess_' + (appState.idCounter++);
             it.swSessionStartedAt = Date.now();
             it.swSessionLive = {}; it.swSessionBaseline = {};
         } else {
@@ -8047,9 +8050,9 @@
     function startRenameShelfSourceRow(labelEl, sourceItemId) {
         if (labelEl.contentEditable === 'true') return;
         const folderId = folderIdForConnectedSource(sourceItemId);
-        if (!folders[folderId]) return;
+        if (!appState.folders[folderId]) return;
         saveSnapshot();
-        const fullTitle = folders[folderId].title;
+        const fullTitle = appState.folders[folderId].title;
         labelEl.textContent = fullTitle;
         labelEl.contentEditable = true;
         broadcastEditingState(true, `.shelf-row-label[data-source-id="${sourceItemId}"]`);
@@ -8068,12 +8071,12 @@
             labelEl.contentEditable = false;
             broadcastEditingState(false);
             const newTitle = labelEl.textContent.trim();
-            if (newTitle) { folders[folderId].title = newTitle; syncCanvasCollabTitle(folderId, newTitle); }
+            if (newTitle) { appState.folders[folderId].title = newTitle; syncCanvasCollabTitle(folderId, newTitle); }
             render();
         };
         labelEl.oninput = () => {
             const liveTitle = labelEl.textContent;
-            if (liveTitle.trim()) { folders[folderId].title = liveTitle; scheduleWorkspaceSave(); }
+            if (liveTitle.trim()) { appState.folders[folderId].title = liveTitle; scheduleWorkspaceSave(); }
         };
         labelEl.onkeydown = (ke) => {
             if (ke.key === 'Enter') { ke.preventDefault(); labelEl.blur(); }
@@ -8413,7 +8416,7 @@
     // between two cards that are both part of this drag are copied across too, so the link
     // itself (not just the two cards) survives into the popup preview.
     function addCardsToSearchContext(ids) {
-        const folder = folders[currentFolderId];
+        const folder = appState.folders[appState.currentFolderId];
         if (!folder) return;
         ids.forEach(id => {
             if (searchCardContext.some(c => c.id === id)) return;
@@ -8528,7 +8531,7 @@
     // "Entries" for a source card's count badge: data rows only (tableData[0] is the column-name
     // header row, never a real entry), only rows with at least one non-blank cell.
     function countSourceEntries(folderId) {
-        const f = folders[folderId];
+        const f = appState.folders[folderId];
         const tableItem = f && (f.items || []).find(i => i.kind === 'table');
         if (!tableItem || !tableItem.tableData) return 0;
         return tableItem.tableData.slice(1).filter(row => row.some(cell => stripHtml(cell))).length;
@@ -8541,14 +8544,14 @@
     // how you arrived here (drilling in, a waypoint jump, search, the hamburger menu, ...).
     // Root has no parent (nothing ever points at it), so this naturally returns null for it.
     function findParentFolderId(folderId) {
-        for (const fid in folders) {
-            const f = folders[fid];
+        for (const fid in appState.folders) {
+            const f = appState.folders[fid];
             if ((f.items || []).some(it => (it.kind === 'folder' || it.kind === 'source') && it.folderId === folderId)) return fid;
         }
         return null;
     }
     function getItemSearchText(it) {
-        if (it.kind === 'folder' || it.kind === 'source') return folders[it.folderId] ? folders[it.folderId].title : '';
+        if (it.kind === 'folder' || it.kind === 'source') return appState.folders[it.folderId] ? appState.folders[it.folderId].title : '';
         if (it.kind === 'waypoint') return it.name || '';
         if (it.kind === 'table') return it.tableData.map(row => row.map(c => stripHtml(c)).join(' ')).join(' ');
         if (it.kind === 'checklist') return (it.tasks || []).map(t => t.text).join(' ');
@@ -8721,7 +8724,7 @@
         autoGrowSearchInput();
         updateSearchSpaceHint();
         if (dotbotScheduleConversation) return; // typing the "when" reply — not a search query
-        const folderObj = folders[currentFolderId];
+        const folderObj = appState.folders[appState.currentFolderId];
         if (!folderObj) return;
         hideDotbotResultPanels();
         if (value.trim() === "") {
@@ -8919,14 +8922,14 @@
     function importDotbotResultAtScreenPoint(template, clientX, clientY) {
         saveSnapshot();
         const rect = canvas.getBoundingClientRect();
-        const dropX = Math.round(((clientX - rect.left - tx) / scale) / 28) * 28;
-        const dropY = Math.round(((clientY - rect.top - ty) / scale) / 28) * 28;
+        const dropX = Math.round(((clientX - rect.left - appState.tx) / appState.scale) / 28) * 28;
+        const dropY = Math.round(((clientY - rect.top - appState.ty) / appState.scale) / 28) * 28;
         // Every caller of this function is Dotbot/AI-originated content (dictionary/answer/
         // mnemonic story/image, and now individual example sentences) — aiGenerated:true here
         // covers the "Generated content may be inaccurate" badge for all of them in one place,
         // with no per-call-site changes needed.
         const item = {
-            id: idCounter++,
+            id: appState.idCounter++,
             x: dropX, y: dropY,
             w: template.w, h: template.h,
             kind: template.kind || 'note',
@@ -8938,7 +8941,7 @@
             item.translit = template.translit || '';
             item.translation = template.translation || '';
         }
-        folders[currentFolderId].items.push(item);
+        appState.folders[appState.currentFolderId].items.push(item);
         render();
         clearSearch();
     }
@@ -8956,11 +8959,11 @@
         if (!pair.text && !pair.image) return;
         saveSnapshot();
         const rect = canvas.getBoundingClientRect();
-        const dropX = Math.round(((clientX - rect.left - tx) / scale) / 28) * 28;
-        const dropY = Math.round(((clientY - rect.top - ty) / scale) / 28) * 28;
+        const dropX = Math.round(((clientX - rect.left - appState.tx) / appState.scale) / 28) * 28;
+        const dropY = Math.round(((clientY - rect.top - appState.ty) / appState.scale) / 28) * 28;
         function place(template, x, y) {
-            folders[currentFolderId].items.push({
-                id: idCounter++,
+            appState.folders[appState.currentFolderId].items.push({
+                id: appState.idCounter++,
                 x, y,
                 w: template.w, h: template.h,
                 kind: template.kind || 'note',
@@ -9201,7 +9204,7 @@
     function computeCanvasMatches(query) {
         const q = query.trim().toLowerCase();
         if (!q) return [];
-        const folderObj = folders[currentFolderId];
+        const folderObj = appState.folders[appState.currentFolderId];
         const matches = [];
         (folderObj.items || []).forEach(it => {
             const text = getItemSearchText(it);
@@ -9220,7 +9223,7 @@
     function computeSourceMatches(query) {
         const q = query.trim().toLowerCase();
         if (!q) return [];
-        const folderObj = folders[currentFolderId];
+        const folderObj = appState.folders[appState.currentFolderId];
         const tableItem = (folderObj.items || []).find(i => i.kind === 'table');
         if (!tableItem) return [];
         const matches = [];
@@ -9277,7 +9280,7 @@
         const w = (it.kind === 'title' ? (el ? el.offsetWidth : 100) : it.w) || 0;
         const h = (it.kind === 'title' ? (el ? el.offsetHeight : 50) : it.h) || 0;
         const cx = it.x + w / 2, cy = it.y + h / 2;
-        const targetScale = Math.max(scale, 1);
+        const targetScale = Math.max(appState.scale, 1);
         smoothPanTo(window.innerWidth / 2 - cx * targetScale, window.innerHeight / 2 - cy * targetScale, targetScale);
         clearSearch();
         if (el) {
@@ -9717,7 +9720,7 @@
         searchInputWrap.classList.remove('idle-pulsing'); // redundant when reached via commenceSearchOrMnemonic, needed for direct callers like selectionToolbarLookUp
         dotbotSearchGeneration++; // same reasoning — redundant via commenceSearchOrMnemonic, needed for direct callers
         bumpAchievementStat('twenty_searches');
-        const folderObj = folders[currentFolderId];
+        const folderObj = appState.folders[appState.currentFolderId];
         if (!folderObj) return;
         const matches = folderObj.isSource ? computeSourceMatches(query) : computeCanvasMatches(query);
         renderCanvasResultsPanel(matches, folderObj.isSource); // instant, sync — visible before the spinner even shows
@@ -9914,14 +9917,14 @@
     let addToSourcePopupEl = null;
     let addToSourceTarget = null; // {folder, table} — the currently chosen destination
     function findAllSourceFolders() {
-        return Object.values(folders).filter(f => f.isSource && f.items.some(i => i.kind === 'table'));
+        return Object.values(appState.folders).filter(f => f.isSource && f.items.some(i => i.kind === 'table'));
     }
     // Picks the default destination, in priority order: (1) we're editing inside a source's own
     // table already, (2) the item being edited IS a source card, (3) the item being edited is
     // connected (a drawn canvas connection) to a source card, (4) the geometrically nearest
     // source card in the same folder, (5) the first source anywhere in the account.
     function findDefaultSourceForItem(hostEl) {
-        const folder = folders[currentFolderId];
+        const folder = appState.folders[appState.currentFolderId];
         if (!folder) return null;
         const tableOf = (f) => f && f.items.find(i => i.kind === 'table');
         if (folder.isSource) {
@@ -9932,8 +9935,8 @@
         const itemId = itemEl && itemEl.id ? Number(itemEl.id.replace('item-', '')) : null;
         const it = itemId != null ? folder.items.find(i => i.id === itemId) : null;
         if (it && it.kind === 'source') {
-            const table = tableOf(folders[it.folderId]);
-            if (table) return { folder: folders[it.folderId], table };
+            const table = tableOf(appState.folders[it.folderId]);
+            if (table) return { folder: appState.folders[it.folderId], table };
         }
         if (it) {
             const conns = ensureConnections(folder);
@@ -9942,13 +9945,13 @@
             for (const cid of connectedIds) {
                 const other = folder.items.find(i => i.id === cid);
                 if (other && other.kind === 'source') {
-                    const table = tableOf(folders[other.folderId]);
-                    if (table) return { folder: folders[other.folderId], table };
+                    const table = tableOf(appState.folders[other.folderId]);
+                    if (table) return { folder: appState.folders[other.folderId], table };
                 }
             }
         }
         if (it) {
-            const sources = folder.items.filter(i => i.kind === 'source' && tableOf(folders[i.folderId]));
+            const sources = folder.items.filter(i => i.kind === 'source' && tableOf(appState.folders[i.folderId]));
             if (sources.length) {
                 let best = null, bestDist = Infinity;
                 sources.forEach(s => {
@@ -9956,7 +9959,7 @@
                     const d = dx * dx + dy * dy;
                     if (d < bestDist) { bestDist = d; best = s; }
                 });
-                if (best) return { folder: folders[best.folderId], table: tableOf(folders[best.folderId]) };
+                if (best) return { folder: appState.folders[best.folderId], table: tableOf(appState.folders[best.folderId]) };
             }
         }
         const anySourceFolder = findAllSourceFolders()[0];
@@ -10033,7 +10036,7 @@
             resultsEl.classList.add('open');
             resultsEl.querySelectorAll('.add-to-source-result[data-fid]').forEach(row => {
                 row.onclick = () => {
-                    const f = folders[row.dataset.fid];
+                    const f = appState.folders[row.dataset.fid];
                     addToSourceTarget = { folder: f, table: f.items.find(i => i.kind === 'table') };
                     renderAddToSourcePopup(prefillText);
                 };
@@ -10052,7 +10055,7 @@
                 saveSnapshot();
                 addToSourceTarget.table.tableData.push(cells);
                 scheduleWorkspaceSave();
-                if (currentFolderId === addToSourceTarget.folder.id) render();
+                if (appState.currentFolderId === addToSourceTarget.folder.id) render();
                 closeAddToSourcePopup();
             };
         }
@@ -10158,17 +10161,17 @@
     // itself as if it were 1.5x too wide, then THAT got rendered 1.5x again).
     function expandWaypointCardWidth(el) {
         clearTimeout(el.__waypointWidthTimer);
-        const startW = el.getBoundingClientRect().width / scale;
+        const startW = el.getBoundingClientRect().width / appState.scale;
         el.classList.add('expanded');
         el.style.width = ''; // let width:auto take over just long enough to measure the natural size
-        const targetW = el.getBoundingClientRect().width / scale;
+        const targetW = el.getBoundingClientRect().width / appState.scale;
         el.style.width = startW + 'px';
         void el.offsetWidth; // commit the start point before animating to the target
         el.style.width = targetW + 'px';
     }
     function collapseWaypointCardWidth(el) {
         clearTimeout(el.__waypointWidthTimer);
-        el.style.width = (el.getBoundingClientRect().width / scale) + 'px';
+        el.style.width = (el.getBoundingClientRect().width / appState.scale) + 'px';
         void el.offsetWidth;
         el.style.width = WAYPOINT_COLLAPSED_W + 'px';
         el.__waypointWidthTimer = setTimeout(() => {
@@ -10235,7 +10238,7 @@
                 el.classList.remove('waypoint-editing');
                 collapseWaypointCardWidth(el);
                 scheduleWorkspaceSave();
-                syncWaypointToDb(currentFolderId, it);
+                syncWaypointToDb(appState.currentFolderId, it);
             };
             nameEl.onkeydown = (ke) => {
                 if (ke.key === 'Enter') { ke.preventDefault(); nameEl.blur(); }
@@ -10268,22 +10271,22 @@
     // holds the real data (name, position), this is just a searchable/global index of it, keyed by
     // the REAL (non shared:-namespaced) owner+folder id since that's what's stable across users.
     async function syncWaypointToDb(folderId, it) {
-        if (!supabase || !currentUser.id) return;
-        const folderObj = folders[folderId];
+        if (!supabase || !appState.currentUser.id) return;
+        const folderObj = appState.folders[folderId];
         if (!folderObj) return;
-        const ownerId = folderObj.isSharedView ? folderObj.sharedOwnerId : currentUser.id;
+        const ownerId = folderObj.isSharedView ? folderObj.sharedOwnerId : appState.currentUser.id;
         const realFolderId = folderObj.isSharedView ? folderObj.sharedRemoteFolderId : folderId;
         const { error } = await supabase.from('waypoints').upsert({
-            creator_id: currentUser.id, owner_id: ownerId, folder_id: realFolderId, item_id: String(it.id),
+            creator_id: appState.currentUser.id, owner_id: ownerId, folder_id: realFolderId, item_id: String(it.id),
             name: it.name || 'New Waypoint',
         }, { onConflict: 'owner_id,folder_id,item_id' });
         if (error) console.error('[waypoints] failed to sync waypoint:', error);
     }
     async function deleteWaypointFromDb(folderId, itemId) {
-        if (!supabase || !currentUser.id) return;
-        const folderObj = folders[folderId];
+        if (!supabase || !appState.currentUser.id) return;
+        const folderObj = appState.folders[folderId];
         if (!folderObj) return;
-        const ownerId = folderObj.isSharedView ? folderObj.sharedOwnerId : currentUser.id;
+        const ownerId = folderObj.isSharedView ? folderObj.sharedOwnerId : appState.currentUser.id;
         const realFolderId = folderObj.isSharedView ? folderObj.sharedRemoteFolderId : folderId;
         const { error } = await supabase.from('waypoints').delete()
             .eq('owner_id', ownerId).eq('folder_id', realFolderId).eq('item_id', String(itemId));
@@ -10300,9 +10303,9 @@
     // run against a canvas the current user actually owns; see cascadeDeleteFolderContents below
     // for why that's always true everywhere this gets called from.
     async function deleteCanvasCollabsForFolder(folderId) {
-        if (!supabase || !currentUser.id) return;
+        if (!supabase || !appState.currentUser.id) return;
         const { data, error } = await supabase.from('canvas_collaborations').select('collaborator_id')
-            .eq('owner_id', currentUser.id).eq('folder_id', folderId).in('status', ['pending', 'accepted']);
+            .eq('owner_id', appState.currentUser.id).eq('folder_id', folderId).in('status', ['pending', 'accepted']);
         if (error) { console.error('[collab] failed to look up collaborators for deleted folder:', error); return; }
         await Promise.all((data || []).map(r =>
             supabase.rpc('revoke_canvas_collaboration', { p_folder_id: folderId, p_collaborator_id: r.collaborator_id })
@@ -10323,7 +10326,7 @@
     // its own comment), so there's nothing safe to do here but skip — any collaborators the real
     // owner added to that specific nested canvas are left for the owner to clean up themselves.
     async function cascadeDeleteFolderContents(folderId) {
-        const folderObj = folders[folderId];
+        const folderObj = appState.folders[folderId];
         if (!folderObj) return;
         for (const item of (folderObj.items || [])) {
             if (item.kind === 'waypoint') {
@@ -10335,7 +10338,7 @@
         if (!folderObj.isSharedView) {
             await deleteCanvasCollabsForFolder(folderId);
         }
-        delete folders[folderId];
+        delete appState.folders[folderId];
     }
 
     // Static, real-content preview for a folder card's body — same mini-card rendering
@@ -10371,7 +10374,7 @@
             viewport.style.backgroundSize = `${28 * vZoom}px ${28 * vZoom}px`;
         }
 
-        const items = (folders[folderId] && folders[folderId].items) || [];
+        const items = (appState.folders[folderId] && appState.folders[folderId].items) || [];
         let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
         items.forEach(it => {
             const w = it.w || 100, h = it.h || 60;
@@ -10412,9 +10415,9 @@
     function startRenameFolderCardTitle(titleEl, it, editingClass) {
         editingClass = editingClass || 'folder-card-title';
         const folderId = it.folderId;
-        if (!folders[folderId] || titleEl.contentEditable === 'true') return;
+        if (!appState.folders[folderId] || titleEl.contentEditable === 'true') return;
         saveSnapshot();
-        const fullTitle = folders[folderId].title;
+        const fullTitle = appState.folders[folderId].title;
         const isDefaultTitle = fullTitle === 'New Canvas' || fullTitle === 'New Source';
         if (isDefaultTitle) {
             titleEl.textContent = '';
@@ -10444,12 +10447,12 @@
             broadcastEditingState(false);
             titleEl.classList.remove('crumb-placeholder');
             const newTitle = titleEl.textContent.trim();
-            if (newTitle) { folders[folderId].title = newTitle; syncCanvasCollabTitle(folderId, newTitle); }
+            if (newTitle) { appState.folders[folderId].title = newTitle; syncCanvasCollabTitle(folderId, newTitle); }
             render();
         };
         titleEl.oninput = () => {
             const liveTitle = titleEl.textContent;
-            if (liveTitle.trim()) { folders[folderId].title = liveTitle; scheduleWorkspaceSave(); }
+            if (liveTitle.trim()) { appState.folders[folderId].title = liveTitle; scheduleWorkspaceSave(); }
         };
         titleEl.onkeydown = (ke) => {
             if (ke.key === 'Enter') { ke.preventDefault(); titleEl.blur(); }
@@ -10462,15 +10465,15 @@
         scheduleWorkspaceSave();
         clearSearch();
         world.innerHTML = '';
-        if(!folders[currentFolderId]) return;
-        const folderObj = folders[currentFolderId];
+        if(!appState.folders[appState.currentFolderId]) return;
+        const folderObj = appState.folders[appState.currentFolderId];
         // Waypoints are private to whoever dropped them — even on a canvas shared with (or by)
         // other people, only the creator ever sees their own waypoint cards (see the 20260729
         // migration/renderWaypointsList). Legacy items from before creatorId existed default to
         // the folder's owner, which is always correct for your own canvases and the conservative
         // choice for shared ones (owner still sees it, collaborators don't, rather than everyone).
-        const folderOwnerId = folderObj.isSharedView ? folderObj.sharedOwnerId : currentUser.id;
-        const currentItems = folderObj.items.filter(it => it.kind !== 'waypoint' || (it.creatorId || folderOwnerId) === currentUser.id);
+        const folderOwnerId = folderObj.isSharedView ? folderObj.sharedOwnerId : appState.currentUser.id;
+        const currentItems = folderObj.items.filter(it => it.kind !== 'waypoint' || (it.creatorId || folderOwnerId) === appState.currentUser.id);
         breadcrumbs.innerHTML = '';
         // ".." opens the full breadcrumb map (see openBreadcrumbMapPanel) rather than jumping
         // straight to the parent — shown whenever there's anywhere to go: a real structural
@@ -10479,7 +10482,7 @@
         // waypoint jump, search, or the hamburger menu), or, within a shared tree, always (since
         // the map's own "Root" row is what gets you home from there — see
         // renderBreadcrumbMapPanel).
-        const parentFolderId = findParentFolderId(currentFolderId);
+        const parentFolderId = findParentFolderId(appState.currentFolderId);
         if (parentFolderId || folderObj.isSharedView) {
             const dots = document.createElement('span');
             dots.textContent = '..';
@@ -10492,9 +10495,9 @@
             breadcrumbs.appendChild(document.createTextNode(' / '));
         }
         {
-            const id = currentFolderId;
+            const id = appState.currentFolderId;
             const span = document.createElement('span');
-            span.textContent = truncateCenter(folders[id].title, 12);
+            span.textContent = truncateCenter(appState.folders[id].title, 12);
             span.className = 'crumb-item';
             span.onclick = (e) => {
                 e.stopPropagation();
@@ -10510,7 +10513,7 @@
                 // where clicked) and do nothing else.
                 if (span.contentEditable === 'true') return;
                 saveSnapshot();
-                const fullTitle = folders[id].title;
+                const fullTitle = appState.folders[id].title;
                 // Still-default, never-renamed titles start truly empty with the default shown
                 // only as a CSS placeholder (see .crumb-placeholder:empty::before) — typing the
                 // first character replaces it outright, rather than editing "New Canvas" as if
@@ -10552,7 +10555,7 @@
                     broadcastEditingState(false);
                     span.classList.remove('crumb-placeholder');
                     const newTitle = span.textContent.trim();
-                    if (newTitle) { folders[id].title = newTitle; syncCanvasCollabTitle(id, newTitle); }
+                    if (newTitle) { appState.folders[id].title = newTitle; syncCanvasCollabTitle(id, newTitle); }
                     render();
                 };
                 // Live per-keystroke sync (not a full render() — that would wipe/rebuild #world
@@ -10561,7 +10564,7 @@
                 // collaborators without touching this card's own DOM at all).
                 span.oninput = () => {
                     const liveTitle = span.textContent;
-                    if (liveTitle.trim()) { folders[id].title = liveTitle; scheduleWorkspaceSave(); }
+                    if (liveTitle.trim()) { appState.folders[id].title = liveTitle; scheduleWorkspaceSave(); }
                 };
                 span.onkeydown = (ke) => {
                     if (ke.key === 'Enter') { ke.preventDefault(); span.blur(); }
@@ -10579,20 +10582,20 @@
             modeToolbar.style.display = 'none';
             scheduleToolbar.style.display = 'none';
             zoomControl.style.display = 'none';
-            tx = 0; ty = 0; scale = 1; applyTransform();
+            appState.tx = 0; appState.ty = 0; appState.scale = 1; applyTransform();
             let tableItem = folderObj.items.find(i => i.kind === 'table');
             if (!tableItem) {
-                tableItem = { id: idCounter++, x: 0, y: 0, w: 0, h: 0, kind: 'table', tableData: [['', ''], ['', ''], ['', ''], ['', '']] };
+                tableItem = { id: appState.idCounter++, x: 0, y: 0, w: 0, h: 0, kind: 'table', tableData: [['', ''], ['', ''], ['', ''], ['', '']] };
                 folderObj.items.push(tableItem);
             }
             const el = document.createElement('div');
             el.className = 'item table static-table';
             el.id = 'item-' + tableItem.id;
-            el.innerHTML = renderStaticTableHTML(tableItem, currentFolderId);
+            el.innerHTML = renderStaticTableHTML(tableItem, appState.currentFolderId);
             world.appendChild(el);
             attachStaticTableHoverZones(el, tableItem);
             layoutSourceTableColumns(tableItem, el);
-            btnBack.disabled = historyIndex === 0; btnForward.disabled = historyIndex === historyStack.length - 1;
+            btnBack.disabled = appState.historyIndex === 0; btnForward.disabled = appState.historyIndex === appState.historyStack.length - 1;
             return;
         }
         canvas.classList.remove('static-source');
@@ -10627,7 +10630,7 @@
             if (it.zIndex) el.style.zIndex = it.zIndex;
             // Re-applied on every render (rather than left as a one-off class toggle) since
             // render() rebuilds every item's element from scratch — see handleDataModeClick.
-            if (dataLinkPendingId === it.id) el.classList.add('link-source-armed');
+            if (appState.dataLinkPendingId === it.id) el.classList.add('link-source-armed');
             if (it.optionsOpen) el.classList.add('options-open');
             if (it.kind !== 'title' && it.kind !== 'waypoint') {
                 if (it.kind === 'table' && !it.userSized) {
@@ -10641,7 +10644,7 @@
                 el.innerHTML = '';
                 const folderTitleEl = document.createElement('div');
                 folderTitleEl.className = 'folder-card-title';
-                const liveTitle = folders[it.folderId] ? folders[it.folderId].title : '';
+                const liveTitle = appState.folders[it.folderId] ? appState.folders[it.folderId].title : '';
                 folderTitleEl.textContent = liveTitle;
                 folderTitleEl.title = liveTitle; // native tooltip for whatever the ellipsis truncates
                 el.appendChild(folderTitleEl);
@@ -10655,7 +10658,7 @@
                     openFolder(it.folderId);
                 };
             } else if (it.kind === 'source') {
-                const nestedTitle = folders[it.folderId] ? folders[it.folderId].title : '';
+                const nestedTitle = appState.folders[it.folderId] ? appState.folders[it.folderId].title : '';
                 const nestedCount = countSourceEntries(it.folderId);
                 el.innerHTML = `${kindIconHTML('source', null, 'source-card-icon')}
                 <div class="source-card-info">
@@ -10680,7 +10683,7 @@
                 </div>
                 <div class="body" data-placeholder="Title..."></div>`;
                 const b = el.querySelector('.body'); b.innerHTML = it.html || '';
-                b.onblur = (e) => { if(e.relatedTarget && (e.relatedTarget.closest('.format-bar'))) return; el.classList.remove('editing'); it.html = b.innerHTML; currentEditingEl = null; b.contentEditable = false; broadcastEditingState(false); scheduleWorkspaceSave(); };
+                b.onblur = (e) => { if(e.relatedTarget && (e.relatedTarget.closest('.format-bar'))) return; el.classList.remove('editing'); it.html = b.innerHTML; appState.currentEditingEl = null; b.contentEditable = false; broadcastEditingState(false); scheduleWorkspaceSave(); };
                 // Commits + syncs on every keystroke, not just on blur — otherwise a collaborator
                 // watching this card only ever sees the FINAL text once you click away, never the
                 // actual typing happen. scheduleWorkspaceSave() itself already debounces the real
@@ -10693,8 +10696,8 @@
                 b.addEventListener('click', () => syncColorPicker(b));
                 el.onclick = (e) => {
                     e.stopPropagation();
-                    if (currentEditingEl !== el) saveSnapshot();
-                    el.classList.add('editing'); if (!b.isContentEditable) { b.contentEditable = true; placeCaretEnd(b); broadcastEditingState(true, '#item-' + it.id); } currentEditingEl = el;
+                    if (appState.currentEditingEl !== el) saveSnapshot();
+                    el.classList.add('editing'); if (!b.isContentEditable) { b.contentEditable = true; placeCaretEnd(b); broadcastEditingState(true, '#item-' + it.id); } appState.currentEditingEl = el;
                 };
             } else if (it.kind === 'table') {
                 el.innerHTML = renderTableHTML(it);
@@ -10780,14 +10783,14 @@
             } else if (it.kind === 'watermark') {
                 el.innerHTML = `<div class="body watermark-text" data-placeholder="Type to trace...">${it.html || ''}</div>`;
                 const b = el.querySelector('.watermark-text');
-                b.onblur = (e) => { el.classList.remove('editing'); it.html = b.innerHTML; currentEditingEl = null; b.contentEditable = false; broadcastEditingState(false); scheduleWorkspaceSave(); };
+                b.onblur = (e) => { el.classList.remove('editing'); it.html = b.innerHTML; appState.currentEditingEl = null; b.contentEditable = false; broadcastEditingState(false); scheduleWorkspaceSave(); };
                 // Live per-keystroke commit+sync — see the identical comment on the title body above.
                 b.oninput = () => { it.html = b.innerHTML; scheduleWorkspaceSave(); };
                 b.onkeydown = (e) => { if (e.key === 'Escape') { e.preventDefault(); b.blur(); } };
                 el.onclick = (e) => {
                     e.stopPropagation();
-                    if (currentEditingEl !== el) saveSnapshot();
-                    el.classList.add('editing'); if (!b.isContentEditable) { b.contentEditable = true; placeCaretEnd(b); broadcastEditingState(true, '#item-' + it.id); } currentEditingEl = el;
+                    if (appState.currentEditingEl !== el) saveSnapshot();
+                    el.classList.add('editing'); if (!b.isContentEditable) { b.contentEditable = true; placeCaretEnd(b); broadcastEditingState(true, '#item-' + it.id); } appState.currentEditingEl = el;
                 };
             } else if (it.kind === 'flashcard') {
                 el.innerHTML = renderFlashcardHTML(it);
@@ -10852,11 +10855,11 @@
                         // applies a plain inline it.h+'px' height to every card (so a collapsed
                         // note keeps its own resized height) — a plain inline style can't
                         // out-rank that, but an !important one briefly can.
-                        const startH = el.getBoundingClientRect().height / scale;
+                        const startH = el.getBoundingClientRect().height / appState.scale;
                         if (expanding) {
                             el.classList.add('expanded');
                             el.style.removeProperty('height'); // let height:auto take over just long enough to measure the natural target
-                            const targetH = el.getBoundingClientRect().height / scale;
+                            const targetH = el.getBoundingClientRect().height / appState.scale;
                             // .item.note.expanded .body{overflow:visible} takes effect the instant
                             // .expanded was added above — well before the card's own height has
                             // caught up — so without this, the full text pops into view immediately
@@ -10907,7 +10910,7 @@
                         scheduleWorkspaceSave();
                     };
                 }
-                b.onblur = (e) => { if(e.relatedTarget && (e.relatedTarget.closest('.format-bar') || e.relatedTarget.closest('.resize') || e.relatedTarget.closest('.more-btn'))) return; el.classList.remove('editing'); it.html = b.innerHTML; currentEditingEl = null; b.contentEditable = false; broadcastEditingState(false); b.scrollTop = 0; if (moreBtn) moreBtn.style.display = (it.expanded || isClipped()) ? 'block' : 'none'; scheduleWorkspaceSave(); };
+                b.onblur = (e) => { if(e.relatedTarget && (e.relatedTarget.closest('.format-bar') || e.relatedTarget.closest('.resize') || e.relatedTarget.closest('.more-btn'))) return; el.classList.remove('editing'); it.html = b.innerHTML; appState.currentEditingEl = null; b.contentEditable = false; broadcastEditingState(false); b.scrollTop = 0; if (moreBtn) moreBtn.style.display = (it.expanded || isClipped()) ? 'block' : 'none'; scheduleWorkspaceSave(); };
                 // Live per-keystroke commit+sync — see the identical comment on the title body above.
                 b.oninput = () => { it.html = b.innerHTML; scheduleWorkspaceSave(); };
                 b.onkeydown = (e) => { if (e.key === 'Escape') { e.preventDefault(); b.blur(); } };
@@ -10916,8 +10919,8 @@
                 b.addEventListener('click', () => syncColorPicker(b));
                 el.onclick = (e) => {
                     e.stopPropagation();
-                    if (currentEditingEl !== el) saveSnapshot();
-                    el.classList.add('editing'); if (!b.isContentEditable) { b.contentEditable = true; placeCaretEnd(b); broadcastEditingState(true, '#item-' + it.id); } currentEditingEl = el;
+                    if (appState.currentEditingEl !== el) saveSnapshot();
+                    el.classList.add('editing'); if (!b.isContentEditable) { b.contentEditable = true; placeCaretEnd(b); broadcastEditingState(true, '#item-' + it.id); } appState.currentEditingEl = el;
                 };
                 setupResizing(el, it);
             }
@@ -10946,7 +10949,7 @@
                 }
                 if (it.kind !== 'table') return;
                 contextMenu.style.display = 'flex';
-                contextMenuItemId = it.id;
+                appState.contextMenuItemId = it.id;
                 updateContextMenuPosition();
                 contextMenu.dataset.id = it.id;
                 const pill = document.getElementById('align-pill');
@@ -10958,8 +10961,8 @@
         });
 
         world.appendChild(frontLayer);
-        if (addingKind && placementGhost) world.appendChild(placementGhost);
-        btnBack.disabled = historyIndex === 0; btnForward.disabled = historyIndex === historyStack.length - 1;
+        if (appState.addingKind && appState.placementGhost) world.appendChild(appState.placementGhost);
+        btnBack.disabled = appState.historyIndex === 0; btnForward.disabled = appState.historyIndex === appState.historyStack.length - 1;
         
         // Sync visual selected outlines state
         renderSelectedOutlines();
@@ -10976,7 +10979,7 @@
             const idStr = el.id.replace('item-', '');
             if (idStr.startsWith('folder-')) return; // ignore static compiler assets
             const id = parseInt(idStr);
-            el.classList.toggle('selected', selectedCardIds.includes(id));
+            el.classList.toggle('selected', appState.selectedCardIds.includes(id));
         });
     }
 
@@ -10984,7 +10987,7 @@
     // that overlaps it even slightly, adding to whatever is already selected.
     function startBoxSelection(e) {
         const rect = canvas.getBoundingClientRect();
-        const baseSelection = selectedCardIds.slice();
+        const baseSelection = appState.selectedCardIds.slice();
         const startClientX = e.clientX, startClientY = e.clientY;
 
         const box = document.createElement('div');
@@ -11003,17 +11006,17 @@
         const move = (me) => {
             const { x, y, w, h } = updateBoxRect(me.clientX, me.clientY);
             // Convert the screen-space selection window into world coordinates
-            const wx0 = (x - rect.left - tx) / scale, wy0 = (y - rect.top - ty) / scale;
-            const wx1 = (x + w - rect.left - tx) / scale, wy1 = (y + h - rect.top - ty) / scale;
+            const wx0 = (x - rect.left - appState.tx) / appState.scale, wy0 = (y - rect.top - appState.ty) / appState.scale;
+            const wx1 = (x + w - rect.left - appState.tx) / appState.scale, wy1 = (y + h - rect.top - appState.ty) / appState.scale;
 
-            const items = (folders[currentFolderId] && folders[currentFolderId].items) || [];
+            const items = (appState.folders[appState.currentFolderId] && appState.folders[appState.currentFolderId].items) || [];
             const hitIds = items.filter(it => {
                 const ix0 = it.x, iy0 = it.y, ix1 = it.x + (it.w || 0), iy1 = it.y + (it.h || 0);
                 // Any overlap at all counts as a hit (even a sliver)
                 return ix0 < wx1 && ix1 > wx0 && iy0 < wy1 && iy1 > wy0;
             }).map(it => it.id);
 
-            selectedCardIds = Array.from(new Set([...baseSelection, ...hitIds]));
+            appState.selectedCardIds = Array.from(new Set([...baseSelection, ...hitIds]));
             renderSelectedOutlines();
         };
         const up = () => {
@@ -11027,22 +11030,22 @@
 
     function performMerge(source, targetEl) {
         const tid = parseInt(targetEl.id.replace('item-', ''));
-        const target = folders[currentFolderId].items.find(i => i.id === tid);
+        const target = appState.folders[appState.currentFolderId].items.find(i => i.id === tid);
         if(!target || target.kind !== 'folder') return;
         saveSnapshot();
         source.x = findNextFreeSlot(target.folderId);
         source.y = 28;
-        folders[target.folderId].items.push(source);
-        folders[currentFolderId].items = folders[currentFolderId].items.filter(i => i.id !== source.id);
+        appState.folders[target.folderId].items.push(source);
+        appState.folders[appState.currentFolderId].items = appState.folders[appState.currentFolderId].items.filter(i => i.id !== source.id);
         openFolder(target.folderId);
     }
 
     function centerOnContent() {
-        if (folders[currentFolderId] && folders[currentFolderId].isSource) return;
-        const items = folders[currentFolderId] ? folders[currentFolderId].items : [];
-        scale = 1;
+        if (appState.folders[appState.currentFolderId] && appState.folders[appState.currentFolderId].isSource) return;
+        const items = appState.folders[appState.currentFolderId] ? appState.folders[appState.currentFolderId].items : [];
+        appState.scale = 1;
         if (!items.length) {
-            tx = window.innerWidth / 2; ty = window.innerHeight / 2;
+            appState.tx = window.innerWidth / 2; appState.ty = window.innerHeight / 2;
             applyTransform();
             return;
         }
@@ -11054,8 +11057,8 @@
             maxX = Math.max(maxX, it.x + w); maxY = Math.max(maxY, it.y + h);
         });
         const cx = (minX + maxX) / 2, cy = (minY + maxY) / 2;
-        tx = window.innerWidth / 2 - cx;
-        ty = window.innerHeight / 2 - cy;
+        appState.tx = window.innerWidth / 2 - cx;
+        appState.ty = window.innerHeight / 2 - cy;
         applyTransform();
     }
 
@@ -11067,14 +11070,14 @@
     // 0/0/1 static transform for them (see the `folderObj.isSource` branch inside render()), so
     // there's nothing to restore or center for a source here.
     function applyFolderView(folderId) {
-        const outgoing = folders[currentFolderId];
-        if (outgoing && !outgoing.isSource) outgoing.lastView = { tx, ty, scale };
-        currentFolderId = folderId;
+        const outgoing = appState.folders[appState.currentFolderId];
+        if (outgoing && !outgoing.isSource) outgoing.lastView = { tx: appState.tx, ty: appState.ty, scale: appState.scale };
+        appState.currentFolderId = folderId;
         render();
-        const target = folders[folderId];
+        const target = appState.folders[folderId];
         if (target && !target.isSource) {
             if (target.lastView) {
-                tx = target.lastView.tx; ty = target.lastView.ty; scale = target.lastView.scale;
+                appState.tx = target.lastView.tx; appState.ty = target.lastView.ty; appState.scale = target.lastView.scale;
                 applyTransform();
             } else {
                 centerOnContent();
@@ -11091,10 +11094,10 @@
     // every existing call site already just fires this without awaiting it (a normal click
     // handler), which still works fine now that it's async.
     async function openFolder(folderId) {
-        if (folderId.startsWith('shared:') && !folders[folderId] && !(await ensureSharedFolderLoaded(folderId))) return;
-        historyStack = historyStack.slice(0, historyIndex + 1);
-        historyStack.push(folderId);
-        historyIndex++;
+        if (folderId.startsWith('shared:') && !appState.folders[folderId] && !(await ensureSharedFolderLoaded(folderId))) return;
+        appState.historyStack = appState.historyStack.slice(0, appState.historyIndex + 1);
+        appState.historyStack.push(folderId);
+        appState.historyIndex++;
         applyFolderView(folderId);
     }
 
@@ -11161,12 +11164,12 @@
     function injectSharedFolder(ownerId, remoteFolderId, data) {
         const localKey = sharedFolderKey(ownerId, remoteFolderId);
         const items = namespaceSharedFolderIds(ownerId, data.items);
-        folders[localKey] = { ...data, items, id: localKey, title: data.title || remoteFolderId, collaborators: [], isSharedView: true, sharedOwnerId: ownerId, sharedRemoteFolderId: remoteFolderId };
+        appState.folders[localKey] = { ...data, items, id: localKey, title: data.title || remoteFolderId, collaborators: [], isSharedView: true, sharedOwnerId: ownerId, sharedRemoteFolderId: remoteFolderId };
         return localKey;
     }
     async function ensureSharedFolderLoaded(localKey) {
-        if (folders[localKey]) return true;
-        if (!supabase || !currentUser.id) return false;
+        if (appState.folders[localKey]) return true;
+        if (!supabase || !appState.currentUser.id) return false;
         const { ownerId, remoteFolderId } = parseSharedFolderKey(localKey);
         const { data, error } = await supabase.rpc('get_shared_folder', { p_owner_id: ownerId, p_folder_id: remoteFolderId });
         // A PostgrestError's own useful fields (message/code/details/hint) don't always show up
@@ -11185,7 +11188,7 @@
     // e.g. the hamburger Collaborations list) — cached so the pill can show it for any nested
     // folder fetched later within the same tree too, without a further profile lookup.
     async function openSharedCanvas(ownerId, folderId, title, ownerName) {
-        if (!supabase || !currentUser.id) return;
+        if (!supabase || !appState.currentUser.id) return;
         if (ownerName) sharedOwnerNameCache[ownerId] = ownerName;
         const { data, error } = await supabase.rpc('get_shared_folder', { p_owner_id: ownerId, p_folder_id: folderId });
         if (error || !data) {
@@ -11194,12 +11197,12 @@
             return;
         }
         const localKey = injectSharedFolder(ownerId, folderId, data);
-        if (title) folders[localKey].title = data.title || title;
+        if (title) appState.folders[localKey].title = data.title || title;
         const isFreshEntry = !preSharedViewState;
-        if (isFreshEntry) preSharedViewState = { currentFolderId, historyStack: historyStack.slice(), historyIndex };
-        currentFolderId = localKey;
-        historyStack = [localKey];
-        historyIndex = 0;
+        if (isFreshEntry) preSharedViewState = { currentFolderId: appState.currentFolderId, historyStack: appState.historyStack.slice(), historyIndex: appState.historyIndex };
+        appState.currentFolderId = localKey;
+        appState.historyStack = [localKey];
+        appState.historyIndex = 0;
         closeHamburgerMenu();
         render();
         centerOnContent();
@@ -11212,15 +11215,15 @@
     // injectSharedFolder's own fire-and-forget one) so the "and N others" count is accurate the
     // very first time this shows, not whatever was last known.
     async function announceEnteredCollaboration(localKey) {
-        const folderObj = folders[localKey];
+        const folderObj = appState.folders[localKey];
         if (!folderObj) return;
         const ownerName = sharedOwnerNameCache[folderObj.sharedOwnerId] || 'someone';
         let othersCount = 0;
-        if (supabase && currentUser.id) {
+        if (supabase && appState.currentUser.id) {
             const { data: rows, error } = await supabase.rpc('get_effective_collaborators', { p_owner_id: folderObj.sharedOwnerId, p_folder_id: folderObj.sharedRemoteFolderId });
-            if (!error) othersCount = (rows || []).filter(r => r.collaborator_id !== currentUser.id).length;
+            if (!error) othersCount = (rows || []).filter(r => r.collaborator_id !== appState.currentUser.id).length;
         }
-        if (!folders[localKey]) return; // navigated away again before this resolved
+        if (!appState.folders[localKey]) return; // navigated away again before this resolved
         pushNotification({
             type: 'entered_collaboration',
             message: `Collaborating on "${folderObj.title}" with ${ownerName}${othersCount > 0 ? ` and ${othersCount} ${othersCount === 1 ? 'other' : 'others'}` : ''}.`,
@@ -11233,15 +11236,15 @@
     // affordance, always available regardless of how deep into someone else's canvas you are).
     function exitSharedCanvasToRoot() {
         if (!preSharedViewState) return;
-        for (const id in folders) { if (id.startsWith('shared:')) delete folders[id]; }
+        for (const id in appState.folders) { if (id.startsWith('shared:')) delete appState.folders[id]; }
         preSharedViewState = null;
-        currentFolderId = 'root';
-        historyStack = ['root'];
-        historyIndex = 0;
+        appState.currentFolderId = 'root';
+        appState.historyStack = ['root'];
+        appState.historyIndex = 0;
         render();
-        if (folders['root'] && folders['root'].lastView) {
-            const lv = folders['root'].lastView;
-            tx = lv.tx; ty = lv.ty; scale = lv.scale;
+        if (appState.folders['root'] && appState.folders['root'].lastView) {
+            const lv = appState.folders['root'].lastView;
+            appState.tx = lv.tx; appState.ty = lv.ty; appState.scale = lv.scale;
             applyTransform();
         } else {
             centerOnContent();
@@ -11290,7 +11293,7 @@
     // entry points into their own tree), with its own nested levels indented further below it.
     function renderBreadcrumbMapPanel() {
         breadcrumbMapList.innerHTML = '';
-        const folderObj = folders[currentFolderId];
+        const folderObj = appState.folders[appState.currentFolderId];
         if (!folderObj) return;
         const showSyntheticRoot = folderObj.isSharedView;
         function addRow(label, indent, folderId, isCurrent) {
@@ -11308,11 +11311,11 @@
             }
             breadcrumbMapList.appendChild(row);
         }
-        if (showSyntheticRoot) addRow(folders['root'] ? folders['root'].title : 'Root', 0, 'root', false);
-        buildAncestorChain(currentFolderId).forEach((id, idx) => {
-            const target = folders[id];
+        if (showSyntheticRoot) addRow(appState.folders['root'] ? appState.folders['root'].title : 'Root', 0, 'root', false);
+        buildAncestorChain(appState.currentFolderId).forEach((id, idx) => {
+            const target = appState.folders[id];
             if (!target) return;
-            addRow(target.title || id, idx, id, id === currentFolderId);
+            addRow(target.title || id, idx, id, id === appState.currentFolderId);
         });
     }
     pinOnInsideClick('breadcrumbMap', [breadcrumbMapPanel]);
@@ -11320,8 +11323,8 @@
     // Steps to an EXISTING position in historyStack (back/forward, breadcrumb "..") — no
     // truncation, no push, just moves the pointer.
     function jumpToHistoryIndex(newIndex) {
-        historyIndex = newIndex;
-        applyFolderView(historyStack[newIndex]);
+        appState.historyIndex = newIndex;
+        applyFolderView(appState.historyStack[newIndex]);
     }
 
     // ---------- Canvas Outline Hierarchical Builder inside Hamburger Menu ----------
@@ -11355,7 +11358,7 @@
         return kindIconHTML(kind, level, 'outline-icon');
     }
     function outlineLabel(item) {
-        if (item.kind === 'folder' || item.kind === 'source') return (folders[item.folderId] ? folders[item.folderId].title : 'Canvas');
+        if (item.kind === 'folder' || item.kind === 'source') return (appState.folders[item.folderId] ? appState.folders[item.folderId].title : 'Canvas');
         if (item.kind === 'table') return 'Table';
         if (item.kind === 'media') return 'Media';
         if (item.kind === 'bookmark') return item.html ? stripHtml(item.html) : 'Bookmark';
@@ -11421,7 +11424,7 @@
         // centerOnContent use elsewhere: screenX = tx + canvasX*scale, so canvasX = (screenX -
         // tx) / scale. null (skip proximity ordering, fall back to natural creation order) for a
         // folder that's neither the live one nor has ever been visited.
-        const view = (folder.id === currentFolderId) ? { tx, ty, scale } : folder.lastView;
+        const view = (folder.id === appState.currentFolderId) ? { tx: appState.tx, ty: appState.ty, scale: appState.scale } : folder.lastView;
         const viewCenter = view ? { x: (window.innerWidth / 2 - view.tx) / view.scale, y: (window.innerHeight / 2 - view.ty) / view.scale } : null;
         function sortByProximity(list) {
             if (!viewCenter) return list;
@@ -11484,7 +11487,7 @@
                 if (item.kind === 'source') {
                     // Sources are entered directly (they just show a table) rather than centered
                     // on as a card — unlike every other item kind, including canvases.
-                    if (currentFolderId !== item.folderId) openFolder(item.folderId);
+                    if (appState.currentFolderId !== item.folderId) openFolder(item.folderId);
                     closeHamburgerMenu();
                 } else {
                     // Canvas cards and leaf cards alike: land on this item within its OWN direct
@@ -11501,9 +11504,9 @@
         // shared by both grouped-under-a-heading and fully-ungrouped rendering below.
         function makeCardRow(item, subIndent) {
             makeRow(item, subIndent);
-            if (item.kind === 'folder' && depth < OUTLINE_MAX_DEPTH && item.folderId && folders[item.folderId] && !visited.has(item.folderId)) {
+            if (item.kind === 'folder' && depth < OUTLINE_MAX_DEPTH && item.folderId && appState.folders[item.folderId] && !visited.has(item.folderId)) {
                 visited.add(item.folderId);
-                renderOutlineFolderContents(container, folders[item.folderId], depth + 1, visited);
+                renderOutlineFolderContents(container, appState.folders[item.folderId], depth + 1, visited);
             }
         }
 
@@ -11549,7 +11552,7 @@
         container.scrollTop = 0; // buildOutline only ever runs when the menu is being opened — always start at the top
         outlineRows = []; outlineActiveIndex = -1;
 
-        const rootFolder = folders[currentFolderId];
+        const rootFolder = appState.folders[appState.currentFolderId];
         const any = rootFolder ? renderOutlineFolderContents(container, rootFolder, 0, new Set([rootFolder.id])) : false;
 
         if (!any) {
@@ -11565,8 +11568,8 @@
     // applyFolderView, so this also benefits from per-folder position memory (see
     // navigateToFolder/applyFolderView).
     function goToOutlineItem(folderId, itemId) {
-        if (currentFolderId !== folderId) openFolder(folderId);
-        const it = folders[folderId].items.find(i => i.id === itemId);
+        if (appState.currentFolderId !== folderId) openFolder(folderId);
+        const it = appState.folders[folderId].items.find(i => i.id === itemId);
         if (it) {
             const el = document.getElementById('item-' + it.id);
             const w = el ? el.offsetWidth : (it.w || 100);
@@ -11609,7 +11612,7 @@
             // cursor with no pointerup ever arriving to release it. Same exemption pattern
             // already used for '.resize' just above.
             if (e.target.closest('.item-options')) return;
-            if (e.target.classList.contains('resize') || (currentEditingEl === el && e.target !== el)) return;
+            if (e.target.classList.contains('resize') || (appState.currentEditingEl === el && e.target !== el)) return;
 
             bringCardToFront(it, el);
 
@@ -11617,10 +11620,10 @@
             if (e.shiftKey || effectiveMode() === 'select') {
                 e.stopPropagation();
                 e.preventDefault();
-                if (selectedCardIds.includes(it.id)) {
-                    selectedCardIds = selectedCardIds.filter(id => id !== it.id);
+                if (appState.selectedCardIds.includes(it.id)) {
+                    appState.selectedCardIds = appState.selectedCardIds.filter(id => id !== it.id);
                 } else {
-                    selectedCardIds.push(it.id);
+                    appState.selectedCardIds.push(it.id);
                 }
                 renderSelectedOutlines();
                 // Prevent this same interaction from also opening folders/sources,
@@ -11634,7 +11637,7 @@
             // Data mode: drag from this card to another to link them. Cards are not
             // otherwise clickable/openable/editable while in this mode.
             if (effectiveMode() === 'data') {
-                if (folders[currentFolderId] && folders[currentFolderId].isSource) return;
+                if (appState.folders[appState.currentFolderId] && appState.folders[appState.currentFolderId].isSource) return;
                 e.stopPropagation();
                 e.preventDefault();
                 const suppressDataClick = (ce) => { ce.stopPropagation(); ce.preventDefault(); el.removeEventListener('click', suppressDataClick, true); };
@@ -11644,7 +11647,7 @@
             }
 
             if (drawMode) {
-                if (folders[currentFolderId] && folders[currentFolderId].isSource) return;
+                if (appState.folders[appState.currentFolderId] && appState.folders[appState.currentFolderId].isSource) return;
                 e.stopPropagation();
                 startDrawStroke(e);
                 return;
@@ -11657,13 +11660,13 @@
 
             // Which card(s) this gesture operates on: the whole selection if the pressed
             // card is part of it, otherwise just this one card.
-            const isTargetSelected = selectedCardIds.includes(it.id);
-            const gestureIds = isTargetSelected ? selectedCardIds.slice() : [it.id];
-            const preDuplicateSelection = selectedCardIds.slice();
+            const isTargetSelected = appState.selectedCardIds.includes(it.id);
+            const gestureIds = isTargetSelected ? appState.selectedCardIds.slice() : [it.id];
+            const preDuplicateSelection = appState.selectedCardIds.slice();
 
             let targetEl = el, targetIt = it;
             const startPositions = [];
-            const isAltDuplicate = e.altKey && !(folders[currentFolderId] && folders[currentFolderId].isSource);
+            const isAltDuplicate = e.altKey && !(appState.folders[appState.currentFolderId] && appState.folders[appState.currentFolderId].isSource);
 
             if (isAltDuplicate) {
                 // Option/Alt held: duplicate the card(s) first, then drag the duplicate(s)
@@ -11673,22 +11676,22 @@
                     const src = findItemById(srcId);
                     if (!src) return;
                     const clone = deepCloneItem(src);
-                    topCardZIndex++; clone.zIndex = topCardZIndex;
-                    folders[currentFolderId].items.push(clone);
+                    appState.topCardZIndex++; clone.zIndex = appState.topCardZIndex;
+                    appState.folders[appState.currentFolderId].items.push(clone);
                     idMap[srcId] = clone.id;
                     startPositions.push({ id: clone.id, x: clone.x, y: clone.y });
                 });
                 if (!startPositions.length) { undoStack.pop(); return; }
-                selectedCardIds = isTargetSelected ? gestureIds.map(gid => idMap[gid]).filter(gid => gid != null) : [];
+                appState.selectedCardIds = isTargetSelected ? gestureIds.map(gid => idMap[gid]).filter(gid => gid != null) : [];
                 render();
                 const newTargetId = idMap[it.id];
                 targetIt = findItemById(newTargetId);
                 targetEl = document.getElementById('item-' + newTargetId);
                 if (!targetIt || !targetEl) {
                     const cloneIdSet = new Set(startPositions.map(p => p.id));
-                    folders[currentFolderId].items.filter(i => cloneIdSet.has(i.id)).forEach(deleteClonedItemFolders);
-                    folders[currentFolderId].items = folders[currentFolderId].items.filter(i => !cloneIdSet.has(i.id));
-                    selectedCardIds = preDuplicateSelection;
+                    appState.folders[appState.currentFolderId].items.filter(i => cloneIdSet.has(i.id)).forEach(deleteClonedItemFolders);
+                    appState.folders[appState.currentFolderId].items = appState.folders[appState.currentFolderId].items.filter(i => !cloneIdSet.has(i.id));
+                    appState.selectedCardIds = preDuplicateSelection;
                     undoStack.pop();
                     render();
                     return;
@@ -11718,8 +11721,8 @@
             // auto-pan tick, so a card keeps moving even while the cursor itself sits still near
             // the edge.
             const applyDraggedPositions = () => {
-                const dx = (lastClientX - sx) / scale + autoPanAccumX;
-                const dy = (lastClientY - sy) / scale + autoPanAccumY;
+                const dx = (lastClientX - sx) / appState.scale + autoPanAccumX;
+                const dy = (lastClientY - sy) / appState.scale + autoPanAccumY;
                 startPositions.forEach(pos => {
                     const selItem = findItemById(pos.id);
                     const selEl = document.getElementById('item-' + pos.id);
@@ -11754,7 +11757,7 @@
                 for (const sib of Array.from(world.children)) {
                     if (sib === targetEl || !sib.classList.contains('item')) continue;
                     const sibId = parseInt(sib.id.replace('item-', ''));
-                    const sibItem = folders[currentFolderId].items.find(i => i.id === sibId);
+                    const sibItem = appState.folders[appState.currentFolderId].items.find(i => i.id === sibId);
                     if (!sibItem || sibItem.kind !== 'folder') continue;
                     const r2 = sib.getBoundingClientRect();
                     if (!(r1.right < r2.left || r1.left > r2.right || r1.bottom < r2.top || r1.top > r2.bottom)) { newH = sib; break; }
@@ -11796,9 +11799,9 @@
                 }
                 if (vx || vy) {
                     const screenDx = vx * dt, screenDy = vy * dt;
-                    tx -= screenDx; ty -= screenDy;
-                    autoPanAccumX += screenDx / scale;
-                    autoPanAccumY += screenDy / scale;
+                    appState.tx -= screenDx; appState.ty -= screenDy;
+                    autoPanAccumX += screenDx / appState.scale;
+                    autoPanAccumY += screenDy / appState.scale;
                     moved = true;
                     applyTransform();
                     applyDraggedPositions();
@@ -11826,9 +11829,9 @@
                         // Nothing was actually dragged — discard the speculative
                         // duplicate(s) and restore the selection exactly as it was.
                         const cloneIdSet = new Set(startPositions.map(p => p.id));
-                        folders[currentFolderId].items.filter(i => cloneIdSet.has(i.id)).forEach(deleteClonedItemFolders);
-                        folders[currentFolderId].items = folders[currentFolderId].items.filter(i => !cloneIdSet.has(i.id));
-                        selectedCardIds = preDuplicateSelection;
+                        appState.folders[appState.currentFolderId].items.filter(i => cloneIdSet.has(i.id)).forEach(deleteClonedItemFolders);
+                        appState.folders[appState.currentFolderId].items = appState.folders[appState.currentFolderId].items.filter(i => !cloneIdSet.has(i.id));
+                        appState.selectedCardIds = preDuplicateSelection;
                         undoStack.pop();
                         render();
                         return;
@@ -11916,7 +11919,7 @@
 
         let itemsToShare = [];
         // If targetIt is selected, we share all selected cards. Otherwise, share just this card.
-        const gestureIds = selectedCardIds.includes(targetIt.id) ? selectedCardIds.slice() : [targetIt.id];
+        const gestureIds = appState.selectedCardIds.includes(targetIt.id) ? appState.selectedCardIds.slice() : [targetIt.id];
         gestureIds.forEach(id => {
             const it = findItemById(id);
             if (it) itemsToShare.push(sanitizeFlashcardSnapshot(snapshotItem(it), gestureIds));
@@ -11927,7 +11930,7 @@
         const text = itemsToShare.length === 1 ? `Shared Node` : `Shared Canvas Collection`;
         const { data, error } = await supabase
             .from('messages')
-            .insert({ friendship_id: f.friendshipId, sender_id: currentUser.id, body: text, canvas_snapshot: itemsToShare })
+            .insert({ friendship_id: f.friendshipId, sender_id: appState.currentUser.id, body: text, canvas_snapshot: itemsToShare })
             .select()
             .single();
         if (error) { console.error('[chat] failed to share card:', error); return; }
@@ -12020,11 +12023,11 @@
         }));
     }
     async function refreshMyLibrary() {
-        if (!supabase || !currentUser.id) return;
+        if (!supabase || !appState.currentUser.id) return;
         const { data: mine, error: mineErr } = await supabase
             .from('marketplace_listings')
             .select('id, title, description, tagline, price_label, status, content')
-            .eq('creator_id', currentUser.id)
+            .eq('creator_id', appState.currentUser.id)
             .order('created_at', { ascending: false });
         if (mineErr) console.error('[marketplace] failed to load my listings:', mineErr);
         userLibrary.drafts = (mine || []).filter(r => r.status === 'draft').map(marketplaceItemFromRow);
@@ -12033,7 +12036,7 @@
         const { data: acquired, error: acqErr } = await supabase
             .from('library_items')
             .select('acquired_at, listing:marketplace_listings(id, title, description, tagline, price_label, content)')
-            .eq('user_id', currentUser.id)
+            .eq('user_id', appState.currentUser.id)
             .order('acquired_at', { ascending: false });
         if (acqErr) console.error('[marketplace] failed to load purchased items:', acqErr);
         // acquired_at drives the Library panel's "Purchased" folder, sorted most-recent-first —
@@ -12147,7 +12150,7 @@
 
         const { error } = await supabase
             .from('library_items')
-            .insert({ user_id: currentUser.id, listing_id: selectedMarketItem.id });
+            .insert({ user_id: appState.currentUser.id, listing_id: selectedMarketItem.id });
         if (error) { console.error('[marketplace] purchase failed:', error); alert('Something went wrong adding this to your library.'); return; }
 
         alert(`Successfully purchased "${selectedMarketItem.title}" as a customizable template snapshot!`);
@@ -12260,7 +12263,7 @@
         const name = prompt('Name your new library folder:', 'New Folder');
         if (name === null) return;
         const trimmed = name.trim();
-        userLibrary.customFolders.push({ id: 'customfolder_' + idCounter++, name: trimmed || 'New Folder', items: [] });
+        userLibrary.customFolders.push({ id: 'customfolder_' + appState.idCounter++, name: trimmed || 'New Folder', items: [] });
         renderLibrary();
     }
 
@@ -12379,12 +12382,12 @@
         if (!item) return;
         
         saveSnapshot();
-        const startX = Math.round((tx + 200) / 28) * 28;
-        const startY = Math.round((ty + 200) / 28) * 28;
+        const startX = Math.round((appState.tx + 200) / 28) * 28;
+        const startY = Math.round((appState.ty + 200) / 28) * 28;
         
         // Spawn cards on canvas
-        folders[currentFolderId].items.push({
-            id: idCounter++,
+        appState.folders[appState.currentFolderId].items.push({
+            id: appState.idCounter++,
             x: startX,
             y: startY,
             w: 224,
@@ -12400,7 +12403,7 @@
     function packageSelectedAsTemplate(targetIt) {
         let itemsToPackage = [];
         // If targetIt is selected, package all selected cards. Otherwise, package just this single card.
-        const gestureIds = selectedCardIds.includes(targetIt.id) ? selectedCardIds.slice() : [targetIt.id];
+        const gestureIds = appState.selectedCardIds.includes(targetIt.id) ? appState.selectedCardIds.slice() : [targetIt.id];
         gestureIds.forEach(id => {
             const it = findItemById(id);
             if (it) itemsToPackage.push(sanitizeFlashcardSnapshot(snapshotItem(it), gestureIds));
@@ -12411,7 +12414,7 @@
         createDraftFromItems(itemsToPackage);
 
         // Clear selection to avoid visual clutter
-        selectedCardIds = [];
+        appState.selectedCardIds = [];
         renderSelectedOutlines();
     }
 
@@ -12419,9 +12422,9 @@
     // than held only in local state), so there's nothing left to lose if the panel gets
     // closed (e.g. clicking outside it) before the user is done editing it.
     async function createDraftFromItems(items) {
-        if (!supabase || !currentUser.id) return;
+        if (!supabase || !appState.currentUser.id) return;
         const { data, error } = await supabase.from('marketplace_listings').insert({
-            creator_id: currentUser.id,
+            creator_id: appState.currentUser.id,
             title: 'Untitled Draft',
             description: '',
             tagline: '',
@@ -12676,7 +12679,7 @@
             let sx = e.clientX, sy = e.clientY, sw = it.w, sh = it.h;
             const minSize = it.kind === 'table' ? 56 : 112;
             const move = (me) => {
-                it.w = Math.max(minSize, Math.round((sw + (me.clientX - sx) / scale) / 28) * 28); it.h = Math.max(minSize, Math.round((sh + (me.clientY - sy) / scale) / 28) * 28); el.style.width = it.w + 'px'; el.style.height = it.h + 'px';
+                it.w = Math.max(minSize, Math.round((sw + (me.clientX - sx) / appState.scale) / 28) * 28); it.h = Math.max(minSize, Math.round((sh + (me.clientY - sy) / appState.scale) / 28) * 28); el.style.width = it.w + 'px'; el.style.height = it.h + 'px';
                 if (it.kind === 'table') distributeTableSizing(it, el);
                 if (b && moreBtn) moreBtn.style.display = (it.expanded || b.scrollHeight > b.clientHeight || b.scrollWidth > b.clientWidth) ? 'block' : 'none';
                 // Live visual streaming while dragging — see handleRemoteItemResize/broadcastItemResize.
@@ -12693,7 +12696,7 @@
     }
 
     function findNextFreeSlot(folderId) {
-        const items = folders[folderId].items;
+        const items = appState.folders[folderId].items;
         let x = 28;
         while (items.some(i => Math.abs(i.x - x) < 28 && Math.abs(i.y - 28) < 28)) { x += 28 * 8; }
         return x;
@@ -12705,8 +12708,8 @@
     // only way to delete a card — the old per-card right-click "Delete" menu item is gone (see
     // the oncontextmenu change above).
     function deleteSelectedCards() {
-        if (!selectedCardIds.length) return;
-        const items = selectedCardIds.map(id => findItemById(id)).filter(Boolean);
+        if (!appState.selectedCardIds.length) return;
+        const items = appState.selectedCardIds.map(id => findItemById(id)).filter(Boolean);
         if (!items.length) return;
         const hasSource = items.some(it => it.kind === 'source');
         const hasShelf = items.some(it => it.kind === 'shelf');
@@ -12719,17 +12722,17 @@
             if (!confirm(`Deleting will erase ${parts.join(', ')} for good. Delete anyway?`)) return;
         }
         saveSnapshot();
-        const idSet = new Set(selectedCardIds);
+        const idSet = new Set(appState.selectedCardIds);
         const removedWaypoints = items.filter(it => it.kind === 'waypoint');
         // Nested canvases/sources being deleted along with everything inside them (their own
         // waypoints, their own collaborators, and any further-nested canvases in turn) — see
         // cascadeDeleteFolderContents.
         const removedFolders = items.filter(it => (it.kind === 'folder' || it.kind === 'source') && it.folderId);
-        folders[currentFolderId].items = folders[currentFolderId].items.filter(i => !idSet.has(i.id));
-        selectedCardIds = [];
+        appState.folders[appState.currentFolderId].items = appState.folders[appState.currentFolderId].items.filter(i => !idSet.has(i.id));
+        appState.selectedCardIds = [];
         render();
         renderSelectedOutlines();
-        removedWaypoints.forEach(it => deleteWaypointFromDb(currentFolderId, it.id));
+        removedWaypoints.forEach(it => deleteWaypointFromDb(appState.currentFolderId, it.id));
         removedFolders.forEach(it => cascadeDeleteFolderContents(it.folderId));
     }
     function setTableAlign(align) {
@@ -12738,7 +12741,7 @@
         saveSnapshot();
         it.textAlign = align;
         render();
-        contextMenu.style.display = 'none'; contextMenuItemId = null;
+        contextMenu.style.display = 'none'; appState.contextMenuItemId = null;
     }
 
     // ---------- Hover-scoped game card shortcuts ----------
@@ -12795,8 +12798,8 @@
     });
 
 
-    btnBack.onclick = () => { if(historyIndex > 0) jumpToHistoryIndex(historyIndex - 1); };
-    btnForward.onclick = () => { if(historyIndex < historyStack.length - 1) jumpToHistoryIndex(historyIndex + 1); };
+    btnBack.onclick = () => { if(appState.historyIndex > 0) jumpToHistoryIndex(appState.historyIndex - 1); };
+    btnForward.onclick = () => { if(appState.historyIndex < appState.historyStack.length - 1) jumpToHistoryIndex(appState.historyIndex + 1); };
     
     updateDrawLayerBtns();
     switchAddTab('notes');
@@ -12819,7 +12822,7 @@
         // resume logic) reads the same as freshly entering it from the user's point of view — the
         // one-time "Collaborating on..." notification should still fire, not just for the
         // in-session entry points (openSharedCanvas/goToWaypointCard).
-        if (folders[currentFolderId] && folders[currentFolderId].isSharedView) announceEnteredCollaboration(currentFolderId);
+        if (appState.folders[appState.currentFolderId] && appState.folders[appState.currentFolderId].isSharedView) announceEnteredCollaboration(appState.currentFolderId);
     })();
     refreshFriendsData().then(() => renderCollabPill());
     refreshDotbotUsage();
