@@ -1731,6 +1731,12 @@
     .item.note:hover .resize{opacity:1;}
     .item.flashcard .resize{display:flex;}
     .item.flashcard:hover .resize{opacity:1;}
+    /* Covers all three media sub-kinds (plain image/video, PDF, EPUB) — see renderMediaHTML/
+       buildPdfViewer/buildEpubViewer, all of which now include a .resize handle; setupResizing
+       locks their drag to the content's own aspect ratio instead of table/note/flashcard's free
+       independent width/height. */
+    .item.media .resize{display:flex;background:rgba(0,0,0,0.35);border-radius:4px 0 0 0;}
+    .item.media:hover .resize{opacity:1;}
     .resize:hover{color:var(--ink);}
 
     #placement-ghost{position:absolute;}
