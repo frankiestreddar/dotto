@@ -91,7 +91,7 @@ export default function LoginPage() {
       </form>
 
       <p style={{ marginTop: 20, fontSize: 12, color: "var(--ink-soft)" }}>
-        Don't have an account?{" "}
+        Don&apos;t have an account?{" "}
         <Link href="/register" style={{ color: "var(--brand)" }}>
           Register
         </Link>

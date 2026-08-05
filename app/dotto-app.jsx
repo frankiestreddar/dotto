@@ -65,6 +65,12 @@ export default function DottoApp({ sections, currentUser }) {
   // nothing here. Setting it directly during render is what actually runs,
   // same as the window.__dottoSupabase bootstrap above.
   if (typeof window !== "undefined") {
+    // Deliberately not moved into an effect (which the react-hooks/immutability rule below
+    // would otherwise want) — dotto-script.js's afterInteractive <Script> tag needs
+    // window.__DOTTO_USER__ set before it runs, and setting it during render (not after paint,
+    // which an effect would do) is what guarantees that ordering — same reasoning as the
+    // window.__dottoSupabase bootstrap above.
+    // eslint-disable-next-line react-hooks/immutability
     window.__DOTTO_USER__ = currentUser;
   }
 
