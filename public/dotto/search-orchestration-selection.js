@@ -181,28 +181,12 @@ import { render } from './waypoints-render-loop.js';
  // cloned Range, captured at the moment the toolbar shows
  // the [contenteditable] element the selection lives in
  // last shown position, reused to place the add-to-source popup nearby
-    function ensureSelectionToolbarEl() {
-        if (appState.selectionToolbarEl) return appState.selectionToolbarEl;
-        appState.selectionToolbarEl = document.createElement('div');
-        appState.selectionToolbarEl.id = 'selection-toolbar';
-        appState.selectionToolbarEl.className = 'selection-toolbar';
-        // mousedown (not click) is what the browser uses to collapse the current selection —
-        // preventing it here is what lets a toolbar button act on the selection that's still
-        // highlighted the moment it's clicked, instead of it having already vanished.
-        appState.selectionToolbarEl.onmousedown = (e) => e.preventDefault();
-        // Two independently-styled pill buttons (not one shared bordered bar) — the outer
-        // element is just a positioning wrapper (see .selection-toolbar's CSS).
-        appState.selectionToolbarEl.innerHTML = `
-            <button type="button" class="selection-toolbar-btn" data-action="add">Add to...</button>
-            <button type="button" class="selection-toolbar-btn" data-action="lookup">Look up</button>
-        `;
-        appState.selectionToolbarEl.querySelector('[data-action="add"]').onclick = () => openAddToSourcePopup();
-        appState.selectionToolbarEl.querySelector('[data-action="lookup"]').onclick = () => selectionToolbarLookUp();
-        document.body.appendChild(appState.selectionToolbarEl);
-        return appState.selectionToolbarEl;
-    }
+    // Phase 2 increment 2: the toolbar element itself is now real React (see
+    // app/dotto/SelectionToolbar.jsx) — this file still owns WHEN to show/hide it and WHERE
+    // (both fundamentally about reading native browser selection state, not a rendering concern),
+    // via the window.__setSelectionToolbarState bridge (app/dotto/bridges.js).
     function hideSelectionToolbar() {
-        if (appState.selectionToolbarEl) appState.selectionToolbarEl.style.display = 'none';
+        window.__setSelectionToolbarState({ isOpen: false, left: 0, top: 0 });
         appState.selectionToolbarRange = null;
         appState.selectionToolbarHostEl = null;
     }
@@ -217,17 +201,18 @@ import { render } from './waypoints-render-loop.js';
     function showSelectionToolbarFor(range, host, rectOverride) {
         appState.selectionToolbarRange = range;
         appState.selectionToolbarHostEl = host;
-        const toolbar = ensureSelectionToolbarEl();
+        // The RAW selection rect — kept exactly as before, independently of the toolbar's own
+        // (clamped) screen position below, since openAddToSourcePopup positions itself relative
+        // to this, not to wherever the toolbar itself ended up clamped to.
         const rect = rectOverride || range.getBoundingClientRect();
         appState.selectionToolbarRect = rect;
-        toolbar.style.display = 'flex';
         // Clamped so a selection near the top/left edge of the screen doesn't push the toolbar
         // off-screen — same 20px-from-edge convention used elsewhere (positionHamburgerMenu etc).
         const toolbarWidth = 150; // rough estimate ahead of layout (two small pills); good enough for clamping
         let left = Math.round(rect.left + rect.width / 2 - toolbarWidth / 2);
         left = Math.max(8, Math.min(left, window.innerWidth - toolbarWidth - 8));
-        toolbar.style.left = left + 'px';
-        toolbar.style.top = Math.max(8, Math.round(rect.top - 40)) + 'px';
+        const top = Math.max(8, Math.round(rect.top - 40));
+        window.__setSelectionToolbarState({ isOpen: true, left, top });
     }
     document.addEventListener('selectionchange', () => {
         // A selectionchange firing because the user is typing inside the add-to-source popup's
@@ -247,7 +232,12 @@ import { render } from './waypoints-render-loop.js';
     // Outside click hides it — same convention as the game options panel's own document-level
     // pointerdown listener.
     document.addEventListener('pointerdown', (e) => {
-        if (appState.selectionToolbarEl && appState.selectionToolbarEl.style.display !== 'none' && !appState.selectionToolbarEl.contains(e.target)) hideSelectionToolbar();
+        // React only renders #selection-toolbar at all while open (see
+        // app/dotto/SelectionToolbar.jsx) — this file can't import from app/ to read the bridge
+        // store directly (same constraint noted throughout core-state.js), so the element's mere
+        // presence in the DOM doubles as the open-check here.
+        const toolbarEl = document.getElementById('selection-toolbar');
+        if (toolbarEl && !toolbarEl.contains(e.target)) hideSelectionToolbar();
     });
     // Always phrased as an explicit meaning/translation question — never just the bare selected
     // text — so the orchestrate model reliably returns the "dictionary" panel (its own prompt,
@@ -486,4 +476,11 @@ import { render } from './waypoints-render-loop.js';
         });
     }
 
-export { commenceDotbotSearch, showSelectionToolbarFor };
+export { commenceDotbotSearch, openAddToSourcePopup, selectionToolbarLookUp, showSelectionToolbarFor };
+
+// Not inline-HTML onclick targets (see window-bridge.js's own header comment for why those live
+// there instead) — app/dotto/SelectionToolbar.jsx's two buttons call these directly, same
+// rationale as pushNotification's bridge in stopwatch-search-notifications.js (Phase 2
+// increment 1).
+window.selectionToolbarLookUp = selectionToolbarLookUp;
+window.openAddToSourcePopup = openAddToSourcePopup;
