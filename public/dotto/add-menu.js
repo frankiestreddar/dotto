@@ -1,3 +1,4 @@
+import { CARD_KINDS, DEFAULT_CARD_SIZE } from './card-kinds.js';
 import { prepareAdd } from './copy-paste.js';
 import { appState } from './core-state.js';
 import { toggleDrawFromMenu } from './srs-connections-core.js';
@@ -14,11 +15,13 @@ import { toggleDrawFromMenu } from './srs-connections-core.js';
 
 
     function kindLabel(kind) {
-        if (kind === 'sentence') return 'Sentence';
-        // No longer creatable from the add-menu (removed from ADD_MENU_DATA), but existing
-        // checklist cards on canvases keep working — this keeps their label correct everywhere
-        // kindLabel is used, rather than falling through to the raw 'checklist' string below.
-        if (kind === 'checklist') return 'Checklist';
+        // sentence/checklist: no longer creatable from the add-menu (checklist removed from
+        // ADD_MENU_DATA; sentence was never in it), but existing cards of both kinds on canvases
+        // keep working — this keeps their label correct everywhere kindLabel is used, rather than
+        // falling through to the raw kind string below. See card-kinds.js for why only these two
+        // specials live in the shared registry and not e.g. flashcard's label (a different, and
+        // differently-valued, special case belongs to searchTypeLabel/miniLabelForItem instead).
+        if (CARD_KINDS[kind]?.label) return CARD_KINDS[kind].label;
         for (const tab of Object.values(appState.ADD_MENU_DATA)) {
             const found = tab.items.find(i => i.kind === kind);
             if (found) return found.label;
@@ -44,24 +47,7 @@ import { toggleDrawFromMenu } from './srs-connections-core.js';
         return kindLabel(it.kind);
     }
     function kindSize(kind) {
-        if (kind === 'title') return { w: 100, h: 50 };
-        if (kind === 'folder') return { w: 448, h: 280 };
-        if (kind === 'source') return { w: 7 * 28, h: 2 * 28 }; // 2x7 grid cells (see #dot-layer's 28px spacing)
-        if (kind === 'table') return { w: 280, h: 180 };
-        if (kind === 'media') return { w: 240, h: 160 };
-        if (kind === 'bookmark') return { w: 200, h: 90 };
-        if (kind === 'checklist') return { w: 220, h: 160 }; // no longer creatable, kept for existing cards — see kindLabel
-        if (kind === 'embed') return { w: 320, h: 220 };
-        if (kind === 'watermark') return { w: 200, h: 80 };
-        if (kind === 'flashcard') return { w: 15 * 28, h: 10 * 28 };
-        if (kind === 'typeright') return { w: 15 * 28, h: 8 * 28 };
-        if (kind === 'statcard') return { w: 180, h: 110 };
-        if (kind === 'stopwatch') return { w: 220, h: 70 };
-        if (kind === 'shelf') return { w: 220, h: 170 };
-        if (kind === 'filter') return { w: 220, h: 140 };
-        if (kind === 'sentence') return { w: 220, h: 130 };
-        if (kind === 'waypoint') return { w: 28, h: 28 }; // 1 grid cell (see #dot-layer's 28px spacing) — collapsed size; .item.waypoint.expanded overrides via CSS, not this
-        return { w: 200, h: 112 };
+        return CARD_KINDS[kind]?.defaultSize || DEFAULT_CARD_SIZE;
     }
 
     function switchAddTab(tab) {
