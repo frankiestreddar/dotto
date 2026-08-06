@@ -349,8 +349,12 @@ import { renderFilterHTML, renderShelfHTML, renderStopwatchHTML } from './stopwa
     function render() {
         scheduleWorkspaceSave();
         clearSearch();
-        world.innerHTML = '';
-        if(!appState.folders[appState.currentFolderId]) return;
+        // #items-layer (React-owned canvas item cards — see app/dotto/CanvasItemsLayer.jsx) is a
+        // stable, permanent child of #world; only its siblings (drawing/connection SVG layers, the
+        // isSource static-table div) get wiped and rebuilt here, in place of #world's own former
+        // wholesale world.innerHTML='' (see the canvas-items-react plan, PHASE2_ROADMAP.md).
+        Array.from(world.children).forEach(child => { if (child.id !== 'items-layer') child.remove(); });
+        if(!appState.folders[appState.currentFolderId]) { window.__renderCanvasItems([]); return; }
         const folderObj = appState.folders[appState.currentFolderId];
         // Waypoints are private to whoever dropped them — even on a canvas shared with (or by)
         // other people, only the creator ever sees their own waypoint cards (see the 20260729
@@ -481,6 +485,9 @@ import { renderFilterHTML, renderShelfHTML, renderStopwatchHTML } from './stopwa
             attachStaticTableHoverZones(el, tableItem);
             layoutSourceTableColumns(tableItem, el);
             btnBack.disabled = appState.historyIndex === 0; btnForward.disabled = appState.historyIndex === appState.historyStack.length - 1;
+            // isSource folders never reach the real item list below — #items-layer must be told
+            // there's nothing to show, or it would keep showing whatever the previous folder had.
+            window.__renderCanvasItems([]);
             return;
         }
         canvas.classList.remove('static-source');
@@ -504,27 +511,69 @@ import { renderFilterHTML, renderShelfHTML, renderStopwatchHTML } from './stopwa
             path.setAttribute('stroke-linejoin', 'round');
             (dw.layer === 'back' ? backLayer : frontLayer).appendChild(path);
         });
-        world.appendChild(backLayer);
-        world.appendChild(renderConnectionsLayer(folderObj, currentItems));
+        // #items-layer (see above) is a stable, never-removed child that's always exactly where
+        // the scoped wipe left it — insertBefore it (not appendChild) is what keeps these under
+        // the item cards in paint order, matching the original back-layer/connections/items/front-
+        // layer stacking exactly. world.appendChild(frontLayer) below is correct as a plain append:
+        // #items-layer is the only other real child left at that point, so appending still lands
+        // frontLayer after it.
+        const itemsLayer = document.getElementById('items-layer');
+        world.insertBefore(backLayer, itemsLayer);
+        world.insertBefore(renderConnectionsLayer(folderObj, currentItems), itemsLayer);
 
-        currentItems.forEach(it => {
-            const el = document.createElement('div');
-            el.className = `item ${it.kind}`;
-            el.id = 'item-' + it.id;
-            el.style.left = it.x + 'px'; el.style.top = it.y + 'px';
-            if (it.zIndex) el.style.zIndex = it.zIndex;
-            // Re-applied on every render (rather than left as a one-off class toggle) since
-            // render() rebuilds every item's element from scratch — see handleDataModeClick.
-            if (appState.dataLinkPendingId === it.id) el.classList.add('link-source-armed');
-            if (it.optionsOpen) el.classList.add('options-open');
-            if (it.kind !== 'title' && it.kind !== 'waypoint') {
-                if (it.kind === 'table' && !it.userSized) {
-                    // Sizing handled automatically
-                } else {
-                    el.style.width = it.w + 'px'; el.style.height = it.h + 'px';
-                }
+        // React (app/dotto/CanvasItemsLayer.jsx) owns creating/keying/removing each item's wrapper
+        // <div id="item-{id}"> inside #items-layer — see the canvas-items-react plan in
+        // PHASE2_ROADMAP.md. This bridge call is a synchronous flushSync under the hood
+        // (app/dotto-app.jsx), so every item's wrapper div (and, via each CanvasItem's
+        // useLayoutEffect, its body content — see renderLegacyCardInto below) already exists in the
+        // DOM by the time this call returns, matching the old synchronous
+        // createElement+appendChild guarantee callers like the alt-duplicate-drag path in
+        // drag-drop-chat.js depend on.
+        window.__renderCanvasItems(currentItems);
+
+        world.appendChild(frontLayer);
+        if (appState.addingKind && appState.placementGhost) world.appendChild(appState.placementGhost);
+        btnBack.disabled = appState.historyIndex === 0; btnForward.disabled = appState.historyIndex === appState.historyStack.length - 1;
+
+        // Sync visual selected outlines state
+        renderSelectedOutlines();
+        ensureSwTicking();
+        // #items-layer's contents were just refreshed above (see window.__renderCanvasItems) — any
+        // element a remote collaborator was shown editing (see applyRemoteCursorMode) may be a
+        // fresh DOM node now if that item's props actually changed (React reuses unchanged items'
+        // nodes, but a real content change still replaces the node's innerHTML the same as the old
+        // full rebuild did), so the highlight/caret/label all need reapplying (or the cursor needs
+        // to reappear, if that target no longer exists at all — e.g. the card was deleted out from
+        // under them).
+        repositionAllRemoteCursors();
+    }
+
+    // Builds one canvas item's body content and wires up its behavior (click/drag/resize/context-
+    // menu handlers) into an already-mounted wrapper <div>. Mechanically lifted out of render()'s
+    // old currentItems.forEach loop (canvas-items-react plan, PHASE2_ROADMAP.md) — React
+    // (app/dotto/CanvasItemsLayer.jsx) now owns creating/keying/removing the wrapper <div
+    // id="item-{id}"> itself; this function still does everything render() used to do to populate
+    // one, just called from a per-item useLayoutEffect (via window.__renderLegacyCardInto below)
+    // instead of inline in a loop, so it only re-runs when that item's own props actually change
+    // (React.memo), not on every render() call. `el` is always the live wrapper node for `it.id` —
+    // reused across calls, never recreated, so every assignment below (className, innerHTML, etc.)
+    // is a plain overwrite exactly as it always was on a freshly created node.
+    function renderLegacyCardInto(el, it) {
+        el.className = `item ${it.kind}`;
+        el.style.left = it.x + 'px'; el.style.top = it.y + 'px';
+        if (it.zIndex) el.style.zIndex = it.zIndex;
+        // Re-applied on every call (rather than left as a one-off class toggle) since el.className
+        // above already resets the base class list — see handleDataModeClick.
+        if (appState.dataLinkPendingId === it.id) el.classList.add('link-source-armed');
+        if (it.optionsOpen) el.classList.add('options-open');
+        if (it.kind !== 'title' && it.kind !== 'waypoint') {
+            if (it.kind === 'table' && !it.userSized) {
+                // Sizing handled automatically
+            } else {
+                el.style.width = it.w + 'px'; el.style.height = it.h + 'px';
             }
-            
+        }
+
             if (it.kind === 'folder') {
                 el.innerHTML = '';
                 const folderTitleEl = document.createElement('div');
@@ -844,22 +893,7 @@ import { renderFilterHTML, renderShelfHTML, renderStopwatchHTML } from './stopwa
                 pill.style.display = 'flex';
                 pill.querySelectorAll('button').forEach(btn => btn.classList.toggle('active', btn.dataset.align === (it.textAlign || 'left')));
             };
-            setupDraggingAndClicking(el, it);
-            world.appendChild(el);
-        });
-
-        world.appendChild(frontLayer);
-        if (appState.addingKind && appState.placementGhost) world.appendChild(appState.placementGhost);
-        btnBack.disabled = appState.historyIndex === 0; btnForward.disabled = appState.historyIndex === appState.historyStack.length - 1;
-        
-        // Sync visual selected outlines state
-        renderSelectedOutlines();
-        ensureSwTicking();
-        // world.innerHTML was just wiped and rebuilt above — any element a remote collaborator was
-        // shown editing (see applyRemoteCursorMode) is a fresh DOM node now, so the highlight/
-        // caret/label all need reapplying (or the cursor needs to reappear, if that target no
-        // longer exists at all — e.g. the card was deleted out from under them).
-        repositionAllRemoteCursors();
+        setupDraggingAndClicking(el, it);
     }
 
     function renderSelectedOutlines() {
@@ -989,4 +1023,11 @@ import { renderFilterHTML, renderShelfHTML, renderStopwatchHTML } from './stopwa
         applyFolderView(folderId);
     }
 
-export { applyFolderView, cascadeDeleteFolderContents, centerOnContent, deleteCanvasCollabsForFolder, deleteWaypointFromDb, expandWaypointCard, openFolder, performMerge, render, renderSelectedOutlines, startBoxSelection, syncWaypointToDb };
+export { applyFolderView, cascadeDeleteFolderContents, centerOnContent, deleteCanvasCollabsForFolder, deleteWaypointFromDb, expandWaypointCard, openFolder, performMerge, render, renderLegacyCardInto, renderSelectedOutlines, startBoxSelection, syncWaypointToDb };
+
+// React → vanilla bridge, the other direction from window-bridge.js (which is specifically the
+// ~104 auto-generated inline onclick="..." names — see its own header comment). CanvasItem
+// (app/dotto/CanvasItemsLayer.jsx) calls this from a useLayoutEffect, once per item whose props
+// actually changed, to populate/rewire an already-mounted wrapper <div> — see the canvas-items-
+// react plan in PHASE2_ROADMAP.md.
+window.__renderLegacyCardInto = renderLegacyCardInto;

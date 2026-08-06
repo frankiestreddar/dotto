@@ -1,9 +1,17 @@
 <div id="canvas">
     <div id="dot-layer"></div>
-    <div id="world"></div>
+    <div id="world">
+        <!-- React-owned portal target for canvas item cards (see app/dotto/CanvasItemsLayer.jsx).
+             Deliberately left unstyled (no position/transform) so .item's position:absolute still
+             resolves against #world, not this wrapper — see PHASE2_ROADMAP.md's canvas-items-react
+             plan. render() (waypoints-render-loop.js) never removes this node; it only rebuilds the
+             non-item layers (drawings/connections SVG) around it. -->
+        <div id="items-layer"></div>
+    </div>
     <!-- Live collaborator cursors (see ensureCanvasPresenceChannel/render() in dotto-script.js) —
-         a sibling of #world, never inside it, since #world is fully wiped and rebuilt on every
-         render() call and these need to survive that. -->
+         a sibling of #world, never inside it, since #world's non-item children (everything except
+         #items-layer) are fully wiped and rebuilt on every render() call and these need to survive
+         that. -->
     <div id="cursor-overlay"></div>
     <div id="schedule-view">
         <div id="schedule-view-header">

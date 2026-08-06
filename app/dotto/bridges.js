@@ -31,3 +31,10 @@ export const pricingOverlayStore = createStore(false);
 // screen position. See public/dotto/search-orchestration-selection.js's showSelectionToolbarFor/
 // hideSelectionToolbar for the vanilla side that still owns WHEN to show/hide and WHERE.
 export const selectionToolbarStore = createStore({ isOpen: false, left: 0, top: 0 });
+
+// Canvas items layer (canvas-items-react plan, see PHASE2_ROADMAP.md) — the current folder's item
+// array, set by render() (waypoints-render-loop.js) via window.__renderCanvasItems every time it
+// would previously have wiped and rebuilt #world's item divs by hand. React now owns the #items-
+// layer child of #world (see app/dotto/CanvasItemsLayer.jsx) and keys off item.id, so unchanged
+// items are left alone instead of being torn down and recreated on every canvas interaction.
+export const canvasItemsStore = createStore([]);
