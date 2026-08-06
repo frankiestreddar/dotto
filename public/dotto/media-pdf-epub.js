@@ -25,7 +25,8 @@ import { render } from './waypoints-render-loop.js';
         const tag = it.mediaType === 'video'
             ? `<video src="${it.mediaSrc}" controls></video>`
             : `<img src="${it.mediaSrc}"/>`;
-        return `<div class="media-change-btn" onmousedown="event.stopPropagation()" onclick="clearMedia(${it.id})" title="Remove media">✕</div>${tag}`;
+        return `<div class="media-change-btn" onmousedown="event.stopPropagation()" onclick="clearMedia(${it.id})" title="Remove media">✕</div>${tag}
+            <div class="resize"><svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M10 2L2 10M10 6L6 10M10 10L10 10"/></svg></div>`;
     }
     // Probes an <img>/<video>'s real intrinsic dimensions, regardless of whether src is a data:
     // URL (upload) or a remote URL (paste-a-link) — only reads width/height metadata, never pixel
@@ -110,11 +111,13 @@ import { render } from './waypoints-render-loop.js';
         if (!supabase || !appState.currentUser.id) { alert('Sign in to upload documents.'); return; }
         saveSnapshot();
         it.mediaType = docType; it.mediaSrc = null; it.mediaName = file.name; it.mediaUploading = true;
-        // PDFs default ~2.5x bigger than the base 340x440 (850x1100) — a page of real body text
-        // needs to be legibly big enough at first glance, not resized by hand every time. EPUBs
-        // keep the smaller default; their own reflowable viewer doesn't have the same "a whole
-        // page has to fit and stay readable" constraint a fixed-size PDF page render does.
-        if (docType === 'pdf') { it.w = 850; it.h = 1100; } else { it.w = 340; it.h = 440; }
+        // PDFs default a bit bigger than the base 340x440 (425x550) — a page of real body text
+        // needs to be legibly sized at a glance without resizing by hand every time, but not so
+        // big it dominates the canvas by default (now that cards are drag-to-resize anyway, see
+        // setupResizing). EPUBs keep the smaller default; their own reflowable viewer doesn't
+        // have the same "a whole page has to fit and stay readable" constraint a fixed-size PDF
+        // page render does.
+        if (docType === 'pdf') { it.w = 425; it.h = 550; } else { it.w = 340; it.h = 440; }
         render();
         const path = `${appState.currentUser.id}/${Date.now()}-${file.name.replace(/[^\w.\-]+/g, '_')}`;
         const { error } = await supabase.storage.from('documents').upload(path, file, { contentType: file.type || undefined });
@@ -193,14 +196,14 @@ import { render } from './waypoints-render-loop.js';
         // position:absolute needs a positioned ancestor that IS exactly page-sized for its spans
         // to land in the right place over the canvas.
         const page = document.createElement('div');
+        // The generic per-card drag-to-move system listens for 'pointerdown', not 'mousedown' —
+        // see setupDraggingAndClicking's own exemption list (`.item-options`, `.resize`), which
+        // .pdf-viewer-page is now also on, for the exact same reason: without it, click-dragging
+        // to select text anywhere over the document started moving the whole card instead of
+        // letting the browser's native text-selection drag happen. The nav bar below is
+        // deliberately NOT exempted — it's the card's actual drag handle now that the document
+        // itself can't be.
         page.className = 'pdf-viewer-page';
-        // The generic per-card drag-to-move system (see setupDraggingAndClicking) arms itself on
-        // ANY mousedown that reaches the card's root element uninterrupted — without this, trying
-        // to click-and-drag to select text anywhere over the document starts moving the whole
-        // card instead of letting the browser's native text-selection drag happen. Stopping it
-        // here (not on `wrap`) is deliberate: the nav bar below stays draggable on purpose (see
-        // its own comment) — only the actual page content opts out.
-        page.onmousedown = (e) => e.stopPropagation();
         const canvas = document.createElement('canvas');
         canvas.className = 'pdf-viewer-canvas';
         const textLayer = document.createElement('div');
@@ -208,37 +211,55 @@ import { render } from './waypoints-render-loop.js';
         page.append(canvas, textLayer);
         const nav = document.createElement('div');
         nav.className = 'pdf-viewer-nav';
-        // Deliberately NOT stopping mousedown propagation here (unlike page.onmousedown above) —
-        // this bar is the card's actual drag handle now that the document itself can't be, so
-        // grabbing anywhere on it (other than the two buttons themselves) moves the card normally.
         const prevBtn = document.createElement('button');
         prevBtn.type = 'button'; prevBtn.className = 'pdf-viewer-nav-btn'; prevBtn.textContent = '‹';
-        prevBtn.onmousedown = (e) => e.stopPropagation(); // a precise click target, not part of the drag handle
         const pageLabel = document.createElement('span');
         pageLabel.className = 'pdf-viewer-page-label';
         const nextBtn = document.createElement('button');
         nextBtn.type = 'button'; nextBtn.className = 'pdf-viewer-nav-btn'; nextBtn.textContent = '›';
-        nextBtn.onmousedown = (e) => e.stopPropagation();
         nav.append(prevBtn, pageLabel, nextBtn);
-        wrap.append(page, nav);
+        const resizeHandle = document.createElement('div');
+        resizeHandle.className = 'resize';
+        resizeHandle.innerHTML = '<svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M10 2L2 10M10 6L6 10M10 10L10 10"/></svg>';
+        wrap.append(page, nav, resizeHandle);
 
         let pdfDoc = null;
         let pageNum = it.docPage || 1;
         let renderTask = null;
+        let lastRenderedWidth = null; // see the ResizeObserver below
 
         async function renderPage() {
             if (!pdfDoc) return;
             pageNum = Math.max(1, Math.min(pageNum, pdfDoc.numPages));
             pageLabel.textContent = `${pageNum} / ${pdfDoc.numPages}`;
             const pdfPage = await pdfDoc.getPage(pageNum);
+            const baseViewport = pdfPage.getViewport({ scale: 1 });
+            // The PDF page's own true aspect ratio (independent of whatever size the card
+            // currently happens to be) — setupResizing's media branch locks dragging to this
+            // instead of the card's current (possibly still-default, not-yet-page-shaped) w/h.
+            it.docAspectRatio = baseViewport.width / baseViewport.height;
+            // Keep the card's own box exactly the right shape for its content, width-anchored —
+            // recomputed every render (a no-op once it already matches) rather than only once, so
+            // this both corrects an upload's still-default, not-yet-page-shaped box on first load
+            // AND self-heals any minor grid-snap rounding drift from a resize drag. Without this,
+            // the box and the actual page could end up a slightly different shape, which is what
+            // made resizing look like it was cropping the page instead of scaling it uniformly —
+            // the page was always rendered at ITS OWN correct ratio, but the surrounding box
+            // (with overflow:auto) wasn't guaranteed to match it.
+            const cardEl = wrap.closest('.item');
+            if (cardEl) {
+                const wantedH = Math.max(112, Math.round((it.w / it.docAspectRatio) / 28) * 28);
+                if (wantedH !== it.h) { it.h = wantedH; cardEl.style.height = it.h + 'px'; }
+            }
             // Fit the page's own natural width to whatever the card currently measures — read
             // fresh on every call rather than assumed, so a resized card (or one reopened at a
             // different width) always renders sharp instead of stretched.
             const targetWidth = wrap.clientWidth || 320;
-            const baseViewport = pdfPage.getViewport({ scale: 1 });
             const scale = targetWidth / baseViewport.width;
             const viewport = pdfPage.getViewport({ scale });
             page.style.width = viewport.width + 'px'; page.style.height = viewport.height + 'px';
+            page.style.transform = ''; // clear the ResizeObserver's live-preview scale — this real render replaces it
+            lastRenderedWidth = viewport.width;
             // Canvas *display* size (CSS px, logical) stays at the viewport's own size — only the
             // backing pixel buffer is rendered larger, by devicePixelRatio, and the render call
             // scales its drawing into that larger buffer via `transform`. Without this, a Retina/
@@ -273,6 +294,27 @@ import { render } from './waypoints-render-loop.js';
         }
         prevBtn.onclick = (e) => { e.stopPropagation(); goToPage(pageNum - 1); };
         nextBtn.onclick = (e) => { e.stopPropagation(); goToPage(pageNum + 1); };
+
+        // Dragging the card's own resize handle (see setupResizing) changes wrap's real measured
+        // size on every frame, but a REAL re-render (page fetch + canvas paint + text-layer
+        // rebuild) is too slow to run that often — waiting for it made the whole drag feel
+        // jumpy, frozen at the old size until a render finally landed. So this does two things on
+        // every resize tick: an instant, free CSS transform:scale of the already-rendered page up
+        // to the new size (smooth, in sync with the box every frame, since transform affects the
+        // text layer along with the canvas as one unit — they stay aligned with each other even
+        // mid-scale, just not perfectly crisp), and a debounced REAL renderPage() that only fires
+        // once the size actually settles, which is what makes it crisp again and clears the
+        // transform (see renderPage's own `page.style.transform = ''`).
+        let resizeSettleTimer = null;
+        const resizeObserver = new ResizeObserver(() => {
+            if (lastRenderedWidth) {
+                page.style.transformOrigin = '0 0';
+                page.style.transform = `scale(${wrap.clientWidth / lastRenderedWidth})`;
+            }
+            if (resizeSettleTimer) clearTimeout(resizeSettleTimer);
+            resizeSettleTimer = setTimeout(renderPage, 150);
+        });
+        resizeObserver.observe(wrap);
 
         getCachedPdfDoc(it.mediaSrc).then(doc => { pdfDoc = doc; renderPage(); }).catch(err => {
             console.error('[media] pdf load failed:', err);
@@ -322,7 +364,10 @@ import { render } from './waypoints-render-loop.js';
         wrap.onclick = (e) => e.stopPropagation();
         const container = document.createElement('div');
         container.className = 'epub-viewer-container';
-        wrap.appendChild(container);
+        const resizeHandle = document.createElement('div');
+        resizeHandle.className = 'resize';
+        resizeHandle.innerHTML = '<svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M10 2L2 10M10 6L6 10M10 10L10 10"/></svg>';
+        wrap.append(container, resizeHandle);
 
         getCachedEpubBook(it.mediaSrc).then(book => {
             // scrolled-doc: one continuous scroll, not paginated — sidesteps needing our own

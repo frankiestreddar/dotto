@@ -600,6 +600,9 @@ import { renderFilterHTML, renderShelfHTML, renderStopwatchHTML } from './stopwa
                 } else {
                     el.innerHTML = renderMediaHTML(it);
                 }
+                // A no-op until there's real content to resize (renderMediaHTML's empty/uploading
+                // states have no .resize handle at all yet — see setupResizing's own early return).
+                setupResizing(el, it);
             } else if (it.kind === 'bookmark') {
                 el.innerHTML = `<div class="bookmark-icon">🔖</div>
                     <div class="bookmark-title">${it.html || (it.bookmarkUrl ? shortUrl(it.bookmarkUrl) : 'New Bookmark')}</div>

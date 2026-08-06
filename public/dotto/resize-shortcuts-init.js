@@ -19,6 +19,12 @@ import { cascadeDeleteFolderContents, centerOnContent, deleteWaypointFromDb, ren
         const b = el.querySelector('.body'), moreBtn = el.querySelector('.more-btn');
         handle.addEventListener('pointerdown', (e) => {
             e.stopPropagation();
+            // stopPropagation alone only stops the drag system's own listener from firing — it
+            // does nothing to the browser's own native default action for a mousedown-and-drag,
+            // which for a media card is "start a text selection" if the drag happens to sweep
+            // near/across the invisible PDF text layer sitting nearby. preventDefault suppresses
+            // that native default outright, so dragging this handle is only ever a resize.
+            e.preventDefault();
             saveSnapshot();
             if (it.kind === 'table' && !it.userSized) {
                 it.w = el.offsetWidth; it.h = el.offsetHeight;
@@ -31,8 +37,29 @@ import { cascadeDeleteFolderContents, centerOnContent, deleteWaypointFromDb, ren
             }
             let sx = e.clientX, sy = e.clientY, sw = it.w, sh = it.h;
             const minSize = it.kind === 'table' ? 56 : 112;
+            // Media cards (image/video/PDF/EPUB) resize proportionally, preserving their content's
+            // real aspect ratio, instead of each axis independently the way table/note/flashcard
+            // do — locked to the PDF page's own true ratio if it's known yet (see renderPage's
+            // it.docAspectRatio), otherwise whatever ratio the card is currently at (correct
+            // already for images/video, since computeMediaCardSize set w/h from the media's own
+            // natural dimensions; an arbitrary starting point for EPUB, which has no fixed "page"
+            // shape to lock to, but still scales proportionally from wherever it starts).
+            const aspectRatio = it.kind === 'media' ? (it.docAspectRatio || (sw / sh)) : null;
             const move = (me) => {
-                it.w = Math.max(minSize, Math.round((sw + (me.clientX - sx) / appState.scale) / 28) * 28); it.h = Math.max(minSize, Math.round((sh + (me.clientY - sy) / appState.scale) / 28) * 28); el.style.width = it.w + 'px'; el.style.height = it.h + 'px';
+                const dx = (me.clientX - sx) / appState.scale, dy = (me.clientY - sy) / appState.scale;
+                if (aspectRatio) {
+                    // Follow whichever axis the cursor moved more along; derive the other from
+                    // the locked ratio rather than letting both drift independently.
+                    let newW, newH;
+                    if (Math.abs(dx) >= Math.abs(dy)) { newW = sw + dx; newH = newW / aspectRatio; }
+                    else { newH = sh + dy; newW = newH * aspectRatio; }
+                    it.w = Math.max(minSize, Math.round(newW / 28) * 28);
+                    it.h = Math.max(minSize, Math.round(newH / 28) * 28);
+                } else {
+                    it.w = Math.max(minSize, Math.round((sw + dx) / 28) * 28);
+                    it.h = Math.max(minSize, Math.round((sh + dy) / 28) * 28);
+                }
+                el.style.width = it.w + 'px'; el.style.height = it.h + 'px';
                 if (it.kind === 'table') distributeTableSizing(it, el);
                 if (b && moreBtn) moreBtn.style.display = (it.expanded || b.scrollHeight > b.clientHeight || b.scrollWidth > b.clientWidth) ? 'block' : 'none';
                 // Live visual streaming while dragging — see handleRemoteItemResize/broadcastItemResize.
