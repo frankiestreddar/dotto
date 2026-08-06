@@ -776,9 +776,12 @@
     .dotbot-upgrade-btn{align-self:flex-start;background:var(--brand);color:#fff;border:none;border-radius:8px;padding:9px 16px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;}
     .dotbot-upgrade-btn:hover{background:#4f46e5;}
 
-    /* Full-screen 3-tier plan comparison (see openPricingOverlay/PRICING_PLANS) — a taller,
-       wider variant of the same .canvas-modal-overlay convention above rather than reusing it
-       directly, since this is meant to read as its own page, not a small popup. */
+    /* Full-screen 3-tier plan comparison (see app/dotto/PricingOverlay.jsx) — a taller, wider
+       variant of the same .canvas-modal-overlay convention above rather than reusing it directly,
+       since this is meant to read as its own page, not a small popup. React renders/removes this
+       element outright rather than toggling display, but .open still has to exist (rather than
+       relying on the element merely being present) since #pricing-overlay's own base rule is
+       display:none — see PricingOverlay.jsx's className. */
     #pricing-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:5500;align-items:center;justify-content:center;padding:24px;box-sizing:border-box;}
     #pricing-overlay.open{display:flex;}
     .pricing-page{width:min(980px,96vw);max-height:92vh;overflow-y:auto;background:var(--bar);border:1px solid var(--card-border);border-radius:16px;padding:28px;box-shadow:0 20px 60px rgba(0,0,0,0.6);box-sizing:border-box;}

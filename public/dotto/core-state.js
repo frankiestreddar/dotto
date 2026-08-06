@@ -228,20 +228,9 @@
         BLOCKS_CAP: 100,
         searchUsageWarned: false,
         genUsageWarned: false,
-        PRICING_PLANS: [
-        { id: 'free', name: 'Free', price: '$0', period: '/mo', tagline: 'Get started with the basics.', cta: 'Current Plan', current: true },
-        { id: 'pro', name: 'Pro', price: '$9', period: '/mo', tagline: 'For learners leveling up fast.', cta: 'Upgrade to Pro', featured: true },
-        { id: 'polyglot', name: 'Polyglot', price: '$19', period: '/mo', tagline: 'Go all in on every language.', cta: 'Upgrade to Polyglot' },
-    ],
-        PRICING_FEATURE_ROWS: [
-        { values: ['100 canvas blocks', '500 canvas blocks', 'Unlimited canvas blocks'] },
-        { values: ['30 Dotbot searches / 6h', '150 Dotbot searches / 6h', 'Unlimited Dotbot searches'] },
-        { values: ['100 Dotbot generations / mo', '500 Dotbot generations / mo', 'Unlimited Dotbot generations'] },
-        { values: ['Unlimited canvases & waypoints', 'Unlimited canvases & waypoints', 'Unlimited canvases & waypoints'] },
-        { values: ['Friends & collaboration', 'Friends & collaboration', 'Friends & collaboration'] },
-        { values: [null, 'Priority support', 'Priority support'] },
-        { values: [null, null, 'Early access to new features'] },
-    ],
+        // PRICING_PLANS/PRICING_FEATURE_ROWS moved to app/dotto/PricingOverlay.jsx — Phase 2
+        // increment 1 (see PHASE2_ROADMAP.md), pure presentation data with zero coupling to the
+        // rest of the app, now owned by the React component that renders it.
         messagesBtn: document.getElementById('btn-messages'),
         messagesPanel: document.getElementById('messages-panel'),
         msgConvo: document.getElementById('msg-convo'),

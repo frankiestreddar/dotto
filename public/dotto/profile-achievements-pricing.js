@@ -1,4 +1,3 @@
-import { escapeHtml } from './ai-assistant-suggestions.js';
 import { appState, supabase } from './core-state.js';
 import { initials } from './friends-presence.js';
 import { hmenuAction } from './hamburger-collab.js';
@@ -306,53 +305,19 @@ import { pushNotification } from './stopwatch-search-notifications.js';
     function closeDotbotUpgradeModal() { document.getElementById('dotbot-upgrade-overlay').classList.remove('open'); }
 
     // ---------- Pricing / upgrade page ----------
-    // Full-screen 3-tier comparison (Free/Pro/Polyglot) — opened from the profile menu's "Try
-    // Dotto Pro" button (see hmenuAction) and the paid-tier-ad notification's "Upgrade" button
-    // (see the ad notification setup further down). Placeholder prices/taglines/features — no
-    // real billing/subscription system exists in this codebase yet, so the paid CTAs surface a
-    // "coming soon" notification instead of pretending to start a real checkout.
-    // Each row's `values` is [free, pro, polyglot] — same index lines up across all three cards.
-    // A falsy value means that plan doesn't get this feature; it's still shown (greyed, with a
-    // dash) using whichever plan's value is truthy, so the row reads the same across all 3 cards.
-    function renderPricingOverlay() {
-        const container = document.getElementById('pricing-cards');
-        if (!container) return;
-        container.innerHTML = '';
-        appState.PRICING_PLANS.forEach((plan, i) => {
-            const card = document.createElement('div');
-            card.className = 'pricing-card' + (plan.featured ? ' pricing-card-featured' : '');
-            const featuresHtml = appState.PRICING_FEATURE_ROWS.map(row => {
-                const value = row.values[i];
-                const label = value || row.values.find(Boolean);
-                const excluded = !value;
-                return `<li class="${excluded ? 'pricing-feature-excluded' : ''}"><span class="pricing-feature-icon">${excluded ? '–' : '✓'}</span>${escapeHtml(label)}</li>`;
-            }).join('');
-            card.innerHTML = `
-                ${plan.featured ? '<div class="pricing-card-badge">Most Popular</div>' : ''}
-                <div class="pricing-card-name">${escapeHtml(plan.name)}</div>
-                <div class="pricing-card-price"><span class="pricing-card-price-amount">${escapeHtml(plan.price)}</span><span class="pricing-card-price-period">${escapeHtml(plan.period)}</span></div>
-                <div class="pricing-card-tagline">${escapeHtml(plan.tagline)}</div>
-                <button class="pricing-card-cta" type="button" ${plan.current ? 'disabled' : ''}>${escapeHtml(plan.cta)}</button>
-                <div class="pricing-card-divider"></div>
-                <ul class="pricing-card-features">${featuresHtml}</ul>
-            `;
-            if (!plan.current) card.querySelector('.pricing-card-cta').onclick = () => startPlanUpgrade(plan.id);
-            container.appendChild(card);
-        });
-    }
+    // Phase 2 increment 1: the overlay itself (rendering, PRICING_PLANS/PRICING_FEATURE_ROWS,
+    // startPlanUpgrade) is now real React — see app/dotto/PricingOverlay.jsx. These two stay as
+    // thin wrappers so every existing caller (the profile menu's "Try Dotto Pro" button via
+    // hmenuAction, the paid-tier-ad notification's "Upgrade" button, inline onclick="..."
+    // attributes bridged through window-bridge.js) keeps working unmodified — they just flip the
+    // React-owned open state (app/dotto/bridges.js) instead of touching the DOM directly now.
     function openPricingOverlay() {
         closeAllPanels(null);
         closeProfilePanel();
-        renderPricingOverlay();
-        document.getElementById('pricing-overlay').classList.add('open');
+        window.__setPricingOverlayOpen(true);
     }
     function closePricingOverlay() {
-        const el = document.getElementById('pricing-overlay');
-        if (el) el.classList.remove('open');
-    }
-    function startPlanUpgrade(planId) {
-        closePricingOverlay();
-        pushNotification({ type: 'upgrade_unavailable', message: "Upgrades aren't available yet — check back soon!" }); // no buttons, auto-dismisses
+        window.__setPricingOverlayOpen(false);
     }
     appState.profileBtn.addEventListener('click', (e) => {
         e.stopPropagation();

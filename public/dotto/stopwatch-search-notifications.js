@@ -620,3 +620,11 @@ import { openFolder, render } from './waypoints-render-loop.js';
     }
 
 export { addCardsToSearchContext, autoGrowSearchInput, clearSearchCardContext, closeSearchCardsModal, filterShelfRows, handleShelfSourceRowClick, openSearchCardsModal, pushNotification, renderFilterHTML, renderShelfHTML, renderStopwatchHTML, runNotificationAction, setFilterMode, shelfSelectSession, startRenameShelfName, startRenameShelfSourceRow, swCurrentElapsedMs, swFormatTime, swTogglePause, swToggleRun, toggleFilterTag, updateSearchSpaceHint };
+
+// Not an inline-HTML onclick target (see window-bridge.js's own header comment for why those
+// live there instead) — this is the first real React component (app/dotto/PricingOverlay.jsx,
+// Phase 2 increment 1) needing to call into a still-vanilla subsystem, and app/ can't import
+// public/dotto/*.js directly (same constraint window.__dottoSupabase/__DOTTO_USER__ solve in the
+// other direction — see app/dotto-app.jsx). More of these will likely accumulate here as more
+// subsystems migrate to React while still depending on notifications.
+window.pushNotification = pushNotification;

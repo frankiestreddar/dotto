@@ -22,18 +22,9 @@
     </div>
 </div>
 
-<!-- Full-screen plan comparison — opened from the profile menu's "Try Dotto Pro" button and the
-     paid-tier-ad notification's "Upgrade" button (see openPricingOverlay/PRICING_PLANS in
-     dotto-script.js). Cards are built entirely in JS from PRICING_PLANS/PRICING_FEATURE_ROWS. -->
-<div id="pricing-overlay" onclick="closePricingOverlay()">
-    <div class="pricing-page" onclick="event.stopPropagation()">
-        <div class="pricing-page-header">
-            <div class="pricing-page-title">Upgrade your plan</div>
-            <button class="pricing-page-close" type="button" onclick="closePricingOverlay()">✕</button>
-        </div>
-        <div id="pricing-cards"></div>
-    </div>
-</div>
+<!-- Pricing overlay moved to app/dotto/PricingOverlay.jsx, real React (Phase 2 increment 1) —
+     see openPricingOverlay/closePricingOverlay in profile-achievements-pricing.js for the
+     vanilla-JS bridge that still opens/closes it from here. -->
 
 <!-- Search card-context preview popup -->
 <div id="search-cards-modal-overlay" class="canvas-modal-overlay" onclick="closeSearchCardsModal()">

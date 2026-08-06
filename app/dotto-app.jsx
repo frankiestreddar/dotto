@@ -2,6 +2,8 @@
 
 import Script from "next/script";
 import { createClient } from "@/lib/supabase/client";
+import { pricingOverlayStore } from "./dotto/bridges";
+import PricingOverlay from "./dotto/PricingOverlay";
 
 import TopBar from "./dotto/sections/TopBar";
 import ProfilePanel from "./dotto/sections/ProfilePanel";
@@ -68,6 +70,17 @@ if (typeof window !== "undefined" && !window.__dottoSupabase) {
   window.__dottoSupabase = createClient();
 }
 
+// Phase 2 increment 1: the pricing overlay is the first subsystem converted to real React state
+// (see app/dotto/PricingOverlay.jsx). public/dotto/profile-achievements-pricing.js's vanilla
+// openPricingOverlay/closePricingOverlay still exist unchanged for every existing caller (inline
+// onclick="..." attributes, other ES modules) — they just call this instead of touching the DOM
+// directly now. Same "set during module eval, not an effect" timing as window.__dottoSupabase
+// above: vanilla code (via afterInteractive dotto-script.js) needs this to exist as soon as it
+// might call it, and effects run after paint, too late relative to that ordering guarantee.
+if (typeof window !== "undefined") {
+  window.__setPricingOverlayOpen = pricingOverlayStore.set;
+}
+
 export default function DottoApp({ sections, currentUser }) {
   // A raw <script> rendered via JSX/dangerouslySetInnerHTML is never executed
   // by the browser on the client (same rule as innerHTML) — it silently did
@@ -105,6 +118,7 @@ export default function DottoApp({ sections, currentUser }) {
         <CanvasContextMenu html={sections["canvas-context-menu"]} />
         <Footer html={sections["footer"]} />
       </div>
+      <PricingOverlay />
       <Script src="/dotto-script.js" type="module" strategy="afterInteractive" />
     </>
   );
