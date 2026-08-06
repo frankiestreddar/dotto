@@ -224,7 +224,6 @@
         { id: 'master_250_words', statKey: 'words_mastered',   threshold: 250,   name: 'Master 250 words',               spriteIndex: 7 },
         { id: 'day_in_platform',  statKey: 'platform_seconds', threshold: 86400, name: 'Spend 24 hours in the platform', spriteIndex: 8 },
     ],
-        unlockedAchievementIds: new Set(appState.currentUser.unlockedAchievementIds || []),
         SPRITE_TOTAL_COUNT: 108,
         BLOCKS_CAP: 100,
         searchUsageWarned: false,
@@ -379,6 +378,9 @@
     appState.hubSubpanels = [appState.waypointsPanel, appState.hubCollabPanel];
     appState.hamburgerHoverEls = [appState.hamburgerBtn, appState.outlineMenu, appState.accountMenu, ...appState.hubSubpanels];
     appState.TOTAL_SUB_LEVELS = appState.LEVEL_NAMES.length * appState.SUB_RANKS_PER_TIER;
+    // Same reason as the block above: can't reference appState.currentUser from inside appState's
+    // own object literal, since appState doesn't exist yet until that literal finishes constructing.
+    appState.unlockedAchievementIds = new Set(appState.currentUser.unlockedAchievementIds || []);
 
     function effectiveMode() {
         if (appState.modeOverrideKey === 'shift') return 'select';

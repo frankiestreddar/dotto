@@ -22,6 +22,10 @@ import { performMerge, render, renderSelectedOutlines } from './waypoints-render
             // already used for '.resize' just above.
             if (e.target.closest('.item-options')) return;
             if (e.target.classList.contains('resize') || (appState.currentEditingEl === el && e.target !== el)) return;
+            // The PDF viewer's own page/text-layer (see buildPdfViewer) — click-dragging there has
+            // to be native text selection, never a card move. The rest of that card (the bottom
+            // nav bar) is deliberately NOT exempted, so it's still draggable.
+            if (e.target.closest('.pdf-viewer-page')) return;
 
             bringCardToFront(it, el);
 
