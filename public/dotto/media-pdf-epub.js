@@ -1,0 +1,361 @@
+import { escapeHtml } from './ai-assistant-suggestions.js';
+import { appState, supabase } from './core-state.js';
+import { saveSnapshot, scheduleWorkspaceSave } from './history-autosave.js';
+import { findItemById } from './live-presence.js';
+import { showSelectionToolbarFor } from './search-orchestration-selection.js';
+import { render } from './waypoints-render-loop.js';
+
+
+    // ---------- Media card ----------
+    function renderMediaHTML(it) {
+        if (it.mediaUploading) {
+            return `<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;gap:8px;color:var(--ink-soft);width:100%;">
+                <div style="font-size:13px;">Uploading ${escapeHtml(it.mediaName || 'file')}…</div>
+            </div>`;
+        }
+        if (!it.mediaSrc) {
+            return `<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;gap:8px;color:var(--ink-soft);width:100%;">
+                <div style="font-size:13px;">Add photo, video, PDF, or EPUB</div>
+                <div style="display:flex;gap:6px;" onmousedown="event.stopPropagation()">
+                    <button class="format-btn" style="width:auto;padding:0 10px;" onclick="setMediaFromLink(${it.id})">Link</button>
+                    <button class="format-btn" style="width:auto;padding:0 10px;" onclick="triggerMediaUpload(${it.id})">Upload</button>
+                </div>
+            </div>`;
+        }
+        const tag = it.mediaType === 'video'
+            ? `<video src="${it.mediaSrc}" controls></video>`
+            : `<img src="${it.mediaSrc}"/>`;
+        return `<div class="media-change-btn" onmousedown="event.stopPropagation()" onclick="clearMedia(${it.id})" title="Remove media">✕</div>${tag}`;
+    }
+    // Probes an <img>/<video>'s real intrinsic dimensions, regardless of whether src is a data:
+    // URL (upload) or a remote URL (paste-a-link) — only reads width/height metadata, never pixel
+    // data, so CORS (which would block the latter) never applies here. Async by nature (the
+    // element has to actually start loading first), so callers render once immediately with
+    // whatever size the item already has, then again once this resolves.
+    function measureMediaNaturalSize(src, isVideo, cb) {
+        if (isVideo) {
+            const v = document.createElement('video');
+            v.preload = 'metadata';
+            v.onloadedmetadata = () => cb(v.videoWidth, v.videoHeight);
+            v.onerror = () => cb(0, 0);
+            v.src = src;
+        } else {
+            const img = new Image();
+            img.onload = () => cb(img.naturalWidth, img.naturalHeight);
+            img.onerror = () => cb(0, 0);
+            img.src = src;
+        }
+    }
+    // Fits the media's real aspect ratio into a reasonable default card footprint — previously
+    // every media card was a fixed 240x160 box with object-fit:cover force-cropping whatever was
+    // set into it, silently losing part of the image/video instead of showing it true to shape.
+    // Only ever caps the longer edge (never upscales a small image past its native size), so the
+    // ratio itself is always exact, not just approximated.
+    function computeMediaCardSize(naturalW, naturalH) {
+        if (!naturalW || !naturalH) return { w: 240, h: 160 }; // fallback if measurement ever fails
+        const scale = Math.min(320 / naturalW, 320 / naturalH, 1);
+        return { w: Math.round(naturalW * scale), h: Math.round(naturalH * scale) };
+    }
+    function setMediaFromLink(id) {
+        const url = prompt('Paste an image or video URL:');
+        if (!url) return;
+        const it = findItemById(id); if (!it) return;
+        saveSnapshot();
+        const isVideo = /\.(mp4|webm|ogg|mov)(\?|$)/i.test(url);
+        it.mediaType = isVideo ? 'video' : 'image';
+        it.mediaSrc = url.trim();
+        render();
+        measureMediaNaturalSize(it.mediaSrc, isVideo, (w, h) => {
+            const live = findItemById(id);
+            if (!live || live.mediaSrc !== it.mediaSrc) return; // cleared/changed again before this resolved
+            Object.assign(live, computeMediaCardSize(w, h));
+            render();
+        });
+    }
+    function triggerMediaUpload(id) {
+        const input = document.createElement('input');
+        input.type = 'file'; input.accept = 'image/*,video/*,application/pdf,application/epub+zip,.epub';
+        input.onchange = () => {
+            const file = input.files[0]; if (!file) return;
+            const isPdf = file.type === 'application/pdf' || /\.pdf$/i.test(file.name);
+            const isEpub = file.type === 'application/epub+zip' || /\.epub$/i.test(file.name);
+            if (isPdf || isEpub) { uploadDocumentToStorage(id, file, isPdf ? 'pdf' : 'epub'); return; }
+            const reader = new FileReader();
+            reader.onload = () => {
+                const it = findItemById(id); if (!it) return;
+                saveSnapshot();
+                const isVideo = file.type.startsWith('video');
+                it.mediaType = isVideo ? 'video' : 'image';
+                it.mediaSrc = reader.result;
+                render();
+                measureMediaNaturalSize(it.mediaSrc, isVideo, (w, h) => {
+                    const live = findItemById(id);
+                    if (!live || live.mediaSrc !== it.mediaSrc) return;
+                    Object.assign(live, computeMediaCardSize(w, h));
+                    render();
+                });
+            };
+            reader.readAsDataURL(file);
+        };
+        input.click();
+    }
+    // PDFs/EPUBs go through real Supabase Storage rather than the data: URL path images/video use
+    // above — see the 20260805_add_documents_storage migration's own comment for why (a multi-MB
+    // file base64-embedded directly in the item's JSON would bloat every single workspace
+    // autosave). w/h get a fixed page-shaped default (not aspect-ratio-derived like
+    // computeMediaCardSize — a document doesn't have one single "natural" ratio the way an image
+    // does) — the user can still resize the card normally afterward.
+    async function uploadDocumentToStorage(id, file, docType) {
+        const it = findItemById(id); if (!it) return;
+        if (!supabase || !appState.currentUser.id) { alert('Sign in to upload documents.'); return; }
+        saveSnapshot();
+        it.mediaType = docType; it.mediaSrc = null; it.mediaName = file.name; it.mediaUploading = true;
+        // PDFs default ~2.5x bigger than the base 340x440 (850x1100) — a page of real body text
+        // needs to be legibly big enough at first glance, not resized by hand every time. EPUBs
+        // keep the smaller default; their own reflowable viewer doesn't have the same "a whole
+        // page has to fit and stay readable" constraint a fixed-size PDF page render does.
+        if (docType === 'pdf') { it.w = 850; it.h = 1100; } else { it.w = 340; it.h = 440; }
+        render();
+        const path = `${appState.currentUser.id}/${Date.now()}-${file.name.replace(/[^\w.\-]+/g, '_')}`;
+        const { error } = await supabase.storage.from('documents').upload(path, file, { contentType: file.type || undefined });
+        const live = findItemById(id);
+        if (!live) return; // card got deleted while the upload was in flight
+        if (error) {
+            console.error('[media] document upload failed:', error);
+            live.mediaUploading = false; live.mediaType = null; live.mediaName = null;
+            render();
+            alert('Upload failed — try again.');
+            return;
+        }
+        const { data } = supabase.storage.from('documents').getPublicUrl(path);
+        live.mediaSrc = data.publicUrl;
+        live.mediaUploading = false;
+        render();
+    }
+    function clearMedia(id) {
+        const it = findItemById(id); if (!it) return;
+        saveSnapshot();
+        it.mediaType = null; it.mediaSrc = null; it.mediaName = null;
+        it.docPage = null; it.epubLocation = null;
+        render();
+    }
+
+    // ---------- PDF viewer (media card, mediaType:'pdf') ----------
+    // pdf.js ships a real ES module build (see public/vendor/pdfjs, copied from the pdfjs-dist
+    // package — this classic, non-bundled script can't `import` straight from node_modules) —
+    // loaded via dynamic import() rather than a <script> tag, and only on first actual use, so the
+    // ~1.7MB library+worker never loads for a session that never touches a PDF card. A singleton
+    // promise (not re-imported per card) so switching between multiple PDF cards only pays the
+    // load cost once per session.
+    function loadPdfjs() {
+        if (!appState.pdfjsLibPromise) {
+            appState.pdfjsLibPromise = import('/vendor/pdfjs/pdf.min.mjs').then(lib => {
+                lib.GlobalWorkerOptions.workerSrc = '/vendor/pdfjs/pdf.worker.min.mjs';
+                return lib;
+            });
+        }
+        return appState.pdfjsLibPromise;
+    }
+    // render() wipes and rebuilds #world's entire DOM on essentially every interaction anywhere on
+    // the canvas (see the main render loop) — a PDF card's own view gets destroyed and rebuilt
+    // right along with everything else, but the actual PARSED document (the expensive fetch +
+    // parse step) must NOT be re-fetched every single time that happens, so it's cached here by
+    // src, independent of the DOM lifecycle. Same reasoning as buildFolderInlineCanvas/
+    // renderTableHTML already rebuilding their own presentational DOM from scratch on every
+    // render() — only the network+parse cost specifically needs to survive that, not the DOM.
+ // mediaSrc -> Promise<PDFDocumentProxy>
+    function getCachedPdfDoc(src) {
+        if (!appState.pdfDocCache.has(src)) {
+            // getDocument only accepts a DocumentInitParameters object (`function getDocument(e={})`
+            // in the vendored build) — it does NOT special-case a bare string into { url } the way
+            // older pdf.js versions did, so passing `src` directly throws "expected either `data`,
+            // `range`, or `url` parameter" (every property read off the raw string comes back
+            // undefined).
+            appState.pdfDocCache.set(src, loadPdfjs().then(lib => lib.getDocument({ url: src }).promise));
+        }
+        return appState.pdfDocCache.get(src);
+    }
+    // Builds a live PDF viewer: the current page rasterized to a <canvas>, with pdf.js's own
+    // TextLayer — genuinely selectable, positioned <span>s, not an image of text — laid invisibly
+    // on top of it in exact alignment. That's what makes the existing "select text -> Add to
+    // source"/"Look up" toolbar (see the document-level selectionchange listener further down)
+    // work on a PDF exactly like it already does on any other card's text — the only change needed
+    // there is broadening its host check to also accept .pdf-text-layer alongside
+    // [contenteditable="true"]. Current page number persists on it.docPage (survives the DOM
+    // rebuild the same way every other card kind's live state does — e.g. flashcard's fcIndex).
+    function buildPdfViewer(it) {
+        const wrap = document.createElement('div');
+        wrap.className = 'pdf-viewer';
+        wrap.onclick = (e) => e.stopPropagation();
+        // A tightly-fitted wrapper sized to exactly the rendered page's own w/h — canvas and
+        // textLayer both anchor to ITS corner, not .pdf-viewer's, since .pdf-viewer centers its
+        // content via flex (so canvas alone isn't flush at 0,0 within it) and the text layer's
+        // position:absolute needs a positioned ancestor that IS exactly page-sized for its spans
+        // to land in the right place over the canvas.
+        const page = document.createElement('div');
+        page.className = 'pdf-viewer-page';
+        // The generic per-card drag-to-move system (see setupDraggingAndClicking) arms itself on
+        // ANY mousedown that reaches the card's root element uninterrupted — without this, trying
+        // to click-and-drag to select text anywhere over the document starts moving the whole
+        // card instead of letting the browser's native text-selection drag happen. Stopping it
+        // here (not on `wrap`) is deliberate: the nav bar below stays draggable on purpose (see
+        // its own comment) — only the actual page content opts out.
+        page.onmousedown = (e) => e.stopPropagation();
+        const canvas = document.createElement('canvas');
+        canvas.className = 'pdf-viewer-canvas';
+        const textLayer = document.createElement('div');
+        textLayer.className = 'pdf-text-layer';
+        page.append(canvas, textLayer);
+        const nav = document.createElement('div');
+        nav.className = 'pdf-viewer-nav';
+        // Deliberately NOT stopping mousedown propagation here (unlike page.onmousedown above) —
+        // this bar is the card's actual drag handle now that the document itself can't be, so
+        // grabbing anywhere on it (other than the two buttons themselves) moves the card normally.
+        const prevBtn = document.createElement('button');
+        prevBtn.type = 'button'; prevBtn.className = 'pdf-viewer-nav-btn'; prevBtn.textContent = '‹';
+        prevBtn.onmousedown = (e) => e.stopPropagation(); // a precise click target, not part of the drag handle
+        const pageLabel = document.createElement('span');
+        pageLabel.className = 'pdf-viewer-page-label';
+        const nextBtn = document.createElement('button');
+        nextBtn.type = 'button'; nextBtn.className = 'pdf-viewer-nav-btn'; nextBtn.textContent = '›';
+        nextBtn.onmousedown = (e) => e.stopPropagation();
+        nav.append(prevBtn, pageLabel, nextBtn);
+        wrap.append(page, nav);
+
+        let pdfDoc = null;
+        let pageNum = it.docPage || 1;
+        let renderTask = null;
+
+        async function renderPage() {
+            if (!pdfDoc) return;
+            pageNum = Math.max(1, Math.min(pageNum, pdfDoc.numPages));
+            pageLabel.textContent = `${pageNum} / ${pdfDoc.numPages}`;
+            const pdfPage = await pdfDoc.getPage(pageNum);
+            // Fit the page's own natural width to whatever the card currently measures — read
+            // fresh on every call rather than assumed, so a resized card (or one reopened at a
+            // different width) always renders sharp instead of stretched.
+            const targetWidth = wrap.clientWidth || 320;
+            const baseViewport = pdfPage.getViewport({ scale: 1 });
+            const scale = targetWidth / baseViewport.width;
+            const viewport = pdfPage.getViewport({ scale });
+            page.style.width = viewport.width + 'px'; page.style.height = viewport.height + 'px';
+            // Canvas *display* size (CSS px, logical) stays at the viewport's own size — only the
+            // backing pixel buffer is rendered larger, by devicePixelRatio, and the render call
+            // scales its drawing into that larger buffer via `transform`. Without this, a Retina/
+            // HiDPI screen (dpr 2-3x) stretches a 1x-resolution buffer to fill the same CSS box,
+            // which is exactly what "pixelated" looks like — same standard fix pdf.js's own
+            // reference viewer/examples use.
+            const outputScale = window.devicePixelRatio || 1;
+            canvas.style.width = viewport.width + 'px'; canvas.style.height = viewport.height + 'px';
+            canvas.width = Math.floor(viewport.width * outputScale);
+            canvas.height = Math.floor(viewport.height * outputScale);
+            const transform = outputScale !== 1 ? [outputScale, 0, 0, outputScale, 0, 0] : null;
+            // Feeds pdf.js's own --total-scale-factor:calc(var(--scale-factor) * var(--user-unit))
+            // chain (see .pdf-text-layer's CSS) — the same mechanism pdf.js's reference viewer uses
+            // to size each text span correctly at the current zoom. Deliberately the LOGICAL scale,
+            // not multiplied by outputScale — text-layer spans position themselves in the same CSS
+            // coordinate space the canvas is DISPLAYED at, not its backing buffer's pixel count.
+            textLayer.style.setProperty('--scale-factor', scale);
+            if (renderTask) renderTask.cancel();
+            renderTask = pdfPage.render({ canvasContext: canvas.getContext('2d'), viewport, transform });
+            try { await renderTask.promise; } catch (e) { return; } // canceled by a newer renderPage() call — the newer one owns the canvas now
+            textLayer.innerHTML = '';
+            const lib = await loadPdfjs();
+            const layer = new lib.TextLayer({ textContentSource: pdfPage.streamTextContent(), container: textLayer, viewport });
+            await layer.render();
+        }
+        function goToPage(n) {
+            if (!pdfDoc || n < 1 || n > pdfDoc.numPages) return;
+            pageNum = n;
+            it.docPage = pageNum;
+            scheduleWorkspaceSave();
+            renderPage();
+        }
+        prevBtn.onclick = (e) => { e.stopPropagation(); goToPage(pageNum - 1); };
+        nextBtn.onclick = (e) => { e.stopPropagation(); goToPage(pageNum + 1); };
+
+        getCachedPdfDoc(it.mediaSrc).then(doc => { pdfDoc = doc; renderPage(); }).catch(err => {
+            console.error('[media] pdf load failed:', err);
+            wrap.innerHTML = '<div style="padding:12px;color:var(--ink-soft);font-size:13px;">Couldn\'t load this PDF.</div>';
+        });
+
+        return wrap;
+    }
+
+    // ---------- EPUB viewer (media card, mediaType:'epub') ----------
+    // epubjs ships classic UMD builds (see public/vendor/epub), not a real ES module, so this
+    // loads them as plain <script> tags instead of import() — jszip first (epub.js expects
+    // window.JSZip to already exist), then epub.js itself, which then exposes window.ePub. A
+    // singleton promise so multiple EPUB cards only pay the script-load cost once per session.
+    function loadEpubjs() {
+        if (!appState.epubjsLibPromise) {
+            appState.epubjsLibPromise = new Promise((resolve, reject) => {
+                const jszip = document.createElement('script');
+                jszip.src = '/vendor/epub/jszip.min.js';
+                jszip.onload = () => {
+                    const epub = document.createElement('script');
+                    epub.src = '/vendor/epub/epub.min.js';
+                    epub.onload = () => resolve(window.ePub);
+                    epub.onerror = reject;
+                    document.head.appendChild(epub);
+                };
+                jszip.onerror = reject;
+                document.head.appendChild(jszip);
+            });
+        }
+        return appState.epubjsLibPromise;
+    }
+    // Parsed Book objects (the expensive fetch+unzip+parse step) persist across render()'s
+    // frequent full DOM rebuilds, same reasoning as pdfDocCache above. The Rendition itself can't
+    // be cached the same way — it's attached to a specific container element that genuinely gets
+    // destroyed on every rebuild — so it's always recreated fresh against the cached Book instead.
+ // mediaSrc -> Promise<Book>
+    function getCachedEpubBook(src) {
+        if (!appState.epubBookCache.has(src)) {
+            appState.epubBookCache.set(src, loadEpubjs().then(ePub => ePub(src)));
+        }
+        return appState.epubBookCache.get(src);
+    }
+    function buildEpubViewer(it) {
+        const wrap = document.createElement('div');
+        wrap.className = 'epub-viewer';
+        wrap.onclick = (e) => e.stopPropagation();
+        const container = document.createElement('div');
+        container.className = 'epub-viewer-container';
+        wrap.appendChild(container);
+
+        getCachedEpubBook(it.mediaSrc).then(book => {
+            // scrolled-doc: one continuous scroll, not paginated — sidesteps needing our own
+            // page-turn UI (see buildPdfViewer's nav) inside an already-small canvas card.
+            const rendition = book.renderTo(container, { width: '100%', height: '100%', flow: 'scrolled-doc' });
+            rendition.display(it.epubLocation || undefined);
+            rendition.on('relocated', (location) => {
+                it.epubLocation = location.start.cfi;
+                scheduleWorkspaceSave();
+            });
+            // Feeds the SAME selection-toolbar "Add to source"/"Look up" flow used everywhere else
+            // in the app (see showSelectionToolbarFor). epub.js renders each chapter inside its
+            // own same-origin iframe (needed for per-book CSS isolation), so the main document's
+            // own selectionchange listener never sees these selections at all — a selectionchange
+            // firing on an iframe's own Document doesn't bubble to the parent document even when
+            // same-origin — this is the equivalent hook on epub.js's own side, which already emits
+            // a real DOM Range via its own in-iframe selectionchange listener.
+            rendition.on('selectedRange', (range) => {
+                const iframeEl = container.querySelector('iframe');
+                if (!iframeEl) return;
+                const iframeRect = iframeEl.getBoundingClientRect();
+                const rangeRect = range.getBoundingClientRect();
+                showSelectionToolbarFor(range, container, {
+                    left: iframeRect.left + rangeRect.left, top: iframeRect.top + rangeRect.top,
+                    width: rangeRect.width, height: rangeRect.height,
+                });
+            });
+        }).catch(err => {
+            console.error('[media] epub load failed:', err);
+            wrap.innerHTML = '<div style="padding:12px;color:var(--ink-soft);font-size:13px;">Couldn\'t load this EPUB.</div>';
+        });
+
+        return wrap;
+    }
+
+export { buildEpubViewer, buildPdfViewer, clearMedia, renderMediaHTML, setMediaFromLink, triggerMediaUpload };
