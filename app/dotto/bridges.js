@@ -6,8 +6,8 @@
 // component that now owns the real state subscribes via useSyncExternalStore. New increments add
 // their own store below rather than each inventing its own ad hoc globals.
 
-function createBooleanStore() {
-  let value = false;
+function createStore(initialValue) {
+  let value = initialValue;
   const listeners = new Set();
   return {
     set(next) {
@@ -24,4 +24,10 @@ function createBooleanStore() {
   };
 }
 
-export const pricingOverlayStore = createBooleanStore();
+export const pricingOverlayStore = createStore(false);
+
+// Text-selection toolbar shell (Phase 2 increment 2) — {isOpen, left, top}, richer than
+// pricingOverlayStore's plain boolean since this one also carries the toolbar's already-clamped
+// screen position. See public/dotto/search-orchestration-selection.js's showSelectionToolbarFor/
+// hideSelectionToolbar for the vanilla side that still owns WHEN to show/hide and WHERE.
+export const selectionToolbarStore = createStore({ isOpen: false, left: 0, top: 0 });

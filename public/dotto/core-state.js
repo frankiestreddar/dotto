@@ -336,7 +336,8 @@
         TYPEWRITER_LOADING_WORDS: ['Thinking', 'Consulting', 'Reasoning', 'Picturing', 'Composing', 'Imagining'],
         typewriterLoadingTimers: new WeakMap(),
         currentTtsAudio: null,
-        selectionToolbarEl: null,
+        // selectionToolbarEl removed — React owns the toolbar element now (Phase 2 increment 2,
+        // see app/dotto/SelectionToolbar.jsx).
         selectionToolbarRange: null,
         selectionToolbarHostEl: null,
         selectionToolbarRect: null,

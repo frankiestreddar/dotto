@@ -2,8 +2,9 @@
 
 import Script from "next/script";
 import { createClient } from "@/lib/supabase/client";
-import { pricingOverlayStore } from "./dotto/bridges";
+import { pricingOverlayStore, selectionToolbarStore } from "./dotto/bridges";
 import PricingOverlay from "./dotto/PricingOverlay";
+import SelectionToolbar from "./dotto/SelectionToolbar";
 
 import TopBar from "./dotto/sections/TopBar";
 import ProfilePanel from "./dotto/sections/ProfilePanel";
@@ -79,6 +80,10 @@ if (typeof window !== "undefined" && !window.__dottoSupabase) {
 // might call it, and effects run after paint, too late relative to that ordering guarantee.
 if (typeof window !== "undefined") {
   window.__setPricingOverlayOpen = pricingOverlayStore.set;
+  // Phase 2 increment 2: same pattern, for the text-selection toolbar shell — see
+  // app/dotto/SelectionToolbar.jsx and search-orchestration-selection.js's
+  // showSelectionToolbarFor/hideSelectionToolbar.
+  window.__setSelectionToolbarState = selectionToolbarStore.set;
 }
 
 export default function DottoApp({ sections, currentUser }) {
@@ -119,6 +124,7 @@ export default function DottoApp({ sections, currentUser }) {
         <Footer html={sections["footer"]} />
       </div>
       <PricingOverlay />
+      <SelectionToolbar />
       <Script src="/dotto-script.js" type="module" strategy="afterInteractive" />
     </>
   );
