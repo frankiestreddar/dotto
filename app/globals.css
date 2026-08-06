@@ -6,27 +6,10 @@
 @source "../content/fragments/*.html";
 @source "../public/dotto-script.js";
 
-/* Custom app typeface — one family, three weights (thin/regular/bold) each with a real italic
-   face, so normal CSS font-weight values (100/400/700) and font-style:italic both pick the right
-   file automatically without needing separate class names per weight/style. Space Mono (loaded
-   via the Google Fonts <link> in app/layout.js) stays reserved for headings and usernames — see
-   .item.title, #schedule-view-date, and the username/display-name classes below.
-   ascent-override/descent-override force all six faces to the SAME vertical metrics — measured
-   with fontTools, the underlying files disagree with each other: dotto-reg.otf's own
-   usWinAscent/usWinDescent sum to exactly 1000 units (=1em, clean), but the thin and bold files
-   sum to 1363 units (36% taller). Since font-weight commonly varies within the same line/UI
-   (e.g. bold buttons next to regular labels), that mismatch made bold/thin text compute a ~36%
-   taller line-height:normal than regular text sitting right next to it — at this app's ~14px UI
-   text sizes, about a 5px difference, which is exactly the "text sits too high" symptom this
-   fixes. 75%/25% matches the one metric all six files DO already agree on (sTypoAscender:750/
-   sTypoDescender:-250), so this is normalizing to the font's own evident intent, not inventing
-   new numbers. */
-@font-face{font-family:'Dotto Sans';src:url('/fonts/dotto-thin.otf') format('opentype');font-weight:100;font-style:normal;font-display:swap;ascent-override:75%;descent-override:25%;line-gap-override:0%;}
-@font-face{font-family:'Dotto Sans';src:url('/fonts/dotto-thin-it.otf') format('opentype');font-weight:100;font-style:italic;font-display:swap;ascent-override:75%;descent-override:25%;line-gap-override:0%;}
-@font-face{font-family:'Dotto Sans';src:url('/fonts/dotto-reg.otf') format('opentype');font-weight:400;font-style:normal;font-display:swap;ascent-override:75%;descent-override:25%;line-gap-override:0%;}
-@font-face{font-family:'Dotto Sans';src:url('/fonts/dotto-reg-it.otf') format('opentype');font-weight:400;font-style:italic;font-display:swap;ascent-override:75%;descent-override:25%;line-gap-override:0%;}
-@font-face{font-family:'Dotto Sans';src:url('/fonts/dotto-bld.otf') format('opentype');font-weight:700;font-style:normal;font-display:swap;ascent-override:75%;descent-override:25%;line-gap-override:0%;}
-@font-face{font-family:'Dotto Sans';src:url('/fonts/dotto-bld-it.otf') format('opentype');font-weight:700;font-style:italic;font-display:swap;ascent-override:75%;descent-override:25%;line-gap-override:0%;}
+/* App typeface: Golos Text (loaded via the Google Fonts <link> in app/layout.js, variable weight
+   400-900), replacing the old local 'Dotto Sans' otf files. Space Mono (same file) stays reserved
+   for headings and usernames — see .item.title, #schedule-view-date, and the username/display-
+   name classes below. */
 
 /* ===================================================================
    Original Dotto (Dotter v0.1.3) CSS, migrated verbatim from the
@@ -45,7 +28,7 @@
     *{box-sizing:border-box; touch-action: none; user-select:none; -webkit-user-select:none;}
     select, input, .format-bar{touch-action: auto;}
     [contenteditable="true"], input, textarea{user-select:text !important; -webkit-user-select:text !important;}
-    html,body{margin:0;padding:0;width:100%;height:100%;overflow:hidden;font-family: 'Dotto Sans', -apple-system, sans-serif;background:var(--paper); color: var(--ink);}
+    html,body{margin:0;padding:0;width:100%;height:100%;overflow:hidden;font-family: 'Golos Text', -apple-system, sans-serif;background:var(--paper); color: var(--ink);}
     /* Semantic headings (e.g. the login/register page titles) keep Space Mono regardless of
        where they appear — canvas title cards and username displays are plain divs/spans, not
        real h1-h3 tags, so those get the same override individually where they're styled below. */
@@ -1215,7 +1198,7 @@
     /* Word, audio button, and IPA all cluster directly next to each other now (no more
        justify-content:space-between pushing IPA to the row's far edge). */
     .dotbot-dictionary-head-row{display:flex;align-items:center;gap:8px;}
-    .dotbot-dictionary-word{font-size:23px;font-weight:700;color:var(--ink);font-family:'Dotto Sans', -apple-system, sans-serif;}
+    .dotbot-dictionary-word{font-size:23px;font-weight:700;color:var(--ink);font-family:'Golos Text', -apple-system, sans-serif;}
     /* Shared by every TTS button in the AI results (dictionary headword, dictionary/examples
        sentences) — a speaker icon (see speakerIconHTML/.icon-mask), grey at rest with no
        background, going fully white with a grey rounded-square background on hover. */
@@ -1236,7 +1219,7 @@
     .dotbot-dictionary-arrow{background:var(--bar);border:1px solid var(--card-border);border-radius:6px;cursor:pointer;color:var(--ink-soft);font-size:9px;padding:4px 5px;line-height:1;box-shadow:0 2px 8px rgba(0,0,0,0.35);}
     .dotbot-dictionary-arrow:hover{color:var(--ink);}
     .dotbot-dictionary-translit{font-size:12px;color:var(--ink-soft);font-style:italic;}
-    /* A standard system UI font, not Dotto Sans/Space Mono — both are display faces that don't
+    /* A standard system UI font, not Golos Text/Space Mono — both are display faces that don't
        reliably cover IPA's extended Unicode phonetic symbols, unlike the OS's own UI font stack. */
     .dotbot-dictionary-ipa{display:inline-block;font-size:12px;color:var(--ink-soft);font-family:-apple-system,BlinkMacSystemFont,"Helvetica Neue",Helvetica,Arial,sans-serif;background:#2a2a2a;padding:2px 8px;border-radius:999px;}
     /* Separate pills, one per grammarTag (part of speech first, then gender/tense/number/etc —
@@ -1634,7 +1617,7 @@
     /* Dropped from a Dotbot example-sentence drag — see importDotbotResultAtScreenPoint /
        the 'sentence' branch in render(). Uneditable, purpose-built (not a plain note). */
     .item.sentence{justify-content:center;gap:4px;}
-    .sentence-card-text{font-size:20px;font-weight:700;color:var(--ink);font-family:'Dotto Sans', -apple-system, sans-serif;line-height:1.3;word-break:break-word;}
+    .sentence-card-text{font-size:20px;font-weight:700;color:var(--ink);font-family:'Golos Text', -apple-system, sans-serif;line-height:1.3;word-break:break-word;}
     .sentence-card-translit{font-size:11px;color:var(--ink-soft);font-style:italic;}
     .sentence-card-translation{font-size:13px;color:var(--ink-soft);line-height:1.4;margin-top:2px;}
     /* Small unobtrusive corner disclaimer on any canvas card that came from an AI generation
