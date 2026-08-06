@@ -8,6 +8,7 @@ import { setDrawMode } from './srs-connections-core.js';
 import { render, renderSelectedOutlines } from './waypoints-render-loop.js';
 
 
+
     // ---------- Copy / Cut / Paste (Cmd/Ctrl+C / X / V — see the keydown handler above) ----------
     // Independent of the OS clipboard — an in-memory snapshot of whatever was selected at copy
     // time. A folder/source card's real content lives in folders[] keyed by a live id that a Cut

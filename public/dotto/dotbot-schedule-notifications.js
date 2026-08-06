@@ -245,5 +245,10 @@ import { autoGrowSearchInput, pushNotification } from './stopwatch-search-notifi
         if (!dateFound && !time) return null;
         return { date: dateKey(dateBase), time: time || '09:00' };
     }
+    // Relocated here from core-state.js's appState object literal — it needs to call a
+    // function this file already owns, and core-state.js must never import anything (see its
+    // own comment on why: any import there re-creates the exact circular-evaluation hazard this
+    // whole pass exists to eliminate, this time for appState itself).
+    appState.lastStatsDayKey = statsDayKey(new Date());
 
-export { cancelDotbotScheduleConversation, startScheduleConversation, statsDayKey, submitDotbotScheduleAnswer };
+export { cancelDotbotScheduleConversation, startScheduleConversation, submitDotbotScheduleAnswer };

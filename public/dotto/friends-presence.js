@@ -7,6 +7,7 @@ import { bumpAchievementStat, renderAvatarInto } from './profile-achievements-pr
 import { pushNotification } from './stopwatch-search-notifications.js';
 
 
+
     // ---------- Collaborators Pill/Panel Controls ----------
     function getCurrentCollaboratorIds() {
         const folderObj = appState.folders[appState.currentFolderId];
