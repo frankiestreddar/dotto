@@ -1,5 +1,6 @@
 import { searchKindLabel } from './add-menu.js';
 import { countSourceEntries, escapeHtml, stripHtml } from './ai-assistant-suggestions.js';
+import { CARD_KINDS, DEFAULT_CARD_ICON } from './card-kinds.js';
 import { renderChecklistHTML, renderStatcardHTML, shortUrl } from './cards-misc.js';
 import { appState, canvas, cursorOverlay, supabase } from './core-state.js';
 import { ensureConnections } from './drawing-connections.js';
@@ -827,8 +828,7 @@ import { render } from './waypoints-render-loop.js';
 
     // Small icon per card kind, used inside the mini inline-canvas squares
     function miniIconForKind(kind) {
-        const icons = { title: 'T', table: '⊞', checklist: '☑', bookmark: '🔖', embed: '🌐', media: '▣', watermark: '≈', flashcard: '⟲', folder: '↗', source: '▶', statcard: '📈', stopwatch: '⏱️', shelf: '🗄️' };
-        return icons[kind] || '≡';
+        return CARD_KINDS[kind]?.icon || DEFAULT_CARD_ICON;
     }
     // Deep-clones an item for sharing (chat) or packaging (marketplace draft). Folder/source
     // items additionally embed a self-contained, recursive copy of their own nested contents
