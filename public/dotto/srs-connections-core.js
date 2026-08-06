@@ -4,13 +4,11 @@ import { removePlacementGhost } from './copy-paste.js';
 import { addMenu, appState, btnAdd, canvas, drawBackBtn, drawColorInput, drawEraserBtn, drawFrontBtn, drawPenBtn, drawSettings, drawSizeInput, effectiveMode, world, zoomTrack } from './core-state.js';
 import { computeConnectorPoints, createConnection, ensureConnections, ensureDrawings, findLinkedTable, findTableById, itemRect, makeLayerSVG, pathNearPoint, pointsToLinePath, pointsToPath } from './drawing-connections.js';
 import { defaultFlashcardDeck } from './games-flashcard-typeright.js';
-import { ZOOM_MAX, ZOOM_MIN, applyTransform, saveSnapshot, scheduleApplyTransform, undoStack } from './history-autosave.js';
+import { applyTransform, saveSnapshot, scheduleApplyTransform } from './history-autosave.js';
 import { broadcastEditingState } from './live-presence.js';
-import { scheduleViewMode } from './messages-schedule.js';
-import { outlineMenu } from './panels-hamburger.js';
 import { awardUserPoints, bumpAchievementStat } from './profile-achievements-pricing.js';
-import { outlineActiveIndex, outlineRows, setOutlineActive, toggleHamburgerMenu } from './shared-canvases-outline.js';
-import { pushNotification, searchInput } from './stopwatch-search-notifications.js';
+import { setOutlineActive, toggleHamburgerMenu } from './shared-canvases-outline.js';
+import { pushNotification } from './stopwatch-search-notifications.js';
 import { render, renderSelectedOutlines, startBoxSelection, syncWaypointToDb } from './waypoints-render-loop.js';
 
 
@@ -31,7 +29,6 @@ import { render, renderSelectedOutlines, startBoxSelection, syncWaypointToDb } f
         return meta[rowIndex];
     }
     // Maps our four grading buttons onto the classic SM-2 0-5 quality scale.
-    const SM2_QUALITY = { noclue: 0, wrong: 1, hard: 3, easy: 5 };
     // Classic SM-2: given a card's current {interval, easeFactor, repetitions} and a 0-5
     // quality score, returns the updated memory state (mutates and returns `card`).
     function calculateSM2(card, quality) {
@@ -151,7 +148,7 @@ import { render, renderSelectedOutlines, startBoxSelection, syncWaypointToDb } f
         downstreamConns.forEach(c => {
             const gameItem = ctx.items.find(i => i.id === c.toId);
             if (!gameItem) return;
-            const gameIO = CardStreamIO[gameItem.kind];
+            const gameIO = appState.CardStreamIO[gameItem.kind];
             if (!gameIO || !gameIO.outputs || !gameIO.outputs.includes('performance') || !gameIO.getOutput) return;
             let perf = gameIO.getOutput(gameItem, ctx);
             if (!perf) return;
@@ -205,240 +202,6 @@ import { render, renderSelectedOutlines, startBoxSelection, syncWaypointToDb } f
     // Cards must react only to `payload.streamType` / `payload.delta` — never to
     // `fromItem.kind` or `toItem.kind` — so any future card kind can be wired to any other
     // without touching propagateCanvasStreams or this table's call sites.
-    const CardStreamIO = {
-        table: {
-            inputs: ['srsUpdate'],
-            outputs: ['content', 'performance'],
-            onStream: applySrsUpdateStream,
-            getOutput(item, ctx) {
-                const extracted = extractCardsFromSource(item);
-                const out = [];
-                if (extracted && extracted.rows.length) out.push(makeStreamPayload(item.id, 'content', { rows: extracted.rows, headers: extracted.headers }));
-                const perf = aggregateDownstreamPerformance(item, ctx);
-                if (perf) out.push(perf);
-                return out.length ? out : null;
-            }
-        },
-        // Distinct from table/folder below (not a shared object) because it also emits a
-        // 'sourceRows' output — its OWN rows only, deliberately a SEPARATE streamType from
-        // 'content' — for a connected Stack card (kind:'shelf', see CardStreamIO.shelf below) to
-        // aggregate across several sources at once. A source no longer ACCEPTS 'sourceRows' as an
-        // input (that's what used to let two sources merge directly into each other — removed;
-        // aggregating multiple sources now only ever happens via a Stack in between), so
-        // source-to-source connections are rejected by isValidConnection's ordinary type-matching
-        // rule with no special-casing needed.
-        source: {
-            inputs: ['srsUpdate'],
-            outputs: ['content', 'performance', 'sourceRows'],
-            onStream: applySrsUpdateStream,
-            getOutput(item, ctx) {
-                const extracted = extractCardsFromSource(item);
-                const ownRows = extracted ? extracted.rows : [];
-                const out = [];
-                if (ownRows.length) {
-                    out.push(makeStreamPayload(item.id, 'content', { rows: ownRows, headers: extracted.headers }));
-                    out.push(makeStreamPayload(item.id, 'sourceRows', { rows: ownRows }));
-                }
-                const perf = aggregateDownstreamPerformance(item, ctx);
-                if (perf) out.push(perf);
-                return out.length ? out : null;
-            }
-        },
-        folder: {
-            inputs: ['srsUpdate'],
-            outputs: ['content', 'performance'],
-            onStream: applySrsUpdateStream,
-            getOutput(item, ctx) {
-                const extracted = extractCardsFromSource(item);
-                const out = [];
-                if (extracted && extracted.rows.length) out.push(makeStreamPayload(item.id, 'content', { rows: extracted.rows, headers: extracted.headers }));
-                const perf = aggregateDownstreamPerformance(item, ctx);
-                if (perf) out.push(perf);
-                return out.length ? out : null;
-            }
-        },
-        // A pass-through content filter: connect a source into it, then it into a flashcard (or
-        // another filter, or another source), and only rows matching the selected tags flow
-        // onward — never touches the upstream table directly, so the same source can feed
-        // several differently-filtered subdecks at once. incomingRows accumulates inbound
-        // 'content' rows, reset once per render (see propagateCanvasStreams) rather than
-        // consumed/cleared inside getOutput — getOutput can be called once per downstream
-        // connection in the same render, and clearing it there would starve every call after the
-        // first.
-        filter: {
-            inputs: ['content'],
-            outputs: ['content'],
-            onStream(item, payload) {
-                if (payload.streamType !== 'content' || !payload.delta || !Array.isArray(payload.delta.rows)) return;
-                item.incomingRows = (item.incomingRows || []).concat(payload.delta.rows);
-                // Passed straight through to whatever this filter feeds (see getOutput below) so a
-                // game card downstream of a filter still sees real column names, not just "Column N".
-                if (payload.delta.headers) item.incomingHeaders = payload.delta.headers;
-            },
-            getOutput(item) {
-                const filtered = applyFilterToRows(item, item.incomingRows || []);
-                return filtered.length ? makeStreamPayload(item.id, 'content', { rows: filtered, headers: item.incomingHeaders }) : null;
-            }
-        },
-        flashcard: {
-            inputs: ['content'],
-            outputs: ['performance', 'srsUpdate'],
-            onStream(item, payload) {
-                if (payload.streamType !== 'content') return;
-                const rows = payload.delta.rows;
-                if (rows && rows.length) {
-                    // Only reset shuffle order / position when the underlying deck actually
-                    // changed shape (rows added/removed/edited) — NOT when only the SM-2 srs
-                    // fields changed (e.g. because we just streamed our own grading update back
-                    // up to the source and it echoed back down), which would otherwise yank the
-                    // user back to card #1 every single time they rate a card.
-                    const prevKey = (item.cards || []).map(c => c.rowIndex + '|' + c.front + '|' + c.back).join('~');
-                    const newKey = rows.map(c => c.rowIndex + '|' + c.front + '|' + c.back).join('~');
-                    const structuralChange = prevKey !== newKey;
-                    item.cards = rows;
-                    if (structuralChange) { item.fcOrder = []; item.fcIndex = 0; item.fcFlipped = false; }
-                }
-                // Real column names for the right-click options panel (see renderGameOptionsHTML)
-                // — falls back to "Column N" labels there when this is empty (e.g. no source
-                // linked yet, or a chain that doesn't preserve header names).
-                if (payload.delta.headers) item.gameHeaders = payload.delta.headers;
-            },
-            getOutput(item) {
-                const out = [makeStreamPayload(item.id, 'performance', {
-                    seen: item.fcSeenCount || 0,
-                    totalCards: (item.cards || []).length,
-                    ratings: Object.assign({ noclue: 0, wrong: 0, hard: 0, easy: 0 }, item.fcStats || {})
-                })];
-                // Re-broadcasts the most recently graded card's new SM-2 state so the source
-                // table (the system of record) stays in sync on every propagation pass.
-                if (item.pendingSrsUpdate) out.push(makeStreamPayload(item.id, 'srsUpdate', item.pendingSrsUpdate));
-                return out;
-            }
-        },
-        // Typeright: see one side, type the other — same streaming shape as flashcard (content
-        // in, performance/srsUpdate out), just its own tr*-prefixed play state (trIndex/trOrder/
-        // trInput/trStats) instead of fc*, since it's a distinct gameplay loop (typed-answer
-        // grading, not flip+rate).
-        typeright: {
-            inputs: ['content'],
-            outputs: ['performance', 'srsUpdate'],
-            onStream(item, payload) {
-                if (payload.streamType !== 'content') return;
-                const rows = payload.delta.rows;
-                if (rows && rows.length) {
-                    const prevKey = (item.cards || []).map(c => c.rowIndex + '|' + c.front + '|' + c.back).join('~');
-                    const newKey = rows.map(c => c.rowIndex + '|' + c.front + '|' + c.back).join('~');
-                    const structuralChange = prevKey !== newKey;
-                    item.cards = rows;
-                    if (structuralChange) { item.trOrder = []; item.trIndex = 0; item.trInput = ''; item.trChecked = false; }
-                }
-                if (payload.delta.headers) item.gameHeaders = payload.delta.headers;
-            },
-            getOutput(item) {
-                const out = [makeStreamPayload(item.id, 'performance', {
-                    seen: item.trSeenCount || 0,
-                    totalCards: (item.cards || []).length,
-                    ratings: Object.assign({ noclue: 0, wrong: 0, hard: 0, easy: 0 }, item.trStats || {})
-                })];
-                if (item.pendingSrsUpdate) out.push(makeStreamPayload(item.id, 'srsUpdate', item.pendingSrsUpdate));
-                return out;
-            }
-        },
-        statcard: {
-            inputs: ['performance'],
-            onStream(item, payload) {
-                item.streamCache = item.streamCache || {};
-                const existing = item.streamCache[payload.originId];
-                // A stopwatch re-broadcasts several sessions for the same origin at once (so a
-                // connected shelf can catch all of them); a plain stats card should only ever
-                // keep the most recent one. This is decided purely from the payload shape
-                // (`delta.sessionStartedAt`), never from what kind sent it — if either payload
-                // isn't session-scoped (no sessionStartedAt), there's no ambiguity and the
-                // newest write simply wins, same as before.
-                if (existing) {
-                    const incomingStart = payload.delta && payload.delta.sessionStartedAt;
-                    const existingStart = existing.delta && existing.delta.sessionStartedAt;
-                    if (incomingStart != null && existingStart != null && incomingStart < existingStart) return;
-                }
-                item.streamCache[payload.originId] = payload;
-            }
-        },
-        stopwatch: {
-            inputs: ['performance'],
-            outputs: ['performance'],
-            onStream(item, payload) {
-                if (payload.streamType !== 'performance' || !item.swSessionActive) return;
-                item.swSessionLive[payload.originId] = payload.delta;
-                if (!item.swSessionBaseline[payload.originId]) item.swSessionBaseline[payload.originId] = payload.delta;
-            },
-            getOutput(item) {
-                const payloads = [];
-                if (item.swSessionActive) {
-                    Object.keys(item.swSessionLive).forEach(originId => {
-                        const live = item.swSessionLive[originId] || {};
-                        const base = item.swSessionBaseline[originId] || {};
-                        payloads.push(makeStreamPayload(originId, 'performance', {
-                            seen: (live.seen || 0) - (base.seen || 0), totalCards: live.totalCards,
-                            ratings: diffRatings(live.ratings, base.ratings),
-                            sessionId: item.swSessionId, sessionStartedAt: item.swSessionStartedAt, final: false
-                        }));
-                    });
-                } else if (item.swSessions && item.swSessions.length) {
-                    // Re-broadcast every session still held in the 3-slot buffer (not just the
-                    // latest) so a shelf connected at any point can catch ones it missed. A
-                    // plain stats card linked straight to the stopwatch sees all of these too,
-                    // but its own onStream keeps only the one with the newest sessionStartedAt.
-                    item.swSessions.forEach(session => {
-                        session.payloads.forEach(p => {
-                            payloads.push(makeStreamPayload(p.originId, 'performance', Object.assign({}, p.delta, { sessionId: session.sessionId, sessionStartedAt: session.startedAt, final: true })));
-                        });
-                    });
-                }
-                return payloads;
-            }
-        },
-        // "Stack" in the UI (kind stays 'shelf' internally — see the naming note near its
-        // add-menu entry). Dual-purpose: the original job (archiving stopwatch session
-        // performance data, below) is untouched; it ALSO now accepts 'sourceRows' from any number
-        // of directly-connected source cards and re-emits their combined rows as one 'content'
-        // stream, so a flashcard (or filter, or anything else that accepts 'content') plugged
-        // into a Stack plays every connected source's rows at once — the same aggregation
-        // source-to-source merging used to do, just via an explicit hub card instead of two
-        // sources linking directly to each other. stackSourceRows is reset once per render (see
-        // propagateCanvasStreams), same pattern as source.mergeCache used to be.
-        shelf: {
-            inputs: ['performance', 'sourceRows'],
-            outputs: ['performance', 'content'],
-            onStream(item, payload) {
-                if (payload.streamType === 'sourceRows') {
-                    item.stackSourceRows = item.stackSourceRows || {};
-                    item.stackSourceRows[payload.originId] = payload.delta.rows || [];
-                    return;
-                }
-                if (payload.streamType !== 'performance' || !payload.delta || !payload.delta.final || !payload.delta.sessionId) return;
-                item.shelfSessions = item.shelfSessions || [];
-                const sid = payload.delta.sessionId;
-                let session = item.shelfSessions.find(s => s.sessionId === sid);
-                if (!session) {
-                    session = { sessionId: sid, savedAt: Date.now(), payloads: [], label: 'Session ' + (item.shelfSessions.length + 1) };
-                    item.shelfSessions.push(session);
-                    item.shelfSelectedId = session.sessionId;
-                }
-                const cleanDelta = Object.assign({}, payload.delta);
-                delete cleanDelta.final; delete cleanDelta.sessionId;
-                const existing = session.payloads.find(p => p.originId === payload.originId);
-                if (existing) existing.delta = cleanDelta; else session.payloads.push({ originId: payload.originId, delta: cleanDelta });
-            },
-            getOutput(item) {
-                const out = [];
-                const session = (item.shelfSessions || []).find(s => s.sessionId === item.shelfSelectedId);
-                if (session) session.payloads.forEach(p => out.push(makeStreamPayload(p.originId, 'performance', p.delta)));
-                const combinedRows = [].concat(...Object.values(item.stackSourceRows || {}));
-                if (combinedRows.length) out.push(makeStreamPayload(item.id, 'content', { rows: combinedRows }));
-                return out.length ? out : null;
-            }
-        },
-    };
 
     // Gatekeeper for every connection-creation entry point (drag-to-link and multi-select
     // link). Rejects a prospective fromId -> toId edge before it's ever added to
@@ -453,7 +216,7 @@ import { render, renderSelectedOutlines, startBoxSelection, syncWaypointToDb } f
     // ordinary type-matching rule already handles those).
     function shelfInputCategory(kind) {
         if (kind === 'stopwatch') return 'sessions';
-        const cfg = CardStreamIO[kind];
+        const cfg = appState.CardStreamIO[kind];
         if (cfg && cfg.outputs && cfg.outputs.includes('sourceRows')) return 'sources';
         return null;
     }
@@ -470,8 +233,8 @@ import { render, renderSelectedOutlines, startBoxSelection, syncWaypointToDb } f
         // Rule 2: type matching. Either card kind must be missing from CardStreamIO, or
         // missing outputs/inputs entirely, to be blocked outright; otherwise at least one of
         // the source's outputs must be accepted by the target's inputs.
-        const fromConfig = CardStreamIO[fromItem.kind];
-        const toConfig = CardStreamIO[toItem.kind];
+        const fromConfig = appState.CardStreamIO[fromItem.kind];
+        const toConfig = appState.CardStreamIO[toItem.kind];
         if (!fromConfig || !toConfig || !fromConfig.outputs || !toConfig.inputs) return false;
         const hasMatchingType = fromConfig.outputs.some(outType => toConfig.inputs.includes(outType));
         if (!hasMatchingType) return false;
@@ -581,8 +344,8 @@ import { render, renderSelectedOutlines, startBoxSelection, syncWaypointToDb } f
         // requiring the user to draw a second link in reverse.
         function deliver(sender, receiver) {
             if (!sender || !receiver) return;
-            const senderIO = CardStreamIO[sender.kind];
-            const receiverIO = CardStreamIO[receiver.kind];
+            const senderIO = appState.CardStreamIO[sender.kind];
+            const receiverIO = appState.CardStreamIO[receiver.kind];
             if (!senderIO || !senderIO.getOutput || !receiverIO || !receiverIO.inputs || !receiverIO.onStream) return;
             let payloads = senderIO.getOutput(sender, ctx);
             if (!payloads) return;
@@ -619,7 +382,7 @@ import { render, renderSelectedOutlines, startBoxSelection, syncWaypointToDb } f
                 const otherId = c.fromId === it.id ? c.toId : (c.toId === it.id ? c.fromId : null);
                 if (!otherId) return false;
                 const other = items.find(i => i.id === otherId);
-                return other && CardStreamIO[other.kind] && (CardStreamIO[other.kind].outputs || []).includes('content');
+                return other && appState.CardStreamIO[other.kind] && (appState.CardStreamIO[other.kind].outputs || []).includes('content');
             });
             if (!stillFed) {
                 if (it.kind === 'flashcard') {
@@ -751,10 +514,10 @@ import { render, renderSelectedOutlines, startBoxSelection, syncWaypointToDb } f
                 // function was only for a potential drag that didn't happen;
                 // handleDataModeClick takes its own snapshot, only at the moment it actually
                 // creates a connection.
-                undoStack.pop();
+                appState.undoStack.pop();
                 handleDataModeClick(it, el);
             } else {
-                undoStack.pop();
+                appState.undoStack.pop();
             }
         };
         window.addEventListener('pointermove', move);
@@ -780,18 +543,18 @@ import { render, renderSelectedOutlines, startBoxSelection, syncWaypointToDb } f
         const active = document.activeElement;
         const isEditingText = active && (active.isContentEditable || active.tagName === 'INPUT' || active.tagName === 'SELECT' || active.tagName === 'TEXTAREA');
 
-        if (!isEditingText && outlineMenu.classList.contains('open')) {
-            if (e.key === 'ArrowDown') { e.preventDefault(); setOutlineActive(outlineActiveIndex + 1); return; }
-            if (e.key === 'ArrowUp') { e.preventDefault(); setOutlineActive(outlineActiveIndex - 1); return; }
+        if (!isEditingText && appState.outlineMenu.classList.contains('open')) {
+            if (e.key === 'ArrowDown') { e.preventDefault(); setOutlineActive(appState.outlineActiveIndex + 1); return; }
+            if (e.key === 'ArrowUp') { e.preventDefault(); setOutlineActive(appState.outlineActiveIndex - 1); return; }
             if (e.key === 'Enter') {
                 e.preventDefault();
-                const row = outlineRows[outlineActiveIndex] || outlineRows[0];
+                const row = appState.outlineRows[appState.outlineActiveIndex] || appState.outlineRows[0];
                 if (row) row.el.click();
                 return;
             }
         }
 
-        if (!isEditingText && e.key === ' ') { e.preventDefault(); if (searchInput) searchInput.focus(); return; }
+        if (!isEditingText && e.key === ' ') { e.preventDefault(); if (appState.searchInput) appState.searchInput.focus(); return; }
         if (!isEditingText && (e.key === 'm' || e.key === 'M')) { e.preventDefault(); toggleHamburgerMenu(); return; }
         // Debug shortcut for tweaking the notification entrance/exit animation — fires a plain
         // notification with no buttons on every press. Remove once done tweaking.
@@ -862,7 +625,7 @@ import { render, renderSelectedOutlines, startBoxSelection, syncWaypointToDb } f
             if (appState.drawing.points.length > 1) {
                 ensureDrawings(appState.folders[appState.currentFolderId]).push({ color: appState.drawing.color, layer: appState.drawing.layer, d: pointsToPath(appState.drawing.points), width: appState.drawing.width });
             } else {
-                undoStack.pop();
+                appState.undoStack.pop();
             }
             if (appState.liveSvg) appState.liveSvg.remove();
             appState.liveSvg = null; appState.livePath = null; appState.drawing = null;
@@ -908,7 +671,7 @@ import { render, renderSelectedOutlines, startBoxSelection, syncWaypointToDb } f
     });
 
     canvas.addEventListener('wheel', (e) => {
-        if (scheduleViewMode) return; // let the agenda's own vertical-only scroll handle it natively
+        if (appState.scheduleViewMode) return; // let the agenda's own vertical-only scroll handle it natively
         if (appState.folders[appState.currentFolderId] && appState.folders[appState.currentFolderId].isSource) return;
         const bodyEl = e.target.closest && e.target.closest('.item.note .body');
         if (bodyEl && bodyEl.scrollHeight > bodyEl.clientHeight) return;
@@ -916,7 +679,7 @@ import { render, renderSelectedOutlines, startBoxSelection, syncWaypointToDb } f
         if (e.ctrlKey) {
             const factor = Math.pow(1.1, -e.deltaY / 60);
             const mouseX = e.clientX - appState.tx, mouseY = e.clientY - appState.ty;
-            const newScale = Math.min(Math.max(appState.scale * factor, ZOOM_MIN), ZOOM_MAX);
+            const newScale = Math.min(Math.max(appState.scale * factor, appState.ZOOM_MIN), appState.ZOOM_MAX);
             appState.tx = e.clientX - (mouseX * (newScale / appState.scale));
             appState.ty = e.clientY - (mouseY * (newScale / appState.scale));
             appState.scale = newScale;
@@ -931,7 +694,7 @@ import { render, renderSelectedOutlines, startBoxSelection, syncWaypointToDb } f
         const rect = zoomTrack.getBoundingClientRect();
         let pct = 1 - (clientY - rect.top) / rect.height;
         pct = Math.max(0, Math.min(1, pct));
-        const newScale = ZOOM_MIN + pct * (ZOOM_MAX - ZOOM_MIN);
+        const newScale = appState.ZOOM_MIN + pct * (appState.ZOOM_MAX - appState.ZOOM_MIN);
         const cx = window.innerWidth / 2, cy = window.innerHeight / 2;
         const worldX = (cx - appState.tx) / appState.scale, worldY = (cy - appState.ty) / appState.scale;
         appState.tx = cx - worldX * newScale;
@@ -1049,4 +812,4 @@ import { render, renderSelectedOutlines, startBoxSelection, syncWaypointToDb } f
         delete appState.folders[item.folderId];
     }
 
-export { CardStreamIO, SM2_QUALITY, add, applyConnections, applyFilterToRows, calculateSM2, cancelAddingKind, clearDataLinkPending, collectAvailableFilterTags, deepCloneItem, defaultSrsState, deleteClonedItemFolders, diffRatings, isValidConnection, renderConnectionsLayer, setDrawMode, startConnectionDrag, startDrawStroke, toggleDrawFromMenu, updateDrawLayerBtns };
+export { add, aggregateDownstreamPerformance, applyConnections, applyFilterToRows, applySrsUpdateStream, calculateSM2, cancelAddingKind, clearDataLinkPending, collectAvailableFilterTags, deepCloneItem, defaultSrsState, deleteClonedItemFolders, diffRatings, extractCardsFromSource, isValidConnection, makeStreamPayload, renderConnectionsLayer, setDrawMode, startConnectionDrag, startDrawStroke, toggleDrawFromMenu, updateDrawLayerBtns };

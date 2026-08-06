@@ -147,15 +147,14 @@ import { render } from './waypoints-render-loop.js';
     // ~1.7MB library+worker never loads for a session that never touches a PDF card. A singleton
     // promise (not re-imported per card) so switching between multiple PDF cards only pays the
     // load cost once per session.
-    let pdfjsLibPromise = null;
     function loadPdfjs() {
-        if (!pdfjsLibPromise) {
-            pdfjsLibPromise = import('/vendor/pdfjs/pdf.min.mjs').then(lib => {
+        if (!appState.pdfjsLibPromise) {
+            appState.pdfjsLibPromise = import('/vendor/pdfjs/pdf.min.mjs').then(lib => {
                 lib.GlobalWorkerOptions.workerSrc = '/vendor/pdfjs/pdf.worker.min.mjs';
                 return lib;
             });
         }
-        return pdfjsLibPromise;
+        return appState.pdfjsLibPromise;
     }
     // render() wipes and rebuilds #world's entire DOM on essentially every interaction anywhere on
     // the canvas (see the main render loop) — a PDF card's own view gets destroyed and rebuilt
@@ -164,17 +163,17 @@ import { render } from './waypoints-render-loop.js';
     // src, independent of the DOM lifecycle. Same reasoning as buildFolderInlineCanvas/
     // renderTableHTML already rebuilding their own presentational DOM from scratch on every
     // render() — only the network+parse cost specifically needs to survive that, not the DOM.
-    const pdfDocCache = new Map(); // mediaSrc -> Promise<PDFDocumentProxy>
+ // mediaSrc -> Promise<PDFDocumentProxy>
     function getCachedPdfDoc(src) {
-        if (!pdfDocCache.has(src)) {
+        if (!appState.pdfDocCache.has(src)) {
             // getDocument only accepts a DocumentInitParameters object (`function getDocument(e={})`
             // in the vendored build) — it does NOT special-case a bare string into { url } the way
             // older pdf.js versions did, so passing `src` directly throws "expected either `data`,
             // `range`, or `url` parameter" (every property read off the raw string comes back
             // undefined).
-            pdfDocCache.set(src, loadPdfjs().then(lib => lib.getDocument({ url: src }).promise));
+            appState.pdfDocCache.set(src, loadPdfjs().then(lib => lib.getDocument({ url: src }).promise));
         }
-        return pdfDocCache.get(src);
+        return appState.pdfDocCache.get(src);
     }
     // Builds a live PDF viewer: the current page rasterized to a <canvas>, with pdf.js's own
     // TextLayer — genuinely selectable, positioned <span>s, not an image of text — laid invisibly
@@ -288,10 +287,9 @@ import { render } from './waypoints-render-loop.js';
     // loads them as plain <script> tags instead of import() — jszip first (epub.js expects
     // window.JSZip to already exist), then epub.js itself, which then exposes window.ePub. A
     // singleton promise so multiple EPUB cards only pay the script-load cost once per session.
-    let epubjsLibPromise = null;
     function loadEpubjs() {
-        if (!epubjsLibPromise) {
-            epubjsLibPromise = new Promise((resolve, reject) => {
+        if (!appState.epubjsLibPromise) {
+            appState.epubjsLibPromise = new Promise((resolve, reject) => {
                 const jszip = document.createElement('script');
                 jszip.src = '/vendor/epub/jszip.min.js';
                 jszip.onload = () => {
@@ -305,18 +303,18 @@ import { render } from './waypoints-render-loop.js';
                 document.head.appendChild(jszip);
             });
         }
-        return epubjsLibPromise;
+        return appState.epubjsLibPromise;
     }
     // Parsed Book objects (the expensive fetch+unzip+parse step) persist across render()'s
     // frequent full DOM rebuilds, same reasoning as pdfDocCache above. The Rendition itself can't
     // be cached the same way — it's attached to a specific container element that genuinely gets
     // destroyed on every rebuild — so it's always recreated fresh against the cached Book instead.
-    const epubBookCache = new Map(); // mediaSrc -> Promise<Book>
+ // mediaSrc -> Promise<Book>
     function getCachedEpubBook(src) {
-        if (!epubBookCache.has(src)) {
-            epubBookCache.set(src, loadEpubjs().then(ePub => ePub(src)));
+        if (!appState.epubBookCache.has(src)) {
+            appState.epubBookCache.set(src, loadEpubjs().then(ePub => ePub(src)));
         }
-        return epubBookCache.get(src);
+        return appState.epubBookCache.get(src);
     }
     function buildEpubViewer(it) {
         const wrap = document.createElement('div');

@@ -8,50 +8,10 @@ import { toggleDrawFromMenu } from './srs-connections-core.js';
     // (only heading-1/note/table/waypoint/flashcards were already there for other features); a
     // missing file just shows the row's empty icon slot rather than a broken-image icon (see
     // buildAddMenuRow's onerror), same graceful-degradation pattern as the spritebook.
-    const ADD_MENU_DATA = {
-        notes: { label: 'Notes', categoryDesc: 'The building blocks of your canvas — headings, notes, tables, drawings and media.', items: [
-            { kind: 'title', label: 'Heading', icon: '/assets/icons/heading-1.png' },
-            { kind: 'note', label: 'Note', icon: '/assets/icons/note.png' },
-            { kind: 'table', label: 'Table', icon: '/assets/icons/table.png' },
-            { kind: 'drawing', label: 'Drawing', icon: '/assets/icons/drawing.png' },
-            { kind: 'media', label: 'Upload', icon: '/assets/icons/media.png' },
-        ]},
-        tools: { label: 'Tools', categoryDesc: 'Tools that help you interact with content — read, record, link, and trace.', items: [
-            { kind: 'reader', label: 'Reader', icon: '/assets/icons/reader.png' },
-            { kind: 'voice', label: 'Voice Recorder', icon: '/assets/icons/voice.png' },
-            { kind: 'bookmark', label: 'Bookmark', icon: '/assets/icons/bookmark.png' },
-            { kind: 'watermark', label: 'Watermark', icon: '/assets/icons/watermark.png' },
-        ]},
-        utilities: { label: 'Utilities', categoryDesc: 'Workflow helpers — track tasks, time, history, and navigation.', items: [
-            { kind: 'embed', label: 'Embed', icon: '/assets/icons/embed.png' },
-            { kind: 'stopwatch', label: 'Stopwatch', icon: '/assets/icons/stopwatch.png' },
-            { kind: 'shelf', label: 'Stack', icon: '/assets/icons/shelf.png' },
-            { kind: 'filter', label: 'Filter', icon: '/assets/icons/filter.png' },
-            { kind: 'waypoint', label: 'Waypoint', icon: '/assets/icons/waypoint.png' },
-        ]},
-        games: { label: 'Games', categoryDesc: 'Interactive exercises to practice a language.', items: [
-            { kind: 'flashcard', label: 'Flashcard', icon: '/assets/icons/flashcards.png' },
-            { kind: 'typeright', label: 'Typeright', icon: '/assets/icons/typeright.png' },
-            { kind: 'blanks', label: 'Blanks', icon: '/assets/icons/blanks.png' },
-            { kind: 'match', label: 'Match', icon: '/assets/icons/match.png' },
-            { kind: 'audiotype', label: 'Audio Type', icon: '/assets/icons/audiotype.png' },
-        ]},
-        stats: { label: 'Stats', categoryDesc: 'Cards that show stats pulled from a linked card.', items: [
-            { kind: 'statcard', statKind: 'progress', label: 'Progress', icon: '/assets/icons/progress.png' },
-            { kind: 'statcard', statKind: 'accuracy', label: 'Accuracy', icon: '/assets/icons/accuracy.png' },
-        ]},
-    };
-    let currentAddTab = 'notes';
 
     // Shaped to match the eventual `marketplace_listings` table (creatorId
     // joins to `profiles`, price is metadata only for now — no real payments).
 
-    let userLibrary = {
-        purchased: [],
-        drafts: [],
-        published: [],
-        customFolders: []
-    };
 
     function kindLabel(kind) {
         if (kind === 'sentence') return 'Sentence';
@@ -59,7 +19,7 @@ import { toggleDrawFromMenu } from './srs-connections-core.js';
         // checklist cards on canvases keep working — this keeps their label correct everywhere
         // kindLabel is used, rather than falling through to the raw 'checklist' string below.
         if (kind === 'checklist') return 'Checklist';
-        for (const tab of Object.values(ADD_MENU_DATA)) {
+        for (const tab of Object.values(appState.ADD_MENU_DATA)) {
             const found = tab.items.find(i => i.kind === kind);
             if (found) return found.label;
         }
@@ -79,8 +39,8 @@ import { toggleDrawFromMenu } from './srs-connections-core.js';
     function searchKindLabel(it) {
         if (it.kind === 'title') return 'H' + (it.level || 1);
         if (it.kind === 'folder') return 'Canvas';
-        if (ADD_MENU_DATA.tools.items.some(i => i.kind === it.kind)) return 'Tool';
-        if (ADD_MENU_DATA.games.items.some(i => i.kind === it.kind)) return 'Game';
+        if (appState.ADD_MENU_DATA.tools.items.some(i => i.kind === it.kind)) return 'Tool';
+        if (appState.ADD_MENU_DATA.games.items.some(i => i.kind === it.kind)) return 'Game';
         return kindLabel(it.kind);
     }
     function kindSize(kind) {
@@ -105,7 +65,7 @@ import { toggleDrawFromMenu } from './srs-connections-core.js';
     }
 
     function switchAddTab(tab) {
-        currentAddTab = tab;
+        appState.currentAddTab = tab;
         document.querySelectorAll('#add-menu-tabs .add-tab').forEach(t => t.classList.toggle('active', t.dataset.tab === tab));
         renderAddMenuList();
     }
@@ -113,23 +73,22 @@ import { toggleDrawFromMenu } from './srs-connections-core.js';
     // filters block types BY NAME across every tab at once, rather than one tab at a time — the
     // pill itself never hides (no data-tab attribute, so #add-menu-tabs.searching's hiding rule
     // skips it), so clicking it again always toggles back out to the tabs.
-    let addMenuSearchQuery = '';
     function toggleAddMenuSearch() {
         appState.addMenuSearching = !appState.addMenuSearching;
         document.getElementById('add-menu-tabs').classList.toggle('searching', appState.addMenuSearching);
         document.getElementById('add-menu-search-btn').classList.toggle('active', appState.addMenuSearching);
         if (appState.addMenuSearching) {
-            addMenuSearchQuery = '';
+            appState.addMenuSearchQuery = '';
             const input = document.getElementById('add-menu-search-input');
             input.value = '';
             input.focus();
             renderAddMenuList();
         } else {
-            switchAddTab(currentAddTab); // restores whichever tab was active before searching (and re-renders)
+            switchAddTab(appState.currentAddTab); // restores whichever tab was active before searching (and re-renders)
         }
     }
     function handleAddMenuSearchInput(value) {
-        addMenuSearchQuery = value;
+        appState.addMenuSearchQuery = value;
         renderAddMenuList();
     }
     function renderAddMenuList() {
@@ -137,14 +96,14 @@ import { toggleDrawFromMenu } from './srs-connections-core.js';
         list.innerHTML = '';
         let items;
         if (appState.addMenuSearching) {
-            const query = addMenuSearchQuery.trim().toLowerCase();
+            const query = appState.addMenuSearchQuery.trim().toLowerCase();
             // Empty query shows nothing rather than every block type across all 5 tabs (21 items
             // wouldn't fit the fixed, non-scrolling 5-row list anyway — see #add-menu-list).
             items = query
-                ? Object.values(ADD_MENU_DATA).flatMap(tab => tab.items).filter(item => item.label.toLowerCase().includes(query))
+                ? Object.values(appState.ADD_MENU_DATA).flatMap(tab => tab.items).filter(item => item.label.toLowerCase().includes(query))
                 : [];
         } else {
-            items = ADD_MENU_DATA[currentAddTab].items;
+            items = appState.ADD_MENU_DATA[appState.currentAddTab].items;
         }
         items.forEach(item => {
             const row = buildAddMenuRow(item.icon, item.label);
@@ -175,4 +134,4 @@ import { toggleDrawFromMenu } from './srs-connections-core.js';
         prepareAdd('source');
     }
 
-export { currentAddTab, handleAddMenuSearchInput, kindLabel, kindSize, newSourceClicked, searchKindLabel, searchTypeLabel, switchAddTab, toggleAddMenuSearch, userLibrary };
+export { handleAddMenuSearchInput, kindLabel, kindSize, newSourceClicked, searchKindLabel, searchTypeLabel, switchAddTab, toggleAddMenuSearch };

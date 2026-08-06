@@ -2,41 +2,32 @@ import { escapeHtml } from './ai-assistant-suggestions.js';
 import { appState, supabase } from './core-state.js';
 import { initials } from './friends-presence.js';
 import { hmenuAction } from './hamburger-collab.js';
-import { closeAllPanels, panelPinned, pinOnInsideClick, scheduleHoverClose } from './panels-hamburger.js';
+import { closeAllPanels, pinOnInsideClick, scheduleHoverClose } from './panels-hamburger.js';
 import { pushNotification } from './stopwatch-search-notifications.js';
 
 
     // ---------- Profile Panel Controls ----------
-    const profileBtn = document.getElementById('btn-profile'), profilePanel = document.getElementById('profile-panel');
 
     // 20-tier / 9-sub-rank (180 total sub-level) progression system — canonical source is
     // lib/leveling.js (calculateUserLevel); duplicated here verbatim because this is a classic,
     // non-module script (see app/dotto-app.jsx) that can't import it. Keep the two in sync.
-    const LEVEL_NAMES = [
-        'Noob', 'Novice', 'Apprentice', 'Learner', 'Scholar', 'Seeker', 'Thinker', 'Strategist',
-        'Specialist', 'Expert', 'Master', 'Savant', 'Polymath', 'Brainiac', 'Prodigy', 'Intellect',
-        'Visionary', 'Titan', 'Archon', 'Omniscient',
-    ];
-    const SUB_RANKS_PER_TIER = 9;
-    const TOTAL_SUB_LEVELS = LEVEL_NAMES.length * SUB_RANKS_PER_TIER; // 180
-    const LEVEL_GROWTH_RATE = 1.045;
-    const LEVEL_BASE_POINTS = 100;
+ // 180
     function scoreRequiredForLevel(level) {
         if (level <= 1) return 0;
-        return Math.floor(LEVEL_BASE_POINTS * (Math.pow(LEVEL_GROWTH_RATE, level - 1) - 1) / (LEVEL_GROWTH_RATE - 1));
+        return Math.floor(appState.LEVEL_BASE_POINTS * (Math.pow(appState.LEVEL_GROWTH_RATE, level - 1) - 1) / (appState.LEVEL_GROWTH_RATE - 1));
     }
     function calculateUserLevel(score) {
         const totalScore = Math.max(0, Math.floor(score || 0));
         let absoluteLevel = 1;
-        for (let level = 2; level <= TOTAL_SUB_LEVELS; level++) {
+        for (let level = 2; level <= appState.TOTAL_SUB_LEVELS; level++) {
             if (totalScore >= scoreRequiredForLevel(level)) absoluteLevel = level;
             else break;
         }
-        const tierIndex = Math.floor((absoluteLevel - 1) / SUB_RANKS_PER_TIER);
-        const subRank = ((absoluteLevel - 1) % SUB_RANKS_PER_TIER) + 1;
-        const tierName = LEVEL_NAMES[tierIndex];
+        const tierIndex = Math.floor((absoluteLevel - 1) / appState.SUB_RANKS_PER_TIER);
+        const subRank = ((absoluteLevel - 1) % appState.SUB_RANKS_PER_TIER) + 1;
+        const tierName = appState.LEVEL_NAMES[tierIndex];
         const currentThreshold = scoreRequiredForLevel(absoluteLevel);
-        const isMaxLevel = absoluteLevel >= TOTAL_SUB_LEVELS;
+        const isMaxLevel = absoluteLevel >= appState.TOTAL_SUB_LEVELS;
         const nextThreshold = isMaxLevel ? currentThreshold : scoreRequiredForLevel(absoluteLevel + 1);
         const currentLevelScore = totalScore - currentThreshold;
         const nextLevelScore = nextThreshold - currentThreshold;
@@ -68,7 +59,7 @@ import { pushNotification } from './stopwatch-search-notifications.js';
     // per tier around the wheel (360/20 = 18°) keeps every tier visually distinct without hand
     // -picking 20 hex values, and automatically stays distinct if LEVEL_NAMES ever grows/shrinks.
     function levelTierColor(tierIndex) {
-        const hue = Math.round((tierIndex * 360) / LEVEL_NAMES.length);
+        const hue = Math.round((tierIndex * 360) / appState.LEVEL_NAMES.length);
         return `hsl(${hue}, 62%, 38%)`;
     }
     function renderProfileLevel() {
@@ -119,17 +110,6 @@ import { pushNotification } from './stopwatch-search-notifications.js';
     // supabase/migrations/20260730_add_achievements.sql) rather than one bespoke column/RPC per
     // achievement. statKey/threshold are client-defined constants passed straight to the RPC —
     // not security-sensitive, same trust level as awardUserPoints' p_points above.
-    const ACHIEVEMENTS = [
-        { id: 'first_block',      statKey: 'blocks_placed',    threshold: 1,     name: 'Place your first block',        spriteIndex: 1 },
-        { id: 'three_friends',    statKey: 'friends_added',    threshold: 3,     name: 'Add three friends',              spriteIndex: 2 },
-        { id: 'five_scheduled',   statKey: 'blocks_scheduled', threshold: 5,     name: 'Schedule five blocks',           spriteIndex: 3 },
-        { id: 'twenty_searches',  statKey: 'ai_searches',      threshold: 20,    name: 'Make twenty AI searches',        spriteIndex: 4 },
-        { id: 'fifty_links',      statKey: 'data_links',       threshold: 50,    name: 'Make fifty links in data mode',  spriteIndex: 5 },
-        { id: 'hundred_flips',    statKey: 'flashcard_flips',  threshold: 100,   name: 'Flip one hundred cards',         spriteIndex: 6 },
-        { id: 'master_250_words', statKey: 'words_mastered',   threshold: 250,   name: 'Master 250 words',               spriteIndex: 7 },
-        { id: 'day_in_platform',  statKey: 'platform_seconds', threshold: 86400, name: 'Spend 24 hours in the platform', spriteIndex: 8 },
-    ];
-    const unlockedAchievementIds = new Set(appState.currentUser.unlockedAchievementIds || []);
 
     // Bumps one achievement's stat counter and, if it just crossed its threshold, unlocks it: the
     // spritebook re-renders live and two notifications queue up in order — "Achievement unlocked!
@@ -143,8 +123,8 @@ import { pushNotification } from './stopwatch-search-notifications.js';
     // regressed).
     async function bumpAchievementStat(achievementId, delta = 1, absolute = false) {
         if (!supabase || !appState.currentUser.id) return;
-        if (unlockedAchievementIds.has(achievementId)) return; // already unlocked — stop paying for RPC calls
-        const def = ACHIEVEMENTS.find(a => a.id === achievementId);
+        if (appState.unlockedAchievementIds.has(achievementId)) return; // already unlocked — stop paying for RPC calls
+        const def = appState.ACHIEVEMENTS.find(a => a.id === achievementId);
         if (!def) return;
         const { data, error } = await supabase.rpc('bump_achievement_stat', {
             p_user_id: appState.currentUser.id, p_stat_key: def.statKey, p_achievement_id: def.id,
@@ -153,9 +133,9 @@ import { pushNotification } from './stopwatch-search-notifications.js';
         if (error) { console.error('[achievements] bump_achievement_stat failed:', error); return; }
         const row = Array.isArray(data) ? data[0] : data;
         if (row && row.newly_unlocked) {
-            unlockedAchievementIds.add(def.id);
+            appState.unlockedAchievementIds.add(def.id);
             const grid = document.getElementById('profile-sprite-grid');
-            if (grid) renderSpriteGrid(grid, SPRITE_TOTAL_COUNT);
+            if (grid) renderSpriteGrid(grid, appState.SPRITE_TOTAL_COUNT);
             pushNotification({ type: 'achievement_unlock', message: `Achievement unlocked! (${def.name})` });
             pushNotification({ type: 'achievement_unlock', message: `Sprite ${def.spriteIndex} will spawn soon` });
         }
@@ -169,15 +149,14 @@ import { pushNotification } from './stopwatch-search-notifications.js';
     // broken-image icon. Always renders the full set (no separate compact/expanded view) — the
     // block itself just grows to fill the panel and scrolls internally (see
     // #profile-spritebook-block/positionProfilePanel).
-    const SPRITE_TOTAL_COUNT = 108;
     function renderSpriteGrid(container, count) {
         container.innerHTML = '';
         for (let i = 1; i <= count; i++) {
             const cell = document.createElement('div');
             cell.className = 'profile-sprite-cell';
             const img = document.createElement('img');
-            img.src = i > ACHIEVEMENTS.length ? '/sprites/unknown-sprite.png'
-                : unlockedAchievementIds.has(ACHIEVEMENTS[i - 1].id) ? `/sprites/sprite-${i}.png` : `/sprites/sprite-${i}-locked.png`;
+            img.src = i > appState.ACHIEVEMENTS.length ? '/sprites/unknown-sprite.png'
+                : appState.unlockedAchievementIds.has(appState.ACHIEVEMENTS[i - 1].id) ? `/sprites/sprite-${i}.png` : `/sprites/sprite-${i}-locked.png`;
             img.alt = '';
             img.onerror = () => img.remove();
             cell.appendChild(img);
@@ -191,38 +170,38 @@ import { pushNotification } from './stopwatch-search-notifications.js';
     setInterval(() => {
         if (document.visibilityState === 'visible') bumpAchievementStat('day_in_platform', 60);
     }, 60000);
-    renderSpriteGrid(document.getElementById('profile-sprite-grid'), SPRITE_TOTAL_COUNT);
-    function closeProfilePanel() { profilePanel.classList.remove('open'); profileBtn.classList.remove('active'); panelPinned.profile = false; }
+    renderSpriteGrid(document.getElementById('profile-sprite-grid'), appState.SPRITE_TOTAL_COUNT);
+    function closeProfilePanel() { appState.profilePanel.classList.remove('open'); appState.profileBtn.classList.remove('active'); appState.panelPinned.profile = false; }
     // Panel height is set explicitly (not just left to CSS) so #profile-spritebook-block's
     // flex:1 has an actual constrained container to grow into and scroll within, filling from
     // the button down to a fixed margin above the bottom of the viewport — same margin
     // convention as #hamburger-stack.
     function positionProfilePanel() {
-        const rect = profileBtn.getBoundingClientRect();
+        const rect = appState.profileBtn.getBoundingClientRect();
         const top = rect.bottom + 10;
-        profilePanel.style.top = top + 'px';
+        appState.profilePanel.style.top = top + 'px';
         const panelWidth = 240;
         let leftPos = rect.right - panelWidth;
         if (leftPos < 20) leftPos = 20;
-        profilePanel.style.left = leftPos + 'px';
-        profilePanel.style.right = 'auto';
-        profilePanel.style.height = (window.innerHeight - top - 20) + 'px';
+        appState.profilePanel.style.left = leftPos + 'px';
+        appState.profilePanel.style.right = 'auto';
+        appState.profilePanel.style.height = (window.innerHeight - top - 20) + 'px';
     }
     // Keeps the panel's explicit height (see positionProfilePanel) matching the viewport if the
     // window is resized while it's open — otherwise it'd be stuck at whatever height was current
     // at open time.
-    window.addEventListener('resize', () => { if (profilePanel.classList.contains('open')) positionProfilePanel(); });
+    window.addEventListener('resize', () => { if (appState.profilePanel.classList.contains('open')) positionProfilePanel(); });
     function openProfilePanel(pin) {
         closeAllPanels('profile');
-        profilePanel.classList.add('open');
-        profileBtn.classList.add('active');
+        appState.profilePanel.classList.add('open');
+        appState.profileBtn.classList.add('active');
         positionProfilePanel();
         refreshDotbotUsage();
         // Always start at the top of the sprite grid, not wherever it happened to be scrolled to
         // last time the panel was open.
         const sbScroll = document.getElementById('profile-spritebook-scroll');
         if (sbScroll) sbScroll.scrollTop = 0;
-        if (pin) panelPinned.profile = true;
+        if (pin) appState.panelPinned.profile = true;
     }
 
     function ordinalSuffix(n) {
@@ -237,7 +216,6 @@ import { pushNotification } from './stopwatch-search-notifications.js';
     // Total cards across every canvas the user has, regardless of which one is currently open —
     // a pure client-side count (no new column), since the whole workspace is already loaded in
     // memory. Never resets; the only way down is deleting cards (or, eventually, upgrading).
-    const BLOCKS_CAP = 100;
     function totalBlocksUsed() {
         return Object.values(appState.folders).reduce((sum, f) => sum + (f.items ? f.items.length : 0), 0);
     }
@@ -249,7 +227,6 @@ import { pushNotification } from './stopwatch-search-notifications.js';
     // Same "warn once per cycle" pattern as dotbotUpgradePromptedForFullness above — reset back
     // to false once the credits actually reset (searchExpired/genExpired below), so the next
     // cycle can warn again.
-    let searchUsageWarned = false, genUsageWarned = false;
     function setUsageFillWidth(id, pct) {
         const el = document.getElementById(id);
         if (el) el.style.width = Math.max(0, Math.min(100, pct)) + '%';
@@ -295,9 +272,9 @@ import { pushNotification } from './stopwatch-search-notifications.js';
         setUsageFillWidth('profile-usage-search-fill', searchUsedPct);
         const nextSearchReset = new Date((searchExpired ? Date.now() : searchResetAt.getTime()) + sixHoursMs);
         document.getElementById('profile-usage-search-tooltip').textContent = `Resets at ${formatResetTime(nextSearchReset)}`;
-        if (searchExpired) searchUsageWarned = false;
-        if (!searchUsageWarned && searchUsedPct >= 75) {
-            searchUsageWarned = true;
+        if (searchExpired) appState.searchUsageWarned = false;
+        if (!appState.searchUsageWarned && searchUsedPct >= 75) {
+            appState.searchUsageWarned = true;
             pushNotification({ type: 'usage_update', message: `75% of your search limit used. Resets at ${formatResetTime(nextSearchReset)}`, actionLabel: 'Upgrade', onAction: openDotbotUpgradeModal });
         }
 
@@ -309,15 +286,15 @@ import { pushNotification } from './stopwatch-search-notifications.js';
         setUsageFillWidth('profile-usage-generation-fill', genUsedPct);
         const nextGenReset = new Date((genExpired ? Date.now() : genResetAt.getTime()) + monthMs);
         document.getElementById('profile-usage-generation-tooltip').textContent = `Resets ${formatResetDate(nextGenReset)}`;
-        if (genExpired) genUsageWarned = false;
-        if (!genUsageWarned && genUsedPct >= 75) {
-            genUsageWarned = true;
+        if (genExpired) appState.genUsageWarned = false;
+        if (!appState.genUsageWarned && genUsedPct >= 75) {
+            appState.genUsageWarned = true;
             pushNotification({ type: 'usage_update', message: `75% of your generation limit used. Resets ${formatResetDate(nextGenReset)}`, actionLabel: 'Upgrade', onAction: openDotbotUpgradeModal });
         }
 
         const blocksUsed = totalBlocksUsed();
-        setUsageFillWidth('profile-usage-blocks-fill', (blocksUsed / BLOCKS_CAP) * 100);
-        document.getElementById('profile-usage-blocks-tooltip').textContent = `${blocksUsed}/${BLOCKS_CAP}`;
+        setUsageFillWidth('profile-usage-blocks-fill', (blocksUsed / appState.BLOCKS_CAP) * 100);
+        document.getElementById('profile-usage-blocks-tooltip').textContent = `${blocksUsed}/${appState.BLOCKS_CAP}`;
 
         if (searchRemaining <= 0) {
             if (!appState.dotbotUpgradePromptedForFullness) { appState.dotbotUpgradePromptedForFullness = true; openDotbotUpgradeModal(); }
@@ -334,31 +311,17 @@ import { pushNotification } from './stopwatch-search-notifications.js';
     // (see the ad notification setup further down). Placeholder prices/taglines/features — no
     // real billing/subscription system exists in this codebase yet, so the paid CTAs surface a
     // "coming soon" notification instead of pretending to start a real checkout.
-    const PRICING_PLANS = [
-        { id: 'free', name: 'Free', price: '$0', period: '/mo', tagline: 'Get started with the basics.', cta: 'Current Plan', current: true },
-        { id: 'pro', name: 'Pro', price: '$9', period: '/mo', tagline: 'For learners leveling up fast.', cta: 'Upgrade to Pro', featured: true },
-        { id: 'polyglot', name: 'Polyglot', price: '$19', period: '/mo', tagline: 'Go all in on every language.', cta: 'Upgrade to Polyglot' },
-    ];
     // Each row's `values` is [free, pro, polyglot] — same index lines up across all three cards.
     // A falsy value means that plan doesn't get this feature; it's still shown (greyed, with a
     // dash) using whichever plan's value is truthy, so the row reads the same across all 3 cards.
-    const PRICING_FEATURE_ROWS = [
-        { values: ['100 canvas blocks', '500 canvas blocks', 'Unlimited canvas blocks'] },
-        { values: ['30 Dotbot searches / 6h', '150 Dotbot searches / 6h', 'Unlimited Dotbot searches'] },
-        { values: ['100 Dotbot generations / mo', '500 Dotbot generations / mo', 'Unlimited Dotbot generations'] },
-        { values: ['Unlimited canvases & waypoints', 'Unlimited canvases & waypoints', 'Unlimited canvases & waypoints'] },
-        { values: ['Friends & collaboration', 'Friends & collaboration', 'Friends & collaboration'] },
-        { values: [null, 'Priority support', 'Priority support'] },
-        { values: [null, null, 'Early access to new features'] },
-    ];
     function renderPricingOverlay() {
         const container = document.getElementById('pricing-cards');
         if (!container) return;
         container.innerHTML = '';
-        PRICING_PLANS.forEach((plan, i) => {
+        appState.PRICING_PLANS.forEach((plan, i) => {
             const card = document.createElement('div');
             card.className = 'pricing-card' + (plan.featured ? ' pricing-card-featured' : '');
-            const featuresHtml = PRICING_FEATURE_ROWS.map(row => {
+            const featuresHtml = appState.PRICING_FEATURE_ROWS.map(row => {
                 const value = row.values[i];
                 const label = value || row.values.find(Boolean);
                 const excluded = !value;
@@ -391,7 +354,7 @@ import { pushNotification } from './stopwatch-search-notifications.js';
         closePricingOverlay();
         pushNotification({ type: 'upgrade_unavailable', message: "Upgrades aren't available yet — check back soon!" }); // no buttons, auto-dismisses
     }
-    profileBtn.addEventListener('click', (e) => {
+    appState.profileBtn.addEventListener('click', (e) => {
         e.stopPropagation();
         // Once the button is showing the power icon (:hover only — see the CSS swap, which is
         // deliberately not also tied to .active/panel-open), clicking it logs out instead of
@@ -399,12 +362,12 @@ import { pushNotification } from './stopwatch-search-notifications.js';
         // only land while the cursor is over the button, so :hover is already true in normal
         // use; the toggle-panel branch mainly exists so a keyboard-only "click" (Enter with no
         // prior hover) opens the panel on its first activation rather than logging out blind.
-        if (profileBtn.matches(':hover')) { hmenuAction('logout'); }
+        if (appState.profileBtn.matches(':hover')) { hmenuAction('logout'); }
         else { openProfilePanel(true); }
     });
-    profileBtn.addEventListener('mouseenter', () => { if (!profilePanel.classList.contains('open')) openProfilePanel(false); });
-    profileBtn.addEventListener('mouseleave', () => scheduleHoverClose('profile', [profileBtn, profilePanel], closeProfilePanel));
-    profilePanel.addEventListener('mouseleave', () => scheduleHoverClose('profile', [profileBtn, profilePanel], closeProfilePanel));
-    pinOnInsideClick('profile', [profilePanel]);
+    appState.profileBtn.addEventListener('mouseenter', () => { if (!appState.profilePanel.classList.contains('open')) openProfilePanel(false); });
+    appState.profileBtn.addEventListener('mouseleave', () => scheduleHoverClose('profile', [appState.profileBtn, appState.profilePanel], closeProfilePanel));
+    appState.profilePanel.addEventListener('mouseleave', () => scheduleHoverClose('profile', [appState.profileBtn, appState.profilePanel], closeProfilePanel));
+    pinOnInsideClick('profile', [appState.profilePanel]);
 
-export { awardUserPoints, bumpAchievementStat, closeDotbotUpgradeModal, closePricingOverlay, closeProfilePanel, openDotbotUpgradeModal, openPricingOverlay, profilePanel, refreshDotbotUsage, renderAvatarInto };
+export { awardUserPoints, bumpAchievementStat, closeDotbotUpgradeModal, closePricingOverlay, closeProfilePanel, openDotbotUpgradeModal, openPricingOverlay, refreshDotbotUsage, renderAvatarInto };

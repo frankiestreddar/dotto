@@ -3,7 +3,7 @@ import { addMenu, appState, drawSettings, supabase } from './core-state.js';
 import { initials, openCollabPanel, renderCollabPill } from './friends-presence.js';
 import { saveWorkspaceNow, smoothPanTo } from './history-autosave.js';
 import { flashCanvasElement } from './mnemonic-search-matching.js';
-import { closeHamburgerMenu, hubCollabSearchInput } from './panels-hamburger.js';
+import { closeHamburgerMenu } from './panels-hamburger.js';
 import { closeProfilePanel, openPricingOverlay, renderAvatarInto } from './profile-achievements-pricing.js';
 import { announceEnteredCollaboration, ensureSharedFolderLoaded, openSharedCanvas, outlineIcon, sharedFolderKey } from './shared-canvases-outline.js';
 import { pushNotification } from './stopwatch-search-notifications.js';
@@ -16,15 +16,14 @@ import { deleteCanvasCollabsForFolder, expandWaypointCard, openFolder, render } 
     // openSharedCanvas) and the Requests view (every pending invite, Accept/Decline each) —
     // swapped via hubCollabView rather than a separate hub-subpanel, since it's a drill-down
     // within Collaborations, not a distinct top-level hamburger menu item.
-    let incomingCanvasRequests = []; // [{id, folderId, folderTitle, ownerId, ownerName}]
-    let acceptedCanvasCollaborations = []; // [{id, folderId, folderTitle, ownerId, ownerName, ownerAvatarId, ownerAvatarUrl}] — shared WITH this user
-    let ownedCanvasCollaborations = []; // [{folderId, folderTitle, collaborators:[{id,username,displayName,avatarId,avatarUrl}]}] — shared BY this user
+ // [{id, folderId, folderTitle, ownerId, ownerName}]
+ // [{id, folderId, folderTitle, ownerId, ownerName, ownerAvatarId, ownerAvatarUrl}] — shared WITH this user
+ // [{folderId, folderTitle, collaborators:[{id,username,displayName,avatarId,avatarUrl}]}] — shared BY this user
     // Same baseline-then-diff pattern as seenIncomingFriendRequestIds — null until the first
     // refresh (baseline, no notifications), every run after that notifies for any request id
     // that wasn't in the set yet.
-    let seenIncomingCanvasRequestIds = null;
     async function refreshCanvasCollabData() {
-        if (!supabase || !appState.currentUser.id) { incomingCanvasRequests = []; acceptedCanvasCollaborations = []; ownedCanvasCollaborations = []; return; }
+        if (!supabase || !appState.currentUser.id) { appState.incomingCanvasRequests = []; appState.acceptedCanvasCollaborations = []; appState.ownedCanvasCollaborations = []; return; }
         const [sharedWithMeRes, ownedRes] = await Promise.all([
             supabase.from('canvas_collaborations')
                 .select('id, folder_id, folder_title, status, owner:profiles!canvas_collaborations_owner_id_fkey(id, username, display_name, avatar_id, avatar_url)')
@@ -43,14 +42,14 @@ import { deleteCanvasCollabsForFolder, expandWaypointCard, openFolder, render } 
             ownerId: r.owner.id, ownerName: r.owner.display_name || r.owner.username,
             ownerAvatarId: r.owner.avatar_id ?? 0, ownerAvatarUrl: r.owner.avatar_url || null, status: r.status,
         }));
-        incomingCanvasRequests = rows.filter(r => r.status === 'pending');
-        acceptedCanvasCollaborations = rows.filter(r => r.status === 'accepted');
-        if (seenIncomingCanvasRequestIds === null) {
-            seenIncomingCanvasRequestIds = new Set(incomingCanvasRequests.map(r => r.id));
+        appState.incomingCanvasRequests = rows.filter(r => r.status === 'pending');
+        appState.acceptedCanvasCollaborations = rows.filter(r => r.status === 'accepted');
+        if (appState.seenIncomingCanvasRequestIds === null) {
+            appState.seenIncomingCanvasRequestIds = new Set(appState.incomingCanvasRequests.map(r => r.id));
         } else {
-            incomingCanvasRequests.forEach(r => {
-                if (seenIncomingCanvasRequestIds.has(r.id)) return;
-                seenIncomingCanvasRequestIds.add(r.id);
+            appState.incomingCanvasRequests.forEach(r => {
+                if (appState.seenIncomingCanvasRequestIds.has(r.id)) return;
+                appState.seenIncomingCanvasRequestIds.add(r.id);
                 pushNotification({
                     type: 'collab_request',
                     message: `${r.ownerName} invited you to collaborate on "${r.folderTitle}"`,
@@ -72,7 +71,7 @@ import { deleteCanvasCollabsForFolder, expandWaypointCard, openFolder, render } 
                 avatarId: r.collaborator.avatar_id ?? 0, avatarUrl: r.collaborator.avatar_url || null,
             });
         });
-        ownedCanvasCollaborations = Array.from(byFolder.values());
+        appState.ownedCanvasCollaborations = Array.from(byFolder.values());
     }
     async function respondToCanvasCollabRequest(id, accept) {
         if (!supabase) return;
@@ -89,10 +88,10 @@ import { deleteCanvasCollabsForFolder, expandWaypointCard, openFolder, render } 
         const list = document.getElementById('hub-collab-list');
         list.innerHTML = '';
 
-        if (incomingCanvasRequests.length) {
+        if (appState.incomingCanvasRequests.length) {
             const reqRow = document.createElement('div');
             reqRow.className = 'outline-item requests-row';
-            reqRow.innerHTML = `<span class="outline-label">Requests</span><span class="requests-count">${incomingCanvasRequests.length}</span>`;
+            reqRow.innerHTML = `<span class="outline-label">Requests</span><span class="requests-count">${appState.incomingCanvasRequests.length}</span>`;
             reqRow.onclick = (e) => { e.stopPropagation(); appState.hubCollabView = 'requests'; renderHubCollabRequests(); };
             list.appendChild(reqRow);
         }
@@ -104,7 +103,7 @@ import { deleteCanvasCollabsForFolder, expandWaypointCard, openFolder, render } 
         // COMPLETE tree, loaded in full up front (see loadWorkspace), so absence here reliably means
         // "no longer exists," no extra round trip needed. Opportunistically retries the cleanup for
         // any match found, since we're the owner and can actually fix it from here.
-        const ownedCandidates = ownedCanvasCollaborations.filter(c => !q || c.folderTitle.toLowerCase().includes(q));
+        const ownedCandidates = appState.ownedCanvasCollaborations.filter(c => !q || c.folderTitle.toLowerCase().includes(q));
         const ownedShown = ownedCandidates.filter(c => {
             if (appState.folders[c.folderId]) return true;
             deleteCanvasCollabsForFolder(c.folderId);
@@ -118,7 +117,7 @@ import { deleteCanvasCollabsForFolder, expandWaypointCard, openFolder, render } 
         // update didn't land" in one check. A collaborator has no permission to delete the owner's
         // row themselves (see canvas_collaborations' RLS), so this only filters the display here;
         // the owner's own next panel render is what actually cleans up their row.
-        const sharedCandidates = acceptedCanvasCollaborations.filter(c => !q || c.folderTitle.toLowerCase().includes(q));
+        const sharedCandidates = appState.acceptedCanvasCollaborations.filter(c => !q || c.folderTitle.toLowerCase().includes(q));
         const sharedStillExists = await Promise.all(sharedCandidates.map(async (c) => {
             if (appState.folders[sharedFolderKey(c.ownerId, c.folderId)]) return true; // already loaded locally this session
             const { data, error } = await supabase.rpc('get_shared_folder', { p_owner_id: c.ownerId, p_folder_id: c.folderId });
@@ -200,17 +199,17 @@ import { deleteCanvasCollabsForFolder, expandWaypointCard, openFolder, render } 
         const backRow = document.createElement('div');
         backRow.className = 'requests-back-row';
         backRow.innerHTML = `<span>&larr;</span><span>Requests</span>`;
-        backRow.onclick = (e) => { e.stopPropagation(); appState.hubCollabView = 'main'; renderHubCollabList(hubCollabSearchInput.value); };
+        backRow.onclick = (e) => { e.stopPropagation(); appState.hubCollabView = 'main'; renderHubCollabList(appState.hubCollabSearchInput.value); };
         list.appendChild(backRow);
 
-        if (!incomingCanvasRequests.length) {
+        if (!appState.incomingCanvasRequests.length) {
             const empty = document.createElement('div');
             empty.className = 'outline-empty';
             empty.textContent = 'No pending requests.';
             list.appendChild(empty);
             return;
         }
-        incomingCanvasRequests.forEach(req => {
+        appState.incomingCanvasRequests.forEach(req => {
             const row = document.createElement('div');
             row.className = 'msg-add-row';
             row.innerHTML = `<div class="msg-chat-meta"><div class="msg-chat-name">${escapeHtml(req.folderTitle)}</div><div class="collab-row-sub">from ${escapeHtml(req.ownerName)}</div></div>

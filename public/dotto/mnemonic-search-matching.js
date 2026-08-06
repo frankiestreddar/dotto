@@ -1,12 +1,12 @@
 import { searchTypeLabel } from './add-menu.js';
-import { applyAlignHighlightToggle, buildAlignedSentenceEls, clearSearch, dotbotAlignHighlightOn, dotbotErrorMessage, dotbotSuggestAbortController, dotbotSuggestDebounceTimer, escapeHtml, getItemSearchText, isLatinScriptText, setupDotbotResultDrag, speakerIconHTML, stripHtml, typewriterReveal, updateSearchDropdown } from './ai-assistant-suggestions.js';
+import { applyAlignHighlightToggle, buildAlignedSentenceEls, clearSearch, dotbotErrorMessage, escapeHtml, getItemSearchText, isLatinScriptText, setupDotbotResultDrag, speakerIconHTML, stripHtml, typewriterReveal, updateSearchDropdown } from './ai-assistant-suggestions.js';
 import { appState, canvas } from './core-state.js';
 import { saveSnapshot, smoothPanTo } from './history-autosave.js';
 import { findItemById } from './live-presence.js';
 import { openDotbotUpgradeModal, refreshDotbotUsage } from './profile-achievements-pricing.js';
 import { commenceDotbotSearch } from './search-orchestration-selection.js';
 import { kindIconHTML } from './shared-canvases-outline.js';
-import { autoGrowSearchInput, searchDictionary, searchDotbotAnswer, searchExamples, searchImageResult, searchInput, searchInputWrap, searchRecommended, searchResults, searchSuggestions, searchTranslation } from './stopwatch-search-notifications.js';
+import { autoGrowSearchInput } from './stopwatch-search-notifications.js';
 import { expandWaypointCard, render } from './waypoints-render-loop.js';
 
 
@@ -17,9 +17,8 @@ import { expandWaypointCard, render } from './waypoints-render-loop.js';
     // importMnemonicPairAtScreenPoint. Whichever templates exist here at drop time get placed;
     // reset to {text:null,image:null} at the start of every new mnemonic (renderMnemonicLoading/
     // renderOwnMnemonicThenImage) so a stale pairing from a previous word never leaks in.
-    let dotbotMnemonicPair = { text: null, image: null };
     function importMnemonicPairAtScreenPoint(clientX, clientY) {
-        const pair = dotbotMnemonicPair;
+        const pair = appState.dotbotMnemonicPair;
         if (!pair.text && !pair.image) return;
         saveSnapshot();
         const rect = canvas.getBoundingClientRect();
@@ -44,18 +43,18 @@ import { expandWaypointCard, render } from './waypoints-render-loop.js';
     }
     function renderMnemonicResultCard(content, options) {
         options = options || {};
-        searchSuggestions.innerHTML = '';
+        appState.searchSuggestions.innerHTML = '';
         const card = document.createElement('div');
         card.className = 'search-suggestion-item dotbot-result-card';
-        searchSuggestions.appendChild(card);
+        appState.searchSuggestions.appendChild(card);
         function finish() {
             if (options.canvasItem) {
-                dotbotMnemonicPair.text = options.canvasItem;
+                appState.dotbotMnemonicPair.text = options.canvasItem;
                 setupDotbotResultDrag(card, options.canvasItem, { onDrop: importMnemonicPairAtScreenPoint });
             }
             updateSearchDropdown();
         }
-        searchSuggestions.style.display = 'block';
+        appState.searchSuggestions.style.display = 'block';
         updateSearchDropdown();
         if (content.typeText !== undefined) typewriterReveal(card, content.typeText, finish);
         else { card.innerHTML = content.html; finish(); }
@@ -66,12 +65,10 @@ import { expandWaypointCard, render } from './waypoints-render-loop.js';
     // terminal cursor does. One timer per active loading element (keyed by the element itself)
     // so more than one panel (story + image) can run this at once without stepping on each
     // other, and each stops cleanly the moment its own element is replaced/removed.
-    const TYPEWRITER_LOADING_WORDS = ['Thinking', 'Consulting', 'Reasoning', 'Picturing', 'Composing', 'Imagining'];
-    const typewriterLoadingTimers = new WeakMap();
     function stopTypewriterLoading(el) {
-        const timer = typewriterLoadingTimers.get(el);
+        const timer = appState.typewriterLoadingTimers.get(el);
         if (timer) clearTimeout(timer);
-        typewriterLoadingTimers.delete(el);
+        appState.typewriterLoadingTimers.delete(el);
     }
     function startTypewriterLoading(el) {
         el.innerHTML = `<span class="typewriter-loading-text"></span><span class="typewriter-loading-cursor"></span>`;
@@ -79,7 +76,7 @@ import { expandWaypointCard, render } from './waypoints-render-loop.js';
         let wordIndex = 0, charIndex = 0, deleting = false;
         const step = () => {
             if (!el.isConnected) { stopTypewriterLoading(el); return; }
-            const word = TYPEWRITER_LOADING_WORDS[wordIndex] + '...';
+            const word = appState.TYPEWRITER_LOADING_WORDS[wordIndex] + '...';
             let delay;
             if (!deleting) {
                 charIndex++;
@@ -89,30 +86,30 @@ import { expandWaypointCard, render } from './waypoints-render-loop.js';
             } else {
                 charIndex--;
                 textEl.textContent = word.slice(0, charIndex);
-                if (charIndex <= 0) { deleting = false; wordIndex = (wordIndex + 1) % TYPEWRITER_LOADING_WORDS.length; delay = 300; }
+                if (charIndex <= 0) { deleting = false; wordIndex = (wordIndex + 1) % appState.TYPEWRITER_LOADING_WORDS.length; delay = 300; }
                 else delay = 30;
             }
-            typewriterLoadingTimers.set(el, setTimeout(step, delay));
+            appState.typewriterLoadingTimers.set(el, setTimeout(step, delay));
         };
         step();
     }
     function renderMnemonicLoading() {
-        dotbotMnemonicPair = { text: null, image: null };
-        searchSuggestions.innerHTML = '';
+        appState.dotbotMnemonicPair = { text: null, image: null };
+        appState.searchSuggestions.innerHTML = '';
         const loading = document.createElement('div');
         loading.className = 'search-suggestion-item typewriter-loading';
-        searchSuggestions.appendChild(loading);
+        appState.searchSuggestions.appendChild(loading);
         startTypewriterLoading(loading);
-        searchSuggestions.style.display = 'block';
+        appState.searchSuggestions.style.display = 'block';
         updateSearchDropdown();
     }
     function renderMnemonicError(reason) {
-        searchSuggestions.innerHTML = '';
+        appState.searchSuggestions.innerHTML = '';
         const errEl = document.createElement('div');
         errEl.className = 'search-suggestion-item';
         errEl.textContent = dotbotErrorMessage(reason);
-        searchSuggestions.appendChild(errEl);
-        searchSuggestions.style.display = 'block';
+        appState.searchSuggestions.appendChild(errEl);
+        appState.searchSuggestions.style.display = 'block';
         updateSearchDropdown();
         if (reason === 'no_credits') { appState.dotbotUpgradePromptedForFullness = true; openDotbotUpgradeModal(); }
     }
@@ -123,37 +120,37 @@ import { expandWaypointCard, render } from './waypoints-render-loop.js';
     // setupDotbotResultDrag — and, via its cellImageHtml, straight into a source page's table
     // cell too.
     function renderImageResultLoading() {
-        if (!searchImageResult) return;
-        searchImageResult.innerHTML = '';
+        if (!appState.searchImageResult) return;
+        appState.searchImageResult.innerHTML = '';
         const loading = document.createElement('div');
         loading.className = 'search-suggestion-item search-image-loading typewriter-loading';
-        searchImageResult.appendChild(loading);
+        appState.searchImageResult.appendChild(loading);
         startTypewriterLoading(loading);
-        searchImageResult.style.display = 'block';
+        appState.searchImageResult.style.display = 'block';
         updateSearchDropdown();
     }
     function renderImageResultError(reason) {
-        if (!searchImageResult) return;
-        searchImageResult.innerHTML = `<div class="search-suggestion-item search-image-loading">${escapeHtml(dotbotErrorMessage(reason))}</div>`;
-        searchImageResult.style.display = 'block';
+        if (!appState.searchImageResult) return;
+        appState.searchImageResult.innerHTML = `<div class="search-suggestion-item search-image-loading">${escapeHtml(dotbotErrorMessage(reason))}</div>`;
+        appState.searchImageResult.style.display = 'block';
         updateSearchDropdown();
         if (reason === 'no_credits') { appState.dotbotUpgradePromptedForFullness = true; openDotbotUpgradeModal(); }
     }
     function renderImageResultPanel(imageDataUrl) {
-        if (!searchImageResult) return;
-        searchImageResult.innerHTML = '';
+        if (!appState.searchImageResult) return;
+        appState.searchImageResult.innerHTML = '';
         const card = document.createElement('div');
         card.className = 'search-suggestion-item dotbot-result-card search-image-result-card';
         card.innerHTML = `<img src="${imageDataUrl}" alt="" style="max-width:100%;border-radius:8px;display:block;">`;
-        searchImageResult.appendChild(card);
-        searchImageResult.style.display = 'block';
+        appState.searchImageResult.appendChild(card);
+        appState.searchImageResult.style.display = 'block';
         // 448x252 = exactly 16:9 (both are *28, matching the canvas's own placement grid) — the
         // generated image is 16:9 too (see app/api/dotbot/image/route.js), so this box shows it
         // in full rather than the old square box cropping a widescreen image down to a square.
-        dotbotMnemonicPair.image = { w: 448, h: 252, html: `<img src="${imageDataUrl}" style="max-width:100%;height:100%;object-fit:cover;border-radius:8px;">` };
+        appState.dotbotMnemonicPair.image = { w: 448, h: 252, html: `<img src="${imageDataUrl}" style="max-width:100%;height:100%;object-fit:cover;border-radius:8px;">` };
         setupDotbotResultDrag(
             card,
-            dotbotMnemonicPair.image,
+            appState.dotbotMnemonicPair.image,
             { cellImageHtml: `<img class="cell-media-img" src="${imageDataUrl}">`, onDrop: importMnemonicPairAtScreenPoint }
         );
         updateSearchDropdown();
@@ -181,7 +178,7 @@ import { expandWaypointCard, render } from './waypoints-render-loop.js';
     // text card above the image (every mnemonic path must show text then image, no exceptions —
     // see commenceSearchOrMnemonic) rather than jumping straight to the image alone.
     function renderOwnMnemonicThenImage(mnemonicText) {
-        dotbotMnemonicPair = { text: null, image: null };
+        appState.dotbotMnemonicPair = { text: null, image: null };
         renderMnemonicResultCard({ typeText: mnemonicText }, { canvasItem: { w: 260, h: 160, html: mnemonicText } });
         generateMnemonicImage(mnemonicText);
     }
@@ -240,14 +237,14 @@ import { expandWaypointCard, render } from './waypoints-render-loop.js';
     // handleSearchFocus) hands off to the real loading state, since this is the one place every
     // submission path passes through.
     function commenceSearchOrMnemonic(query) {
-        searchInputWrap.classList.remove('idle-pulsing');
+        appState.searchInputWrap.classList.remove('idle-pulsing');
         // Cancel any live-suggestion fetch still in flight from typing, and mark every response
         // from before this point as stale (see scheduleLiveSuggestions) — otherwise a suggestions
         // list that was already loading can land right as/after this submit and overwrite the
         // "thinking..." loading state it's about to show.
         appState.dotbotSearchGeneration++;
-        clearTimeout(dotbotSuggestDebounceTimer);
-        if (dotbotSuggestAbortController) dotbotSuggestAbortController.abort();
+        clearTimeout(appState.dotbotSuggestDebounceTimer);
+        if (appState.dotbotSuggestAbortController) appState.dotbotSuggestAbortController.abort();
         const intent = parseMnemonicIntent(query);
         if (intent && intent.type === 'generate') { generateMnemonicStoryAndImage(intent.word); return; }
         if (intent && intent.type === 'own') { renderOwnMnemonicThenImage(intent.mnemonicText); return; }
@@ -327,14 +324,14 @@ import { expandWaypointCard, render } from './waypoints-render-loop.js';
         return div;
     }
     function renderCanvasResultsPanel(matches, isSourceFolder) {
-        searchResults.innerHTML = '';
-        if (!matches.length) { searchResults.style.display = 'none'; appState.searchActiveIndex = -1; return; }
+        appState.searchResults.innerHTML = '';
+        if (!matches.length) { appState.searchResults.style.display = 'none'; appState.searchActiveIndex = -1; return; }
         matches.forEach((m, i) => {
             const div = renderMatchRow(m, isSourceFolder, i);
             div.dataset.index = i;
-            searchResults.appendChild(div);
+            appState.searchResults.appendChild(div);
         });
-        searchResults.style.display = 'block';
+        appState.searchResults.style.display = 'block';
         appState.searchActiveIndex = -1;
     }
     function goToCanvasItem(id) {
@@ -380,12 +377,11 @@ import { expandWaypointCard, render } from './waypoints-render-loop.js';
     // browser's own speechSynthesis: voice quality/availability varied wildly across machines,
     // whereas Edge TTS gives every user the same real neural voice regardless of what's installed
     // locally, and entry.language (a BCP-47 code from the AI) picks a matching voice server-side.
-    let currentTtsAudio = null;
     // Shared by every TTS button in the AI results (dictionary headword, dictionary/examples
     // sentences) — speakDictionaryWord below is now a thin wrapper over this.
     async function speakText(text, language, btnEl) {
         if (!text || !text.trim()) return;
-        if (currentTtsAudio) { currentTtsAudio.pause(); currentTtsAudio = null; } // stop any previous playback first
+        if (appState.currentTtsAudio) { appState.currentTtsAudio.pause(); appState.currentTtsAudio = null; } // stop any previous playback first
         if (btnEl) btnEl.classList.add('loading');
         try {
             const res = await fetch('/api/dotbot/tts', {
@@ -397,7 +393,7 @@ import { expandWaypointCard, render } from './waypoints-render-loop.js';
             const blob = await res.blob();
             const url = URL.createObjectURL(blob);
             const audio = new Audio(url);
-            currentTtsAudio = audio;
+            appState.currentTtsAudio = audio;
             audio.addEventListener('ended', () => URL.revokeObjectURL(url));
             audio.addEventListener('error', () => URL.revokeObjectURL(url));
             await audio.play();
@@ -579,9 +575,9 @@ import { expandWaypointCard, render } from './waypoints-render-loop.js';
         toggleBtn.type = 'button';
         toggleBtn.className = 'dotbot-examples-toggle';
         toggleBtn.title = 'Toggle word color-coding';
-        const syncToggleIcon = () => toggleBtn.classList.toggle('is-on', dotbotAlignHighlightOn);
+        const syncToggleIcon = () => toggleBtn.classList.toggle('is-on', appState.dotbotAlignHighlightOn);
         syncToggleIcon();
-        toggleBtn.onclick = (e) => { e.stopPropagation(); applyAlignHighlightToggle(!dotbotAlignHighlightOn); syncToggleIcon(); };
+        toggleBtn.onclick = (e) => { e.stopPropagation(); applyAlignHighlightToggle(!appState.dotbotAlignHighlightOn); syncToggleIcon(); };
         wrap.appendChild(toggleBtn);
         return wrap;
     }
@@ -619,51 +615,51 @@ import { expandWaypointCard, render } from './waypoints-render-loop.js';
         return card;
     }
     function renderTranslationPanel(panel) {
-        if (!searchTranslation) return;
-        searchTranslation.innerHTML = '';
-        if (!panel || !panel.sourceWord || !panel.targetWord) { searchTranslation.style.display = 'none'; return; }
-        searchTranslation.appendChild(buildTranslationCard(panel));
-        searchTranslation.style.display = 'block';
+        if (!appState.searchTranslation) return;
+        appState.searchTranslation.innerHTML = '';
+        if (!panel || !panel.sourceWord || !panel.targetWord) { appState.searchTranslation.style.display = 'none'; return; }
+        appState.searchTranslation.appendChild(buildTranslationCard(panel));
+        appState.searchTranslation.style.display = 'block';
     }
     function renderDictionaryPanel(panel) {
-        searchDictionary.innerHTML = '';
-        if (!panel || !panel.entries || !panel.entries.length) { searchDictionary.style.display = 'none'; return; }
-        searchDictionary.appendChild(buildDictionaryCard(panel));
-        searchDictionary.style.display = 'block';
+        appState.searchDictionary.innerHTML = '';
+        if (!panel || !panel.entries || !panel.entries.length) { appState.searchDictionary.style.display = 'none'; return; }
+        appState.searchDictionary.appendChild(buildDictionaryCard(panel));
+        appState.searchDictionary.style.display = 'block';
     }
     function renderExamplesPanel(panel) {
-        searchExamples.innerHTML = '';
-        if (!panel) { searchExamples.style.display = 'none'; return; }
-        searchExamples.appendChild(buildExamplesCard(panel));
-        searchExamples.style.display = 'block';
+        appState.searchExamples.innerHTML = '';
+        if (!panel) { appState.searchExamples.style.display = 'none'; return; }
+        appState.searchExamples.appendChild(buildExamplesCard(panel));
+        appState.searchExamples.style.display = 'block';
     }
     // Shown below Dotbot's answer only when it couldn't help with the query (canHelp:false) —
     // gives the user 3 generic searches to click instead of a dead end. Same row markup/click
     // idiom as every other suggestion row in the app: fill the box, commence the search.
     function renderRecommendedSearchesPanel(panel) {
-        if (!searchRecommended) return;
-        searchRecommended.innerHTML = '';
-        if (!panel || !panel.queries || !panel.queries.length) { searchRecommended.style.display = 'none'; return; }
+        if (!appState.searchRecommended) return;
+        appState.searchRecommended.innerHTML = '';
+        if (!panel || !panel.queries || !panel.queries.length) { appState.searchRecommended.style.display = 'none'; return; }
         panel.queries.forEach(q => {
             const div = document.createElement('div');
             div.className = 'search-suggestion-item';
             div.textContent = q;
-            div.onclick = (e) => { e.stopPropagation(); searchInput.value = q; autoGrowSearchInput(); commenceSearchOrMnemonic(q); };
-            searchRecommended.appendChild(div);
+            div.onclick = (e) => { e.stopPropagation(); appState.searchInput.value = q; autoGrowSearchInput(); commenceSearchOrMnemonic(q); };
+            appState.searchRecommended.appendChild(div);
         });
-        searchRecommended.style.display = 'block';
+        appState.searchRecommended.style.display = 'block';
     }
     // Dotbot's written answer — just another panel like dictionary/examples, not a chat surface.
     // Height grows naturally with the (typed-out) text as it wraps; draggable onto the canvas
     // like any other Dotbot result.
     function renderDotbotAnswerPanel(text) {
-        searchDotbotAnswer.innerHTML = '';
-        if (!text) { searchDotbotAnswer.style.display = 'none'; return; }
+        appState.searchDotbotAnswer.innerHTML = '';
+        if (!text) { appState.searchDotbotAnswer.style.display = 'none'; return; }
         const textEl = document.createElement('div');
         textEl.className = 'dotbot-answer-text dotbot-result-card';
-        searchDotbotAnswer.appendChild(textEl); // append BEFORE typewriterReveal — it checks
+        appState.searchDotbotAnswer.appendChild(textEl); // append BEFORE typewriterReveal — it checks
         // el.isConnected on its first tick and silently no-ops forever otherwise.
-        searchDotbotAnswer.style.display = 'block';
+        appState.searchDotbotAnswer.style.display = 'block';
         setupDotbotResultDrag(textEl, { w: 240, h: 140, html: text });
         typewriterReveal(textEl, text, updateSearchDropdown);
     }
@@ -715,8 +711,8 @@ import { expandWaypointCard, render } from './waypoints-render-loop.js';
             }
         });
         if (!wrap.children.length) return;
-        searchDotbotAnswer.appendChild(wrap);
-        searchDotbotAnswer.style.display = 'block';
+        appState.searchDotbotAnswer.appendChild(wrap);
+        appState.searchDotbotAnswer.style.display = 'block';
     }
 
 export { commenceSearchOrMnemonic, computeCanvasMatches, computeSourceMatches, flashCanvasElement, renderAnswerBlocksPanel, renderCanvasResultsPanel, renderDictionaryPanel, renderDotbotAnswerPanel, renderExamplesPanel, renderRecommendedSearchesPanel, renderTranslationPanel };

@@ -1,11 +1,10 @@
 import { shortUrl } from './cards-misc.js';
 import { appState, canvas } from './core-state.js';
-import { dotbotScheduleConversation } from './dotbot-schedule-notifications.js';
 import { saveSnapshot, scheduleWorkspaceSave } from './history-autosave.js';
 import { findItemById } from './live-presence.js';
 import { commenceSearchOrMnemonic, computeCanvasMatches, computeSourceMatches, renderCanvasResultsPanel } from './mnemonic-search-matching.js';
 import { closeAllPanels } from './panels-hamburger.js';
-import { autoGrowSearchInput, searchDictionary, searchDotbotAnswer, searchDropdown, searchExamples, searchImageResult, searchInput, searchInputWrap, searchRecommended, searchResults, searchSuggestions, searchTranslation, updateSearchSpaceHint } from './stopwatch-search-notifications.js';
+import { autoGrowSearchInput, updateSearchSpaceHint } from './stopwatch-search-notifications.js';
 import { render } from './waypoints-render-loop.js';
 
 
@@ -22,7 +21,7 @@ import { render } from './waypoints-render-loop.js';
             const current = suggestions[sIndex];
             if (!deleting) {
                 charIndex++;
-                searchInput.placeholder = current.slice(0, charIndex);
+                appState.searchInput.placeholder = current.slice(0, charIndex);
                 if (charIndex >= current.length) {
                     deleting = true;
                     setTimeout(tick, PAUSE_AFTER_TYPE);
@@ -31,7 +30,7 @@ import { render } from './waypoints-render-loop.js';
                 setTimeout(tick, TYPE_SPEED);
             } else {
                 charIndex--;
-                searchInput.placeholder = current.slice(0, charIndex);
+                appState.searchInput.placeholder = current.slice(0, charIndex);
                 if (charIndex <= 0) {
                     deleting = false;
                     sIndex = (sIndex + 1) % suggestions.length;
@@ -45,7 +44,7 @@ import { render } from './waypoints-render-loop.js';
     })();
 
     function setSearchActive(idx) {
-        const items = Array.from(searchResults.querySelectorAll('.search-result-item'));
+        const items = Array.from(appState.searchResults.querySelectorAll('.search-result-item'));
         if (!items.length) return;
         idx = ((idx % items.length) + items.length) % items.length;
         items.forEach(el => el.classList.remove('active'));
@@ -103,17 +102,15 @@ import { render } from './waypoints-render-loop.js';
     // (U+1E00-U+1EFF, Vietnamese diacritics), and General Punctuation (U+2000-U+206F) -- anything
     // outside those ranges (plus \s/\d) left over after stripping means a non-Latin script is
     // actually present.
-    const NON_LATIN_SCRIPT_RE = new RegExp("[^\u0000-\u024F\u1E00-\u1EFF\u2000-\u206F\s\d]");
     function isLatinScriptText(s) {
         if (!s) return true;
-        return !NON_LATIN_SCRIPT_RE.test(s);
+        return !appState.NON_LATIN_SCRIPT_RE.test(s);
     }
     function speakerIconHTML(extraClass) {
         const url = '/assets/icons/speaker.png';
         return `<span class="${extraClass || ''} icon-mask" style="mask-image:url(${url});-webkit-mask-image:url(${url})"></span>`;
     }
     // Must match the .align-hl-0..N palette in globals.css.
-    const ALIGN_HL_COLOR_COUNT = 6;
     // Global on/off switch for word-alignment color-coding, toggled via the examples panel's
     // hover-slide toggle button (see buildExamplesCard) — affects every aligned sentence
     // currently on screen (examples panel AND any embedded answerBlocks example pills, since
@@ -122,9 +119,8 @@ import { render } from './waypoints-render-loop.js';
     // rendered so toggling can re-render them in place without needing to re-fetch or rebuild
     // whole cards — cleared at the top of renderOrchestrateResult each time a fresh result comes
     // in, so it never grows to reference stale, long-gone elements.
-    let dotbotAlignHighlightOn = true;
     function applyAlignHighlightToggle(on) {
-        dotbotAlignHighlightOn = on;
+        appState.dotbotAlignHighlightOn = on;
         appState.dotbotAlignedRegistry.forEach(entry => {
             entry.el.innerHTML = alignedSentenceHTML(entry.str, entry.alignment, entry.pick);
         });
@@ -142,7 +138,7 @@ import { render } from './waypoints-render-loop.js';
     // an earlier pair's match always wins over a later, overlapping one.
     function alignedSentenceHTML(str, alignment, pickPhrase) {
         str = str || '';
-        if (!dotbotAlignHighlightOn || !alignment || !alignment.length) return escapeHtml(str);
+        if (!appState.dotbotAlignHighlightOn || !alignment || !alignment.length) return escapeHtml(str);
         const claims = [];
         const lowerStr = str.toLowerCase();
         alignment.forEach((pair, i) => {
@@ -155,7 +151,7 @@ import { render } from './waypoints-render-loop.js';
             if (idx === -1) return;
             const end = idx + phrase.length;
             if (claims.some(c => idx < c.end && end > c.start)) return; // overlaps an earlier, already-claimed match
-            claims.push({ start: idx, end, colorIdx: i % ALIGN_HL_COLOR_COUNT });
+            claims.push({ start: idx, end, colorIdx: i % appState.ALIGN_HL_COLOR_COUNT });
         });
         if (!claims.length) return escapeHtml(str);
         claims.sort((a, b) => a.start - b.start);
@@ -204,8 +200,6 @@ import { render } from './waypoints-render-loop.js';
         return str.slice(0, head) + '...' + str.slice(str.length - tail);
     }
 
-    let dotbotSuggestDebounceTimer = null;
-    let dotbotSuggestAbortController = null;
     // Bumped once by commenceSearchOrMnemonic every time a search is actually submitted — lets a
     // live-suggestion fetch that was already in flight (see scheduleLiveSuggestions) detect that a
     // submit happened while it was waiting, even in the edge case where its response arrives
@@ -213,25 +207,25 @@ import { render } from './waypoints-render-loop.js';
     // otherwise it would clobber the "thinking..." loading state with a stale suggestions list.
 
     function clearSearch() {
-        if (!searchInput) return;
-        searchInput.value = '';
+        if (!appState.searchInput) return;
+        appState.searchInput.value = '';
         autoGrowSearchInput();
         updateSearchSpaceHint();
-        searchDotbotAnswer.innerHTML = ''; searchDotbotAnswer.style.display = 'none';
-        searchResults.innerHTML = ''; searchResults.style.display = 'none';
-        if (searchTranslation) { searchTranslation.innerHTML = ''; searchTranslation.style.display = 'none'; }
-        searchDictionary.innerHTML = ''; searchDictionary.style.display = 'none';
-        searchExamples.innerHTML = ''; searchExamples.style.display = 'none';
-        if (searchImageResult) { searchImageResult.innerHTML = ''; searchImageResult.style.display = 'none'; }
-        searchSuggestions.innerHTML = ''; searchSuggestions.style.display = 'none';
-        if (searchRecommended) { searchRecommended.innerHTML = ''; searchRecommended.style.display = 'none'; }
+        appState.searchDotbotAnswer.innerHTML = ''; appState.searchDotbotAnswer.style.display = 'none';
+        appState.searchResults.innerHTML = ''; appState.searchResults.style.display = 'none';
+        if (appState.searchTranslation) { appState.searchTranslation.innerHTML = ''; appState.searchTranslation.style.display = 'none'; }
+        appState.searchDictionary.innerHTML = ''; appState.searchDictionary.style.display = 'none';
+        appState.searchExamples.innerHTML = ''; appState.searchExamples.style.display = 'none';
+        if (appState.searchImageResult) { appState.searchImageResult.innerHTML = ''; appState.searchImageResult.style.display = 'none'; }
+        appState.searchSuggestions.innerHTML = ''; appState.searchSuggestions.style.display = 'none';
+        if (appState.searchRecommended) { appState.searchRecommended.innerHTML = ''; appState.searchRecommended.style.display = 'none'; }
         updateSearchDropdown();
     }
     function updateSearchDropdown() {
-        if (!searchDropdown) return;
-        const panels = [searchDotbotAnswer, searchResults, searchTranslation, searchDictionary, searchExamples, searchImageResult, searchSuggestions, searchRecommended].filter(Boolean);
+        if (!appState.searchDropdown) return;
+        const panels = [appState.searchDotbotAnswer, appState.searchResults, appState.searchTranslation, appState.searchDictionary, appState.searchExamples, appState.searchImageResult, appState.searchSuggestions, appState.searchRecommended].filter(Boolean);
         const visible = panels.some(el => el.style.display !== 'none');
-        searchDropdown.classList.toggle('visible', visible);
+        appState.searchDropdown.classList.toggle('visible', visible);
     }
 
     // Hides the panels that hold a *completed* search's result (Dotbot's answer, dictionary,
@@ -240,18 +234,18 @@ import { render } from './waypoints-render-loop.js';
     // separate from clearSearch(), which also wipes the input value and suggestions — this only
     // clears the "result" panels.
     function hideDotbotResultPanels() {
-        searchDotbotAnswer.innerHTML = ''; searchDotbotAnswer.style.display = 'none';
-        if (searchTranslation) { searchTranslation.innerHTML = ''; searchTranslation.style.display = 'none'; }
-        searchDictionary.innerHTML = ''; searchDictionary.style.display = 'none';
-        searchExamples.innerHTML = ''; searchExamples.style.display = 'none';
-        if (searchImageResult) { searchImageResult.innerHTML = ''; searchImageResult.style.display = 'none'; }
-        if (searchRecommended) { searchRecommended.innerHTML = ''; searchRecommended.style.display = 'none'; }
+        appState.searchDotbotAnswer.innerHTML = ''; appState.searchDotbotAnswer.style.display = 'none';
+        if (appState.searchTranslation) { appState.searchTranslation.innerHTML = ''; appState.searchTranslation.style.display = 'none'; }
+        appState.searchDictionary.innerHTML = ''; appState.searchDictionary.style.display = 'none';
+        appState.searchExamples.innerHTML = ''; appState.searchExamples.style.display = 'none';
+        if (appState.searchImageResult) { appState.searchImageResult.innerHTML = ''; appState.searchImageResult.style.display = 'none'; }
+        if (appState.searchRecommended) { appState.searchRecommended.innerHTML = ''; appState.searchRecommended.style.display = 'none'; }
     }
 
     function handleSearchInput(value) {
         autoGrowSearchInput();
         updateSearchSpaceHint();
-        if (dotbotScheduleConversation) return; // typing the "when" reply — not a search query
+        if (appState.dotbotScheduleConversation) return; // typing the "when" reply — not a search query
         const folderObj = appState.folders[appState.currentFolderId];
         if (!folderObj) return;
         hideDotbotResultPanels();
@@ -273,36 +267,36 @@ import { render } from './waypoints-render-loop.js';
     function handleSearchFocus() {
         updateSearchSpaceHint();
         closeAllPanels(null);
-        if (dotbotScheduleConversation) return; // keep Dotbot's prompt showing, not generic suggestions
+        if (appState.dotbotScheduleConversation) return; // keep Dotbot's prompt showing, not generic suggestions
         hideDotbotResultPanels();
-        searchInputWrap.classList.add('idle-pulsing');
-        const v = searchInput.value.trim();
+        appState.searchInputWrap.classList.add('idle-pulsing');
+        const v = appState.searchInput.value.trim();
         if (v !== "") return;
-        searchSuggestions.innerHTML = '';
-        searchSuggestions.style.display = 'none';
-        searchResults.style.display = 'none';
+        appState.searchSuggestions.innerHTML = '';
+        appState.searchSuggestions.style.display = 'none';
+        appState.searchResults.style.display = 'none';
         updateSearchDropdown();
     }
 
     // ---------- Live AI-generated suggestions (free, debounced — see /api/dotbot/suggest) ----------
     function scheduleLiveSuggestions(value, isSourceFolder) {
-        clearTimeout(dotbotSuggestDebounceTimer);
-        if (dotbotSuggestAbortController) dotbotSuggestAbortController.abort();
+        clearTimeout(appState.dotbotSuggestDebounceTimer);
+        if (appState.dotbotSuggestAbortController) appState.dotbotSuggestAbortController.abort();
         const q = value.trim();
-        if (q.length < 2) { searchSuggestions.innerHTML = ''; searchSuggestions.style.display = 'none'; updateSearchDropdown(); return; }
+        if (q.length < 2) { appState.searchSuggestions.innerHTML = ''; appState.searchSuggestions.style.display = 'none'; updateSearchDropdown(); return; }
         const generationAtScheduleTime = appState.dotbotSearchGeneration;
-        dotbotSuggestDebounceTimer = setTimeout(async () => {
-            dotbotSuggestAbortController = new AbortController();
+        appState.dotbotSuggestDebounceTimer = setTimeout(async () => {
+            appState.dotbotSuggestAbortController = new AbortController();
             let suggestions = [];
             try {
                 const res = await fetch('/api/dotbot/suggest', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ query: q, isSourceFolder }),
-                    signal: dotbotSuggestAbortController.signal
+                    signal: appState.dotbotSuggestAbortController.signal
                 });
                 const data = await res.json();
-                if (searchInput.value.trim() !== q) return; // stale — a newer keystroke already moved on
+                if (appState.searchInput.value.trim() !== q) return; // stale — a newer keystroke already moved on
                 // A search may have been SUBMITTED (Enter) while this fetch was in flight — that
                 // shows its own "thinking..." loading state in this same #search-suggestions
                 // element, which these stale suggestions would otherwise clobber the instant this
@@ -323,16 +317,16 @@ import { render } from './waypoints-render-loop.js';
     // clicking any suggestion here already routes through commenceSearchOrMnemonic, so a
     // suggested "generate a mnemonic for X" string is picked up correctly with no special-casing.
     function renderLiveSuggestions(suggestions) {
-        searchSuggestions.innerHTML = '';
+        appState.searchSuggestions.innerHTML = '';
         suggestions.slice(0, 4).forEach(text => {
             const div = document.createElement('div');
             div.className = 'search-suggestion-item';
             div.textContent = text;
-            div.onclick = (e) => { e.stopPropagation(); searchInput.value = text; autoGrowSearchInput(); commenceSearchOrMnemonic(text); };
-            searchSuggestions.appendChild(div);
+            div.onclick = (e) => { e.stopPropagation(); appState.searchInput.value = text; autoGrowSearchInput(); commenceSearchOrMnemonic(text); };
+            appState.searchSuggestions.appendChild(div);
         });
 
-        searchSuggestions.style.display = 'block';
+        appState.searchSuggestions.style.display = 'block';
         updateSearchDropdown();
     }
 
@@ -474,4 +468,4 @@ import { render } from './waypoints-render-loop.js';
         clearSearch();
     }
 
-export { applyAlignHighlightToggle, buildAlignedSentenceEls, clearSearch, countSourceEntries, dotbotAlignHighlightOn, dotbotErrorMessage, dotbotSuggestAbortController, dotbotSuggestDebounceTimer, escapeHtml, findParentFolderId, getItemSearchText, handleSearchFocus, handleSearchInput, isLatinScriptText, setSearchActive, setupDotbotResultDrag, speakerIconHTML, stripHtml, truncateCenter, typewriterReveal, updateSearchDropdown };
+export { applyAlignHighlightToggle, buildAlignedSentenceEls, clearSearch, countSourceEntries, dotbotErrorMessage, escapeHtml, findParentFolderId, getItemSearchText, handleSearchFocus, handleSearchInput, isLatinScriptText, setSearchActive, setupDotbotResultDrag, speakerIconHTML, stripHtml, truncateCenter, typewriterReveal, updateSearchDropdown };

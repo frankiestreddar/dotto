@@ -1,8 +1,9 @@
 import { escapeHtml, stripHtml } from './ai-assistant-suggestions.js';
+import { appState } from './core-state.js';
 import { saveSnapshot, scheduleWorkspaceSave } from './history-autosave.js';
 import { findItemById } from './live-presence.js';
 import { awardUserPoints, bumpAchievementStat } from './profile-achievements-pricing.js';
-import { SM2_QUALITY, calculateSM2, defaultSrsState } from './srs-connections-core.js';
+import { calculateSM2, defaultSrsState } from './srs-connections-core.js';
 import { render } from './waypoints-render-loop.js';
 
 
@@ -25,10 +26,9 @@ import { render } from './waypoints-render-loop.js';
     // "Blank" variant (the bracketed word replaced by a blank — "Yo [...] manzanas"), or an
     // indented "[...]" variant (just the bracketed word/phrase alone — "como"). A column with no
     // brackets anywhere only ever gets the plain option.
-    const CLOZE_RE = /\[([^\[\]]+)\]/g;
     function hasCloze(text) {
-        CLOZE_RE.lastIndex = 0;
-        return CLOZE_RE.test(text || '');
+        appState.CLOZE_RE.lastIndex = 0;
+        return appState.CLOZE_RE.test(text || '');
     }
     function clozeBlankText(text) {
         return text.replace(/\[([^\[\]]+)\]/g, '[...]');
@@ -410,7 +410,7 @@ import { render } from './waypoints-render-loop.js';
         const playable = fcPlayableCards(it);
         const card = fcCurrentRow(it, playable);
         if (card) {
-            const quality = SM2_QUALITY[rating];
+            const quality = appState.SM2_QUALITY[rating];
             const nextSrs = calculateSM2(Object.assign({}, card.srs || defaultSrsState()), quality);
             card.srs = nextSrs;
             // originTableId (carried on every card since extractCardsFromSource set it) makes
@@ -593,7 +593,7 @@ import { render } from './waypoints-render-loop.js';
         it.trChecked = true;
 
         // ---- Same SM-2 pipeline as flashcard's fcRate.
-        const quality = SM2_QUALITY[rating];
+        const quality = appState.SM2_QUALITY[rating];
         const nextSrs = calculateSM2(Object.assign({}, card.srs || defaultSrsState()), quality);
         card.srs = nextSrs;
         if (card.rowIndex != null) it.pendingSrsUpdate = { rowIndex: card.rowIndex, srs: nextSrs, originTableId: card.originTableId };

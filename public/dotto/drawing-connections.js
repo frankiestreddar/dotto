@@ -1,5 +1,5 @@
 import { appState } from './core-state.js';
-import { saveSnapshot, undoStack } from './history-autosave.js';
+import { saveSnapshot } from './history-autosave.js';
 import { findItemById } from './live-presence.js';
 import { bumpAchievementStat } from './profile-achievements-pricing.js';
 import { isValidConnection } from './srs-connections-core.js';
@@ -74,7 +74,7 @@ import { render } from './waypoints-render-loop.js';
                 madeAny = true;
             }
         });
-        if (!madeAny) { undoStack.pop(); return; }
+        if (!madeAny) { appState.undoStack.pop(); return; }
         render();
     }
 

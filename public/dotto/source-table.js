@@ -3,7 +3,7 @@ import { appState } from './core-state.js';
 import { resolveTableForEdit } from './drawing-connections.js';
 import { saveSnapshot, scheduleWorkspaceSave } from './history-autosave.js';
 import { findItemById } from './live-presence.js';
-import { audioRecordIndicator, closeSourceAddMenu } from './source-buttons-cursor-mode.js';
+import { closeSourceAddMenu } from './source-buttons-cursor-mode.js';
 import { openRowTagPicker, tagPillsHTML } from './source-tags-ai.js';
 import { render } from './waypoints-render-loop.js';
 
@@ -125,13 +125,12 @@ import { render } from './waypoints-render-loop.js';
     // visible pill inside each slot is simply drawn narrower (by GAP px) than its slot, which
     // is what creates the gap between pills without ever touching their positions. This also
     // sizes and shows/hides the fixed upload-button overlay and its fade-out.
-    const STATIC_HEADER_PILL_GAP = 8;
-    const STATIC_TABLE_VISIBLE_COLS = 3.2; // 3 full columns + ~1/5 of a 4th once overflowing
-    const STATIC_TABLE_ROW_GAP = 10; // must match .static-table-hscroll's column-direction gap
-    const STATIC_TABLE_PAGE_PADDING_TOP = 96; // must match .item.static-table's padding-top
-    const STATIC_TABLE_PAGE_PADDING_BOTTOM = 16; // must match .item.static-table's padding-bottom
-    const STATIC_TABLE_BOTTOM_MARGIN = 20; // extra breathing room below the table before it scrolls
-    const STATIC_TABLE_UPLOAD_BTN_RESERVE = 35; // permanent extra shrink on the last header pill so the fixed upload button never covers its text
+ // 3 full columns + ~1/5 of a 4th once overflowing
+ // must match .static-table-hscroll's column-direction gap
+ // must match .item.static-table's padding-top
+ // must match .item.static-table's padding-bottom
+ // extra breathing room below the table before it scrolls
+ // permanent extra shrink on the last header pill so the fixed upload button never covers its text
     function layoutSourceTableColumns(it, el, reserve) {
         const wrap = el.querySelector('.static-table-wrap');
         const table = el.querySelector('.item-table');
@@ -151,7 +150,7 @@ import { render } from './waypoints-render-loop.js';
         // The header pill row always sizes itself off the FULL container width — it never
         // reacts to `reserve`. The add-column hover shrink is meant to only nudge the table's
         // own cells out of the way for the floating button, not the name pills above them.
-        const headerColWidth = fullContainerWidth / (overflowing ? STATIC_TABLE_VISIBLE_COLS : numCols);
+        const headerColWidth = fullContainerWidth / (overflowing ? appState.STATIC_TABLE_VISIBLE_COLS : numCols);
         const headerTotalWidth = headerColWidth * numCols;
         headerTrack.style.width = headerTotalWidth + 'px';
         const headerSlots = headerTrack.querySelectorAll('.col-name-slot');
@@ -163,7 +162,7 @@ import { render } from './waypoints-render-loop.js';
             slot.style.width = headerColWidth + 'px';
             const isLast = i === headerSlots.length - 1;
             const pill = slot.querySelector('.col-name-pill');
-            if (pill) pill.style.width = Math.max(headerColWidth - STATIC_HEADER_PILL_GAP - (isLast ? STATIC_TABLE_UPLOAD_BTN_RESERVE : 0), 24) + 'px';
+            if (pill) pill.style.width = Math.max(headerColWidth - appState.STATIC_HEADER_PILL_GAP - (isLast ? appState.STATIC_TABLE_UPLOAD_BTN_RESERVE : 0), 24) + 'px';
         });
 
         // `reserve` (px) is how much room to genuinely give up on the right — used while the
@@ -175,7 +174,7 @@ import { render } from './waypoints-render-loop.js';
         // column gets narrowed by the flat `reserve` amount. That keeps the shrink a constant
         // number of pixels no matter how many columns the table has, instead of scaling up with
         // column count.
-        const colWidth = fullContainerWidth / (overflowing ? STATIC_TABLE_VISIBLE_COLS : numCols);
+        const colWidth = fullContainerWidth / (overflowing ? appState.STATIC_TABLE_VISIBLE_COLS : numCols);
         const totalWidth = colWidth * numCols;
         const shrink = reserve || 0;
         table.style.width = (totalWidth - shrink) + 'px';
@@ -193,8 +192,8 @@ import { render } from './waypoints-render-loop.js';
         // than a rough guess), so it expands to fill the available space — leaving a fixed
         // STATIC_TABLE_BOTTOM_MARGIN gap below it — before it needs to start scrolling.
         if (tableRounded) {
-            const availableWrapHeight = window.innerHeight - STATIC_TABLE_PAGE_PADDING_TOP - STATIC_TABLE_PAGE_PADDING_BOTTOM - STATIC_TABLE_BOTTOM_MARGIN;
-            const maxTableHeight = Math.max(0, availableWrapHeight - headerTrack.offsetHeight - STATIC_TABLE_ROW_GAP);
+            const availableWrapHeight = window.innerHeight - appState.STATIC_TABLE_PAGE_PADDING_TOP - appState.STATIC_TABLE_PAGE_PADDING_BOTTOM - appState.STATIC_TABLE_BOTTOM_MARGIN;
+            const maxTableHeight = Math.max(0, availableWrapHeight - headerTrack.offsetHeight - appState.STATIC_TABLE_ROW_GAP);
             tableRounded.style.maxHeight = maxTableHeight + 'px';
         }
 
@@ -206,10 +205,10 @@ import { render } from './waypoints-render-loop.js';
         // Keep the add-column overlay confined to the body's vertical span only — it starts
         // right below the header track (offset by the hscroll's own column-gap) so it can
         // never sit on top of, or intercept clicks/hover on, the header pill row above it.
-        if (colStripWrap) colStripWrap.style.top = (headerTrack.offsetHeight + STATIC_TABLE_ROW_GAP) + 'px';
+        if (colStripWrap) colStripWrap.style.top = (headerTrack.offsetHeight + appState.STATIC_TABLE_ROW_GAP) + 'px';
         // Same vertical confinement as the add-column overlay, so the row-tag button can never
         // appear over (or intercept hover on) the header pill row above it either.
-        if (rowTagStripWrap) rowTagStripWrap.style.top = (headerTrack.offsetHeight + STATIC_TABLE_ROW_GAP) + 'px';
+        if (rowTagStripWrap) rowTagStripWrap.style.top = (headerTrack.offsetHeight + appState.STATIC_TABLE_ROW_GAP) + 'px';
     }
     function renameTableColumn(id, colIndex, value) {
         const it = findItemById(id); if (!it) return;
@@ -617,14 +616,14 @@ import { render } from './waypoints-render-loop.js';
             appState.cellAudioRecorder.ondataavailable = (e) => { if (e.data && e.data.size) appState.cellAudioChunks.push(e.data); };
             appState.cellAudioRecorder.onstop = () => {
                 stream.getTracks().forEach(t => t.stop());
-                audioRecordIndicator.classList.remove('recording');
+                appState.audioRecordIndicator.classList.remove('recording');
                 const blob = new Blob(appState.cellAudioChunks, { type: 'audio/webm' });
                 const reader = new FileReader();
                 reader.onload = () => insertIntoActiveCell(`<audio class="cell-media-audio" controls src="${reader.result}"></audio>`);
                 reader.readAsDataURL(blob);
             };
             appState.cellAudioRecorder.start();
-            audioRecordIndicator.classList.add('recording');
+            appState.audioRecordIndicator.classList.add('recording');
         }).catch(() => alert('Microphone access was denied or is unavailable.'));
     }
     function stopCellAudioRecording() {

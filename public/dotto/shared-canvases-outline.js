@@ -3,7 +3,7 @@ import { shortUrl } from './cards-misc.js';
 import { appState, breadcrumbs, supabase } from './core-state.js';
 import { applyTransform, smoothPanTo } from './history-autosave.js';
 import { flashCanvasElement } from './mnemonic-search-matching.js';
-import { accountMenu, closeAllPanels, closeHamburgerMenu, hamburgerBtn, outlineMenu, panelPinned, pinOnInsideClick } from './panels-hamburger.js';
+import { closeAllPanels, closeHamburgerMenu, pinOnInsideClick } from './panels-hamburger.js';
 import { pushNotification } from './stopwatch-search-notifications.js';
 import { applyFolderView, centerOnContent, expandWaypointCard, openFolder, render } from './waypoints-render-loop.js';
 
@@ -27,7 +27,7 @@ import { applyFolderView, centerOnContent, expandWaypointCard, openFolder, rende
     // of those items resolves to a shared: key too, and ensureSharedFolderLoaded fetches it lazily
     // the first time it's actually navigated into, exactly like the entry point was.
  // { currentFolderId, historyStack, historyIndex } from just before entering the top-level shared canvas — restored by exitSharedCanvas
-    const sharedOwnerNameCache = {}; // ownerId -> display name, populated wherever it's already known (openSharedCanvas's caller) — see announceEnteredCollaboration/renderHubCollabList
+ // ownerId -> display name, populated wherever it's already known (openSharedCanvas's caller) — see announceEnteredCollaboration/renderHubCollabList
     function sharedFolderKey(ownerId, folderId) { return `shared:${ownerId}:${folderId}`; }
     function parseSharedFolderKey(key) {
         const parts = key.split(':');
@@ -96,7 +96,7 @@ import { applyFolderView, centerOnContent, expandWaypointCard, openFolder, rende
     // folder fetched later within the same tree too, without a further profile lookup.
     async function openSharedCanvas(ownerId, folderId, title, ownerName) {
         if (!supabase || !appState.currentUser.id) return;
-        if (ownerName) sharedOwnerNameCache[ownerId] = ownerName;
+        if (ownerName) appState.sharedOwnerNameCache[ownerId] = ownerName;
         const { data, error } = await supabase.rpc('get_shared_folder', { p_owner_id: ownerId, p_folder_id: folderId });
         if (error || !data) {
             console.error(`[collab] failed to open shared canvas (owner=${ownerId} folder=${folderId}):`,
@@ -124,7 +124,7 @@ import { applyFolderView, centerOnContent, expandWaypointCard, openFolder, rende
     async function announceEnteredCollaboration(localKey) {
         const folderObj = appState.folders[localKey];
         if (!folderObj) return;
-        const ownerName = sharedOwnerNameCache[folderObj.sharedOwnerId] || 'someone';
+        const ownerName = appState.sharedOwnerNameCache[folderObj.sharedOwnerId] || 'someone';
         let othersCount = 0;
         if (supabase && appState.currentUser.id) {
             const { data: rows, error } = await supabase.rpc('get_effective_collaborators', { p_owner_id: folderObj.sharedOwnerId, p_folder_id: folderObj.sharedRemoteFolderId });
@@ -174,24 +174,22 @@ import { applyFolderView, centerOnContent, expandWaypointCard, openFolder, rende
         }
         return chain;
     }
-    const breadcrumbMapPanel = document.getElementById('breadcrumb-map-panel');
-    const breadcrumbMapList = document.getElementById('breadcrumb-map-list');
-    function closeBreadcrumbMapPanel() { breadcrumbMapPanel.classList.remove('open'); panelPinned.breadcrumbMap = false; }
+    function closeBreadcrumbMapPanel() { appState.breadcrumbMapPanel.classList.remove('open'); appState.panelPinned.breadcrumbMap = false; }
     function positionBreadcrumbMapPanel() {
         const rect = breadcrumbs.getBoundingClientRect();
-        breadcrumbMapPanel.style.top = (rect.bottom + 8) + 'px';
+        appState.breadcrumbMapPanel.style.top = (rect.bottom + 8) + 'px';
         let leftPos = rect.left;
-        const panelWidth = breadcrumbMapPanel.offsetWidth || 220;
+        const panelWidth = appState.breadcrumbMapPanel.offsetWidth || 220;
         if (leftPos + panelWidth > window.innerWidth - 20) leftPos = window.innerWidth - panelWidth - 20;
-        breadcrumbMapPanel.style.left = leftPos + 'px';
+        appState.breadcrumbMapPanel.style.left = leftPos + 'px';
     }
     function openBreadcrumbMapPanel() {
         closeAllPanels('breadcrumbMap');
         clearSearch();
         renderBreadcrumbMapPanel();
-        breadcrumbMapPanel.classList.add('open');
+        appState.breadcrumbMapPanel.classList.add('open');
         positionBreadcrumbMapPanel();
-        panelPinned.breadcrumbMap = true;
+        appState.panelPinned.breadcrumbMap = true;
     }
     // Always shows the user's own root at the top (pinned there via a synthetic row when
     // currently inside a shared tree, since the real ancestor chain never reaches it from there —
@@ -199,7 +197,7 @@ import { applyFolderView, centerOnContent, expandWaypointCard, openFolder, rende
     // collaboration's own top-level entry sits at the SAME indent as Root (both are top-level
     // entry points into their own tree), with its own nested levels indented further below it.
     function renderBreadcrumbMapPanel() {
-        breadcrumbMapList.innerHTML = '';
+        appState.breadcrumbMapList.innerHTML = '';
         const folderObj = appState.folders[appState.currentFolderId];
         if (!folderObj) return;
         const showSyntheticRoot = folderObj.isSharedView;
@@ -216,7 +214,7 @@ import { applyFolderView, centerOnContent, expandWaypointCard, openFolder, rende
                     else openFolder(folderId);
                 };
             }
-            breadcrumbMapList.appendChild(row);
+            appState.breadcrumbMapList.appendChild(row);
         }
         if (showSyntheticRoot) addRow(appState.folders['root'] ? appState.folders['root'].title : 'Root', 0, 'root', false);
         buildAncestorChain(appState.currentFolderId).forEach((id, idx) => {
@@ -225,7 +223,7 @@ import { applyFolderView, centerOnContent, expandWaypointCard, openFolder, rende
             addRow(target.title || id, idx, id, id === appState.currentFolderId);
         });
     }
-    pinOnInsideClick('breadcrumbMap', [breadcrumbMapPanel]);
+    pinOnInsideClick('breadcrumbMap', [appState.breadcrumbMapPanel]);
 
     // Steps to an EXISTING position in historyStack (back/forward, breadcrumb "..") — no
     // truncation, no push, just moves the pointer.
@@ -284,16 +282,14 @@ import { applyFolderView, centerOnContent, expandWaypointCard, openFolder, rende
         return txt || '(untitled heading)';
     }
     
-    let outlineRows = [], outlineActiveIndex = -1;
     // Current level (currentFolderId's own contents) plus 2 deeper levels of nested folders —
     // the rolling window is always anchored to the LIVE canvas position, not a separate
     // menu-only drill state. The only way the window ever shifts is by actually navigating the
     // real canvas (via a leaf-item click here, a source-item click here, or anything else that
     // changes currentFolderId) — there is no in-menu-only "focus" concept and no breadcrumb.
-    const OUTLINE_MAX_DEPTH = 2;
 
-    const OUTLINE_GROUP_MAX_DIST = 30 * 28;   // 30 grid squares — beyond this, a card isn't near enough to any heading to join it directly
-    const OUTLINE_RESCUE_MAX_DIST = 10 * 28;  // 10 grid squares — but it still joins whatever heading a nearby (already-grouped) card belongs to
+   // 30 grid squares — beyond this, a card isn't near enough to any heading to join it directly
+  // 10 grid squares — but it still joins whatever heading a nearby (already-grouped) card belongs to
 
     // Renders `folder`'s own items — leaf cards, plus child folders/sources — at the given depth.
     // Every row (whether it's a canvas, a source, or a plain card) uses the exact same
@@ -362,7 +358,7 @@ import { applyFolderView, centerOnContent, expandWaypointCard, openFolder, rende
             if (!allHeadings.length) { unassigned.push(item); return; }
             const nearest = nearestOf(allHeadings, item);
             const dist = Math.hypot(nearest.x - item.x, nearest.y - item.y);
-            if (dist <= OUTLINE_GROUP_MAX_DIST) headingGroups.get(nearest.id).push(item);
+            if (dist <= appState.OUTLINE_GROUP_MAX_DIST) headingGroups.get(nearest.id).push(item);
             else unassigned.push(item);
         });
         let changed = true;
@@ -372,7 +368,7 @@ import { applyFolderView, centerOnContent, expandWaypointCard, openFolder, rende
                 const item = unassigned[i];
                 let rescueHeadingId = null;
                 for (const [hid, groupItems] of headingGroups) {
-                    if (groupItems.some(g => Math.hypot(g.x - item.x, g.y - item.y) <= OUTLINE_RESCUE_MAX_DIST)) { rescueHeadingId = hid; break; }
+                    if (groupItems.some(g => Math.hypot(g.x - item.x, g.y - item.y) <= appState.OUTLINE_RESCUE_MAX_DIST)) { rescueHeadingId = hid; break; }
                 }
                 if (rescueHeadingId) {
                     headingGroups.get(rescueHeadingId).push(item);
@@ -404,14 +400,14 @@ import { applyFolderView, centerOnContent, expandWaypointCard, openFolder, rende
                 }
             };
             container.appendChild(row);
-            outlineRows.push({ el: row });
+            appState.outlineRows.push({ el: row });
         }
 
         // A non-heading card's own row, plus (for folders) recursing into its nested contents —
         // shared by both grouped-under-a-heading and fully-ungrouped rendering below.
         function makeCardRow(item, subIndent) {
             makeRow(item, subIndent);
-            if (item.kind === 'folder' && depth < OUTLINE_MAX_DEPTH && item.folderId && appState.folders[item.folderId] && !visited.has(item.folderId)) {
+            if (item.kind === 'folder' && depth < appState.OUTLINE_MAX_DEPTH && item.folderId && appState.folders[item.folderId] && !visited.has(item.folderId)) {
                 visited.add(item.folderId);
                 renderOutlineFolderContents(container, appState.folders[item.folderId], depth + 1, visited);
             }
@@ -457,7 +453,7 @@ import { applyFolderView, centerOnContent, expandWaypointCard, openFolder, rende
         if (!container) return;
         container.innerHTML = '';
         container.scrollTop = 0; // buildOutline only ever runs when the menu is being opened — always start at the top
-        outlineRows = []; outlineActiveIndex = -1;
+        appState.outlineRows = []; appState.outlineActiveIndex = -1;
 
         const rootFolder = appState.folders[appState.currentFolderId];
         const any = rootFolder ? renderOutlineFolderContents(container, rootFolder, 0, new Set([rootFolder.id])) : false;
@@ -488,23 +484,23 @@ import { applyFolderView, centerOnContent, expandWaypointCard, openFolder, rende
         closeHamburgerMenu();
     }
     function setOutlineActive(idx) {
-        if (!outlineRows.length) return;
-        idx = ((idx % outlineRows.length) + outlineRows.length) % outlineRows.length;
-        outlineRows.forEach(r => r.el.classList.remove('active'));
-        outlineActiveIndex = idx;
-        const row = outlineRows[idx];
+        if (!appState.outlineRows.length) return;
+        idx = ((idx % appState.outlineRows.length) + appState.outlineRows.length) % appState.outlineRows.length;
+        appState.outlineRows.forEach(r => r.el.classList.remove('active'));
+        appState.outlineActiveIndex = idx;
+        const row = appState.outlineRows[idx];
         row.el.classList.add('active');
         row.el.scrollIntoView({ block: 'nearest' });
     }
     function toggleHamburgerMenu() {
-        const willOpen = !outlineMenu.classList.contains('open');
-        outlineMenu.classList.toggle('open', willOpen);
-        accountMenu.classList.toggle('open', willOpen);
-        hamburgerBtn.classList.toggle('active', willOpen);
+        const willOpen = !appState.outlineMenu.classList.contains('open');
+        appState.outlineMenu.classList.toggle('open', willOpen);
+        appState.accountMenu.classList.toggle('open', willOpen);
+        appState.hamburgerBtn.classList.toggle('active', willOpen);
         if(willOpen) {
             buildOutline();
             setOutlineActive(0);
         }
     }
 
-export { announceEnteredCollaboration, buildOutline, closeBreadcrumbMapPanel, ensureSharedFolderLoaded, goToOutlineItem, jumpToHistoryIndex, kindIconHTML, namespaceSharedFolderIds, openBreadcrumbMapPanel, openSharedCanvas, outlineActiveIndex, outlineIcon, outlineRows, parseSharedFolderKey, setOutlineActive, sharedFolderKey, stripSharedFolderIds, toggleHamburgerMenu };
+export { announceEnteredCollaboration, buildOutline, closeBreadcrumbMapPanel, ensureSharedFolderLoaded, goToOutlineItem, jumpToHistoryIndex, kindIconHTML, namespaceSharedFolderIds, openBreadcrumbMapPanel, openSharedCanvas, outlineIcon, parseSharedFolderKey, setOutlineActive, sharedFolderKey, stripSharedFolderIds, toggleHamburgerMenu };

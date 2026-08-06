@@ -4,17 +4,16 @@ import { appState } from './core-state.js';
 import { resolveTableForEdit } from './drawing-connections.js';
 import { saveSnapshot, scheduleWorkspaceSave } from './history-autosave.js';
 import { closeAllPanels } from './panels-hamburger.js';
-import { cellTagPicker, closeSourceAddMenu } from './source-buttons-cursor-mode.js';
+import { closeSourceAddMenu } from './source-buttons-cursor-mode.js';
 import { importDelimitedIntoSource } from './source-table.js';
 import { add } from './srs-connections-core.js';
-import { searchCardContext } from './stopwatch-search-notifications.js';
 import { render } from './waypoints-render-loop.js';
 
 
     // ---------- Dotbot-generated source content (see the "sourceAction" panel in
     // app/api/dotbot/orchestrate/route.js) ----------
-    const AI_SOURCE_MAX_COLS = 10; // mirrors MAX_SOURCE_COLS server-side
-    const AI_SOURCE_MAX_ROWS = 150; // mirrors MAX_SOURCE_ROWS server-side
+ // mirrors MAX_SOURCE_COLS server-side
+ // mirrors MAX_SOURCE_ROWS server-side
 
     // Pads/truncates one generated row to exactly `width` cells, HTML-escaping each one — the
     // model's cell text is plain content, but tableData cells are raw innerHTML (see
@@ -34,7 +33,7 @@ import { render } from './waypoints-render-loop.js';
     // user has since navigated to — while a bare table's id is only meaningful within whichever
     // folder it lived in at drag time.
     function applyAiAddRowsToSource(targetIndex, columns, rows) {
-        const ctx = searchCardContext[(targetIndex || 1) - 1];
+        const ctx = appState.searchCardContext[(targetIndex || 1) - 1];
         if (!ctx || ctx.snapshot.kind !== 'source') return false;
         const folderObj = appState.folders[ctx.snapshot.folderId];
         if (!folderObj) return false;
@@ -50,14 +49,14 @@ import { render } from './waypoints-render-loop.js';
         // Only ever adopts the model's proposed column names into a still-placeholder header —
         // an existing named source keeps its own columns untouched (see the prompt).
         if (headerBlank && columns && columns.length) {
-            width = Math.max(1, Math.min(AI_SOURCE_MAX_COLS, columns.length));
+            width = Math.max(1, Math.min(appState.AI_SOURCE_MAX_COLS, columns.length));
             tableItem.tableData[0] = new Array(width).fill('').map((_, i) => escapeHtml(columns[i] || `Column ${i + 1}`));
             for (let ri = 1; ri < tableItem.tableData.length; ri++) {
                 const row = tableItem.tableData[ri];
                 tableItem.tableData[ri] = new Array(width).fill('').map((_, ci) => row[ci] || '');
             }
         }
-        const newRows = (rows || []).slice(0, AI_SOURCE_MAX_ROWS).map(r => aiRowToCells(r, width));
+        const newRows = (rows || []).slice(0, appState.AI_SOURCE_MAX_ROWS).map(r => aiRowToCells(r, width));
         if (!newRows.length) return false;
         // Fills existing blank rows first, then appends the rest — same rule
         // importDelimitedIntoSource uses for CSV/TSV import, so AI-added rows behave the same way
@@ -84,9 +83,9 @@ import { render } from './waypoints-render-loop.js';
         const items = appState.folders[appState.currentFolderId].items;
         const created = items[items.length - 1];
         const folderObj = appState.folders[created.folderId];
-        const width = Math.max(1, Math.min(AI_SOURCE_MAX_COLS, (columns && columns.length) || 2));
+        const width = Math.max(1, Math.min(appState.AI_SOURCE_MAX_COLS, (columns && columns.length) || 2));
         const header = new Array(width).fill('').map((_, i) => escapeHtml((columns && columns[i]) || `Column ${i + 1}`));
-        const dataRows = (rows || []).slice(0, AI_SOURCE_MAX_ROWS).map(r => aiRowToCells(r, width));
+        const dataRows = (rows || []).slice(0, appState.AI_SOURCE_MAX_ROWS).map(r => aiRowToCells(r, width));
         folderObj.title = (title || 'New Source').trim().slice(0, 80) || 'New Source';
         folderObj.items[0].tableData = [header, ...(dataRows.length ? dataRows : [new Array(width).fill('')])];
         render();
@@ -166,9 +165,9 @@ import { render } from './waypoints-render-loop.js';
         document.getElementById('cell-tag-picker-new-name').value = '';
         renderCellTagPickerList();
         const rect = btnEl.getBoundingClientRect();
-        cellTagPicker.style.left = Math.min(rect.right + 6, window.innerWidth - 210) + 'px';
-        cellTagPicker.style.top = (rect.top) + 'px';
-        cellTagPicker.style.display = 'flex';
+        appState.cellTagPicker.style.left = Math.min(rect.right + 6, window.innerWidth - 210) + 'px';
+        appState.cellTagPicker.style.top = (rect.top) + 'px';
+        appState.cellTagPicker.style.display = 'flex';
     }
     function renderCellTagPickerList() {
         if (!appState.activeTagRow) return;
@@ -290,7 +289,7 @@ import { render } from './waypoints-render-loop.js';
     // the tag button/indent don't linger if the picker was closed by clicking elsewhere on the
     // canvas rather than by moving the mouse off the table.
     function closeCellTagPicker() {
-        cellTagPicker.style.display = 'none';
+        appState.cellTagPicker.style.display = 'none';
         closeTagContextMenu();
         appState.renamingTagId = null;
         if (appState.activeTagRow) {

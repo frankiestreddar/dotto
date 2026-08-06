@@ -1,27 +1,25 @@
-import { userLibrary } from './add-menu.js';
 import { clearSearch, escapeHtml } from './ai-assistant-suggestions.js';
 import { appState, canvas, supabase } from './core-state.js';
 import { saveSnapshot } from './history-autosave.js';
 import { openItemDetail } from './library-publish.js';
 import { findItemById, importSharedCardsAtScreenPoint, renderInlineCanvas, sanitizeFlashcardSnapshot, snapshotItem } from './live-presence.js';
-import { closeAllPanels, panelPinned, pinOnInsideClick, scheduleHoverClose } from './panels-hamburger.js';
+import { closeAllPanels, pinOnInsideClick, scheduleHoverClose } from './panels-hamburger.js';
 import { render, renderSelectedOutlines } from './waypoints-render-loop.js';
 
 
     // ---------- Template Marketplace Features ----------
-    const btnCart = document.getElementById('btn-cart'), cartPanel = document.getElementById('cart-panel');
-    function closeCartPanel() { cartPanel.classList.remove('open'); btnCart.classList.remove('active'); panelPinned.cart = false; }
+    function closeCartPanel() { appState.cartPanel.classList.remove('open'); appState.btnCart.classList.remove('active'); appState.panelPinned.cart = false; }
     function positionCartPanel() {
-        const rect = btnCart.getBoundingClientRect();
-        cartPanel.style.bottom = 'auto';
-        cartPanel.style.top = (rect.bottom + 10) + 'px';
+        const rect = appState.btnCart.getBoundingClientRect();
+        appState.cartPanel.style.bottom = 'auto';
+        appState.cartPanel.style.top = (rect.bottom + 10) + 'px';
         const panelWidth = 380;
         const btnCenter = rect.left + rect.width / 2;
         let leftPos = btnCenter - panelWidth / 2;
         if (leftPos + panelWidth > window.innerWidth - 20) leftPos = window.innerWidth - panelWidth - 20;
         if (leftPos < 20) leftPos = 20;
-        cartPanel.style.left = leftPos + 'px';
-        cartPanel.style.right = 'auto';
+        appState.cartPanel.style.left = leftPos + 'px';
+        appState.cartPanel.style.right = 'auto';
     }
     // Restores whichever tab (discover/library) was last active, clearing any transient
     // detail/publish-flow view. Nothing is ever lost by calling this — drafts are persisted
@@ -36,8 +34,8 @@ import { render, renderSelectedOutlines } from './waypoints-render-loop.js';
     async function openCartPanel(pin) {
         closeAllPanels('cart');
         clearSearch();
-        cartPanel.classList.add('open');
-        btnCart.classList.add('active');
+        appState.cartPanel.classList.add('open');
+        appState.btnCart.classList.add('active');
         // Positioned immediately (depends only on the button's rect, not on panel content), so
         // it never flashes at its unpositioned default in the top-left corner while the first
         // fetch of the session (the slow one — nothing's cached yet) is still in flight.
@@ -47,17 +45,17 @@ import { render, renderSelectedOutlines } from './waypoints-render-loop.js';
         await Promise.all([refreshMarketplaceListings(), refreshMyLibrary()]);
         renderMarketplaceDiscover();
         renderLibrary();
-        if (pin) panelPinned.cart = true;
+        if (pin) appState.panelPinned.cart = true;
     }
-    btnCart.addEventListener('click', (e) => {
+    appState.btnCart.addEventListener('click', (e) => {
         e.stopPropagation();
-        if (panelPinned.cart) { closeCartPanel(); }
+        if (appState.panelPinned.cart) { closeCartPanel(); }
         else { openCartPanel(true); }
     });
-    btnCart.addEventListener('mouseenter', () => { if (!cartPanel.classList.contains('open')) openCartPanel(false); });
-    btnCart.addEventListener('mouseleave', () => scheduleHoverClose('cart', [btnCart, cartPanel], closeCartPanel));
-    cartPanel.addEventListener('mouseleave', () => scheduleHoverClose('cart', [btnCart, cartPanel], closeCartPanel));
-    pinOnInsideClick('cart', [cartPanel]);
+    appState.btnCart.addEventListener('mouseenter', () => { if (!appState.cartPanel.classList.contains('open')) openCartPanel(false); });
+    appState.btnCart.addEventListener('mouseleave', () => scheduleHoverClose('cart', [appState.btnCart, appState.cartPanel], closeCartPanel));
+    appState.cartPanel.addEventListener('mouseleave', () => scheduleHoverClose('cart', [appState.btnCart, appState.cartPanel], closeCartPanel));
+    pinOnInsideClick('cart', [appState.cartPanel]);
 
     // Listings are cached in trendingMarketplace / userLibrary.{purchased,drafts,published}
     // (same shape and variable names the render functions below already
@@ -98,8 +96,8 @@ import { render, renderSelectedOutlines } from './waypoints-render-loop.js';
             .eq('creator_id', appState.currentUser.id)
             .order('created_at', { ascending: false });
         if (mineErr) console.error('[marketplace] failed to load my listings:', mineErr);
-        userLibrary.drafts = (mine || []).filter(r => r.status === 'draft').map(marketplaceItemFromRow);
-        userLibrary.published = (mine || []).filter(r => r.status === 'published').map(marketplaceItemFromRow);
+        appState.userLibrary.drafts = (mine || []).filter(r => r.status === 'draft').map(marketplaceItemFromRow);
+        appState.userLibrary.published = (mine || []).filter(r => r.status === 'published').map(marketplaceItemFromRow);
 
         const { data: acquired, error: acqErr } = await supabase
             .from('library_items')
@@ -109,7 +107,7 @@ import { render, renderSelectedOutlines } from './waypoints-render-loop.js';
         if (acqErr) console.error('[marketplace] failed to load purchased items:', acqErr);
         // acquired_at drives the Library panel's "Purchased" folder, sorted most-recent-first —
         // carried through as acquiredAt alongside the usual marketplaceItemFromRow shape.
-        userLibrary.purchased = (acquired || []).filter(r => r.listing).map(r => ({ ...marketplaceItemFromRow(r.listing), acquiredAt: r.acquired_at }));
+        appState.userLibrary.purchased = (acquired || []).filter(r => r.listing).map(r => ({ ...marketplaceItemFromRow(r.listing), acquiredAt: r.acquired_at }));
     }
 
     async function switchCartTab(tab) {
@@ -127,7 +125,6 @@ import { render, renderSelectedOutlines } from './waypoints-render-loop.js';
         else { appState.activeLibraryFolder = null; document.getElementById('library-back-row').classList.remove('show'); await refreshMyLibrary(); renderLibrary(); }
     }
 
-    const libraryFolderLabels = { purchased: 'Purchased', drafts: 'Drafts', published: 'Published' };
     function switchLibraryFolder(folder) {
         appState.activeLibraryFolder = folder;
         const backRow = document.getElementById('library-back-row');
@@ -208,7 +205,7 @@ import { render, renderSelectedOutlines } from './waypoints-render-loop.js';
     async function purchaseCurrentMarketItem() {
         if (!appState.selectedMarketItem) return;
 
-        const alreadyOwns = userLibrary.purchased.some(x => x.id === appState.selectedMarketItem.id);
+        const alreadyOwns = appState.userLibrary.purchased.some(x => x.id === appState.selectedMarketItem.id);
         if (alreadyOwns) {
             alert("This template snapshot is already inside your Library!");
             closeMarketDetail();
@@ -240,7 +237,7 @@ import { render, renderSelectedOutlines } from './waypoints-render-loop.js';
             ['purchased', 'drafts', 'published'].forEach(key => {
                 const row = document.createElement('div');
                 row.className = 'lib-folder-row';
-                row.innerHTML = `<span>${libraryFolderLabels[key]}</span><span class="lib-folder-count">${userLibrary[key].length} item${userLibrary[key].length === 1 ? '' : 's'}</span>`;
+                row.innerHTML = `<span>${appState.libraryFolderLabels[key]}</span><span class="lib-folder-count">${appState.userLibrary[key].length} item${appState.userLibrary[key].length === 1 ? '' : 's'}</span>`;
                 row.onclick = () => switchLibraryFolder(key);
                 container.appendChild(row);
             });
@@ -249,7 +246,7 @@ import { render, renderSelectedOutlines } from './waypoints-render-loop.js';
             divider.className = 'library-divider';
             container.appendChild(divider);
 
-            userLibrary.customFolders.forEach(folder => {
+            appState.userLibrary.customFolders.forEach(folder => {
                 const row = document.createElement('div');
                 row.className = 'lib-folder-row';
                 row.innerHTML = `<span>${escapeHtml(folder.name)}</span><span class="lib-folder-count">${folder.items.length} item${folder.items.length === 1 ? '' : 's'}</span>`;
@@ -266,8 +263,8 @@ import { render, renderSelectedOutlines } from './waypoints-render-loop.js';
         }
 
         const isCustom = isCustomFolderId(appState.activeLibraryFolder);
-        const customFolder = isCustom ? userLibrary.customFolders.find(f => f.id === appState.activeLibraryFolder) : null;
-        const list = isCustom ? (customFolder ? customFolder.items : []) : userLibrary[appState.activeLibraryFolder];
+        const customFolder = isCustom ? appState.userLibrary.customFolders.find(f => f.id === appState.activeLibraryFolder) : null;
+        const list = isCustom ? (customFolder ? customFolder.items : []) : appState.userLibrary[appState.activeLibraryFolder];
 
         if (!list || !list.length) {
             container.innerHTML = `<div class="text-xs text-neutral-500 text-center py-12 font-mono">
@@ -282,10 +279,10 @@ import { render, renderSelectedOutlines } from './waypoints-render-loop.js';
             const div = document.createElement('div');
             div.className = 'lib-item-card';
 
-            const addToFolderControl = (!isCustom && userLibrary.customFolders.length)
+            const addToFolderControl = (!isCustom && appState.userLibrary.customFolders.length)
                 ? `<select class="lib-add-to-folder-select" onmousedown="event.stopPropagation()" onclick="event.stopPropagation()" onchange="if(this.value){addItemToCustomFolderById(this.value, '${appState.activeLibraryFolder}', '${item.id}');} this.value='';">
                     <option value="">+ Folder…</option>
-                    ${userLibrary.customFolders.map(f => `<option value="${f.id}">${escapeHtml(f.name)}</option>`).join('')}
+                    ${appState.userLibrary.customFolders.map(f => `<option value="${f.id}">${escapeHtml(f.name)}</option>`).join('')}
                 </select>`
                 : '';
 
@@ -311,8 +308,8 @@ import { render, renderSelectedOutlines } from './waypoints-render-loop.js';
     // A library item may live in exactly one of these three real folders; custom folders
     // just hold references to items that already belong to one of them.
     function resolveItemStatus(item) {
-        if (userLibrary.drafts.some(x => x.id === item.id)) return 'drafts';
-        if (userLibrary.published.some(x => x.id === item.id)) return 'published';
+        if (appState.userLibrary.drafts.some(x => x.id === item.id)) return 'drafts';
+        if (appState.userLibrary.published.some(x => x.id === item.id)) return 'published';
         return 'purchased';
     }
 
@@ -331,13 +328,13 @@ import { render, renderSelectedOutlines } from './waypoints-render-loop.js';
         const name = prompt('Name your new library folder:', 'New Folder');
         if (name === null) return;
         const trimmed = name.trim();
-        userLibrary.customFolders.push({ id: 'customfolder_' + appState.idCounter++, name: trimmed || 'New Folder', items: [] });
+        appState.userLibrary.customFolders.push({ id: 'customfolder_' + appState.idCounter++, name: trimmed || 'New Folder', items: [] });
         renderLibrary();
     }
 
     function addItemToCustomFolderById(folderId, sourceKey, itemId) {
-        const folder = userLibrary.customFolders.find(f => f.id === folderId);
-        const source = userLibrary[sourceKey];
+        const folder = appState.userLibrary.customFolders.find(f => f.id === folderId);
+        const source = appState.userLibrary[sourceKey];
         if (!folder || !source) return;
         const item = source.find(x => String(x.id) === String(itemId));
         if (!item) return;
@@ -347,7 +344,7 @@ import { render, renderSelectedOutlines } from './waypoints-render-loop.js';
     }
 
     function removeFromCustomFolder(folderId, itemId) {
-        const folder = userLibrary.customFolders.find(f => f.id === folderId);
+        const folder = appState.userLibrary.customFolders.find(f => f.id === folderId);
         if (!folder) return;
         folder.items = folder.items.filter(x => String(x.id) !== String(itemId));
         renderLibrary();
@@ -361,10 +358,10 @@ import { render, renderSelectedOutlines } from './waypoints-render-loop.js';
     function renderLibrarySearchResults(container) {
         const q = appState.librarySearchQuery;
         const groups = [
-            { key: 'purchased', label: libraryFolderLabels.purchased, items: userLibrary.purchased },
-            { key: 'drafts', label: libraryFolderLabels.drafts, items: userLibrary.drafts },
-            { key: 'published', label: libraryFolderLabels.published, items: userLibrary.published },
-            ...userLibrary.customFolders.map(f => ({ key: f.id, label: f.name, items: f.items }))
+            { key: 'purchased', label: appState.libraryFolderLabels.purchased, items: appState.userLibrary.purchased },
+            { key: 'drafts', label: appState.libraryFolderLabels.drafts, items: appState.userLibrary.drafts },
+            { key: 'published', label: appState.libraryFolderLabels.published, items: appState.userLibrary.published },
+            ...appState.userLibrary.customFolders.map(f => ({ key: f.id, label: f.name, items: f.items }))
         ];
 
         const results = [];
@@ -431,7 +428,7 @@ import { render, renderSelectedOutlines } from './waypoints-render-loop.js';
                 window.removeEventListener('pointerup', up);
                 if (dragGhost) dragGhost.remove();
                 if (!dragStarted) { openItemDetail(item, 'drafts'); return; }
-                const panelRect = cartPanel.getBoundingClientRect();
+                const panelRect = appState.cartPanel.getBoundingClientRect();
                 const overPanel = ue.clientX >= panelRect.left && ue.clientX <= panelRect.right && ue.clientY >= panelRect.top && ue.clientY <= panelRect.bottom;
                 if (overPanel) return;
                 const canvasRect = canvas.getBoundingClientRect();
@@ -446,7 +443,7 @@ import { render, renderSelectedOutlines } from './waypoints-render-loop.js';
     }
 
     function deployPurchasedTemplate(id) {
-        const item = userLibrary.purchased.find(x => x.id === id);
+        const item = appState.userLibrary.purchased.find(x => x.id === id);
         if (!item) return;
         
         saveSnapshot();
@@ -502,7 +499,7 @@ import { render, renderSelectedOutlines } from './waypoints-render-loop.js';
         if (error) { console.error('[marketplace] failed to create draft:', error); return; }
 
         const newItem = marketplaceItemFromRow(data);
-        userLibrary.drafts.unshift(newItem);
+        appState.userLibrary.drafts.unshift(newItem);
 
         appState.activeCartTab = 'library';
         appState.activeLibraryFolder = 'drafts';
@@ -514,4 +511,4 @@ import { render, renderSelectedOutlines } from './waypoints-render-loop.js';
         openItemDetail(newItem, 'drafts');
     }
 
-export { addItemToCustomFolderById, btnCart, cartPanel, closeCartPanel, closeMarketDetail, deployPurchasedTemplate, handleLibrarySearch, handleMarketplaceSearch, packageSelectedAsTemplate, purchaseCurrentMarketItem, refreshMyLibrary, removeFromCustomFolder, renderLibrary, switchCartTab, switchLibraryFolder };
+export { addItemToCustomFolderById, closeCartPanel, closeMarketDetail, deployPurchasedTemplate, handleLibrarySearch, handleMarketplaceSearch, packageSelectedAsTemplate, purchaseCurrentMarketItem, refreshMyLibrary, removeFromCustomFolder, renderLibrary, switchCartTab, switchLibraryFolder };

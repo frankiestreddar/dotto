@@ -197,11 +197,10 @@ import { openFolder, render } from './waypoints-render-loop.js';
     // ondblclick): a genuine click opens the source after a short delay, but if a second click
     // lands within that window this just cancels the pending navigation and lets ondblclick take
     // over, so renaming a row doesn't also navigate away first.
-    let shelfRowClickTimer = null;
     function handleShelfSourceRowClick(rowEl, sourceItemId) {
-        if (shelfRowClickTimer) { clearTimeout(shelfRowClickTimer); shelfRowClickTimer = null; return; }
-        shelfRowClickTimer = setTimeout(() => {
-            shelfRowClickTimer = null;
+        if (appState.shelfRowClickTimer) { clearTimeout(appState.shelfRowClickTimer); appState.shelfRowClickTimer = null; return; }
+        appState.shelfRowClickTimer = setTimeout(() => {
+            appState.shelfRowClickTimer = null;
             const folderId = folderIdForConnectedSource(sourceItemId);
             if (folderId) openFolder(folderId);
         }, 220);
@@ -290,15 +289,6 @@ import { openFolder, render } from './waypoints-render-loop.js';
     }
 
     // ---------- Search & AI Gen ----------
-    const searchInput = document.getElementById('search-input'), searchResults = document.getElementById('search-results'),
-        searchDotbotAnswer = document.getElementById('search-dotbot-answer'),
-        searchTranslation = document.getElementById('search-translation'),
-        searchDictionary = document.getElementById('search-dictionary'), searchExamples = document.getElementById('search-examples'),
-        searchImageResult = document.getElementById('search-image-result'),
-        searchSuggestions = document.getElementById('search-suggestions'), searchRecommended = document.getElementById('search-recommended'),
-        searchDropdown = document.getElementById('search-dropdown'), searchSpinner = document.getElementById('search-spinner'),
-        searchInputWrap = document.getElementById('search-input-wrap'), searchCardPill = document.getElementById('search-card-pill'),
-        searchCardPillLabel = document.getElementById('search-card-pill-label'), searchSpaceHint = document.getElementById('search-space-hint');
 
     // ---------- Notifications ----------
     // Generic engine — notifications queue up and are shown one at a time IN the search bar
@@ -337,23 +327,13 @@ import { openFolder, render } from './waypoints-render-loop.js';
     // refreshFriendsData/subscribeToAllFriendMessages/handleFriendPresenceSync/awardUserPoints/
     // refreshDotbotUsage/checkDueScheduledEvents/the day-change interval/the ad timer/
     // bumpAchievementStat below).
-    const NOTIFICATION_DEFAULT_DURATION_MS = 5000;
     // Entrance/exit choreography timing — see the CSS block above #search-notification in
     // globals.css for the actual animations these durations drive (must stay in sync: the fast
     // flash is 2 iterations of a 0.2s keyframe, the slide is a 0.3s transition).
-    const NOTIF_FLASH_MS = 400;
-    const NOTIF_SLIDE_MS = 300;
-    let notificationQueue = [];
-    let currentNotification = null;
-    let notificationTimer = null;
     // Bumped at the start of every enter/exit sequence — a pending setTimeout from an older
     // sequence checks this before acting, so it can't step on a newer sequence's state (e.g. the
     // user dismisses a notification mid-entrance, or the queue advances to the next one before a
     // stale timeout fires).
-    let notificationSeq = 0;
-    const notifImageEl = document.getElementById('search-notification-image'),
-        notifTextEl = document.getElementById('search-notification-text'),
-        notifActionBtn = document.getElementById('search-notification-action');
 
     // Time from when a notification settles (fully slid in) until its exit sequence STARTS, given
     // its configured `durationMs` — reserves NOTIF_FLASH_MS+NOTIF_SLIDE_MS at the end for the
@@ -362,7 +342,7 @@ import { openFolder, render } from './waypoints-render-loop.js';
     // the exit animation. Clamped so a very short durationMs still gets at least as long to settle
     // as its own entrance took.
     function computeNotificationDismissDelay(durationMs) {
-        const exitReserve = NOTIF_FLASH_MS + NOTIF_SLIDE_MS;
+        const exitReserve = appState.NOTIF_FLASH_MS + appState.NOTIF_SLIDE_MS;
         return Math.max(durationMs - exitReserve, exitReserve);
     }
 
@@ -370,72 +350,70 @@ import { openFolder, render } from './waypoints-render-loop.js';
     // backlog of queued notifications doesn't read as one continuous flicker. 0 means "no
     // notification has ever closed yet" — the very first one of the session shows with no
     // artificial gap. Set right when a notification finishes closing (see dismissCurrentNotification).
-    const NOTIFICATION_QUEUE_GAP_MS = 5000;
-    let lastNotificationCloseTime = 0;
 
     function pushNotification(config) {
-        notificationQueue.push(config);
+        appState.notificationQueue.push(config);
         tryShowNextNotification();
     }
     function tryShowNextNotification() {
-        if (currentNotification || !notificationQueue.length) return;
+        if (appState.currentNotification || !appState.notificationQueue.length) return;
         // Held while the tab isn't actually visible (another tab/app, backgrounded, screen
         // locked) — retried by the visibilitychange listener below the moment it's visible
         // again, so queued notifications come through one at a time from there rather than
         // firing unseen while away.
         if (document.visibilityState !== 'visible') return;
-        if (document.activeElement === searchInput) return; // don't interrupt active typing — searchInput's blur listener retries this
-        if (lastNotificationCloseTime) {
-            const elapsed = Date.now() - lastNotificationCloseTime;
-            if (elapsed < NOTIFICATION_QUEUE_GAP_MS) {
+        if (document.activeElement === appState.searchInput) return; // don't interrupt active typing — searchInput's blur listener retries this
+        if (appState.lastNotificationCloseTime) {
+            const elapsed = Date.now() - appState.lastNotificationCloseTime;
+            if (elapsed < appState.NOTIFICATION_QUEUE_GAP_MS) {
                 // Re-checks everything above (visibility, focus, remaining gap) once it fires,
                 // rather than assuming this is still the right moment — self-correcting if the tab
                 // gets backgrounded or the gap gets pushed out again in the meantime.
-                setTimeout(tryShowNextNotification, NOTIFICATION_QUEUE_GAP_MS - elapsed);
+                setTimeout(tryShowNextNotification, appState.NOTIFICATION_QUEUE_GAP_MS - elapsed);
                 return;
             }
         }
-        showNotification(notificationQueue.shift());
+        showNotification(appState.notificationQueue.shift());
     }
     // Entrance: (1) the border flashes 2 quick pulses while the bar still looks completely
     // normal, (2) #search-input/#search-space-hint slide up and out while #search-notification
     // slides up into view (both driven by the same .notifying toggle — see globals.css), (3) once
     // settled, a slow continuous pulse plays until the exit sequence begins.
     function showNotification(config) {
-        currentNotification = config;
-        const seq = ++notificationSeq;
-        searchInputWrap.classList.toggle('notification-grows', !!config.grows);
+        appState.currentNotification = config;
+        const seq = ++appState.notificationSeq;
+        appState.searchInputWrap.classList.toggle('notification-grows', !!config.grows);
 
-        if (config.imageUrl) notifImageEl.src = config.imageUrl;
-        else notifImageEl.removeAttribute('src');
-        notifTextEl.textContent = config.message || '';
+        if (config.imageUrl) appState.notifImageEl.src = config.imageUrl;
+        else appState.notifImageEl.removeAttribute('src');
+        appState.notifTextEl.textContent = config.message || '';
         // The enter-arrow suffix mirrors #search-space-hint's own "Enter" pill (same size/color —
         // see globals.css) so the button visually reads as "press Enter to do this", not a
         // separately-styled call-to-action button.
-        notifActionBtn.textContent = config.actionLabel ? `${config.actionLabel} ↵` : '';
-        notifActionBtn.classList.toggle('visible', !!config.actionLabel);
+        appState.notifActionBtn.textContent = config.actionLabel ? `${config.actionLabel} ↵` : '';
+        appState.notifActionBtn.classList.toggle('visible', !!config.actionLabel);
 
-        searchInputWrap.classList.add('notif-flash');
+        appState.searchInputWrap.classList.add('notif-flash');
         setTimeout(() => {
-            if (seq !== notificationSeq) return; // superseded mid-flash (e.g. dismissed already)
-            searchInputWrap.classList.remove('notif-flash');
-            searchInputWrap.classList.add('notifying', 'notif-clipping');
+            if (seq !== appState.notificationSeq) return; // superseded mid-flash (e.g. dismissed already)
+            appState.searchInputWrap.classList.remove('notif-flash');
+            appState.searchInputWrap.classList.add('notifying', 'notif-clipping');
             updateSearchSpaceHint(); // starts its slide-out now, in lockstep with #search-input
             setTimeout(() => {
-                if (seq !== notificationSeq) return;
-                searchInputWrap.classList.add('notif-pulse-slow');
-            }, NOTIF_SLIDE_MS);
-        }, NOTIF_FLASH_MS);
+                if (seq !== appState.notificationSeq) return;
+                appState.searchInputWrap.classList.add('notif-pulse-slow');
+            }, appState.NOTIF_SLIDE_MS);
+        }, appState.NOTIF_FLASH_MS);
 
-        clearTimeout(notificationTimer);
-        const durationMs = config.durationMs || NOTIFICATION_DEFAULT_DURATION_MS;
-        if (!config.sticky) notificationTimer = setTimeout(dismissCurrentNotification, computeNotificationDismissDelay(durationMs));
+        clearTimeout(appState.notificationTimer);
+        const durationMs = config.durationMs || appState.NOTIFICATION_DEFAULT_DURATION_MS;
+        if (!config.sticky) appState.notificationTimer = setTimeout(dismissCurrentNotification, computeNotificationDismissDelay(durationMs));
     }
     // Click OR Enter (see the keydown handler below) — a no-op if this notification has no
     // action configured, so a stray Enter press can't dismiss a sticky plain notification.
     function runNotificationAction() {
-        if (!currentNotification || !currentNotification.actionLabel) return;
-        const cb = currentNotification.onAction;
+        if (!appState.currentNotification || !appState.currentNotification.actionLabel) return;
+        const cb = appState.currentNotification.onAction;
         dismissCurrentNotification();
         if (cb) cb();
     }
@@ -445,31 +423,31 @@ import { openFolder, render } from './waypoints-render-loop.js';
     // the queue allowed to advance to the next notification, so a back-to-back pair never
     // overlaps or snaps between each other mid-animation.
     function dismissCurrentNotification() {
-        if (!currentNotification) return;
-        clearTimeout(notificationTimer);
-        currentNotification = null;
-        const seq = ++notificationSeq; // supersedes any pending entrance-sequence timeouts
-        searchInputWrap.classList.remove('notif-pulse-slow');
-        searchInputWrap.classList.add('notif-flash');
+        if (!appState.currentNotification) return;
+        clearTimeout(appState.notificationTimer);
+        appState.currentNotification = null;
+        const seq = ++appState.notificationSeq; // supersedes any pending entrance-sequence timeouts
+        appState.searchInputWrap.classList.remove('notif-pulse-slow');
+        appState.searchInputWrap.classList.add('notif-flash');
         setTimeout(() => {
-            if (seq !== notificationSeq) return;
+            if (seq !== appState.notificationSeq) return;
             // 'notifying' comes off now, flipping the reverse slide's target transform (see
             // .notif-clipping's own comment in globals.css) — but 'notif-clipping' deliberately
             // stays on through that whole slide so the content stays clipped to the box the entire
             // time, instead of spending its last 0.3s visible outside the border.
-            searchInputWrap.classList.remove('notif-flash', 'notifying');
+            appState.searchInputWrap.classList.remove('notif-flash', 'notifying');
             updateSearchSpaceHint(); // may need to reappear now that the box is back to normal — slides back in alongside #search-input
             setTimeout(() => {
-                if (seq !== notificationSeq) return;
-                searchInputWrap.classList.remove('notification-grows', 'notif-clipping');
-                lastNotificationCloseTime = Date.now();
+                if (seq !== appState.notificationSeq) return;
+                appState.searchInputWrap.classList.remove('notification-grows', 'notif-clipping');
+                appState.lastNotificationCloseTime = Date.now();
                 tryShowNextNotification();
-            }, NOTIF_SLIDE_MS);
-        }, NOTIF_FLASH_MS);
+            }, appState.NOTIF_SLIDE_MS);
+        }, appState.NOTIF_FLASH_MS);
     }
-    searchInput.addEventListener('blur', tryShowNextNotification);
+    appState.searchInput.addEventListener('blur', tryShowNextNotification);
     document.addEventListener('keydown', (e) => {
-        if (!currentNotification) return;
+        if (!appState.currentNotification) return;
         const active = document.activeElement;
         // Some OTHER field being actively edited (a waypoint rename, a table cell, etc.) wins —
         // Enter/Escape apply to that as usual rather than surprise-triggering the notification
@@ -491,14 +469,14 @@ import { openFolder, render } from './waypoints-render-loop.js';
     // still comes through one at a time from here rather than all at once.
     document.addEventListener('visibilitychange', () => {
         if (document.visibilityState === 'visible') {
-            if (currentNotification && !currentNotification.sticky) {
-                const durationMs = currentNotification.durationMs || NOTIFICATION_DEFAULT_DURATION_MS;
-                clearTimeout(notificationTimer);
-                notificationTimer = setTimeout(dismissCurrentNotification, computeNotificationDismissDelay(durationMs));
+            if (appState.currentNotification && !appState.currentNotification.sticky) {
+                const durationMs = appState.currentNotification.durationMs || appState.NOTIFICATION_DEFAULT_DURATION_MS;
+                clearTimeout(appState.notificationTimer);
+                appState.notificationTimer = setTimeout(dismissCurrentNotification, computeNotificationDismissDelay(durationMs));
             }
             tryShowNextNotification();
         } else {
-            clearTimeout(notificationTimer);
+            clearTimeout(appState.notificationTimer);
         }
     });
 
@@ -510,10 +488,10 @@ import { openFolder, render } from './waypoints-render-loop.js';
     // (the markup itself defaults to visible for a flash-free first paint, but that default is
     // only actually right if the box starts empty and unfocused).
     function updateSearchSpaceHint() {
-        if (!searchSpaceHint || !searchInput) return;
-        const focused = document.activeElement === searchInput;
-        const notifying = searchInputWrap.classList.contains('notifying');
-        searchSpaceHint.classList.toggle('visible', !focused && !notifying && searchInput.value.trim() === '');
+        if (!appState.searchSpaceHint || !appState.searchInput) return;
+        const focused = document.activeElement === appState.searchInput;
+        const notifying = appState.searchInputWrap.classList.contains('notifying');
+        appState.searchSpaceHint.classList.toggle('visible', !focused && !notifying && appState.searchInput.value.trim() === '');
     }
     updateSearchSpaceHint();
 
@@ -528,46 +506,46 @@ import { openFolder, render } from './waypoints-render-loop.js';
         // + 30 bottom pad/pill = 100, vs. 10 + 4*20 + 10 = 100 with no pill), so the cap itself
         // never changes, only the minimum (1 empty text line, plus the pill's own line when
         // present).
-        const hasPill = typeof searchCardContext !== 'undefined' && searchCardContext.length > 0;
+        const hasPill = typeof appState.searchCardContext !== 'undefined' && appState.searchCardContext.length > 0;
         const minH = hasPill ? 60 : 40;
         let h;
         // With no typed value, the box is always exactly 1 (text) line tall — measuring
         // scrollHeight here would instead reflect the animated placeholder's current wrapped
         // shape (a <textarea>'s placeholder wraps like real content when the value is empty),
         // which has nothing to do with what the user has actually typed.
-        if (!searchInput.value) {
+        if (!appState.searchInput.value) {
             h = minH;
         } else {
-            searchInput.style.height = 'auto';
+            appState.searchInput.style.height = 'auto';
             // #search-input itself is borderless now (the wrap owns the border — see globals.css),
             // so scrollHeight's content+padding measurement already matches what style.height
             // (box-sizing:border-box) needs — no border-compensation offset required.
-            h = Math.max(minH, Math.min(100, searchInput.scrollHeight));
+            h = Math.max(minH, Math.min(100, appState.searchInput.scrollHeight));
         }
-        searchInput.style.height = h + 'px';
-        searchDropdown.style.top = (searchInputWrap.offsetHeight + 7) + 'px';
+        appState.searchInput.style.height = h + 'px';
+        appState.searchDropdown.style.top = (appState.searchInputWrap.offsetHeight + 7) + 'px';
         // style.height='auto' above forces a reflow that resets scrollTop to 0 — once content
         // no longer fits (capped at 100px), that leaves the caret's actual line scrolled out of
         // view after every keystroke. Pin back to the bottom, where the caret always is (typing
         // never happens mid-text via a mouse click without also refocusing/reflowing here).
-        if (searchInput.scrollHeight > searchInput.clientHeight) searchInput.scrollTop = searchInput.scrollHeight;
+        if (appState.searchInput.scrollHeight > appState.searchInput.clientHeight) appState.searchInput.scrollTop = appState.searchInput.scrollHeight;
     }
 
     // ---------- Card context: cards dragged into the search box as AI context ----------
     // Persists across searches (unlike the text input, which clears after every search) so
     // follow-up questions about the same attached cards don't require redragging — only cleared
     // by the global outside-click handler, alongside every other ephemeral search-state reset.
-    let searchCardContext = []; // { id, snapshot }
-    let searchCardConnections = []; // { fromId, toId } — copied across from the live folder for
+ // { id, snapshot }
+ // { fromId, toId } — copied across from the live folder for
     // any pair that was dragged in together, so a data-mode link between two dragged cards
     // survives into the popup preview.
 
     function renderSearchCardPill() {
-        if (!searchCardPill) return;
-        const n = searchCardContext.length;
-        searchCardPill.classList.toggle('visible', n > 0);
-        searchInput.classList.toggle('has-pill', n > 0);
-        searchCardPillLabel.textContent = n > 0 ? `${n} card${n === 1 ? '' : 's'}` : '';
+        if (!appState.searchCardPill) return;
+        const n = appState.searchCardContext.length;
+        appState.searchCardPill.classList.toggle('visible', n > 0);
+        appState.searchInput.classList.toggle('has-pill', n > 0);
+        appState.searchCardPillLabel.textContent = n > 0 ? `${n} card${n === 1 ? '' : 's'}` : '';
         autoGrowSearchInput();
     }
 
@@ -582,33 +560,33 @@ import { openFolder, render } from './waypoints-render-loop.js';
         const folder = appState.folders[appState.currentFolderId];
         if (!folder) return;
         ids.forEach(id => {
-            if (searchCardContext.some(c => c.id === id)) return;
+            if (appState.searchCardContext.some(c => c.id === id)) return;
             const it = findItemById(id);
             if (!it) return;
-            searchCardContext.push({ id, snapshot: sanitizeFlashcardSnapshot(snapshotItem(it), ids) });
+            appState.searchCardContext.push({ id, snapshot: sanitizeFlashcardSnapshot(snapshotItem(it), ids) });
         });
         const conns = ensureConnections(folder);
         conns.forEach(c => {
             if (!ids.includes(c.fromId) || !ids.includes(c.toId)) return;
-            if (searchCardConnections.some(sc => sc.fromId === c.fromId && sc.toId === c.toId)) return;
-            searchCardConnections.push({ fromId: c.fromId, toId: c.toId });
+            if (appState.searchCardConnections.some(sc => sc.fromId === c.fromId && sc.toId === c.toId)) return;
+            appState.searchCardConnections.push({ fromId: c.fromId, toId: c.toId });
         });
         renderSearchCardPill();
     }
 
     function removeSearchCardContextItem(id) {
-        searchCardContext = searchCardContext.filter(c => c.id !== id);
-        searchCardConnections = searchCardConnections.filter(c => c.fromId !== id && c.toId !== id);
+        appState.searchCardContext = appState.searchCardContext.filter(c => c.id !== id);
+        appState.searchCardConnections = appState.searchCardConnections.filter(c => c.fromId !== id && c.toId !== id);
         renderSearchCardPill();
-        if (!searchCardContext.length) { closeSearchCardsModal(); return; }
+        if (!appState.searchCardContext.length) { closeSearchCardsModal(); return; }
         if (document.getElementById('search-cards-modal-overlay').classList.contains('open')) openSearchCardsModal();
     }
 
     // The pill's hover-reveal "✕" — clears every attached card at once, unlike
     // removeSearchCardContextItem which only drops one.
     function clearSearchCardContext() {
-        searchCardContext = [];
-        searchCardConnections = [];
+        appState.searchCardContext = [];
+        appState.searchCardConnections = [];
         renderSearchCardPill();
         closeSearchCardsModal();
     }
@@ -630,15 +608,15 @@ import { openFolder, render } from './waypoints-render-loop.js';
     }
 
     function openSearchCardsModal() {
-        if (!searchCardContext.length) return;
-        const laidOut = layoutSnapshotsInGrid(searchCardContext.map(c => c.snapshot));
+        if (!appState.searchCardContext.length) return;
+        const laidOut = layoutSnapshotsInGrid(appState.searchCardContext.map(c => c.snapshot));
         const body = document.getElementById('search-cards-modal-body');
         body.innerHTML = '';
-        body.appendChild(renderInlineCanvas(laidOut, false, searchCardConnections, (id) => removeSearchCardContextItem(id)));
+        body.appendChild(renderInlineCanvas(laidOut, false, appState.searchCardConnections, (id) => removeSearchCardContextItem(id)));
         document.getElementById('search-cards-modal-overlay').classList.add('open');
     }
     function closeSearchCardsModal() {
         document.getElementById('search-cards-modal-overlay').classList.remove('open');
     }
 
-export { addCardsToSearchContext, autoGrowSearchInput, clearSearchCardContext, closeSearchCardsModal, currentNotification, filterShelfRows, handleShelfSourceRowClick, openSearchCardsModal, pushNotification, renderFilterHTML, renderShelfHTML, renderStopwatchHTML, runNotificationAction, searchCardConnections, searchCardContext, searchDictionary, searchDotbotAnswer, searchDropdown, searchExamples, searchImageResult, searchInput, searchInputWrap, searchRecommended, searchResults, searchSpinner, searchSuggestions, searchTranslation, setFilterMode, shelfSelectSession, startRenameShelfName, startRenameShelfSourceRow, swCurrentElapsedMs, swFormatTime, swTogglePause, swToggleRun, toggleFilterTag, updateSearchSpaceHint };
+export { addCardsToSearchContext, autoGrowSearchInput, clearSearchCardContext, closeSearchCardsModal, filterShelfRows, handleShelfSourceRowClick, openSearchCardsModal, pushNotification, renderFilterHTML, renderShelfHTML, renderStopwatchHTML, runNotificationAction, setFilterMode, shelfSelectSession, startRenameShelfName, startRenameShelfSourceRow, swCurrentElapsedMs, swFormatTime, swTogglePause, swToggleRun, toggleFilterTag, updateSearchSpaceHint };

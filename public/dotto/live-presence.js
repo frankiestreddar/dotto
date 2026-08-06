@@ -3,15 +3,14 @@ import { countSourceEntries, escapeHtml, stripHtml } from './ai-assistant-sugges
 import { renderChecklistHTML, renderStatcardHTML, shortUrl } from './cards-misc.js';
 import { appState, canvas, cursorOverlay, supabase } from './core-state.js';
 import { ensureConnections } from './drawing-connections.js';
-import { closeCollabPanel, friends, initials } from './friends-presence.js';
+import { closeCollabPanel, initials } from './friends-presence.js';
 import { defaultFlashcardDeck, renderFlashcardHTML, renderTypeRightHTML } from './games-flashcard-typeright.js';
 import { saveSnapshot, smoothPanTo } from './history-autosave.js';
 import { renderMediaHTML } from './media-pdf-epub.js';
-import { closeMessagesPanel, messagesPanel, msgConvo, msgList, msgSearchInput } from './messages-schedule.js';
+import { closeMessagesPanel } from './messages-schedule.js';
 import { awardUserPoints, renderAvatarInto } from './profile-achievements-pricing.js';
 import { kindIconHTML, namespaceSharedFolderIds, parseSharedFolderKey, stripSharedFolderIds } from './shared-canvases-outline.js';
 import { renderTableHTML } from './source-table.js';
-import { CardStreamIO } from './srs-connections-core.js';
 import { renderShelfHTML, renderStopwatchHTML } from './stopwatch-search-notifications.js';
 import { render } from './waypoints-render-loop.js';
 
@@ -32,17 +31,15 @@ import { render } from './waypoints-render-loop.js';
     // as the word-alignment highlight colors (.align-hl-0..5 in globals.css), just keyed by user id
     // instead of alignment-pair index, so the same person always gets the same color across
     // reloads/sessions with no server-side storage needed.
-    const CURSOR_COLORS = ['#F87171', '#FB923C', '#FBBF24', '#4ADE80', '#22D3EE', '#60A5FA', '#A78BFA', '#F472B6'];
     function assignCursorColor(userId) {
         let hash = 0;
         for (let i = 0; i < userId.length; i++) hash = (hash * 31 + userId.charCodeAt(i)) | 0;
-        return CURSOR_COLORS[Math.abs(hash) % CURSOR_COLORS.length];
+        return appState.CURSOR_COLORS[Math.abs(hash) % appState.CURSOR_COLORS.length];
     }
     // How long the floating-cursor <-> typing-indicator "travel" animation runs for (see
     // showRemoteTypingIndicator/travelCursorBackToPointer's .remote-presence-travel handling) —
     // must match the transition duration set on that class in globals.css, since the JS uses this
     // same value to know when it's safe to remove the class again.
-    const REMOTE_CURSOR_TRAVEL_MS = 220;
     // {ownerId, folderId} for whatever folder is currently open, whether it's this user's own or a
     // shared:owner:folderId view — mirrors parseSharedFolderKey's own logic so every viewer of the
     // exact same real canvas computes the identical channel name independently.
@@ -54,32 +51,29 @@ import { render } from './waypoints-render-loop.js';
         return { ownerId: appState.currentUser.id, folderId: appState.currentFolderId };
     }
 
-    let canvasPresenceChannel = null;
-    let canvasPresenceKey = null; // "ownerId:folderId" this channel is currently joined to, or null
-    let remoteCursors = new Map(); // userId -> { el, x, y, caretX, caretY, ... }, x/y in canvas-space
+ // "ownerId:folderId" this channel is currently joined to, or null
+ // userId -> { el, x, y, caretX, caretY, ... }, x/y in canvas-space
     // Per-item JSON snapshot of whatever was last actually broadcast for the currently-joined
     // folder (plus its title) — the baseline the content-sync diff below compares against. Also
     // updated (not just read) when an incoming remote change is applied, which is what stops that
     // same change from being immediately re-diffed and echoed straight back out.
-    let lastBroadcastSnapshot = null; // { title, items: Map<id, jsonString> }
-    let pendingSyncDeltas = null; // { title?, upserts: Map<id,item>, deletes: Set<id> } since last flush
-    let syncBroadcastTimer = null;
+ // { title, items: Map<id, jsonString> }
+ // { title?, upserts: Map<id,item>, deletes: Set<id> } since last flush
     // This client's own current editing state — kept locally (not read back from presence) so a
     // freshly-joined collaborator can be caught up via the presence 'join' handler below, and so
     // broadcastCaretPosition knows what selector to re-measure without needing it passed in on
     // every call. See broadcastEditingState for why this is BROADCAST, not tracked.
-    let localEditingState = { editing: false, editingTarget: null, caret: null };
 
     function teardownCanvasPresenceChannel() {
-        if (canvasPresenceChannel) supabase.removeChannel(canvasPresenceChannel);
-        canvasPresenceChannel = null;
-        canvasPresenceKey = null;
-        lastBroadcastSnapshot = null;
-        pendingSyncDeltas = null;
-        localEditingState = { editing: false, editingTarget: null, caret: null };
-        clearTimeout(syncBroadcastTimer);
-        remoteCursors.forEach(entry => entry.el.remove());
-        remoteCursors.clear();
+        if (appState.canvasPresenceChannel) supabase.removeChannel(appState.canvasPresenceChannel);
+        appState.canvasPresenceChannel = null;
+        appState.canvasPresenceKey = null;
+        appState.lastBroadcastSnapshot = null;
+        appState.pendingSyncDeltas = null;
+        appState.localEditingState = { editing: false, editingTarget: null, caret: null };
+        clearTimeout(appState.syncBroadcastTimer);
+        appState.remoteCursors.forEach(entry => entry.el.remove());
+        appState.remoteCursors.clear();
     }
     // Diffing/broadcasting always works in CANONICAL (un-namespaced) item form — never the local
     // shared: wrapping a collaborator's own folders dict uses (see namespaceSharedFolderIds/
@@ -108,10 +102,10 @@ import { render } from './waypoints-render-loop.js';
         if (!eligible) { teardownCanvasPresenceChannel(); return; }
         const { ownerId, folderId } = resolvePresenceFolderKey();
         const key = `${ownerId}:${folderId}`;
-        if (key === canvasPresenceKey) return;
+        if (key === appState.canvasPresenceKey) return;
         teardownCanvasPresenceChannel();
-        canvasPresenceKey = key;
-        lastBroadcastSnapshot = snapshotFolderForBroadcast(folderObj);
+        appState.canvasPresenceKey = key;
+        appState.lastBroadcastSnapshot = snapshotFolderForBroadcast(folderObj);
         const channel = supabase.channel(`presence:${ownerId}:${folderId}`, { config: { presence: { key: appState.currentUser.id } } })
             .on('presence', { event: 'sync' }, () => handleCanvasPresenceSync(channel))
             .on('presence', { event: 'leave' }, ({ key: leftUserId }) => removeRemoteCursor(leftUserId))
@@ -120,8 +114,8 @@ import { render } from './waypoints-render-loop.js';
             // we're actively editing when someone else joins, resend our current state just for
             // them. Cheap (only fires while genuinely editing) and self-contained.
             .on('presence', { event: 'join' }, ({ key: joinedUserId }) => {
-                if (joinedUserId !== appState.currentUser.id && localEditingState.editing) {
-                    channel.send({ type: 'broadcast', event: 'editing', payload: { userId: appState.currentUser.id, editing: true, editingTarget: localEditingState.editingTarget, caret: localEditingState.caret || computeLocalCaret() } });
+                if (joinedUserId !== appState.currentUser.id && appState.localEditingState.editing) {
+                    channel.send({ type: 'broadcast', event: 'editing', payload: { userId: appState.currentUser.id, editing: true, editingTarget: appState.localEditingState.editingTarget, caret: appState.localEditingState.caret || computeLocalCaret() } });
                 }
             })
             .on('broadcast', { event: 'cursor' }, ({ payload }) => handleRemoteCursorBroadcast(payload))
@@ -146,7 +140,7 @@ import { render } from './waypoints-render-loop.js';
                     });
                 }
             });
-        canvasPresenceChannel = channel;
+        appState.canvasPresenceChannel = channel;
     }
 
     // ---- Cursors: presence (identity/join/leave only — editing state is pure broadcast, see
@@ -160,7 +154,7 @@ import { render } from './waypoints-render-loop.js';
             const metas = state[userId];
             const meta = metas[metas.length - 1];
             if (!meta) return;
-            let entry = remoteCursors.get(userId);
+            let entry = appState.remoteCursors.get(userId);
             if (!entry) {
                 const el = document.createElement('div');
                 el.className = 'remote-cursor';
@@ -172,7 +166,7 @@ import { render } from './waypoints-render-loop.js';
                     caretX: null, caretY: null, caretHeight: null, selectionRects: [], selectionEls: [],
                     isTyping: false, travelTimer: null,
                 };
-                remoteCursors.set(userId, entry);
+                appState.remoteCursors.set(userId, entry);
             }
             entry.color = meta.color || '#999';
             entry.displayName = meta.displayName;
@@ -183,7 +177,7 @@ import { render } from './waypoints-render-loop.js';
             renderAvatarInto(entry.el.querySelector('.remote-cursor-avatar'), { id: entry.avatarId ?? 0, url: entry.avatarUrl || null }, initials(entry.displayName || '?'));
             applyRemoteCursorMode(entry);
         });
-        remoteCursors.forEach((entry, userId) => { if (!seenIds.has(userId)) removeRemoteCursor(userId); });
+        appState.remoteCursors.forEach((entry, userId) => { if (!seenIds.has(userId)) removeRemoteCursor(userId); });
     }
     // The single place that decides, fresh every time it runs, whether a remote collaborator shows
     // as a normal floating cursor or as an in-place "typing here" indicator — the two are mutually
@@ -285,7 +279,7 @@ import { render } from './waypoints-render-loop.js';
             entry.travelTimer = setTimeout(() => {
                 if (entry.typingCaretEl) entry.typingCaretEl.classList.remove('remote-presence-travel');
                 if (entry.typingLabelEl) entry.typingLabelEl.classList.remove('remote-presence-travel');
-            }, REMOTE_CURSOR_TRAVEL_MS);
+            }, appState.REMOTE_CURSOR_TRAVEL_MS);
         }
         positionTypingIndicator(entry, target);
     }
@@ -332,14 +326,14 @@ import { render } from './waypoints-render-loop.js';
         if (entry.typingLabelEl) { entry.typingLabelEl.remove(); entry.typingLabelEl = null; }
     }
     function removeRemoteCursor(userId) {
-        const entry = remoteCursors.get(userId);
+        const entry = appState.remoteCursors.get(userId);
         if (!entry) return;
         clearTimeout(entry.travelTimer);
         clearTimeout(entry.editingBlurTimer);
         hideRemoteTypingIndicator(entry);
         entry.selectionEls.forEach(el => el.remove());
         entry.el.remove();
-        remoteCursors.delete(userId);
+        appState.remoteCursors.delete(userId);
     }
     function positionRemoteCursor(entry) {
         entry.el.style.left = (appState.tx + entry.x * appState.scale) + 'px';
@@ -360,7 +354,7 @@ import { render } from './waypoints-render-loop.js';
             void entry.el.offsetWidth; // forces the snap above to paint before the class below re-enables a transition
             entry.el.classList.add('remote-presence-travel');
             clearTimeout(entry.travelTimer);
-            entry.travelTimer = setTimeout(() => entry.el.classList.remove('remote-presence-travel'), REMOTE_CURSOR_TRAVEL_MS);
+            entry.travelTimer = setTimeout(() => entry.el.classList.remove('remote-presence-travel'), appState.REMOTE_CURSOR_TRAVEL_MS);
         }
         positionRemoteCursor(entry);
     }
@@ -368,7 +362,7 @@ import { render } from './waypoints-render-loop.js';
     // visually anchored to the right spot while YOU pan/zoom, not just when a new broadcast/sync
     // arrives.
     function repositionAllRemoteCursors() {
-        remoteCursors.forEach(applyRemoteCursorMode);
+        appState.remoteCursors.forEach(applyRemoteCursorMode);
     }
     // Pans to wherever a collaborator's cursor currently is — clicking their name in the
     // collaborator panel (#collab-panel, see renderCollabList) does this so you can see what
@@ -376,7 +370,7 @@ import { render } from './waypoints-render-loop.js';
     // canvas (see handleCanvasPresenceSync) — a no-op if they're not, since there's nowhere real
     // to jump to.
     function goToCollaboratorCursor(userId) {
-        const entry = remoteCursors.get(userId);
+        const entry = appState.remoteCursors.get(userId);
         if (!entry) return;
         closeCollabPanel();
         const targetScale = Math.max(appState.scale, 1);
@@ -402,7 +396,7 @@ import { render } from './waypoints-render-loop.js';
     }
     function handleRemoteCursorBroadcast(payload) {
         if (!payload || payload.userId === appState.currentUser.id) return;
-        const entry = remoteCursors.get(payload.userId);
+        const entry = appState.remoteCursors.get(payload.userId);
         if (!entry) return; // presence sync hasn't created their node yet — the next broadcast will land once it has
         entry.x = payload.x; entry.y = payload.y;
         positionRemoteCursor(entry);
@@ -431,19 +425,17 @@ import { render } from './waypoints-render-loop.js';
     // on-screen cursor. Re-broadcasting from applyTransform() (see below) using these, rather
     // than only on 'pointermove', is what keeps a collaborator's cursor tracking live WHILE
     // someone pans instead of appearing frozen until they next actually move the mouse.
-    let lastPointerClientX = null, lastPointerClientY = null;
-    let cursorBroadcastThrottleId = null;
     function broadcastCursorPositionThrottled() {
-        if (!canvasPresenceChannel || lastPointerClientX == null || cursorBroadcastThrottleId) return;
-        cursorBroadcastThrottleId = setTimeout(() => { cursorBroadcastThrottleId = null; }, 50);
+        if (!appState.canvasPresenceChannel || appState.lastPointerClientX == null || appState.cursorBroadcastThrottleId) return;
+        appState.cursorBroadcastThrottleId = setTimeout(() => { appState.cursorBroadcastThrottleId = null; }, 50);
         const rect = canvas.getBoundingClientRect();
-        canvasPresenceChannel.send({
+        appState.canvasPresenceChannel.send({
             type: 'broadcast', event: 'cursor',
-            payload: { userId: appState.currentUser.id, x: (lastPointerClientX - rect.left - appState.tx) / appState.scale, y: (lastPointerClientY - rect.top - appState.ty) / appState.scale },
+            payload: { userId: appState.currentUser.id, x: (appState.lastPointerClientX - rect.left - appState.tx) / appState.scale, y: (appState.lastPointerClientY - rect.top - appState.ty) / appState.scale },
         });
     }
     canvas.addEventListener('pointermove', (e) => {
-        lastPointerClientX = e.clientX; lastPointerClientY = e.clientY;
+        appState.lastPointerClientX = e.clientX; appState.lastPointerClientY = e.clientY;
         broadcastCursorPositionThrottled();
     });
     // Streams a dragged card's LIVE position to everyone else on this canvas (see the `move`
@@ -451,16 +443,15 @@ import { render } from './waypoints-render-loop.js';
     // a drag reads as smooth, continuous movement on other screens rather than a jump-to-final-
     // position once dropped. Purely visual on the receiving end (see handleRemoteItemDrag) — the
     // position only becomes durable once the drop itself triggers a normal render()/content-sync.
-    let itemDragBroadcastThrottleId = null;
     function broadcastItemDragPositions(startPositions) {
-        if (!canvasPresenceChannel || itemDragBroadcastThrottleId) return;
-        itemDragBroadcastThrottleId = setTimeout(() => { itemDragBroadcastThrottleId = null; }, 50);
+        if (!appState.canvasPresenceChannel || appState.itemDragBroadcastThrottleId) return;
+        appState.itemDragBroadcastThrottleId = setTimeout(() => { appState.itemDragBroadcastThrottleId = null; }, 50);
         const items = startPositions.map(pos => {
             const it = findItemById(pos.id);
             return it ? { id: it.id, x: it.x, y: it.y } : null;
         }).filter(Boolean);
         if (!items.length) return;
-        canvasPresenceChannel.send({ type: 'broadcast', event: 'item-drag', payload: { userId: appState.currentUser.id, items } });
+        appState.canvasPresenceChannel.send({ type: 'broadcast', event: 'item-drag', payload: { userId: appState.currentUser.id, items } });
     }
     // Live, purely-visual size streaming while someone else is actively dragging a card's resize
     // handle — see the throttled send in setupResizing's own `move` handler below. Same DOM-only
@@ -473,11 +464,10 @@ import { render } from './waypoints-render-loop.js';
         el.style.width = payload.w + 'px';
         el.style.height = payload.h + 'px';
     }
-    let itemResizeBroadcastThrottleId = null;
     function broadcastItemResize(id, w, h) {
-        if (!canvasPresenceChannel || itemResizeBroadcastThrottleId) return;
-        itemResizeBroadcastThrottleId = setTimeout(() => { itemResizeBroadcastThrottleId = null; }, 50);
-        canvasPresenceChannel.send({ type: 'broadcast', event: 'item-resize', payload: { userId: appState.currentUser.id, id, w, h } });
+        if (!appState.canvasPresenceChannel || appState.itemResizeBroadcastThrottleId) return;
+        appState.itemResizeBroadcastThrottleId = setTimeout(() => { appState.itemResizeBroadcastThrottleId = null; }, 50);
+        appState.canvasPresenceChannel.send({ type: 'broadcast', event: 'item-resize', payload: { userId: appState.currentUser.id, id, w, h } });
     }
     // Applies an incoming 'editing' broadcast — see broadcastEditingState for why this is a plain
     // broadcast rather than presence.track(). The broadcast itself now carries the caret position
@@ -488,7 +478,7 @@ import { render } from './waypoints-render-loop.js';
     // means the very first paint is already in the right place.
     function handleRemoteEditingBroadcast(payload) {
         if (!payload || payload.userId === appState.currentUser.id) return;
-        const entry = remoteCursors.get(payload.userId);
+        const entry = appState.remoteCursors.get(payload.userId);
         if (!entry) return; // presence sync hasn't created their node yet — the join-time catch-up resend covers this once it has
         clearTimeout(entry.editingBlurTimer);
         if (payload.editing) {
@@ -516,14 +506,14 @@ import { render } from './waypoints-render-loop.js';
     }
     function handleRemoteCaretBroadcast(payload) {
         if (!payload || payload.userId === appState.currentUser.id) return;
-        const entry = remoteCursors.get(payload.userId);
+        const entry = appState.remoteCursors.get(payload.userId);
         if (!entry || !entry.editingTarget) return;
         entry.caretX = payload.x; entry.caretY = payload.y; entry.caretHeight = payload.height;
         positionTypingIndicator(entry);
     }
     function handleRemoteSelectionBroadcast(payload) {
         if (!payload || payload.userId === appState.currentUser.id) return;
-        const entry = remoteCursors.get(payload.userId);
+        const entry = appState.remoteCursors.get(payload.userId);
         if (!entry) return; // presence sync hasn't created their node yet — the next broadcast will land once it has
         entry.selectionRects = Array.isArray(payload.rects) ? payload.rects : [];
         positionSelectionHighlight(entry);
@@ -571,8 +561,8 @@ import { render } from './waypoints-render-loop.js';
     // in the same canvas-space coordinates handleRemoteCursorBroadcast/positionRemoteCursor use.
     // Returns null if there's nothing to measure (not editing, or the target's gone from the DOM).
     function computeLocalCaret() {
-        if (!localEditingState.editingTarget) return null;
-        const el = document.querySelector(localEditingState.editingTarget);
+        if (!appState.localEditingState.editingTarget) return null;
+        const el = document.querySelector(appState.localEditingState.editingTarget);
         if (!el) return null;
         const rect = getCaretScreenRect(el);
         const canvasRect = canvas.getBoundingClientRect();
@@ -588,11 +578,11 @@ import { render } from './waypoints-render-loop.js';
     // the 'editing' broadcast itself (see broadcastEditingState), so this only ever needs to cover
     // movement AFTER that first paint.
     function broadcastCaretPosition() {
-        if (!canvasPresenceChannel) return;
+        if (!appState.canvasPresenceChannel) return;
         const caret = computeLocalCaret();
         if (!caret) return;
-        localEditingState.caret = caret;
-        canvasPresenceChannel.send({ type: 'broadcast', event: 'caret', payload: { userId: appState.currentUser.id, ...caret } });
+        appState.localEditingState.caret = caret;
+        appState.canvasPresenceChannel.send({ type: 'broadcast', event: 'caret', payload: { userId: appState.currentUser.id, ...caret } });
     }
     // Measures the current live text SELECTION (not just the caret) within whatever's being
     // edited — same canvas-space coordinates/projection as computeLocalCaret, but one rect per
@@ -603,8 +593,8 @@ import { render } from './waypoints-render-loop.js';
     // skipping the send, so a collaborator's screen reliably clears a previously-shown highlight
     // the instant the selection collapses, not just when a new one appears.
     function computeLocalSelectionRects() {
-        if (!localEditingState.editingTarget) return [];
-        const el = document.querySelector(localEditingState.editingTarget);
+        if (!appState.localEditingState.editingTarget) return [];
+        const el = document.querySelector(appState.localEditingState.editingTarget);
         if (!el) return [];
         const sel = window.getSelection();
         if (!sel || sel.isCollapsed || !sel.rangeCount) return [];
@@ -623,13 +613,12 @@ import { render } from './waypoints-render-loop.js';
     // selection equivalent of the caret/typing indicator above, rendered on the receiving end by
     // handleRemoteSelectionBroadcast/positionSelectionHighlight.
     function broadcastLocalSelection() {
-        if (!canvasPresenceChannel) return;
-        canvasPresenceChannel.send({ type: 'broadcast', event: 'selection', payload: { userId: appState.currentUser.id, rects: computeLocalSelectionRects() } });
+        if (!appState.canvasPresenceChannel) return;
+        appState.canvasPresenceChannel.send({ type: 'broadcast', event: 'selection', payload: { userId: appState.currentUser.id, rects: computeLocalSelectionRects() } });
     }
-    let caretBroadcastThrottleId = null;
     document.addEventListener('selectionchange', () => {
-        if (!canvasPresenceChannel || !localEditingState.editing || caretBroadcastThrottleId) return;
-        caretBroadcastThrottleId = setTimeout(() => { caretBroadcastThrottleId = null; }, 50);
+        if (!appState.canvasPresenceChannel || !appState.localEditingState.editing || appState.caretBroadcastThrottleId) return;
+        appState.caretBroadcastThrottleId = setTimeout(() => { appState.caretBroadcastThrottleId = null; }, 50);
         broadcastCaretPosition();
         broadcastLocalSelection();
     });
@@ -649,21 +638,21 @@ import { render } from './waypoints-render-loop.js';
     // (e.g. the breadcrumb title, which lives in the top bar, not on the canvas) — that case just
     // keeps showing the plain floating cursor throughout.
     function broadcastEditingState(isEditing, targetSelector) {
-        localEditingState = { editing: isEditing, editingTarget: isEditing ? (targetSelector || null) : null, caret: null };
+        appState.localEditingState = { editing: isEditing, editingTarget: isEditing ? (targetSelector || null) : null, caret: null };
         // Measured synchronously, in the SAME tick focus/placeCaretEnd already ran in at each call
         // site, and sent as part of this very message — see computeLocalCaret's caller comment for
         // why this (not a follow-up 'caret' broadcast) is what fixes the initial-position jump.
-        if (isEditing && localEditingState.editingTarget) localEditingState.caret = computeLocalCaret();
-        if (!canvasPresenceChannel) return;
-        canvasPresenceChannel.send({
+        if (isEditing && appState.localEditingState.editingTarget) appState.localEditingState.caret = computeLocalCaret();
+        if (!appState.canvasPresenceChannel) return;
+        appState.canvasPresenceChannel.send({
             type: 'broadcast', event: 'editing',
-            payload: { userId: appState.currentUser.id, editing: isEditing, editingTarget: localEditingState.editingTarget, caret: localEditingState.caret },
+            payload: { userId: appState.currentUser.id, editing: isEditing, editingTarget: appState.localEditingState.editingTarget, caret: appState.localEditingState.caret },
         });
         // Blurring normally collapses/moves the selection too (which the selectionchange listener
         // above would already catch), but that's not guaranteed for every call site — explicit and
         // immediate here so a collaborator's screen never has to wait for a maybe-not-firing event
         // to clear a stale highlight.
-        if (!isEditing) canvasPresenceChannel.send({ type: 'broadcast', event: 'selection', payload: { userId: appState.currentUser.id, rects: [] } });
+        if (!isEditing) appState.canvasPresenceChannel.send({ type: 'broadcast', event: 'selection', payload: { userId: appState.currentUser.id, rects: [] } });
     }
 
     // ---- Content sync: diff-and-broadcast on render(), not per-mutation-site instrumentation ----
@@ -682,43 +671,43 @@ import { render } from './waypoints-render-loop.js';
     // (and so this pre-existing edge case) more likely to actually happen. Worth a proper fix
     // (namespaced/UUID ids) if it turns out to matter in practice — out of scope here.
     function queueSyncDiff(folderObj) {
-        if (!canvasPresenceChannel || !lastBroadcastSnapshot) return;
-        if (!pendingSyncDeltas) pendingSyncDeltas = { upserts: new Map(), deletes: new Set() };
+        if (!appState.canvasPresenceChannel || !appState.lastBroadcastSnapshot) return;
+        if (!appState.pendingSyncDeltas) appState.pendingSyncDeltas = { upserts: new Map(), deletes: new Set() };
         const seenIds = new Set();
         (folderObj.items || []).forEach(rawIt => {
             seenIds.add(rawIt.id);
             const it = canonicalItem(rawIt);
             const json = JSON.stringify(it);
-            if (lastBroadcastSnapshot.items.get(it.id) !== json) {
-                pendingSyncDeltas.upserts.set(it.id, it);
-                pendingSyncDeltas.deletes.delete(it.id);
-                lastBroadcastSnapshot.items.set(it.id, json);
+            if (appState.lastBroadcastSnapshot.items.get(it.id) !== json) {
+                appState.pendingSyncDeltas.upserts.set(it.id, it);
+                appState.pendingSyncDeltas.deletes.delete(it.id);
+                appState.lastBroadcastSnapshot.items.set(it.id, json);
             }
         });
-        lastBroadcastSnapshot.items.forEach((json, id) => {
+        appState.lastBroadcastSnapshot.items.forEach((json, id) => {
             if (!seenIds.has(id)) {
-                pendingSyncDeltas.deletes.add(id);
-                pendingSyncDeltas.upserts.delete(id);
-                lastBroadcastSnapshot.items.delete(id);
+                appState.pendingSyncDeltas.deletes.add(id);
+                appState.pendingSyncDeltas.upserts.delete(id);
+                appState.lastBroadcastSnapshot.items.delete(id);
             }
         });
-        if (folderObj.title !== lastBroadcastSnapshot.title) {
-            pendingSyncDeltas.title = folderObj.title;
-            lastBroadcastSnapshot.title = folderObj.title;
+        if (folderObj.title !== appState.lastBroadcastSnapshot.title) {
+            appState.pendingSyncDeltas.title = folderObj.title;
+            appState.lastBroadcastSnapshot.title = folderObj.title;
         }
         // Short debounce so a burst of render() calls from one user action (e.g. typing, which
         // re-renders per keystroke in some card kinds) coalesces into one broadcast instead of one
         // per keystroke.
-        clearTimeout(syncBroadcastTimer);
-        syncBroadcastTimer = setTimeout(flushSyncDiff, 120);
+        clearTimeout(appState.syncBroadcastTimer);
+        appState.syncBroadcastTimer = setTimeout(flushSyncDiff, 120);
     }
     function flushSyncDiff() {
-        if (!canvasPresenceChannel || !pendingSyncDeltas) return;
-        const payload = { upserts: Array.from(pendingSyncDeltas.upserts.values()), deletes: Array.from(pendingSyncDeltas.deletes) };
-        if (pendingSyncDeltas.title !== undefined) payload.title = pendingSyncDeltas.title;
-        pendingSyncDeltas = null;
+        if (!appState.canvasPresenceChannel || !appState.pendingSyncDeltas) return;
+        const payload = { upserts: Array.from(appState.pendingSyncDeltas.upserts.values()), deletes: Array.from(appState.pendingSyncDeltas.deletes) };
+        if (appState.pendingSyncDeltas.title !== undefined) payload.title = appState.pendingSyncDeltas.title;
+        appState.pendingSyncDeltas = null;
         if (!payload.upserts.length && !payload.deletes.length && payload.title === undefined) return;
-        canvasPresenceChannel.send({ type: 'broadcast', event: 'sync', payload });
+        appState.canvasPresenceChannel.send({ type: 'broadcast', event: 'sync', payload });
     }
     // Applies an incoming remote change directly into local state and re-renders — also updates
     // lastBroadcastSnapshot to match (critical: this is what stops the render() this triggers from
@@ -729,7 +718,7 @@ import { render } from './waypoints-render-loop.js';
         let changed = false;
         if (payload.title !== undefined && payload.title !== folderObj.title) {
             folderObj.title = payload.title;
-            if (lastBroadcastSnapshot) lastBroadcastSnapshot.title = payload.title;
+            if (appState.lastBroadcastSnapshot) appState.lastBroadcastSnapshot.title = payload.title;
             changed = true;
         }
         (payload.upserts || []).forEach(canonicalRemoteItem => {
@@ -742,13 +731,13 @@ import { render } from './waypoints-render-loop.js';
             const idx = folderObj.items.findIndex(it => it.id === remoteItem.id);
             if (idx === -1) folderObj.items.push(remoteItem);
             else folderObj.items[idx] = remoteItem;
-            if (lastBroadcastSnapshot) lastBroadcastSnapshot.items.set(remoteItem.id, JSON.stringify(canonicalRemoteItem));
+            if (appState.lastBroadcastSnapshot) appState.lastBroadcastSnapshot.items.set(remoteItem.id, JSON.stringify(canonicalRemoteItem));
             changed = true;
         });
         (payload.deletes || []).forEach(id => {
             const idx = folderObj.items.findIndex(it => it.id === id);
             if (idx !== -1) folderObj.items.splice(idx, 1);
-            if (lastBroadcastSnapshot) lastBroadcastSnapshot.items.delete(id);
+            if (appState.lastBroadcastSnapshot) appState.lastBroadcastSnapshot.items.delete(id);
             changed = true;
         });
         if (changed) render();
@@ -756,7 +745,7 @@ import { render } from './waypoints-render-loop.js';
 
     function openConvo(friendId) {
         appState.activeConvoId = friendId;
-        const f = friends.find(x => x.id === friendId);
+        const f = appState.friends.find(x => x.id === friendId);
         if (!f) return;
         renderAvatarInto(document.getElementById('msg-convo-avatar'), { id: f.avatarId ?? 0, url: f.avatarUrl || null }, initials(f.displayName));
         document.getElementById('msg-convo-title').textContent = f.displayName;
@@ -765,8 +754,8 @@ import { render } from './waypoints-render-loop.js';
         // hidden 0-height element is a no-op that doesn't stick once it becomes visible
         // afterward (this is what silently broke the always-start-at-the-bottom reset).
         document.getElementById('msg-search-wrap').style.display = 'none';
-        msgList.style.display = 'none';
-        msgConvo.classList.add('open');
+        appState.msgList.style.display = 'none';
+        appState.msgConvo.classList.add('open');
         renderConvoBody(f);
     }
     
@@ -871,7 +860,7 @@ import { render } from './waypoints-render-loop.js';
             const otherId = c.fromId === snapshot.id ? c.toId : (c.toId === snapshot.id ? c.fromId : null);
             if (!otherId || !batchItemIds.includes(otherId)) return false;
             const other = folder.items.find(i => i.id === otherId);
-            return other && CardStreamIO[other.kind] && (CardStreamIO[other.kind].outputs || []).includes('content');
+            return other && appState.CardStreamIO[other.kind] && (appState.CardStreamIO[other.kind].outputs || []).includes('content');
         });
         if (!sourceComesToo) {
             if (snapshot.kind === 'flashcard') {
@@ -982,24 +971,23 @@ import { render } from './waypoints-render-loop.js';
     // passes onDelete (currently only the search card-context popup) — deliberately separate
     // from the real per-card #context-menu / contextMenuItemId, since these mini previews aren't
     // real canvas items.
-    let inlineCanvasDeleteMenuEl = null;
     function showInlineCanvasDeleteMenu(x, y, onConfirm) {
-        if (!inlineCanvasDeleteMenuEl) {
-            inlineCanvasDeleteMenuEl = document.createElement('div');
-            inlineCanvasDeleteMenuEl.id = 'inline-canvas-delete-menu';
-            inlineCanvasDeleteMenuEl.className = 'inline-canvas-delete-menu';
-            inlineCanvasDeleteMenuEl.innerHTML = `<div class="menu-item">Delete</div>`;
-            document.body.appendChild(inlineCanvasDeleteMenuEl);
+        if (!appState.inlineCanvasDeleteMenuEl) {
+            appState.inlineCanvasDeleteMenuEl = document.createElement('div');
+            appState.inlineCanvasDeleteMenuEl.id = 'inline-canvas-delete-menu';
+            appState.inlineCanvasDeleteMenuEl.className = 'inline-canvas-delete-menu';
+            appState.inlineCanvasDeleteMenuEl.innerHTML = `<div class="menu-item">Delete</div>`;
+            document.body.appendChild(appState.inlineCanvasDeleteMenuEl);
             document.addEventListener('pointerdown', (e) => {
-                if (!inlineCanvasDeleteMenuEl.contains(e.target)) inlineCanvasDeleteMenuEl.style.display = 'none';
+                if (!appState.inlineCanvasDeleteMenuEl.contains(e.target)) appState.inlineCanvasDeleteMenuEl.style.display = 'none';
             });
         }
-        inlineCanvasDeleteMenuEl.style.left = x + 'px';
-        inlineCanvasDeleteMenuEl.style.top = y + 'px';
-        inlineCanvasDeleteMenuEl.style.display = 'flex';
-        inlineCanvasDeleteMenuEl.querySelector('.menu-item').onclick = (e) => {
+        appState.inlineCanvasDeleteMenuEl.style.left = x + 'px';
+        appState.inlineCanvasDeleteMenuEl.style.top = y + 'px';
+        appState.inlineCanvasDeleteMenuEl.style.display = 'flex';
+        appState.inlineCanvasDeleteMenuEl.querySelector('.menu-item').onclick = (e) => {
             e.stopPropagation();
-            inlineCanvasDeleteMenuEl.style.display = 'none';
+            appState.inlineCanvasDeleteMenuEl.style.display = 'none';
             onConfirm();
         };
     }
@@ -1291,7 +1279,7 @@ import { render } from './waypoints-render-loop.js';
                 window.removeEventListener('pointerup', up);
                 if (dragGhost) { dragGhost.remove(); }
                 if (!dragStarted) return;
-                const panelRect = messagesPanel.getBoundingClientRect();
+                const panelRect = appState.messagesPanel.getBoundingClientRect();
                 const overPanel = ue.clientX >= panelRect.left && ue.clientX <= panelRect.right && ue.clientY >= panelRect.top && ue.clientY <= panelRect.bottom;
                 if (overPanel) return; // dropped back inside the chat panel, no-op
                 const canvasRect = canvas.getBoundingClientRect();
@@ -1383,18 +1371,18 @@ import { render } from './waypoints-render-loop.js';
         body.scrollTop = 0;
     }
     function closeConvo() {
-        msgConvo.classList.remove('open');
+        appState.msgConvo.classList.remove('open');
         appState.activeConvoId = null;
         // No unsubscribe here — messages are subscribed per-friendship globally now (see
         // subscribeToAllFriendMessages), not per open conversation.
         document.getElementById('msg-search-wrap').style.display = '';
-        msgList.style.display = '';
+        appState.msgList.style.display = '';
     }
     async function sendMsg() {
         const input = document.getElementById('msg-convo-input');
         const text = input.value.trim();
         if (!text || !appState.activeConvoId) return;
-        const f = friends.find(x => x.id === appState.activeConvoId);
+        const f = appState.friends.find(x => x.id === appState.activeConvoId);
         if (!f) return;
         input.value = '';
         updateMsgSendState();
@@ -1423,7 +1411,7 @@ import { render } from './waypoints-render-loop.js';
     // first) focuses it and lets the same keystroke land there — so you can just start typing a
     // reply the moment a chat opens, rather than needing to click the input first.
     document.addEventListener('keydown', (e) => {
-        if (!msgConvo.classList.contains('open')) return;
+        if (!appState.msgConvo.classList.contains('open')) return;
         const input = document.getElementById('msg-convo-input');
         if (document.activeElement === input) return;
         const ae = document.activeElement;
@@ -1432,7 +1420,7 @@ import { render } from './waypoints-render-loop.js';
         if (e.key.length !== 1) return; // only real printable characters — not Enter/Escape/arrows/Tab/etc.
         input.focus();
     });
-    msgSearchInput.addEventListener('keydown', e => { if (e.key !== 'Escape') e.stopPropagation(); });
+    appState.msgSearchInput.addEventListener('keydown', e => { if (e.key !== 'Escape') e.stopPropagation(); });
 
     function titleFontSize(level) { return level === 3 ? 18 : level === 2 ? 22 : 28; }
     function setTitleLevel(id, level) {
@@ -1484,4 +1472,4 @@ import { render } from './waypoints-render-loop.js';
         sel.addRange(range);
     }
 
-export { broadcastCursorPositionThrottled, broadcastEditingState, broadcastItemDragPositions, broadcastItemResize, closeConvo, closeSharedCanvasView, ensureCanvasPresenceChannel, findItemById, goToCollaboratorCursor, importSharedCardsAtScreenPoint, miniLabelForItem, openConvo, placeCaretEnd, queueSyncDiff, remoteCursors, renderConvoBody, renderInlineCanvas, renderRealCardPreview, repositionAllRemoteCursors, sanitizeFlashcardSnapshot, sendMsg, setTitleLevel, snapshotItem, syncColorPicker, titleFontSize };
+export { broadcastCursorPositionThrottled, broadcastEditingState, broadcastItemDragPositions, broadcastItemResize, closeConvo, closeSharedCanvasView, ensureCanvasPresenceChannel, findItemById, goToCollaboratorCursor, importSharedCardsAtScreenPoint, miniLabelForItem, openConvo, placeCaretEnd, queueSyncDiff, renderConvoBody, renderInlineCanvas, renderRealCardPreview, repositionAllRemoteCursors, sanitizeFlashcardSnapshot, sendMsg, setTitleLevel, snapshotItem, syncColorPicker, titleFontSize };

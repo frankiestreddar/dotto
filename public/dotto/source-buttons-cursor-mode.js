@@ -7,7 +7,7 @@ import { hideCanvasContextMenu } from './history-autosave.js';
 import { findItemById } from './live-presence.js';
 import { closeCartPanel } from './marketplace.js';
 import { closeMessagesPanel } from './messages-schedule.js';
-import { closeAllPanels, closeHamburgerMenu, panelPinned } from './panels-hamburger.js';
+import { closeAllPanels, closeHamburgerMenu } from './panels-hamburger.js';
 import { closeProfilePanel } from './profile-achievements-pricing.js';
 import { deleteSelectedCards } from './resize-shortcuts-init.js';
 import { closeBreadcrumbMapPanel } from './shared-canvases-outline.js';
@@ -17,10 +17,7 @@ import { clearDataLinkPending } from './srs-connections-core.js';
 
 
     // ---------- Source page: per-cell Add / Upload / Tags buttons (hover-only, no global toolbars) ----------
-    const sourceAddMenu = document.getElementById('source-add-menu');
-    const cellTagPicker = document.getElementById('cell-tag-picker');
-    const audioRecordIndicator = document.getElementById('audio-record-indicator');
-    function closeSourceAddMenu() { sourceAddMenu.style.display = 'none'; panelPinned.sourceAdd = false; }
+    function closeSourceAddMenu() { appState.sourceAddMenu.style.display = 'none'; appState.panelPinned.sourceAdd = false; }
     // Opens the Add (image/audio) menu anchored to the specific cell's button that was
     // clicked, and remembers that cell as the target for the insert actions below.
     function openCellAddMenu(id, r, c, btnEl) {
@@ -29,25 +26,21 @@ import { clearDataLinkPending } from './srs-connections-core.js';
         closeCellTagPicker();
         appState.lastFocusedCell = { id, r, c };
         const rect = btnEl.getBoundingClientRect();
-        sourceAddMenu.style.left = Math.min(rect.left, window.innerWidth - 190) + 'px';
-        sourceAddMenu.style.top = (rect.bottom + 6) + 'px';
-        sourceAddMenu.style.display = 'flex';
-        panelPinned.sourceAdd = true;
+        appState.sourceAddMenu.style.left = Math.min(rect.left, window.innerWidth - 190) + 'px';
+        appState.sourceAddMenu.style.top = (rect.bottom + 6) + 'px';
+        appState.sourceAddMenu.style.display = 'flex';
+        appState.panelPinned.sourceAdd = true;
     }
 
     // ---------- Cursor mode toolbar (normal / data / select) ----------
-    const modeToolbar = document.getElementById('mode-toolbar');
-    const scheduleToolbar = document.getElementById('schedule-toolbar');
-    const modeButtons = Array.from(modeToolbar.querySelectorAll('.mode-btn'));
-    const MODE_ORDER_WEIGHT = { normal: 0, data: 1, select: 2 };
     function updateModeToolbarUI() {
         const eff = effectiveMode();
-        modeButtons.forEach(b => {
+        appState.modeButtons.forEach(b => {
             b.classList.toggle('mode-visible', b.dataset.mode === eff);
             b.classList.toggle('active', b.dataset.mode === appState.cardMode);
             // Keep whichever mode is currently pinned anchored at the bottom (order 3),
             // so expanding the pill always grows upward from the same spot.
-            b.style.order = b.dataset.mode === appState.cardMode ? '3' : String(MODE_ORDER_WEIGHT[b.dataset.mode]);
+            b.style.order = b.dataset.mode === appState.cardMode ? '3' : String(appState.MODE_ORDER_WEIGHT[b.dataset.mode]);
         });
     }
     function applyCursorMode() {
@@ -60,16 +53,16 @@ import { clearDataLinkPending } from './srs-connections-core.js';
         if (eff !== 'data') clearDataLinkPending();
         updateModeToolbarUI();
     }
-    modeButtons.forEach(btn => {
+    appState.modeButtons.forEach(btn => {
         btn.addEventListener('click', (e) => {
             e.stopPropagation();
             appState.cardMode = btn.dataset.mode;
-            modeToolbar.classList.remove('expanded');
+            appState.modeToolbar.classList.remove('expanded');
             applyCursorMode();
         });
     });
-    modeToolbar.addEventListener('mouseenter', () => { modeToolbar.classList.add('expanded'); updateModeToolbarUI(); });
-    modeToolbar.addEventListener('mouseleave', () => { modeToolbar.classList.remove('expanded'); updateModeToolbarUI(); });
+    appState.modeToolbar.addEventListener('mouseenter', () => { appState.modeToolbar.classList.add('expanded'); updateModeToolbarUI(); });
+    appState.modeToolbar.addEventListener('mouseleave', () => { appState.modeToolbar.classList.remove('expanded'); updateModeToolbarUI(); });
 
     // D / Escape / Shift each work as both a quick switch and a temporary (held) override for
     // the three cursor modes (Data / Normal / Select respectively): pressing and releasing one
@@ -82,20 +75,18 @@ import { clearDataLinkPending } from './srs-connections-core.js';
     // a text field (Escape never types a character, so it's exempt from that check — same as its
     // other, unrelated "close everything" behavior above), and D/Shift both bail out while a
     // meta/ctrl modifier is held so they don't hijack unrelated shortcuts (e.g. Cmd+Z for undo).
-    const MODE_HOLD_THRESHOLD_MS = 180;
-    let modeKeyHoldStart = null;
     function beginModeOverride(key) {
         if (appState.modeOverrideKey === key) return;
         appState.modeOverrideKey = key;
-        modeKeyHoldStart = Date.now();
+        appState.modeKeyHoldStart = Date.now();
         applyCursorMode();
     }
     function endModeOverride(key, mode) {
         if (appState.modeOverrideKey !== key) return;
-        const elapsed = modeKeyHoldStart !== null ? Date.now() - modeKeyHoldStart : Infinity;
+        const elapsed = appState.modeKeyHoldStart !== null ? Date.now() - appState.modeKeyHoldStart : Infinity;
         appState.modeOverrideKey = null;
-        modeKeyHoldStart = null;
-        if (elapsed < MODE_HOLD_THRESHOLD_MS) appState.cardMode = mode; // quick tap — make the switch stick
+        appState.modeKeyHoldStart = null;
+        if (elapsed < appState.MODE_HOLD_THRESHOLD_MS) appState.cardMode = mode; // quick tap — make the switch stick
         applyCursorMode();
     }
     document.addEventListener('keydown', (e) => {
@@ -126,7 +117,7 @@ import { clearDataLinkPending } from './srs-connections-core.js';
         else if (e.key === 'd' || e.key === 'D') endModeOverride('d', 'data');
         else if (e.key === 'Escape') endModeOverride('escape', 'normal');
     });
-    window.addEventListener('blur', () => { if (appState.modeOverrideKey) { appState.modeOverrideKey = null; modeKeyHoldStart = null; applyCursorMode(); } });
+    window.addEventListener('blur', () => { if (appState.modeOverrideKey) { appState.modeOverrideKey = null; appState.modeKeyHoldStart = null; applyCursorMode(); } });
 
     // Re-run the source table's column sizing whenever the window resizes, since column
     // widths are derived from the (viewport-based) rendered width of the table container.
@@ -152,8 +143,8 @@ import { clearDataLinkPending } from './srs-connections-core.js';
         closeCollabPanel();
         closeBreadcrumbMapPanel();
         clearSearch();
-        modeToolbar.classList.remove('expanded');
+        appState.modeToolbar.classList.remove('expanded');
         updateModeToolbarUI();
     };
 
-export { applyCursorMode, audioRecordIndicator, cellTagPicker, closeSourceAddMenu, modeToolbar, openCellAddMenu, scheduleToolbar, sourceAddMenu };
+export { applyCursorMode, closeSourceAddMenu, openCellAddMenu };

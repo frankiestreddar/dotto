@@ -1,8 +1,8 @@
-import { currentAddTab, kindSize, switchAddTab } from './add-menu.js';
+import { kindSize, switchAddTab } from './add-menu.js';
 import { addMenu, appState, canvas, world } from './core-state.js';
 import { saveSnapshot } from './history-autosave.js';
 import { findItemById } from './live-presence.js';
-import { closeAllPanels, panelPinned, scheduleHoverClose } from './panels-hamburger.js';
+import { closeAllPanels, scheduleHoverClose } from './panels-hamburger.js';
 import { deleteSelectedCards } from './resize-shortcuts-init.js';
 import { setDrawMode } from './srs-connections-core.js';
 import { render, renderSelectedOutlines } from './waypoints-render-loop.js';
@@ -17,8 +17,6 @@ import { render, renderSelectedOutlines } from './waypoints-render-loop.js';
     // cascading paste offset re-armed) every time something new is copied or cut; NOT cleared by
     // pasting, so Cmd+V can be pressed repeatedly to stamp down more copies, same as any normal
     // clipboard.
-    let cardClipboard = [];
-    let clipboardPasteCount = 0;
 
     // Self-contained capture of a card for cardClipboard — same embed-nested-contents idea as
     // snapshotItem (used for external chat/marketplace sharing), kept as its own function since
@@ -57,21 +55,21 @@ import { render, renderSelectedOutlines } from './waypoints-render-loop.js';
         if (!appState.selectedCardIds.length) return;
         const items = appState.selectedCardIds.map(id => findItemById(id)).filter(Boolean);
         if (!items.length) return;
-        cardClipboard = items.map(snapshotItemForClipboard);
-        clipboardPasteCount = 0;
+        appState.cardClipboard = items.map(snapshotItemForClipboard);
+        appState.clipboardPasteCount = 0;
     }
     function cutSelectedCards() {
         if (!appState.selectedCardIds.length) return;
         copySelectedCards();
-        if (!cardClipboard.length) return;
+        if (!appState.cardClipboard.length) return;
         deleteSelectedCards(); // its own confirm()/saveSnapshot()/cascade cleanup — see its own comment
     }
     function pasteClipboardCards() {
-        if (!cardClipboard.length || !appState.folders[appState.currentFolderId]) return;
+        if (!appState.cardClipboard.length || !appState.folders[appState.currentFolderId]) return;
         saveSnapshot();
-        clipboardPasteCount++;
-        const offset = clipboardPasteCount * 28; // cascades further with each repeated paste, so stamping Cmd+V several times doesn't stack copies exactly on top of each other
-        const pasted = cardClipboard.map(snap => {
+        appState.clipboardPasteCount++;
+        const offset = appState.clipboardPasteCount * 28; // cascades further with each repeated paste, so stamping Cmd+V several times doesn't stack copies exactly on top of each other
+        const pasted = appState.cardClipboard.map(snap => {
             const clone = materializeClipboardItem(snap);
             clone.x = (clone.x || 0) + offset;
             clone.y = (clone.y || 0) + offset;
@@ -113,9 +111,8 @@ import { render, renderSelectedOutlines } from './waypoints-render-loop.js';
         appState.placementGhost.style.top = y + 'px';
     });
 
-    function prepareAdd(kind, statKind) { appState.addingKind = kind; appState.addingStatKind = statKind || null; addMenu.style.display = 'none'; panelPinned.add = false; canvas.classList.add('crosshair'); setDrawMode(false); showPlacementGhost(kind); }
-    const addToolbar = document.getElementById('add-toolbar');
-    function closeAddMenu() { addMenu.style.display = 'none'; panelPinned.add = false; }
+    function prepareAdd(kind, statKind) { appState.addingKind = kind; appState.addingStatKind = statKind || null; addMenu.style.display = 'none'; appState.panelPinned.add = false; canvas.classList.add('crosshair'); setDrawMode(false); showPlacementGhost(kind); }
+    function closeAddMenu() { addMenu.style.display = 'none'; appState.panelPinned.add = false; }
     function openAddMenu(pin) {
         if (appState.drawMode) setDrawMode(false);
         closeAllPanels('add');
@@ -126,8 +123,8 @@ import { render, renderSelectedOutlines } from './waypoints-render-loop.js';
             document.getElementById('add-menu-tabs').classList.remove('searching');
             document.getElementById('add-menu-search-btn').classList.remove('active');
         }
-        switchAddTab(currentAddTab);
-        if (pin) panelPinned.add = true;
+        switchAddTab(appState.currentAddTab);
+        if (pin) appState.panelPinned.add = true;
     }
     // addMenuActions (New Canvas/New Source) sits visually beside #add-menu, not inside it (see
     // globals.css), with real dead space in between both it and the panel, and between the panel
@@ -136,16 +133,14 @@ import { render, renderSelectedOutlines } from './waypoints-render-loop.js';
     // towards is actually in that list. Leaving addMenuActions out of it meant reaching those
     // buttons (or just crossing the gap towards them) wasn't recognized as "still relevant
     // hovering" at all, so the panel could close out from under the pointer on the way there.
-    const addMenuActions = document.getElementById('add-menu-actions');
-    const addMenuHoverEls = [addToolbar, addMenu, addMenuActions];
-    addToolbar.addEventListener('click', (e) => {
+    appState.addToolbar.addEventListener('click', (e) => {
         e.stopPropagation();
-        if (panelPinned.add) { closeAddMenu(); }
+        if (appState.panelPinned.add) { closeAddMenu(); }
         else { openAddMenu(true); }
     });
-    addToolbar.addEventListener('mouseenter', () => { if (addMenu.style.display !== 'flex') openAddMenu(false); });
-    addToolbar.addEventListener('mouseleave', () => scheduleHoverClose('add', addMenuHoverEls, closeAddMenu));
-    addMenu.addEventListener('mouseleave', () => scheduleHoverClose('add', addMenuHoverEls, closeAddMenu));
-    addMenuActions.addEventListener('mouseleave', () => scheduleHoverClose('add', addMenuHoverEls, closeAddMenu));
+    appState.addToolbar.addEventListener('mouseenter', () => { if (addMenu.style.display !== 'flex') openAddMenu(false); });
+    appState.addToolbar.addEventListener('mouseleave', () => scheduleHoverClose('add', appState.addMenuHoverEls, closeAddMenu));
+    addMenu.addEventListener('mouseleave', () => scheduleHoverClose('add', appState.addMenuHoverEls, closeAddMenu));
+    appState.addMenuActions.addEventListener('mouseleave', () => scheduleHoverClose('add', appState.addMenuHoverEls, closeAddMenu));
 
-export { addToolbar, cardClipboard, closeAddMenu, copySelectedCards, cutSelectedCards, pasteClipboardCards, prepareAdd, removePlacementGhost };
+export { closeAddMenu, copySelectedCards, cutSelectedCards, pasteClipboardCards, prepareAdd, removePlacementGhost };

@@ -6,27 +6,27 @@ import { dateKey, formatDateLabel, formatTimeLabel, pad2 } from './messages-sche
 import { closeAllPanels } from './panels-hamburger.js';
 import { bumpAchievementStat, openPricingOverlay } from './profile-achievements-pricing.js';
 import { goToOutlineItem } from './shared-canvases-outline.js';
-import { autoGrowSearchInput, pushNotification, searchInput, searchResults, searchSuggestions } from './stopwatch-search-notifications.js';
+import { autoGrowSearchInput, pushNotification } from './stopwatch-search-notifications.js';
 
 
     // ---------- Dotbot Scheduling Conversation ----------
     // Dragging a card (or a multi-card selection) onto the schedule button hands off to Dotbot
     // in the search box rather than opening a date/time form directly — Dotbot asks when, the
     // next thing you type in the search box is read as the answer instead of a search query.
-    let dotbotScheduleConversation = null; // { itemIds: [...] } while awaiting the user's reply
+ // { itemIds: [...] } while awaiting the user's reply
 
     // `previewEl`, when given, is shown above the (typed-out) message — a real card preview for
     // a single item, or an inline-canvas preview for several (see startScheduleConversation) — so
     // you can see exactly what you're scheduling while Dotbot asks when. The dropdown/search box
     // naturally grows to fit it since nothing here constrains its height.
     function renderDotbotPrompt(text, previewEl) {
-        searchSuggestions.innerHTML = '';
-        if (previewEl) searchSuggestions.appendChild(previewEl);
+        appState.searchSuggestions.innerHTML = '';
+        if (previewEl) appState.searchSuggestions.appendChild(previewEl);
         const msg = document.createElement('div');
         msg.className = 'search-suggestion-item dotbot-prompt-msg';
-        searchSuggestions.appendChild(msg);
-        searchResults.style.display = 'none';
-        searchSuggestions.style.display = 'block';
+        appState.searchSuggestions.appendChild(msg);
+        appState.searchResults.style.display = 'none';
+        appState.searchSuggestions.style.display = 'block';
         updateSearchDropdown();
         typewriterReveal(msg, text, updateSearchDropdown);
     }
@@ -37,7 +37,7 @@ import { autoGrowSearchInput, pushNotification, searchInput, searchResults, sear
     // handler), replacing the old right-click "Schedule" context-menu option.
     function startScheduleConversation(itemIds) {
         if (!itemIds.length) return;
-        dotbotScheduleConversation = { itemIds };
+        appState.dotbotScheduleConversation = { itemIds };
         closeAllPanels(null);
         const it = findItemById(itemIds[0]);
         const label = itemIds.length === 1 ? (miniLabelForItem(it) || 'this card') : `these ${itemIds.length} cards`;
@@ -58,13 +58,13 @@ import { autoGrowSearchInput, pushNotification, searchInput, searchResults, sear
         }
 
         renderDotbotPrompt(`When would you like to schedule ${label} for?`, previewEl);
-        searchInput.value = '';
+        appState.searchInput.value = '';
         autoGrowSearchInput();
-        searchInput.focus();
+        appState.searchInput.focus();
     }
     function cancelDotbotScheduleConversation() {
-        if (!dotbotScheduleConversation) return;
-        dotbotScheduleConversation = null;
+        if (!appState.dotbotScheduleConversation) return;
+        appState.dotbotScheduleConversation = null;
         clearSearch();
     }
     function submitDotbotScheduleAnswer(text) {
@@ -73,11 +73,11 @@ import { autoGrowSearchInput, pushNotification, searchInput, searchResults, sear
         const parsed = parseScheduleDateTime(trimmed);
         if (!parsed) {
             renderDotbotPrompt(`Sorry, I didn't catch a date/time there — try something like "tomorrow at 3pm" or "next monday 9am".`);
-            searchInput.value = '';
+            appState.searchInput.value = '';
             autoGrowSearchInput();
             return;
         }
-        const { itemIds } = dotbotScheduleConversation;
+        const { itemIds } = appState.dotbotScheduleConversation;
         itemIds.forEach(id => {
             const it = findItemById(id);
             if (!it) return;
@@ -91,9 +91,9 @@ import { autoGrowSearchInput, pushNotification, searchInput, searchResults, sear
         scheduleWorkspaceSave();
         const when = formatDateLabel(new Date(parsed.date + 'T00:00:00')) + ' at ' + formatTimeLabel(parsed.time);
         const count = itemIds.length;
-        dotbotScheduleConversation = null;
+        appState.dotbotScheduleConversation = null;
         renderDotbotPrompt(`Done — ${count === 1 ? "that's" : `all ${count} are`} scheduled for ${when}.`);
-        searchInput.value = '';
+        appState.searchInput.value = '';
         autoGrowSearchInput();
     }
 
@@ -105,17 +105,16 @@ import { autoGrowSearchInput, pushNotification, searchInput, searchResults, sear
     // pushNotification/tryShowNextNotification). notifiedScheduledEventIds is in-memory only —
     // resets on reload, so a still-due, still-undismissed event can notify again next session,
     // which is the right trade-off until this has real server-side persistence.
-    let notifiedScheduledEventIds = new Set();
     function checkDueScheduledEvents() {
         const now = new Date();
         const nowKey = dateKey(now);
         const nowMinutes = now.getHours() * 60 + now.getMinutes();
         appState.scheduledEvents.forEach(ev => {
-            if (notifiedScheduledEventIds.has(ev.id)) return;
+            if (appState.notifiedScheduledEventIds.has(ev.id)) return;
             if (ev.date !== nowKey) return;
             const [h, m] = ev.time.split(':').map(Number);
             if (h * 60 + m > nowMinutes) return; // not due yet
-            notifiedScheduledEventIds.add(ev.id);
+            appState.notifiedScheduledEventIds.add(ev.id);
             pushNotification({
                 type: 'scheduled_card',
                 message: `Time for "${ev.title}"`,
@@ -143,11 +142,11 @@ import { autoGrowSearchInput, pushNotification, searchInput, searchResults, sear
         if (bucket.getHours() < 3) bucket.setDate(bucket.getDate() - 1);
         return dateKey(bucket);
     }
-    let lastStatsDayKey = statsDayKey(new Date()); // baseline on load — only an actual crossing notifies, not "today" itself
+ // baseline on load — only an actual crossing notifies, not "today" itself
     setInterval(() => {
         const nowKey = statsDayKey(new Date());
-        if (nowKey === lastStatsDayKey) return;
-        lastStatsDayKey = nowKey;
+        if (nowKey === appState.lastStatsDayKey) return;
+        appState.lastStatsDayKey = nowKey;
         pushNotification({ type: 'day_change', message: 'A new day has started' }); // no buttons, auto-dismisses — no dismiss function
     }, 60000);
 
@@ -170,8 +169,6 @@ import { autoGrowSearchInput, pushNotification, searchInput, searchResults, sear
     // A small deterministic parser (no AI call needed) for the kinds of casual date/time
     // replies people actually type: "tomorrow at 3pm", "next monday 9am", "in 2 days",
     // "friday at noon", explicit "2026-07-25", or "july 25".
-    const SCHEDULE_WEEKDAYS = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
-    const SCHEDULE_MONTHS = ['january', 'february', 'march', 'april', 'may', 'june', 'july', 'august', 'september', 'october', 'november', 'december'];
     function parseScheduleDateTime(input) {
         let rest = input.trim().toLowerCase();
         if (!rest) return null;
@@ -189,9 +186,9 @@ import { autoGrowSearchInput, pushNotification, searchInput, searchResults, sear
         else if (/\bnext month\b/.test(rest)) { dateBase.setMonth(dateBase.getMonth() + 1); rest = rest.replace(/\bnext month\b/, ''); dateFound = true; }
         else {
             const inMatch = rest.match(/\bin\s+(\d+)\s*(day|days|week|weeks|month|months)\b/);
-            const wdIdx = SCHEDULE_WEEKDAYS.findIndex(w => rest.includes(w));
+            const wdIdx = appState.SCHEDULE_WEEKDAYS.findIndex(w => rest.includes(w));
             const isoMatch = rest.match(/\b(\d{4})-(\d{2})-(\d{2})\b/);
-            const monthIdx = SCHEDULE_MONTHS.findIndex(m => rest.includes(m));
+            const monthIdx = appState.SCHEDULE_MONTHS.findIndex(m => rest.includes(m));
             if (inMatch) {
                 const n = parseInt(inMatch[1], 10);
                 const unit = inMatch[2];
@@ -209,7 +206,7 @@ import { autoGrowSearchInput, pushNotification, searchInput, searchResults, sear
                 let diff = (wdIdx - cur + 7) % 7;
                 if (diff === 0 && isNext) diff = 7;
                 dateBase.setDate(dateBase.getDate() + diff);
-                rest = rest.replace(/\bnext\b/, '').replace(new RegExp(`\\b${SCHEDULE_WEEKDAYS[wdIdx]}\\b`), '');
+                rest = rest.replace(/\bnext\b/, '').replace(new RegExp(`\\b${appState.SCHEDULE_WEEKDAYS[wdIdx]}\\b`), '');
                 dateFound = true;
             } else if (isoMatch) {
                 dateBase.setFullYear(parseInt(isoMatch[1], 10), parseInt(isoMatch[2], 10) - 1, parseInt(isoMatch[3], 10));
@@ -222,7 +219,7 @@ import { autoGrowSearchInput, pushNotification, searchInput, searchResults, sear
                     const candidate = new Date(dateBase.getFullYear(), monthIdx, day);
                     if (candidate < dateBase) candidate.setFullYear(candidate.getFullYear() + 1);
                     dateBase.setTime(candidate.getTime());
-                    rest = rest.replace(SCHEDULE_MONTHS[monthIdx], '').replace(dayMatch[0], '');
+                    rest = rest.replace(appState.SCHEDULE_MONTHS[monthIdx], '').replace(dayMatch[0], '');
                     dateFound = true;
                 }
             }
@@ -249,4 +246,4 @@ import { autoGrowSearchInput, pushNotification, searchInput, searchResults, sear
         return { date: dateKey(dateBase), time: time || '09:00' };
     }
 
-export { cancelDotbotScheduleConversation, dotbotScheduleConversation, startScheduleConversation, submitDotbotScheduleAnswer };
+export { cancelDotbotScheduleConversation, startScheduleConversation, statsDayKey, submitDotbotScheduleAnswer };

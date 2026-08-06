@@ -1,6 +1,6 @@
-import { clearSearch, dotbotErrorMessage, dotbotSuggestAbortController, dotbotSuggestDebounceTimer, escapeHtml, handleSearchFocus, setSearchActive, stripHtml, updateSearchDropdown } from './ai-assistant-suggestions.js';
+import { clearSearch, dotbotErrorMessage, escapeHtml, handleSearchFocus, setSearchActive, stripHtml, updateSearchDropdown } from './ai-assistant-suggestions.js';
 import { appState } from './core-state.js';
-import { cancelDotbotScheduleConversation, dotbotScheduleConversation, submitDotbotScheduleAnswer } from './dotbot-schedule-notifications.js';
+import { cancelDotbotScheduleConversation, submitDotbotScheduleAnswer } from './dotbot-schedule-notifications.js';
 import { ensureConnections } from './drawing-connections.js';
 import { saveSnapshot, scheduleWorkspaceSave } from './history-autosave.js';
 import { miniLabelForItem } from './live-presence.js';
@@ -8,7 +8,7 @@ import { commenceSearchOrMnemonic, computeCanvasMatches, computeSourceMatches, r
 import { bumpAchievementStat, openDotbotUpgradeModal, refreshDotbotUsage } from './profile-achievements-pricing.js';
 import { colgroupHTML } from './source-table.js';
 import { applyAiAddRowsToSource, createSourceFromAI } from './source-tags-ai.js';
-import { autoGrowSearchInput, searchCardConnections, searchCardContext, searchDictionary, searchDotbotAnswer, searchExamples, searchImageResult, searchInput, searchInputWrap, searchRecommended, searchResults, searchSpinner, searchSuggestions, updateSearchSpaceHint } from './stopwatch-search-notifications.js';
+import { autoGrowSearchInput, updateSearchSpaceHint } from './stopwatch-search-notifications.js';
 import { render } from './waypoints-render-loop.js';
 
 
@@ -20,12 +20,12 @@ import { render } from './waypoints-render-loop.js';
     // itself never moves. ----------
     function renderDotbotOrchestrateError(reason) {
         const msg = dotbotErrorMessage(reason);
-        searchSuggestions.innerHTML = '';
+        appState.searchSuggestions.innerHTML = '';
         const errEl = document.createElement('div');
         errEl.className = 'search-suggestion-item';
         errEl.textContent = msg;
-        searchSuggestions.appendChild(errEl);
-        searchSuggestions.style.display = 'block';
+        appState.searchSuggestions.appendChild(errEl);
+        appState.searchSuggestions.style.display = 'block';
         updateSearchDropdown();
         if (reason === 'no_credits') { appState.dotbotUpgradePromptedForFullness = true; openDotbotUpgradeModal(); }
     }
@@ -73,24 +73,24 @@ import { render } from './waypoints-render-loop.js';
 
     async function commenceDotbotSearch(query) {
         query = (query || '').trim();
-        if (!query || dotbotScheduleConversation) return;
-        searchInputWrap.classList.remove('idle-pulsing'); // redundant when reached via commenceSearchOrMnemonic, needed for direct callers like selectionToolbarLookUp
+        if (!query || appState.dotbotScheduleConversation) return;
+        appState.searchInputWrap.classList.remove('idle-pulsing'); // redundant when reached via commenceSearchOrMnemonic, needed for direct callers like selectionToolbarLookUp
         appState.dotbotSearchGeneration++; // same reasoning — redundant via commenceSearchOrMnemonic, needed for direct callers
         bumpAchievementStat('twenty_searches');
         const folderObj = appState.folders[appState.currentFolderId];
         if (!folderObj) return;
         const matches = folderObj.isSource ? computeSourceMatches(query) : computeCanvasMatches(query);
         renderCanvasResultsPanel(matches, folderObj.isSource); // instant, sync — visible before the spinner even shows
-        searchDotbotAnswer.innerHTML = ''; searchDotbotAnswer.style.display = 'none';
-        searchDictionary.innerHTML = ''; searchDictionary.style.display = 'none';
-        searchExamples.innerHTML = ''; searchExamples.style.display = 'none';
-        if (searchImageResult) { searchImageResult.innerHTML = ''; searchImageResult.style.display = 'none'; }
-        searchSuggestions.innerHTML = ''; searchSuggestions.style.display = 'none';
-        if (searchRecommended) { searchRecommended.innerHTML = ''; searchRecommended.style.display = 'none'; }
-        clearTimeout(dotbotSuggestDebounceTimer);
-        if (dotbotSuggestAbortController) dotbotSuggestAbortController.abort();
-        searchSpinner.classList.add('visible');
-        searchInputWrap.classList.add('loading');
+        appState.searchDotbotAnswer.innerHTML = ''; appState.searchDotbotAnswer.style.display = 'none';
+        appState.searchDictionary.innerHTML = ''; appState.searchDictionary.style.display = 'none';
+        appState.searchExamples.innerHTML = ''; appState.searchExamples.style.display = 'none';
+        if (appState.searchImageResult) { appState.searchImageResult.innerHTML = ''; appState.searchImageResult.style.display = 'none'; }
+        appState.searchSuggestions.innerHTML = ''; appState.searchSuggestions.style.display = 'none';
+        if (appState.searchRecommended) { appState.searchRecommended.innerHTML = ''; appState.searchRecommended.style.display = 'none'; }
+        clearTimeout(appState.dotbotSuggestDebounceTimer);
+        if (appState.dotbotSuggestAbortController) appState.dotbotSuggestAbortController.abort();
+        appState.searchSpinner.classList.add('visible');
+        appState.searchInputWrap.classList.add('loading');
         try {
             const res = await fetch('/api/dotbot/orchestrate', {
                 method: 'POST',
@@ -101,35 +101,35 @@ import { render } from './waypoints-render-loop.js';
                         ? { id: m.ri, kind: 'row', label: m.text.slice(0, 60) }
                         : { id: m.it.id, kind: m.it.kind, label: (m.text || '').slice(0, 60) }),
                     isSourceFolder: folderObj.isSource,
-                    cardContext: searchCardContext.length ? searchCardContext.map(c => describeCardForAI(c.snapshot)) : undefined,
-                    cardConnections: searchCardConnections.length ? searchCardConnections.map(c => {
-                        const from = searchCardContext.find(sc => sc.id === c.fromId);
-                        const to = searchCardContext.find(sc => sc.id === c.toId);
+                    cardContext: appState.searchCardContext.length ? appState.searchCardContext.map(c => describeCardForAI(c.snapshot)) : undefined,
+                    cardConnections: appState.searchCardConnections.length ? appState.searchCardConnections.map(c => {
+                        const from = appState.searchCardContext.find(sc => sc.id === c.fromId);
+                        const to = appState.searchCardContext.find(sc => sc.id === c.toId);
                         return `${from ? miniLabelForItem(from.snapshot) : c.fromId} -> ${to ? miniLabelForItem(to.snapshot) : c.toId}`;
                     }) : undefined,
                     // Numbered the same way as cardContext above (both mapped from searchCardContext
                     // in the same order) so the server can tell the model "source #N" and get back a
                     // targetIndex that points at the right live card — see applyAiAddRowsToSource.
-                    sourceContext: searchCardContext.length ? searchCardContext.map((c, i) => {
+                    sourceContext: appState.searchCardContext.length ? appState.searchCardContext.map((c, i) => {
                         const info = sourceContextForAI(c.snapshot);
                         return info ? Object.assign({ index: i + 1 }, info) : null;
                     }).filter(Boolean) : undefined
                 })
             });
             const data = await res.json();
-            searchSpinner.classList.remove('visible');
-            searchInputWrap.classList.remove('loading');
-            searchInput.blur(); // forces the border back to its plain unfocused state, not whatever :focus/:hover would otherwise show
-            searchInput.value = '';
+            appState.searchSpinner.classList.remove('visible');
+            appState.searchInputWrap.classList.remove('loading');
+            appState.searchInput.blur(); // forces the border back to its plain unfocused state, not whatever :focus/:hover would otherwise show
+            appState.searchInput.value = '';
             autoGrowSearchInput();
             if (!res.ok) { renderDotbotOrchestrateError(data.error); return; }
             refreshDotbotUsage();
             renderOrchestrateResult(data.panels || []);
         } catch (e) {
-            searchSpinner.classList.remove('visible');
-            searchInputWrap.classList.remove('loading');
-            searchInput.blur();
-            searchInput.value = '';
+            appState.searchSpinner.classList.remove('visible');
+            appState.searchInputWrap.classList.remove('loading');
+            appState.searchInput.blur();
+            appState.searchInput.value = '';
             autoGrowSearchInput();
             console.error('[dotbot/orchestrate] failed:', e);
             renderDotbotOrchestrateError('error');
@@ -178,37 +178,36 @@ import { render } from './waypoints-render-loop.js';
     // only kind of element CSS grants user-select:text to at all (see the global `*{user-select:
     // none}` reset plus its `[contenteditable="true"], input, textarea{user-select:text}`
     // override in globals.css), so this can't fire for arbitrary page chrome.
-    let selectionToolbarEl = null;
-    let selectionToolbarRange = null; // cloned Range, captured at the moment the toolbar shows
-    let selectionToolbarHostEl = null; // the [contenteditable] element the selection lives in
-    let selectionToolbarRect = null; // last shown position, reused to place the add-to-source popup nearby
+ // cloned Range, captured at the moment the toolbar shows
+ // the [contenteditable] element the selection lives in
+ // last shown position, reused to place the add-to-source popup nearby
     function ensureSelectionToolbarEl() {
-        if (selectionToolbarEl) return selectionToolbarEl;
-        selectionToolbarEl = document.createElement('div');
-        selectionToolbarEl.id = 'selection-toolbar';
-        selectionToolbarEl.className = 'selection-toolbar';
+        if (appState.selectionToolbarEl) return appState.selectionToolbarEl;
+        appState.selectionToolbarEl = document.createElement('div');
+        appState.selectionToolbarEl.id = 'selection-toolbar';
+        appState.selectionToolbarEl.className = 'selection-toolbar';
         // mousedown (not click) is what the browser uses to collapse the current selection —
         // preventing it here is what lets a toolbar button act on the selection that's still
         // highlighted the moment it's clicked, instead of it having already vanished.
-        selectionToolbarEl.onmousedown = (e) => e.preventDefault();
+        appState.selectionToolbarEl.onmousedown = (e) => e.preventDefault();
         // Two independently-styled pill buttons (not one shared bordered bar) — the outer
         // element is just a positioning wrapper (see .selection-toolbar's CSS).
-        selectionToolbarEl.innerHTML = `
+        appState.selectionToolbarEl.innerHTML = `
             <button type="button" class="selection-toolbar-btn" data-action="add">Add to...</button>
             <button type="button" class="selection-toolbar-btn" data-action="lookup">Look up</button>
         `;
-        selectionToolbarEl.querySelector('[data-action="add"]').onclick = () => openAddToSourcePopup();
-        selectionToolbarEl.querySelector('[data-action="lookup"]').onclick = () => selectionToolbarLookUp();
-        document.body.appendChild(selectionToolbarEl);
-        return selectionToolbarEl;
+        appState.selectionToolbarEl.querySelector('[data-action="add"]').onclick = () => openAddToSourcePopup();
+        appState.selectionToolbarEl.querySelector('[data-action="lookup"]').onclick = () => selectionToolbarLookUp();
+        document.body.appendChild(appState.selectionToolbarEl);
+        return appState.selectionToolbarEl;
     }
     function hideSelectionToolbar() {
-        if (selectionToolbarEl) selectionToolbarEl.style.display = 'none';
-        selectionToolbarRange = null;
-        selectionToolbarHostEl = null;
+        if (appState.selectionToolbarEl) appState.selectionToolbarEl.style.display = 'none';
+        appState.selectionToolbarRange = null;
+        appState.selectionToolbarHostEl = null;
     }
     function currentSelectionText() {
-        return selectionToolbarRange ? selectionToolbarRange.toString() : '';
+        return appState.selectionToolbarRange ? appState.selectionToolbarRange.toString() : '';
     }
     // Shared by both selection sources: the plain document-level listener below (contentEditable
     // cards and PDF text layers — both live in the main document) and buildEpubViewer's
@@ -216,11 +215,11 @@ import { render } from './waypoints-render-loop.js';
     // iframe, whose Range coordinates are relative to THAT iframe, not the main page — rectOverride
     // lets that caller supply the already-offset page-relative rect instead of range.getBoundingClientRect()).
     function showSelectionToolbarFor(range, host, rectOverride) {
-        selectionToolbarRange = range;
-        selectionToolbarHostEl = host;
+        appState.selectionToolbarRange = range;
+        appState.selectionToolbarHostEl = host;
         const toolbar = ensureSelectionToolbarEl();
         const rect = rectOverride || range.getBoundingClientRect();
-        selectionToolbarRect = rect;
+        appState.selectionToolbarRect = rect;
         toolbar.style.display = 'flex';
         // Clamped so a selection near the top/left edge of the screen doesn't push the toolbar
         // off-screen — same 20px-from-edge convention used elsewhere (positionHamburgerMenu etc).
@@ -233,7 +232,7 @@ import { render } from './waypoints-render-loop.js';
     document.addEventListener('selectionchange', () => {
         // A selectionchange firing because the user is typing inside the add-to-source popup's
         // own search box isn't a text highlight to react to.
-        if (addToSourcePopupEl && addToSourcePopupEl.style.display !== 'none') return;
+        if (appState.addToSourcePopupEl && appState.addToSourcePopupEl.style.display !== 'none') return;
         const sel = window.getSelection();
         if (!sel || sel.isCollapsed || !sel.toString().trim()) { hideSelectionToolbar(); return; }
         const anchorEl = sel.anchorNode && (sel.anchorNode.nodeType === 1 ? sel.anchorNode : sel.anchorNode.parentElement);
@@ -248,7 +247,7 @@ import { render } from './waypoints-render-loop.js';
     // Outside click hides it — same convention as the game options panel's own document-level
     // pointerdown listener.
     document.addEventListener('pointerdown', (e) => {
-        if (selectionToolbarEl && selectionToolbarEl.style.display !== 'none' && !selectionToolbarEl.contains(e.target)) hideSelectionToolbar();
+        if (appState.selectionToolbarEl && appState.selectionToolbarEl.style.display !== 'none' && !appState.selectionToolbarEl.contains(e.target)) hideSelectionToolbar();
     });
     // Always phrased as an explicit meaning/translation question — never just the bare selected
     // text — so the orchestrate model reliably returns the "dictionary" panel (its own prompt,
@@ -259,20 +258,19 @@ import { render } from './waypoints-render-loop.js';
     function selectionToolbarLookUp() {
         const text = currentSelectionText().trim();
         hideSelectionToolbar();
-        if (!text || !searchInput) return;
+        if (!text || !appState.searchInput) return;
         const query = `What does "${text}" mean?`;
-        searchInput.value = query;
+        appState.searchInput.value = query;
         autoGrowSearchInput();
         commenceDotbotSearch(query);
-        searchInput.focus();
+        appState.searchInput.focus();
     }
 
     // ---------- Add to source popup ----------
     // Every source is a folder with isSource:true holding exactly one 'table' item (see
     // add()'s 'source' branch) — `folders` is a flat map of EVERY folder in the account (not
     // nested), so this is a full account-wide list, not just the current canvas.
-    let addToSourcePopupEl = null;
-    let addToSourceTarget = null; // {folder, table} — the currently chosen destination
+ // {folder, table} — the currently chosen destination
     function findAllSourceFolders() {
         return Object.values(appState.folders).filter(f => f.isSource && f.items.some(i => i.kind === 'table'));
     }
@@ -323,20 +321,20 @@ import { render } from './waypoints-render-loop.js';
         return anySourceFolder ? { folder: anySourceFolder, table: tableOf(anySourceFolder) } : null;
     }
     function ensureAddToSourcePopupEl() {
-        if (addToSourcePopupEl) return addToSourcePopupEl;
-        addToSourcePopupEl = document.createElement('div');
-        addToSourcePopupEl.id = 'add-to-source-popup';
-        addToSourcePopupEl.className = 'add-to-source-popup';
-        addToSourcePopupEl.onmousedown = (e) => e.stopPropagation();
-        document.body.appendChild(addToSourcePopupEl);
-        return addToSourcePopupEl;
+        if (appState.addToSourcePopupEl) return appState.addToSourcePopupEl;
+        appState.addToSourcePopupEl = document.createElement('div');
+        appState.addToSourcePopupEl.id = 'add-to-source-popup';
+        appState.addToSourcePopupEl.className = 'add-to-source-popup';
+        appState.addToSourcePopupEl.onmousedown = (e) => e.stopPropagation();
+        document.body.appendChild(appState.addToSourcePopupEl);
+        return appState.addToSourcePopupEl;
     }
     function closeAddToSourcePopup() {
-        if (addToSourcePopupEl) addToSourcePopupEl.style.display = 'none';
-        addToSourceTarget = null;
+        if (appState.addToSourcePopupEl) appState.addToSourcePopupEl.style.display = 'none';
+        appState.addToSourceTarget = null;
     }
     document.addEventListener('pointerdown', (e) => {
-        if (addToSourcePopupEl && addToSourcePopupEl.style.display !== 'none' && !addToSourcePopupEl.contains(e.target)) closeAddToSourcePopup();
+        if (appState.addToSourcePopupEl && appState.addToSourcePopupEl.style.display !== 'none' && !appState.addToSourcePopupEl.contains(e.target)) closeAddToSourcePopup();
     });
     // Rebuilt from scratch on every change (source search, source pick) — this popup's whole
     // state is small and short-lived, same tradeoff renderGameOptionsHTML makes.
@@ -350,7 +348,7 @@ import { render } from './waypoints-render-loop.js';
     // popup with a normal number of columns.
     function renderAddToSourcePopup(prefillText) {
         const popup = ensureAddToSourcePopupEl();
-        const target = addToSourceTarget;
+        const target = appState.addToSourceTarget;
         const table = target ? target.table : null;
         const headers = table ? table.tableData[0].map(h => stripHtml(h || '')) : [];
         const numCols = headers.length;
@@ -394,7 +392,7 @@ import { render } from './waypoints-render-loop.js';
             resultsEl.querySelectorAll('.add-to-source-result[data-fid]').forEach(row => {
                 row.onclick = () => {
                     const f = appState.folders[row.dataset.fid];
-                    addToSourceTarget = { folder: f, table: f.items.find(i => i.kind === 'table') };
+                    appState.addToSourceTarget = { folder: f, table: f.items.find(i => i.kind === 'table') };
                     renderAddToSourcePopup(prefillText);
                 };
             });
@@ -410,9 +408,9 @@ import { render } from './waypoints-render-loop.js';
                 // not just the current one (see their own definitions) — safe to call here even
                 // when the target source lives in a folder other than the one open right now.
                 saveSnapshot();
-                addToSourceTarget.table.tableData.push(cells);
+                appState.addToSourceTarget.table.tableData.push(cells);
                 scheduleWorkspaceSave();
-                if (appState.currentFolderId === addToSourceTarget.folder.id) render();
+                if (appState.currentFolderId === appState.addToSourceTarget.folder.id) render();
                 closeAddToSourcePopup();
             };
         }
@@ -420,12 +418,12 @@ import { render } from './waypoints-render-loop.js';
     }
     function openAddToSourcePopup() {
         const text = currentSelectionText();
-        const host = selectionToolbarHostEl;
-        const rect = selectionToolbarRect;
+        const host = appState.selectionToolbarHostEl;
+        const rect = appState.selectionToolbarRect;
         hideSelectionToolbar();
-        addToSourceTarget = findDefaultSourceForItem(host);
+        appState.addToSourceTarget = findDefaultSourceForItem(host);
         renderAddToSourcePopup(text);
-        const popup = addToSourcePopupEl;
+        const popup = appState.addToSourcePopupEl;
         const popupWidth = 280;
         let left = rect ? Math.round(rect.left) : window.innerWidth / 2 - popupWidth / 2;
         left = Math.max(8, Math.min(left, window.innerWidth - popupWidth - 8));
@@ -435,19 +433,19 @@ import { render } from './waypoints-render-loop.js';
         popup.style.top = top + 'px';
     }
 
-    if (searchInput) {
+    if (appState.searchInput) {
         // Clicking the input again after it already has focus (e.g. right after a completed
         // search, which doesn't blur it) doesn't re-fire the browser's own `focus` event — so
         // onfocus="handleSearchFocus()" alone would silently do nothing until the next keystroke.
         // Calling it here too makes a click always reopen the initial-suggestion state.
-        searchInput.addEventListener('click', (e) => { e.stopPropagation(); handleSearchFocus(); });
-        searchInput.addEventListener('blur', updateSearchSpaceHint);
+        appState.searchInput.addEventListener('click', (e) => { e.stopPropagation(); handleSearchFocus(); });
+        appState.searchInput.addEventListener('blur', updateSearchSpaceHint);
         // Clicking/tabbing away without submitting stops the idle pulse (see handleSearchFocus) —
         // Escape's own searchInput.blur() call elsewhere routes through this same listener too.
-        searchInput.addEventListener('blur', () => searchInputWrap.classList.remove('idle-pulsing'));
-        searchInput.addEventListener('keydown', (e) => {
-            if (dotbotScheduleConversation) {
-                if (e.key === 'Enter') { e.preventDefault(); submitDotbotScheduleAnswer(searchInput.value); }
+        appState.searchInput.addEventListener('blur', () => appState.searchInputWrap.classList.remove('idle-pulsing'));
+        appState.searchInput.addEventListener('keydown', (e) => {
+            if (appState.dotbotScheduleConversation) {
+                if (e.key === 'Enter') { e.preventDefault(); submitDotbotScheduleAnswer(appState.searchInput.value); }
                 else if (e.key === 'Escape') { e.preventDefault(); cancelDotbotScheduleConversation(); }
                 return;
             }
@@ -457,24 +455,24 @@ import { render } from './waypoints-render-loop.js';
             // empty, Enter closes it back up instead of submitting, so the same key toggles the
             // search bar open/closed depending on which state it's already in. Checked before the
             // general Enter-submits-search handler below, so a non-empty box still submits as usual.
-            if (e.key === 'Enter' && searchInput.value.trim() === '') { e.preventDefault(); clearSearch(); searchInput.blur(); return; }
-            if (e.key === 'ArrowDown' && searchResults.style.display === 'block') { e.preventDefault(); setSearchActive(appState.searchActiveIndex + 1); return; }
-            if (e.key === 'ArrowUp' && searchResults.style.display === 'block') { e.preventDefault(); setSearchActive(appState.searchActiveIndex - 1); return; }
+            if (e.key === 'Enter' && appState.searchInput.value.trim() === '') { e.preventDefault(); clearSearch(); appState.searchInput.blur(); return; }
+            if (e.key === 'ArrowDown' && appState.searchResults.style.display === 'block') { e.preventDefault(); setSearchActive(appState.searchActiveIndex + 1); return; }
+            if (e.key === 'ArrowUp' && appState.searchResults.style.display === 'block') { e.preventDefault(); setSearchActive(appState.searchActiveIndex - 1); return; }
             // 1-4 pick a visible result directly (see the pill on each row — always max 4 shown,
             // see the .slice(0, 4) in matchesFor), the same one-key jump ArrowDown+Enter would
             // take several presses to reach. Only hijacks the digit when there's actually a
             // matching row to jump to — e.g. pressing "3" with only 2 results showing still types
             // a normal "3" into the query, same as it would with the dropdown closed entirely.
-            if (['1', '2', '3', '4'].includes(e.key) && searchResults.style.display === 'block') {
-                const items = Array.from(searchResults.querySelectorAll('.search-result-item'));
+            if (['1', '2', '3', '4'].includes(e.key) && appState.searchResults.style.display === 'block') {
+                const items = Array.from(appState.searchResults.querySelectorAll('.search-result-item'));
                 const target = items[Number(e.key) - 1];
                 if (target) { e.preventDefault(); target.click(); return; }
             }
             if (e.key === 'Enter') {
                 e.preventDefault();
                 // Arrowed down to a specific canvas match — Enter jumps to that, same as clicking it.
-                if (searchResults.style.display === 'block' && appState.searchActiveIndex >= 0) {
-                    const items = Array.from(searchResults.querySelectorAll('.search-result-item'));
+                if (appState.searchResults.style.display === 'block' && appState.searchActiveIndex >= 0) {
+                    const items = Array.from(appState.searchResults.querySelectorAll('.search-result-item'));
                     const target = items[appState.searchActiveIndex];
                     if (target) { target.click(); return; }
                 }
@@ -482,7 +480,7 @@ import { render } from './waypoints-render-loop.js';
                 // mnemonic-shaped query ("generate a mnemonic for X" / "my mnemonic for X is
                 // Y"), routes straight into story+image generation instead (see
                 // commenceSearchOrMnemonic/parseMnemonicIntent).
-                const value = searchInput.value.trim();
+                const value = appState.searchInput.value.trim();
                 if (value) commenceSearchOrMnemonic(value);
             }
         });

@@ -1,10 +1,9 @@
 import { appState, bringCardToFront, canvas, effectiveMode, supabase, world } from './core-state.js';
 import { startScheduleConversation } from './dotbot-schedule-notifications.js';
-import { friends, renderMsgList } from './friends-presence.js';
-import { applyTransform, saveSnapshot, undoStack } from './history-autosave.js';
+import { renderMsgList } from './friends-presence.js';
+import { applyTransform, saveSnapshot } from './history-autosave.js';
 import { broadcastItemDragPositions, findItemById, renderConvoBody, sanitizeFlashcardSnapshot, snapshotItem } from './live-presence.js';
-import { cartPanel, packageSelectedAsTemplate } from './marketplace.js';
-import { messagesPanel, scheduleBtn } from './messages-schedule.js';
+import { packageSelectedAsTemplate } from './marketplace.js';
 import { deepCloneItem, deleteClonedItemFolders, startConnectionDrag, startDrawStroke } from './srs-connections-core.js';
 import { addCardsToSearchContext } from './stopwatch-search-notifications.js';
 import { performMerge, render, renderSelectedOutlines } from './waypoints-render-loop.js';
@@ -91,7 +90,7 @@ import { performMerge, render, renderSelectedOutlines } from './waypoints-render
                     idMap[srcId] = clone.id;
                     startPositions.push({ id: clone.id, x: clone.x, y: clone.y });
                 });
-                if (!startPositions.length) { undoStack.pop(); return; }
+                if (!startPositions.length) { appState.undoStack.pop(); return; }
                 appState.selectedCardIds = isTargetSelected ? gestureIds.map(gid => idMap[gid]).filter(gid => gid != null) : [];
                 render();
                 const newTargetId = idMap[it.id];
@@ -102,7 +101,7 @@ import { performMerge, render, renderSelectedOutlines } from './waypoints-render
                     appState.folders[appState.currentFolderId].items.filter(i => cloneIdSet.has(i.id)).forEach(deleteClonedItemFolders);
                     appState.folders[appState.currentFolderId].items = appState.folders[appState.currentFolderId].items.filter(i => !cloneIdSet.has(i.id));
                     appState.selectedCardIds = preDuplicateSelection;
-                    undoStack.pop();
+                    appState.undoStack.pop();
                     render();
                     return;
                 }
@@ -148,18 +147,18 @@ import { performMerge, render, renderSelectedOutlines } from './waypoints-render
 
             const checkDropTargets = () => {
                 // Detect if cursor is over cart panel dropzone
-                const cartPanelOpen = cartPanel.classList.contains('open');
+                const cartPanelOpen = appState.cartPanel.classList.contains('open');
                 if (cartPanelOpen) {
-                    const cartRect = cartPanel.getBoundingClientRect();
+                    const cartRect = appState.cartPanel.getBoundingClientRect();
                     const overCart = (lastClientX >= cartRect.left && lastClientX <= cartRect.right && lastClientY >= cartRect.top && lastClientY <= cartRect.bottom);
                     document.getElementById('cart-dropzone-overlay').classList.toggle('active', overCart);
                 }
 
                 // Detect if cursor is over the schedule button (drag-to-schedule drop target —
                 // see the matching drop check in `up` below)
-                const scheduleRect = scheduleBtn.getBoundingClientRect();
+                const scheduleRect = appState.scheduleBtn.getBoundingClientRect();
                 const overSchedule = (lastClientX >= scheduleRect.left && lastClientX <= scheduleRect.right && lastClientY >= scheduleRect.top && lastClientY <= scheduleRect.bottom);
-                scheduleBtn.classList.toggle('drag-hover', overSchedule);
+                appState.scheduleBtn.classList.toggle('drag-hover', overSchedule);
 
                 // Detect merging folder highlights
                 const r1 = targetEl.getBoundingClientRect();
@@ -242,16 +241,16 @@ import { performMerge, render, renderSelectedOutlines } from './waypoints-render
                         appState.folders[appState.currentFolderId].items.filter(i => cloneIdSet.has(i.id)).forEach(deleteClonedItemFolders);
                         appState.folders[appState.currentFolderId].items = appState.folders[appState.currentFolderId].items.filter(i => !cloneIdSet.has(i.id));
                         appState.selectedCardIds = preDuplicateSelection;
-                        undoStack.pop();
+                        appState.undoStack.pop();
                         render();
                         return;
                     }
-                    if (!hovered) { undoStack.pop(); }
+                    if (!hovered) { appState.undoStack.pop(); }
                 }
 
                 // Hide dragover templates dropbox overlay
                 document.getElementById('cart-dropzone-overlay').classList.remove('active');
-                scheduleBtn.classList.remove('drag-hover');
+                appState.scheduleBtn.classList.remove('drag-hover');
 
                 // Check Drop zones intersects
                 const mX = me.clientX;
@@ -259,8 +258,8 @@ import { performMerge, render, renderSelectedOutlines } from './waypoints-render
                 let droppedOnTarget = false;
 
                 // 1. Drop into active Chat
-                if (messagesPanel.classList.contains('open')) {
-                    const rect = messagesPanel.getBoundingClientRect();
+                if (appState.messagesPanel.classList.contains('open')) {
+                    const rect = appState.messagesPanel.getBoundingClientRect();
                     if (mX >= rect.left && mX <= rect.right && mY >= rect.top && mY <= rect.bottom) {
                         dispatchSelectedToChat(targetIt);
                         droppedOnTarget = true;
@@ -268,8 +267,8 @@ import { performMerge, render, renderSelectedOutlines } from './waypoints-render
                 }
 
                 // 2. Drop into Template Marketplace Dropbox
-                if (cartPanel.classList.contains('open')) {
-                    const rect = cartPanel.getBoundingClientRect();
+                if (appState.cartPanel.classList.contains('open')) {
+                    const rect = appState.cartPanel.getBoundingClientRect();
                     if (mX >= rect.left && mX <= rect.right && mY >= rect.top && mY <= rect.bottom) {
                         packageSelectedAsTemplate(targetIt);
                         droppedOnTarget = true;
@@ -290,7 +289,7 @@ import { performMerge, render, renderSelectedOutlines } from './waypoints-render
                 // whichever card(s) were being dragged (replaces the old right-click "Schedule"
                 // context-menu option).
                 if (!droppedOnTarget) {
-                    const rect = scheduleBtn.getBoundingClientRect();
+                    const rect = appState.scheduleBtn.getBoundingClientRect();
                     if (mX >= rect.left && mX <= rect.right && mY >= rect.top && mY <= rect.bottom) {
                         startScheduleConversation(gestureIds);
                         droppedOnTarget = true;
@@ -322,7 +321,7 @@ import { performMerge, render, renderSelectedOutlines } from './waypoints-render
     // ---------- Dispatch to Chat Interaction ----------
     async function dispatchSelectedToChat(targetIt) {
         if (!appState.activeConvoId) return;
-        const f = friends.find(x => x.id === appState.activeConvoId);
+        const f = appState.friends.find(x => x.id === appState.activeConvoId);
         if (!f) return;
 
         saveSnapshot();

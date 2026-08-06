@@ -16,10 +16,9 @@ import { closeSourceAddMenu } from './source-buttons-cursor-mode.js';
     // clicking the trigger button "pins" the panel open until the user clicks elsewhere
     // on the canvas. Only one panel is ever open at a time - opening any panel (via
     // hover or click) swaps out whichever panel was previously open.
-    const panelPinned = { menu: false, messages: false, cart: false, add: false, profile: false, collab: false, sourceAdd: false, breadcrumbMap: false };
     function scheduleHoverClose(name, hoverEls, closeFn) {
         setTimeout(() => {
-            if (panelPinned[name]) return;
+            if (appState.panelPinned[name]) return;
             const stillOver = hoverEls.some(el => el && el.matches(':hover'));
             if (!stillOver) closeFn();
         }, 80);
@@ -34,7 +33,7 @@ import { closeSourceAddMenu } from './source-buttons-cursor-mode.js';
     function pinOnInsideClick(name, els) {
         els.forEach(el => {
             if (!el) return;
-            el.addEventListener('click', () => { panelPinned[name] = true; }, true);
+            el.addEventListener('click', () => { appState.panelPinned[name] = true; }, true);
         });
     }
     function closeAllPanels(except) {
@@ -49,7 +48,6 @@ import { closeSourceAddMenu } from './source-buttons-cursor-mode.js';
     }
 
     // ---------- Hamburger Menu Controls ----------
-    const hamburgerBtn = document.getElementById('btn-menu'), outlineMenu = document.getElementById('outline-menu'), accountMenu = document.getElementById('account-menu'), hamburgerStack = document.getElementById('hamburger-stack');
     // Each of these is its own separate view of the same menu (see openWaypointsPanel /
     // openHubCollabPanel below) — closing the hamburger by any existing path (outside click,
     // Escape, re-clicking the button) needs to close whichever one is actually showing, so all are
@@ -57,68 +55,64 @@ import { closeSourceAddMenu } from './source-buttons-cursor-mode.js';
     // close path. Named hub-collab (not just "collab") to avoid colliding with the pre-existing
     // #collab-panel/collabPanel (the per-canvas "add a collaborator" flyout off the top bar) — a
     // completely different feature that happens to share the English word.
-    const waypointsPanel = document.getElementById('waypoints-panel'), waypointsSearchInput = document.getElementById('waypoints-search');
-    const hubCollabPanel = document.getElementById('hub-collab-panel'), hubCollabSearchInput = document.getElementById('hub-collab-search');
-    const hubSubpanels = [waypointsPanel, hubCollabPanel];
     function closeHamburgerMenu() {
-        outlineMenu.classList.remove('open');
-        accountMenu.classList.remove('open');
-        hubSubpanels.forEach(p => p.classList.remove('open'));
-        hamburgerBtn.classList.remove('active');
-        panelPinned.menu = false;
+        appState.outlineMenu.classList.remove('open');
+        appState.accountMenu.classList.remove('open');
+        appState.hubSubpanels.forEach(p => p.classList.remove('open'));
+        appState.hamburgerBtn.classList.remove('active');
+        appState.panelPinned.menu = false;
     }
     function positionHamburgerMenu() {
-        const rect = hamburgerBtn.getBoundingClientRect();
-        hamburgerStack.style.top = (rect.bottom + 10) + 'px';
+        const rect = appState.hamburgerBtn.getBoundingClientRect();
+        appState.hamburgerStack.style.top = (rect.bottom + 10) + 'px';
         const stackWidth = 240;
         let leftPos = rect.left;
         if (leftPos + stackWidth > window.innerWidth - 20) leftPos = window.innerWidth - stackWidth - 20;
         if (leftPos < 20) leftPos = 20;
-        hamburgerStack.style.left = leftPos + 'px';
-        hamburgerStack.style.right = 'auto';
+        appState.hamburgerStack.style.left = leftPos + 'px';
+        appState.hamburgerStack.style.right = 'auto';
     }
     function openHamburgerMenu(pin) {
         closeAllPanels('menu');
         clearSearch();
-        outlineMenu.classList.add('open');
-        accountMenu.classList.add('open');
-        hamburgerBtn.classList.add('active');
+        appState.outlineMenu.classList.add('open');
+        appState.accountMenu.classList.add('open');
+        appState.hamburgerBtn.classList.add('active');
         buildOutline();
         positionHamburgerMenu();
-        if (pin) panelPinned.menu = true;
+        if (pin) appState.panelPinned.menu = true;
     }
-    hamburgerBtn.addEventListener('click', (e) => {
+    appState.hamburgerBtn.addEventListener('click', (e) => {
         e.stopPropagation();
-        if (panelPinned.menu) { closeHamburgerMenu(); }
+        if (appState.panelPinned.menu) { closeHamburgerMenu(); }
         else { openHamburgerMenu(true); }
     });
-    const hamburgerHoverEls = [hamburgerBtn, outlineMenu, accountMenu, ...hubSubpanels];
-    hamburgerBtn.addEventListener('mouseenter', () => { if (!outlineMenu.classList.contains('open') && !hubSubpanels.some(p => p.classList.contains('open'))) openHamburgerMenu(false); });
-    hamburgerBtn.addEventListener('mouseleave', () => scheduleHoverClose('menu', hamburgerHoverEls, closeHamburgerMenu));
-    outlineMenu.addEventListener('mouseleave', () => scheduleHoverClose('menu', hamburgerHoverEls, closeHamburgerMenu));
-    accountMenu.addEventListener('mouseleave', () => scheduleHoverClose('menu', hamburgerHoverEls, closeHamburgerMenu));
-    hubSubpanels.forEach(p => p.addEventListener('mouseleave', () => scheduleHoverClose('menu', hamburgerHoverEls, closeHamburgerMenu)));
-    pinOnInsideClick('menu', [outlineMenu, accountMenu, ...hubSubpanels]);
+    appState.hamburgerBtn.addEventListener('mouseenter', () => { if (!appState.outlineMenu.classList.contains('open') && !appState.hubSubpanels.some(p => p.classList.contains('open'))) openHamburgerMenu(false); });
+    appState.hamburgerBtn.addEventListener('mouseleave', () => scheduleHoverClose('menu', appState.hamburgerHoverEls, closeHamburgerMenu));
+    appState.outlineMenu.addEventListener('mouseleave', () => scheduleHoverClose('menu', appState.hamburgerHoverEls, closeHamburgerMenu));
+    appState.accountMenu.addEventListener('mouseleave', () => scheduleHoverClose('menu', appState.hamburgerHoverEls, closeHamburgerMenu));
+    appState.hubSubpanels.forEach(p => p.addEventListener('mouseleave', () => scheduleHoverClose('menu', appState.hamburgerHoverEls, closeHamburgerMenu)));
+    pinOnInsideClick('menu', [appState.outlineMenu, appState.accountMenu, ...appState.hubSubpanels]);
     document.getElementById('hamburger-stack').addEventListener('click', (e) => e.stopPropagation());
     // Shared by the three open*Panel functions below — swaps #account-menu/#outline-menu out for
     // just the one requested panel.
     function openHubSubpanel(panel, searchInputEl, renderFn) {
-        outlineMenu.classList.remove('open');
-        accountMenu.classList.remove('open');
-        hubSubpanels.forEach(p => { if (p !== panel) p.classList.remove('open'); });
+        appState.outlineMenu.classList.remove('open');
+        appState.accountMenu.classList.remove('open');
+        appState.hubSubpanels.forEach(p => { if (p !== panel) p.classList.remove('open'); });
         panel.classList.add('open');
-        hamburgerBtn.classList.add('active');
+        appState.hamburgerBtn.classList.add('active');
         positionHamburgerMenu();
-        panelPinned.menu = true;
+        appState.panelPinned.menu = true;
         searchInputEl.value = '';
         renderFn('');
     }
-    function openWaypointsPanel() { openHubSubpanel(waypointsPanel, waypointsSearchInput, renderWaypointsList); }
+    function openWaypointsPanel() { openHubSubpanel(appState.waypointsPanel, appState.waypointsSearchInput, renderWaypointsList); }
     function openHubCollabPanel() {
         appState.hubCollabView = 'main'; // always land on the main list, never mid-Requests from last time
-        openHubSubpanel(hubCollabPanel, hubCollabSearchInput, renderHubCollabList);
+        openHubSubpanel(appState.hubCollabPanel, appState.hubCollabSearchInput, renderHubCollabList);
     }
     function handleWaypointsSearch(v) { renderWaypointsList(v); }
     function handleHubCollabSearch(v) { renderHubCollabList(v); }
 
-export { accountMenu, closeAllPanels, closeHamburgerMenu, hamburgerBtn, handleHubCollabSearch, handleWaypointsSearch, hubCollabSearchInput, openHubCollabPanel, openWaypointsPanel, outlineMenu, panelPinned, pinOnInsideClick, scheduleHoverClose };
+export { closeAllPanels, closeHamburgerMenu, handleHubCollabSearch, handleWaypointsSearch, openHubCollabPanel, openWaypointsPanel, pinOnInsideClick, scheduleHoverClose };

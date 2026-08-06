@@ -1,54 +1,52 @@
 import { clearSearch, escapeHtml } from './ai-assistant-suggestions.js';
 import { appState, supabase } from './core-state.js';
-import { ensureCanvasPresenceChannel, goToCollaboratorCursor, openConvo, remoteCursors, renderConvoBody } from './live-presence.js';
-import { messagesPanel, msgList, msgSearchInput, openMessagesPanel } from './messages-schedule.js';
-import { closeAllPanels, panelPinned, pinOnInsideClick, scheduleHoverClose } from './panels-hamburger.js';
+import { ensureCanvasPresenceChannel, goToCollaboratorCursor, openConvo, renderConvoBody } from './live-presence.js';
+import { openMessagesPanel } from './messages-schedule.js';
+import { closeAllPanels, pinOnInsideClick, scheduleHoverClose } from './panels-hamburger.js';
 import { bumpAchievementStat, renderAvatarInto } from './profile-achievements-pricing.js';
 import { pushNotification } from './stopwatch-search-notifications.js';
 
 
     // ---------- Collaborators Pill/Panel Controls ----------
-    const collabBubble = document.getElementById('collab-bubble'), collabPanel = document.getElementById('collab-panel');
-    const collabSearchInput = document.getElementById('collab-search');
     function getCurrentCollaboratorIds() {
         const folderObj = appState.folders[appState.currentFolderId];
         return (folderObj && folderObj.collaborators) ? folderObj.collaborators : [];
     }
-    function closeCollabPanel() { collabPanel.classList.remove('open'); panelPinned.collab = false; }
+    function closeCollabPanel() { appState.collabPanel.classList.remove('open'); appState.panelPinned.collab = false; }
     function positionCollabPanel() {
-        const rect = collabBubble.getBoundingClientRect();
-        collabPanel.style.top = (rect.bottom + 10) + 'px';
+        const rect = appState.collabBubble.getBoundingClientRect();
+        appState.collabPanel.style.top = (rect.bottom + 10) + 'px';
         const panelWidth = 280;
         const btnCenter = rect.left + rect.width / 2;
         let leftPos = btnCenter - panelWidth / 2;
         if (leftPos + panelWidth > window.innerWidth - 20) leftPos = window.innerWidth - panelWidth - 20;
         if (leftPos < 20) leftPos = 20;
-        collabPanel.style.left = leftPos + 'px';
-        collabPanel.style.right = 'auto';
+        appState.collabPanel.style.left = leftPos + 'px';
+        appState.collabPanel.style.right = 'auto';
     }
     function openCollabPanel(pin) {
-        if (!collabBubble.classList.contains('show')) return;
+        if (!appState.collabBubble.classList.contains('show')) return;
         closeAllPanels('collab');
         clearSearch();
-        collabPanel.classList.add('open');
-        collabSearchInput.value = '';
+        appState.collabPanel.classList.add('open');
+        appState.collabSearchInput.value = '';
         renderCollabList('');
         positionCollabPanel();
-        if (pin) { panelPinned.collab = true; }
+        if (pin) { appState.panelPinned.collab = true; }
     }
-    collabBubble.addEventListener('click', (e) => {
+    appState.collabBubble.addEventListener('click', (e) => {
         e.stopPropagation();
-        if (panelPinned.collab) { closeCollabPanel(); }
+        if (appState.panelPinned.collab) { closeCollabPanel(); }
         else { openCollabPanel(true); }
     });
-    collabBubble.addEventListener('mouseenter', () => {
+    appState.collabBubble.addEventListener('mouseenter', () => {
         // Only auto-open on hover when there are no collaborators yet (the "+" affordance);
         // once collaborators exist, hover just reveals the tooltip and click opens the panel.
-        if (getCurrentCollaboratorIds().length === 0 && !collabPanel.classList.contains('open')) openCollabPanel(false);
+        if (getCurrentCollaboratorIds().length === 0 && !appState.collabPanel.classList.contains('open')) openCollabPanel(false);
     });
-    collabBubble.addEventListener('mouseleave', () => scheduleHoverClose('collab', [collabBubble, collabPanel], closeCollabPanel));
-    collabPanel.addEventListener('mouseleave', () => scheduleHoverClose('collab', [collabBubble, collabPanel], closeCollabPanel));
-    pinOnInsideClick('collab', [collabPanel]);
+    appState.collabBubble.addEventListener('mouseleave', () => scheduleHoverClose('collab', [appState.collabBubble, appState.collabPanel], closeCollabPanel));
+    appState.collabPanel.addEventListener('mouseleave', () => scheduleHoverClose('collab', [appState.collabBubble, appState.collabPanel], closeCollabPanel));
+    pinOnInsideClick('collab', [appState.collabPanel]);
 
     // Who's already accepted (including inherited from an ancestor canvas — see
     // get_effective_collaborators/canvas_access_status), and who has a pending invite at THIS
@@ -57,9 +55,8 @@ import { pushNotification } from './stopwatch-search-notifications.js';
     // effective-accepted list (kept here rather than a separate variable so the rest of the app —
     // the collab bubble/pill — can keep reading it exactly like before); a pending invite is
     // always level-specific (never inherited), so that part stays an exact-folder query.
-    let outgoingCanvasInvitePendingIds = new Set();
     async function refreshCanvasCollabForCurrentFolder() {
-        if (!supabase || !appState.currentUser.id) { outgoingCanvasInvitePendingIds = new Set(); return; }
+        if (!supabase || !appState.currentUser.id) { appState.outgoingCanvasInvitePendingIds = new Set(); return; }
         const folderObj = appState.folders[appState.currentFolderId];
         if (!folderObj) return;
         const [effective, pendingRes] = await Promise.all([
@@ -70,7 +67,7 @@ import { pushNotification } from './stopwatch-search-notifications.js';
         if (effective.error) console.error('[collab] failed to load effective collaborators:', effective.error);
         if (pendingRes.error) console.error('[collab] failed to load pending canvas invites:', pendingRes.error);
         folderObj.collaborators = (effective.data || []).map(r => r.collaborator_id);
-        outgoingCanvasInvitePendingIds = new Set((pendingRes.data || []).map(r => r.collaborator_id));
+        appState.outgoingCanvasInvitePendingIds = new Set((pendingRes.data || []).map(r => r.collaborator_id));
         // ensureCanvasPresenceChannel's "is this folder worth a live channel" check only runs
         // inside render() — which already ran synchronously, BEFORE this async fetch had any real
         // data, on every normal navigation (see openFolder). Nothing else ever re-checked it once
@@ -90,7 +87,7 @@ import { pushNotification } from './stopwatch-search-notifications.js';
             folder_title: folderObj.title, collaborator_id: collaboratorId,
         });
         if (error) { console.error('[collab] failed to send canvas collaboration invite:', error); return; }
-        outgoingCanvasInvitePendingIds.add(collaboratorId);
+        appState.outgoingCanvasInvitePendingIds.add(collaboratorId);
     }
     // Explicitly blocks this collaborator from THIS exact folder, even if their access here was
     // only inherited from a parent canvas — see revoke_canvas_collaboration. Their access to any
@@ -120,7 +117,6 @@ import { pushNotification } from './stopwatch-search-notifications.js';
         if (error) console.error('[collab] failed to sync renamed canvas title:', error);
     }
 
-    const COLLAB_LIST_MAX = 6;
     async function renderCollabList(query) {
         await Promise.all([refreshFriendsData(), refreshCanvasCollabForCurrentFolder()]);
         const list = document.getElementById('collab-list');
@@ -141,12 +137,12 @@ import { pushNotification } from './stopwatch-search-notifications.js';
             const row = document.createElement('div');
             row.className = 'collab-row';
             const added = isCollab(f.id);
-            const pending = outgoingCanvasInvitePendingIds.has(f.id);
+            const pending = appState.outgoingCanvasInvitePendingIds.has(f.id);
             const label = added ? 'Remove' : pending ? 'Requested' : 'Add';
             // A live presence dot + clickable name only makes sense for someone who's both an
             // actual collaborator here AND currently present on this exact canvas right now (see
             // remoteCursors/handleCanvasPresenceSync) — not just anyone in the friends list.
-            const isPresent = added && remoteCursors.has(f.id);
+            const isPresent = added && appState.remoteCursors.has(f.id);
             row.innerHTML = `<div class="collab-row-avatar"></div>
                 <div class="collab-row-meta"><div class="collab-row-name${isPresent ? ' collab-row-name-live' : ''}">${escapeHtml(f.displayName)}${isPresent ? '<span class="collab-row-live-dot"></span>' : ''}</div></div>
                 <button class="collab-add-btn ${added ? 'added' : ''} ${pending ? 'pending' : ''}" ${pending ? 'disabled' : ''}>${label}</button>`;
@@ -172,7 +168,7 @@ import { pushNotification } from './stopwatch-search-notifications.js';
         // reachable), then up to COLLAB_LIST_MAX more from recency/conversation — no
         // "Collaborators"/"Recently active"/"Most conversed with" subheadings, just one list.
         if (q) {
-            const results = friends.filter(f => f.displayName.toLowerCase().includes(q));
+            const results = appState.friends.filter(f => f.displayName.toLowerCase().includes(q));
             if (results.length) results.forEach(f => addRow(f));
             else {
                 const empty = document.createElement('div');
@@ -183,16 +179,16 @@ import { pushNotification } from './stopwatch-search-notifications.js';
             return;
         }
 
-        const current = folderObj.collaborators.map(id => friends.find(f => f.id === id)).filter(Boolean);
+        const current = folderObj.collaborators.map(id => appState.friends.find(f => f.id === id)).filter(Boolean);
         const seen = new Set(current.map(f => f.id));
-        const rest = friends.filter(f => !seen.has(f.id));
+        const rest = appState.friends.filter(f => !seen.has(f.id));
         const byRecent = [...rest].sort((a, b) => (a.lastActive ?? 9999) - (b.lastActive ?? 9999));
         const byConversed = [...rest].sort((a, b) => b.messages.length - a.messages.length);
         const merged = current.slice();
-        for (let i = 0; merged.length < COLLAB_LIST_MAX && (i < byRecent.length || i < byConversed.length); i++) {
+        for (let i = 0; merged.length < appState.COLLAB_LIST_MAX && (i < byRecent.length || i < byConversed.length); i++) {
             const r = byRecent[i];
             if (r && !seen.has(r.id)) { seen.add(r.id); merged.push(r); }
-            if (merged.length >= COLLAB_LIST_MAX) break;
+            if (merged.length >= appState.COLLAB_LIST_MAX) break;
             const c = byConversed[i];
             if (c && !seen.has(c.id)) { seen.add(c.id); merged.push(c); }
         }
@@ -217,13 +213,13 @@ import { pushNotification } from './stopwatch-search-notifications.js';
         // see findParentFolderId/the breadcrumb "..", which had the same bug for the same reason).
         // A canvas someone else shared with you isn't yours to invite further collaborators on.
         if (!folderObj || appState.currentFolderId === 'root' || folderObj.isSharedView) {
-            collabBubble.classList.remove('show');
+            appState.collabBubble.classList.remove('show');
             closeCollabPanel();
             return;
         }
-        collabBubble.classList.add('show');
+        appState.collabBubble.classList.add('show');
         const collabIds = folderObj.collaborators || [];
-        const collabs = collabIds.map(id => friends.find(f => f.id === id)).filter(Boolean);
+        const collabs = collabIds.map(id => appState.friends.find(f => f.id === id)).filter(Boolean);
         const content = document.getElementById('collab-content');
         const tooltip = document.getElementById('collab-tooltip');
         if (collabs.length === 0) {
@@ -250,13 +246,11 @@ import { pushNotification } from './stopwatch-search-notifications.js';
     // `messages` per friend stays a local-only array for now — chat isn't
     // wired to the `messages` table yet, so anything sent here is transient
     // (lost on reload) until that's built.
-    let friends = [];
-    let incomingRequests = []; // [{ id: friendshipId, requester: {id, username, displayName} }]
-    let outgoingPendingIds = new Set(); // profile ids we've already sent a pending request to
+ // [{ id: friendshipId, requester: {id, username, displayName} }]
+ // profile ids we've already sent a pending request to
     // null until refreshFriendsData's first run — that first run is a baseline (no notifications;
     // whatever's already pending when the app loads isn't "just received"), every run after that
     // notifies for any request id that wasn't in the set yet.
-    let seenIncomingFriendRequestIds = null;
 
     async function refreshFriendsData() {
         if (!supabase || !appState.currentUser.id) return;
@@ -268,7 +262,7 @@ import { pushNotification } from './stopwatch-search-notifications.js';
             .or(`requester_id.eq.${appState.currentUser.id},addressee_id.eq.${appState.currentUser.id}`);
         if (acceptedErr) console.error('[friends] failed to load friendships:', acceptedErr);
 
-        friends = (accepted || []).map(row => {
+        appState.friends = (accepted || []).map(row => {
             const other = row.requester_id === appState.currentUser.id ? row.addressee : row.requester;
             return {
                 id: other.id,
@@ -284,12 +278,12 @@ import { pushNotification } from './stopwatch-search-notifications.js';
         // always this user's true total regardless of who sent/accepted — sync it in as an
         // absolute value rather than incrementing, since respondToFriendRequest only runs on the
         // accepting side and would otherwise never move the requester's own count.
-        bumpAchievementStat('three_friends', friends.length, true);
+        bumpAchievementStat('three_friends', appState.friends.length, true);
 
         // Loaded in one round trip (not lazily per-conversation) so the chat
         // list's preview text and the collab panel's "most conversed with"
         // sort both reflect real data without an extra fetch each.
-        const friendshipIds = friends.map(f => f.friendshipId);
+        const friendshipIds = appState.friends.map(f => f.friendshipId);
         if (friendshipIds.length) {
             const { data: allMessages, error: messagesErr } = await supabase
                 .from('messages')
@@ -305,7 +299,7 @@ import { pushNotification } from './stopwatch-search-notifications.js';
                     canvasSnapshot: m.canvas_snapshot, createdAt: m.created_at
                 });
             });
-            friends.forEach(f => { f.messages = byFriendship.get(f.friendshipId) || []; });
+            appState.friends.forEach(f => { f.messages = byFriendship.get(f.friendshipId) || []; });
         }
 
         const { data: incoming, error: incomingErr } = await supabase
@@ -314,13 +308,13 @@ import { pushNotification } from './stopwatch-search-notifications.js';
             .eq('status', 'pending')
             .eq('addressee_id', appState.currentUser.id);
         if (incomingErr) console.error('[friends] failed to load incoming requests:', incomingErr);
-        incomingRequests = incoming || [];
-        if (seenIncomingFriendRequestIds === null) {
-            seenIncomingFriendRequestIds = new Set(incomingRequests.map(r => r.id));
+        appState.incomingRequests = incoming || [];
+        if (appState.seenIncomingFriendRequestIds === null) {
+            appState.seenIncomingFriendRequestIds = new Set(appState.incomingRequests.map(r => r.id));
         } else {
-            incomingRequests.forEach(r => {
-                if (seenIncomingFriendRequestIds.has(r.id)) return;
-                seenIncomingFriendRequestIds.add(r.id);
+            appState.incomingRequests.forEach(r => {
+                if (appState.seenIncomingFriendRequestIds.has(r.id)) return;
+                appState.seenIncomingFriendRequestIds.add(r.id);
                 pushNotification({
                     type: 'friend_request',
                     message: `@${r.requester.username} sent you a friend request`,
@@ -339,7 +333,7 @@ import { pushNotification } from './stopwatch-search-notifications.js';
             .eq('status', 'pending')
             .eq('requester_id', appState.currentUser.id);
         if (outgoingErr) console.error('[friends] failed to load outgoing requests:', outgoingErr);
-        outgoingPendingIds = new Set((outgoing || []).map(r => r.addressee_id));
+        appState.outgoingPendingIds = new Set((outgoing || []).map(r => r.addressee_id));
 
         subscribeToAllFriendMessages();
     }
@@ -350,7 +344,7 @@ import { pushNotification } from './stopwatch-search-notifications.js';
             .from('friendships')
             .insert({ requester_id: appState.currentUser.id, addressee_id: userId });
         if (error) { console.error('[friends] failed to send request:', error); return; }
-        outgoingPendingIds.add(userId);
+        appState.outgoingPendingIds.add(userId);
     }
 
     async function respondToFriendRequest(friendshipId, accept) {
@@ -370,7 +364,7 @@ import { pushNotification } from './stopwatch-search-notifications.js';
             .neq('id', appState.currentUser.id)
             .limit(10);
         if (error) { console.error('[friends] failed to search users:', error); return []; }
-        const friendIds = new Set(friends.map(f => f.id));
+        const friendIds = new Set(appState.friends.map(f => f.id));
         return (data || [])
             .filter(u => !friendIds.has(u.id))
             .map(u => ({ id: u.id, username: u.username, displayName: u.display_name || u.username }));
@@ -386,23 +380,23 @@ import { pushNotification } from './stopwatch-search-notifications.js';
     async function renderMsgList(query) {
         await refreshFriendsData();
         if (appState.msgView === 'requests') { renderMsgRequests(); return; }
-        msgList.innerHTML = '';
+        appState.msgList.innerHTML = '';
         const q = (query || '').trim().toLowerCase();
 
-        if (incomingRequests.length) {
+        if (appState.incomingRequests.length) {
             const reqRow = document.createElement('div');
             reqRow.className = 'outline-item requests-row';
-            reqRow.innerHTML = `<span class="outline-label">Requests</span><span class="requests-count">${incomingRequests.length}</span>`;
+            reqRow.innerHTML = `<span class="outline-label">Requests</span><span class="requests-count">${appState.incomingRequests.length}</span>`;
             reqRow.onclick = (e) => { e.stopPropagation(); appState.msgView = 'requests'; renderMsgRequests(); };
-            msgList.appendChild(reqRow);
+            appState.msgList.appendChild(reqRow);
         }
 
-        const matchedFriends = friends.filter(f => f.displayName.toLowerCase().includes(q) || f.username.toLowerCase().includes(q));
+        const matchedFriends = appState.friends.filter(f => f.displayName.toLowerCase().includes(q) || f.username.toLowerCase().includes(q));
         if (matchedFriends.length) {
             const label = document.createElement('div');
             label.className = 'msg-section-label';
             label.textContent = 'Chats';
-            msgList.appendChild(label);
+            appState.msgList.appendChild(label);
             matchedFriends.forEach(f => {
                 const row = document.createElement('div');
                 row.className = 'msg-chat-row';
@@ -410,7 +404,7 @@ import { pushNotification } from './stopwatch-search-notifications.js';
                     <div class="msg-chat-meta"><div class="msg-chat-name">${escapeHtml(f.displayName)}</div><div class="msg-chat-preview">${escapeHtml(lastPreview(f))}</div></div>`;
                 renderAvatarInto(row.querySelector('.msg-avatar'), { id: f.avatarId ?? 0, url: f.avatarUrl || null }, initials(f.displayName));
                 row.onclick = () => openConvo(f.id);
-                msgList.appendChild(row);
+                appState.msgList.appendChild(row);
             });
         }
 
@@ -421,20 +415,20 @@ import { pushNotification } from './stopwatch-search-notifications.js';
                 const label = document.createElement('div');
                 label.className = 'msg-section-label';
                 label.textContent = 'Add a friend';
-                msgList.appendChild(label);
+                appState.msgList.appendChild(label);
                 searchResults.forEach(u => {
                     const row = document.createElement('div');
                     row.className = 'msg-add-row';
-                    const pending = outgoingPendingIds.has(u.id);
+                    const pending = appState.outgoingPendingIds.has(u.id);
                     row.innerHTML = `<div class="msg-chat-meta"><div class="msg-chat-name">@${escapeHtml(u.username)}</div></div>
                         <button class="msg-add-btn" ${pending ? 'disabled' : ''}>${pending ? 'Requested' : 'Add'}</button>`;
                     row.querySelector('.msg-add-btn').onclick = async (e) => {
                         e.stopPropagation();
-                        if (outgoingPendingIds.has(u.id)) return;
+                        if (appState.outgoingPendingIds.has(u.id)) return;
                         await sendFriendRequest(u.id);
                         renderMsgList(query);
                     };
-                    msgList.appendChild(row);
+                    appState.msgList.appendChild(row);
                 });
             }
         }
@@ -443,25 +437,25 @@ import { pushNotification } from './stopwatch-search-notifications.js';
             const empty = document.createElement('div');
             empty.className = 'msg-empty';
             empty.textContent = q ? 'No chats or usernames found.' : 'No conversations yet.';
-            msgList.appendChild(empty);
+            appState.msgList.appendChild(empty);
         }
     }
     function renderMsgRequests() {
-        msgList.innerHTML = '';
+        appState.msgList.innerHTML = '';
         const backRow = document.createElement('div');
         backRow.className = 'requests-back-row';
         backRow.innerHTML = `<span>&larr;</span><span>Requests</span>`;
-        backRow.onclick = (e) => { e.stopPropagation(); appState.msgView = 'main'; renderMsgList(msgSearchInput.value); };
-        msgList.appendChild(backRow);
+        backRow.onclick = (e) => { e.stopPropagation(); appState.msgView = 'main'; renderMsgList(appState.msgSearchInput.value); };
+        appState.msgList.appendChild(backRow);
 
-        if (!incomingRequests.length) {
+        if (!appState.incomingRequests.length) {
             const empty = document.createElement('div');
             empty.className = 'msg-empty';
             empty.textContent = 'No pending requests.';
-            msgList.appendChild(empty);
+            appState.msgList.appendChild(empty);
             return;
         }
-        incomingRequests.forEach(req => {
+        appState.incomingRequests.forEach(req => {
             const row = document.createElement('div');
             row.className = 'msg-add-row';
             row.innerHTML = `<div class="msg-chat-meta"><div class="msg-chat-name">@${escapeHtml(req.requester.username)}</div></div>
@@ -481,7 +475,7 @@ import { pushNotification } from './stopwatch-search-notifications.js';
                 await refreshFriendsData();
                 renderMsgRequests();
             };
-            msgList.appendChild(row);
+            appState.msgList.appendChild(row);
         });
     }
     function handleMsgSearch(v) { renderMsgList(v); }
@@ -513,18 +507,15 @@ import { pushNotification } from './stopwatch-search-notifications.js';
     // status actually changes, every open friend channel is re-tracked with it, which is what
     // shows up as a 'sync' event (not 'join'/'leave' — the presence key doesn't change, just its
     // payload) on the other end.
-    const AFK_THRESHOLD_MS = 5 * 60 * 1000;
-    let localPresenceStatus = 'online';
-    let afkTimer = null;
     function setLocalPresenceStatus(status) {
-        if (localPresenceStatus === status) return;
-        localPresenceStatus = status;
-        friendMessageChannels.forEach(channel => channel.track({ status: localPresenceStatus }));
+        if (appState.localPresenceStatus === status) return;
+        appState.localPresenceStatus = status;
+        appState.friendMessageChannels.forEach(channel => channel.track({ status: appState.localPresenceStatus }));
     }
     function resetAfkTimer() {
         setLocalPresenceStatus('online');
-        clearTimeout(afkTimer);
-        afkTimer = setTimeout(() => setLocalPresenceStatus('afk'), AFK_THRESHOLD_MS);
+        clearTimeout(appState.afkTimer);
+        appState.afkTimer = setTimeout(() => setLocalPresenceStatus('afk'), appState.AFK_THRESHOLD_MS);
     }
     ['mousemove', 'mousedown', 'keydown', 'pointerdown', 'wheel', 'touchstart'].forEach(evt => {
         window.addEventListener(evt, resetAfkTimer, { passive: true });
@@ -536,15 +527,14 @@ import { pushNotification } from './stopwatch-search-notifications.js';
     // heard from this channel yet", which is what tells the very first sync apart from a real
     // transition: a friend already online when you load the app shouldn't fire a spurious "came
     // online" notification, only a genuine change after that baseline should.
-    let friendPresenceLastStatus = new Map();
     function handleFriendPresenceSync(friendshipId, channel) {
-        const live = friends.find(x => x.friendshipId === friendshipId);
+        const live = appState.friends.find(x => x.friendshipId === friendshipId);
         if (!live) return;
         const metas = channel.presenceState()[live.id] || []; // presence key = the friend's own user id
         const nowStatus = metas.length ? (metas[0].status || 'online') : null;
-        const prev = friendPresenceLastStatus.get(friendshipId);
+        const prev = appState.friendPresenceLastStatus.get(friendshipId);
         if (nowStatus === prev) return;
-        friendPresenceLastStatus.set(friendshipId, nowStatus);
+        appState.friendPresenceLastStatus.set(friendshipId, nowStatus);
         if (prev === undefined) return; // first sync since subscribing — baseline only, not a real transition
         if (nowStatus === 'online') {
             pushNotification({
@@ -560,32 +550,32 @@ import { pushNotification } from './stopwatch-search-notifications.js';
         }
     }
 
-    let friendMessageChannels = new Map(); // friendshipId -> realtime channel
+ // friendshipId -> realtime channel
     function subscribeToAllFriendMessages() {
         if (!supabase) return;
-        const liveFriendshipIds = new Set(friends.map(f => f.friendshipId));
+        const liveFriendshipIds = new Set(appState.friends.map(f => f.friendshipId));
 
-        for (const [friendshipId, channel] of friendMessageChannels) {
+        for (const [friendshipId, channel] of appState.friendMessageChannels) {
             if (!liveFriendshipIds.has(friendshipId)) {
                 supabase.removeChannel(channel);
-                friendMessageChannels.delete(friendshipId);
-                friendPresenceLastStatus.delete(friendshipId);
+                appState.friendMessageChannels.delete(friendshipId);
+                appState.friendPresenceLastStatus.delete(friendshipId);
             }
         }
 
-        friends.forEach(f => {
-            if (friendMessageChannels.has(f.friendshipId)) return; // already subscribed
+        appState.friends.forEach(f => {
+            if (appState.friendMessageChannels.has(f.friendshipId)) return; // already subscribed
             const friendshipId = f.friendshipId;
             const channel = supabase
                 .channel(`messages:${friendshipId}`, { config: { presence: { key: appState.currentUser.id } } })
                 .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages', filter: `friendship_id=eq.${friendshipId}` }, (payload) => {
                     const m = payload.new;
                     if (m.sender_id === appState.currentUser.id) return; // our own message — already added optimistically by sendMsg
-                    const live = friends.find(x => x.friendshipId === friendshipId);
+                    const live = appState.friends.find(x => x.friendshipId === friendshipId);
                     if (!live) return; // unfriended (or a stale refresh) since this fired
                     if (live.messages.some(existing => existing.id === m.id)) return; // already have it somehow
                     live.messages.push({ id: m.id, senderId: m.sender_id, text: m.body, canvasSnapshot: m.canvas_snapshot, createdAt: m.created_at });
-                    const isActivelyViewing = appState.activeConvoId === live.id && messagesPanel.classList.contains('open');
+                    const isActivelyViewing = appState.activeConvoId === live.id && appState.messagesPanel.classList.contains('open');
                     if (isActivelyViewing) {
                         renderConvoBody(live);
                     } else {
@@ -599,10 +589,10 @@ import { pushNotification } from './stopwatch-search-notifications.js';
                 })
                 .on('presence', { event: 'sync' }, () => handleFriendPresenceSync(friendshipId, channel))
                 .subscribe((status) => {
-                    if (status === 'SUBSCRIBED') channel.track({ status: localPresenceStatus });
+                    if (status === 'SUBSCRIBED') channel.track({ status: appState.localPresenceStatus });
                 });
-            friendMessageChannels.set(friendshipId, channel);
+            appState.friendMessageChannels.set(friendshipId, channel);
         });
     }
 
-export { closeCollabPanel, collabPanel, friends, handleCollabSearch, handleMsgSearch, initials, openCollabPanel, refreshCanvasCollabForCurrentFolder, refreshFriendsData, renderCollabPill, renderMsgList, syncCanvasCollabTitle };
+export { closeCollabPanel, handleCollabSearch, handleMsgSearch, initials, openCollabPanel, refreshCanvasCollabForCurrentFolder, refreshFriendsData, renderCollabPill, renderMsgList, syncCanvasCollabTitle };

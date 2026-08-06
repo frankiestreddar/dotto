@@ -1,3 +1,6 @@
+import { statsDayKey } from './dotbot-schedule-notifications.js';
+import { aggregateDownstreamPerformance, applyFilterToRows, applySrsUpdateStream, diffRatings, extractCardsFromSource, makeStreamPayload } from './srs-connections-core.js';
+
     const canvas = document.getElementById('canvas'), world = document.getElementById('world'), dotLayer = document.getElementById('dot-layer'),
         cursorOverlay = document.getElementById('cursor-overlay'),
         breadcrumbs = document.getElementById('breadcrumbs'), btnBack = document.getElementById('btn-back'),
@@ -111,7 +114,510 @@
         dotbotAlignedRegistry: [],
         dotbotSearchGeneration: 0,
         preSharedViewState: null,
+        // Added in a second follow-up pass: the module split's import graph turned out to be
+        // deeply, pervasively circular (147 circular edges across all 29 files, confirmed by
+        // simulating the real ES-module evaluation order rather than assuming entry-point
+        // textual order) — a consequence of the original monolith's functions freely
+        // cross-referencing each other regardless of textual position, which real ES modules
+        // don't tolerate the same way classic-script hoisting did. Every one of these names is
+        // let/const state that's read from at least one other file; unlike functions (safe under
+        // circularity — confirmed empirically that hoisting protects them even when a circular
+        // import triggers evaluation "early"), a plain variable read before its own declaring
+        // file has reached that specific line throws exactly the "cannot access before
+        // initialization" class of error this pass fixes. Moving all of them here is
+        // deliberately the conservative, blanket fix rather than proving out which SPECIFIC
+        // circular paths are dangerous name-by-name — core-state.js has zero imports of its own,
+        // so nothing declared here can ever be mid-evaluation when anything else runs. A handful
+        // (see DEPENDENT_ORDER below, right after this object literal closes) depend on another
+        // one of these and can't be inlined here — see that comment for why.
+        ADD_MENU_DATA: {
+        notes: { label: 'Notes', categoryDesc: 'The building blocks of your canvas — headings, notes, tables, drawings and media.', items: [
+            { kind: 'title', label: 'Heading', icon: '/assets/icons/heading-1.png' },
+            { kind: 'note', label: 'Note', icon: '/assets/icons/note.png' },
+            { kind: 'table', label: 'Table', icon: '/assets/icons/table.png' },
+            { kind: 'drawing', label: 'Drawing', icon: '/assets/icons/drawing.png' },
+            { kind: 'media', label: 'Upload', icon: '/assets/icons/media.png' },
+        ]},
+        tools: { label: 'Tools', categoryDesc: 'Tools that help you interact with content — read, record, link, and trace.', items: [
+            { kind: 'reader', label: 'Reader', icon: '/assets/icons/reader.png' },
+            { kind: 'voice', label: 'Voice Recorder', icon: '/assets/icons/voice.png' },
+            { kind: 'bookmark', label: 'Bookmark', icon: '/assets/icons/bookmark.png' },
+            { kind: 'watermark', label: 'Watermark', icon: '/assets/icons/watermark.png' },
+        ]},
+        utilities: { label: 'Utilities', categoryDesc: 'Workflow helpers — track tasks, time, history, and navigation.', items: [
+            { kind: 'embed', label: 'Embed', icon: '/assets/icons/embed.png' },
+            { kind: 'stopwatch', label: 'Stopwatch', icon: '/assets/icons/stopwatch.png' },
+            { kind: 'shelf', label: 'Stack', icon: '/assets/icons/shelf.png' },
+            { kind: 'filter', label: 'Filter', icon: '/assets/icons/filter.png' },
+            { kind: 'waypoint', label: 'Waypoint', icon: '/assets/icons/waypoint.png' },
+        ]},
+        games: { label: 'Games', categoryDesc: 'Interactive exercises to practice a language.', items: [
+            { kind: 'flashcard', label: 'Flashcard', icon: '/assets/icons/flashcards.png' },
+            { kind: 'typeright', label: 'Typeright', icon: '/assets/icons/typeright.png' },
+            { kind: 'blanks', label: 'Blanks', icon: '/assets/icons/blanks.png' },
+            { kind: 'match', label: 'Match', icon: '/assets/icons/match.png' },
+            { kind: 'audiotype', label: 'Audio Type', icon: '/assets/icons/audiotype.png' },
+        ]},
+        stats: { label: 'Stats', categoryDesc: 'Cards that show stats pulled from a linked card.', items: [
+            { kind: 'statcard', statKind: 'progress', label: 'Progress', icon: '/assets/icons/progress.png' },
+            { kind: 'statcard', statKind: 'accuracy', label: 'Accuracy', icon: '/assets/icons/accuracy.png' },
+        ]},
+    },
+        currentAddTab: 'notes',
+        userLibrary: {
+        purchased: [],
+        drafts: [],
+        published: [],
+        customFolders: []
+    },
+        addMenuSearchQuery: '',
+        undoStack: [],
+        redoStack: [],
+        swTickInterval: null,
+        workspaceSaveTimer: null,
+        contextMenuTableCtx: null,
+        ZOOM_MIN: 0.2,
+        ZOOM_MAX: 2,
+        DOT_LAYER_MARGIN: 200,
+        cameraTweenTimeout: null,
+        applyTransformRafId: null,
+        SM2_QUALITY: { noclue: 0, wrong: 1, hard: 3, easy: 5 },
+        CardStreamIO: {
+        table: {
+            inputs: ['srsUpdate'],
+            outputs: ['content', 'performance'],
+            onStream: applySrsUpdateStream,
+            getOutput(item, ctx) {
+                const extracted = extractCardsFromSource(item);
+                const out = [];
+                if (extracted && extracted.rows.length) out.push(makeStreamPayload(item.id, 'content', { rows: extracted.rows, headers: extracted.headers }));
+                const perf = aggregateDownstreamPerformance(item, ctx);
+                if (perf) out.push(perf);
+                return out.length ? out : null;
+            }
+        },
+        // Distinct from table/folder below (not a shared object) because it also emits a
+        // 'sourceRows' output — its OWN rows only, deliberately a SEPARATE streamType from
+        // 'content' — for a connected Stack card (kind:'shelf', see CardStreamIO.shelf below) to
+        // aggregate across several sources at once. A source no longer ACCEPTS 'sourceRows' as an
+        // input (that's what used to let two sources merge directly into each other — removed;
+        // aggregating multiple sources now only ever happens via a Stack in between), so
+        // source-to-source connections are rejected by isValidConnection's ordinary type-matching
+        // rule with no special-casing needed.
+        source: {
+            inputs: ['srsUpdate'],
+            outputs: ['content', 'performance', 'sourceRows'],
+            onStream: applySrsUpdateStream,
+            getOutput(item, ctx) {
+                const extracted = extractCardsFromSource(item);
+                const ownRows = extracted ? extracted.rows : [];
+                const out = [];
+                if (ownRows.length) {
+                    out.push(makeStreamPayload(item.id, 'content', { rows: ownRows, headers: extracted.headers }));
+                    out.push(makeStreamPayload(item.id, 'sourceRows', { rows: ownRows }));
+                }
+                const perf = aggregateDownstreamPerformance(item, ctx);
+                if (perf) out.push(perf);
+                return out.length ? out : null;
+            }
+        },
+        folder: {
+            inputs: ['srsUpdate'],
+            outputs: ['content', 'performance'],
+            onStream: applySrsUpdateStream,
+            getOutput(item, ctx) {
+                const extracted = extractCardsFromSource(item);
+                const out = [];
+                if (extracted && extracted.rows.length) out.push(makeStreamPayload(item.id, 'content', { rows: extracted.rows, headers: extracted.headers }));
+                const perf = aggregateDownstreamPerformance(item, ctx);
+                if (perf) out.push(perf);
+                return out.length ? out : null;
+            }
+        },
+        // A pass-through content filter: connect a source into it, then it into a flashcard (or
+        // another filter, or another source), and only rows matching the selected tags flow
+        // onward — never touches the upstream table directly, so the same source can feed
+        // several differently-filtered subdecks at once. incomingRows accumulates inbound
+        // 'content' rows, reset once per render (see propagateCanvasStreams) rather than
+        // consumed/cleared inside getOutput — getOutput can be called once per downstream
+        // connection in the same render, and clearing it there would starve every call after the
+        // first.
+        filter: {
+            inputs: ['content'],
+            outputs: ['content'],
+            onStream(item, payload) {
+                if (payload.streamType !== 'content' || !payload.delta || !Array.isArray(payload.delta.rows)) return;
+                item.incomingRows = (item.incomingRows || []).concat(payload.delta.rows);
+                // Passed straight through to whatever this filter feeds (see getOutput below) so a
+                // game card downstream of a filter still sees real column names, not just "Column N".
+                if (payload.delta.headers) item.incomingHeaders = payload.delta.headers;
+            },
+            getOutput(item) {
+                const filtered = applyFilterToRows(item, item.incomingRows || []);
+                return filtered.length ? makeStreamPayload(item.id, 'content', { rows: filtered, headers: item.incomingHeaders }) : null;
+            }
+        },
+        flashcard: {
+            inputs: ['content'],
+            outputs: ['performance', 'srsUpdate'],
+            onStream(item, payload) {
+                if (payload.streamType !== 'content') return;
+                const rows = payload.delta.rows;
+                if (rows && rows.length) {
+                    // Only reset shuffle order / position when the underlying deck actually
+                    // changed shape (rows added/removed/edited) — NOT when only the SM-2 srs
+                    // fields changed (e.g. because we just streamed our own grading update back
+                    // up to the source and it echoed back down), which would otherwise yank the
+                    // user back to card #1 every single time they rate a card.
+                    const prevKey = (item.cards || []).map(c => c.rowIndex + '|' + c.front + '|' + c.back).join('~');
+                    const newKey = rows.map(c => c.rowIndex + '|' + c.front + '|' + c.back).join('~');
+                    const structuralChange = prevKey !== newKey;
+                    item.cards = rows;
+                    if (structuralChange) { item.fcOrder = []; item.fcIndex = 0; item.fcFlipped = false; }
+                }
+                // Real column names for the right-click options panel (see renderGameOptionsHTML)
+                // — falls back to "Column N" labels there when this is empty (e.g. no source
+                // linked yet, or a chain that doesn't preserve header names).
+                if (payload.delta.headers) item.gameHeaders = payload.delta.headers;
+            },
+            getOutput(item) {
+                const out = [makeStreamPayload(item.id, 'performance', {
+                    seen: item.fcSeenCount || 0,
+                    totalCards: (item.cards || []).length,
+                    ratings: Object.assign({ noclue: 0, wrong: 0, hard: 0, easy: 0 }, item.fcStats || {})
+                })];
+                // Re-broadcasts the most recently graded card's new SM-2 state so the source
+                // table (the system of record) stays in sync on every propagation pass.
+                if (item.pendingSrsUpdate) out.push(makeStreamPayload(item.id, 'srsUpdate', item.pendingSrsUpdate));
+                return out;
+            }
+        },
+        // Typeright: see one side, type the other — same streaming shape as flashcard (content
+        // in, performance/srsUpdate out), just its own tr*-prefixed play state (trIndex/trOrder/
+        // trInput/trStats) instead of fc*, since it's a distinct gameplay loop (typed-answer
+        // grading, not flip+rate).
+        typeright: {
+            inputs: ['content'],
+            outputs: ['performance', 'srsUpdate'],
+            onStream(item, payload) {
+                if (payload.streamType !== 'content') return;
+                const rows = payload.delta.rows;
+                if (rows && rows.length) {
+                    const prevKey = (item.cards || []).map(c => c.rowIndex + '|' + c.front + '|' + c.back).join('~');
+                    const newKey = rows.map(c => c.rowIndex + '|' + c.front + '|' + c.back).join('~');
+                    const structuralChange = prevKey !== newKey;
+                    item.cards = rows;
+                    if (structuralChange) { item.trOrder = []; item.trIndex = 0; item.trInput = ''; item.trChecked = false; }
+                }
+                if (payload.delta.headers) item.gameHeaders = payload.delta.headers;
+            },
+            getOutput(item) {
+                const out = [makeStreamPayload(item.id, 'performance', {
+                    seen: item.trSeenCount || 0,
+                    totalCards: (item.cards || []).length,
+                    ratings: Object.assign({ noclue: 0, wrong: 0, hard: 0, easy: 0 }, item.trStats || {})
+                })];
+                if (item.pendingSrsUpdate) out.push(makeStreamPayload(item.id, 'srsUpdate', item.pendingSrsUpdate));
+                return out;
+            }
+        },
+        statcard: {
+            inputs: ['performance'],
+            onStream(item, payload) {
+                item.streamCache = item.streamCache || {};
+                const existing = item.streamCache[payload.originId];
+                // A stopwatch re-broadcasts several sessions for the same origin at once (so a
+                // connected shelf can catch all of them); a plain stats card should only ever
+                // keep the most recent one. This is decided purely from the payload shape
+                // (`delta.sessionStartedAt`), never from what kind sent it — if either payload
+                // isn't session-scoped (no sessionStartedAt), there's no ambiguity and the
+                // newest write simply wins, same as before.
+                if (existing) {
+                    const incomingStart = payload.delta && payload.delta.sessionStartedAt;
+                    const existingStart = existing.delta && existing.delta.sessionStartedAt;
+                    if (incomingStart != null && existingStart != null && incomingStart < existingStart) return;
+                }
+                item.streamCache[payload.originId] = payload;
+            }
+        },
+        stopwatch: {
+            inputs: ['performance'],
+            outputs: ['performance'],
+            onStream(item, payload) {
+                if (payload.streamType !== 'performance' || !item.swSessionActive) return;
+                item.swSessionLive[payload.originId] = payload.delta;
+                if (!item.swSessionBaseline[payload.originId]) item.swSessionBaseline[payload.originId] = payload.delta;
+            },
+            getOutput(item) {
+                const payloads = [];
+                if (item.swSessionActive) {
+                    Object.keys(item.swSessionLive).forEach(originId => {
+                        const live = item.swSessionLive[originId] || {};
+                        const base = item.swSessionBaseline[originId] || {};
+                        payloads.push(makeStreamPayload(originId, 'performance', {
+                            seen: (live.seen || 0) - (base.seen || 0), totalCards: live.totalCards,
+                            ratings: diffRatings(live.ratings, base.ratings),
+                            sessionId: item.swSessionId, sessionStartedAt: item.swSessionStartedAt, final: false
+                        }));
+                    });
+                } else if (item.swSessions && item.swSessions.length) {
+                    // Re-broadcast every session still held in the 3-slot buffer (not just the
+                    // latest) so a shelf connected at any point can catch ones it missed. A
+                    // plain stats card linked straight to the stopwatch sees all of these too,
+                    // but its own onStream keeps only the one with the newest sessionStartedAt.
+                    item.swSessions.forEach(session => {
+                        session.payloads.forEach(p => {
+                            payloads.push(makeStreamPayload(p.originId, 'performance', Object.assign({}, p.delta, { sessionId: session.sessionId, sessionStartedAt: session.startedAt, final: true })));
+                        });
+                    });
+                }
+                return payloads;
+            }
+        },
+        // "Stack" in the UI (kind stays 'shelf' internally — see the naming note near its
+        // add-menu entry). Dual-purpose: the original job (archiving stopwatch session
+        // performance data, below) is untouched; it ALSO now accepts 'sourceRows' from any number
+        // of directly-connected source cards and re-emits their combined rows as one 'content'
+        // stream, so a flashcard (or filter, or anything else that accepts 'content') plugged
+        // into a Stack plays every connected source's rows at once — the same aggregation
+        // source-to-source merging used to do, just via an explicit hub card instead of two
+        // sources linking directly to each other. stackSourceRows is reset once per render (see
+        // propagateCanvasStreams), same pattern as source.mergeCache used to be.
+        shelf: {
+            inputs: ['performance', 'sourceRows'],
+            outputs: ['performance', 'content'],
+            onStream(item, payload) {
+                if (payload.streamType === 'sourceRows') {
+                    item.stackSourceRows = item.stackSourceRows || {};
+                    item.stackSourceRows[payload.originId] = payload.delta.rows || [];
+                    return;
+                }
+                if (payload.streamType !== 'performance' || !payload.delta || !payload.delta.final || !payload.delta.sessionId) return;
+                item.shelfSessions = item.shelfSessions || [];
+                const sid = payload.delta.sessionId;
+                let session = item.shelfSessions.find(s => s.sessionId === sid);
+                if (!session) {
+                    session = { sessionId: sid, savedAt: Date.now(), payloads: [], label: 'Session ' + (item.shelfSessions.length + 1) };
+                    item.shelfSessions.push(session);
+                    item.shelfSelectedId = session.sessionId;
+                }
+                const cleanDelta = Object.assign({}, payload.delta);
+                delete cleanDelta.final; delete cleanDelta.sessionId;
+                const existing = session.payloads.find(p => p.originId === payload.originId);
+                if (existing) existing.delta = cleanDelta; else session.payloads.push({ originId: payload.originId, delta: cleanDelta });
+            },
+            getOutput(item) {
+                const out = [];
+                const session = (item.shelfSessions || []).find(s => s.sessionId === item.shelfSelectedId);
+                if (session) session.payloads.forEach(p => out.push(makeStreamPayload(p.originId, 'performance', p.delta)));
+                const combinedRows = [].concat(...Object.values(item.stackSourceRows || {}));
+                if (combinedRows.length) out.push(makeStreamPayload(item.id, 'content', { rows: combinedRows }));
+                return out.length ? out : null;
+            }
+        },
+    },
+        cardClipboard: [],
+        clipboardPasteCount: 0,
+        addToolbar: document.getElementById('add-toolbar'),
+        addMenuActions: document.getElementById('add-menu-actions'),
+        sourceAddMenu: document.getElementById('source-add-menu'),
+        cellTagPicker: document.getElementById('cell-tag-picker'),
+        audioRecordIndicator: document.getElementById('audio-record-indicator'),
+        modeToolbar: document.getElementById('mode-toolbar'),
+        scheduleToolbar: document.getElementById('schedule-toolbar'),
+        MODE_ORDER_WEIGHT: { normal: 0, data: 1, select: 2 },
+        MODE_HOLD_THRESHOLD_MS: 180,
+        modeKeyHoldStart: null,
+        panelPinned: { menu: false, messages: false, cart: false, add: false, profile: false, collab: false, sourceAdd: false, breadcrumbMap: false },
+        hamburgerBtn: document.getElementById('btn-menu'),
+        outlineMenu: document.getElementById('outline-menu'),
+        accountMenu: document.getElementById('account-menu'),
+        hamburgerStack: document.getElementById('hamburger-stack'),
+        waypointsPanel: document.getElementById('waypoints-panel'),
+        waypointsSearchInput: document.getElementById('waypoints-search'),
+        hubCollabPanel: document.getElementById('hub-collab-panel'),
+        hubCollabSearchInput: document.getElementById('hub-collab-search'),
+        incomingCanvasRequests: [],
+        acceptedCanvasCollaborations: [],
+        ownedCanvasCollaborations: [],
+        seenIncomingCanvasRequestIds: null,
+        profileBtn: document.getElementById('btn-profile'),
+        profilePanel: document.getElementById('profile-panel'),
+        LEVEL_NAMES: [
+        'Noob', 'Novice', 'Apprentice', 'Learner', 'Scholar', 'Seeker', 'Thinker', 'Strategist',
+        'Specialist', 'Expert', 'Master', 'Savant', 'Polymath', 'Brainiac', 'Prodigy', 'Intellect',
+        'Visionary', 'Titan', 'Archon', 'Omniscient',
+    ],
+        SUB_RANKS_PER_TIER: 9,
+        LEVEL_GROWTH_RATE: 1.045,
+        LEVEL_BASE_POINTS: 100,
+        ACHIEVEMENTS: [
+        { id: 'first_block',      statKey: 'blocks_placed',    threshold: 1,     name: 'Place your first block',        spriteIndex: 1 },
+        { id: 'three_friends',    statKey: 'friends_added',    threshold: 3,     name: 'Add three friends',              spriteIndex: 2 },
+        { id: 'five_scheduled',   statKey: 'blocks_scheduled', threshold: 5,     name: 'Schedule five blocks',           spriteIndex: 3 },
+        { id: 'twenty_searches',  statKey: 'ai_searches',      threshold: 20,    name: 'Make twenty AI searches',        spriteIndex: 4 },
+        { id: 'fifty_links',      statKey: 'data_links',       threshold: 50,    name: 'Make fifty links in data mode',  spriteIndex: 5 },
+        { id: 'hundred_flips',    statKey: 'flashcard_flips',  threshold: 100,   name: 'Flip one hundred cards',         spriteIndex: 6 },
+        { id: 'master_250_words', statKey: 'words_mastered',   threshold: 250,   name: 'Master 250 words',               spriteIndex: 7 },
+        { id: 'day_in_platform',  statKey: 'platform_seconds', threshold: 86400, name: 'Spend 24 hours in the platform', spriteIndex: 8 },
+    ],
+        unlockedAchievementIds: new Set(appState.currentUser.unlockedAchievementIds || []),
+        SPRITE_TOTAL_COUNT: 108,
+        BLOCKS_CAP: 100,
+        searchUsageWarned: false,
+        genUsageWarned: false,
+        PRICING_PLANS: [
+        { id: 'free', name: 'Free', price: '$0', period: '/mo', tagline: 'Get started with the basics.', cta: 'Current Plan', current: true },
+        { id: 'pro', name: 'Pro', price: '$9', period: '/mo', tagline: 'For learners leveling up fast.', cta: 'Upgrade to Pro', featured: true },
+        { id: 'polyglot', name: 'Polyglot', price: '$19', period: '/mo', tagline: 'Go all in on every language.', cta: 'Upgrade to Polyglot' },
+    ],
+        PRICING_FEATURE_ROWS: [
+        { values: ['100 canvas blocks', '500 canvas blocks', 'Unlimited canvas blocks'] },
+        { values: ['30 Dotbot searches / 6h', '150 Dotbot searches / 6h', 'Unlimited Dotbot searches'] },
+        { values: ['100 Dotbot generations / mo', '500 Dotbot generations / mo', 'Unlimited Dotbot generations'] },
+        { values: ['Unlimited canvases & waypoints', 'Unlimited canvases & waypoints', 'Unlimited canvases & waypoints'] },
+        { values: ['Friends & collaboration', 'Friends & collaboration', 'Friends & collaboration'] },
+        { values: [null, 'Priority support', 'Priority support'] },
+        { values: [null, null, 'Early access to new features'] },
+    ],
+        messagesBtn: document.getElementById('btn-messages'),
+        messagesPanel: document.getElementById('messages-panel'),
+        msgConvo: document.getElementById('msg-convo'),
+        msgList: document.getElementById('msg-list'),
+        msgSearchInput: document.getElementById('msg-search'),
+        scheduleViewDate: new Date(),
+        scheduleBtn: document.getElementById('btn-schedule'),
+        scheduleViewMode: false,
+        scheduleViewSavedTransform: null,
+        scheduleView: document.getElementById('schedule-view'),
+        scheduleViewCanvasEl: document.getElementById('schedule-view-canvas'),
+        scheduleViewInner: document.getElementById('schedule-view-inner'),
+        scheduleViewHours: document.getElementById('schedule-view-hours'),
+        scheduleViewStack: document.getElementById('schedule-view-stack'),
+        scheduleScrollDragging: false,
+        scheduleScrollStartY: 0,
+        scheduleScrollStartTop: 0,
+        SCHEDULE_HOUR_ROW: 96,
+        dotbotScheduleConversation: null,
+        notifiedScheduledEventIds: new Set(),
+        lastStatsDayKey: statsDayKey(new Date()),
+        SCHEDULE_WEEKDAYS: ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'],
+        SCHEDULE_MONTHS: ['january', 'february', 'march', 'april', 'may', 'june', 'july', 'august', 'september', 'october', 'november', 'december'],
+        collabBubble: document.getElementById('collab-bubble'),
+        collabPanel: document.getElementById('collab-panel'),
+        collabSearchInput: document.getElementById('collab-search'),
+        outgoingCanvasInvitePendingIds: new Set(),
+        COLLAB_LIST_MAX: 6,
+        friends: [],
+        incomingRequests: [],
+        outgoingPendingIds: new Set(),
+        seenIncomingFriendRequestIds: null,
+        AFK_THRESHOLD_MS: 5 * 60 * 1000,
+        localPresenceStatus: 'online',
+        afkTimer: null,
+        friendPresenceLastStatus: new Map(),
+        friendMessageChannels: new Map(),
+        CURSOR_COLORS: ['#F87171', '#FB923C', '#FBBF24', '#4ADE80', '#22D3EE', '#60A5FA', '#A78BFA', '#F472B6'],
+        REMOTE_CURSOR_TRAVEL_MS: 220,
+        canvasPresenceChannel: null,
+        canvasPresenceKey: null,
+        remoteCursors: new Map(),
+        lastBroadcastSnapshot: null,
+        pendingSyncDeltas: null,
+        syncBroadcastTimer: null,
+        localEditingState: { editing: false, editingTarget: null, caret: null },
+        lastPointerClientX: null,
+        lastPointerClientY: null,
+        cursorBroadcastThrottleId: null,
+        itemDragBroadcastThrottleId: null,
+        itemResizeBroadcastThrottleId: null,
+        caretBroadcastThrottleId: null,
+        inlineCanvasDeleteMenuEl: null,
+        STATIC_HEADER_PILL_GAP: 8,
+        STATIC_TABLE_VISIBLE_COLS: 3.2,
+        STATIC_TABLE_ROW_GAP: 10,
+        STATIC_TABLE_PAGE_PADDING_TOP: 96,
+        STATIC_TABLE_PAGE_PADDING_BOTTOM: 16,
+        STATIC_TABLE_BOTTOM_MARGIN: 20,
+        STATIC_TABLE_UPLOAD_BTN_RESERVE: 35,
+        AI_SOURCE_MAX_COLS: 10,
+        AI_SOURCE_MAX_ROWS: 150,
+        pdfjsLibPromise: null,
+        pdfDocCache: new Map(),
+        epubjsLibPromise: null,
+        epubBookCache: new Map(),
+        CLOZE_RE: /\[([^\[\]]+)\]/g,
+        shelfRowClickTimer: null,
+        searchInput: document.getElementById('search-input'),
+        searchResults: document.getElementById('search-results'),
+        searchDotbotAnswer: document.getElementById('search-dotbot-answer'),
+        searchTranslation: document.getElementById('search-translation'),
+        searchDictionary: document.getElementById('search-dictionary'),
+        searchExamples: document.getElementById('search-examples'),
+        searchImageResult: document.getElementById('search-image-result'),
+        searchSuggestions: document.getElementById('search-suggestions'),
+        searchRecommended: document.getElementById('search-recommended'),
+        searchDropdown: document.getElementById('search-dropdown'),
+        searchSpinner: document.getElementById('search-spinner'),
+        searchInputWrap: document.getElementById('search-input-wrap'),
+        searchCardPill: document.getElementById('search-card-pill'),
+        searchCardPillLabel: document.getElementById('search-card-pill-label'),
+        searchSpaceHint: document.getElementById('search-space-hint'),
+        NOTIFICATION_DEFAULT_DURATION_MS: 5000,
+        NOTIF_FLASH_MS: 400,
+        NOTIF_SLIDE_MS: 300,
+        notificationQueue: [],
+        currentNotification: null,
+        notificationTimer: null,
+        notificationSeq: 0,
+        notifImageEl: document.getElementById('search-notification-image'),
+        notifTextEl: document.getElementById('search-notification-text'),
+        notifActionBtn: document.getElementById('search-notification-action'),
+        NOTIFICATION_QUEUE_GAP_MS: 5000,
+        lastNotificationCloseTime: 0,
+        searchCardContext: [],
+        searchCardConnections: [],
+        NON_LATIN_SCRIPT_RE: new RegExp("[^\u0000-\u024F\u1E00-\u1EFF\u2000-\u206F\s\d]"),
+        ALIGN_HL_COLOR_COUNT: 6,
+        dotbotAlignHighlightOn: true,
+        dotbotSuggestDebounceTimer: null,
+        dotbotSuggestAbortController: null,
+        dotbotMnemonicPair: { text: null, image: null },
+        TYPEWRITER_LOADING_WORDS: ['Thinking', 'Consulting', 'Reasoning', 'Picturing', 'Composing', 'Imagining'],
+        typewriterLoadingTimers: new WeakMap(),
+        currentTtsAudio: null,
+        selectionToolbarEl: null,
+        selectionToolbarRange: null,
+        selectionToolbarHostEl: null,
+        selectionToolbarRect: null,
+        addToSourcePopupEl: null,
+        addToSourceTarget: null,
+        WAYPOINT_COLLAPSED_W: 28,
+        waypointPeekTimer: null,
+        sharedOwnerNameCache: {},
+        breadcrumbMapPanel: document.getElementById('breadcrumb-map-panel'),
+        breadcrumbMapList: document.getElementById('breadcrumb-map-list'),
+        outlineRows: [],
+        outlineActiveIndex: -1,
+        OUTLINE_MAX_DEPTH: 2,
+        OUTLINE_GROUP_MAX_DIST: 30 * 28,
+        OUTLINE_RESCUE_MAX_DIST: 10 * 28,
+        btnCart: document.getElementById('btn-cart'),
+        cartPanel: document.getElementById('cart-panel'),
+        libraryFolderLabels: { purchased: 'Purchased', drafts: 'Drafts', published: 'Published' },
+        detailItem: null,
+        detailSourceFolder: null,
+        detailOriginal: null,
+        publishFlowItem: null,
     };
+    appState.dotLayerBaseX = -appState.DOT_LAYER_MARGIN / 2;
+    appState.dotLayerBaseY = -appState.DOT_LAYER_MARGIN / 2;
+    appState.addMenuHoverEls = [appState.addToolbar, addMenu, appState.addMenuActions];
+    appState.modeButtons = Array.from(appState.modeToolbar.querySelectorAll('.mode-btn'));
+    appState.hubSubpanels = [appState.waypointsPanel, appState.hubCollabPanel];
+    appState.hamburgerHoverEls = [appState.hamburgerBtn, appState.outlineMenu, appState.accountMenu, ...appState.hubSubpanels];
+    appState.TOTAL_SUB_LEVELS = appState.LEVEL_NAMES.length * appState.SUB_RANKS_PER_TIER;
+
     function effectiveMode() {
         if (appState.modeOverrideKey === 'shift') return 'select';
         if (appState.modeOverrideKey === 'd') return 'data';

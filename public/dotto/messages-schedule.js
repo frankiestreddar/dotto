@@ -1,64 +1,57 @@
 import { clearSearch } from './ai-assistant-suggestions.js';
-import { addToolbar } from './copy-paste.js';
 import { appState, canvas, zoomControl } from './core-state.js';
 import { renderMsgList } from './friends-presence.js';
 import { applyTransform, scheduleWorkspaceSave } from './history-autosave.js';
 import { closeConvo, renderRealCardPreview } from './live-presence.js';
-import { closeAllPanels, panelPinned, pinOnInsideClick, scheduleHoverClose } from './panels-hamburger.js';
-import { modeToolbar } from './source-buttons-cursor-mode.js';
+import { closeAllPanels, pinOnInsideClick, scheduleHoverClose } from './panels-hamburger.js';
 import { openFolder } from './waypoints-render-loop.js';
 
 
     // ---------- Messages Panel Controls ----------
-    const messagesBtn = document.getElementById('btn-messages'), messagesPanel = document.getElementById('messages-panel');
-    const msgConvo = document.getElementById('msg-convo'), msgList = document.getElementById('msg-list');
-    const msgSearchInput = document.getElementById('msg-search');
     // Also closes any open conversation (not just the panel around it) — otherwise it stays
     // "open" internally at whatever scroll position was left, and reopening the panel later
     // shows that same stale state instead of a fresh bottom-of-conversation view.
-    function closeMessagesPanel() { messagesPanel.classList.remove('open'); messagesBtn.classList.remove('active'); panelPinned.messages = false; closeConvo(); }
+    function closeMessagesPanel() { appState.messagesPanel.classList.remove('open'); appState.messagesBtn.classList.remove('active'); appState.panelPinned.messages = false; closeConvo(); }
     function positionMessagesPanel() {
-        const rect = messagesBtn.getBoundingClientRect();
-        messagesPanel.style.bottom = 'auto';
-        messagesPanel.style.top = (rect.bottom + 10) + 'px';
+        const rect = appState.messagesBtn.getBoundingClientRect();
+        appState.messagesPanel.style.bottom = 'auto';
+        appState.messagesPanel.style.top = (rect.bottom + 10) + 'px';
         const panelWidth = 320;
         const btnCenter = rect.left + rect.width / 2;
         let leftPos = btnCenter - panelWidth / 2;
         if (leftPos + panelWidth > window.innerWidth - 20) leftPos = window.innerWidth - panelWidth - 20;
         if (leftPos < 20) leftPos = 20;
-        messagesPanel.style.left = leftPos + 'px';
-        messagesPanel.style.right = 'auto';
+        appState.messagesPanel.style.left = leftPos + 'px';
+        appState.messagesPanel.style.right = 'auto';
     }
     function openMessagesPanel(pin) {
         closeAllPanels('messages');
         clearSearch();
-        messagesPanel.classList.add('open');
-        messagesBtn.classList.add('active');
+        appState.messagesPanel.classList.add('open');
+        appState.messagesBtn.classList.add('active');
         closeConvo();
         appState.msgView = 'main'; // always land on the main list, never mid-Requests from last time
-        msgSearchInput.value = '';
+        appState.msgSearchInput.value = '';
         renderMsgList('');
         positionMessagesPanel();
-        if (pin) { msgSearchInput.focus(); panelPinned.messages = true; }
+        if (pin) { appState.msgSearchInput.focus(); appState.panelPinned.messages = true; }
     }
-    messagesBtn.addEventListener('click', (e) => {
+    appState.messagesBtn.addEventListener('click', (e) => {
         e.stopPropagation();
-        if (panelPinned.messages) { closeMessagesPanel(); }
+        if (appState.panelPinned.messages) { closeMessagesPanel(); }
         else { openMessagesPanel(true); }
     });
-    messagesBtn.addEventListener('mouseenter', () => { if (!messagesPanel.classList.contains('open')) openMessagesPanel(false); });
-    messagesBtn.addEventListener('mouseleave', () => scheduleHoverClose('messages', [messagesBtn, messagesPanel], closeMessagesPanel));
-    messagesPanel.addEventListener('mouseleave', () => scheduleHoverClose('messages', [messagesBtn, messagesPanel], closeMessagesPanel));
-    pinOnInsideClick('messages', [messagesPanel]);
+    appState.messagesBtn.addEventListener('mouseenter', () => { if (!appState.messagesPanel.classList.contains('open')) openMessagesPanel(false); });
+    appState.messagesBtn.addEventListener('mouseleave', () => scheduleHoverClose('messages', [appState.messagesBtn, appState.messagesPanel], closeMessagesPanel));
+    appState.messagesPanel.addEventListener('mouseleave', () => scheduleHoverClose('messages', [appState.messagesBtn, appState.messagesPanel], closeMessagesPanel));
+    pinOnInsideClick('messages', [appState.messagesPanel]);
 
     // ---------- Schedule: data + shared date helpers ----------
     // Scheduling itself happens conversationally through Dotbot (see the "Dotbot Scheduling
     // Conversation" section below); the schedule button instead puts the whole canvas into a
     // read-only agenda view (see "Schedule View Mode") for browsing what's scheduled.
  // { id, itemId, folderId, title, date: 'YYYY-MM-DD', time: 'HH:MM' }
-    let scheduleViewDate = new Date();
 
-    const scheduleBtn = document.getElementById('btn-schedule');
 
     function pad2(n) { return String(n).padStart(2, '0'); }
     function dateKey(d) { return d.getFullYear() + '-' + pad2(d.getMonth() + 1) + '-' + pad2(d.getDate()); }
@@ -86,78 +79,70 @@ import { openFolder } from './waypoints-render-loop.js';
     // canvas. They can't be dragged/moved, but folder/source cards can still be clicked into and
     // notes can still be edited in place. No horizontal scroll, no free panning — only vertical
     // scroll, and only once the timeline is taller than the viewport.
-    let scheduleViewMode = false;
-    let scheduleViewSavedTransform = null;
-    const scheduleView = document.getElementById('schedule-view');
-    const scheduleViewCanvasEl = document.getElementById('schedule-view-canvas');
-    const scheduleViewInner = document.getElementById('schedule-view-inner');
-    const scheduleViewHours = document.getElementById('schedule-view-hours');
-    const scheduleViewStack = document.getElementById('schedule-view-stack');
 
     // Drag-to-scroll (vertical only), same feel as panning the real canvas — set up once since
     // this is a single persistent DOM element, not rebuilt on every render.
-    let scheduleScrollDragging = false, scheduleScrollStartY = 0, scheduleScrollStartTop = 0;
-    scheduleViewCanvasEl.addEventListener('pointerdown', (e) => {
+    appState.scheduleViewCanvasEl.addEventListener('pointerdown', (e) => {
         if (e.target.closest('.item')) return; // let clicks/edits on a real card through untouched
-        scheduleScrollDragging = true;
-        scheduleScrollStartY = e.clientY;
-        scheduleScrollStartTop = scheduleViewCanvasEl.scrollTop;
-        scheduleViewCanvasEl.setPointerCapture(e.pointerId);
+        appState.scheduleScrollDragging = true;
+        appState.scheduleScrollStartY = e.clientY;
+        appState.scheduleScrollStartTop = appState.scheduleViewCanvasEl.scrollTop;
+        appState.scheduleViewCanvasEl.setPointerCapture(e.pointerId);
     });
-    scheduleViewCanvasEl.addEventListener('pointermove', (e) => {
-        if (!scheduleScrollDragging) return;
-        scheduleViewCanvasEl.scrollTop = scheduleScrollStartTop - (e.clientY - scheduleScrollStartY);
+    appState.scheduleViewCanvasEl.addEventListener('pointermove', (e) => {
+        if (!appState.scheduleScrollDragging) return;
+        appState.scheduleViewCanvasEl.scrollTop = appState.scheduleScrollStartTop - (e.clientY - appState.scheduleScrollStartY);
     });
-    scheduleViewCanvasEl.addEventListener('pointerup', () => { scheduleScrollDragging = false; });
-    scheduleViewCanvasEl.addEventListener('pointercancel', () => { scheduleScrollDragging = false; });
+    appState.scheduleViewCanvasEl.addEventListener('pointerup', () => { appState.scheduleScrollDragging = false; });
+    appState.scheduleViewCanvasEl.addEventListener('pointercancel', () => { appState.scheduleScrollDragging = false; });
 
     function toggleScheduleViewMode() {
-        if (scheduleViewMode) exitScheduleViewMode(); else enterScheduleViewMode();
+        if (appState.scheduleViewMode) exitScheduleViewMode(); else enterScheduleViewMode();
     }
     function enterScheduleViewMode() {
-        if (scheduleViewMode) return;
+        if (appState.scheduleViewMode) return;
         closeAllPanels(null);
-        scheduleViewMode = true;
-        scheduleBtn.classList.add('active');
+        appState.scheduleViewMode = true;
+        appState.scheduleBtn.classList.add('active');
         canvas.classList.add('schedule-view-mode');
         // Mirrors the exact mechanism render() already uses to hide these same three toolbars
         // for source pages (see the folderObj.isSource branch) — they're toggled via inline
         // style there, which a stylesheet rule can never win against, so schedule view mode has
         // to hide them the same way rather than through a CSS class. The schedule toolbar itself
         // is deliberately left alone: it's what toggles the mode back off.
-        modeToolbar.style.display = 'none';
-        addToolbar.style.display = 'none';
+        appState.modeToolbar.style.display = 'none';
+        appState.addToolbar.style.display = 'none';
         zoomControl.style.display = 'none';
-        scheduleViewSavedTransform = { tx: appState.tx, ty: appState.ty, scale: appState.scale };
+        appState.scheduleViewSavedTransform = { tx: appState.tx, ty: appState.ty, scale: appState.scale };
         appState.scale = 1; appState.tx = 0; appState.ty = 0;
         applyTransform();
-        scheduleViewDate = new Date();
-        scheduleView.classList.add('active');
+        appState.scheduleViewDate = new Date();
+        appState.scheduleView.classList.add('active');
         renderScheduleAgenda();
     }
     function exitScheduleViewMode() {
-        if (!scheduleViewMode) return;
-        scheduleViewMode = false;
-        scheduleBtn.classList.remove('active');
+        if (!appState.scheduleViewMode) return;
+        appState.scheduleViewMode = false;
+        appState.scheduleBtn.classList.remove('active');
         canvas.classList.remove('schedule-view-mode');
-        modeToolbar.style.display = '';
-        addToolbar.style.display = '';
+        appState.modeToolbar.style.display = '';
+        appState.addToolbar.style.display = '';
         zoomControl.style.display = '';
-        scheduleView.classList.remove('active');
-        if (scheduleViewSavedTransform) {
-            ({ tx: appState.tx, ty: appState.ty, scale: appState.scale } = scheduleViewSavedTransform);
-            scheduleViewSavedTransform = null;
+        appState.scheduleView.classList.remove('active');
+        if (appState.scheduleViewSavedTransform) {
+            ({ tx: appState.tx, ty: appState.ty, scale: appState.scale } = appState.scheduleViewSavedTransform);
+            appState.scheduleViewSavedTransform = null;
             applyTransform();
         }
     }
-    scheduleBtn.addEventListener('click', (e) => { e.stopPropagation(); toggleScheduleViewMode(); });
+    appState.scheduleBtn.addEventListener('click', (e) => { e.stopPropagation(); toggleScheduleViewMode(); });
 
     function scheduleAgendaShift(unit, delta) {
-        const d = new Date(scheduleViewDate);
+        const d = new Date(appState.scheduleViewDate);
         if (unit === 'day') d.setDate(d.getDate() + delta);
         else if (unit === 'week') d.setDate(d.getDate() + delta * 7);
         else if (unit === 'month') d.setMonth(d.getMonth() + delta);
-        scheduleViewDate = d;
+        appState.scheduleViewDate = d;
         renderScheduleAgenda();
     }
 
@@ -167,11 +152,11 @@ import { openFolder } from './waypoints-render-loop.js';
         return `${h12} ${period}`;
     }
 
-    const SCHEDULE_HOUR_ROW = 96; // px per hour in the timeline
+ // px per hour in the timeline
 
     function renderScheduleAgenda() {
-        document.getElementById('schedule-view-date').textContent = formatDateLabel(scheduleViewDate);
-        const key = dateKey(scheduleViewDate);
+        document.getElementById('schedule-view-date').textContent = formatDateLabel(appState.scheduleViewDate);
+        const key = dateKey(appState.scheduleViewDate);
         // Scoped to the current canvas only — matches every other schedule entry point
         // (scheduling itself always records the folderId you were in at the time).
         const folderObj = appState.folders[appState.currentFolderId];
@@ -180,12 +165,12 @@ import { openFolder } from './waypoints-render-loop.js';
             .filter(x => x.ev)
             .sort((a, b) => a.ev.time.localeCompare(b.ev.time));
 
-        scheduleViewHours.innerHTML = '';
-        scheduleViewStack.innerHTML = '';
+        appState.scheduleViewHours.innerHTML = '';
+        appState.scheduleViewStack.innerHTML = '';
 
         if (!list.length) {
-            scheduleViewInner.style.height = '100%';
-            scheduleViewStack.innerHTML = `<div id="schedule-view-empty">Nothing scheduled for this day on this canvas.<br><br>Right-click any card (or a selection of cards) and choose "Schedule" to add one.</div>`;
+            appState.scheduleViewInner.style.height = '100%';
+            appState.scheduleViewStack.innerHTML = `<div id="schedule-view-empty">Nothing scheduled for this day on this canvas.<br><br>Right-click any card (or a selection of cards) and choose "Schedule" to add one.</div>`;
             return;
         }
 
@@ -196,20 +181,20 @@ import { openFolder } from './waypoints-render-loop.js';
             lastHour = Math.max(lastHour, h);
         });
 
-        const totalHeight = (lastHour - firstHour + 1) * SCHEDULE_HOUR_ROW + 40;
-        scheduleViewInner.style.height = totalHeight + 'px';
+        const totalHeight = (lastHour - firstHour + 1) * appState.SCHEDULE_HOUR_ROW + 40;
+        appState.scheduleViewInner.style.height = totalHeight + 'px';
 
         for (let h = firstHour; h <= lastHour; h++) {
             const marker = document.createElement('div');
             marker.className = 'schedule-view-hour';
-            marker.style.top = ((h - firstHour) * SCHEDULE_HOUR_ROW) + 'px';
+            marker.style.top = ((h - firstHour) * appState.SCHEDULE_HOUR_ROW) + 'px';
             marker.textContent = formatHourLabel(h);
-            scheduleViewHours.appendChild(marker);
+            appState.scheduleViewHours.appendChild(marker);
         }
 
         list.forEach(({ it, ev }) => {
             const [h, m] = ev.time.split(':').map(Number);
-            const top = ((h + m / 60) - firstHour) * SCHEDULE_HOUR_ROW;
+            const top = ((h + m / 60) - firstHour) * appState.SCHEDULE_HOUR_ROW;
             const w = Math.min(it.w || 220, 420), hgt = it.h || 100;
 
             const wrap = document.createElement('div');
@@ -238,8 +223,8 @@ import { openFolder } from './waypoints-render-loop.js';
                 }
             }
 
-            scheduleViewStack.appendChild(wrap);
+            appState.scheduleViewStack.appendChild(wrap);
         });
     }
 
-export { closeMessagesPanel, dateKey, exitScheduleViewMode, formatDateLabel, formatTimeLabel, messagesPanel, msgConvo, msgList, msgSearchInput, openMessagesPanel, pad2, scheduleAgendaShift, scheduleBtn, scheduleViewMode };
+export { closeMessagesPanel, dateKey, exitScheduleViewMode, formatDateLabel, formatTimeLabel, openMessagesPanel, pad2, scheduleAgendaShift };

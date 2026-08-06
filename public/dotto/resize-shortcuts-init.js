@@ -1,18 +1,14 @@
 import { switchAddTab } from './add-menu.js';
 import { addMenu, appState, btnBack, btnForward, contextMenu } from './core-state.js';
-import { collabPanel, refreshCanvasCollabForCurrentFolder, refreshFriendsData, renderCollabPill } from './friends-presence.js';
+import { refreshCanvasCollabForCurrentFolder, refreshFriendsData, renderCollabPill } from './friends-presence.js';
 import { fcFlip, fcRate, trNext } from './games-flashcard-typeright.js';
 import { applyTransform, loadWorkspace, saveSnapshot, scheduleWorkspaceSave } from './history-autosave.js';
 import { broadcastItemResize, findItemById } from './live-presence.js';
-import { cartPanel } from './marketplace.js';
-import { messagesPanel } from './messages-schedule.js';
-import { accountMenu, outlineMenu } from './panels-hamburger.js';
-import { profilePanel, refreshDotbotUsage } from './profile-achievements-pricing.js';
+import { refreshDotbotUsage } from './profile-achievements-pricing.js';
 import { announceEnteredCollaboration, jumpToHistoryIndex } from './shared-canvases-outline.js';
-import { applyCursorMode, sourceAddMenu } from './source-buttons-cursor-mode.js';
+import { applyCursorMode } from './source-buttons-cursor-mode.js';
 import { distributeTableSizing, renderTableHTML } from './source-table.js';
 import { updateDrawLayerBtns } from './srs-connections-core.js';
-import { currentNotification, searchDropdown } from './stopwatch-search-notifications.js';
 import { cascadeDeleteFolderContents, centerOnContent, deleteWaypointFromDb, render, renderSelectedOutlines } from './waypoints-render-loop.js';
 
 
@@ -119,15 +115,15 @@ import { cascadeDeleteFolderContents, centerOnContent, deleteWaypointFromDb, ren
     // about, plus the search dropdown/outline menu — wins over a hovered card's shortcuts even
     // if the cursor happens to still be sitting over that card underneath it.
     function isAnyUiPanelOpen() {
-        return outlineMenu.classList.contains('open')
-            || accountMenu.classList.contains('open')
-            || messagesPanel.classList.contains('open')
-            || cartPanel.classList.contains('open')
-            || profilePanel.classList.contains('open')
-            || collabPanel.classList.contains('open')
+        return appState.outlineMenu.classList.contains('open')
+            || appState.accountMenu.classList.contains('open')
+            || appState.messagesPanel.classList.contains('open')
+            || appState.cartPanel.classList.contains('open')
+            || appState.profilePanel.classList.contains('open')
+            || appState.collabPanel.classList.contains('open')
             || addMenu.style.display === 'flex'
-            || sourceAddMenu.style.display === 'flex'
-            || (searchDropdown && searchDropdown.classList.contains('visible'));
+            || appState.sourceAddMenu.style.display === 'flex'
+            || (appState.searchDropdown && appState.searchDropdown.classList.contains('visible'));
     }
     document.addEventListener('keydown', (e) => {
         if (e.metaKey || e.ctrlKey || e.altKey) return;
@@ -140,7 +136,7 @@ import { cascadeDeleteFolderContents, centerOnContent, deleteWaypointFromDb, ren
         const isEditingText = active && (active.isContentEditable || active.tagName === 'INPUT' || active.tagName === 'SELECT' || active.tagName === 'TEXTAREA');
         if (isEditingText) return;
         if (isAnyUiPanelOpen()) return;
-        if (currentNotification) return; // its own Enter/Escape handling should win, not compete
+        if (appState.currentNotification) return; // its own Enter/Escape handling should win, not compete
         const it = hoveredGameCard();
         if (!it) return;
         if (it.kind === 'flashcard') {

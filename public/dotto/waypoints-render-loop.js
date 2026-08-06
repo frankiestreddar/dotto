@@ -1,6 +1,5 @@
 import { clearSearch, countSourceEntries, escapeHtml, findParentFolderId, truncateCenter } from './ai-assistant-suggestions.js';
 import { editBookmark, editEmbed, renderChecklistHTML, renderEmbedHTML, renderStatcardHTML, shortUrl } from './cards-misc.js';
-import { addToolbar } from './copy-paste.js';
 import { appState, breadcrumbs, bringCardToFront, btnBack, btnForward, canvas, contextMenu, supabase, world, zoomControl } from './core-state.js';
 import { setupDraggingAndClicking } from './drag-drop-chat.js';
 import { ensureDrawings, makeLayerSVG } from './drawing-connections.js';
@@ -11,7 +10,7 @@ import { broadcastEditingState, miniLabelForItem, placeCaretEnd, renderRealCardP
 import { buildEpubViewer, buildPdfViewer, renderMediaHTML } from './media-pdf-epub.js';
 import { findNextFreeSlot, setupResizing } from './resize-shortcuts-init.js';
 import { ensureSharedFolderLoaded, kindIconHTML, openBreadcrumbMapPanel } from './shared-canvases-outline.js';
-import { closeSourceAddMenu, modeToolbar, scheduleToolbar } from './source-buttons-cursor-mode.js';
+import { closeSourceAddMenu } from './source-buttons-cursor-mode.js';
 import { attachStaticTableHoverZones, distributeTableSizing, layoutSourceTableColumns, renderStaticTableHTML, renderTableHTML } from './source-table.js';
 import { closeCellTagPicker } from './source-tags-ai.js';
 import { applyConnections, renderConnectionsLayer } from './srs-connections-core.js';
@@ -29,7 +28,7 @@ import { renderFilterHTML, renderShelfHTML, renderStopwatchHTML } from './stopwa
     // this file: empty text node + data-placeholder + .crumb-placeholder for "New Waypoint" until
     // the first real keystroke, Enter commits via blur, Escape reverts the visible text then
     // blurs.
-    const WAYPOINT_COLLAPSED_W = 28; // .item.waypoint's own base width — see globals.css
+ // .item.waypoint's own base width — see globals.css
     // Width can't transition smoothly to/from CSS `width:auto` directly — browsers just snap
     // instead of animating when one end of a `width` transition is auto — so expanding measures
     // the natural (content-based) width first and drives an explicit px-to-px transition instead
@@ -60,13 +59,12 @@ import { renderFilterHTML, renderShelfHTML, renderStopwatchHTML } from './stopwa
         clearTimeout(el.__waypointWidthTimer);
         el.style.width = (el.getBoundingClientRect().width / appState.scale) + 'px';
         void el.offsetWidth;
-        el.style.width = WAYPOINT_COLLAPSED_W + 'px';
+        el.style.width = appState.WAYPOINT_COLLAPSED_W + 'px';
         el.__waypointWidthTimer = setTimeout(() => {
             el.classList.remove('expanded');
             el.style.width = '';
         }, 200); // matches .item.waypoint's own .18s width transition + a small buffer
     }
-    let waypointPeekTimer = null;
     function expandWaypointCard(el, it, opts) {
         const nameEl = el.querySelector('.waypoint-card-name');
         if (!nameEl) return;
@@ -140,11 +138,11 @@ import { renderFilterHTML, renderShelfHTML, renderStopwatchHTML } from './stopwa
         } else {
             nameEl.textContent = it.name || 'New Waypoint';
             expandWaypointCardWidth(el);
-            clearTimeout(waypointPeekTimer);
+            clearTimeout(appState.waypointPeekTimer);
             // A hover has no fixed duration — mouseleave collapses it instead (see render()) — so
             // only the nav-triggered peek gets a timer.
             if (!(opts && opts.hover)) {
-                waypointPeekTimer = setTimeout(() => collapseWaypointCardWidth(el), (opts && opts.peekMs) || 2000);
+                appState.waypointPeekTimer = setTimeout(() => collapseWaypointCardWidth(el), (opts && opts.peekMs) || 2000);
             }
         }
     }
@@ -465,9 +463,9 @@ import { renderFilterHTML, renderShelfHTML, renderStopwatchHTML } from './stopwa
 
         if (folderObj.isSource) {
             canvas.classList.add('static-source');
-            addToolbar.style.display = 'none';
-            modeToolbar.style.display = 'none';
-            scheduleToolbar.style.display = 'none';
+            appState.addToolbar.style.display = 'none';
+            appState.modeToolbar.style.display = 'none';
+            appState.scheduleToolbar.style.display = 'none';
             zoomControl.style.display = 'none';
             appState.tx = 0; appState.ty = 0; appState.scale = 1; applyTransform();
             let tableItem = folderObj.items.find(i => i.kind === 'table');
@@ -486,9 +484,9 @@ import { renderFilterHTML, renderShelfHTML, renderStopwatchHTML } from './stopwa
             return;
         }
         canvas.classList.remove('static-source');
-        addToolbar.style.display = 'flex';
-        modeToolbar.style.display = '';
-        scheduleToolbar.style.display = '';
+        appState.addToolbar.style.display = 'flex';
+        appState.modeToolbar.style.display = '';
+        appState.scheduleToolbar.style.display = '';
         zoomControl.style.display = '';
         closeSourceAddMenu(); closeCellTagPicker();
 

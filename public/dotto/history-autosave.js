@@ -1,31 +1,29 @@
 import { clearSearch } from './ai-assistant-suggestions.js';
-import { cardClipboard, copySelectedCards, cutSelectedCards, pasteClipboardCards } from './copy-paste.js';
+import { copySelectedCards, cutSelectedCards, pasteClipboardCards } from './copy-paste.js';
 import { appState, canvas, canvasContextMenu, contextMenu, dotLayer, recomputeTopCardZIndex, supabase, world, zoomFill, zoomThumb, zoomTrack } from './core-state.js';
-import { cancelDotbotScheduleConversation, dotbotScheduleConversation } from './dotbot-schedule-notifications.js';
+import { cancelDotbotScheduleConversation } from './dotbot-schedule-notifications.js';
 import { resolveTableForEdit } from './drawing-connections.js';
 import { resolveSharedFolderChain } from './hamburger-collab.js';
 import { broadcastCursorPositionThrottled, closeSharedCanvasView, ensureCanvasPresenceChannel, findItemById, queueSyncDiff, repositionAllRemoteCursors } from './live-presence.js';
-import { exitScheduleViewMode, scheduleViewMode } from './messages-schedule.js';
+import { exitScheduleViewMode } from './messages-schedule.js';
 import { closeAllPanels } from './panels-hamburger.js';
 import { closeDotbotUpgradeModal, closePricingOverlay } from './profile-achievements-pricing.js';
 import { stripSharedFolderIds } from './shared-canvases-outline.js';
 import { closeCellTagPicker } from './source-tags-ai.js';
 import { cancelAddingKind, setDrawMode } from './srs-connections-core.js';
-import { closeSearchCardsModal, searchInput, swCurrentElapsedMs, swFormatTime } from './stopwatch-search-notifications.js';
+import { closeSearchCardsModal, swCurrentElapsedMs, swFormatTime } from './stopwatch-search-notifications.js';
 import { centerOnContent, render } from './waypoints-render-loop.js';
 
 
     // ---------- Undo / Redo ----------
-    let undoStack = [], redoStack = [];
 
     // ---------- Stopwatch live ticking ----------
-    let swTickInterval = null;
     function ensureSwTicking() {
         const hasRunning = appState.folders[appState.currentFolderId] && appState.folders[appState.currentFolderId].items.some(i => i.kind === 'stopwatch' && i.swRunning && !i.swPaused);
-        if (hasRunning && !swTickInterval) {
-            swTickInterval = setInterval(swTick, 1000);
-        } else if (!hasRunning && swTickInterval) {
-            clearInterval(swTickInterval); swTickInterval = null;
+        if (hasRunning && !appState.swTickInterval) {
+            appState.swTickInterval = setInterval(swTick, 1000);
+        } else if (!hasRunning && appState.swTickInterval) {
+            clearInterval(appState.swTickInterval); appState.swTickInterval = null;
         }
     }
     function swTick() {
@@ -46,9 +44,9 @@ import { centerOnContent, render } from './waypoints-render-loop.js';
     }
 
     function saveSnapshot() {
-        undoStack.push(JSON.stringify({ folders: appState.folders, idCounter: appState.idCounter }));
-        if (undoStack.length > 60) undoStack.shift();
-        redoStack = [];
+        appState.undoStack.push(JSON.stringify({ folders: appState.folders, idCounter: appState.idCounter }));
+        if (appState.undoStack.length > 60) appState.undoStack.shift();
+        appState.redoStack = [];
     }
 
     // ---------- Workspace autosave ----------
@@ -57,7 +55,6 @@ import { centerOnContent, render } from './waypoints-render-loop.js';
     // reused at startup. Debounced so continuous typing doesn't hammer
     // Supabase on every keystroke; flushed immediately on tab hide/close so
     // "close the window" can't lose more than the debounce window.
-    let workspaceSaveTimer = null;
     function scheduleWorkspaceSave() {
         if (!supabase || !appState.currentUser.id) return;
         // Live presence/content-sync — see the "Live canvas presence" section further down. This,
@@ -68,11 +65,11 @@ import { centerOnContent, render } from './waypoints-render-loop.js';
         // fine locally. This is a strict superset of what render()-anchoring caught.
         const folderObj = appState.folders[appState.currentFolderId];
         if (folderObj) { ensureCanvasPresenceChannel(); queueSyncDiff(folderObj); }
-        clearTimeout(workspaceSaveTimer);
-        workspaceSaveTimer = setTimeout(saveWorkspaceNow, 800);
+        clearTimeout(appState.workspaceSaveTimer);
+        appState.workspaceSaveTimer = setTimeout(saveWorkspaceNow, 800);
     }
     async function saveWorkspaceNow() {
-        clearTimeout(workspaceSaveTimer);
+        clearTimeout(appState.workspaceSaveTimer);
         if (!supabase || !appState.currentUser.id) return;
 
         // shared:owner:folderId entries (see openSharedCanvas) are someone else's canvas fetched
@@ -222,16 +219,16 @@ import { centerOnContent, render } from './waypoints-render-loop.js';
         render();
     }
     function undo() {
-        if (!undoStack.length) return;
-        redoStack.push(JSON.stringify({ folders: appState.folders, idCounter: appState.idCounter }));
-        const state = JSON.parse(undoStack.pop());
+        if (!appState.undoStack.length) return;
+        appState.redoStack.push(JSON.stringify({ folders: appState.folders, idCounter: appState.idCounter }));
+        const state = JSON.parse(appState.undoStack.pop());
         appState.folders = state.folders; appState.idCounter = state.idCounter;
         afterHistoryChange();
     }
     function redo() {
-        if (!redoStack.length) return;
-        undoStack.push(JSON.stringify({ folders: appState.folders, idCounter: appState.idCounter }));
-        const state = JSON.parse(redoStack.pop());
+        if (!appState.redoStack.length) return;
+        appState.undoStack.push(JSON.stringify({ folders: appState.folders, idCounter: appState.idCounter }));
+        const state = JSON.parse(appState.redoStack.pop());
         appState.folders = state.folders; appState.idCounter = state.idCounter;
         afterHistoryChange();
     }
@@ -239,19 +236,18 @@ import { centerOnContent, render } from './waypoints-render-loop.js';
     // canvas context menu knows which table/row/column "Delete column"/"Delete row" (and
     // their hover highlights) should act on. Cleared whenever the menu closes or blank
     // canvas space is right-clicked instead.
-    let contextMenuTableCtx = null;
     function hideCanvasContextMenu() {
         canvasContextMenu.style.display = 'none';
         clearContextDeleteHighlight();
-        contextMenuTableCtx = null;
+        appState.contextMenuTableCtx = null;
     }
     function showCanvasContextMenu(clientX, clientY) {
         canvasContextMenu.style.display = 'flex';
         canvasContextMenu.style.left = clientX + 'px';
         canvasContextMenu.style.top = clientY + 'px';
-        document.getElementById('canvas-ctx-undo').classList.toggle('disabled', undoStack.length === 0);
-        document.getElementById('canvas-ctx-redo').classList.toggle('disabled', redoStack.length === 0);
-        const hasCellCtx = !!contextMenuTableCtx;
+        document.getElementById('canvas-ctx-undo').classList.toggle('disabled', appState.undoStack.length === 0);
+        document.getElementById('canvas-ctx-redo').classList.toggle('disabled', appState.redoStack.length === 0);
+        const hasCellCtx = !!appState.contextMenuTableCtx;
         document.getElementById('canvas-ctx-del-col').style.display = hasCellCtx ? 'block' : 'none';
         document.getElementById('canvas-ctx-del-row').style.display = hasCellCtx ? 'block' : 'none';
     }
@@ -262,7 +258,7 @@ import { centerOnContent, render } from './waypoints-render-loop.js';
         e.stopPropagation();
         contextMenu.style.display = 'none';
         appState.contextMenuItemId = null;
-        contextMenuTableCtx = null;
+        appState.contextMenuTableCtx = null;
         showCanvasContextMenu(e.clientX, e.clientY);
     });
     // Right-clicking a source-table data cell shows the same undo/redo menu plus
@@ -272,7 +268,7 @@ import { centerOnContent, render } from './waypoints-render-loop.js';
         e.stopPropagation();
         contextMenu.style.display = 'none';
         appState.contextMenuItemId = null;
-        contextMenuTableCtx = { tableId, r, c };
+        appState.contextMenuTableCtx = { tableId, r, c };
         showCanvasContextMenu(e.clientX, e.clientY);
     }
     function clearContextDeleteHighlight() {
@@ -280,8 +276,8 @@ import { centerOnContent, render } from './waypoints-render-loop.js';
     }
     function highlightContextColumn(on) {
         clearContextDeleteHighlight();
-        if (!on || !contextMenuTableCtx) return;
-        const { tableId, c } = contextMenuTableCtx;
+        if (!on || !appState.contextMenuTableCtx) return;
+        const { tableId, c } = appState.contextMenuTableCtx;
         document.querySelectorAll(`#item-${tableId} .item-table td[data-c="${c}"]`).forEach(td => td.classList.add('ctx-del-highlight'));
         const slot = document.querySelector(`#item-${tableId} .col-name-slot[data-c="${c}"]`);
         if (slot) slot.classList.add('ctx-del-highlight');
@@ -293,15 +289,15 @@ import { centerOnContent, render } from './waypoints-render-loop.js';
     // needed together to pick out the right <td>s.
     function highlightContextRow(on) {
         clearContextDeleteHighlight();
-        if (!on || !contextMenuTableCtx) return;
-        const { tableId, r } = contextMenuTableCtx;
+        if (!on || !appState.contextMenuTableCtx) return;
+        const { tableId, r } = appState.contextMenuTableCtx;
         document.querySelectorAll(`.item-table td[data-origin-table="${tableId}"][data-r="${r}"]`).forEach(td => td.classList.add('ctx-del-highlight'));
     }
     // Removing a column shifts every column after it down by one in the row data. Tags now
     // live on the row as a whole (not per cell), so they're untouched by column changes — no
     // remapping needed here anymore.
     function deleteContextColumn() {
-        const ctx = contextMenuTableCtx;
+        const ctx = appState.contextMenuTableCtx;
         hideCanvasContextMenu();
         if (!ctx) return;
         const it = findItemById(ctx.tableId);
@@ -314,7 +310,7 @@ import { centerOnContent, render } from './waypoints-render-loop.js';
     // index 0 is never deletable here), remapping the row-tag map (keyed by row index) the
     // same way.
     function deleteContextRow() {
-        const ctx = contextMenuTableCtx;
+        const ctx = appState.contextMenuTableCtx;
         hideCanvasContextMenu();
         if (!ctx) return;
         const it = resolveTableForEdit(ctx.tableId);
@@ -343,12 +339,12 @@ import { centerOnContent, render } from './waypoints-render-loop.js';
             closeDotbotUpgradeModal();
             closePricingOverlay();
             closeCellTagPicker();
-            if (dotbotScheduleConversation) cancelDotbotScheduleConversation();
+            if (appState.dotbotScheduleConversation) cancelDotbotScheduleConversation();
             clearSearch();
-            if (searchInput) searchInput.blur();
+            if (appState.searchInput) appState.searchInput.blur();
             if (appState.drawMode) setDrawMode(false);
             if (appState.addingKind) cancelAddingKind();
-            if (scheduleViewMode) exitScheduleViewMode();
+            if (appState.scheduleViewMode) exitScheduleViewMode();
             // Escape switching the cursor back to Normal mode (tap vs. hold, same as the
             // other mode keys) is handled by the dedicated keydown/keyup pair further below —
             // this listener only handles Escape's other, unrelated "close everything" duties.
@@ -378,21 +374,19 @@ import { centerOnContent, render } from './waypoints-render-loop.js';
             cutSelectedCards();
             return;
         }
-        if (!isEditingText && !e.shiftKey && !e.altKey && (e.key === 'v' || e.key === 'V') && cardClipboard.length > 0) {
+        if (!isEditingText && !e.shiftKey && !e.altKey && (e.key === 'v' || e.key === 'V') && appState.cardClipboard.length > 0) {
             e.preventDefault();
             pasteClipboardCards();
             return;
         }
     });
 
-    const ZOOM_MIN = 0.2, ZOOM_MAX = 2;
     // #dot-layer's own CSS left/top (see layoutDotLayer) — a fixed, viewport-independent offset,
     // NOT part of the scale/translate transform below. Needed to correctly phase-align the dot
     // pattern with world-space coordinates (see wrapPhase's comment) — this constant never
     // actually changes across resizes (only the box's width/height do, to stay big enough to
     // cover the viewport), so it's safe to compute once rather than re-derive on every resize.
-    const DOT_LAYER_MARGIN = 200; // must comfortably exceed the largest possible phase-wrap wobble (28 * ZOOM_MAX)
-    const dotLayerBaseX = -DOT_LAYER_MARGIN / 2, dotLayerBaseY = -DOT_LAYER_MARGIN / 2;
+ // must comfortably exceed the largest possible phase-wrap wobble (28 * ZOOM_MAX)
     // The dot grid is sized generously beyond the viewport (see layoutDotLayer) so it always
     // fully covers the screen even at ZOOM_MIN, the most zoomed-out the pattern itself is ever
     // actually drawn at (it tracks the real `scale` directly now — see applyTransform — so cards
@@ -429,8 +423,8 @@ import { centerOnContent, render } from './waypoints-render-loop.js';
         // floor — so a card's position on the grid stays exact at every zoom level, not just
         // above some threshold.
         const period = 28 * appState.scale;
-        const dx = wrapPhase(appState.tx - dotLayerBaseX, period);
-        const dy = wrapPhase(appState.ty - dotLayerBaseY, period);
+        const dx = wrapPhase(appState.tx - appState.dotLayerBaseX, period);
+        const dy = wrapPhase(appState.ty - appState.dotLayerBaseY, period);
         dotLayer.style.transform = `translate(${dx}px, ${dy}px) scale(${appState.scale})`;
         updateZoomUI();
         updateContextMenuPosition();
@@ -449,15 +443,14 @@ import { centerOnContent, render } from './waypoints-render-loop.js';
     // Using an inline style (rather than a toggled CSS class) keeps this one function fully
     // self-contained and lets each call site pick its own duration without needing multiple CSS
     // variants.
-    let cameraTweenTimeout = null;
     function smoothPanTo(targetTx, targetTy, targetScale, durationMs = 450) {
         const transitionValue = `transform ${durationMs / 1000}s ease`;
         world.style.transition = transitionValue;
         dotLayer.style.transition = transitionValue;
         appState.tx = targetTx; appState.ty = targetTy; appState.scale = targetScale;
         applyTransform();
-        clearTimeout(cameraTweenTimeout);
-        cameraTweenTimeout = setTimeout(() => {
+        clearTimeout(appState.cameraTweenTimeout);
+        appState.cameraTweenTimeout = setTimeout(() => {
             world.style.transition = '';
             dotLayer.style.transition = '';
         }, durationMs + 20);
@@ -473,12 +466,12 @@ import { centerOnContent, render } from './waypoints-render-loop.js';
     // every viewport size.
     function layoutDotLayer() {
         const w = window.innerWidth, h = window.innerHeight;
-        const boxW = (w + DOT_LAYER_MARGIN) / ZOOM_MIN;
-        const boxH = (h + DOT_LAYER_MARGIN) / ZOOM_MIN;
+        const boxW = (w + appState.DOT_LAYER_MARGIN) / appState.ZOOM_MIN;
+        const boxH = (h + appState.DOT_LAYER_MARGIN) / appState.ZOOM_MIN;
         dotLayer.style.width = boxW + 'px';
         dotLayer.style.height = boxH + 'px';
-        dotLayer.style.left = dotLayerBaseX + 'px';
-        dotLayer.style.top = dotLayerBaseY + 'px';
+        dotLayer.style.left = appState.dotLayerBaseX + 'px';
+        dotLayer.style.top = appState.dotLayerBaseY + 'px';
     }
     layoutDotLayer();
     window.addEventListener('resize', layoutDotLayer);
@@ -488,10 +481,9 @@ import { centerOnContent, render } from './waypoints-render-loop.js';
     // synchronously and immediately on every event, so the zoom's own math (each event
     // anchoring off the latest values) is completely unaffected; only how often the visuals
     // actually get applied changes.
-    let applyTransformRafId = null;
     function scheduleApplyTransform() {
-        if (applyTransformRafId !== null) return;
-        applyTransformRafId = requestAnimationFrame(() => { applyTransformRafId = null; applyTransform(); });
+        if (appState.applyTransformRafId !== null) return;
+        appState.applyTransformRafId = requestAnimationFrame(() => { appState.applyTransformRafId = null; applyTransform(); });
     }
     function updateContextMenuPosition() {
         if (contextMenu.style.display !== 'flex' || appState.contextMenuItemId == null) return;
@@ -503,11 +495,11 @@ import { centerOnContent, render } from './waypoints-render-loop.js';
         contextMenu.style.top = (appState.ty + it.y * appState.scale) + 'px';
     }
     function updateZoomUI() {
-        const pct = Math.max(0, Math.min(1, (appState.scale - ZOOM_MIN) / (ZOOM_MAX - ZOOM_MIN)));
+        const pct = Math.max(0, Math.min(1, (appState.scale - appState.ZOOM_MIN) / (appState.ZOOM_MAX - appState.ZOOM_MIN)));
         const h = zoomTrack.clientHeight;
         const y = pct * h;
         zoomFill.style.height = y + 'px';
         zoomThumb.style.bottom = y + 'px';
     }
 
-export { ZOOM_MAX, ZOOM_MIN, applyTransform, deleteContextColumn, deleteContextRow, ensureSwTicking, hideCanvasContextMenu, highlightContextColumn, highlightContextRow, loadWorkspace, redo, saveSnapshot, saveWorkspaceNow, scheduleApplyTransform, scheduleWorkspaceSave, smoothPanTo, undo, undoStack, updateContextMenuPosition };
+export { applyTransform, deleteContextColumn, deleteContextRow, ensureSwTicking, hideCanvasContextMenu, highlightContextColumn, highlightContextRow, loadWorkspace, redo, saveSnapshot, saveWorkspaceNow, scheduleApplyTransform, scheduleWorkspaceSave, smoothPanTo, undo, updateContextMenuPosition };
