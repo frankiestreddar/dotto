@@ -19,6 +19,7 @@ import TableCard from "./TableCard";
 import TitleCard from "./TitleCard";
 import TypeRightCard from "./TypeRightCard";
 import WatermarkCard from "./WatermarkCard";
+import WaypointCard from "./WaypointCard";
 
 // Module-level, not inline in the hook call below — useSyncExternalStore's getServerSnapshot must
 // return a referentially stable value across calls, or React reads it as never settling ("the
@@ -46,6 +47,7 @@ const CARD_KIND_COMPONENTS = {
   title: TitleCard,
   typeright: TypeRightCard,
   watermark: WatermarkCard,
+  waypoint: WaypointCard,
 };
 
 // One canvas item's wrapper <div>. React's job is creating/keying/removing this node and, for
