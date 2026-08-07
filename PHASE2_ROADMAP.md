@@ -308,9 +308,15 @@ buckets slotted in by the same principle:
    above, now superseded by `CARD_KIND_COMPONENTS` in
    `app/dotto/CanvasItemsLayer.jsx`).
 2. **Stopwatch card**, **Drawing layer**, **Checklist / Statcard /
-   Watermark** — as originally planned.
+   Watermark** — as originally planned. **Done** (Checklist, Statcard,
+   Watermark, Stopwatch all real Components; Bookmark card kind removed
+   entirely rather than converted — solved by waypoints/other menus
+   already). Title, Note, and Table also converted alongside these
+   (self-contained, similar shape to Watermark/Checklist).
 3. **Game options/cloze**, then **Flashcards/SRS** and **Typeright app**
    (both depend on Game options) — isolated logic, high pitch value.
+   **Done** (Flashcard, Typeright, and the shared `GameOptionsPanel`;
+   Sentence, Filter, and Shelf card kinds converted alongside these).
 4. **Notifications core engine**, then its 3 scheduling-trigger producers.
 5. **Schedule panel** (now the in-canvas agenda overlay).
 6. **Hamburger menu + Profile/Messages/Friends panels** + **Achievements**
@@ -321,7 +327,15 @@ buckets slotted in by the same principle:
    dispatcher) — biggest single cluster after source/table and live
    presence; do after the card-kind registry pattern is proven.
 8. **Marketplace/cart** + **Library item detail view** + **Publish flow**.
-9. **Source/table cards** — largest, most interconnected card kind.
+9. **Source/table cards** — largest, most interconnected card kind. The
+   thin **Canvas** (`kind:'folder'`, a nested canvas) and **Source**
+   (`kind:'source'`, a database block) card *kinds* — i.e. what a folder or
+   source looks like as a card sitting on a parent canvas — are **done**.
+   Still outstanding and much larger: the actual Source *database page*
+   itself (`renderStaticTableHTML` and its whole cluster — tags, cell
+   image/audio, AI content, SM-2, drag-select), which needs canvas-core-
+   level work, not a simple card conversion. Media and Waypoint card kinds
+   are also still outstanding.
 10. **Friend presence**, **Canvas collaborations (hamburger)**,
     **Live-shared canvases** — real-time/collaboration cluster, done
     together since they share subscription-lifecycle risk.

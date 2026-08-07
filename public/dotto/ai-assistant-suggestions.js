@@ -467,3 +467,5 @@ import { render } from './waypoints-render-loop.js';
     }
 
 export { applyAlignHighlightToggle, buildAlignedSentenceEls, clearSearch, countSourceEntries, dotbotErrorMessage, escapeHtml, findParentFolderId, getItemSearchText, handleSearchFocus, handleSearchInput, isLatinScriptText, setSearchActive, setupDotbotResultDrag, speakerIconHTML, stripHtml, truncateCenter, typewriterReveal, updateSearchDropdown };
+
+window.__countSourceEntries = countSourceEntries;
