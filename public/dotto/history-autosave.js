@@ -511,3 +511,7 @@ import { centerOnContent, render } from './waypoints-render-loop.js';
     }
 
 export { applyTransform, deleteContextColumn, deleteContextRow, ensureSwTicking, hideCanvasContextMenu, highlightContextColumn, highlightContextRow, loadWorkspace, openTableCellContextMenu, redo, saveSnapshot, saveWorkspaceNow, scheduleApplyTransform, scheduleWorkspaceSave, smoothPanTo, undo, updateContextMenuPosition };
+
+// React → vanilla bridge — used by ScheduleAgenda.jsx (app/dotto/), which can't import this
+// directly since public/dotto/*.js isn't reachable from app/dotto/.
+window.__scheduleWorkspaceSave = scheduleWorkspaceSave;

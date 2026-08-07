@@ -50,3 +50,12 @@ export const canvasItemsStore = createStore([]);
 // deliberately leaves the last content in place rather than clearing it, same as the original
 // (harmless: the notification bar is hidden via CSS once #search-input-wrap loses .notifying).
 export const notificationStore = createStore(null);
+
+// Schedule View Mode's agenda (public/dotto/messages-schedule.js's renderScheduleAgenda) — an
+// { hours: [{hour, top}], events: [{it, ev, top, w, h}] } snapshot computed fresh on every entry/
+// date-shift, same "compute data, hand it to React" split as canvasItemsStore, just for a single
+// read-mostly view instead of a persistent list. Each event's own preview DOM (it can be any card
+// kind) still gets built by the vanilla renderRealCardPreview — a whole live node, same "vanilla
+// function builds live DOM, React just mounts it" reasoning as CanvasCard's
+// buildFolderInlineCanvas — see ScheduleAgenda.jsx.
+export const scheduleAgendaStore = createStore({ hours: [], events: [] });

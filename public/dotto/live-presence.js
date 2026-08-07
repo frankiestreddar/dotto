@@ -1473,3 +1473,4 @@ export { broadcastCursorPositionThrottled, broadcastEditingState, broadcastItemD
 // reachable from app/dotto/.
 window.__syncColorPicker = syncColorPicker;
 window.__titleFontSize = titleFontSize;
+window.__renderRealCardPreview = renderRealCardPreview;

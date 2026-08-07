@@ -3,10 +3,11 @@
 import Script from "next/script";
 import { flushSync } from "react-dom";
 import { createClient } from "@/lib/supabase/client";
-import { canvasItemsStore, notificationStore, pricingOverlayStore, selectionToolbarStore } from "./dotto/bridges";
+import { canvasItemsStore, notificationStore, pricingOverlayStore, scheduleAgendaStore, selectionToolbarStore } from "./dotto/bridges";
 import CanvasItemsLayer from "./dotto/CanvasItemsLayer";
 import NotificationBar from "./dotto/NotificationBar";
 import PricingOverlay from "./dotto/PricingOverlay";
+import ScheduleAgenda from "./dotto/ScheduleAgenda";
 import SelectionToolbar from "./dotto/SelectionToolbar";
 
 import TopBar from "./dotto/sections/TopBar";
@@ -103,6 +104,11 @@ if (typeof window !== "undefined") {
   // calling pushNotification (confirmed by grep — the only readers of notifTextEl/notifImageEl/
   // notifActionBtn were the notification functions themselves, now replaced by this).
   window.__setNotificationContent = notificationStore.set;
+  // Schedule View Mode's agenda (see app/dotto/ScheduleAgenda.jsx, public/dotto/messages-
+  // schedule.js's renderScheduleAgenda) — a plain store.set, same reasoning as
+  // __setNotificationContent: nothing reads #schedule-view-hours/#schedule-view-stack's DOM
+  // synchronously right after calling renderScheduleAgenda.
+  window.__setScheduleAgenda = scheduleAgendaStore.set;
 }
 
 export default function DottoApp({ sections, currentUser }) {
@@ -146,6 +152,7 @@ export default function DottoApp({ sections, currentUser }) {
       <SelectionToolbar />
       <CanvasItemsLayer />
       <NotificationBar />
+      <ScheduleAgenda />
       <Script src="/dotto-script.js" type="module" strategy="afterInteractive" />
     </>
   );

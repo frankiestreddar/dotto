@@ -1,10 +1,9 @@
 import { clearSearch } from './ai-assistant-suggestions.js';
 import { appState, canvas, zoomControl } from './core-state.js';
 import { renderMsgList } from './friends-presence.js';
-import { applyTransform, scheduleWorkspaceSave } from './history-autosave.js';
-import { closeConvo, renderRealCardPreview } from './live-presence.js';
+import { applyTransform } from './history-autosave.js';
+import { closeConvo } from './live-presence.js';
 import { closeAllPanels, pinOnInsideClick, scheduleHoverClose } from './panels-hamburger.js';
-import { openFolder } from './waypoints-render-loop.js';
 
 
     // ---------- Messages Panel Controls ----------
@@ -154,6 +153,11 @@ import { openFolder } from './waypoints-render-loop.js';
 
  // px per hour in the timeline
 
+    // Hour markers + event cards are real React state now (see app/dotto/ScheduleAgenda.jsx,
+    // portaling into #schedule-view-hours/#schedule-view-stack) — this only computes the data and
+    // hands it off via window.__setScheduleAgenda. #schedule-view-date's textContent and
+    // #schedule-view-inner's height stay direct DOM writes: trivial, no list-diffing involved, not
+    // worth a bridge of their own.
     function renderScheduleAgenda() {
         document.getElementById('schedule-view-date').textContent = formatDateLabel(appState.scheduleViewDate);
         const key = dateKey(appState.scheduleViewDate);
@@ -165,12 +169,9 @@ import { openFolder } from './waypoints-render-loop.js';
             .filter(x => x.ev)
             .sort((a, b) => a.ev.time.localeCompare(b.ev.time));
 
-        appState.scheduleViewHours.innerHTML = '';
-        appState.scheduleViewStack.innerHTML = '';
-
         if (!list.length) {
             appState.scheduleViewInner.style.height = '100%';
-            appState.scheduleViewStack.innerHTML = `<div id="schedule-view-empty">Nothing scheduled for this day on this canvas.<br><br>Right-click any card (or a selection of cards) and choose "Schedule" to add one.</div>`;
+            window.__setScheduleAgenda({ hours: [], events: [] });
             return;
         }
 
@@ -184,47 +185,23 @@ import { openFolder } from './waypoints-render-loop.js';
         const totalHeight = (lastHour - firstHour + 1) * appState.SCHEDULE_HOUR_ROW + 40;
         appState.scheduleViewInner.style.height = totalHeight + 'px';
 
+        const hours = [];
         for (let h = firstHour; h <= lastHour; h++) {
-            const marker = document.createElement('div');
-            marker.className = 'schedule-view-hour';
-            marker.style.top = ((h - firstHour) * appState.SCHEDULE_HOUR_ROW) + 'px';
-            marker.textContent = formatHourLabel(h);
-            appState.scheduleViewHours.appendChild(marker);
+            hours.push({ hour: h, label: formatHourLabel(h), top: (h - firstHour) * appState.SCHEDULE_HOUR_ROW });
         }
 
-        list.forEach(({ it, ev }) => {
+        const events = list.map(({ it, ev }) => {
             const [h, m] = ev.time.split(':').map(Number);
             const top = ((h + m / 60) - firstHour) * appState.SCHEDULE_HOUR_ROW;
             const w = Math.min(it.w || 220, 420), hgt = it.h || 100;
-
-            const wrap = document.createElement('div');
-            wrap.className = 'schedule-view-card-wrap';
-            wrap.style.top = top + 'px';
-            wrap.style.width = w + 'px';
-
-            const card = renderRealCardPreview(it);
-            card.style.position = 'relative';
-            if (it.kind !== 'title') { card.style.width = w + 'px'; card.style.height = hgt + 'px'; }
-            wrap.appendChild(card);
-
-            // No dragging/moving (renderRealCardPreview never wires that up — it's a real-looking
-            // but otherwise inert clone by default), but folder/source cards can still be clicked
-            // into, and a note's text can still be edited directly.
-            if (it.kind === 'folder' || it.kind === 'source') {
-                card.style.cursor = 'pointer';
-                card.addEventListener('click', (e) => { e.stopPropagation(); exitScheduleViewMode(); openFolder(it.folderId); });
-            } else if (it.kind === 'note') {
-                const body = card.querySelector('.body');
-                if (body) {
-                    body.contentEditable = 'true';
-                    body.style.cursor = 'text';
-                    body.addEventListener('pointerdown', (e) => e.stopPropagation());
-                    body.addEventListener('blur', () => { it.html = body.innerHTML; scheduleWorkspaceSave(); });
-                }
-            }
-
-            appState.scheduleViewStack.appendChild(wrap);
+            return { it, ev, top, w, h: hgt };
         });
+
+        window.__setScheduleAgenda({ hours, events });
     }
 
 export { closeMessagesPanel, dateKey, exitScheduleViewMode, formatDateLabel, formatTimeLabel, openMessagesPanel, pad2, scheduleAgendaShift };
+
+// React → vanilla bridge — used by ScheduleAgenda.jsx (app/dotto/), which can't import this
+// directly since public/dotto/*.js isn't reachable from app/dotto/.
+window.__exitScheduleViewMode = exitScheduleViewMode;
