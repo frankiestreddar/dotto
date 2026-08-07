@@ -1,5 +1,4 @@
 import { clearSearch, countSourceEntries, escapeHtml, findParentFolderId, truncateCenter } from './ai-assistant-suggestions.js';
-import { renderStatcardHTML } from './cards-misc.js';
 import { appState, breadcrumbs, bringCardToFront, btnBack, btnForward, canvas, contextMenu, supabase, world, zoomControl } from './core-state.js';
 import { setupDraggingAndClicking } from './drag-drop-chat.js';
 import { ensureDrawings, makeLayerSVG } from './drawing-connections.js';
@@ -720,8 +719,6 @@ import { renderFilterHTML, renderShelfHTML, renderStopwatchHTML } from './stopwa
             } else if (it.kind === 'typeright') {
                 el.innerHTML = renderTypeRightHTML(it);
                 setupResizing(el, it);
-            } else if (it.kind === 'statcard') {
-                el.innerHTML = renderStatcardHTML(it);
             } else if (it.kind === 'stopwatch') {
                 el.innerHTML = renderStopwatchHTML(it);
             } else if (it.kind === 'shelf') {
