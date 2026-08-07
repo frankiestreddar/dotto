@@ -1,5 +1,5 @@
 import { clearSearch, countSourceEntries, escapeHtml, findParentFolderId, truncateCenter } from './ai-assistant-suggestions.js';
-import { editEmbed, renderChecklistHTML, renderEmbedHTML, renderStatcardHTML } from './cards-misc.js';
+import { renderChecklistHTML, renderStatcardHTML } from './cards-misc.js';
 import { appState, breadcrumbs, bringCardToFront, btnBack, btnForward, canvas, contextMenu, supabase, world, zoomControl } from './core-state.js';
 import { setupDraggingAndClicking } from './drag-drop-chat.js';
 import { ensureDrawings, makeLayerSVG } from './drawing-connections.js';
@@ -548,17 +548,15 @@ import { renderFilterHTML, renderShelfHTML, renderStopwatchHTML } from './stopwa
         repositionAllRemoteCursors();
     }
 
-    // Builds one canvas item's body content and wires up its behavior (click/drag/resize/context-
-    // menu handlers) into an already-mounted wrapper <div>. Mechanically lifted out of render()'s
-    // old currentItems.forEach loop (canvas-items-react plan, PHASE2_ROADMAP.md) — React
-    // (app/dotto/CanvasItemsLayer.jsx) now owns creating/keying/removing the wrapper <div
-    // id="item-{id}"> itself; this function still does everything render() used to do to populate
-    // one, just called from a per-item useLayoutEffect (via window.__renderLegacyCardInto below)
-    // instead of inline in a loop, so it only re-runs when that item's own props actually change
-    // (React.memo), not on every render() call. `el` is always the live wrapper node for `it.id` —
-    // reused across calls, never recreated, so every assignment below (className, innerHTML, etc.)
-    // is a plain overwrite exactly as it always was on a freshly created node.
-    function renderLegacyCardInto(el, it) {
+    // Wrapper <div> attributes every item gets regardless of kind, whether its body is still
+    // legacy-rendered (renderLegacyCardBody below) or owned by a real Component (see
+    // CARD_KIND_COMPONENTS in app/dotto/CanvasItemsLayer.jsx) — split out of the old single
+    // renderLegacyCardInto (canvas-items-react plan, PHASE2_ROADMAP.md) so a converted kind's
+    // Component doesn't have to duplicate this formula (and can't easily anyway:
+    // link-source-armed/options-open read appState, which app/dotto/ can't import). `el` is always
+    // the item's live wrapper node — reused across calls, never recreated, so every assignment
+    // below is a plain overwrite exactly as it always was on a freshly created node.
+    function applyItemWrapperAttrs(el, it) {
         el.className = `item ${it.kind}`;
         el.style.left = it.x + 'px'; el.style.top = it.y + 'px';
         if (it.zIndex) el.style.zIndex = it.zIndex;
@@ -573,7 +571,15 @@ import { renderFilterHTML, renderShelfHTML, renderStopwatchHTML } from './stopwa
                 el.style.width = it.w + 'px'; el.style.height = it.h + 'px';
             }
         }
+    }
 
+    // Body content + kind-specific event wiring for every kind NOT YET converted to a real
+    // Component — mechanically lifted out of render()'s old currentItems.forEach loop. A kind is
+    // removed from this chain the same PR its Component ships in (see EmbedCard.jsx for the
+    // first one) — this function only ever shrinks. Called from a per-item useLayoutEffect (via
+    // window.__renderLegacyCardBody below) instead of inline in a loop, so it only re-runs when
+    // that item's own props actually change (React.memo), not on every render() call.
+    function renderLegacyCardBody(el, it) {
             if (it.kind === 'folder') {
                 el.innerHTML = '';
                 const folderTitleEl = document.createElement('div');
@@ -652,11 +658,6 @@ import { renderFilterHTML, renderShelfHTML, renderStopwatchHTML } from './stopwa
                 // A no-op until there's real content to resize (renderMediaHTML's empty/uploading
                 // states have no .resize handle at all yet — see setupResizing's own early return).
                 setupResizing(el, it);
-            } else if (it.kind === 'embed') {
-                el.innerHTML = renderEmbedHTML(it);
-                if (!it.embedUrl) {
-                    el.onclick = (e) => { e.stopPropagation(); editEmbed(it.id); };
-                }
             } else if (it.kind === 'waypoint') {
                 el.innerHTML = `${kindIconHTML('waypoint', null, 'waypoint-card-icon')}<span class="waypoint-card-name"></span>`;
                 el.onclick = (e) => {
@@ -859,6 +860,14 @@ import { renderFilterHTML, renderShelfHTML, renderStopwatchHTML } from './stopwa
                 };
                 setupResizing(el, it);
             }
+    }
+
+    // Behavior every item gets regardless of kind or whether its body is legacy-rendered or a
+    // real Component — the other half of the old renderLegacyCardInto split (see
+    // applyItemWrapperAttrs above). Must run for every kind, including converted ones: the
+    // aiGenerated badge, right-click suppression, and — critically — drag/click wiring
+    // (setupDraggingAndClicking) aren't kind-specific.
+    function attachUniversalItemBehavior(el, it) {
             // Kind-agnostic — covers every drag-to-canvas Dotbot result (dictionary/answer/
             // mnemonic story/image, all still kind:'note', plus the new 'sentence' cards), since
             // importDotbotResultAtScreenPoint sets aiGenerated:true on all of them in one place.
@@ -1021,11 +1030,16 @@ import { renderFilterHTML, renderShelfHTML, renderStopwatchHTML } from './stopwa
         applyFolderView(folderId);
     }
 
-export { applyFolderView, cascadeDeleteFolderContents, centerOnContent, deleteCanvasCollabsForFolder, deleteWaypointFromDb, expandWaypointCard, openFolder, performMerge, render, renderLegacyCardInto, renderSelectedOutlines, startBoxSelection, syncWaypointToDb };
+export { applyFolderView, applyItemWrapperAttrs, attachUniversalItemBehavior, cascadeDeleteFolderContents, centerOnContent, deleteCanvasCollabsForFolder, deleteWaypointFromDb, expandWaypointCard, openFolder, performMerge, render, renderLegacyCardBody, renderSelectedOutlines, startBoxSelection, syncWaypointToDb };
 
 // React → vanilla bridge, the other direction from window-bridge.js (which is specifically the
-// ~104 auto-generated inline onclick="..." names — see its own header comment). CanvasItem
-// (app/dotto/CanvasItemsLayer.jsx) calls this from a useLayoutEffect, once per item whose props
-// actually changed, to populate/rewire an already-mounted wrapper <div> — see the canvas-items-
-// react plan in PHASE2_ROADMAP.md.
-window.__renderLegacyCardInto = renderLegacyCardInto;
+// ~107 auto-generated inline onclick="..." names — see its own header comment). CanvasItem
+// (app/dotto/CanvasItemsLayer.jsx) calls these three from a useLayoutEffect, once per item whose
+// props actually changed, to populate/rewire an already-mounted wrapper <div>: wrapper attrs and
+// universal behavior (drag/click, aiGenerated badge, right-click) run for every kind regardless of
+// whether it's converted to a real Component yet; the body is only called for kinds that aren't
+// (see CARD_KIND_COMPONENTS in CanvasItemsLayer.jsx) — see the canvas-items-react plan in
+// PHASE2_ROADMAP.md.
+window.__applyCanvasItemWrapperAttrs = applyItemWrapperAttrs;
+window.__renderLegacyCardBody = renderLegacyCardBody;
+window.__attachUniversalItemBehavior = attachUniversalItemBehavior;

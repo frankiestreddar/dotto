@@ -1522,7 +1522,7 @@
     .embed-icon{font-size:20px;}
     .embed-title{font-size:14px;font-weight:600;max-width:90%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
     .embed-hint{font-size:11px;color:var(--ink-soft);text-align:center;padding:0 16px;}
-    /* Dedicated drag handle, separate from .embed-frame below it — see renderEmbedHTML's own
+    /* Dedicated drag handle, separate from .embed-frame below it — see EmbedCard.jsx's own
        comment for why a filled card needs one at all (a cross-origin iframe never bubbles
        pointerdown to the parent page). cursor:grab signals "drag me" the same way a window's own
        title bar does, distinct from the iframe's normal site-appropriate cursor below it. */

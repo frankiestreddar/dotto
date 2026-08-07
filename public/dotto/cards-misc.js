@@ -1,4 +1,3 @@
-import { escapeHtml } from './ai-assistant-suggestions.js';
 import { appState } from './core-state.js';
 import { saveSnapshot, scheduleWorkspaceSave } from './history-autosave.js';
 import { findItemById } from './live-presence.js';
@@ -24,8 +23,8 @@ import { render } from './waypoints-render-loop.js';
     // unchanged (CodePen/JSFiddle/Gist links already use their own embeddable URL shape once
     // copied as an "embed" link, so those need no rewriting).
     // YouTube's IFrame player uses this to verify which site is embedding it as part of its own
-    // postMessage handshake — omitting it (or stripping the referrer entirely, see renderEmbedHTML's
-    // referrerpolicy below) is exactly what produces YouTube's "Error 153: video player
+    // postMessage handshake — omitting it (or stripping the referrer entirely, see EmbedCard.jsx's
+    // referrerPolicy) is exactly what produces YouTube's "Error 153: video player
     // configuration error" instead of the video actually loading.
     function withYoutubeOrigin(embedUrl) {
         const u = new URL(embedUrl);
@@ -66,28 +65,6 @@ import { render } from './waypoints-render-loop.js';
     // ever leaks this app's bare origin, never the full page URL. Even after toEmbeddableUrl's
     // rewriting, some sites still refuse to be framed at all and will just show blank inside the
     // iframe — that's a property of the target site, not something fixable from here.
-    function renderEmbedHTML(it) {
-        if (!it.embedUrl) {
-            return `<div class="embed-empty">
-                <div class="embed-icon">🌐</div>
-                <div class="embed-title">New Embed</div>
-                <div class="embed-hint">Click to add a website or code embed link</div>
-            </div>`;
-        }
-        // .embed-header is a dedicated drag handle, separate from the iframe below it — a
-        // cross-origin iframe is its own browsing context and NEVER dispatches pointerdown (or
-        // any DOM event) to the parent page for interactions inside it, a hard browser security
-        // boundary, not something this app can intercept. Without a handle outside the iframe,
-        // a filled embed card (iframe filling the whole body) would have no draggable surface at
-        // all once a URL is set. This also means the iframe itself is never covered by anything —
-        // every click/drag/scroll directly on it always reaches the embedded page untouched,
-        // which is the whole point of embedding it live in the first place.
-        return `<div class="embed-header">
-                <span class="embed-header-url">${escapeHtml(shortUrl(it.embedUrl))}</span>
-                <div class="embed-edit" onmousedown="event.stopPropagation()" onclick="editEmbed(${it.id})" title="Edit embed link">✎</div>
-            </div>
-            <iframe class="embed-frame" src="${escapeHtml(toEmbeddableUrl(it.embedUrl))}" sandbox="allow-scripts allow-same-origin allow-popups allow-forms allow-popups-to-escape-sandbox" loading="lazy" referrerpolicy="strict-origin-when-cross-origin" allow="autoplay; encrypted-media; picture-in-picture; fullscreen" allowfullscreen></iframe>`;
-    }
     function editEmbed(id) {
         const it = findItemById(id); if (!it) return;
         const url = prompt('Embed URL (website or embeddable code snippet link):', it.embedUrl || 'https://');
@@ -164,4 +141,10 @@ import { render } from './waypoints-render-loop.js';
         render();
     }
 
-export { addTask, editEmbed, removeTask, renderChecklistHTML, renderEmbedHTML, renderStatcardHTML, shortUrl, toggleTask, updateTaskDeadline, updateTaskText };
+export { addTask, editEmbed, removeTask, renderChecklistHTML, renderStatcardHTML, shortUrl, toEmbeddableUrl, toggleTask, updateTaskDeadline, updateTaskText };
+
+// React → vanilla bridge (see the identical pattern/comment in waypoints-render-loop.js) — used by
+// EmbedCard.jsx (app/dotto/CanvasItemsLayer.jsx), which can't import these directly since
+// public/dotto/*.js isn't reachable from app/dotto/.
+window.__shortUrl = shortUrl;
+window.__toEmbeddableUrl = toEmbeddableUrl;

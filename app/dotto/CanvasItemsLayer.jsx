@@ -3,6 +3,7 @@
 import { memo, useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore } from "react";
 import { createPortal } from "react-dom";
 import { canvasItemsStore } from "./bridges";
+import EmbedCard from "./EmbedCard";
 
 // Module-level, not inline in the hook call below — useSyncExternalStore's getServerSnapshot must
 // return a referentially stable value across calls, or React reads it as never settling ("the
@@ -10,11 +11,19 @@ import { canvasItemsStore } from "./bridges";
 // array literal every render trips that same warning SelectionToolbar.jsx originally had.
 const EMPTY_ITEMS = [];
 
-// One canvas item's wrapper <div>. React's only job here is creating/keying/removing this node —
-// everything inside it (className, style, innerHTML, event wiring) is still owned by vanilla code
-// (public/dotto/waypoints-render-loop.js's renderLegacyCardInto, via window.__renderLegacyCardInto),
-// called from a layout effect so it runs synchronously before paint, matching the old code's
-// single-pass createElement+build+appendChild (no visible empty-card flash on first mount).
+// Kinds converted to a real Component — see PHASE2_ROADMAP.md's migration order. Every other kind
+// still renders via the legacy vanilla path (window.__renderLegacyCardBody). Add an entry here the
+// same PR a kind's Component ships; nothing else in this file needs to change per kind.
+const CARD_KIND_COMPONENTS = { embed: EmbedCard };
+
+// One canvas item's wrapper <div>. React's job is creating/keying/removing this node and, for
+// converted kinds, owning its real JSX children (Component below) — everything else (className,
+// style, and, for kinds NOT YET converted, innerHTML/event wiring) is still owned by vanilla code
+// (public/dotto/waypoints-render-loop.js), called from a layout effect so it runs synchronously
+// before paint, matching the old code's single-pass createElement+build+appendChild (no visible
+// empty-card flash on first mount). For a converted kind, the wrapper attrs + universal behavior
+// (drag/click, aiGenerated badge, right-click suppression — none of that is kind-specific) still
+// run the same way; only the body content becomes real JSX instead of window.__renderLegacyCardBody.
 //
 // Wrapped in memo() so an item whose `it` object reference is unchanged since the last render()
 // call (the common case — appState mutates items in place, e.g. drag/resize/bringCardToFront)
@@ -24,12 +33,16 @@ const EMPTY_ITEMS = [];
 // by a remote sync — see live-presence.js's applyRemoteSyncBroadcast) re-run normally.
 const CanvasItem = memo(function CanvasItem({ it }) {
   const ref = useRef(null);
+  const Component = CARD_KIND_COMPONENTS[it.kind];
 
   useLayoutEffect(() => {
-    if (ref.current) window.__renderLegacyCardInto(ref.current, it);
-  }, [it]);
+    if (!ref.current) return;
+    window.__applyCanvasItemWrapperAttrs(ref.current, it);
+    if (!Component) window.__renderLegacyCardBody(ref.current, it);
+    window.__attachUniversalItemBehavior(ref.current, it);
+  }, [it, Component]);
 
-  return <div ref={ref} id={"item-" + it.id} />;
+  return <div ref={ref} id={"item-" + it.id}>{Component ? <Component it={it} /> : null}</div>;
 });
 
 // Portals the current folder's item cards into #items-layer, a stable child of #world added to
