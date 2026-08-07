@@ -14,13 +14,22 @@ import { useLayoutEffect, useRef } from "react";
 // one interaction that changes it directly; this covers every other reason it.level might change
 // (initial mount, a remote sync) — redundant with setTitleLevel's own patch but harmless, since
 // it's always reapplying the same correct value.
+//
+// That same el lookup is also what attachTitleBody needs for its wrapper — passed in explicitly
+// rather than derived via bodyRef.current.closest('.item') inside that function, which broke on
+// first mount: React fires a CHILD component's layout effect (this one) before its PARENT's
+// (CanvasItem's, which is what actually sets className="item title" via applyItemWrapperAttrs),
+// so closest('.item') ran too early and matched nothing. document.getElementById doesn't have
+// this problem — the wrapper <div> itself already exists in the DOM by the time ANY layout effect
+// runs (React commits DOM mutations before firing effects), only its className is what's not set
+// yet.
 export default function TitleCard({ it }) {
   const bodyRef = useRef(null);
 
   useLayoutEffect(() => {
     const el = document.getElementById("item-" + it.id);
     if (el) el.style.fontSize = window.__titleFontSize(it.level || 1) + "px";
-    if (bodyRef.current) window.__attachTitleBody(bodyRef.current, it);
+    if (el && bodyRef.current) window.__attachTitleBody(el, bodyRef.current, it);
   });
 
   return (
