@@ -170,8 +170,9 @@ Reconciled/updated buckets (functions confirmed present, current location):
   `renderMediaHTML`, `renderTableHTML`/`renderStaticTableHTML`,
   `renderChecklistHTML`, `renderInlineCanvas`/`renderRealCardPreview`.
   `renderShelfHTML` now lives inside the Stopwatch card section;
-  `renderStatcardHTML` inside Checklist card. New: `renderEmbedHTML`,
-  `renderGameFaceBlocksHTML`/`renderGameOptionsHTML`.
+  `renderStatcardHTML` inside Checklist card. New:
+  `renderGameFaceBlocksHTML`/`renderGameOptionsHTML`. (`renderEmbedHTML` — since removed: Embed
+  is the first card kind converted to a real Component, see `EmbedCard.jsx`.)
 - **Drag/resize/select** — `setupDraggingAndClicking` (Element Drag and
   Drop System section), `setupResizing`/`findNextFreeSlot`/
   `deleteSelectedCards`/`setTableAlign` (Element Resize System section),
@@ -267,9 +268,9 @@ and per-bucket coupling notes available on request; summarized here):
 - **Media card** (130 lines, parent) with **PDF viewer** (115 lines) and
   **EPUB viewer** (77 lines) as largely self-contained sub-kinds wrapping
   pdf.js/epub.js.
-- **Embed card** (85 lines) — self-contained, no global-state hits, trivial
-  early candidate. (Bookmark card was removed outright, not migrated —
-  redundant with waypoints/other menus.)
+- **Embed card** (85 lines) — self-contained, no global-state hits, converted to a real Component
+  (`app/dotto/EmbedCard.jsx`), the first kind to make that jump: done. (Bookmark card was removed
+  outright, not migrated — redundant with waypoints/other menus.)
 - **Game options / cloze** (279 lines) — self-contained config/parsing
   shared by both Flashcard app and the new **Typeright app** (193 lines,
   a second typed-answer game mode) — extract before either of those two.
@@ -301,7 +302,11 @@ buckets slotted in by the same principle:
 
 1. **Pricing/upgrade, Embed, Text-selection toolbar** — zero global-state
    hits, good warm-up targets alongside the original Stopwatch/Drawing/
-   Checklist candidates.
+   Checklist candidates. **Done** (Pricing/upgrade and Text-selection toolbar
+   as overlay shells; Embed as the first canvas-item Component, on top of
+   the canvas-items-react foundation — see "Card-kind registry pattern"
+   above, now superseded by `CARD_KIND_COMPONENTS` in
+   `app/dotto/CanvasItemsLayer.jsx`).
 2. **Stopwatch card**, **Drawing layer**, **Checklist / Statcard /
    Watermark** — as originally planned.
 3. **Game options/cloze**, then **Flashcards/SRS** and **Typeright app**

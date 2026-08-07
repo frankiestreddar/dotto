@@ -926,7 +926,7 @@ import { render } from './waypoints-render-loop.js';
         } else if (it.kind === 'embed') {
             // Static placeholder, not a live iframe — this renders into mini inline-canvas
             // previews (folder cards, chat/marketplace snapshots) where several might be on
-            // screen at once, unlike the single live card in render() (see renderEmbedHTML).
+            // screen at once, unlike the single live card in render() (see EmbedCard.jsx).
             el.innerHTML = `<div class="embed-icon">🌐</div>
                 <div class="embed-title">${it.embedUrl ? shortUrl(it.embedUrl) : 'New Embed'}</div>`;
         } else if (it.kind === 'checklist') {
