@@ -808,15 +808,30 @@ import { renderFilterHTML, renderShelfHTML } from './stopwatch-search-notificati
         // attachTitleBody.
         b.oninput = () => { it.html = b.innerHTML; scheduleWorkspaceSave(); };
         b.onkeydown = (e) => { if (e.key === 'Escape') { e.preventDefault(); b.blur(); } };
-        b.onfocus = () => syncColorPicker(b);
-        b.addEventListener('keyup', () => syncColorPicker(b), { signal });
-        b.addEventListener('click', () => syncColorPicker(b), { signal });
+        b.onfocus = () => { syncColorPicker(b); syncNoteFormatButtons(b); };
+        b.addEventListener('keyup', () => { syncColorPicker(b); syncNoteFormatButtons(b); }, { signal });
+        b.addEventListener('click', () => { syncColorPicker(b); syncNoteFormatButtons(b); }, { signal });
         el.onclick = (e) => {
             e.stopPropagation();
             if (appState.currentEditingEl !== el) saveSnapshot();
             el.classList.add('editing'); if (!b.isContentEditable) { b.contentEditable = true; placeCaretEnd(b); broadcastEditingState(true, '#item-' + it.id); } appState.currentEditingEl = el;
         };
         setupResizing(el, it);
+    }
+
+    // Reflects the note body's current bold/italic/underline/strikethrough state at the caret (or
+    // selection) onto the matching format-bar button's .active class — same "sync UI to the live
+    // editor state" job syncColorPicker already does for the color swatch, just for
+    // document.queryCommandState instead of queryCommandValue. Called from the same
+    // onfocus/keyup/click triggers as syncColorPicker, plus directly after a format button's own
+    // click (see NoteCard.jsx) so a button reflects its own just-applied toggle immediately rather
+    // than waiting for the next keyup/click on the body itself.
+    function syncNoteFormatButtons(bodyEl) {
+        const bar = bodyEl.closest('.item')?.querySelector('.format-bar');
+        if (!bar) return;
+        bar.querySelectorAll('[data-cmd]').forEach(btn => {
+            try { btn.classList.toggle('active', document.queryCommandState(btn.dataset.cmd)); } catch (e) {}
+        });
     }
 
     // Behavior every item gets regardless of kind or whether its body is legacy-rendered or a
@@ -1043,7 +1058,7 @@ import { renderFilterHTML, renderShelfHTML } from './stopwatch-search-notificati
         applyFolderView(folderId);
     }
 
-export { applyFolderView, applyItemWrapperAttrs, attachNoteBody, attachTitleBody, attachUniversalItemBehavior, attachWatermarkBody, cascadeDeleteFolderContents, centerOnContent, deleteCanvasCollabsForFolder, deleteWaypointFromDb, expandWaypointCard, openFolder, performMerge, render, renderLegacyCardBody, renderSelectedOutlines, startBoxSelection, syncWaypointToDb };
+export { applyFolderView, applyItemWrapperAttrs, attachNoteBody, attachTitleBody, attachUniversalItemBehavior, attachWatermarkBody, cascadeDeleteFolderContents, centerOnContent, deleteCanvasCollabsForFolder, deleteWaypointFromDb, expandWaypointCard, openFolder, performMerge, render, renderLegacyCardBody, renderSelectedOutlines, startBoxSelection, syncNoteFormatButtons, syncWaypointToDb };
 
 // React → vanilla bridge, the other direction from window-bridge.js (which is specifically the
 // ~107 auto-generated inline onclick="..." names — see its own header comment). CanvasItem
@@ -1060,3 +1075,4 @@ window.__attachUniversalItemBehavior = attachUniversalItemBehavior;
 window.__attachWatermarkBody = attachWatermarkBody;
 window.__attachTitleBody = attachTitleBody;
 window.__attachNoteBody = attachNoteBody;
+window.__syncNoteFormatButtons = syncNoteFormatButtons;
