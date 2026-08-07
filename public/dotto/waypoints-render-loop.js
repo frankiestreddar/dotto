@@ -882,11 +882,16 @@ import { renderFilterHTML, renderShelfHTML } from './stopwatch-search-notificati
     // and broadcastEditingState, both shared with other still-unconverted click-to-edit kinds
     // (title, note) — splitting just this one kind off that shared lifecycle would be a bigger,
     // riskier rewrite than the rendering change this PR is actually making. `b` is the body element
-    // WatermarkCard renders (a ref, not created here); `el` is its wrapper, found via closest()
-    // since React — not this function — owns that node now (b.parentElement would also work given
-    // WatermarkCard's actual DOM shape, but closest('.item') doesn't depend on that staying true).
-    function attachWatermarkBody(b, it) {
-        const el = b.closest('.item');
+    // WatermarkCard renders (a ref, not created here); `el` is its wrapper, passed in explicitly
+    // rather than found via b.closest('.item') — React fires a CHILD component's layout effect
+    // (WatermarkCard's own, which calls this) before its PARENT's (CanvasItem's, which is what
+    // actually sets className="item watermark" via applyItemWrapperAttrs), so on first mount
+    // closest('.item') ran too early and matched nothing, throwing on el.classList/el.onclick
+    // below. document.getElementById('item-'+it.id) (see WatermarkCard.jsx) doesn't have this
+    // problem — the wrapper <div> itself already exists in the DOM by the time ANY layout effect
+    // runs (React commits DOM mutations before firing effects), only its className is what's not
+    // set yet.
+    function attachWatermarkBody(el, b, it) {
         b.onblur = (e) => { el.classList.remove('editing'); it.html = b.innerHTML; appState.currentEditingEl = null; b.contentEditable = false; broadcastEditingState(false); scheduleWorkspaceSave(); };
         // Live per-keystroke commit+sync — see the identical comment on the title body in
         // renderLegacyCardBody.
@@ -905,15 +910,15 @@ import { renderFilterHTML, renderShelfHTML } from './stopwatch-search-notificati
     // Component (see TitleCard.jsx, app/dotto/CanvasItemsLayer.jsx's CARD_KIND_COMPONENTS). Stays
     // vanilla rather than becoming React state for the same reason attachWatermarkBody does: it's
     // coupled to appState.currentEditingEl/broadcastEditingState, shared with other still-
-    // unconverted click-to-edit kinds (note). `el` is found via closest() since React, not this
-    // function, owns that node now.
+    // unconverted click-to-edit kinds (note). `el` is passed in explicitly rather than found via
+    // b.closest('.item') — see attachWatermarkBody's own comment for why that broke on first
+    // mount (child-before-parent layout effect ordering).
     //
     // b.addEventListener (keyup/click, for syncColorPicker) needs the same AbortController
     // idempotency fix as setupDraggingAndClicking/setupResizing: this runs on every render() call
     // (TitleCard's own layout effect has no dependency array, matching every converted kind), and
     // `b` is a persistent node reused across those calls, not recreated.
-    function attachTitleBody(b, it) {
-        const el = b.closest('.item');
+    function attachTitleBody(el, b, it) {
         b.__titleListenerAbort?.abort();
         const { signal } = (b.__titleListenerAbort = new AbortController());
         b.onblur = (e) => { if(e.relatedTarget && (e.relatedTarget.closest('.format-bar'))) return; el.classList.remove('editing'); it.html = b.innerHTML; appState.currentEditingEl = null; b.contentEditable = false; broadcastEditingState(false); scheduleWorkspaceSave(); };

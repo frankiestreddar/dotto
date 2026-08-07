@@ -12,7 +12,8 @@ export default function WatermarkCard({ it }) {
   const ref = useRef(null);
 
   useLayoutEffect(() => {
-    if (ref.current) window.__attachWatermarkBody(ref.current, it);
+    const el = document.getElementById("item-" + it.id);
+    if (el && ref.current) window.__attachWatermarkBody(el, ref.current, it);
   });
 
   // dangerouslySetInnerHTML, not plain text children — it.html is genuinely rich content (read/
