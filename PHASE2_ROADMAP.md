@@ -13,39 +13,48 @@ Current phase numbering (supersedes "Phase 2 increment N" below):
   `QA_CHECKLIST.md` (the manual regression pass CI can't do — no test infra exists yet), and this
   repo is now in git and pushed to GitHub.
 - **Phase 1 — re-inventory: done** (see the updated "Subsystem inventory" below — 65 sections
-  audited function-by-function). **Mechanically split `dotto-script.js` into real ES modules: in
-  progress.** Chosen deliberately over a "concatenate back into one classic script" shim, which
-  means two things need solving first, in order, each its own PR: (1) consolidate ~25+ scattered
-  top-level `let` globals (`tx`, `folders`, `currentFolderId`, ...) into one owned, exported state
-  object — ES module imports can't be reassigned directly, so every scattered mutation needs to go
-  through something a module actually owns; (2) a `window.fnName = fnName` bridge for the ~109
-  function names called by name from inline `onclick="..."` HTML (real modules don't expose
-  top-level functions globally the way classic scripts do) — generated mechanically from a grep of
-  every such call site, not typed by hand, with a dedicated `INLINE_HANDLER_CHECKLIST.md` mapping
-  each bridged function to a concrete browser action so a missed one is directly catchable.
-- **Phase 2+ — convert each module to real React state**, one subsystem at a time, per the
-  migration order below.
+  audited function-by-function). **Mechanically split `dotto-script.js` into real ES modules:
+  done.** `public/dotto-script.js` no longer exists — it's now ~30 modules under `public/dotto/`
+  (e.g. `core-state.js`, `waypoints-render-loop.js`, `live-presence.js`, `srs-connections-core.js`
+  — ~13,600 lines total across all of them), each a real ES module with real `import`/`export`.
+  The two blockers this used to call out are both resolved: (1) the scattered `let` globals now
+  live on one exported `appState` object (`core-state.js`); (2) the ~107 inline `onclick="..."`
+  handler names are bridged via `window.fnName = fnName` assignments, concentrated in
+  `public/dotto/window-bridge.js` (see that file's own header comment) plus a few more added
+  per-module as needed for the React bridge (see the next bullet).
+- **Phase 2+ — convert each module to real React state, one subsystem at a time — in progress.**
+  All of "Suggested migration order" items 1–3 below are done (every overlay and every canvas
+  card kind is a real Component under `app/dotto/`, keyed-diffed via `CanvasItemsLayer.jsx`
+  instead of the old `world.innerHTML=''` full-teardown rebuild). Items 4–12 are still vanilla
+  `public/dotto/*.js` code, unconverted.
 
 ## Where things stand
 
-Phase 1 (lift-and-shim) is done and verified: the app runs under Next.js
-(App Router, real Tailwind v4 + PostCSS build, no CDN scripts) with zero
-behavior change from the original `Dotto.html`.
+Phase 1 (lift-and-shim, then the real ES-module split) is done and verified: the app runs under
+Next.js (App Router, real Tailwind v4 + PostCSS build, no CDN scripts) with zero behavior change
+from the original `Dotto.html`, and every function that used to live in one 5,144-line (later
+12,825-line) classic script now lives in a real, independently-importable ES module.
 
-Phase 2 increment 1 (shell componentization) is also done: the ~270 lines
-of static body markup are no longer one blob. They're split into 18
-byte-verified fragments (`content/fragments/*.html`), each rendered by a
-small named component in `app/dotto/sections/` (`TopBar`, `AddMenu`,
-`SchedulePanel`, `MarketplacePanel`, etc.). This was safe to do mechanically
-because none of the original CSS or script relies on these containers being
-direct children of `<body>` or on sibling order (`:nth-child` etc.) — see
-the comment in `app/dotto-app.jsx` for how that was confirmed.
+Phase 2 increment 1 (shell componentization) is also done: the ~270 lines of static body markup
+are no longer one blob. They're split into 18 byte-verified fragments (`content/fragments/*.html`),
+each rendered by a small named component in `app/dotto/sections/` (`TopBar`, `AddMenu`,
+`SchedulePanel`, `MarketplacePanel`, etc.). This was safe to do mechanically because none of the
+original CSS or script relies on these containers being direct children of `<body>` or on sibling
+order (`:nth-child` etc.) — see the comment in `app/dotto-app.jsx` for how that was confirmed.
 
-**What's still exactly as it was in `Dotto.html`:** all runtime behavior.
-`public/dotto-script.js` is still one 5,144-line classic script, still
-`document.getElementById`-driven, still holding all state in top-level
-`let`/`const` closures. Nothing in it has been rewritten yet. That's the
-work this document plans out.
+Phase 2 card-kind/overlay conversion (migration order items 1–3, plus the thin half of item 9) is
+also done: every canvas item kind (checklist, embed, flashcard, folder/Canvas, media, note,
+sentence, shelf, source, statcard, stopwatch, table, title, typeright, watermark, waypoint) is a
+real React Component, and the old `world.innerHTML=''` full-rebuild render loop has been replaced
+by `app/dotto/CanvasItemsLayer.jsx`'s keyed portal — see that file's own comments for how DOM node
+identity (focus/scroll/CSS-transition state) is preserved across a `render()` call now, which the
+old rebuild-from-scratch approach couldn't do. Two small overlay shells (Pricing/upgrade,
+text-selection toolbar) are also real Components.
+
+**What's still exactly as it was, functionally, even though it's a real ES module now:**
+everything in migration-order items 4–12 below — still `document.getElementById`-driven, still
+holding its state in `appState`/module-level closures rather than React state. That's the work
+this document still plans out.
 
 ## Why this is a multi-pass job, not a single rewrite
 
