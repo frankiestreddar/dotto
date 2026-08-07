@@ -5,6 +5,7 @@ import { createPortal } from "react-dom";
 import { canvasItemsStore } from "./bridges";
 import ChecklistCard from "./ChecklistCard";
 import EmbedCard from "./EmbedCard";
+import FlashcardCard from "./FlashcardCard";
 import StatcardCard from "./StatcardCard";
 import StopwatchCard from "./StopwatchCard";
 import WatermarkCard from "./WatermarkCard";
@@ -18,7 +19,7 @@ const EMPTY_ITEMS = [];
 // Kinds converted to a real Component — see PHASE2_ROADMAP.md's migration order. Every other kind
 // still renders via the legacy vanilla path (window.__renderLegacyCardBody). Add an entry here the
 // same PR a kind's Component ships; nothing else in this file needs to change per kind.
-const CARD_KIND_COMPONENTS = { checklist: ChecklistCard, embed: EmbedCard, statcard: StatcardCard, stopwatch: StopwatchCard, watermark: WatermarkCard };
+const CARD_KIND_COMPONENTS = { checklist: ChecklistCard, embed: EmbedCard, flashcard: FlashcardCard, statcard: StatcardCard, stopwatch: StopwatchCard, watermark: WatermarkCard };
 
 // One canvas item's wrapper <div>. React's job is creating/keying/removing this node and, for
 // converted kinds, owning its real JSX children (Component below) — everything else (className,
