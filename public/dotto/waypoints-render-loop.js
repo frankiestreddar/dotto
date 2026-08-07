@@ -714,18 +714,6 @@ import { renderFilterHTML, renderShelfHTML, renderStopwatchHTML } from './stopwa
                     window.addEventListener('pointermove', onMove);
                     window.addEventListener('pointerup', onUp);
                 }, { signal: waypointSignal });
-            } else if (it.kind === 'watermark') {
-                el.innerHTML = `<div class="body watermark-text" data-placeholder="Type to trace...">${it.html || ''}</div>`;
-                const b = el.querySelector('.watermark-text');
-                b.onblur = (e) => { el.classList.remove('editing'); it.html = b.innerHTML; appState.currentEditingEl = null; b.contentEditable = false; broadcastEditingState(false); scheduleWorkspaceSave(); };
-                // Live per-keystroke commit+sync — see the identical comment on the title body above.
-                b.oninput = () => { it.html = b.innerHTML; scheduleWorkspaceSave(); };
-                b.onkeydown = (e) => { if (e.key === 'Escape') { e.preventDefault(); b.blur(); } };
-                el.onclick = (e) => {
-                    e.stopPropagation();
-                    if (appState.currentEditingEl !== el) saveSnapshot();
-                    el.classList.add('editing'); if (!b.isContentEditable) { b.contentEditable = true; placeCaretEnd(b); broadcastEditingState(true, '#item-' + it.id); } appState.currentEditingEl = el;
-                };
             } else if (it.kind === 'flashcard') {
                 el.innerHTML = renderFlashcardHTML(it);
                 setupResizing(el, it);
@@ -901,6 +889,30 @@ import { renderFilterHTML, renderShelfHTML, renderStopwatchHTML } from './stopwa
         setupDraggingAndClicking(el, it);
     }
 
+    // Click-to-edit contentEditable lifecycle for the watermark card's body — mechanically lifted
+    // out of the old inline watermark branch in renderLegacyCardBody, now that watermark is a real
+    // Component (see WatermarkCard.jsx, app/dotto/CanvasItemsLayer.jsx's CARD_KIND_COMPONENTS).
+    // Stays vanilla rather than becoming React state because it's coupled to appState.currentEditingEl
+    // and broadcastEditingState, both shared with other still-unconverted click-to-edit kinds
+    // (title, note) — splitting just this one kind off that shared lifecycle would be a bigger,
+    // riskier rewrite than the rendering change this PR is actually making. `b` is the body element
+    // WatermarkCard renders (a ref, not created here); `el` is its wrapper, found via closest()
+    // since React — not this function — owns that node now (b.parentElement would also work given
+    // WatermarkCard's actual DOM shape, but closest('.item') doesn't depend on that staying true).
+    function attachWatermarkBody(b, it) {
+        const el = b.closest('.item');
+        b.onblur = (e) => { el.classList.remove('editing'); it.html = b.innerHTML; appState.currentEditingEl = null; b.contentEditable = false; broadcastEditingState(false); scheduleWorkspaceSave(); };
+        // Live per-keystroke commit+sync — see the identical comment on the title body in
+        // renderLegacyCardBody.
+        b.oninput = () => { it.html = b.innerHTML; scheduleWorkspaceSave(); };
+        b.onkeydown = (e) => { if (e.key === 'Escape') { e.preventDefault(); b.blur(); } };
+        el.onclick = (e) => {
+            e.stopPropagation();
+            if (appState.currentEditingEl !== el) saveSnapshot();
+            el.classList.add('editing'); if (!b.isContentEditable) { b.contentEditable = true; placeCaretEnd(b); broadcastEditingState(true, '#item-' + it.id); } appState.currentEditingEl = el;
+        };
+    }
+
     function renderSelectedOutlines() {
         document.querySelectorAll('.item').forEach(el => {
             const idStr = el.id.replace('item-', '');
@@ -1028,16 +1040,17 @@ import { renderFilterHTML, renderShelfHTML, renderStopwatchHTML } from './stopwa
         applyFolderView(folderId);
     }
 
-export { applyFolderView, applyItemWrapperAttrs, attachUniversalItemBehavior, cascadeDeleteFolderContents, centerOnContent, deleteCanvasCollabsForFolder, deleteWaypointFromDb, expandWaypointCard, openFolder, performMerge, render, renderLegacyCardBody, renderSelectedOutlines, startBoxSelection, syncWaypointToDb };
+export { applyFolderView, applyItemWrapperAttrs, attachUniversalItemBehavior, attachWatermarkBody, cascadeDeleteFolderContents, centerOnContent, deleteCanvasCollabsForFolder, deleteWaypointFromDb, expandWaypointCard, openFolder, performMerge, render, renderLegacyCardBody, renderSelectedOutlines, startBoxSelection, syncWaypointToDb };
 
 // React → vanilla bridge, the other direction from window-bridge.js (which is specifically the
 // ~107 auto-generated inline onclick="..." names — see its own header comment). CanvasItem
-// (app/dotto/CanvasItemsLayer.jsx) calls these three from a useLayoutEffect, once per item whose
-// props actually changed, to populate/rewire an already-mounted wrapper <div>: wrapper attrs and
-// universal behavior (drag/click, aiGenerated badge, right-click) run for every kind regardless of
-// whether it's converted to a real Component yet; the body is only called for kinds that aren't
-// (see CARD_KIND_COMPONENTS in CanvasItemsLayer.jsx) — see the canvas-items-react plan in
-// PHASE2_ROADMAP.md.
+// (app/dotto/CanvasItemsLayer.jsx) calls the first three from a per-item layout effect that runs
+// on every render() call: wrapper attrs and universal behavior (drag/click, aiGenerated badge,
+// right-click) for every kind regardless of whether it's converted to a real Component yet; the
+// body only for kinds that aren't (see CARD_KIND_COMPONENTS in CanvasItemsLayer.jsx). The fourth,
+// attachWatermarkBody, is called from WatermarkCard.jsx's own layout effect instead — one
+// converted kind's leftover stateful (not purely rendering) logic, not a generic per-item hook.
 window.__applyCanvasItemWrapperAttrs = applyItemWrapperAttrs;
 window.__renderLegacyCardBody = renderLegacyCardBody;
 window.__attachUniversalItemBehavior = attachUniversalItemBehavior;
+window.__attachWatermarkBody = attachWatermarkBody;
