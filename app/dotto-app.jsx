@@ -3,8 +3,9 @@
 import Script from "next/script";
 import { flushSync } from "react-dom";
 import { createClient } from "@/lib/supabase/client";
-import { canvasItemsStore, pricingOverlayStore, selectionToolbarStore } from "./dotto/bridges";
+import { canvasItemsStore, notificationStore, pricingOverlayStore, selectionToolbarStore } from "./dotto/bridges";
 import CanvasItemsLayer from "./dotto/CanvasItemsLayer";
+import NotificationBar from "./dotto/NotificationBar";
 import PricingOverlay from "./dotto/PricingOverlay";
 import SelectionToolbar from "./dotto/SelectionToolbar";
 
@@ -96,6 +97,12 @@ if (typeof window !== "undefined") {
   // since each CanvasItem's own body-building happens in a useLayoutEffect (synchronous, pre-paint),
   // flushSync flushes that too, before this function returns.
   window.__renderCanvasItems = (items) => flushSync(() => canvasItemsStore.set(items));
+  // Notifications core engine (see app/dotto/NotificationBar.jsx, public/dotto/stopwatch-search-
+  // notifications.js's showNotification) — a plain store.set is fine here, unlike
+  // __renderCanvasItems: nothing reads the notification bar's DOM synchronously right after
+  // calling pushNotification (confirmed by grep — the only readers of notifTextEl/notifImageEl/
+  // notifActionBtn were the notification functions themselves, now replaced by this).
+  window.__setNotificationContent = notificationStore.set;
 }
 
 export default function DottoApp({ sections, currentUser }) {
@@ -138,6 +145,7 @@ export default function DottoApp({ sections, currentUser }) {
       <PricingOverlay />
       <SelectionToolbar />
       <CanvasItemsLayer />
+      <NotificationBar />
       <Script src="/dotto-script.js" type="module" strategy="afterInteractive" />
     </>
   );
