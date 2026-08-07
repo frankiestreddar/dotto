@@ -5,7 +5,7 @@ import { ensureDrawings, makeLayerSVG } from './drawing-connections.js';
 import { refreshCanvasCollabForCurrentFolder, renderCollabPill, syncCanvasCollabTitle } from './friends-presence.js';
 import { closeGameOptionsPanel, openGameOptionsPanel, renderFlashcardHTML, renderTypeRightHTML } from './games-flashcard-typeright.js';
 import { applyTransform, ensureSwTicking, saveSnapshot, scheduleWorkspaceSave, updateContextMenuPosition } from './history-autosave.js';
-import { broadcastEditingState, miniLabelForItem, placeCaretEnd, renderRealCardPreview, repositionAllRemoteCursors, syncColorPicker, titleFontSize } from './live-presence.js';
+import { broadcastEditingState, miniLabelForItem, placeCaretEnd, renderRealCardPreview, repositionAllRemoteCursors, syncColorPicker } from './live-presence.js';
 import { buildEpubViewer, buildPdfViewer, renderMediaHTML } from './media-pdf-epub.js';
 import { findNextFreeSlot, setupResizing } from './resize-shortcuts-init.js';
 import { ensureSharedFolderLoaded, kindIconHTML, openBreadcrumbMapPanel } from './shared-canvases-outline.js';
@@ -610,34 +610,6 @@ import { renderFilterHTML, renderShelfHTML } from './stopwatch-search-notificati
                     if (e.target.closest('.source-card-title')) { startRenameFolderCardTitle(sourceTitleEl, it, 'source-card-title'); return; }
                     openFolder(it.folderId);
                 };
-            } else if (it.kind === 'title') {
-                el.style.fontSize = titleFontSize(it.level || 1) + 'px';
-                el.innerHTML = `<div class="format-bar" onmousedown="event.stopPropagation()" onclick="event.stopPropagation()">
-                    <select class="format-select" onmousedown="event.stopPropagation()" onclick="event.stopPropagation()" onchange="setTitleLevel(${it.id}, this.value)">
-                        <option value="1" ${(it.level||1)===1?'selected':''}>H1</option>
-                        <option value="2" ${(it.level||1)===2?'selected':''}>H2</option>
-                        <option value="3" ${(it.level||1)===3?'selected':''}>H3</option>
-                    </select>
-                    <input type="color" class="text-color-swatch" oninput="document.execCommand('foreColor', false, this.value)"/>
-                </div>
-                <div class="body" data-placeholder="Title..."></div>`;
-                const b = el.querySelector('.body'); b.innerHTML = it.html || '';
-                b.onblur = (e) => { if(e.relatedTarget && (e.relatedTarget.closest('.format-bar'))) return; el.classList.remove('editing'); it.html = b.innerHTML; appState.currentEditingEl = null; b.contentEditable = false; broadcastEditingState(false); scheduleWorkspaceSave(); };
-                // Commits + syncs on every keystroke, not just on blur — otherwise a collaborator
-                // watching this card only ever sees the FINAL text once you click away, never the
-                // actual typing happen. scheduleWorkspaceSave() itself already debounces the real
-                // broadcast (~120ms, see queueSyncDiff) so this doesn't flood the channel per
-                // character, just makes it feel genuinely live.
-                b.oninput = () => { it.html = b.innerHTML; scheduleWorkspaceSave(); };
-                b.onkeydown = (e) => { if (e.key === 'Escape') { e.preventDefault(); b.blur(); } };
-                b.onfocus = () => syncColorPicker(b);
-                b.addEventListener('keyup', () => syncColorPicker(b));
-                b.addEventListener('click', () => syncColorPicker(b));
-                el.onclick = (e) => {
-                    e.stopPropagation();
-                    if (appState.currentEditingEl !== el) saveSnapshot();
-                    el.classList.add('editing'); if (!b.isContentEditable) { b.contentEditable = true; placeCaretEnd(b); broadcastEditingState(true, '#item-' + it.id); } appState.currentEditingEl = el;
-                };
             } else if (it.kind === 'table') {
                 el.innerHTML = renderTableHTML(it);
                 if (it.userSized) { el.classList.add('sized'); requestAnimationFrame(() => distributeTableSizing(it, el)); }
@@ -908,6 +880,38 @@ import { renderFilterHTML, renderShelfHTML } from './stopwatch-search-notificati
         };
     }
 
+    // Click-to-edit contentEditable lifecycle for the title card's body, plus wiring the format-
+    // bar's color-picker swatch to stay in sync with the caret's current color — mechanically
+    // lifted out of the old inline title branch in renderLegacyCardBody, now that title is a real
+    // Component (see TitleCard.jsx, app/dotto/CanvasItemsLayer.jsx's CARD_KIND_COMPONENTS). Stays
+    // vanilla rather than becoming React state for the same reason attachWatermarkBody does: it's
+    // coupled to appState.currentEditingEl/broadcastEditingState, shared with other still-
+    // unconverted click-to-edit kinds (note). `el` is found via closest() since React, not this
+    // function, owns that node now.
+    //
+    // b.addEventListener (keyup/click, for syncColorPicker) needs the same AbortController
+    // idempotency fix as setupDraggingAndClicking/setupResizing: this runs on every render() call
+    // (TitleCard's own layout effect has no dependency array, matching every converted kind), and
+    // `b` is a persistent node reused across those calls, not recreated.
+    function attachTitleBody(b, it) {
+        const el = b.closest('.item');
+        b.__titleListenerAbort?.abort();
+        const { signal } = (b.__titleListenerAbort = new AbortController());
+        b.onblur = (e) => { if(e.relatedTarget && (e.relatedTarget.closest('.format-bar'))) return; el.classList.remove('editing'); it.html = b.innerHTML; appState.currentEditingEl = null; b.contentEditable = false; broadcastEditingState(false); scheduleWorkspaceSave(); };
+        // Live per-keystroke commit+sync — see the identical comment on the note body in
+        // renderLegacyCardBody.
+        b.oninput = () => { it.html = b.innerHTML; scheduleWorkspaceSave(); };
+        b.onkeydown = (e) => { if (e.key === 'Escape') { e.preventDefault(); b.blur(); } };
+        b.onfocus = () => syncColorPicker(b);
+        b.addEventListener('keyup', () => syncColorPicker(b), { signal });
+        b.addEventListener('click', () => syncColorPicker(b), { signal });
+        el.onclick = (e) => {
+            e.stopPropagation();
+            if (appState.currentEditingEl !== el) saveSnapshot();
+            el.classList.add('editing'); if (!b.isContentEditable) { b.contentEditable = true; placeCaretEnd(b); broadcastEditingState(true, '#item-' + it.id); } appState.currentEditingEl = el;
+        };
+    }
+
     function renderSelectedOutlines() {
         document.querySelectorAll('.item').forEach(el => {
             const idStr = el.id.replace('item-', '');
@@ -1035,17 +1039,19 @@ import { renderFilterHTML, renderShelfHTML } from './stopwatch-search-notificati
         applyFolderView(folderId);
     }
 
-export { applyFolderView, applyItemWrapperAttrs, attachUniversalItemBehavior, attachWatermarkBody, cascadeDeleteFolderContents, centerOnContent, deleteCanvasCollabsForFolder, deleteWaypointFromDb, expandWaypointCard, openFolder, performMerge, render, renderLegacyCardBody, renderSelectedOutlines, startBoxSelection, syncWaypointToDb };
+export { applyFolderView, applyItemWrapperAttrs, attachTitleBody, attachUniversalItemBehavior, attachWatermarkBody, cascadeDeleteFolderContents, centerOnContent, deleteCanvasCollabsForFolder, deleteWaypointFromDb, expandWaypointCard, openFolder, performMerge, render, renderLegacyCardBody, renderSelectedOutlines, startBoxSelection, syncWaypointToDb };
 
 // React → vanilla bridge, the other direction from window-bridge.js (which is specifically the
 // ~107 auto-generated inline onclick="..." names — see its own header comment). CanvasItem
 // (app/dotto/CanvasItemsLayer.jsx) calls the first three from a per-item layout effect that runs
 // on every render() call: wrapper attrs and universal behavior (drag/click, aiGenerated badge,
 // right-click) for every kind regardless of whether it's converted to a real Component yet; the
-// body only for kinds that aren't (see CARD_KIND_COMPONENTS in CanvasItemsLayer.jsx). The fourth,
-// attachWatermarkBody, is called from WatermarkCard.jsx's own layout effect instead — one
-// converted kind's leftover stateful (not purely rendering) logic, not a generic per-item hook.
+// body only for kinds that aren't (see CARD_KIND_COMPONENTS in CanvasItemsLayer.jsx). The rest —
+// attachWatermarkBody/attachTitleBody — are each called from their own converted kind's own layout
+// effect instead: leftover stateful (not purely rendering) logic specific to that one kind, not a
+// generic per-item hook.
 window.__applyCanvasItemWrapperAttrs = applyItemWrapperAttrs;
 window.__renderLegacyCardBody = renderLegacyCardBody;
 window.__attachUniversalItemBehavior = attachUniversalItemBehavior;
 window.__attachWatermarkBody = attachWatermarkBody;
+window.__attachTitleBody = attachTitleBody;

@@ -1467,3 +1467,9 @@ import { render } from './waypoints-render-loop.js';
     }
 
 export { broadcastCursorPositionThrottled, broadcastEditingState, broadcastItemDragPositions, broadcastItemResize, closeConvo, closeSharedCanvasView, ensureCanvasPresenceChannel, findItemById, goToCollaboratorCursor, importSharedCardsAtScreenPoint, miniLabelForItem, openConvo, placeCaretEnd, queueSyncDiff, renderConvoBody, renderInlineCanvas, renderRealCardPreview, repositionAllRemoteCursors, sanitizeFlashcardSnapshot, sendMsg, setTitleLevel, snapshotItem, syncColorPicker, titleFontSize };
+
+// React → vanilla bridge (see the identical pattern/comment in cards-misc.js) — used by
+// TitleCard.jsx (app/dotto/), which can't import these directly since public/dotto/*.js isn't
+// reachable from app/dotto/.
+window.__syncColorPicker = syncColorPicker;
+window.__titleFontSize = titleFontSize;
