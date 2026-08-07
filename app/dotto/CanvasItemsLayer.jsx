@@ -38,13 +38,20 @@ const CARD_KIND_COMPONENTS = { checklist: ChecklistCard, embed: EmbedCard, statc
 // mutated an item in place and called render() without also touching the DOM directly (drag/resize
 // self-update the DOM alongside the mutation, which is why those still looked fine) — e.g. pasting
 // an embed URL updated `it.embedUrl` correctly but the card never visually reflected it until a
-// full page reload rebuilt every object fresh. Every item's function body + effect now re-runs on
-// every render() call, same cost the pre-canvas-items-react code always paid for a legacy body
-// rebuild — the win this still keeps is DOM node identity via key={it.id} below (React's list
-// reconciliation preserves it independent of memo), which is what actually avoids the old
-// world.innerHTML='' problem (losing focus/scroll/mid-transition state on every interaction).
-// Skipping unchanged items' work would need real per-item dirty tracking to do correctly — not
-// worth the invasive change across every mutation call site until this is a proven bottleneck.
+// full page reload rebuilt every object fresh.
+//
+// That fix had its own side effect worth flagging: every item's function body + effect now re-runs
+// on every render() call, no matter which item actually changed — e.g. a running Stopwatch's own
+// per-second tick (ensureSwTicking/swTick, history-autosave.js) calls render() for the WHOLE
+// canvas, so every OTHER item's layout effect re-runs too. For converted kinds that's harmless
+// (React's own reconciler still diffs JSX output and no-ops an unchanged Component). For kinds
+// still on window.__renderLegacyCardBody it isn't: that call is a blind `el.innerHTML = ...`
+// rebuild with no diffing of its own, so an unrelated item's tick was blowing away e.g. a Shelf
+// card's mid-transition selection-highlight state once a second, unprompted. The __lastBodySig
+// check below is a cheap, targeted fix for exactly that: skip the rebuild when a fresh
+// JSON.stringify(it) matches what was last actually rendered, so a legacy body only rebuilds when
+// its own data genuinely changed — real per-item dirty tracking, just derived instead of
+// hand-maintained, so no mutation call site needs touching.
 function CanvasItem({ it }) {
   const ref = useRef(null);
   const Component = CARD_KIND_COMPONENTS[it.kind];
@@ -52,7 +59,13 @@ function CanvasItem({ it }) {
   useLayoutEffect(() => {
     if (!ref.current) return;
     window.__applyCanvasItemWrapperAttrs(ref.current, it);
-    if (!Component) window.__renderLegacyCardBody(ref.current, it);
+    if (!Component) {
+      const sig = JSON.stringify(it);
+      if (ref.current.__lastBodySig !== sig) {
+        ref.current.__lastBodySig = sig;
+        window.__renderLegacyCardBody(ref.current, it);
+      }
+    }
     window.__attachUniversalItemBehavior(ref.current, it);
   });
 

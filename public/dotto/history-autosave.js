@@ -28,18 +28,26 @@ import { centerOnContent, render } from './waypoints-render-loop.js';
     }
     function swTick() {
         if (!appState.folders[appState.currentFolderId]) return;
-        if (appState.currentEditingEl) {
-            // Don't yank focus away from whatever text the user is editing — just patch the
-            // visible timer digits directly instead of a full re-render.
-            appState.folders[appState.currentFolderId].items.forEach(it => {
-                if (it.kind === 'stopwatch' && it.swRunning) {
-                    const el = document.getElementById('item-' + it.id);
-                    const timeEl = el && el.querySelector('.sw-time');
-                    if (timeEl) timeEl.textContent = swFormatTime(swCurrentElapsedMs(it));
-                }
-            });
-            return;
-        }
+        // Always patch every running stopwatch's own digits directly first — cheap, and doesn't
+        // depend on the render() call below actually landing visually on this exact tick (called
+        // from a plain setInterval, outside any React event, unlike a real user click on Start/
+        // Stop — see StopwatchCard.jsx). Previously this direct patch only ran while
+        // appState.currentEditingEl was set (to avoid yanking focus from whatever the user was
+        // typing elsewhere); it's unconditional now since it's just as correct — and more
+        // reliable — the rest of the time too.
+        appState.folders[appState.currentFolderId].items.forEach(it => {
+            if (it.kind === 'stopwatch' && it.swRunning) {
+                const el = document.getElementById('item-' + it.id);
+                const timeEl = el && el.querySelector('.sw-time');
+                if (timeEl) timeEl.textContent = swFormatTime(swCurrentElapsedMs(it));
+            }
+        });
+        // Don't yank focus away from whatever text the user is editing — a full render() would
+        // rebuild that card's DOM out from under an in-progress edit (see renderLegacyCardBody's
+        // title/note/watermark branches). Still needed for kinds connected to this stopwatch via
+        // propagateCanvasStreams (Statcard, Shelf) to see fresh data live while it runs, so this
+        // isn't skipped outright the rest of the time, just deferred until nothing's being edited.
+        if (appState.currentEditingEl) return;
         render();
     }
 
