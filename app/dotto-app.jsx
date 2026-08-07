@@ -1,8 +1,10 @@
 "use client";
 
 import Script from "next/script";
+import { flushSync } from "react-dom";
 import { createClient } from "@/lib/supabase/client";
-import { pricingOverlayStore, selectionToolbarStore } from "./dotto/bridges";
+import { canvasItemsStore, pricingOverlayStore, selectionToolbarStore } from "./dotto/bridges";
+import CanvasItemsLayer from "./dotto/CanvasItemsLayer";
 import PricingOverlay from "./dotto/PricingOverlay";
 import SelectionToolbar from "./dotto/SelectionToolbar";
 
@@ -84,6 +86,16 @@ if (typeof window !== "undefined") {
   // app/dotto/SelectionToolbar.jsx and search-orchestration-selection.js's
   // showSelectionToolbarFor/hideSelectionToolbar.
   window.__setSelectionToolbarState = selectionToolbarStore.set;
+  // Canvas items layer (see app/dotto/CanvasItemsLayer.jsx, PHASE2_ROADMAP.md's canvas-items-react
+  // plan) — render() (waypoints-render-loop.js) calls this in place of its old world.innerHTML=''
+  // rebuild. Unlike the two stores above, this one MUST commit synchronously: at least one caller
+  // (drag-drop-chat.js's alt-duplicate-drag) does `render(); document.getElementById('item-'+id)`
+  // immediately afterward and depends on that node already existing. A plain store.set(...) here
+  // would only schedule the update (React 18+ batches/defers updates triggered outside of React's
+  // own event handlers to a microtask), so this wraps it in flushSync to force the commit — and,
+  // since each CanvasItem's own body-building happens in a useLayoutEffect (synchronous, pre-paint),
+  // flushSync flushes that too, before this function returns.
+  window.__renderCanvasItems = (items) => flushSync(() => canvasItemsStore.set(items));
 }
 
 export default function DottoApp({ sections, currentUser }) {
@@ -125,6 +137,7 @@ export default function DottoApp({ sections, currentUser }) {
       </div>
       <PricingOverlay />
       <SelectionToolbar />
+      <CanvasItemsLayer />
       <Script src="/dotto-script.js" type="module" strategy="afterInteractive" />
     </>
   );
