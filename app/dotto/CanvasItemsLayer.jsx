@@ -27,9 +27,8 @@ import WaypointCard from "./WaypointCard";
 // array literal every render trips that same warning SelectionToolbar.jsx originally had.
 const EMPTY_ITEMS = [];
 
-// Kinds converted to a real Component — see PHASE2_ROADMAP.md's migration order. Every other kind
-// still renders via the legacy vanilla path (window.__renderLegacyCardBody). Add an entry here the
-// same PR a kind's Component ships; nothing else in this file needs to change per kind.
+// Every card kind maps to a real Component now — see PHASE2_ROADMAP.md's migration order for how
+// each one got here. A future new kind gets added here (and nowhere else in this file).
 const CARD_KIND_COMPONENTS = {
   checklist: ChecklistCard,
   embed: EmbedCard,
@@ -50,14 +49,12 @@ const CARD_KIND_COMPONENTS = {
   waypoint: WaypointCard,
 };
 
-// One canvas item's wrapper <div>. React's job is creating/keying/removing this node and, for
-// converted kinds, owning its real JSX children (Component below) — everything else (className,
-// style, and, for kinds NOT YET converted, innerHTML/event wiring) is still owned by vanilla code
-// (public/dotto/waypoints-render-loop.js), called from a layout effect so it runs synchronously
-// before paint, matching the old code's single-pass createElement+build+appendChild (no visible
-// empty-card flash on first mount). For a converted kind, the wrapper attrs + universal behavior
-// (drag/click, aiGenerated badge, right-click suppression — none of that is kind-specific) still
-// run the same way; only the body content becomes real JSX instead of window.__renderLegacyCardBody.
+// One canvas item's wrapper <div>. React's job is creating/keying/removing this node and owning
+// its real JSX children (Component) — className/style/event wiring for the wrapper itself is
+// still owned by vanilla code (public/dotto/waypoints-render-loop.js), called from a layout effect
+// so it runs synchronously before paint, matching the old code's single-pass
+// createElement+build+appendChild (no visible empty-card flash on first mount). None of that
+// (drag/click, aiGenerated badge, right-click suppression) is kind-specific.
 //
 // Deliberately NOT memo()'d, and the layout effect below deliberately has NO dependency array —
 // both would gate re-running on the `it` prop's object REFERENCE, but appState mutates items in
@@ -73,15 +70,10 @@ const CARD_KIND_COMPONENTS = {
 // That fix had its own side effect worth flagging: every item's function body + effect now re-runs
 // on every render() call, no matter which item actually changed — e.g. a running Stopwatch's own
 // per-second tick (ensureSwTicking/swTick, history-autosave.js) calls render() for the WHOLE
-// canvas, so every OTHER item's layout effect re-runs too. For converted kinds that's harmless
-// (React's own reconciler still diffs JSX output and no-ops an unchanged Component). For kinds
-// still on window.__renderLegacyCardBody it isn't: that call is a blind `el.innerHTML = ...`
-// rebuild with no diffing of its own, so an unrelated item's tick was blowing away e.g. a Shelf
-// card's mid-transition selection-highlight state once a second, unprompted. The __lastBodySig
-// check below is a cheap, targeted fix for exactly that: skip the rebuild when a fresh
-// JSON.stringify(it) matches what was last actually rendered, so a legacy body only rebuilds when
-// its own data genuinely changed — real per-item dirty tracking, just derived instead of
-// hand-maintained, so no mutation call site needs touching.
+// canvas, so every OTHER item's layout effect re-runs too. Harmless here (React's own reconciler
+// still diffs each Component's JSX output and no-ops an unchanged one), but individual Components
+// with an expensive rebuild of their own (CanvasCard's inline preview, MediaCard's PDF/EPUB
+// viewer) gate that specific work behind their own dependency array — see their own comments.
 function CanvasItem({ it }) {
   const ref = useRef(null);
   const Component = CARD_KIND_COMPONENTS[it.kind];
@@ -89,13 +81,6 @@ function CanvasItem({ it }) {
   useLayoutEffect(() => {
     if (!ref.current) return;
     window.__applyCanvasItemWrapperAttrs(ref.current, it);
-    if (!Component) {
-      const sig = JSON.stringify(it);
-      if (ref.current.__lastBodySig !== sig) {
-        ref.current.__lastBodySig = sig;
-        window.__renderLegacyCardBody(ref.current, it);
-      }
-    }
     window.__attachUniversalItemBehavior(ref.current, it);
   });
 
