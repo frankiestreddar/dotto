@@ -1,5 +1,5 @@
 import { clearSearch, countSourceEntries, escapeHtml, findParentFolderId, truncateCenter } from './ai-assistant-suggestions.js';
-import { renderChecklistHTML, renderStatcardHTML } from './cards-misc.js';
+import { renderStatcardHTML } from './cards-misc.js';
 import { appState, breadcrumbs, bringCardToFront, btnBack, btnForward, canvas, contextMenu, supabase, world, zoomControl } from './core-state.js';
 import { setupDraggingAndClicking } from './drag-drop-chat.js';
 import { ensureDrawings, makeLayerSVG } from './drawing-connections.js';
@@ -714,8 +714,6 @@ import { renderFilterHTML, renderShelfHTML, renderStopwatchHTML } from './stopwa
                     window.addEventListener('pointermove', onMove);
                     window.addEventListener('pointerup', onUp);
                 }, { signal: waypointSignal });
-            } else if (it.kind === 'checklist') {
-                el.innerHTML = renderChecklistHTML(it);
             } else if (it.kind === 'watermark') {
                 el.innerHTML = `<div class="body watermark-text" data-placeholder="Type to trace...">${it.html || ''}</div>`;
                 const b = el.querySelector('.watermark-text');
