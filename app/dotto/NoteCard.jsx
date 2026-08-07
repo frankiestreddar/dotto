@@ -32,7 +32,16 @@ export default function NoteCard({ it }) {
     document.execCommand(cmd);
     const el = document.getElementById("item-" + it.id);
     const body = el && el.querySelector(".body");
-    if (body) window.__syncNoteFormatButtons(body);
+    if (!body) return;
+    window.__syncNoteFormatButtons(body);
+    // With an actual text selection, queryCommandState reflects the just-applied toggle
+    // synchronously (the call above already covers that case). With a collapsed selection (just a
+    // caret, nothing selected — toggling on/off what the NEXT typed character will look like),
+    // some browsers don't settle queryCommandState's answer until a tick later — turning a button
+    // off then read back as still "on" until some later event (e.g. a keypress) happened to
+    // re-sync it. This is a correction pass for exactly that case, cheap and invisible (runs
+    // before the next paint) when the immediate call above was already correct.
+    requestAnimationFrame(() => window.__syncNoteFormatButtons(body));
   };
 
   return (
