@@ -25,8 +25,7 @@ bearing on what to click).
 - [ ] `openSearchCardsModal` — with 2+ cards dragged into search context, click the context pill to expand it
 - [ ] `closeSearchCardsModal` — with that modal open, close it
 
-## Notes / bookmarks / embeds / checklist
-- [ ] `editBookmark` — add a Bookmark card, click it, confirm the edit field opens
+## Notes / embeds / checklist
 - [ ] `editEmbed` — add an Embed card, click it, confirm the edit field opens
 - [ ] `addTask` — add a Checklist card, click "+ add task"
 - [ ] `toggleTask` — check/uncheck a checklist item
@@ -121,6 +120,11 @@ bearing on what to click).
 - [ ] `addTableCol` / `addTableRow` — open a source, add a column and a row
 - [ ] `handleTableKeydown` — type into a cell, confirm Tab/Enter navigation works
 - [ ] `updateTableCell` — edit a cell's text
+- [ ] `setLastFocusedCell` — click into any cell (was missing from the original generation — this
+      one threw `ReferenceError: setLastFocusedCell is not defined` in the console until fixed)
+- [ ] `renameTableColumn` — rename a column header
+- [ ] `handleColNameKeydown` — while renaming a column header, confirm Enter/Escape work
+- [ ] `openTableCellContextMenu` — right-click a cell, confirm the context menu opens
 - [ ] `triggerCellImageUpload` — insert an image into a cell
 - [ ] `triggerCellAudioUpload` — insert an audio file into a cell
 - [ ] `startCellAudioRecording` / `stopCellAudioRecording` — record audio directly into a cell

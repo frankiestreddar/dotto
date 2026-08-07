@@ -746,4 +746,4 @@ import { render } from './waypoints-render-loop.js';
         render();
     }
 
-export { addTableCol, addTableRow, attachStaticTableHoverZones, colgroupHTML, distributeTableSizing, handleTableKeydown, importDelimitedIntoSource, layoutSourceTableColumns, renderStaticTableHTML, renderTableHTML, startCellAudioRecording, stopCellAudioRecording, triggerCellAudioUpload, triggerCellImageUpload, updateTableCell };
+export { addTableCol, addTableRow, attachStaticTableHoverZones, colgroupHTML, distributeTableSizing, handleColNameKeydown, handleTableKeydown, importDelimitedIntoSource, layoutSourceTableColumns, renameTableColumn, renderStaticTableHTML, renderTableHTML, setLastFocusedCell, startCellAudioRecording, stopCellAudioRecording, triggerCellAudioUpload, triggerCellImageUpload, updateTableCell };
