@@ -1,6 +1,6 @@
 "use client";
 
-import { memo, useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore } from "react";
+import { useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore } from "react";
 import { createPortal } from "react-dom";
 import { canvasItemsStore } from "./bridges";
 import EmbedCard from "./EmbedCard";
@@ -25,13 +25,23 @@ const CARD_KIND_COMPONENTS = { embed: EmbedCard };
 // (drag/click, aiGenerated badge, right-click suppression — none of that is kind-specific) still
 // run the same way; only the body content becomes real JSX instead of window.__renderLegacyCardBody.
 //
-// Wrapped in memo() so an item whose `it` object reference is unchanged since the last render()
-// call (the common case — appState mutates items in place, e.g. drag/resize/bringCardToFront)
-// skips re-running entirely: no re-render, no re-run of the layout effect, no rebuilt innerHTML.
-// That's the actual fix for render()'s old full-teardown-every-call cost — see the canvas-items-
-// react plan in PHASE2_ROADMAP.md. Items whose reference DOES change (added, or replaced wholesale
-// by a remote sync — see live-presence.js's applyRemoteSyncBroadcast) re-run normally.
-const CanvasItem = memo(function CanvasItem({ it }) {
+// Deliberately NOT memo()'d, and the layout effect below deliberately has NO dependency array —
+// both would gate re-running on the `it` prop's object REFERENCE, but appState mutates items in
+// place almost everywhere (checklist toggles, embed edits, bringCardToFront's zIndex, drag/resize)
+// rather than replacing the object — render() itself, not object identity, is this app's one
+// authoritative "something changed, please reflect it" signal (see every render() call site).
+// Gating on reference equality was tried first and is WRONG: it silently dropped any update that
+// mutated an item in place and called render() without also touching the DOM directly (drag/resize
+// self-update the DOM alongside the mutation, which is why those still looked fine) — e.g. pasting
+// an embed URL updated `it.embedUrl` correctly but the card never visually reflected it until a
+// full page reload rebuilt every object fresh. Every item's function body + effect now re-runs on
+// every render() call, same cost the pre-canvas-items-react code always paid for a legacy body
+// rebuild — the win this still keeps is DOM node identity via key={it.id} below (React's list
+// reconciliation preserves it independent of memo), which is what actually avoids the old
+// world.innerHTML='' problem (losing focus/scroll/mid-transition state on every interaction).
+// Skipping unchanged items' work would need real per-item dirty tracking to do correctly — not
+// worth the invasive change across every mutation call site until this is a proven bottleneck.
+function CanvasItem({ it }) {
   const ref = useRef(null);
   const Component = CARD_KIND_COMPONENTS[it.kind];
 
@@ -40,10 +50,10 @@ const CanvasItem = memo(function CanvasItem({ it }) {
     window.__applyCanvasItemWrapperAttrs(ref.current, it);
     if (!Component) window.__renderLegacyCardBody(ref.current, it);
     window.__attachUniversalItemBehavior(ref.current, it);
-  }, [it, Component]);
+  });
 
   return <div ref={ref} id={"item-" + it.id}>{Component ? <Component it={it} /> : null}</div>;
-});
+}
 
 // Portals the current folder's item cards into #items-layer, a stable child of #world added to
 // content/fragments/canvas-area.html (see that file's comment) specifically so React never has to
