@@ -6,13 +6,17 @@ import { canvasItemsStore } from "./bridges";
 import CanvasCard from "./CanvasCard";
 import ChecklistCard from "./ChecklistCard";
 import EmbedCard from "./EmbedCard";
+import FilterCard from "./FilterCard";
 import FlashcardCard from "./FlashcardCard";
 import NoteCard from "./NoteCard";
+import SentenceCard from "./SentenceCard";
+import ShelfCard from "./ShelfCard";
 import SourceCard from "./SourceCard";
 import StatcardCard from "./StatcardCard";
 import StopwatchCard from "./StopwatchCard";
 import TableCard from "./TableCard";
 import TitleCard from "./TitleCard";
+import TypeRightCard from "./TypeRightCard";
 import WatermarkCard from "./WatermarkCard";
 
 // Module-level, not inline in the hook call below — useSyncExternalStore's getServerSnapshot must
@@ -24,7 +28,23 @@ const EMPTY_ITEMS = [];
 // Kinds converted to a real Component — see PHASE2_ROADMAP.md's migration order. Every other kind
 // still renders via the legacy vanilla path (window.__renderLegacyCardBody). Add an entry here the
 // same PR a kind's Component ships; nothing else in this file needs to change per kind.
-const CARD_KIND_COMPONENTS = { checklist: ChecklistCard, embed: EmbedCard, flashcard: FlashcardCard, folder: CanvasCard, note: NoteCard, source: SourceCard, statcard: StatcardCard, stopwatch: StopwatchCard, table: TableCard, title: TitleCard, watermark: WatermarkCard };
+const CARD_KIND_COMPONENTS = {
+  checklist: ChecklistCard,
+  embed: EmbedCard,
+  filter: FilterCard,
+  flashcard: FlashcardCard,
+  folder: CanvasCard,
+  note: NoteCard,
+  sentence: SentenceCard,
+  shelf: ShelfCard,
+  source: SourceCard,
+  statcard: StatcardCard,
+  stopwatch: StopwatchCard,
+  table: TableCard,
+  title: TitleCard,
+  typeright: TypeRightCard,
+  watermark: WatermarkCard,
+};
 
 // One canvas item's wrapper <div>. React's job is creating/keying/removing this node and, for
 // converted kinds, owning its real JSX children (Component below) — everything else (className,

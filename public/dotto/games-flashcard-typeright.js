@@ -639,20 +639,19 @@ import { render } from './waypoints-render-loop.js';
         render();
     }
 
-export { addGameColumnSlot, cellContentType, closeGameOptionsPanel, colHasAnyCloze, defaultFlashcardDeck, fcCurrentRow, fcFlip, fcPlayableCards, fcRate, fcToggleMode, normalizeGameSlot, openGameOptionsPanel, removeGameColumnSlot, renderFlashcardHTML, renderGameFaceBlocksHTML, renderTypeRightHTML, resolveGameFace, setGameColumnSlot, trCheck, trFocusInput, trNext, trToggleMode, trUpdateInput };
+export { addGameColumnSlot, cellContentType, closeGameOptionsPanel, colHasAnyCloze, defaultFlashcardDeck, fcCurrentRow, fcFlip, fcPlayableCards, fcRate, fcToggleMode, normalizeGameSlot, openGameOptionsPanel, removeGameColumnSlot, renderFlashcardHTML, renderGameFaceBlocksHTML, renderTypeRightHTML, resolveGameFace, setGameColumnSlot, trCheck, trCurrentCard, trFocusInput, trNext, trPlayableCards, trToggleMode, trUpdateInput };
 
 // React → vanilla bridge (see the identical pattern/comment in cards-misc.js) — used by
-// GameOptionsPanel.jsx (app/dotto/), shared by FlashcardCard.jsx and (once it converts too)
-// TypeRightCard.jsx. renderGameOptionsHTML itself stays as the string-building implementation
-// Typeright's still-legacy renderTypeRightHTML depends on until it converts — not deleted yet,
-// see PHASE2_ROADMAP.md's Game options/cloze entry.
+// GameOptionsPanel.jsx (app/dotto/), shared by FlashcardCard.jsx and TypeRightCard.jsx.
 window.__cellContentType = cellContentType;
 window.__colHasAnyCloze = colHasAnyCloze;
 window.__normalizeGameSlot = normalizeGameSlot;
-// Same bridge, used by FlashcardCard.jsx directly (not just its options panel) — the
-// front/back-column resolution + cloze-driven deck filtering is genuine parsing logic (same
-// reasoning as the three above), not boilerplate worth duplicating into app/dotto/.
+// Same bridge, used by FlashcardCard.jsx/TypeRightCard.jsx directly (not just their shared options
+// panel) — the front/back-column resolution + cloze-driven deck filtering is genuine parsing
+// logic (same reasoning as the three above), not boilerplate worth duplicating into app/dotto/.
 window.__fcCurrentRow = fcCurrentRow;
 window.__fcPlayableCards = fcPlayableCards;
 window.__renderGameFaceBlocksHTML = renderGameFaceBlocksHTML;
 window.__resolveGameFace = resolveGameFace;
+window.__trCurrentCard = trCurrentCard;
+window.__trPlayableCards = trPlayableCards;

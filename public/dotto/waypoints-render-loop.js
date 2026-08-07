@@ -3,7 +3,7 @@ import { appState, breadcrumbs, bringCardToFront, btnBack, btnForward, canvas, c
 import { setupDraggingAndClicking } from './drag-drop-chat.js';
 import { ensureDrawings, makeLayerSVG } from './drawing-connections.js';
 import { refreshCanvasCollabForCurrentFolder, renderCollabPill, syncCanvasCollabTitle } from './friends-presence.js';
-import { closeGameOptionsPanel, openGameOptionsPanel, renderTypeRightHTML } from './games-flashcard-typeright.js';
+import { closeGameOptionsPanel, openGameOptionsPanel } from './games-flashcard-typeright.js';
 import { applyTransform, ensureSwTicking, saveSnapshot, scheduleWorkspaceSave, updateContextMenuPosition } from './history-autosave.js';
 import { broadcastEditingState, miniLabelForItem, placeCaretEnd, renderRealCardPreview, repositionAllRemoteCursors, syncColorPicker } from './live-presence.js';
 import { buildEpubViewer, buildPdfViewer, renderMediaHTML } from './media-pdf-epub.js';
@@ -13,7 +13,6 @@ import { closeSourceAddMenu } from './source-buttons-cursor-mode.js';
 import { attachStaticTableHoverZones, layoutSourceTableColumns, renderStaticTableHTML } from './source-table.js';
 import { closeCellTagPicker } from './source-tags-ai.js';
 import { applyConnections, renderConnectionsLayer } from './srs-connections-core.js';
-import { renderFilterHTML, renderShelfHTML } from './stopwatch-search-notifications.js';
 
 
     // ---------- Waypoint card expand/collapse ----------
@@ -682,22 +681,6 @@ import { renderFilterHTML, renderShelfHTML } from './stopwatch-search-notificati
                     window.addEventListener('pointermove', onMove);
                     window.addEventListener('pointerup', onUp);
                 }, { signal: waypointSignal });
-            } else if (it.kind === 'typeright') {
-                el.innerHTML = renderTypeRightHTML(it);
-                setupResizing(el, it);
-            } else if (it.kind === 'shelf') {
-                el.innerHTML = renderShelfHTML(it);
-            } else if (it.kind === 'filter') {
-                el.innerHTML = renderFilterHTML(it);
-            } else if (it.kind === 'sentence') {
-                // Dropped from a Dotbot example-sentence drag (see importDotbotResultAtScreenPoint)
-                // — a dedicated read-only card, not a note: big target-script text, small
-                // transliteration underneath only when the AI supplied one (i.e. the script isn't
-                // Latin-based), translation below. No contentEditable/onblur wiring — uneditable,
-                // like statcard/stopwatch/shelf above.
-                el.innerHTML = `<div class="sentence-card-text">${escapeHtml(it.text || '')}</div>
-                    ${it.translit ? `<div class="sentence-card-translit">${escapeHtml(it.translit)}</div>` : ''}
-                    ${it.translation ? `<div class="sentence-card-translation">${escapeHtml(it.translation)}</div>` : ''}`;
             }
     }
 

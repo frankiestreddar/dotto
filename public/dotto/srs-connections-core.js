@@ -1050,3 +1050,9 @@ import { render, renderSelectedOutlines, startBoxSelection, syncWaypointToDb } f
     };
 
 export { add, applyConnections, applyFilterToRows, calculateSM2, cancelAddingKind, clearDataLinkPending, collectAvailableFilterTags, deepCloneItem, defaultSrsState, deleteClonedItemFolders, diffRatings, isValidConnection, renderConnectionsLayer, setDrawMode, startConnectionDrag, startDrawStroke, toggleDrawFromMenu, updateDrawLayerBtns };
+
+// React → vanilla bridge (see the identical pattern/comment in cards-misc.js) — used by
+// FilterCard.jsx (app/dotto/), which can't import these directly since public/dotto/*.js isn't
+// reachable from app/dotto/.
+window.__applyFilterToRows = applyFilterToRows;
+window.__collectAvailableFilterTags = collectAvailableFilterTags;
