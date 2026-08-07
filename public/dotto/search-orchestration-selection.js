@@ -58,8 +58,6 @@ import { render } from './waypoints-render-loop.js';
             text = (snapshot.tasks || []).map(t => t.text).join('; ');
         } else if (snapshot.kind === 'flashcard' || snapshot.kind === 'typeright') {
             text = (snapshot.cards || []).map(c => `${c.front} - ${c.back}`).join('; ');
-        } else if (snapshot.kind === 'bookmark') {
-            text = snapshot.html || snapshot.bookmarkUrl || '';
         } else if (snapshot.kind === 'embed') {
             text = snapshot.embedUrl || '';
         } else if (snapshot.kind === 'filter') {

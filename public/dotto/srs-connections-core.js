@@ -749,7 +749,6 @@ import { render, renderSelectedOutlines, startBoxSelection, syncWaypointToDb } f
         }
         else if (kind === 'table') { base.tableData = [['', '', ''], ['', '', ''], ['', '', '']]; base.w = null; base.h = null; }
         else if (kind === 'media') { base.mediaType = null; base.mediaSrc = null; base.mediaName = null; }
-        else if (kind === 'bookmark') { base.html = ''; base.bookmarkUrl = ''; }
         else if (kind === 'checklist') { base.tasks = []; } // no longer creatable, kept for existing cards — see kindLabel
         else if (kind === 'embed') { base.embedUrl = ''; }
         else if (kind === 'watermark') { base.html = ''; }

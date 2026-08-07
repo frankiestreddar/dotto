@@ -1514,12 +1514,6 @@
     .epub-viewer-container{width:100%;height:100%;}
     .epub-viewer-container iframe{border:none;}
 
-    .item.bookmark{width:200px;height:90px;justify-content:center;align-items:flex-start;gap:4px;}
-    .bookmark-icon{font-size:16px;}
-    .bookmark-title{font-size:14px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;width:100%;}
-    .bookmark-edit{position:absolute;top:6px;right:8px;cursor:pointer;color:var(--ink-soft);font-size:12px;}
-    .bookmark-edit:hover{color:white;}
-
     /* padding:0/overflow:hidden so the header+iframe reach every edge (same as .item.media) — the
        empty (no embedUrl yet) placeholder centers itself via .embed-empty instead of relying on
        the card's own padding for breathing room. */

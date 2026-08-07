@@ -245,7 +245,7 @@ import { applyFolderView, centerOnContent, expandWaypointCard, openFolder, rende
         if (kind === 'title') return `heading-${level || 1}.png`;
         const files = {
             folder: 'canvas.png', source: 'source.png', table: 'table.png', media: 'media.png',
-            bookmark: 'bookmark.png', checklist: 'checklist.png', watermark: 'watermark.png',
+            checklist: 'checklist.png', watermark: 'watermark.png',
             flashcard: 'flashcards.png', typeright: 'typeright.png', note: 'note.png', statcard: 'statcard.png',
             stopwatch: 'stopwatch.png', shelf: 'shelf.png', waypoint: 'waypoint.png',
             filter: 'tag-button.png', // no dedicated icon asset yet — closest existing one, since filtering is tag-based
@@ -266,7 +266,6 @@ import { applyFolderView, centerOnContent, expandWaypointCard, openFolder, rende
         if (item.kind === 'folder' || item.kind === 'source') return (appState.folders[item.folderId] ? appState.folders[item.folderId].title : 'Canvas');
         if (item.kind === 'table') return 'Table';
         if (item.kind === 'media') return 'Media';
-        if (item.kind === 'bookmark') return item.html ? stripHtml(item.html) : 'Bookmark';
         if (item.kind === 'embed') return item.embedUrl ? shortUrl(item.embedUrl) : 'Embed';
         if (item.kind === 'checklist') return 'Checklist';
         if (item.kind === 'watermark') return 'Watermark';

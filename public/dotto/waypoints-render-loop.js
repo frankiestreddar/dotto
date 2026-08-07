@@ -1,5 +1,5 @@
 import { clearSearch, countSourceEntries, escapeHtml, findParentFolderId, truncateCenter } from './ai-assistant-suggestions.js';
-import { editBookmark, editEmbed, renderChecklistHTML, renderEmbedHTML, renderStatcardHTML, shortUrl } from './cards-misc.js';
+import { editEmbed, renderChecklistHTML, renderEmbedHTML, renderStatcardHTML } from './cards-misc.js';
 import { appState, breadcrumbs, bringCardToFront, btnBack, btnForward, canvas, contextMenu, supabase, world, zoomControl } from './core-state.js';
 import { setupDraggingAndClicking } from './drag-drop-chat.js';
 import { ensureDrawings, makeLayerSVG } from './drawing-connections.js';
@@ -652,16 +652,6 @@ import { renderFilterHTML, renderShelfHTML, renderStopwatchHTML } from './stopwa
                 // A no-op until there's real content to resize (renderMediaHTML's empty/uploading
                 // states have no .resize handle at all yet — see setupResizing's own early return).
                 setupResizing(el, it);
-            } else if (it.kind === 'bookmark') {
-                el.innerHTML = `<div class="bookmark-icon">🔖</div>
-                    <div class="bookmark-title">${it.html || (it.bookmarkUrl ? shortUrl(it.bookmarkUrl) : 'New Bookmark')}</div>
-                    <div class="bookmark-edit" onmousedown="event.stopPropagation()" onclick="editBookmark(${it.id})" title="Edit link">✎</div>`;
-                el.onclick = (e) => {
-                    e.stopPropagation();
-                    if (e.target.closest('.bookmark-edit')) return;
-                    if (it.bookmarkUrl) window.open(it.bookmarkUrl, '_blank');
-                    else editBookmark(it.id);
-                };
             } else if (it.kind === 'embed') {
                 el.innerHTML = renderEmbedHTML(it);
                 if (!it.embedUrl) {
@@ -748,7 +738,7 @@ import { renderFilterHTML, renderShelfHTML, renderStopwatchHTML } from './stopwa
                 // — a dedicated read-only card, not a note: big target-script text, small
                 // transliteration underneath only when the AI supplied one (i.e. the script isn't
                 // Latin-based), translation below. No contentEditable/onblur wiring — uneditable,
-                // like bookmark/statcard/stopwatch/shelf above.
+                // like statcard/stopwatch/shelf above.
                 el.innerHTML = `<div class="sentence-card-text">${escapeHtml(it.text || '')}</div>
                     ${it.translit ? `<div class="sentence-card-translit">${escapeHtml(it.translit)}</div>` : ''}
                     ${it.translation ? `<div class="sentence-card-translation">${escapeHtml(it.translation)}</div>` : ''}`;

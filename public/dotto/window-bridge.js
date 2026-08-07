@@ -8,7 +8,7 @@
 
 import { handleAddMenuSearchInput, newSourceClicked, switchAddTab, toggleAddMenuSearch } from './add-menu.js';
 import { handleSearchFocus, handleSearchInput } from './ai-assistant-suggestions.js';
-import { addTask, editBookmark, editEmbed, removeTask, toggleTask, updateTaskDeadline, updateTaskText } from './cards-misc.js';
+import { addTask, editEmbed, removeTask, toggleTask, updateTaskDeadline, updateTaskText } from './cards-misc.js';
 import { prepareAdd } from './copy-paste.js';
 import { handleCollabSearch, handleMsgSearch, openCollabPanel } from './friends-presence.js';
 import { addGameColumnSlot, fcFlip, fcRate, fcToggleMode, removeGameColumnSlot, setGameColumnSlot, trCheck, trFocusInput, trNext, trToggleMode, trUpdateInput } from './games-flashcard-typeright.js';
@@ -54,7 +54,6 @@ window.deleteContextColumn = deleteContextColumn;
 window.deleteContextRow = deleteContextRow;
 window.deleteDetailDraft = deleteDetailDraft;
 window.deployPurchasedTemplate = deployPurchasedTemplate;
-window.editBookmark = editBookmark;
 window.editEmbed = editEmbed;
 window.fcFlip = fcFlip;
 window.fcRate = fcRate;

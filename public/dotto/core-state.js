@@ -138,7 +138,6 @@
         tools: { label: 'Tools', categoryDesc: 'Tools that help you interact with content — read, record, link, and trace.', items: [
             { kind: 'reader', label: 'Reader', icon: '/assets/icons/reader.png' },
             { kind: 'voice', label: 'Voice Recorder', icon: '/assets/icons/voice.png' },
-            { kind: 'bookmark', label: 'Bookmark', icon: '/assets/icons/bookmark.png' },
             { kind: 'watermark', label: 'Watermark', icon: '/assets/icons/watermark.png' },
         ]},
         utilities: { label: 'Utilities', categoryDesc: 'Workflow helpers — track tasks, time, history, and navigation.', items: [

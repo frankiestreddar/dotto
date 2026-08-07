@@ -803,8 +803,6 @@ import { render } from './waypoints-render-loop.js';
                 rowsWrap.appendChild(row);
             });
             card.appendChild(rowsWrap);
-        } else if (item.kind === 'bookmark') {
-            card.innerHTML += `<div class="flex items-center gap-2"><span class="text-sm">🔖</span><span class="font-semibold truncate">${escapeHtml(item.html || shortUrl(item.bookmarkUrl) || 'Link')}</span></div>`;
         } else if (item.kind === 'embed') {
             card.innerHTML += `<div class="flex items-center gap-2"><span class="text-sm">🌐</span><span class="font-semibold truncate">${escapeHtml(item.embedUrl ? shortUrl(item.embedUrl) : 'Embed')}</span></div>`;
         } else if (item.kind === 'media') {
@@ -891,7 +889,6 @@ import { render } from './waypoints-render-loop.js';
         if (item.kind === 'statcard') return item.statKind === 'accuracy' ? 'Accuracy' : 'Progress';
         if (item.kind === 'stopwatch') return 'Stopwatch';
         if (item.kind === 'shelf') return item.shelfName || 'Stack';
-        if (item.kind === 'bookmark') return item.html || (item.bookmarkUrl ? shortUrl(item.bookmarkUrl) : 'Link');
         if (item.kind === 'folder' || item.kind === 'source') return (appState.folders[item.folderId] && appState.folders[item.folderId].title) || 'Folder';
         const text = stripHtml(item.html || '');
         return text ? text.slice(0, 24) : (item.kind ? item.kind[0].toUpperCase() + item.kind.slice(1) : 'Card');
@@ -926,9 +923,6 @@ import { render } from './waypoints-render-loop.js';
             if (it.userSized) el.classList.add('sized');
         } else if (it.kind === 'media') {
             el.innerHTML = renderMediaHTML(it);
-        } else if (it.kind === 'bookmark') {
-            el.innerHTML = `<div class="bookmark-icon">🔖</div>
-                <div class="bookmark-title">${it.html || (it.bookmarkUrl ? shortUrl(it.bookmarkUrl) : 'New Bookmark')}</div>`;
         } else if (it.kind === 'embed') {
             // Static placeholder, not a live iframe — this renders into mini inline-canvas
             // previews (folder cards, chat/marketplace snapshots) where several might be on
