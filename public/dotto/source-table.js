@@ -747,3 +747,8 @@ import { render } from './waypoints-render-loop.js';
     }
 
 export { addTableCol, addTableRow, attachStaticTableHoverZones, colgroupHTML, distributeTableSizing, handleColNameKeydown, handleTableKeydown, importDelimitedIntoSource, layoutSourceTableColumns, renameTableColumn, renderStaticTableHTML, renderTableHTML, setLastFocusedCell, startCellAudioRecording, stopCellAudioRecording, triggerCellAudioUpload, triggerCellImageUpload, updateTableCell };
+
+// React → vanilla bridge (see the identical pattern/comment in cards-misc.js) — used by
+// TableCard.jsx (app/dotto/), which can't import this directly since public/dotto/*.js isn't
+// reachable from app/dotto/.
+window.__distributeTableSizing = distributeTableSizing;

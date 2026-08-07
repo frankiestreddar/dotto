@@ -10,7 +10,7 @@ import { buildEpubViewer, buildPdfViewer, renderMediaHTML } from './media-pdf-ep
 import { findNextFreeSlot, setupResizing } from './resize-shortcuts-init.js';
 import { ensureSharedFolderLoaded, kindIconHTML, openBreadcrumbMapPanel } from './shared-canvases-outline.js';
 import { closeSourceAddMenu } from './source-buttons-cursor-mode.js';
-import { attachStaticTableHoverZones, distributeTableSizing, layoutSourceTableColumns, renderStaticTableHTML, renderTableHTML } from './source-table.js';
+import { attachStaticTableHoverZones, layoutSourceTableColumns, renderStaticTableHTML } from './source-table.js';
 import { closeCellTagPicker } from './source-tags-ai.js';
 import { applyConnections, renderConnectionsLayer } from './srs-connections-core.js';
 import { renderFilterHTML, renderShelfHTML } from './stopwatch-search-notifications.js';
@@ -638,10 +638,6 @@ import { renderFilterHTML, renderShelfHTML } from './stopwatch-search-notificati
                     if (appState.currentEditingEl !== el) saveSnapshot();
                     el.classList.add('editing'); if (!b.isContentEditable) { b.contentEditable = true; placeCaretEnd(b); broadcastEditingState(true, '#item-' + it.id); } appState.currentEditingEl = el;
                 };
-            } else if (it.kind === 'table') {
-                el.innerHTML = renderTableHTML(it);
-                if (it.userSized) { el.classList.add('sized'); requestAnimationFrame(() => distributeTableSizing(it, el)); }
-                setupResizing(el, it);
             } else if (it.kind === 'media') {
                 // pdf/epub need real live DOM (canvas contexts, iframes, event handlers) built by
                 // JS, not an HTML string like the plain image/video/empty states below.
