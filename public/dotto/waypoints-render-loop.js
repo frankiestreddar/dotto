@@ -640,14 +640,13 @@ import { applyConnections, renderConnectionsLayer } from './srs-connections-core
         repositionAllRemoteCursors();
     }
 
-    // Wrapper <div> attributes every item gets regardless of kind, whether its body is still
-    // legacy-rendered (renderLegacyCardBody below) or owned by a real Component (see
-    // CARD_KIND_COMPONENTS in app/dotto/CanvasItemsLayer.jsx) — split out of the old single
-    // renderLegacyCardInto (canvas-items-react plan, PHASE2_ROADMAP.md) so a converted kind's
-    // Component doesn't have to duplicate this formula (and can't easily anyway:
-    // link-source-armed/options-open read appState, which app/dotto/ can't import). `el` is always
-    // the item's live wrapper node — reused across calls, never recreated, so every assignment
-    // below is a plain overwrite exactly as it always was on a freshly created node.
+    // Wrapper <div> attributes every item gets regardless of kind — split out of the old single
+    // renderLegacyCardInto (canvas-items-react plan, PHASE2_ROADMAP.md) so a kind's own Component
+    // (see CARD_KIND_COMPONENTS in app/dotto/CanvasItemsLayer.jsx) doesn't have to duplicate this
+    // formula (and can't easily anyway: link-source-armed/options-open read appState, which
+    // app/dotto/ can't import). `el` is always the item's live wrapper node — reused across
+    // calls, never recreated, so every assignment below is a plain overwrite exactly as it always
+    // was on a freshly created node.
     function applyItemWrapperAttrs(el, it) {
         el.className = `item ${it.kind}`;
         el.style.left = it.x + 'px'; el.style.top = it.y + 'px';
@@ -663,15 +662,6 @@ import { applyConnections, renderConnectionsLayer } from './srs-connections-core
                 el.style.width = it.w + 'px'; el.style.height = it.h + 'px';
             }
         }
-    }
-
-    // Body content + kind-specific event wiring for every kind NOT YET converted to a real
-    // Component — mechanically lifted out of render()'s old currentItems.forEach loop. A kind is
-    // removed from this chain the same PR its Component ships in (see EmbedCard.jsx for the
-    // first one) — this function only ever shrinks. Called from a per-item useLayoutEffect (via
-    // window.__renderLegacyCardBody below) instead of inline in a loop, so it only re-runs when
-    // that item's own props actually change (React.memo), not on every render() call.
-    function renderLegacyCardBody(el, it) {
     }
 
     // Click-to-edit contentEditable lifecycle for the note card (the default/untyped kind), plus
@@ -1037,19 +1027,18 @@ import { applyConnections, renderConnectionsLayer } from './srs-connections-core
         applyFolderView(folderId);
     }
 
-export { applyFolderView, applyItemWrapperAttrs, attachFolderCardClick, attachNoteBody, attachSourceCardClick, attachTitleBody, attachUniversalItemBehavior, attachWatermarkBody, attachWaypointCardBody, buildFolderInlineCanvas, cascadeDeleteFolderContents, centerOnContent, deleteCanvasCollabsForFolder, deleteWaypointFromDb, expandWaypointCard, folderTitle, openFolder, performMerge, render, renderLegacyCardBody, renderSelectedOutlines, startBoxSelection, startRenameFolderCardTitle, syncNoteFormatButtons, syncWaypointToDb };
+export { applyFolderView, applyItemWrapperAttrs, attachFolderCardClick, attachNoteBody, attachSourceCardClick, attachTitleBody, attachUniversalItemBehavior, attachWatermarkBody, attachWaypointCardBody, buildFolderInlineCanvas, cascadeDeleteFolderContents, centerOnContent, deleteCanvasCollabsForFolder, deleteWaypointFromDb, expandWaypointCard, folderTitle, openFolder, performMerge, render, renderSelectedOutlines, startBoxSelection, startRenameFolderCardTitle, syncNoteFormatButtons, syncWaypointToDb };
 
 // React → vanilla bridge, the other direction from window-bridge.js (which is specifically the
 // ~107 auto-generated inline onclick="..." names — see its own header comment). CanvasItem
-// (app/dotto/CanvasItemsLayer.jsx) calls the first three from a per-item layout effect that runs
-// on every render() call: wrapper attrs and universal behavior (drag/click, aiGenerated badge,
-// right-click) for every kind regardless of whether it's converted to a real Component yet; the
-// body only for kinds that aren't (see CARD_KIND_COMPONENTS in CanvasItemsLayer.jsx). The rest —
-// attachWatermarkBody/attachTitleBody/attachNoteBody — are each called from their own converted
-// kind's own layout effect instead: leftover stateful (not purely rendering) logic specific to
-// that one kind, not a generic per-item hook.
+// (app/dotto/CanvasItemsLayer.jsx) calls the first two from a per-item layout effect that runs on
+// every render() call: wrapper attrs and universal behavior (drag/click, aiGenerated badge,
+// right-click) apply to every kind, all of which are now real Components (see
+// CARD_KIND_COMPONENTS in CanvasItemsLayer.jsx). The rest — attachWatermarkBody/attachTitleBody/
+// attachNoteBody — are each called from their own converted kind's own layout effect instead:
+// leftover stateful (not purely rendering) logic specific to that one kind, not a generic per-item
+// hook.
 window.__applyCanvasItemWrapperAttrs = applyItemWrapperAttrs;
-window.__renderLegacyCardBody = renderLegacyCardBody;
 window.__attachUniversalItemBehavior = attachUniversalItemBehavior;
 window.__attachWatermarkBody = attachWatermarkBody;
 window.__attachTitleBody = attachTitleBody;

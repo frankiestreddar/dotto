@@ -14,10 +14,10 @@ export default function CanvasCard({ it }) {
   const titleRef = useRef(null);
   const previewWrapRef = useRef(null);
 
-  // Rebuilding the inline preview walks every nested item and renders a mini preview of each — there's
-  // no cheap signature for "did this folder's live contents change" the way __lastBodySig covers
-  // legacy kinds, so this only reruns when the nested folder itself changes, not on every unrelated
-  // render() call (same reasoning as the Shelf/stopwatch-tick fix).
+  // Rebuilding the inline preview walks every nested item and renders a mini preview of each —
+  // there's no cheap signature for "did this folder's live contents change", so this only reruns
+  // when the nested folder itself changes, not on every unrelated render() call (same reasoning as
+  // the Shelf/stopwatch-tick fix, and MediaCard's own dependency array).
   useLayoutEffect(() => {
     if (!previewWrapRef.current) return;
     previewWrapRef.current.innerHTML = "";

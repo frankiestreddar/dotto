@@ -331,11 +331,14 @@ buckets slotted in by the same principle:
    thin **Canvas** (`kind:'folder'`, a nested canvas) and **Source**
    (`kind:'source'`, a database block) card *kinds* — i.e. what a folder or
    source looks like as a card sitting on a parent canvas — are **done**.
-   Still outstanding and much larger: the actual Source *database page*
-   itself (`renderStaticTableHTML` and its whole cluster — tags, cell
-   image/audio, AI content, SM-2, drag-select), which needs canvas-core-
-   level work, not a simple card conversion. Media and Waypoint card kinds
-   are also still outstanding.
+   **Media** and **Waypoint** are also done — every card kind that exists
+   is now a real Component (`CARD_KIND_COMPONENTS` in
+   `app/dotto/CanvasItemsLayer.jsx`); `renderLegacyCardBody` and the
+   `window.__renderLegacyCardBody` bridge have been deleted outright, not
+   just emptied. Still outstanding and much larger: the actual Source
+   *database page* itself (`renderStaticTableHTML` and its whole cluster —
+   tags, cell image/audio, AI content, SM-2, drag-select), which needs
+   canvas-core-level work, not a simple card conversion.
 10. **Friend presence**, **Canvas collaborations (hamburger)**,
     **Live-shared canvases** — real-time/collaboration cluster, done
     together since they share subscription-lifecycle risk.
