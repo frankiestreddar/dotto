@@ -1746,6 +1746,10 @@
     .item.editing .format-bar{display:flex;}
     .format-btn{width:28px;height:28px;border-radius:4px;border:none;background:none;color:var(--ink-soft);cursor:pointer;display:flex;align-items:center;justify-content:center;font-weight:bold;font-size:14px;}
     .format-btn:hover{background:#333;color:white;}
+    /* Same active-state convention as .btn.active/.add-tab.active elsewhere in this file — reflects
+       bold/italic/underline/strikethrough currently being ON at the caret (see
+       syncNoteFormatButtons, waypoints-render-loop.js). */
+    .format-btn.active{background:#2E2E2E;color:var(--ink);}
     .text-color-swatch{-webkit-appearance:none;appearance:none;width:20px;height:20px;border-radius:50%;border:1px solid var(--card-border);cursor:pointer;padding:0;margin-left:8px;background:none;}
     .text-color-swatch::-webkit-color-swatch-wrapper{padding:0;border-radius:50%;}
     .text-color-swatch::-webkit-color-swatch{border:none;border-radius:50%;}
