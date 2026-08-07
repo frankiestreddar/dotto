@@ -365,14 +365,10 @@ import { openFolder, render } from './waypoints-render-loop.js';
         const seq = ++appState.notificationSeq;
         appState.searchInputWrap.classList.toggle('notification-grows', !!config.grows);
 
-        if (config.imageUrl) appState.notifImageEl.src = config.imageUrl;
-        else appState.notifImageEl.removeAttribute('src');
-        appState.notifTextEl.textContent = config.message || '';
-        // The enter-arrow suffix mirrors #search-space-hint's own "Enter" pill (same size/color —
-        // see globals.css) so the button visually reads as "press Enter to do this", not a
-        // separately-styled call-to-action button.
-        appState.notifActionBtn.textContent = config.actionLabel ? `${config.actionLabel} ↵` : '';
-        appState.notifActionBtn.classList.toggle('visible', !!config.actionLabel);
+        // Content itself is real React state now (see app/dotto/NotificationBar.jsx) — the
+        // enter-arrow suffix on a configured action label (mirroring #search-space-hint's own
+        // "Enter" pill) is built there, not here.
+        window.__setNotificationContent(config);
 
         appState.searchInputWrap.classList.add('notif-flash');
         setTimeout(() => {

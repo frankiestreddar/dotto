@@ -319,9 +319,8 @@
         currentNotification: null,
         notificationTimer: null,
         notificationSeq: 0,
-        notifImageEl: document.getElementById('search-notification-image'),
-        notifTextEl: document.getElementById('search-notification-text'),
-        notifActionBtn: document.getElementById('search-notification-action'),
+        // notifImageEl/notifTextEl/notifActionBtn removed — React owns the notification bar's
+        // content now (Phase 2, see app/dotto/NotificationBar.jsx).
         NOTIFICATION_QUEUE_GAP_MS: 5000,
         lastNotificationCloseTime: 0,
         searchCardContext: [],

@@ -34,12 +34,10 @@
                 <button id="search-card-pill-clear" type="button" title="Clear attached cards" onclick="event.stopPropagation(); clearSearchCardContext();">✕</button>
             </div>
             <!-- Replaces #search-input's visible content (not its value) while a notification is
-                 showing — see pushNotification/showNotification. -->
-            <div id="search-notification" onclick="event.stopPropagation()">
-                <img id="search-notification-image" alt="">
-                <div id="search-notification-text"></div>
-                <button id="search-notification-action" type="button" onclick="runNotificationAction()"></button>
-            </div>
+                 showing — see pushNotification/showNotification. Portal target for
+                 app/dotto/NotificationBar.jsx, a real Component now — must stay an empty, unstyled
+                 node so it doesn't affect #search-input-wrap's layout on its own. -->
+            <div id="search-notification-root"></div>
         </div>
         <div id="search-dropdown">
             <div id="search-dotbot-answer"></div>
