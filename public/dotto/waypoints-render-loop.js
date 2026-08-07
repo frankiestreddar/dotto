@@ -1,4 +1,4 @@
-import { clearSearch, countSourceEntries, escapeHtml, findParentFolderId, truncateCenter } from './ai-assistant-suggestions.js';
+import { clearSearch, escapeHtml, findParentFolderId, truncateCenter } from './ai-assistant-suggestions.js';
 import { appState, breadcrumbs, bringCardToFront, btnBack, btnForward, canvas, contextMenu, supabase, world, zoomControl } from './core-state.js';
 import { setupDraggingAndClicking } from './drag-drop-chat.js';
 import { ensureDrawings, makeLayerSVG } from './drawing-connections.js';
@@ -344,6 +344,38 @@ import { renderFilterHTML, renderShelfHTML } from './stopwatch-search-notificati
         };
     }
 
+    // Live title text for a folder/source card — same appState.folders[folderId].title read the
+    // breadcrumb and startRenameFolderCardTitle both use, exposed standalone since CanvasCard/
+    // SourceCard (app/dotto/) render it directly and can't reach appState themselves.
+    function folderTitle(folderId) {
+        return (appState.folders[folderId] && appState.folders[folderId].title) || '';
+    }
+
+    // Wires up a folder (Canvas) card's wrapper click routing — mechanically lifted out of the old
+    // inline folder branch in renderLegacyCardBody now that folder is a real Component (see
+    // CanvasCard.jsx). `el` is CanvasCard's wrapper, passed in explicitly (via
+    // document.getElementById('item-'+it.id)) rather than derived via closest() — see
+    // attachWatermarkBody/attachTitleBody's own comments for why closest('.item') breaks on first
+    // mount (child-before-parent layout effect ordering). `el.onclick =` is a plain assignment, not
+    // addEventListener, so it's naturally idempotent across repeated calls — no AbortController
+    // needed here.
+    function attachFolderCardClick(el, it, titleEl) {
+        el.onclick = (e) => {
+            e.stopPropagation();
+            if (e.target.closest('.folder-card-title')) { startRenameFolderCardTitle(titleEl, it); return; }
+            openFolder(it.folderId);
+        };
+    }
+
+    // Same as attachFolderCardClick, for a source card's wrapper — see SourceCard.jsx.
+    function attachSourceCardClick(el, it, titleEl) {
+        el.onclick = (e) => {
+            e.stopPropagation();
+            if (e.target.closest('.source-card-title')) { startRenameFolderCardTitle(titleEl, it, 'source-card-title'); return; }
+            openFolder(it.folderId);
+        };
+    }
+
     // ---------- Main Canvas Render Loop ----------
     function render() {
         scheduleWorkspaceSave();
@@ -579,38 +611,7 @@ import { renderFilterHTML, renderShelfHTML } from './stopwatch-search-notificati
     // window.__renderLegacyCardBody below) instead of inline in a loop, so it only re-runs when
     // that item's own props actually change (React.memo), not on every render() call.
     function renderLegacyCardBody(el, it) {
-            if (it.kind === 'folder') {
-                el.innerHTML = '';
-                const folderTitleEl = document.createElement('div');
-                folderTitleEl.className = 'folder-card-title';
-                const liveTitle = appState.folders[it.folderId] ? appState.folders[it.folderId].title : '';
-                folderTitleEl.textContent = liveTitle;
-                folderTitleEl.title = liveTitle; // native tooltip for whatever the ellipsis truncates
-                el.appendChild(folderTitleEl);
-                const folderPreviewWrap = document.createElement('div');
-                folderPreviewWrap.className = 'folder-card-preview';
-                folderPreviewWrap.appendChild(buildFolderInlineCanvas(it.folderId));
-                el.appendChild(folderPreviewWrap);
-                el.onclick = (e) => {
-                    e.stopPropagation();
-                    if (e.target.closest('.folder-card-title')) { startRenameFolderCardTitle(folderTitleEl, it); return; }
-                    openFolder(it.folderId);
-                };
-            } else if (it.kind === 'source') {
-                const nestedTitle = appState.folders[it.folderId] ? appState.folders[it.folderId].title : '';
-                const nestedCount = countSourceEntries(it.folderId);
-                el.innerHTML = `${kindIconHTML('source', null, 'source-card-icon')}
-                <div class="source-card-info">
-                    <span class="source-card-title" title="${escapeHtml(nestedTitle)}">${escapeHtml(nestedTitle)}</span>
-                    <span class="source-card-count">${nestedCount} ${nestedCount === 1 ? 'entry' : 'entries'}</span>
-                </div>`;
-                const sourceTitleEl = el.querySelector('.source-card-title');
-                el.onclick = (e) => {
-                    e.stopPropagation();
-                    if (e.target.closest('.source-card-title')) { startRenameFolderCardTitle(sourceTitleEl, it, 'source-card-title'); return; }
-                    openFolder(it.folderId);
-                };
-            } else if (it.kind === 'media') {
+            if (it.kind === 'media') {
                 // pdf/epub need real live DOM (canvas contexts, iframes, event handlers) built by
                 // JS, not an HTML string like the plain image/video/empty states below.
                 if (it.mediaSrc && it.mediaType === 'pdf') {
@@ -1058,7 +1059,7 @@ import { renderFilterHTML, renderShelfHTML } from './stopwatch-search-notificati
         applyFolderView(folderId);
     }
 
-export { applyFolderView, applyItemWrapperAttrs, attachNoteBody, attachTitleBody, attachUniversalItemBehavior, attachWatermarkBody, cascadeDeleteFolderContents, centerOnContent, deleteCanvasCollabsForFolder, deleteWaypointFromDb, expandWaypointCard, openFolder, performMerge, render, renderLegacyCardBody, renderSelectedOutlines, startBoxSelection, syncNoteFormatButtons, syncWaypointToDb };
+export { applyFolderView, applyItemWrapperAttrs, attachFolderCardClick, attachNoteBody, attachSourceCardClick, attachTitleBody, attachUniversalItemBehavior, attachWatermarkBody, buildFolderInlineCanvas, cascadeDeleteFolderContents, centerOnContent, deleteCanvasCollabsForFolder, deleteWaypointFromDb, expandWaypointCard, folderTitle, openFolder, performMerge, render, renderLegacyCardBody, renderSelectedOutlines, startBoxSelection, startRenameFolderCardTitle, syncNoteFormatButtons, syncWaypointToDb };
 
 // React → vanilla bridge, the other direction from window-bridge.js (which is specifically the
 // ~107 auto-generated inline onclick="..." names — see its own header comment). CanvasItem
@@ -1076,3 +1077,9 @@ window.__attachWatermarkBody = attachWatermarkBody;
 window.__attachTitleBody = attachTitleBody;
 window.__attachNoteBody = attachNoteBody;
 window.__syncNoteFormatButtons = syncNoteFormatButtons;
+window.__buildFolderInlineCanvas = buildFolderInlineCanvas;
+window.__startRenameFolderCardTitle = startRenameFolderCardTitle;
+window.__folderTitle = folderTitle;
+window.__attachFolderCardClick = attachFolderCardClick;
+window.__attachSourceCardClick = attachSourceCardClick;
+window.__openFolder = openFolder;

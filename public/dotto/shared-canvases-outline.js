@@ -502,4 +502,6 @@ import { applyFolderView, centerOnContent, expandWaypointCard, openFolder, rende
         }
     }
 
-export { announceEnteredCollaboration, buildOutline, closeBreadcrumbMapPanel, ensureSharedFolderLoaded, goToOutlineItem, jumpToHistoryIndex, kindIconHTML, namespaceSharedFolderIds, openBreadcrumbMapPanel, openSharedCanvas, outlineIcon, parseSharedFolderKey, setOutlineActive, sharedFolderKey, stripSharedFolderIds, toggleHamburgerMenu };
+export { announceEnteredCollaboration, buildOutline, closeBreadcrumbMapPanel, ensureSharedFolderLoaded, goToOutlineItem, jumpToHistoryIndex, kindIconFile, kindIconHTML, namespaceSharedFolderIds, openBreadcrumbMapPanel, openSharedCanvas, outlineIcon, parseSharedFolderKey, setOutlineActive, sharedFolderKey, stripSharedFolderIds, toggleHamburgerMenu };
+
+window.__kindIconFile = kindIconFile;
