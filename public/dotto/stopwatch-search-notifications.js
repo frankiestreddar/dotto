@@ -628,3 +628,13 @@ export { addCardsToSearchContext, autoGrowSearchInput, clearSearchCardContext, c
 // other direction — see app/dotto-app.jsx). More of these will likely accumulate here as more
 // subsystems migrate to React while still depending on notifications.
 window.pushNotification = pushNotification;
+
+// Same React → vanilla bridge, `__`-prefixed per the convention established in cards-misc.js
+// (shortUrl/toEmbeddableUrl) once more than one of these existed — used by StopwatchCard.jsx.
+// swTick (history-autosave.js) still directly patches a running stopwatch's .sw-time textContent
+// while the user is mid-edit elsewhere (skipping render() entirely so it doesn't yank focus) —
+// that keeps working unchanged against a React-rendered .sw-time node: the next real render always
+// recomputes the same formula from the same live it.swElapsedMs/it.swLastResumeAt, so React's diff
+// just re-confirms whatever the direct patch already showed, never fights or reverts it.
+window.__swFormatTime = swFormatTime;
+window.__swCurrentElapsedMs = swCurrentElapsedMs;

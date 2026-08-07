@@ -13,7 +13,7 @@ import { closeSourceAddMenu } from './source-buttons-cursor-mode.js';
 import { attachStaticTableHoverZones, distributeTableSizing, layoutSourceTableColumns, renderStaticTableHTML, renderTableHTML } from './source-table.js';
 import { closeCellTagPicker } from './source-tags-ai.js';
 import { applyConnections, renderConnectionsLayer } from './srs-connections-core.js';
-import { renderFilterHTML, renderShelfHTML, renderStopwatchHTML } from './stopwatch-search-notifications.js';
+import { renderFilterHTML, renderShelfHTML } from './stopwatch-search-notifications.js';
 
 
     // ---------- Waypoint card expand/collapse ----------
@@ -719,8 +719,6 @@ import { renderFilterHTML, renderShelfHTML, renderStopwatchHTML } from './stopwa
             } else if (it.kind === 'typeright') {
                 el.innerHTML = renderTypeRightHTML(it);
                 setupResizing(el, it);
-            } else if (it.kind === 'stopwatch') {
-                el.innerHTML = renderStopwatchHTML(it);
             } else if (it.kind === 'shelf') {
                 el.innerHTML = renderShelfHTML(it);
             } else if (it.kind === 'filter') {
