@@ -1,4 +1,4 @@
-import { clearSearch, escapeHtml, findParentFolderId, truncateCenter } from './ai-assistant-suggestions.js';
+import { clearSearch, findParentFolderId, truncateCenter } from './ai-assistant-suggestions.js';
 import { appState, breadcrumbs, bringCardToFront, btnBack, btnForward, canvas, contextMenu, supabase, world, zoomControl } from './core-state.js';
 import { setupDraggingAndClicking } from './drag-drop-chat.js';
 import { ensureDrawings, makeLayerSVG } from './drawing-connections.js';
@@ -7,7 +7,7 @@ import { closeGameOptionsPanel, openGameOptionsPanel } from './games-flashcard-t
 import { applyTransform, ensureSwTicking, saveSnapshot, scheduleWorkspaceSave, updateContextMenuPosition } from './history-autosave.js';
 import { broadcastEditingState, miniLabelForItem, placeCaretEnd, renderRealCardPreview, repositionAllRemoteCursors, syncColorPicker } from './live-presence.js';
 import { findNextFreeSlot, setupResizing } from './resize-shortcuts-init.js';
-import { ensureSharedFolderLoaded, kindIconHTML, openBreadcrumbMapPanel } from './shared-canvases-outline.js';
+import { ensureSharedFolderLoaded, openBreadcrumbMapPanel } from './shared-canvases-outline.js';
 import { closeSourceAddMenu } from './source-buttons-cursor-mode.js';
 import { attachStaticTableHoverZones, layoutSourceTableColumns, renderStaticTableHTML } from './source-table.js';
 import { closeCellTagPicker } from './source-tags-ai.js';
@@ -142,6 +142,69 @@ import { applyConnections, renderConnectionsLayer } from './srs-connections-core
                 appState.waypointPeekTimer = setTimeout(() => collapseWaypointCardWidth(el), (opts && opts.peekMs) || 2000);
             }
         }
+    }
+
+    // Wires up a waypoint card's wrapper click/hover/drag-expand behavior — mechanically lifted
+    // out of the old inline waypoint branch in renderLegacyCardBody, now that waypoint is a real
+    // Component (see WaypointCard.jsx, app/dotto/CanvasItemsLayer.jsx's CARD_KIND_COMPONENTS).
+    // `el` is WaypointCard's own wrapper, passed in explicitly via document.getElementById rather
+    // than derived via closest('.item') — see attachWatermarkBody/attachTitleBody's own comments
+    // for why closest() breaks on first mount (child-before-parent layout effect ordering).
+    function attachWaypointCardBody(el, it) {
+        el.onclick = (e) => {
+            e.stopPropagation();
+            if (el.classList.contains('waypoint-editing')) return; // already editing — let the native click just reposition the caret
+            expandWaypointCard(el, it, { editable: true });
+        };
+        // el is the item's persistent wrapper node (reused across renders, not recreated), and
+        // this runs on every render() call (WaypointCard's own layout effect has no dependency
+        // array, matching every converted kind) — a plain addEventListener here would stack a
+        // duplicate hover/drag-expand listener per call instead of replacing the old one. Same
+        // AbortController fix as setupDraggingAndClicking (drag-drop-chat.js), kept under its own
+        // key since a waypoint card carries both.
+        el.__waypointListenerAbort?.abort();
+        const { signal: waypointSignal } = (el.__waypointListenerAbort = new AbortController());
+        el.addEventListener('mouseenter', () => {
+            if (el.classList.contains('waypoint-editing')) return;
+            expandWaypointCard(el, it, { editable: false, hover: true });
+        }, { signal: waypointSignal });
+        el.addEventListener('mouseleave', () => {
+            // Typing in progress, or being actively dragged (see below) — stays open
+            // regardless of the mouse either way.
+            if (el.classList.contains('waypoint-editing') || el.classList.contains('waypoint-dragging')) return;
+            collapseWaypointCardWidth(el);
+        }, { signal: waypointSignal });
+        // Dragging a card around the canvas should show it expanded the whole time it's being
+        // moved. It's almost always already expanded by this point anyway (you have to be
+        // hovering it to pick it up), but this both guarantees it (e.g. a very fast
+        // mousedown-drag before the hover-triggered expand above has settled) and — via
+        // .waypoint-dragging above — keeps it that way for the whole drag even in the rare case
+        // the cursor doesn't track exactly over the moving card. Only acts once real movement
+        // crosses the same 3px threshold setupDraggingAndClicking's own drag detection uses, so a
+        // plain click-to-rename (no movement at all) is unaffected.
+        el.addEventListener('pointerdown', (e) => {
+            if (el.classList.contains('waypoint-editing')) return;
+            const downX = e.clientX, downY = e.clientY;
+            const onMove = (me) => {
+                if (Math.abs(me.clientX - downX) > 3 || Math.abs(me.clientY - downY) > 3) {
+                    el.classList.add('waypoint-dragging');
+                    if (!el.classList.contains('expanded')) expandWaypointCard(el, it, { editable: false, hover: true });
+                    window.removeEventListener('pointermove', onMove);
+                }
+            };
+            const onUp = () => {
+                window.removeEventListener('pointermove', onMove);
+                window.removeEventListener('pointerup', onUp);
+                el.classList.remove('waypoint-dragging');
+                // The card moves WITH the cursor during a drag, so it's normally still directly
+                // under it at drop — but if it isn't for some reason, there's no future
+                // mouseleave to catch it (one may already have fired, and been ignored,
+                // mid-drag), so check and collapse explicitly here instead.
+                if (!el.classList.contains('waypoint-editing') && !el.matches(':hover')) collapseWaypointCardWidth(el);
+            };
+            window.addEventListener('pointermove', onMove);
+            window.addEventListener('pointerup', onUp);
+        }, { signal: waypointSignal });
     }
 
     // Mirrors one waypoint item into the global `waypoints` table (see the 20260729 migration) —
@@ -609,63 +672,6 @@ import { applyConnections, renderConnectionsLayer } from './srs-connections-core
     // window.__renderLegacyCardBody below) instead of inline in a loop, so it only re-runs when
     // that item's own props actually change (React.memo), not on every render() call.
     function renderLegacyCardBody(el, it) {
-            if (it.kind === 'waypoint') {
-                el.innerHTML = `${kindIconHTML('waypoint', null, 'waypoint-card-icon')}<span class="waypoint-card-name"></span>`;
-                el.onclick = (e) => {
-                    e.stopPropagation();
-                    if (el.classList.contains('waypoint-editing')) return; // already editing — let the native click just reposition the caret
-                    expandWaypointCard(el, it, { editable: true });
-                };
-                // el is the item's persistent wrapper node (reused across renders, not recreated —
-                // see the canvas-items-react plan, PHASE2_ROADMAP.md), and this branch re-runs
-                // every time renderLegacyCardInto re-populates it — a plain addEventListener here
-                // would stack a duplicate hover/drag-expand listener per re-run instead of replacing
-                // the old one. Same AbortController fix as setupDraggingAndClicking
-                // (drag-drop-chat.js), kept under its own key since a waypoint card carries both.
-                el.__waypointListenerAbort?.abort();
-                const { signal: waypointSignal } = (el.__waypointListenerAbort = new AbortController());
-                el.addEventListener('mouseenter', () => {
-                    if (el.classList.contains('waypoint-editing')) return;
-                    expandWaypointCard(el, it, { editable: false, hover: true });
-                }, { signal: waypointSignal });
-                el.addEventListener('mouseleave', () => {
-                    // Typing in progress, or being actively dragged (see below) — stays open
-                    // regardless of the mouse either way.
-                    if (el.classList.contains('waypoint-editing') || el.classList.contains('waypoint-dragging')) return;
-                    collapseWaypointCardWidth(el);
-                }, { signal: waypointSignal });
-                // Dragging a card around the canvas should show it expanded the whole time it's
-                // being moved. It's almost always already expanded by this point anyway (you have
-                // to be hovering it to pick it up), but this both guarantees it (e.g. a very fast
-                // mousedown-drag before the hover-triggered expand above has settled) and — via
-                // .waypoint-dragging above — keeps it that way for the whole drag even in the rare
-                // case the cursor doesn't track exactly over the moving card. Only acts once real
-                // movement crosses the same 3px threshold setupDraggingAndClicking's own drag
-                // detection uses, so a plain click-to-rename (no movement at all) is unaffected.
-                el.addEventListener('pointerdown', (e) => {
-                    if (el.classList.contains('waypoint-editing')) return;
-                    const downX = e.clientX, downY = e.clientY;
-                    const onMove = (me) => {
-                        if (Math.abs(me.clientX - downX) > 3 || Math.abs(me.clientY - downY) > 3) {
-                            el.classList.add('waypoint-dragging');
-                            if (!el.classList.contains('expanded')) expandWaypointCard(el, it, { editable: false, hover: true });
-                            window.removeEventListener('pointermove', onMove);
-                        }
-                    };
-                    const onUp = () => {
-                        window.removeEventListener('pointermove', onMove);
-                        window.removeEventListener('pointerup', onUp);
-                        el.classList.remove('waypoint-dragging');
-                        // The card moves WITH the cursor during a drag, so it's normally still
-                        // directly under it at drop — but if it isn't for some reason, there's no
-                        // future mouseleave to catch it (one may already have fired, and been
-                        // ignored, mid-drag), so check and collapse explicitly here instead.
-                        if (!el.classList.contains('waypoint-editing') && !el.matches(':hover')) collapseWaypointCardWidth(el);
-                    };
-                    window.addEventListener('pointermove', onMove);
-                    window.addEventListener('pointerup', onUp);
-                }, { signal: waypointSignal });
-            }
     }
 
     // Click-to-edit contentEditable lifecycle for the note card (the default/untyped kind), plus
@@ -1031,7 +1037,7 @@ import { applyConnections, renderConnectionsLayer } from './srs-connections-core
         applyFolderView(folderId);
     }
 
-export { applyFolderView, applyItemWrapperAttrs, attachFolderCardClick, attachNoteBody, attachSourceCardClick, attachTitleBody, attachUniversalItemBehavior, attachWatermarkBody, buildFolderInlineCanvas, cascadeDeleteFolderContents, centerOnContent, deleteCanvasCollabsForFolder, deleteWaypointFromDb, expandWaypointCard, folderTitle, openFolder, performMerge, render, renderLegacyCardBody, renderSelectedOutlines, startBoxSelection, startRenameFolderCardTitle, syncNoteFormatButtons, syncWaypointToDb };
+export { applyFolderView, applyItemWrapperAttrs, attachFolderCardClick, attachNoteBody, attachSourceCardClick, attachTitleBody, attachUniversalItemBehavior, attachWatermarkBody, attachWaypointCardBody, buildFolderInlineCanvas, cascadeDeleteFolderContents, centerOnContent, deleteCanvasCollabsForFolder, deleteWaypointFromDb, expandWaypointCard, folderTitle, openFolder, performMerge, render, renderLegacyCardBody, renderSelectedOutlines, startBoxSelection, startRenameFolderCardTitle, syncNoteFormatButtons, syncWaypointToDb };
 
 // React → vanilla bridge, the other direction from window-bridge.js (which is specifically the
 // ~107 auto-generated inline onclick="..." names — see its own header comment). CanvasItem
@@ -1053,5 +1059,6 @@ window.__buildFolderInlineCanvas = buildFolderInlineCanvas;
 window.__startRenameFolderCardTitle = startRenameFolderCardTitle;
 window.__folderTitle = folderTitle;
 window.__attachFolderCardClick = attachFolderCardClick;
+window.__attachWaypointCardBody = attachWaypointCardBody;
 window.__attachSourceCardClick = attachSourceCardClick;
 window.__openFolder = openFolder;
