@@ -404,3 +404,11 @@ import { render } from './waypoints-render-loop.js';
     }
 
 export { buildEpubViewer, buildPdfViewer, clearMedia, renderMediaHTML, setMediaFromLink, triggerMediaUpload };
+
+// React → vanilla bridge (see MediaCard.jsx, app/dotto/CanvasItemsLayer.jsx's CARD_KIND_COMPONENTS)
+// — buildPdfViewer/buildEpubViewer build a whole live DOM subtree (pdf.js/epub.js need real
+// canvas/iframe elements, not an HTML string), same "vanilla function builds live DOM, React just
+// mounts it" pattern as buildFolderInlineCanvas.
+window.__renderMediaHTML = renderMediaHTML;
+window.__buildPdfViewer = buildPdfViewer;
+window.__buildEpubViewer = buildEpubViewer;
