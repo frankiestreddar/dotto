@@ -1,4 +1,3 @@
-import { shortUrl } from './cards-misc.js';
 import { appState, canvas } from './core-state.js';
 import { saveSnapshot, scheduleWorkspaceSave } from './history-autosave.js';
 import { findItemById } from './live-presence.js';
@@ -84,7 +83,6 @@ import { render } from './waypoints-render-loop.js';
         if (it.kind === 'waypoint') return it.name || '';
         if (it.kind === 'table') return it.tableData.map(row => row.map(c => stripHtml(c)).join(' ')).join(' ');
         if (it.kind === 'checklist') return (it.tasks || []).map(t => t.text).join(' ');
-        if (it.kind === 'bookmark') return it.html || (it.bookmarkUrl ? shortUrl(it.bookmarkUrl) : '');
         if (it.kind === 'embed') return it.embedUrl || '';
         return stripHtml(it.html);
     }

@@ -71,7 +71,7 @@ serializable per-canvas document, e.g.:
 CanvasDoc {
   id, parentId, title, kind: 'root' | 'folder'
   view: { tx, ty, scale }
-  items: Item[]        // every card: title/source/table/media/bookmark/
+  items: Item[]        // every card: title/source/table/media/
                         // checklist/watermark/flashcard/statcard/
                         // stopwatch/shelf/folder, keyed by id
   connections: Connection[]
@@ -110,7 +110,6 @@ const CARD_KINDS = {
   source:    { ... },
   table:     { ... },
   media:     { ... },
-  bookmark:  { ... },
   checklist: { ... },
   watermark: { ... },
   flashcard: { ... },
@@ -268,8 +267,9 @@ and per-bucket coupling notes available on request; summarized here):
 - **Media card** (130 lines, parent) with **PDF viewer** (115 lines) and
   **EPUB viewer** (77 lines) as largely self-contained sub-kinds wrapping
   pdf.js/epub.js.
-- **Bookmark card** (15 lines) / **Embed card** (85 lines) — both
-  self-contained, no global-state hits, trivial early candidates.
+- **Embed card** (85 lines) — self-contained, no global-state hits, trivial
+  early candidate. (Bookmark card was removed outright, not migrated —
+  redundant with waypoints/other menus.)
 - **Game options / cloze** (279 lines) — self-contained config/parsing
   shared by both Flashcard app and the new **Typeright app** (193 lines,
   a second typed-answer game mode) — extract before either of those two.
@@ -299,9 +299,9 @@ Largely unchanged in spirit from the original list below — self-contained/
 low-coupling first, canvas core and connections last — with the new
 buckets slotted in by the same principle:
 
-1. **Pricing/upgrade, Bookmark, Embed, Text-selection toolbar** — zero
-   global-state hits, good warm-up targets alongside the original
-   Stopwatch/Drawing/Checklist candidates.
+1. **Pricing/upgrade, Embed, Text-selection toolbar** — zero global-state
+   hits, good warm-up targets alongside the original Stopwatch/Drawing/
+   Checklist candidates.
 2. **Stopwatch card**, **Drawing layer**, **Checklist / Statcard /
    Watermark** — as originally planned.
 3. **Game options/cloze**, then **Flashcards/SRS** and **Typeright app**

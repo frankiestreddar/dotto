@@ -25,7 +25,6 @@ export const CARD_KINDS = {
     source: { defaultSize: { w: 7 * 28, h: 2 * 28 }, icon: '▶' }, // 2x7 grid cells (see #dot-layer's 28px spacing)
     table: { defaultSize: { w: 280, h: 180 }, icon: '⊞' },
     media: { defaultSize: { w: 240, h: 160 }, icon: '▣' },
-    bookmark: { defaultSize: { w: 200, h: 90 }, icon: '🔖' },
     // No longer creatable from the add-menu (removed from ADD_MENU_DATA), kept so existing
     // checklist cards on canvases keep resolving a correct label/size/icon everywhere these are used.
     checklist: { label: 'Checklist', defaultSize: { w: 220, h: 160 }, icon: '☑' },

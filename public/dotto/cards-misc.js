@@ -5,19 +5,11 @@ import { findItemById } from './live-presence.js';
 import { render } from './waypoints-render-loop.js';
 
 
-    // ---------- Bookmark card ----------
+    // Shared by embed's own card (below) and its outline/mini-preview labels elsewhere
+    // (shared-canvases-outline.js, live-presence.js) — used to be Bookmark's too, before that card
+    // kind was removed as redundant with waypoints/other menus.
     function shortUrl(url) {
         try { return new URL(url).hostname; } catch (e) { return url.slice(0, 24); }
-    }
-    function editBookmark(id) {
-        const it = findItemById(id); if (!it) return;
-        const url = prompt('Bookmark URL:', it.bookmarkUrl || 'https://');
-        if (url === null) return;
-        const label = prompt('Bookmark title (optional):', it.html || '');
-        saveSnapshot();
-        it.bookmarkUrl = url.trim();
-        it.html = (label || '').trim();
-        render();
     }
 
     // ---------- Embed card ----------
@@ -172,4 +164,4 @@ import { render } from './waypoints-render-loop.js';
         render();
     }
 
-export { addTask, editBookmark, editEmbed, removeTask, renderChecklistHTML, renderEmbedHTML, renderStatcardHTML, shortUrl, toggleTask, updateTaskDeadline, updateTaskText };
+export { addTask, editEmbed, removeTask, renderChecklistHTML, renderEmbedHTML, renderStatcardHTML, shortUrl, toggleTask, updateTaskDeadline, updateTaskText };
