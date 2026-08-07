@@ -3,7 +3,7 @@ import { appState, breadcrumbs, bringCardToFront, btnBack, btnForward, canvas, c
 import { setupDraggingAndClicking } from './drag-drop-chat.js';
 import { ensureDrawings, makeLayerSVG } from './drawing-connections.js';
 import { refreshCanvasCollabForCurrentFolder, renderCollabPill, syncCanvasCollabTitle } from './friends-presence.js';
-import { closeGameOptionsPanel, openGameOptionsPanel, renderFlashcardHTML, renderTypeRightHTML } from './games-flashcard-typeright.js';
+import { closeGameOptionsPanel, openGameOptionsPanel, renderTypeRightHTML } from './games-flashcard-typeright.js';
 import { applyTransform, ensureSwTicking, saveSnapshot, scheduleWorkspaceSave, updateContextMenuPosition } from './history-autosave.js';
 import { broadcastEditingState, miniLabelForItem, placeCaretEnd, renderRealCardPreview, repositionAllRemoteCursors, syncColorPicker, titleFontSize } from './live-presence.js';
 import { buildEpubViewer, buildPdfViewer, renderMediaHTML } from './media-pdf-epub.js';
@@ -713,9 +713,6 @@ import { renderFilterHTML, renderShelfHTML } from './stopwatch-search-notificati
                     window.addEventListener('pointermove', onMove);
                     window.addEventListener('pointerup', onUp);
                 }, { signal: waypointSignal });
-            } else if (it.kind === 'flashcard') {
-                el.innerHTML = renderFlashcardHTML(it);
-                setupResizing(el, it);
             } else if (it.kind === 'typeright') {
                 el.innerHTML = renderTypeRightHTML(it);
                 setupResizing(el, it);
