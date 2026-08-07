@@ -4,6 +4,12 @@ import { memo, useEffect, useLayoutEffect, useRef, useState, useSyncExternalStor
 import { createPortal } from "react-dom";
 import { canvasItemsStore } from "./bridges";
 
+// Module-level, not inline in the hook call below — useSyncExternalStore's getServerSnapshot must
+// return a referentially stable value across calls, or React reads it as never settling ("the
+// result of getServerSnapshot should be cached to avoid an infinite loop"). A fresh `() => []`
+// array literal every render trips that same warning SelectionToolbar.jsx originally had.
+const EMPTY_ITEMS = [];
+
 // One canvas item's wrapper <div>. React's only job here is creating/keying/removing this node —
 // everything inside it (className, style, innerHTML, event wiring) is still owned by vanilla code
 // (public/dotto/waypoints-render-loop.js's renderLegacyCardInto, via window.__renderLegacyCardInto),
@@ -32,7 +38,7 @@ const CanvasItem = memo(function CanvasItem({ it }) {
 // React (drawing/connection SVG layers, the placement ghost, connection-drag preview) that this
 // must not disturb.
 export default function CanvasItemsLayer() {
-  const items = useSyncExternalStore(canvasItemsStore.subscribe, canvasItemsStore.getSnapshot, () => []);
+  const items = useSyncExternalStore(canvasItemsStore.subscribe, canvasItemsStore.getSnapshot, () => EMPTY_ITEMS);
   // #items-layer is part of #world's static markup (rendered elsewhere via dangerouslySetInnerHTML)
   // so it doesn't exist in the DOM yet on this component's own first render — only resolvable once,
   // after mount. The one-extra-render cost the lint rule warns about here is unavoidable for
