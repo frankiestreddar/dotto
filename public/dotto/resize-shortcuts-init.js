@@ -13,10 +13,19 @@ import { cascadeDeleteFolderContents, centerOnContent, deleteWaypointFromDb, ren
 
 
     // ---------- Element Resize System ----------
+    // Called every time a card's body is (re)built — including, for a Component-owned kind (see
+    // CARD_KIND_COMPONENTS, app/dotto/CanvasItemsLayer.jsx), on every render() call, since that
+    // kind's own layout effect has no dependency array (see the canvas-items-react plan,
+    // PHASE2_ROADMAP.md). A plain addEventListener would stack a duplicate pointerdown listener on
+    // the same persistent .resize handle each time instead of replacing it — same fix as
+    // setupDraggingAndClicking (drag-drop-chat.js): abort the previous listener before attaching a
+    // fresh one, a no-op on first call.
     function setupResizing(el, it) {
         const handle = el.querySelector('.resize');
         if(!handle) return;
         const b = el.querySelector('.body'), moreBtn = el.querySelector('.more-btn');
+        handle.__resizeListenerAbort?.abort();
+        const { signal } = (handle.__resizeListenerAbort = new AbortController());
         handle.addEventListener('pointerdown', (e) => {
             e.stopPropagation();
             // stopPropagation alone only stops the drag system's own listener from firing — it
@@ -72,7 +81,7 @@ import { cascadeDeleteFolderContents, centerOnContent, deleteWaypointFromDb, ren
             // unrelated later action happened to trigger a save.
             const up = () => { window.removeEventListener('pointermove', move); window.removeEventListener('pointerup', up); scheduleWorkspaceSave(); };
             window.addEventListener('pointermove', move); window.addEventListener('pointerup', up);
-        });
+        }, { signal });
     }
 
     function findNextFreeSlot(folderId) {
@@ -210,3 +219,9 @@ import { cascadeDeleteFolderContents, centerOnContent, deleteWaypointFromDb, ren
 
 
 export { deleteSelectedCards, findNextFreeSlot, setTableAlign, setupResizing };
+
+// React → vanilla bridge (see the identical pattern/comment in cards-misc.js) — used by
+// FlashcardCard.jsx directly (a converted kind's own layout effect, same as
+// attachWatermarkBody/attachUniversalItemBehavior), not just from renderLegacyCardBody's own
+// still-legacy table/media/typeright/note branches.
+window.__setupResizing = setupResizing;
