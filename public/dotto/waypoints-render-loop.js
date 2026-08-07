@@ -664,16 +664,24 @@ import { renderFilterHTML, renderShelfHTML, renderStopwatchHTML } from './stopwa
                     if (el.classList.contains('waypoint-editing')) return; // already editing — let the native click just reposition the caret
                     expandWaypointCard(el, it, { editable: true });
                 };
+                // el is the item's persistent wrapper node (reused across renders, not recreated —
+                // see the canvas-items-react plan, PHASE2_ROADMAP.md), and this branch re-runs
+                // every time renderLegacyCardInto re-populates it — a plain addEventListener here
+                // would stack a duplicate hover/drag-expand listener per re-run instead of replacing
+                // the old one. Same AbortController fix as setupDraggingAndClicking
+                // (drag-drop-chat.js), kept under its own key since a waypoint card carries both.
+                el.__waypointListenerAbort?.abort();
+                const { signal: waypointSignal } = (el.__waypointListenerAbort = new AbortController());
                 el.addEventListener('mouseenter', () => {
                     if (el.classList.contains('waypoint-editing')) return;
                     expandWaypointCard(el, it, { editable: false, hover: true });
-                });
+                }, { signal: waypointSignal });
                 el.addEventListener('mouseleave', () => {
                     // Typing in progress, or being actively dragged (see below) — stays open
                     // regardless of the mouse either way.
                     if (el.classList.contains('waypoint-editing') || el.classList.contains('waypoint-dragging')) return;
                     collapseWaypointCardWidth(el);
-                });
+                }, { signal: waypointSignal });
                 // Dragging a card around the canvas should show it expanded the whole time it's
                 // being moved. It's almost always already expanded by this point anyway (you have
                 // to be hovering it to pick it up), but this both guarantees it (e.g. a very fast
@@ -704,7 +712,7 @@ import { renderFilterHTML, renderShelfHTML, renderStopwatchHTML } from './stopwa
                     };
                     window.addEventListener('pointermove', onMove);
                     window.addEventListener('pointerup', onUp);
-                });
+                }, { signal: waypointSignal });
             } else if (it.kind === 'checklist') {
                 el.innerHTML = renderChecklistHTML(it);
             } else if (it.kind === 'watermark') {

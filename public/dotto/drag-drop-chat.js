@@ -10,7 +10,18 @@ import { performMerge, render, renderSelectedOutlines } from './waypoints-render
 
 
     // ---------- Element Drag and Drop System ----------
+    // Called every time renderLegacyCardInto (waypoints-render-loop.js) populates an item's
+    // wrapper <div> — which, since the canvas-items-react plan, is a persistent node reused across
+    // renders rather than recreated from scratch each time (see PHASE2_ROADMAP.md). Re-registering
+    // a plain addEventListener on every call would stack duplicate pointerdown listeners on the
+    // same element instead of replacing the old one — e.g. a shift-click toggling
+    // selectedCardIds an extra time per accumulated duplicate, silently making selection look
+    // broken. AbortController is what makes repeat calls idempotent: each call aborts the
+    // previous listener (a no-op on first mount, when there isn't one yet) before attaching a
+    // fresh one closing over the current `it`.
     function setupDraggingAndClicking(el, it) {
+        el.__dragListenerAbort?.abort();
+        const { signal } = (el.__dragListenerAbort = new AbortController());
         el.addEventListener('pointerdown', (e) => {
             // The game-options panel's own controls (esp. the column-picker <select>s) must
             // never start a card drag — the .game-options-row/.game-options-slot elements'
@@ -319,7 +330,7 @@ import { performMerge, render, renderSelectedOutlines } from './waypoints-render
                 }
             };
             window.addEventListener('pointermove', move); window.addEventListener('pointerup', up);
-        });
+        }, { signal });
     }
 
     // ---------- Dispatch to Chat Interaction ----------

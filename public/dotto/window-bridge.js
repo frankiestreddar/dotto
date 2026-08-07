@@ -1,10 +1,14 @@
-// Auto-generated bridge for the ~104 function names called by name from inline
+// Auto-generated bridge for the ~107 function names called by name from inline
 // HTML event attributes (onclick="fn(...)" etc.) — both the static markup fragments
 // (content/fragments/*.html) and HTML strings dotto-script.js itself generates. Classic scripts'
 // top-level `function` declarations attach to `window` automatically, which is why these always
 // worked before; real ES modules do not do this, so each one needs an explicit assignment here.
 // Regenerate by re-running the grep this was built from (see PHASE2_ROADMAP.md Phase 1) rather
 // than hand-editing — the list has to stay provably complete against the actual call sites.
+// (handleColNameKeydown/openTableCellContextMenu/renameTableColumn/setLastFocusedCell were found
+// missing from the original generation — the static-source table's cell-header wiring — and added
+// by hand here since no automated regeneration tooling exists in this environment; a real re-run
+// of the original grep would be the more thorough fix if that tooling is ever set up.)
 
 import { handleAddMenuSearchInput, newSourceClicked, switchAddTab, toggleAddMenuSearch } from './add-menu.js';
 import { handleSearchFocus, handleSearchInput } from './ai-assistant-suggestions.js';
@@ -13,7 +17,7 @@ import { prepareAdd } from './copy-paste.js';
 import { handleCollabSearch, handleMsgSearch, openCollabPanel } from './friends-presence.js';
 import { addGameColumnSlot, fcFlip, fcRate, fcToggleMode, removeGameColumnSlot, setGameColumnSlot, trCheck, trFocusInput, trNext, trToggleMode, trUpdateInput } from './games-flashcard-typeright.js';
 import { hmenuAction } from './hamburger-collab.js';
-import { deleteContextColumn, deleteContextRow, hideCanvasContextMenu, highlightContextColumn, highlightContextRow, redo, undo } from './history-autosave.js';
+import { deleteContextColumn, deleteContextRow, hideCanvasContextMenu, highlightContextColumn, highlightContextRow, openTableCellContextMenu, redo, undo } from './history-autosave.js';
 import { blurPublishFlowName, commitItemDetailDesc, commitItemDetailTitle, confirmPublishFlow, deleteDetailDraft, focusPublishFlowName, onItemDetailFieldChange, startPublishFlow, unpublishDetailItem, updateDetailItem } from './library-publish.js';
 import { broadcastEditingState, closeConvo, closeSharedCanvasView, sendMsg, setTitleLevel } from './live-presence.js';
 import { addItemToCustomFolderById, closeMarketDetail, deployPurchasedTemplate, handleLibrarySearch, handleMarketplaceSearch, purchaseCurrentMarketItem, removeFromCustomFolder, switchCartTab, switchLibraryFolder } from './marketplace.js';
@@ -23,7 +27,7 @@ import { handleHubCollabSearch, handleWaypointsSearch, openHubCollabPanel, openW
 import { closeDotbotUpgradeModal, closePricingOverlay, openPricingOverlay } from './profile-achievements-pricing.js';
 import { setTableAlign } from './resize-shortcuts-init.js';
 import { openCellAddMenu } from './source-buttons-cursor-mode.js';
-import { addTableCol, addTableRow, handleTableKeydown, startCellAudioRecording, stopCellAudioRecording, triggerCellAudioUpload, triggerCellImageUpload, updateTableCell } from './source-table.js';
+import { addTableCol, addTableRow, handleColNameKeydown, handleTableKeydown, renameTableColumn, setLastFocusedCell, startCellAudioRecording, stopCellAudioRecording, triggerCellAudioUpload, triggerCellImageUpload, updateTableCell } from './source-table.js';
 import { closeCellTagPicker, closeTagContextMenu, commitTagRename, createTagFromCellPicker, deleteActiveTag, handleTagRenameKeydown, openTagContextMenu, startRenameActiveTag, toggleCellTag, triggerSourceUpload } from './source-tags-ai.js';
 import { clearSearchCardContext, closeSearchCardsModal, filterShelfRows, handleShelfSourceRowClick, openSearchCardsModal, runNotificationAction, setFilterMode, shelfSelectSession, startRenameShelfName, startRenameShelfSourceRow, swTogglePause, swToggleRun, toggleFilterTag } from './stopwatch-search-notifications.js';
 
@@ -62,6 +66,7 @@ window.filterShelfRows = filterShelfRows;
 window.focusPublishFlowName = focusPublishFlowName;
 window.handleAddMenuSearchInput = handleAddMenuSearchInput;
 window.handleCollabSearch = handleCollabSearch;
+window.handleColNameKeydown = handleColNameKeydown;
 window.handleHubCollabSearch = handleHubCollabSearch;
 window.handleLibrarySearch = handleLibrarySearch;
 window.handleMarketplaceSearch = handleMarketplaceSearch;
@@ -83,6 +88,7 @@ window.openCollabPanel = openCollabPanel;
 window.openHubCollabPanel = openHubCollabPanel;
 window.openPricingOverlay = openPricingOverlay;
 window.openSearchCardsModal = openSearchCardsModal;
+window.openTableCellContextMenu = openTableCellContextMenu;
 window.openTagContextMenu = openTagContextMenu;
 window.openWaypointsPanel = openWaypointsPanel;
 window.prepareAdd = prepareAdd;
@@ -91,11 +97,13 @@ window.redo = redo;
 window.removeFromCustomFolder = removeFromCustomFolder;
 window.removeGameColumnSlot = removeGameColumnSlot;
 window.removeTask = removeTask;
+window.renameTableColumn = renameTableColumn;
 window.runNotificationAction = runNotificationAction;
 window.scheduleAgendaShift = scheduleAgendaShift;
 window.sendMsg = sendMsg;
 window.setFilterMode = setFilterMode;
 window.setGameColumnSlot = setGameColumnSlot;
+window.setLastFocusedCell = setLastFocusedCell;
 window.setMediaFromLink = setMediaFromLink;
 window.setTableAlign = setTableAlign;
 window.setTitleLevel = setTitleLevel;
