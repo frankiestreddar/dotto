@@ -6,7 +6,6 @@ import { refreshCanvasCollabForCurrentFolder, renderCollabPill, syncCanvasCollab
 import { closeGameOptionsPanel, openGameOptionsPanel } from './games-flashcard-typeright.js';
 import { applyTransform, ensureSwTicking, saveSnapshot, scheduleWorkspaceSave, updateContextMenuPosition } from './history-autosave.js';
 import { broadcastEditingState, miniLabelForItem, placeCaretEnd, renderRealCardPreview, repositionAllRemoteCursors, syncColorPicker } from './live-presence.js';
-import { buildEpubViewer, buildPdfViewer, renderMediaHTML } from './media-pdf-epub.js';
 import { findNextFreeSlot, setupResizing } from './resize-shortcuts-init.js';
 import { ensureSharedFolderLoaded, kindIconHTML, openBreadcrumbMapPanel } from './shared-canvases-outline.js';
 import { closeSourceAddMenu } from './source-buttons-cursor-mode.js';
@@ -610,22 +609,7 @@ import { applyConnections, renderConnectionsLayer } from './srs-connections-core
     // window.__renderLegacyCardBody below) instead of inline in a loop, so it only re-runs when
     // that item's own props actually change (React.memo), not on every render() call.
     function renderLegacyCardBody(el, it) {
-            if (it.kind === 'media') {
-                // pdf/epub need real live DOM (canvas contexts, iframes, event handlers) built by
-                // JS, not an HTML string like the plain image/video/empty states below.
-                if (it.mediaSrc && it.mediaType === 'pdf') {
-                    el.innerHTML = '';
-                    el.appendChild(buildPdfViewer(it));
-                } else if (it.mediaSrc && it.mediaType === 'epub') {
-                    el.innerHTML = '';
-                    el.appendChild(buildEpubViewer(it));
-                } else {
-                    el.innerHTML = renderMediaHTML(it);
-                }
-                // A no-op until there's real content to resize (renderMediaHTML's empty/uploading
-                // states have no .resize handle at all yet — see setupResizing's own early return).
-                setupResizing(el, it);
-            } else if (it.kind === 'waypoint') {
+            if (it.kind === 'waypoint') {
                 el.innerHTML = `${kindIconHTML('waypoint', null, 'waypoint-card-icon')}<span class="waypoint-card-name"></span>`;
                 el.onclick = (e) => {
                     e.stopPropagation();

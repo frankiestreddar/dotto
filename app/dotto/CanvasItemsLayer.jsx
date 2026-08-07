@@ -8,6 +8,7 @@ import ChecklistCard from "./ChecklistCard";
 import EmbedCard from "./EmbedCard";
 import FilterCard from "./FilterCard";
 import FlashcardCard from "./FlashcardCard";
+import MediaCard from "./MediaCard";
 import NoteCard from "./NoteCard";
 import SentenceCard from "./SentenceCard";
 import ShelfCard from "./ShelfCard";
@@ -34,6 +35,7 @@ const CARD_KIND_COMPONENTS = {
   filter: FilterCard,
   flashcard: FlashcardCard,
   folder: CanvasCard,
+  media: MediaCard,
   note: NoteCard,
   sentence: SentenceCard,
   shelf: ShelfCard,
