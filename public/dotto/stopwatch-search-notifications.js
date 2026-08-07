@@ -4,7 +4,7 @@ import { ensureConnections, folderIdForConnectedSource, folderTitleForConnectedS
 import { syncCanvasCollabTitle } from './friends-presence.js';
 import { saveSnapshot, scheduleWorkspaceSave } from './history-autosave.js';
 import { broadcastEditingState, findItemById, renderInlineCanvas, sanitizeFlashcardSnapshot, snapshotItem } from './live-presence.js';
-import { applyFilterToRows, collectAvailableFilterTags, diffRatings } from './srs-connections-core.js';
+import { diffRatings } from './srs-connections-core.js';
 import { openFolder, render } from './waypoints-render-loop.js';
 
 
@@ -251,28 +251,9 @@ import { openFolder, render } from './waypoints-render-loop.js';
     // flowing through it should pass" plus an AND/OR switch for combining more than one; the
     // available tags list is entirely derived from incomingRows (see collectAvailableFilterTags)
     // since a filter has no source of its own, only whatever's connected to it right now.
-    function renderFilterHTML(it) {
-        const rows = it.incomingRows || [];
-        if (!rows.length) {
-            return `<div class="filter-header">Filter</div><div class="filter-empty">Connect a source (or another filter) to see its tags here.</div>`;
-        }
-        const availableTags = collectAvailableFilterTags(rows);
-        const selected = new Set(it.filterTagIds || []);
-        const mode = it.filterMode === 'and' ? 'and' : 'or';
-        const tagsHTML = availableTags.length
-            ? availableTags.map(t => `<span class="filter-tag-chip${selected.has(t.id) ? ' selected' : ''}" style="--chip-color:${t.color}" onmousedown="event.stopPropagation()" onclick="event.stopPropagation(); toggleFilterTag(${it.id}, '${t.id}')">${escapeHtml(t.name)}</span>`).join('')
-            : `<span class="filter-empty-tags">No tags on the connected rows yet.</span>`;
-        const outCount = applyFilterToRows(it, rows).length;
-        return `<div class="filter-header">
-                <span>Filter</span>
-                <div class="filter-mode-toggle" onmousedown="event.stopPropagation()">
-                    <button class="filter-mode-btn${mode === 'or' ? ' active' : ''}" onclick="event.stopPropagation(); setFilterMode(${it.id}, 'or')">OR</button>
-                    <button class="filter-mode-btn${mode === 'and' ? ' active' : ''}" onclick="event.stopPropagation(); setFilterMode(${it.id}, 'and')">AND</button>
-                </div>
-            </div>
-            <div class="filter-tags">${tagsHTML}</div>
-            <div class="filter-count">${rows.length} in → ${outCount} out</div>`;
-    }
+    // (Rendering itself moved to FilterCard.jsx, app/dotto/ — a real Component now, no mini-
+    // preview elsewhere calls this kind, unlike Shelf/Stopwatch/Flashcard/Typeright, so there's no
+    // renderFilterHTML left to keep around.)
     function setFilterMode(id, mode) {
         const it = findItemById(id); if (!it) return;
         it.filterMode = mode;
@@ -619,7 +600,7 @@ import { openFolder, render } from './waypoints-render-loop.js';
         document.getElementById('search-cards-modal-overlay').classList.remove('open');
     }
 
-export { addCardsToSearchContext, autoGrowSearchInput, clearSearchCardContext, closeSearchCardsModal, filterShelfRows, handleShelfSourceRowClick, openSearchCardsModal, pushNotification, renderFilterHTML, renderShelfHTML, renderStopwatchHTML, runNotificationAction, setFilterMode, shelfSelectSession, startRenameShelfName, startRenameShelfSourceRow, swCurrentElapsedMs, swFormatTime, swTogglePause, swToggleRun, toggleFilterTag, updateSearchSpaceHint };
+export { addCardsToSearchContext, autoGrowSearchInput, clearSearchCardContext, closeSearchCardsModal, filterShelfRows, handleShelfSourceRowClick, openSearchCardsModal, pushNotification, renderShelfHTML, renderStopwatchHTML, runNotificationAction, setFilterMode, shelfSelectSession, startRenameShelfName, startRenameShelfSourceRow, swCurrentElapsedMs, swFormatTime, swTogglePause, swToggleRun, toggleFilterTag, updateSearchSpaceHint };
 
 // Not an inline-HTML onclick target (see window-bridge.js's own header comment for why those
 // live there instead) — this is the first real React component (app/dotto/PricingOverlay.jsx,

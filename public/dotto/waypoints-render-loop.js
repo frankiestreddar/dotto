@@ -13,7 +13,6 @@ import { closeSourceAddMenu } from './source-buttons-cursor-mode.js';
 import { attachStaticTableHoverZones, layoutSourceTableColumns, renderStaticTableHTML } from './source-table.js';
 import { closeCellTagPicker } from './source-tags-ai.js';
 import { applyConnections, renderConnectionsLayer } from './srs-connections-core.js';
-import { renderFilterHTML, renderShelfHTML } from './stopwatch-search-notifications.js';
 
 
     // ---------- Waypoint card expand/collapse ----------
@@ -682,19 +681,6 @@ import { renderFilterHTML, renderShelfHTML } from './stopwatch-search-notificati
                     window.addEventListener('pointermove', onMove);
                     window.addEventListener('pointerup', onUp);
                 }, { signal: waypointSignal });
-            } else if (it.kind === 'shelf') {
-                el.innerHTML = renderShelfHTML(it);
-            } else if (it.kind === 'filter') {
-                el.innerHTML = renderFilterHTML(it);
-            } else if (it.kind === 'sentence') {
-                // Dropped from a Dotbot example-sentence drag (see importDotbotResultAtScreenPoint)
-                // — a dedicated read-only card, not a note: big target-script text, small
-                // transliteration underneath only when the AI supplied one (i.e. the script isn't
-                // Latin-based), translation below. No contentEditable/onblur wiring — uneditable,
-                // like statcard/stopwatch/shelf above.
-                el.innerHTML = `<div class="sentence-card-text">${escapeHtml(it.text || '')}</div>
-                    ${it.translit ? `<div class="sentence-card-translit">${escapeHtml(it.translit)}</div>` : ''}
-                    ${it.translation ? `<div class="sentence-card-translation">${escapeHtml(it.translation)}</div>` : ''}`;
             }
     }
 

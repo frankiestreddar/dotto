@@ -210,3 +210,8 @@ import { render } from './waypoints-render-loop.js';
     }
 
 export { computeConnectorPoints, createConnection, ensureConnections, ensureDrawings, findLinkedTable, findTableById, folderIdForConnectedSource, folderTitleForConnectedSource, itemRect, linkSelectedCards, makeLayerSVG, pathNearPoint, pointsToLinePath, pointsToPath, resolveTableForEdit };
+
+// React → vanilla bridge (see the identical pattern/comment in cards-misc.js) — used by
+// ShelfCard.jsx (app/dotto/), which can't import this directly since public/dotto/*.js isn't
+// reachable from app/dotto/.
+window.__folderTitleForConnectedSource = folderTitleForConnectedSource;
