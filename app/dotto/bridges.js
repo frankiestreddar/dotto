@@ -115,3 +115,15 @@ export const canvasResultsStore = createStore(null);
 // elsewhere are harmless as long as they only ever touch this SPECIFIC node's children (never
 // true for #search-results, see above).
 export const searchSuggestionsStore = createStore(null);
+
+// Add-to-source popup (public/dotto/search-orchestration-selection.js) — {isOpen, left, top},
+// same shape as selectionToolbarStore, for the same reason: this popup isn't nested inside any
+// static markup fragment (the original code appended it straight onto document.body), so it
+// doesn't need a portal — React renders it independently, same as PricingOverlay/SelectionToolbar.
+// The popup's actual CONTENT (source search, the entry row, its own drag-free inline editing)
+// stays fully vanilla, built by renderAddToSourcePopup directly against
+// document.getElementById('add-to-source-popup') — see AddToSourcePopup.jsx and
+// openAddToSourcePopup's own comment for why no mount effect is needed: __setAddToSourcePopupOpen
+// is flushSync'd, so the div already exists by the time openAddToSourcePopup calls
+// renderAddToSourcePopup right after.
+export const addToSourcePopupStore = createStore({ isOpen: false, left: 0, top: 0 });

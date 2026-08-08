@@ -339,7 +339,8 @@
         selectionToolbarRange: null,
         selectionToolbarHostEl: null,
         selectionToolbarRect: null,
-        addToSourcePopupEl: null,
+        // addToSourcePopupEl removed — React owns the popup element now (Phase 2, see
+        // app/dotto/AddToSourcePopup.jsx); reach it via document.getElementById('add-to-source-popup').
         addToSourceTarget: null,
         WAYPOINT_COLLAPSED_W: 28,
         waypointPeekTimer: null,
