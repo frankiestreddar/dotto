@@ -1,6 +1,6 @@
-import { clearSearch, escapeHtml } from './ai-assistant-suggestions.js';
+import { clearSearch } from './ai-assistant-suggestions.js';
 import { appState, supabase } from './core-state.js';
-import { ensureCanvasPresenceChannel, goToCollaboratorCursor, openConvo, renderConvoBody } from './live-presence.js';
+import { ensureCanvasPresenceChannel, openConvo, renderConvoBody } from './live-presence.js';
 import { openMessagesPanel } from './messages-schedule.js';
 import { closeAllPanels, pinOnInsideClick, scheduleHoverClose } from './panels-hamburger.js';
 import { bumpAchievementStat, renderAvatarInto } from './profile-achievements-pricing.js';
@@ -123,50 +123,34 @@ import { pushNotification } from './stopwatch-search-notifications.js';
         if (error) console.error('[collab] failed to sync renamed canvas title:', error);
     }
 
+    // Real React state now (see app/dotto/CollabListPanel.jsx, collabListStore) — genuine JSX
+    // rows, same reasoning as CanvasResultsPanel/WaypointsListPanel (no complex per-row widget
+    // state — an avatar, a name, a live-presence dot, an Add/Remove/Requested button). Unlike the
+    // Hub Collab/Messages panels, this one has no Requests drill-down of its own — adding someone
+    // doesn't grant access immediately, it sends a request (like a friend request) that shows as
+    // "Requested" here until they accept it from THEIR OWN hamburger Collaborations panel (see
+    // renderHubCollabRequests). Someone already collaborating (directly or inherited) shows
+    // "Remove" instead, which always acts on this exact folder — removing someone with only
+    // inherited access creates an explicit block scoped to just this folder, not a no-op (see
+    // revokeCanvasCollab).
     async function renderCollabList(query) {
         await Promise.all([refreshFriendsData(), refreshCanvasCollabForCurrentFolder()]);
-        const list = document.getElementById('collab-list');
-        list.innerHTML = '';
         const folderObj = appState.folders[appState.currentFolderId];
         if (!folderObj) return;
         folderObj.collaborators = folderObj.collaborators || [];
         const q = (query || '').trim().toLowerCase();
         const isCollab = (id) => folderObj.collaborators.includes(id);
 
-        // Adding someone doesn't grant access immediately — it sends a request (like a friend
-        // request) that shows as "Requested" until they accept it from their own hamburger
-        // Collaborations panel (see renderHubCollabRequests). Someone already collaborating
-        // (directly or inherited) shows "Remove" instead, which always acts on this exact folder
-        // — removing someone with only inherited access creates an explicit block scoped to just
-        // this folder, not a no-op (see revokeCanvasCollab).
-        function addRow(f) {
-            const row = document.createElement('div');
-            row.className = 'collab-row';
+        // A live presence dot + clickable name only makes sense for someone who's both an actual
+        // collaborator here AND currently present on this exact canvas right now (see
+        // remoteCursors/handleCanvasPresenceSync) — not just anyone in the friends list.
+        function toRow(f) {
             const added = isCollab(f.id);
             const pending = appState.outgoingCanvasInvitePendingIds.has(f.id);
-            const label = added ? 'Remove' : pending ? 'Requested' : 'Add';
-            // A live presence dot + clickable name only makes sense for someone who's both an
-            // actual collaborator here AND currently present on this exact canvas right now (see
-            // remoteCursors/handleCanvasPresenceSync) — not just anyone in the friends list.
-            const isPresent = added && appState.remoteCursors.has(f.id);
-            row.innerHTML = `<div class="collab-row-avatar"></div>
-                <div class="collab-row-meta"><div class="collab-row-name${isPresent ? ' collab-row-name-live' : ''}">${escapeHtml(f.displayName)}${isPresent ? '<span class="collab-row-live-dot"></span>' : ''}</div></div>
-                <button class="collab-add-btn ${added ? 'added' : ''} ${pending ? 'pending' : ''}" ${pending ? 'disabled' : ''}>${label}</button>`;
-            renderAvatarInto(row.querySelector('.collab-row-avatar'), { id: f.avatarId ?? 0, url: f.avatarUrl || null }, initials(f.displayName));
-            if (isPresent) {
-                row.querySelector('.collab-row-name').onclick = (e) => {
-                    e.stopPropagation();
-                    goToCollaboratorCursor(f.id);
-                };
-            }
-            row.querySelector('.collab-add-btn').onclick = async (e) => {
-                e.stopPropagation();
-                if (pending) return;
-                if (added) await revokeCanvasCollab(f.id);
-                else await sendCanvasCollabInvite(f.id);
-                renderCollabList(query);
+            return {
+                id: f.id, displayName: f.displayName, avatarId: f.avatarId ?? 0, avatarUrl: f.avatarUrl || null,
+                added, pending, isPresent: added && appState.remoteCursors.has(f.id),
             };
-            list.appendChild(row);
         }
 
         // Search covers the whole friends list, no cap. Otherwise (the default view): every
@@ -175,13 +159,7 @@ import { pushNotification } from './stopwatch-search-notifications.js';
         // "Collaborators"/"Recently active"/"Most conversed with" subheadings, just one list.
         if (q) {
             const results = appState.friends.filter(f => f.displayName.toLowerCase().includes(q));
-            if (results.length) results.forEach(f => addRow(f));
-            else {
-                const empty = document.createElement('div');
-                empty.className = 'collab-empty';
-                empty.textContent = 'No friends found.';
-                list.appendChild(empty);
-            }
+            window.__setCollabList({ rows: results.map(toRow), query: q });
             return;
         }
 
@@ -198,14 +176,14 @@ import { pushNotification } from './stopwatch-search-notifications.js';
             const c = byConversed[i];
             if (c && !seen.has(c.id)) { seen.add(c.id); merged.push(c); }
         }
-        if (!merged.length) {
-            const empty = document.createElement('div');
-            empty.className = 'collab-empty';
-            empty.textContent = 'No friends yet.';
-            list.appendChild(empty);
-            return;
-        }
-        merged.forEach(f => addRow(f));
+        window.__setCollabList({ rows: merged.map(toRow), query: '' });
+    }
+    // Wired up from CollabListPanel.jsx's Add/Remove button handler.
+    async function handleCollabAddRemoveClick(friendId, added, pending, query) {
+        if (pending) return;
+        if (added) await revokeCanvasCollab(friendId);
+        else await sendCanvasCollabInvite(friendId);
+        renderCollabList(query);
     }
     function handleCollabSearch(v) { renderCollabList(v); }
 
@@ -550,13 +528,14 @@ import { pushNotification } from './stopwatch-search-notifications.js';
         });
     }
 
-export { backToMsgMain, closeCollabPanel, handleAddFriendClick, handleCollabSearch, handleMsgSearch, initials, openCollabPanel, openMsgRequestsView, refreshCanvasCollabForCurrentFolder, refreshFriendsData, renderCollabPill, renderMsgList, respondToMsgRequest, syncCanvasCollabTitle };
+export { backToMsgMain, closeCollabPanel, handleAddFriendClick, handleCollabAddRemoveClick, handleCollabSearch, handleMsgSearch, initials, openCollabPanel, openMsgRequestsView, refreshCanvasCollabForCurrentFolder, refreshFriendsData, renderCollabPill, renderMsgList, respondToMsgRequest, syncCanvasCollabTitle };
 
-// React → vanilla bridge — used by MessagesListPanel.jsx (app/dotto/), which can't import these
-// directly since public/dotto/*.js isn't reachable from app/dotto/.
+// React → vanilla bridge — used by MessagesListPanel.jsx/CollabListPanel.jsx (app/dotto/), which
+// can't import these directly since public/dotto/*.js isn't reachable from app/dotto/.
 window.__openMsgRequestsView = openMsgRequestsView;
 window.__backToMsgMain = backToMsgMain;
 window.__handleAddFriendClick = handleAddFriendClick;
+window.__handleCollabAddRemoveClick = handleCollabAddRemoveClick;
 window.__respondToMsgRequest = respondToMsgRequest;
 
 // No window.__initials bridge — Avatar.jsx (app/dotto/) reimplements this directly instead (see

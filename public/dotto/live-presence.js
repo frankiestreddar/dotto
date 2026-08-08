@@ -1482,3 +1482,4 @@ window.__syncColorPicker = syncColorPicker;
 window.__titleFontSize = titleFontSize;
 window.__renderRealCardPreview = renderRealCardPreview;
 window.__openConvo = openConvo;
+window.__goToCollaboratorCursor = goToCollaboratorCursor;

@@ -8,6 +8,7 @@ import {
   addToSourcePopupStore,
   canvasItemsStore,
   canvasResultsStore,
+  collabListStore,
   dictionaryPanelStore,
   dotbotAnswerStore,
   examplesPanelStore,
@@ -28,6 +29,7 @@ import AchievementsGrid from "./dotto/AchievementsGrid";
 import AddToSourcePopup from "./dotto/AddToSourcePopup";
 import CanvasItemsLayer from "./dotto/CanvasItemsLayer";
 import CanvasResultsPanel from "./dotto/CanvasResultsPanel";
+import CollabListPanel from "./dotto/CollabListPanel";
 import DictionaryPanel from "./dotto/DictionaryPanel";
 import DotbotAnswerPanel from "./dotto/DotbotAnswerPanel";
 import ExamplesPanel from "./dotto/ExamplesPanel";
@@ -190,6 +192,9 @@ if (typeof window !== "undefined") {
   // renderMsgRequests) — same reasoning as __setWaypointsList/__setHubCollabList: both entry
   // points are real async Supabase calls.
   window.__setMsgList = msgListStore.set;
+  // Per-canvas Collaborations flyout (see app/dotto/CollabListPanel.jsx,
+  // friends-presence.js's renderCollabList) — same reasoning: real async Supabase calls.
+  window.__setCollabList = collabListStore.set;
 }
 
 export default function DottoApp({ sections, currentUser }) {
@@ -246,6 +251,7 @@ export default function DottoApp({ sections, currentUser }) {
       <WaypointsListPanel />
       <HubCollabListPanel />
       <MessagesListPanel />
+      <CollabListPanel />
       <ProfileLevelPill />
       <ProfileIdentity />
       <ProfileAvatarSm />
