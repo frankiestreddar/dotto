@@ -19,16 +19,25 @@ import { autoGrowSearchInput, pushNotification } from './stopwatch-search-notifi
     // a single item, or an inline-canvas preview for several (see startScheduleConversation) — so
     // you can see exactly what you're scheduling while Dotbot asks when. The dropdown/search box
     // naturally grows to fit it since nothing here constrains its height.
-    function renderDotbotPrompt(text, previewEl) {
-        appState.searchSuggestions.innerHTML = '';
-        if (previewEl) appState.searchSuggestions.appendChild(previewEl);
+    // #search-suggestions' content is real React state now (see app/dotto/SearchSuggestionsPanel.jsx,
+    // searchSuggestionsStore in mnemonic-search-matching.js's renderMnemonicResultCard, whose own
+    // comment covers the full picture of why it's a discriminated union, shared by 6 producers).
+    // `previewEl` is built by the CALLER (startScheduleConversation, below) and just gets appended
+    // as-is — see buildDotbotPromptMsgEl/startDotbotPromptReveal for the text message's own
+    // build/reveal split, same reasoning as buildDotbotAnswerTextEl/startDotbotAnswerReveal
+    // (typewriterReveal needs the element already connected to the DOM).
+    function buildDotbotPromptMsgEl() {
         const msg = document.createElement('div');
         msg.className = 'search-suggestion-item dotbot-prompt-msg';
-        appState.searchSuggestions.appendChild(msg);
-        appState.searchResults.style.display = 'none';
-        appState.searchSuggestions.style.display = 'block';
-        updateSearchDropdown();
+        return msg;
+    }
+    function startDotbotPromptReveal(msg, text) {
         typewriterReveal(msg, text, updateSearchDropdown);
+    }
+    function renderDotbotPrompt(text, previewEl) {
+        window.__setCanvasResults(null);
+        window.__setSearchSuggestions({ kind: 'dotbot-prompt', text, previewEl: previewEl || null });
+        updateSearchDropdown();
     }
 
     // Starts the "when would you like to schedule X for?" Dotbot conversation for an arbitrary
@@ -251,4 +260,10 @@ import { autoGrowSearchInput, pushNotification } from './stopwatch-search-notifi
     // whole pass exists to eliminate, this time for appState itself).
     appState.lastStatsDayKey = statsDayKey(new Date());
 
-export { cancelDotbotScheduleConversation, startScheduleConversation, submitDotbotScheduleAnswer };
+export { buildDotbotPromptMsgEl, cancelDotbotScheduleConversation, startDotbotPromptReveal, startScheduleConversation, submitDotbotScheduleAnswer };
+
+// React → vanilla bridge (see the identical pattern/comment in mnemonic-search-matching.js) — used
+// by SearchSuggestionsPanel.jsx (app/dotto/), which can't import this directly since
+// public/dotto/*.js isn't reachable from app/dotto/.
+window.__buildDotbotPromptMsgEl = buildDotbotPromptMsgEl;
+window.__startDotbotPromptReveal = startDotbotPromptReveal;

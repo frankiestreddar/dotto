@@ -5,6 +5,7 @@ import { flushSync } from "react-dom";
 import { createClient } from "@/lib/supabase/client";
 import {
   canvasItemsStore,
+  canvasResultsStore,
   dictionaryPanelStore,
   dotbotAnswerStore,
   examplesPanelStore,
@@ -13,10 +14,12 @@ import {
   pricingOverlayStore,
   recommendedSearchesStore,
   scheduleAgendaStore,
+  searchSuggestionsStore,
   selectionToolbarStore,
   translationPanelStore,
 } from "./dotto/bridges";
 import CanvasItemsLayer from "./dotto/CanvasItemsLayer";
+import CanvasResultsPanel from "./dotto/CanvasResultsPanel";
 import DictionaryPanel from "./dotto/DictionaryPanel";
 import DotbotAnswerPanel from "./dotto/DotbotAnswerPanel";
 import ExamplesPanel from "./dotto/ExamplesPanel";
@@ -25,6 +28,7 @@ import NotificationBar from "./dotto/NotificationBar";
 import PricingOverlay from "./dotto/PricingOverlay";
 import RecommendedSearchesPanel from "./dotto/RecommendedSearchesPanel";
 import ScheduleAgenda from "./dotto/ScheduleAgenda";
+import SearchSuggestionsPanel from "./dotto/SearchSuggestionsPanel";
 import SelectionToolbar from "./dotto/SelectionToolbar";
 import TranslationPanel from "./dotto/TranslationPanel";
 
@@ -141,6 +145,14 @@ if (typeof window !== "undefined") {
   window.__setRecommendedSearches = (panel) => flushSync(() => recommendedSearchesStore.set(panel));
   window.__setDotbotAnswer = (answer) => flushSync(() => dotbotAnswerStore.set(answer));
   window.__setImageResult = (state) => flushSync(() => imageResultStore.set(state));
+  // #search-results/#search-suggestions (see app/dotto/CanvasResultsPanel.jsx/
+  // SearchSuggestionsPanel.jsx) — same flushSync reasoning as the six above. __setCanvasResults
+  // specifically also needs it for a second reason: it's a real portal (see canvasResultsStore's
+  // own comment in bridges.js), and the existing keyboard-nav code
+  // (search-orchestration-selection.js) reads its rows via querySelectorAll synchronously on
+  // every arrow/digit/Enter keypress.
+  window.__setCanvasResults = (state) => flushSync(() => canvasResultsStore.set(state));
+  window.__setSearchSuggestions = (state) => flushSync(() => searchSuggestionsStore.set(state));
 }
 
 export default function DottoApp({ sections, currentUser }) {
@@ -191,6 +203,8 @@ export default function DottoApp({ sections, currentUser }) {
       <RecommendedSearchesPanel />
       <DotbotAnswerPanel />
       <ImageResultPanel />
+      <CanvasResultsPanel />
+      <SearchSuggestionsPanel />
       <Script src="/dotto-script.js" type="module" strategy="afterInteractive" />
     </>
   );
