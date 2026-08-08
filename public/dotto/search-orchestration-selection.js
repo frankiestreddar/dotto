@@ -4,7 +4,7 @@ import { cancelDotbotScheduleConversation, submitDotbotScheduleAnswer } from './
 import { ensureConnections } from './drawing-connections.js';
 import { saveSnapshot, scheduleWorkspaceSave } from './history-autosave.js';
 import { miniLabelForItem } from './live-presence.js';
-import { commenceSearchOrMnemonic, computeCanvasMatches, computeSourceMatches, renderAnswerBlocksPanel, renderCanvasResultsPanel, renderDictionaryPanel, renderDotbotAnswerPanel, renderExamplesPanel, renderRecommendedSearchesPanel, renderTranslationPanel } from './mnemonic-search-matching.js';
+import { commenceSearchOrMnemonic, computeCanvasMatches, computeSourceMatches, renderCanvasResultsPanel, renderDictionaryPanel, renderDotbotAnswerPanel, renderExamplesPanel, renderRecommendedSearchesPanel, renderTranslationPanel } from './mnemonic-search-matching.js';
 import { bumpAchievementStat, openDotbotUpgradeModal, refreshDotbotUsage } from './profile-achievements-pricing.js';
 import { colgroupHTML } from './source-table.js';
 import { applyAiAddRowsToSource, createSourceFromAI } from './source-tags-ai.js';
@@ -141,23 +141,24 @@ import { render } from './waypoints-render-loop.js';
         // stale registry would otherwise keep referencing long-gone elements from a prior search.
         appState.dotbotAlignedRegistry = [];
         const textPanel = panels.find(p => p.type === 'dotbot_text');
-        renderDotbotAnswerPanel(textPanel ? textPanel.text : null);
-        // Its own small panel, shown above the dictionary panel — only for direct
-        // translation-style queries (see lib/dotbot.js's "translation" field).
-        renderTranslationPanel(panels.find(p => p.type === 'translation') || null);
+        // dictPanel/examplesPanel are hoisted above the renderDotbotAnswerPanel call (pure lookups,
+        // no side effects, so reordering them is a no-op otherwise) since answerLanguage — the
+        // in-depth answer_blocks continuation's language, reusing whichever the dictionary/
+        // examples panel already carries so its example pills' TTS buttons speak correctly —
+        // needs both, and renderDotbotAnswerPanel now takes the answer_blocks panel + language
+        // directly (see its own comment for why it merged what used to be a second function call).
         const dictPanel = panels.find(p => p.type === 'dictionary') || null;
-        renderDictionaryPanel(dictPanel);
         // Always rendered independently now — dictionary entries no longer carry their own
         // sentences (see buildDictionaryCard), so "examples" is the one place they come from
         // whether or not a dictionary panel is also present.
         const examplesPanel = panels.find(p => p.type === 'examples') || null;
-        renderExamplesPanel(examplesPanel);
-        // The in-depth continuation of a grammar/explanation answer, appended below the short
-        // dotbotText intro (see renderAnswerBlocksPanel) — reuses whichever language this
-        // response's dictionary/examples panel already carries so its example pills' TTS
-        // buttons speak correctly, rather than needing their own separate language field.
         const answerLanguage = (dictPanel && dictPanel.entries && dictPanel.entries[0] && dictPanel.entries[0].language) || (examplesPanel && examplesPanel.language) || '';
-        renderAnswerBlocksPanel(panels.find(p => p.type === 'answer_blocks') || null, answerLanguage);
+        renderDotbotAnswerPanel(textPanel ? textPanel.text : null, panels.find(p => p.type === 'answer_blocks') || null, answerLanguage);
+        // Its own small panel, shown above the dictionary panel — only for direct
+        // translation-style queries (see lib/dotbot.js's "translation" field).
+        renderTranslationPanel(panels.find(p => p.type === 'translation') || null);
+        renderDictionaryPanel(dictPanel);
+        renderExamplesPanel(examplesPanel);
         renderRecommendedSearchesPanel(panels.find(p => p.type === 'recommended_searches') || null);
         // Applies the mutation directly rather than rendering a confirmation panel of its own —
         // "dotbotText" above already reads as the confirmation (see the prompt), and the change

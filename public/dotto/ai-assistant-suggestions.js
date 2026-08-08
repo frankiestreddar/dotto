@@ -231,6 +231,15 @@ import { render } from './waypoints-render-loop.js';
     // result doesn't linger on screen underneath/alongside the live typing state. Deliberately
     // separate from clearSearch(), which also wipes the input value and suggestions — this only
     // clears the "result" panels.
+    //
+    // Six of these seven are React-owned now (TranslationPanel.jsx and friends, app/dotto/) but
+    // safe to keep clearing directly here: each owning component renders no JSX children of its
+    // own (returns null) and only ever touches its node's contents from its own layout effect,
+    // gated on its store's value — React never diffs against what's actually in the DOM, so a
+    // direct clear here can't fight it. The corresponding store still holds the old panel data
+    // until the next render*Panel call sets it fresh, which is harmless (nothing reads a store
+    // except its own component, and that component's effect only reruns when the store's value
+    // actually changes).
     function hideDotbotResultPanels() {
         appState.searchDotbotAnswer.innerHTML = ''; appState.searchDotbotAnswer.style.display = 'none';
         if (appState.searchTranslation) { appState.searchTranslation.innerHTML = ''; appState.searchTranslation.style.display = 'none'; }

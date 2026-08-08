@@ -119,31 +119,27 @@ import { expandWaypointCard, render } from './waypoints-render-loop.js';
     // screen. Draggable onto the canvas as its own note (same as before) — see
     // setupDotbotResultDrag — and, via its cellImageHtml, straight into a source page's table
     // cell too.
-    function renderImageResultLoading() {
-        if (!appState.searchImageResult) return;
-        appState.searchImageResult.innerHTML = '';
+    // The image panel's 3 mutually-exclusive states are real React state now (see
+    // app/dotto/ImageResultPanel.jsx, imageResultStore) — these build*/render* pairs split the
+    // same way buildTranslationCard/renderTranslationPanel do: build stays vanilla (the loading
+    // state's typewriter animation, and the success state's drag-to-canvas wiring, both need a
+    // real live DOM node to operate on), render just decides which state to show.
+    function buildImageResultLoading() {
         const loading = document.createElement('div');
         loading.className = 'search-suggestion-item search-image-loading typewriter-loading';
-        appState.searchImageResult.appendChild(loading);
         startTypewriterLoading(loading);
-        appState.searchImageResult.style.display = 'block';
-        updateSearchDropdown();
+        return loading;
     }
-    function renderImageResultError(reason) {
-        if (!appState.searchImageResult) return;
-        appState.searchImageResult.innerHTML = `<div class="search-suggestion-item search-image-loading">${escapeHtml(dotbotErrorMessage(reason))}</div>`;
-        appState.searchImageResult.style.display = 'block';
-        updateSearchDropdown();
-        if (reason === 'no_credits') { appState.dotbotUpgradePromptedForFullness = true; openDotbotUpgradeModal(); }
+    function buildImageResultError(reason) {
+        const el = document.createElement('div');
+        el.className = 'search-suggestion-item search-image-loading';
+        el.textContent = dotbotErrorMessage(reason);
+        return el;
     }
-    function renderImageResultPanel(imageDataUrl) {
-        if (!appState.searchImageResult) return;
-        appState.searchImageResult.innerHTML = '';
+    function buildImageResultCard(imageDataUrl) {
         const card = document.createElement('div');
         card.className = 'search-suggestion-item dotbot-result-card search-image-result-card';
         card.innerHTML = `<img src="${imageDataUrl}" alt="" style="max-width:100%;border-radius:8px;display:block;">`;
-        appState.searchImageResult.appendChild(card);
-        appState.searchImageResult.style.display = 'block';
         // 448x252 = exactly 16:9 (both are *28, matching the canvas's own placement grid) — the
         // generated image is 16:9 too (see app/api/dotbot/image/route.js), so this box shows it
         // in full rather than the old square box cropping a widescreen image down to a square.
@@ -153,7 +149,20 @@ import { expandWaypointCard, render } from './waypoints-render-loop.js';
             appState.dotbotMnemonicPair.image,
             { cellImageHtml: `<img class="cell-media-img" src="${imageDataUrl}">`, onDrop: importMnemonicPairAtScreenPoint }
         );
-        updateSearchDropdown();
+        return card;
+    }
+    function renderImageResultLoading() {
+        if (!appState.searchImageResult) return;
+        window.__setImageResult({ status: 'loading' });
+    }
+    function renderImageResultError(reason) {
+        if (!appState.searchImageResult) return;
+        window.__setImageResult({ status: 'error', reason });
+        if (reason === 'no_credits') { appState.dotbotUpgradePromptedForFullness = true; openDotbotUpgradeModal(); }
+    }
+    function renderImageResultPanel(imageDataUrl) {
+        if (!appState.searchImageResult) return;
+        window.__setImageResult({ status: 'success', imageDataUrl });
     }
     async function generateMnemonicImage(imageScene) {
         renderImageResultLoading();
@@ -630,52 +639,62 @@ import { expandWaypointCard, render } from './waypoints-render-loop.js';
         window.__setDictionaryPanel(panel);
     }
     function renderExamplesPanel(panel) {
-        appState.searchExamples.innerHTML = '';
-        if (!panel) { appState.searchExamples.style.display = 'none'; return; }
-        appState.searchExamples.appendChild(buildExamplesCard(panel));
-        appState.searchExamples.style.display = 'block';
+        window.__setExamplesPanel(panel || null);
     }
     // Shown below Dotbot's answer only when it couldn't help with the query (canHelp:false) —
     // gives the user 3 generic searches to click instead of a dead end. Same row markup/click
-    // idiom as every other suggestion row in the app: fill the box, commence the search.
-    function renderRecommendedSearchesPanel(panel) {
-        if (!appState.searchRecommended) return;
-        appState.searchRecommended.innerHTML = '';
-        if (!panel || !panel.queries || !panel.queries.length) { appState.searchRecommended.style.display = 'none'; return; }
+    // idiom as every other suggestion row in the app: fill the box, commence the search. The rows
+    // themselves stay a vanilla-built DocumentFragment (see buildRecommendedSearchesRows) — no
+    // internal state of their own, just event wiring, not worth rewriting as JSX for this pass.
+    function buildRecommendedSearchesRows(panel) {
+        const frag = document.createDocumentFragment();
         panel.queries.forEach(q => {
             const div = document.createElement('div');
             div.className = 'search-suggestion-item';
             div.textContent = q;
             div.onclick = (e) => { e.stopPropagation(); appState.searchInput.value = q; autoGrowSearchInput(); commenceSearchOrMnemonic(q); };
-            appState.searchRecommended.appendChild(div);
+            frag.appendChild(div);
         });
-        appState.searchRecommended.style.display = 'block';
+        return frag;
+    }
+    function renderRecommendedSearchesPanel(panel) {
+        if (!appState.searchRecommended) return;
+        if (!panel || !panel.queries || !panel.queries.length) { window.__setRecommendedSearches(null); return; }
+        window.__setRecommendedSearches(panel);
     }
     // Dotbot's written answer — just another panel like dictionary/examples, not a chat surface.
     // Height grows naturally with the (typed-out) text as it wraps; draggable onto the canvas
-    // like any other Dotbot result.
-    function renderDotbotAnswerPanel(text) {
-        appState.searchDotbotAnswer.innerHTML = '';
-        if (!text) { appState.searchDotbotAnswer.style.display = 'none'; return; }
+    // like any other Dotbot result. `answerBlocksPanel`/`answerBlocksLanguage` are the in-depth
+    // continuation of a grammar/explanation answer (an ordered sequence of prose paragraphs and
+    // highlighted example-sentence pills — see the "answerBlocks" field in lib/dotbot.js),
+    // appended into the SAME #search-dotbot-answer container as the short text intro above it
+    // (never a separate panel), so it visually reads as one continuous answer — this used to be a
+    // second exported function (renderAnswerBlocksPanel) that renderOrchestrateResult called
+    // immediately afterward, relying on this function having already cleared the container; now
+    // that both live in one store (dotbotAnswerStore) they're genuinely one operation. Answer
+    // blocks render instantly, not via typewriterReveal — coordinating a character-by-character
+    // reveal across mixed prose/highlighted-example content isn't worth the complexity here.
+    // `answerBlocksLanguage` (the dictionary entry's or standalone examples panel's own language,
+    // whichever this response actually has — see renderOrchestrateResult) powers each example
+    // pill's own TTS button, same convention as buildExamplesCard.
+    function renderDotbotAnswerPanel(text, answerBlocksPanel, answerBlocksLanguage) {
+        window.__setDotbotAnswer(text ? { text, answerBlocksPanel: answerBlocksPanel || null, answerBlocksLanguage: answerBlocksLanguage || '' } : null);
+    }
+    // Builds the short intro text element (not yet revealed — see startDotbotAnswerReveal) and
+    // wires its drag-to-canvas payload. Split from the reveal step because typewriterReveal needs
+    // the element already connected to the DOM (checks el.isConnected on its first tick) — the
+    // caller (DotbotAnswerPanel.jsx) appends this, then calls startDotbotAnswerReveal.
+    function buildDotbotAnswerTextEl(text) {
         const textEl = document.createElement('div');
         textEl.className = 'dotbot-answer-text dotbot-result-card';
-        appState.searchDotbotAnswer.appendChild(textEl); // append BEFORE typewriterReveal — it checks
-        // el.isConnected on its first tick and silently no-ops forever otherwise.
-        appState.searchDotbotAnswer.style.display = 'block';
         setupDotbotResultDrag(textEl, { w: 240, h: 140, html: text });
+        return textEl;
+    }
+    function startDotbotAnswerReveal(textEl, text) {
         typewriterReveal(textEl, text, updateSearchDropdown);
     }
-    // The in-depth continuation of a grammar/explanation answer — an ordered sequence of prose
-    // paragraphs and highlighted example-sentence pills (see the "answerBlocks" field in
-    // lib/dotbot.js), appended into the SAME #search-dotbot-answer container as the short
-    // dotbotText intro above it (never a separate panel), so it visually reads as one continuous
-    // answer. Rendered instantly, not via typewriterReveal — coordinating a character-by-character
-    // reveal across mixed prose/highlighted-example content isn't worth the complexity here.
-    // `language` (the dictionary entry's or standalone examples panel's own language, whichever
-    // this response actually has — see renderOrchestrateResult) powers each example pill's own
-    // TTS button, same convention as buildExamplesCard.
-    function renderAnswerBlocksPanel(panel, language) {
-        if (!panel || !panel.blocks || !panel.blocks.length) return;
+    function buildAnswerBlocksWrap(panel, language) {
+        if (!panel || !panel.blocks || !panel.blocks.length) return null;
         const wrap = document.createElement('div');
         wrap.className = 'dotbot-answer-blocks';
         panel.blocks.forEach(b => {
@@ -712,15 +731,23 @@ import { expandWaypointCard, render } from './waypoints-render-loop.js';
                 wrap.appendChild(pill);
             }
         });
-        if (!wrap.children.length) return;
-        appState.searchDotbotAnswer.appendChild(wrap);
-        appState.searchDotbotAnswer.style.display = 'block';
+        if (!wrap.children.length) return null;
+        return wrap;
     }
 
-export { buildDictionaryCard, buildTranslationCard, commenceSearchOrMnemonic, computeCanvasMatches, computeSourceMatches, flashCanvasElement, renderAnswerBlocksPanel, renderCanvasResultsPanel, renderDictionaryPanel, renderDotbotAnswerPanel, renderExamplesPanel, renderRecommendedSearchesPanel, renderTranslationPanel };
+export { buildAnswerBlocksWrap, buildDictionaryCard, buildDotbotAnswerTextEl, buildExamplesCard, buildImageResultCard, buildImageResultError, buildImageResultLoading, buildRecommendedSearchesRows, buildTranslationCard, commenceSearchOrMnemonic, computeCanvasMatches, computeSourceMatches, flashCanvasElement, renderCanvasResultsPanel, renderDictionaryPanel, renderDotbotAnswerPanel, renderExamplesPanel, renderRecommendedSearchesPanel, renderTranslationPanel, startDotbotAnswerReveal };
 
 // React → vanilla bridge (see the identical pattern/comment in other converted-panel files) —
-// used by TranslationPanel.jsx/DictionaryPanel.jsx (app/dotto/), which can't import these
-// directly since public/dotto/*.js isn't reachable from app/dotto/.
+// used by TranslationPanel.jsx/DictionaryPanel.jsx/ExamplesPanel.jsx/RecommendedSearchesPanel.jsx/
+// DotbotAnswerPanel.jsx/ImageResultPanel.jsx (app/dotto/), which can't import these directly since
+// public/dotto/*.js isn't reachable from app/dotto/.
 window.__buildTranslationCard = buildTranslationCard;
 window.__buildDictionaryCard = buildDictionaryCard;
+window.__buildExamplesCard = buildExamplesCard;
+window.__buildRecommendedSearchesRows = buildRecommendedSearchesRows;
+window.__buildDotbotAnswerTextEl = buildDotbotAnswerTextEl;
+window.__startDotbotAnswerReveal = startDotbotAnswerReveal;
+window.__buildAnswerBlocksWrap = buildAnswerBlocksWrap;
+window.__buildImageResultLoading = buildImageResultLoading;
+window.__buildImageResultError = buildImageResultError;
+window.__buildImageResultCard = buildImageResultCard;
