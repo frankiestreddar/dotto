@@ -10,6 +10,7 @@ import {
   dictionaryPanelStore,
   dotbotAnswerStore,
   examplesPanelStore,
+  hubCollabListStore,
   imageResultStore,
   notificationStore,
   pricingOverlayStore,
@@ -26,6 +27,7 @@ import CanvasResultsPanel from "./dotto/CanvasResultsPanel";
 import DictionaryPanel from "./dotto/DictionaryPanel";
 import DotbotAnswerPanel from "./dotto/DotbotAnswerPanel";
 import ExamplesPanel from "./dotto/ExamplesPanel";
+import HubCollabListPanel from "./dotto/HubCollabListPanel";
 import ImageResultPanel from "./dotto/ImageResultPanel";
 import NotificationBar from "./dotto/NotificationBar";
 import PricingOverlay from "./dotto/PricingOverlay";
@@ -167,6 +169,10 @@ if (typeof window !== "undefined") {
   // it follows is async (a real network round-trip), so there's no synchronous DOM read racing
   // this the way there was for the search panels.
   window.__setWaypointsList = waypointsListStore.set;
+  // Hamburger menu's Collaborations panel (see app/dotto/HubCollabListPanel.jsx,
+  // hamburger-collab.js's renderHubCollabList/renderHubCollabRequests) — same reasoning as
+  // __setWaypointsList: both entry points are real async Supabase calls.
+  window.__setHubCollabList = hubCollabListStore.set;
 }
 
 export default function DottoApp({ sections, currentUser }) {
@@ -221,6 +227,7 @@ export default function DottoApp({ sections, currentUser }) {
       <SearchSuggestionsPanel />
       <AddToSourcePopup />
       <WaypointsListPanel />
+      <HubCollabListPanel />
       <Script src="/dotto-script.js" type="module" strategy="afterInteractive" />
     </>
   );

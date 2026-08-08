@@ -134,3 +134,11 @@ export const addToSourcePopupStore = createStore({ isOpen: false, left: 0, top: 
 // no per-row widget state worth keeping vanilla. `query` rides along just to pick the right empty-
 // state message ("No waypoints yet." vs "No matching waypoints."), matching the original.
 export const waypointsListStore = createStore({ rows: [], query: "" });
+
+// Hamburger menu's Collaborations panel (public/dotto/hamburger-collab.js's renderHubCollabList/
+// renderHubCollabRequests) — two views sharing #hub-collab-list, same as the vanilla version:
+// { view: 'main', requestsCount, ownedShown, sharedShown, query } or
+// { view: 'requests', requests }. Genuine JSX rows (see HubCollabListPanel.jsx), same reasoning as
+// waypointsListStore. Not flushSync'd on the bridge (app/dotto-app.jsx) — both entry points are
+// real async Supabase calls, so there's no synchronous DOM read to race.
+export const hubCollabListStore = createStore({ view: "main", requestsCount: 0, ownedShown: [], sharedShown: [], query: "" });

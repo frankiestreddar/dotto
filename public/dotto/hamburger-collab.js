@@ -1,11 +1,10 @@
-import { escapeHtml } from './ai-assistant-suggestions.js';
 import { addMenu, appState, drawSettings, supabase } from './core-state.js';
-import { initials, openCollabPanel, renderCollabPill } from './friends-presence.js';
+import { openCollabPanel, renderCollabPill } from './friends-presence.js';
 import { saveWorkspaceNow, smoothPanTo } from './history-autosave.js';
 import { flashCanvasElement } from './mnemonic-search-matching.js';
 import { closeHamburgerMenu } from './panels-hamburger.js';
-import { closeProfilePanel, openPricingOverlay, renderAvatarInto } from './profile-achievements-pricing.js';
-import { announceEnteredCollaboration, ensureSharedFolderLoaded, openSharedCanvas, outlineIcon, sharedFolderKey } from './shared-canvases-outline.js';
+import { closeProfilePanel, openPricingOverlay } from './profile-achievements-pricing.js';
+import { announceEnteredCollaboration, ensureSharedFolderLoaded, sharedFolderKey } from './shared-canvases-outline.js';
 import { pushNotification } from './stopwatch-search-notifications.js';
 import { deleteCanvasCollabsForFolder, expandWaypointCard, openFolder, render } from './waypoints-render-loop.js';
 
@@ -82,20 +81,17 @@ import { deleteCanvasCollabsForFolder, expandWaypointCard, openFolder, render } 
     // shared with this user) — no subheading distinguishing them, same "no separate subheadings"
     // convention as the per-canvas panel; the row content itself (avatars vs. an Open button)
     // makes which is which obvious.
+    // Real React state now (see app/dotto/HubCollabListPanel.jsx, hubCollabListStore) — genuine
+    // JSX rows for both views (main list + Requests drill-down), same reasoning as
+    // WaypointsListPanel: no complex per-row widget state, just icon/text/avatar(s)/onclick.
+    // renderAvatarInto is replaced by a reusable Avatar.jsx component (same img-with-fallback
+    // logic, just as real JSX with local state instead of an onerror handler mutating the DOM).
+    // Not flushSync'd (see window.__setHubCollabList, app/dotto-app.jsx) — both entry points are
+    // async (refreshCanvasCollabData/get_shared_folder are real network calls), so there's no
+    // synchronous DOM read that could race a plain store.set.
     async function renderHubCollabList(query) {
         await refreshCanvasCollabData();
         if (appState.hubCollabView === 'requests') { renderHubCollabRequests(); return; }
-        const list = document.getElementById('hub-collab-list');
-        list.innerHTML = '';
-
-        if (appState.incomingCanvasRequests.length) {
-            const reqRow = document.createElement('div');
-            reqRow.className = 'outline-item requests-row';
-            reqRow.innerHTML = `<span class="outline-label">Requests</span><span class="requests-count">${appState.incomingCanvasRequests.length}</span>`;
-            reqRow.onclick = (e) => { e.stopPropagation(); appState.hubCollabView = 'requests'; renderHubCollabRequests(); };
-            list.appendChild(reqRow);
-        }
-
         const q = (query || '').trim().toLowerCase();
         // Own canvases that have since been deleted shouldn't show here even if their
         // canvas_collaborations rows are somehow still lingering (e.g. deleteCanvasCollabsForFolder's
@@ -103,12 +99,17 @@ import { deleteCanvasCollabsForFolder, expandWaypointCard, openFolder, render } 
         // COMPLETE tree, loaded in full up front (see loadWorkspace), so absence here reliably means
         // "no longer exists," no extra round trip needed. Opportunistically retries the cleanup for
         // any match found, since we're the owner and can actually fix it from here.
+        //
+        // Title prefers the LIVE in-memory folders[...].title over the DB row's own folder_title
+        // (only a snapshot taken at invite time — see canvas_collaborations' own schema comment),
+        // computed here (not in the component) since appState is exactly as reachable from this
+        // vanilla code as it always was.
         const ownedCandidates = appState.ownedCanvasCollaborations.filter(c => !q || c.folderTitle.toLowerCase().includes(q));
         const ownedShown = ownedCandidates.filter(c => {
             if (appState.folders[c.folderId]) return true;
             deleteCanvasCollabsForFolder(c.folderId);
             return false;
-        });
+        }).map(c => ({ ...c, liveTitle: (appState.folders[c.folderId] && appState.folders[c.folderId].title) || c.folderTitle }));
         // Canvases shared WITH this user aren't necessarily loaded locally yet (a friend's canvas
         // isn't fetched until actually opened — see openSharedCanvas), so existence has to be
         // verified server-side instead: get_shared_folder returns null data (with no error) once
@@ -123,114 +124,30 @@ import { deleteCanvasCollabsForFolder, expandWaypointCard, openFolder, render } 
             const { data, error } = await supabase.rpc('get_shared_folder', { p_owner_id: c.ownerId, p_folder_id: c.folderId });
             return !error && data != null;
         }));
-        const sharedShown = sharedCandidates.filter((c, i) => sharedStillExists[i]);
-        if (!ownedShown.length && !sharedShown.length) {
-            const empty = document.createElement('div');
-            empty.className = 'outline-empty';
-            empty.textContent = q ? 'No matching canvases.' : 'No collaborations yet.';
-            list.appendChild(empty);
-            return;
-        }
-
-        // Both row types now share the exact same shape — icon, title + "Owned by ..." subtext,
-        // avatar(s) on the right — so which is which reads from the subtext alone, not from one
-        // having an avatar stack and the other a button.
-        //
-        // Own canvas that has collaborators — up to 3 avatars (same convention as the per-canvas
-        // collab bubble), hover shows the exact count, clicking navigates there AND opens its
-        // collaborator panel (since managing it is the obvious next step from here). Title prefers
-        // the LIVE in-memory folders[c.folderId].title over the DB row's own folder_title, which
-        // is only a snapshot taken at invite time (see canvas_collaborations' own schema comment)
-        // — this is always loaded already since it's one of this user's own canvases, so there's
-        // no reason to ever show a stale title here.
-        ownedShown.forEach(c => {
-            const row = document.createElement('div');
-            row.className = 'outline-item hub-collab-canvas-row';
-            const liveTitle = (appState.folders[c.folderId] && appState.folders[c.folderId].title) || c.folderTitle;
-            const shown = c.collaborators.slice(0, 3);
-            let avatarsHtml = '<div class="collab-avatars">';
-            shown.forEach((f, i) => { avatarsHtml += `<div class="collab-avatar" data-idx="${i}"></div>`; });
-            if (c.collaborators.length > 3) avatarsHtml += `<div class="collab-avatar collab-more">+${c.collaborators.length - 3}</div>`;
-            avatarsHtml += '</div>';
-            row.innerHTML = `${outlineIcon('folder')}
-                <div class="hub-collab-row-meta">
-                    <span class="outline-label">${escapeHtml(liveTitle)}</span>
-                    <span class="hub-collab-row-owner">Owned by you</span>
-                </div>
-                <span class="hub-collab-avatars-tooltip">${c.collaborators.length} ${c.collaborators.length === 1 ? 'Collaborator' : 'Collaborators'}</span>
-                ${avatarsHtml}`;
-            row.querySelectorAll('.collab-avatar[data-idx]').forEach(el => {
-                const f = shown[parseInt(el.dataset.idx, 10)];
-                renderAvatarInto(el, { id: f.avatarId, url: f.avatarUrl }, initials(f.displayName));
-            });
-            row.onclick = (e) => {
-                e.stopPropagation();
-                openFolder(c.folderId); // our own canvas — plain local navigation, no fetch needed
-                renderCollabPill(); // sets the bubble's .show class synchronously so the line below doesn't no-op
-                openCollabPanel(true);
-            };
-            list.appendChild(row);
-        });
-        // Canvas someone else shared with this user — single avatar (the owner). Title prefers the
-        // live folders['shared:owner:folderId'].title when that folder has already been loaded
-        // this session (i.e. it's been visited at least once), same staleness reasoning as above,
-        // falling back to the DB snapshot for one that hasn't been opened yet — a full live title
-        // for a canvas never even loaded locally would need the owner's own rename to actively
-        // push an update, which is a separate, larger piece of work than this.
-        sharedShown.forEach(c => {
-            const row = document.createElement('div');
-            row.className = 'outline-item hub-collab-canvas-row';
+        const sharedShown = sharedCandidates.filter((c, i) => sharedStillExists[i]).map(c => {
             const sharedKey = sharedFolderKey(c.ownerId, c.folderId);
-            const liveTitle = (appState.folders[sharedKey] && appState.folders[sharedKey].title) || c.folderTitle;
-            row.innerHTML = `${outlineIcon('folder')}
-                <div class="hub-collab-row-meta">
-                    <span class="outline-label">${escapeHtml(liveTitle)}</span>
-                    <span class="hub-collab-row-owner">Owned by ${escapeHtml(c.ownerName)}</span>
-                </div>
-                <div class="collab-avatars"><div class="collab-avatar" data-owner></div></div>`;
-            renderAvatarInto(row.querySelector('.collab-avatar[data-owner]'), { id: c.ownerAvatarId, url: c.ownerAvatarUrl }, initials(c.ownerName));
-            row.onclick = (e) => { e.stopPropagation(); openSharedCanvas(c.ownerId, c.folderId, c.folderTitle, c.ownerName); };
-            list.appendChild(row);
+            return { ...c, liveTitle: (appState.folders[sharedKey] && appState.folders[sharedKey].title) || c.folderTitle };
         });
+        window.__setHubCollabList({ view: 'main', requestsCount: appState.incomingCanvasRequests.length, ownedShown, sharedShown, query: q });
     }
     function renderHubCollabRequests() {
-        const list = document.getElementById('hub-collab-list');
-        list.innerHTML = '';
-        const backRow = document.createElement('div');
-        backRow.className = 'requests-back-row';
-        backRow.innerHTML = `<span>&larr;</span><span>Requests</span>`;
-        backRow.onclick = (e) => { e.stopPropagation(); appState.hubCollabView = 'main'; renderHubCollabList(appState.hubCollabSearchInput.value); };
-        list.appendChild(backRow);
-
-        if (!appState.incomingCanvasRequests.length) {
-            const empty = document.createElement('div');
-            empty.className = 'outline-empty';
-            empty.textContent = 'No pending requests.';
-            list.appendChild(empty);
-            return;
-        }
-        appState.incomingCanvasRequests.forEach(req => {
-            const row = document.createElement('div');
-            row.className = 'msg-add-row';
-            row.innerHTML = `<div class="msg-chat-meta"><div class="msg-chat-name">${escapeHtml(req.folderTitle)}</div><div class="collab-row-sub">from ${escapeHtml(req.ownerName)}</div></div>
-                <div style="display:flex;gap:6px;">
-                    <button class="msg-add-btn hub-collab-accept">Accept</button>
-                    <button class="msg-add-btn hub-collab-decline">Decline</button>
-                </div>`;
-            row.querySelector('.hub-collab-accept').onclick = async (e) => {
-                e.stopPropagation();
-                await respondToCanvasCollabRequest(req.id, true);
-                await refreshCanvasCollabData();
-                renderHubCollabRequests();
-            };
-            row.querySelector('.hub-collab-decline').onclick = async (e) => {
-                e.stopPropagation();
-                await respondToCanvasCollabRequest(req.id, false);
-                await refreshCanvasCollabData();
-                renderHubCollabRequests();
-            };
-            list.appendChild(row);
-        });
+        window.__setHubCollabList({ view: 'requests', requests: appState.incomingCanvasRequests });
+    }
+    // Wired up from HubCollabListPanel.jsx's JSX handlers — see that file for the row shapes these
+    // feed.
+    function openHubCollabRequestsView() { appState.hubCollabView = 'requests'; renderHubCollabRequests(); }
+    function backToHubCollabMain() { appState.hubCollabView = 'main'; renderHubCollabList(appState.hubCollabSearchInput.value); }
+    // Own canvas row click: navigates there AND opens its collaborator panel, since managing it is
+    // the obvious next step from here.
+    function handleOwnedHubCollabRowClick(folderId) {
+        openFolder(folderId); // our own canvas — plain local navigation, no fetch needed
+        renderCollabPill(); // sets the bubble's .show class synchronously so the line below doesn't no-op
+        openCollabPanel(true);
+    }
+    async function respondToHubCollabRequest(id, accept) {
+        await respondToCanvasCollabRequest(id, accept);
+        await refreshCanvasCollabData();
+        renderHubCollabRequests();
     }
     // Queries the global `waypoints` table (see the 20260729 migration) rather than scanning
     // locally-loaded `folders` — a friend's canvas 300 layers deep isn't loaded client-side until
@@ -329,8 +246,12 @@ import { deleteCanvasCollabsForFolder, expandWaypointCard, openFolder, render } 
     drawSettings.addEventListener('click', (e) => e.stopPropagation());
     addMenu.addEventListener('click', (e) => e.stopPropagation());
 
-export { goToWaypointCard, hmenuAction, renderHubCollabList, renderWaypointsList, resolveSharedFolderChain };
+export { backToHubCollabMain, goToWaypointCard, handleOwnedHubCollabRowClick, hmenuAction, openHubCollabRequestsView, renderHubCollabList, renderWaypointsList, resolveSharedFolderChain, respondToHubCollabRequest };
 
-// React → vanilla bridge — used by WaypointsListPanel.jsx (app/dotto/), which can't import this
-// directly since public/dotto/*.js isn't reachable from app/dotto/.
+// React → vanilla bridge — used by WaypointsListPanel.jsx/HubCollabListPanel.jsx (app/dotto/),
+// which can't import these directly since public/dotto/*.js isn't reachable from app/dotto/.
 window.__goToWaypointCard = goToWaypointCard;
+window.__openHubCollabRequestsView = openHubCollabRequestsView;
+window.__backToHubCollabMain = backToHubCollabMain;
+window.__handleOwnedHubCollabRowClick = handleOwnedHubCollabRowClick;
+window.__respondToHubCollabRequest = respondToHubCollabRequest;

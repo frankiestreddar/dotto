@@ -597,3 +597,8 @@ import { pushNotification } from './stopwatch-search-notifications.js';
     }
 
 export { closeCollabPanel, handleCollabSearch, handleMsgSearch, initials, openCollabPanel, refreshCanvasCollabForCurrentFolder, refreshFriendsData, renderCollabPill, renderMsgList, syncCanvasCollabTitle };
+
+// React → vanilla bridge — used by Avatar.jsx and the hamburger/collab panel components
+// (app/dotto/), which can't import this directly since public/dotto/*.js isn't reachable from
+// app/dotto/.
+window.__initials = initials;
