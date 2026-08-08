@@ -28,7 +28,7 @@ export default function ProfileIdentity() {
 
   return (
     <>
-      {nodes.avatar && createPortal(<Avatar bare avatar={avatar} fallback={window.__initials(displayName)} />, nodes.avatar)}
+      {nodes.avatar && createPortal(<Avatar bare avatar={avatar} name={displayName} />, nodes.avatar)}
       {nodes.username && createPortal(displayName, nodes.username)}
       {nodes.streak && createPortal(user.loginStreak || 0, nodes.streak)}
     </>

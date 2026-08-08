@@ -603,7 +603,7 @@ import { pushNotification } from './stopwatch-search-notifications.js';
 
 export { closeCollabPanel, handleCollabSearch, handleMsgSearch, initials, openCollabPanel, refreshCanvasCollabForCurrentFolder, refreshFriendsData, renderCollabPill, renderMsgList, syncCanvasCollabTitle };
 
-// React → vanilla bridge — used by Avatar.jsx and the hamburger/collab panel components
-// (app/dotto/), which can't import this directly since public/dotto/*.js isn't reachable from
-// app/dotto/.
-window.__initials = initials;
+// No window.__initials bridge — Avatar.jsx (app/dotto/) reimplements this directly instead (see
+// its own comment for why: plain string logic with no vanilla-only dependency, and needing it to
+// work on React's very first commit, before dotto-script.js is guaranteed loaded, ruled out a
+// bridge here specifically).
