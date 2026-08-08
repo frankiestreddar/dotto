@@ -237,31 +237,21 @@ import { deleteCanvasCollabsForFolder, expandWaypointCard, openFolder, render } 
     // you actually navigate into it, but a waypoint you dropped there still needs to show up and
     // be jumpable-to from here, platform-wide. RLS on that table already restricts this to
     // waypoints THIS user created, so there's no need to filter by creator client-side too.
+    // Real React state now (see app/dotto/WaypointsListPanel.jsx, waypointsListStore) — genuine
+    // JSX rows, same as CanvasResultsPanel, since there's no complex per-row widget state (just an
+    // icon, a label, an onclick). No flushSync needed on the bridge (unlike the search panels):
+    // this is async (a real network round-trip), so there's no synchronous-read race to guard
+    // against — by the time the store updates, we're already in a later task entirely.
     async function renderWaypointsList(query) {
-        const list = document.getElementById('waypoints-list');
-        list.innerHTML = '';
-        if (!supabase || !appState.currentUser.id) return;
         const q = (query || '').trim().toLowerCase();
+        if (!supabase || !appState.currentUser.id) { window.__setWaypointsList({ rows: [], query: q }); return; }
         const { data, error } = await supabase.from('waypoints')
             .select('owner_id, folder_id, item_id, name')
             .eq('creator_id', appState.currentUser.id)
             .order('updated_at', { ascending: false });
-        if (error) { console.error('[waypoints] failed to load waypoints:', error); return; }
+        if (error) { console.error('[waypoints] failed to load waypoints:', error); window.__setWaypointsList({ rows: [], query: q }); return; }
         const rows = (data || []).filter(r => !q || (r.name || 'New Waypoint').toLowerCase().includes(q));
-        if (!rows.length) {
-            const empty = document.createElement('div');
-            empty.className = 'outline-empty';
-            empty.textContent = q ? 'No matching waypoints.' : 'No waypoints yet.';
-            list.appendChild(empty);
-            return;
-        }
-        rows.forEach(r => {
-            const row = document.createElement('div');
-            row.className = 'outline-item';
-            row.innerHTML = `${outlineIcon('waypoint')}<span class="outline-label">${escapeHtml(r.name || 'New Waypoint')}</span>`;
-            row.onclick = (e) => { e.stopPropagation(); goToWaypointCard(r.owner_id, r.folder_id, r.item_id); };
-            list.appendChild(row);
-        });
+        window.__setWaypointsList({ rows, query: q });
     }
     // Pans to and briefly expands (read-only "peek") a waypoint card already present in the
     // CURRENTLY open folder's DOM — shared by both branches of goToWaypointCard below.
@@ -339,4 +329,8 @@ import { deleteCanvasCollabsForFolder, expandWaypointCard, openFolder, render } 
     drawSettings.addEventListener('click', (e) => e.stopPropagation());
     addMenu.addEventListener('click', (e) => e.stopPropagation());
 
-export { hmenuAction, renderHubCollabList, renderWaypointsList, resolveSharedFolderChain };
+export { goToWaypointCard, hmenuAction, renderHubCollabList, renderWaypointsList, resolveSharedFolderChain };
+
+// React → vanilla bridge — used by WaypointsListPanel.jsx (app/dotto/), which can't import this
+// directly since public/dotto/*.js isn't reachable from app/dotto/.
+window.__goToWaypointCard = goToWaypointCard;

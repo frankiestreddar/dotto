@@ -127,3 +127,10 @@ export const searchSuggestionsStore = createStore(null);
 // is flushSync'd, so the div already exists by the time openAddToSourcePopup calls
 // renderAddToSourcePopup right after.
 export const addToSourcePopupStore = createStore({ isOpen: false, left: 0, top: 0 });
+
+// Hamburger menu's Waypoints panel (public/dotto/hamburger-collab.js's renderWaypointsList) —
+// { rows: [{owner_id, folder_id, item_id, name}], query } — genuine JSX rows (see
+// WaypointsListPanel.jsx), same reasoning as canvasResultsStore: simple icon+label+onclick rows,
+// no per-row widget state worth keeping vanilla. `query` rides along just to pick the right empty-
+// state message ("No waypoints yet." vs "No matching waypoints."), matching the original.
+export const waypointsListStore = createStore({ rows: [], query: "" });

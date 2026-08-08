@@ -18,6 +18,7 @@ import {
   searchSuggestionsStore,
   selectionToolbarStore,
   translationPanelStore,
+  waypointsListStore,
 } from "./dotto/bridges";
 import AddToSourcePopup from "./dotto/AddToSourcePopup";
 import CanvasItemsLayer from "./dotto/CanvasItemsLayer";
@@ -33,6 +34,7 @@ import ScheduleAgenda from "./dotto/ScheduleAgenda";
 import SearchSuggestionsPanel from "./dotto/SearchSuggestionsPanel";
 import SelectionToolbar from "./dotto/SelectionToolbar";
 import TranslationPanel from "./dotto/TranslationPanel";
+import WaypointsListPanel from "./dotto/WaypointsListPanel";
 
 import TopBar from "./dotto/sections/TopBar";
 import ProfilePanel from "./dotto/sections/ProfilePanel";
@@ -160,6 +162,11 @@ if (typeof window !== "undefined") {
   // renderAddToSourcePopup immediately after this, which looks the div up by id and needs it to
   // already exist in the DOM.
   window.__setAddToSourcePopupOpen = (state) => flushSync(() => addToSourcePopupStore.set(state));
+  // Hamburger menu's Waypoints panel (see app/dotto/WaypointsListPanel.jsx,
+  // hamburger-collab.js's renderWaypointsList) — a plain store.set, not flushSync'd: the fetch
+  // it follows is async (a real network round-trip), so there's no synchronous DOM read racing
+  // this the way there was for the search panels.
+  window.__setWaypointsList = waypointsListStore.set;
 }
 
 export default function DottoApp({ sections, currentUser }) {
@@ -213,6 +220,7 @@ export default function DottoApp({ sections, currentUser }) {
       <CanvasResultsPanel />
       <SearchSuggestionsPanel />
       <AddToSourcePopup />
+      <WaypointsListPanel />
       <Script src="/dotto-script.js" type="module" strategy="afterInteractive" />
     </>
   );
