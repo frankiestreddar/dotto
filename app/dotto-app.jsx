@@ -4,6 +4,7 @@ import Script from "next/script";
 import { flushSync } from "react-dom";
 import { createClient } from "@/lib/supabase/client";
 import {
+  addToSourcePopupStore,
   canvasItemsStore,
   canvasResultsStore,
   dictionaryPanelStore,
@@ -18,6 +19,7 @@ import {
   selectionToolbarStore,
   translationPanelStore,
 } from "./dotto/bridges";
+import AddToSourcePopup from "./dotto/AddToSourcePopup";
 import CanvasItemsLayer from "./dotto/CanvasItemsLayer";
 import CanvasResultsPanel from "./dotto/CanvasResultsPanel";
 import DictionaryPanel from "./dotto/DictionaryPanel";
@@ -153,6 +155,11 @@ if (typeof window !== "undefined") {
   // every arrow/digit/Enter keypress.
   window.__setCanvasResults = (state) => flushSync(() => canvasResultsStore.set(state));
   window.__setSearchSuggestions = (state) => flushSync(() => searchSuggestionsStore.set(state));
+  // Add-to-source popup (see app/dotto/AddToSourcePopup.jsx, addToSourcePopupStore) — MUST be
+  // flushSync: openAddToSourcePopup (search-orchestration-selection.js) calls
+  // renderAddToSourcePopup immediately after this, which looks the div up by id and needs it to
+  // already exist in the DOM.
+  window.__setAddToSourcePopupOpen = (state) => flushSync(() => addToSourcePopupStore.set(state));
 }
 
 export default function DottoApp({ sections, currentUser }) {
@@ -205,6 +212,7 @@ export default function DottoApp({ sections, currentUser }) {
       <ImageResultPanel />
       <CanvasResultsPanel />
       <SearchSuggestionsPanel />
+      <AddToSourcePopup />
       <Script src="/dotto-script.js" type="module" strategy="afterInteractive" />
     </>
   );

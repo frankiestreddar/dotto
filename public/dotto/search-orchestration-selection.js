@@ -213,8 +213,11 @@ import { render } from './waypoints-render-loop.js';
     }
     document.addEventListener('selectionchange', () => {
         // A selectionchange firing because the user is typing inside the add-to-source popup's
-        // own search box isn't a text highlight to react to.
-        if (appState.addToSourcePopupEl && appState.addToSourcePopupEl.style.display !== 'none') return;
+        // own search box isn't a text highlight to react to. React only renders the popup at all
+        // while open (see app/dotto/AddToSourcePopup.jsx) — this file can't import from app/ to
+        // read the bridge store directly (same constraint noted throughout core-state.js), so the
+        // element's mere presence in the DOM doubles as the open-check here.
+        if (document.getElementById('add-to-source-popup')) return;
         const sel = window.getSelection();
         if (!sel || sel.isCollapsed || !sel.toString().trim()) { hideSelectionToolbar(); return; }
         const anchorEl = sel.anchorNode && (sel.anchorNode.nodeType === 1 ? sel.anchorNode : sel.anchorNode.parentElement);
@@ -307,21 +310,21 @@ import { render } from './waypoints-render-loop.js';
         const anySourceFolder = findAllSourceFolders()[0];
         return anySourceFolder ? { folder: anySourceFolder, table: tableOf(anySourceFolder) } : null;
     }
-    function ensureAddToSourcePopupEl() {
-        if (appState.addToSourcePopupEl) return appState.addToSourcePopupEl;
-        appState.addToSourcePopupEl = document.createElement('div');
-        appState.addToSourcePopupEl.id = 'add-to-source-popup';
-        appState.addToSourcePopupEl.className = 'add-to-source-popup';
-        appState.addToSourcePopupEl.onmousedown = (e) => e.stopPropagation();
-        document.body.appendChild(appState.addToSourcePopupEl);
-        return appState.addToSourcePopupEl;
-    }
+    // The popup element itself is real React state now (see app/dotto/AddToSourcePopup.jsx,
+    // addToSourcePopupStore) — existence/position/visibility all move together as one {isOpen,
+    // left, top}, same shape as selectionToolbarStore. window.__setAddToSourcePopupOpen
+    // (app/dotto-app.jsx) wraps its store.set in flushSync so the div already exists in the DOM
+    // by the time openAddToSourcePopup calls renderAddToSourcePopup right after (below) — that
+    // function, and every rebuild it triggers internally (source search, source pick), still
+    // build the popup's actual CONTENT fully vanilla, same "React owns the shell, vanilla owns a
+    // self-contained widget's internals" split as buildDictionaryCard.
     function closeAddToSourcePopup() {
-        if (appState.addToSourcePopupEl) appState.addToSourcePopupEl.style.display = 'none';
+        window.__setAddToSourcePopupOpen({ isOpen: false, left: 0, top: 0 });
         appState.addToSourceTarget = null;
     }
     document.addEventListener('pointerdown', (e) => {
-        if (appState.addToSourcePopupEl && appState.addToSourcePopupEl.style.display !== 'none' && !appState.addToSourcePopupEl.contains(e.target)) closeAddToSourcePopup();
+        const popup = document.getElementById('add-to-source-popup');
+        if (popup && !popup.contains(e.target)) closeAddToSourcePopup();
     });
     // Rebuilt from scratch on every change (source search, source pick) — this popup's whole
     // state is small and short-lived, same tradeoff renderGameOptionsHTML makes.
@@ -334,7 +337,8 @@ import { render } from './waypoints-render-loop.js';
     // colgroupHTML itself, already percentage-based) give the same aligned look for a fixed-width
     // popup with a normal number of columns.
     function renderAddToSourcePopup(prefillText) {
-        const popup = ensureAddToSourcePopupEl();
+        const popup = document.getElementById('add-to-source-popup');
+        if (!popup) return;
         const target = appState.addToSourceTarget;
         const table = target ? target.table : null;
         const headers = table ? table.tableData[0].map(h => stripHtml(h || '')) : [];
@@ -401,7 +405,6 @@ import { render } from './waypoints-render-loop.js';
                 closeAddToSourcePopup();
             };
         }
-        popup.style.display = 'flex';
     }
     function openAddToSourcePopup() {
         const text = currentSelectionText();
@@ -409,15 +412,15 @@ import { render } from './waypoints-render-loop.js';
         const rect = appState.selectionToolbarRect;
         hideSelectionToolbar();
         appState.addToSourceTarget = findDefaultSourceForItem(host);
-        renderAddToSourcePopup(text);
-        const popup = appState.addToSourcePopupEl;
         const popupWidth = 280;
         let left = rect ? Math.round(rect.left) : window.innerWidth / 2 - popupWidth / 2;
         left = Math.max(8, Math.min(left, window.innerWidth - popupWidth - 8));
         const estPopupHeight = 280; // rough estimate ahead of layout, same tradeoff as toolbarWidth above
         const top = rect ? Math.max(8, Math.min(window.innerHeight - estPopupHeight - 8, Math.round(rect.bottom + 10))) : window.innerHeight / 2 - estPopupHeight / 2;
-        popup.style.left = left + 'px';
-        popup.style.top = top + 'px';
+        // flushSync'd (see window.__setAddToSourcePopupOpen, app/dotto-app.jsx) — the div must
+        // already exist in the DOM before renderAddToSourcePopup below can find it.
+        window.__setAddToSourcePopupOpen({ isOpen: true, left, top });
+        renderAddToSourcePopup(text);
     }
 
     if (appState.searchInput) {

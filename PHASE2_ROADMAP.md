@@ -327,14 +327,40 @@ buckets slotted in by the same principle:
    **Done** (Flashcard, Typeright, and the shared `GameOptionsPanel`;
    Sentence, Filter, and Shelf card kinds converted alongside these).
 4. **Notifications core engine**, then its 3 scheduling-trigger producers.
-5. **Schedule panel** (now the in-canvas agenda overlay).
+   **Done** (`NotificationBar.jsx`) — the queue/sequencing engine and staged
+   CSS-class choreography stay vanilla (no list-diffing bug to fix there);
+   only the bar's own rendering surface moved to React. The 3 producers are
+   just callers of `pushNotification` with no rendering surface of their
+   own, so nothing further was needed for them.
+5. **Schedule panel** (now the in-canvas agenda overlay). **Done**
+   (`ScheduleAgenda.jsx`) — hour markers + event-card previews portal into
+   the existing static markup; each event's own preview still comes from
+   the vanilla `renderRealCardPreview`.
 6. **Hamburger menu + Profile/Messages/Friends panels** + **Achievements**
    (tightly linked to Profile's leveling code) — before wiring real backend
    data so the seam is already React state.
 7. **AI/search feature cluster** (Dotbot core, mnemonic, dictionary panels,
    text-selection/add-to-source, orchestrated search last, as the
    dispatcher) — biggest single cluster after source/table and live
-   presence; do after the card-kind registry pattern is proven.
+   presence; do after the card-kind registry pattern is proven. **Done.**
+   Text-selection toolbar was already converted earlier (`SelectionToolbar.jsx`).
+   All 8 search-dropdown panels are real React state now: 6 single-owner
+   ones (Translation/Dictionary/Examples/Recommended-searches/Dotbot-answer+
+   answer_blocks/Image-result) each mount a vanilla-built card via a plain
+   side-effect component; the 2 shared-ownership ones
+   (`#search-results`/`#search-suggestions`, each fed by multiple unrelated
+   producers) needed their own discriminated-union stores and, for
+   `#search-results`, genuine `createPortal`-based JSX so the existing
+   keyboard-navigation code keeps working unmodified. `commenceDotbotSearch`/
+   `renderOrchestrateResult` (the dispatcher) needed no further conversion
+   of their own — once every panel they call was React-owned, nothing was
+   left but CSS-class toggles on already-static elements (the spinner/
+   loading state), same category as the notification bar's own choreography.
+   Add-to-source popup is also done (`AddToSourcePopup.jsx`) — it isn't
+   nested in any static fragment (originally appended straight onto
+   `document.body`), so it renders independently like
+   `PricingOverlay`/`SelectionToolbar` rather than portaling; its own
+   search/entry-row content stays vanilla.
 8. **Marketplace/cart** + **Library item detail view** + **Publish flow**.
 9. **Source/table cards** — largest, most interconnected card kind. The
    thin **Canvas** (`kind:'folder'`, a nested canvas) and **Source**
