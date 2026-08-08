@@ -19,5 +19,5 @@ export default function ProfileAvatarSm() {
   const user = window.__DOTTO_USER__ || {};
   const avatar = { id: user.avatarId ?? 0, url: user.avatarUrl || null };
 
-  return createPortal(<Avatar bare avatar={avatar} fallback={window.__initials(user.displayName || "")} />, portalNode);
+  return createPortal(<Avatar bare avatar={avatar} name={user.displayName || ""} />, portalNode);
 }

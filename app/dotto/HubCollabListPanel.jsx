@@ -41,7 +41,7 @@ function OwnedCanvasRow({ c }) {
       </span>
       <div className="collab-avatars">
         {shown.map((f) => (
-          <Avatar key={f.id} className="collab-avatar" avatar={{ id: f.avatarId, url: f.avatarUrl }} fallback={window.__initials(f.displayName)} />
+          <Avatar key={f.id} className="collab-avatar" avatar={{ id: f.avatarId, url: f.avatarUrl }} name={f.displayName} />
         ))}
         {c.collaborators.length > 3 && <div className="collab-avatar collab-more">+{c.collaborators.length - 3}</div>}
       </div>
@@ -62,7 +62,7 @@ function SharedCanvasRow({ c }) {
         <span className="hub-collab-row-owner">Owned by {c.ownerName}</span>
       </div>
       <div className="collab-avatars">
-        <Avatar className="collab-avatar" avatar={{ id: c.ownerAvatarId, url: c.ownerAvatarUrl }} fallback={window.__initials(c.ownerName)} />
+        <Avatar className="collab-avatar" avatar={{ id: c.ownerAvatarId, url: c.ownerAvatarUrl }} name={c.ownerName} />
       </div>
     </div>
   );
