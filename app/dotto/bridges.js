@@ -162,3 +162,11 @@ export const achievementsStore = createStore([]);
 // renderConvoBody) stays vanilla — part of the much larger "Live canvas presence" cluster
 // (PHASE2_ROADMAP.md item 11), not this list.
 export const msgListStore = createStore({ view: "main", requestsCount: 0, matchedFriends: [], searchResults: [], query: "" });
+
+// Per-canvas Collaborations flyout (public/dotto/friends-presence.js's renderCollabList) —
+// { rows: [{id, displayName, avatarId, avatarUrl, added, pending, isPresent}], query }. No
+// Requests drill-down of its own (unlike hubCollabListStore/msgListStore above) — adding someone
+// here sends a request that shows as "Requested" until accepted from THEIR OWN hamburger
+// Collaborations panel. Genuine JSX rows, same reasoning as the others. Not flushSync'd — both
+// refreshFriendsData/refreshCanvasCollabForCurrentFolder are real async Supabase calls.
+export const collabListStore = createStore({ rows: [], query: "" });
