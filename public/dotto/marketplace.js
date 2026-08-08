@@ -2,7 +2,7 @@ import { clearSearch, escapeHtml } from './ai-assistant-suggestions.js';
 import { appState, canvas, supabase } from './core-state.js';
 import { saveSnapshot } from './history-autosave.js';
 import { openItemDetail } from './library-publish.js';
-import { findItemById, importSharedCardsAtScreenPoint, renderInlineCanvas, sanitizeFlashcardSnapshot, snapshotItem } from './live-presence.js';
+import { findItemById, importSharedCardsAtScreenPoint, sanitizeFlashcardSnapshot, snapshotItem } from './live-presence.js';
 import { closeAllPanels, pinOnInsideClick, scheduleHoverClose } from './panels-hamburger.js';
 import { render, renderSelectedOutlines } from './waypoints-render-loop.js';
 
@@ -138,68 +138,39 @@ import { render, renderSelectedOutlines } from './waypoints-render-loop.js';
         renderMarketplaceDiscover();
     }
 
+    // Real React state now (see app/dotto/MarketDiscoverPanel.jsx, marketDiscoverStore) —
+    // genuine JSX rows, same reasoning as CanvasResultsPanel/WaypointsListPanel (simple title/
+    // price/desc/meta, no per-row widget state). openMarketDetail/the rest of the marketplace/
+    // library cluster stay vanilla for now — this is one self-contained slice of a much bigger
+    // file, converted incrementally rather than all at once.
     function renderMarketplaceDiscover() {
-        const container = document.getElementById('market-list-container');
-        container.innerHTML = '';
-        
         const filtered = appState.trendingMarketplace.filter(item => {
             return item.title.toLowerCase().includes(appState.marketplaceSearchQuery) ||
                    item.description.toLowerCase().includes(appState.marketplaceSearchQuery) ||
                    (item.tagline || '').toLowerCase().includes(appState.marketplaceSearchQuery);
         });
-
-        if (!filtered.length) {
-            container.innerHTML = '<div class="text-xs text-neutral-500 text-center py-6 font-mono">No matching templates.</div>';
-            return;
-        }
-
-        const label = document.createElement('div');
-        label.className = 'waypoint-folder-header !px-1';
-        label.textContent = 'Trending';
-        container.appendChild(label);
-
-        filtered.forEach(item => {
-            const div = document.createElement('div');
-            div.className = 'market-item-row';
-            div.innerHTML = `
-                <div class="market-item-header">
-                    <div class="market-item-title">${escapeHtml(item.title)}</div>
-                    <div class="market-item-price">${item.price}</div>
-                </div>
-                <div class="market-item-desc">${escapeHtml(item.tagline || item.description)}</div>
-                <div class="market-item-meta">
-                    <span>by ${escapeHtml(item.creatorUsername)}</span>
-                    <span>★ 4.9</span>
-                </div>
-            `;
-            div.onclick = () => openMarketDetail(item);
-            container.appendChild(div);
-        });
+        window.__setMarketDiscover(filtered);
     }
 
+    // #market-detail-content's content is real React state now (see app/dotto/MarketDetailPanel.jsx,
+    // marketDetailStore) — text fields as real JSX, the canvas preview mounted via a ref (same
+    // "vanilla builds live DOM, React just mounts it" pattern as buildFolderInlineCanvas — the
+    // preview needs a real live DOM tree of its own, pdf.js-style, not an HTML string). Which VIEW
+    // is showing (#view-discover vs #market-detail-view) stays a vanilla classList toggle — that's
+    // shared machinery with switchCartTab/openItemDetail/startPublishFlow elsewhere in this
+    // cluster, not something to partially hand to React without converting all of them together.
     function openMarketDetail(item) {
         appState.selectedMarketItem = item;
         document.getElementById('view-discover').classList.remove('active');
         document.getElementById('market-detail-view').classList.add('active');
-        
-        const content = document.getElementById('market-detail-content');
-        content.innerHTML = `
-            <div class="detail-title">${escapeHtml(item.title)}</div>
-            <div class="detail-creator">Created by ${escapeHtml(item.creatorUsername)}</div>
-            <div class="detail-price">${item.price}</div>
-            <div class="detail-desc">${escapeHtml(item.description)}\n\nIncludes multiple interactive notes, tables, flashcard maps and customized language learning layouts. Supports real-time reference updates.</div>
-        `;
-
-        if (item.canvasSnapshot && item.canvasSnapshot.length) {
-            // Preview only — pass draggableOut=false so this can't be dragged onto the user's own canvas
-            content.appendChild(renderInlineCanvas(item.canvasSnapshot, false));
-        }
+        window.__setMarketDetail(item);
     }
 
     function closeMarketDetail() {
         appState.selectedMarketItem = null;
         document.getElementById('market-detail-view').classList.remove('active');
         document.getElementById('view-discover').classList.add('active');
+        window.__setMarketDetail(null);
     }
 
     async function purchaseCurrentMarketItem() {
@@ -511,4 +482,8 @@ import { render, renderSelectedOutlines } from './waypoints-render-loop.js';
         openItemDetail(newItem, 'drafts');
     }
 
-export { addItemToCustomFolderById, closeCartPanel, closeMarketDetail, deployPurchasedTemplate, handleLibrarySearch, handleMarketplaceSearch, packageSelectedAsTemplate, purchaseCurrentMarketItem, refreshMyLibrary, removeFromCustomFolder, renderLibrary, switchCartTab, switchLibraryFolder };
+export { addItemToCustomFolderById, closeCartPanel, closeMarketDetail, deployPurchasedTemplate, handleLibrarySearch, handleMarketplaceSearch, openMarketDetail, packageSelectedAsTemplate, purchaseCurrentMarketItem, refreshMyLibrary, removeFromCustomFolder, renderLibrary, switchCartTab, switchLibraryFolder };
+
+// React → vanilla bridge — used by MarketDiscoverPanel.jsx (app/dotto/), which can't import this
+// directly since public/dotto/*.js isn't reachable from app/dotto/.
+window.__openMarketDetail = openMarketDetail;

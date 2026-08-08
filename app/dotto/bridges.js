@@ -170,3 +170,17 @@ export const msgListStore = createStore({ view: "main", requestsCount: 0, matche
 // Collaborations panel. Genuine JSX rows, same reasoning as the others. Not flushSync'd — both
 // refreshFriendsData/refreshCanvasCollabForCurrentFolder are real async Supabase calls.
 export const collabListStore = createStore({ rows: [], query: "" });
+
+// Marketplace "Discover" tab's trending list (public/dotto/marketplace.js's
+// renderMarketplaceDiscover) — the already-filtered array of items. Genuine JSX rows, same
+// reasoning as the other list panels. openMarketDetail/the rest of the marketplace/library
+// cluster stay vanilla for now — see marketplace.js's own comment for why this is one
+// self-contained slice, not the whole roadmap item 8 at once.
+export const marketDiscoverStore = createStore([]);
+
+// Marketplace item detail view's content (public/dotto/marketplace.js's openMarketDetail/
+// closeMarketDetail) — the selected item, or null. Text fields as real JSX; the canvas preview
+// (renderInlineCanvas) stays vanilla-built, mounted via a ref — see MarketDetailPanel.jsx. Which
+// VIEW is showing (#view-discover vs #market-detail-view) stays a vanilla classList toggle, shared
+// machinery with switchCartTab/openItemDetail/startPublishFlow elsewhere in this cluster.
+export const marketDetailStore = createStore(null);
