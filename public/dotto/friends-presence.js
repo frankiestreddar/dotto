@@ -524,6 +524,16 @@ import { pushNotification } from './stopwatch-search-notifications.js';
                     if (isActivelyViewing) {
                         renderConvoBody(live);
                     } else {
+                        // renderMsgList only ever runs on open/search/etc. (see its own call
+                        // sites) — never just because a message arrived, so the chat list's
+                        // preview text (lastPreview) would otherwise keep showing whatever was
+                        // last there until the panel is closed and reopened. Refresh it here too,
+                        // but only when the list is what's actually showing right now (not the
+                        // Requests drill-down, not a conversation) — matches closeConvo's own
+                        // "refresh when returning to the list" fix (live-presence.js).
+                        if (appState.messagesPanel.classList.contains('open') && appState.msgView === 'main') {
+                            renderMsgList(appState.msgSearchInput.value);
+                        }
                         pushNotification({
                             type: 'chat',
                             message: `${live.displayName}: ${(m.body || '').trim().slice(0, 80) || 'New message'}`,

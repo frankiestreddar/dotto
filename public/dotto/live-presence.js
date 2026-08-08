@@ -4,7 +4,7 @@ import { CARD_KINDS, DEFAULT_CARD_ICON } from './card-kinds.js';
 import { renderChecklistHTML, renderStatcardHTML, shortUrl } from './cards-misc.js';
 import { appState, canvas, cursorOverlay, supabase } from './core-state.js';
 import { ensureConnections } from './drawing-connections.js';
-import { closeCollabPanel, initials } from './friends-presence.js';
+import { closeCollabPanel, initials, renderMsgList } from './friends-presence.js';
 import { defaultFlashcardDeck, renderFlashcardHTML, renderTypeRightHTML } from './games-flashcard-typeright.js';
 import { saveSnapshot, smoothPanTo } from './history-autosave.js';
 import { renderMediaHTML } from './media-pdf-epub.js';
@@ -1371,6 +1371,13 @@ import { render } from './waypoints-render-loop.js';
         // subscribeToAllFriendMessages), not per open conversation.
         document.getElementById('msg-search-wrap').style.display = '';
         appState.msgList.style.display = '';
+        // The list underneath was built once, whenever the panel first opened (or last searched)
+        // — sendMsg/the realtime message-insert handler both push straight onto f.messages without
+        // ever re-running renderMsgList, so its preview text (lastPreview) would otherwise still
+        // show whatever was there before this conversation started, even after sending/receiving
+        // messages in it. Only refresh if the list is actually what's showing next (not the
+        // Requests drill-down).
+        if (appState.msgView === 'main') renderMsgList(appState.msgSearchInput.value);
     }
     async function sendMsg() {
         const input = document.getElementById('msg-convo-input');
