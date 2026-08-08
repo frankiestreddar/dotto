@@ -1,4 +1,4 @@
-import { clearSearch, dotbotErrorMessage, escapeHtml, handleSearchFocus, setSearchActive, stripHtml, updateSearchDropdown } from './ai-assistant-suggestions.js';
+import { clearSearch, escapeHtml, handleSearchFocus, setSearchActive, stripHtml, updateSearchDropdown } from './ai-assistant-suggestions.js';
 import { appState } from './core-state.js';
 import { cancelDotbotScheduleConversation, submitDotbotScheduleAnswer } from './dotbot-schedule-notifications.js';
 import { ensureConnections } from './drawing-connections.js';
@@ -18,14 +18,12 @@ import { render } from './waypoints-render-loop.js';
     // the top/first panel in the stack; dictionary/examples are preferred over writing text
     // where possible, so they're common even without an answer panel above them. The search bar
     // itself never moves. ----------
+    // Same shape as renderMnemonicError (mnemonic-search-matching.js) — reuses its build function
+    // (window.__buildMnemonicErrorEl) via SearchSuggestionsPanel.jsx's 'dotbot-error' branch,
+    // since the two are visually/structurally identical (same class, same dotbotErrorMessage
+    // extraction), just triggered by a different flow.
     function renderDotbotOrchestrateError(reason) {
-        const msg = dotbotErrorMessage(reason);
-        appState.searchSuggestions.innerHTML = '';
-        const errEl = document.createElement('div');
-        errEl.className = 'search-suggestion-item';
-        errEl.textContent = msg;
-        appState.searchSuggestions.appendChild(errEl);
-        appState.searchSuggestions.style.display = 'block';
+        window.__setSearchSuggestions({ kind: 'dotbot-error', reason });
         updateSearchDropdown();
         if (reason === 'no_credits') { appState.dotbotUpgradePromptedForFullness = true; openDotbotUpgradeModal(); }
     }
@@ -83,7 +81,7 @@ import { render } from './waypoints-render-loop.js';
         appState.searchDictionary.innerHTML = ''; appState.searchDictionary.style.display = 'none';
         appState.searchExamples.innerHTML = ''; appState.searchExamples.style.display = 'none';
         if (appState.searchImageResult) { appState.searchImageResult.innerHTML = ''; appState.searchImageResult.style.display = 'none'; }
-        appState.searchSuggestions.innerHTML = ''; appState.searchSuggestions.style.display = 'none';
+        window.__setSearchSuggestions(null);
         if (appState.searchRecommended) { appState.searchRecommended.innerHTML = ''; appState.searchRecommended.style.display = 'none'; }
         clearTimeout(appState.dotbotSuggestDebounceTimer);
         if (appState.dotbotSuggestAbortController) appState.dotbotSuggestAbortController.abort();

@@ -61,9 +61,10 @@ export const notificationStore = createStore(null);
 export const scheduleAgendaStore = createStore({ hours: [], events: [] });
 
 // Search-dropdown result panels (public/dotto/mnemonic-search-matching.js) — each a single-owner
-// static container (#search-translation/#search-dictionary/etc.), unlike #search-suggestions/
-// #search-results which are shared by multiple producers and not converted yet. null means
-// "nothing to show" (matches each panel's own display:none default) — the actual card content
+// static container (#search-translation/#search-dictionary/etc.), unlike canvasResultsStore/
+// searchSuggestionsStore below, which are shared by multiple producers and need their own
+// discriminated-union design. null means "nothing to show" (matches each panel's own
+// display:none default) — the actual card content
 // still comes from a vanilla builder (buildTranslationCard/buildDictionaryCard/etc., several of
 // them small self-contained widgets with their own internal cycling/drag state), mounted by a
 // plain side-effect component (TranslationPanel.jsx and friends) rather than a portal, since
@@ -90,3 +91,27 @@ export const dotbotAnswerStore = createStore(null);
 // { status: 'loading' | 'error' | 'success', reason, imageDataUrl } | null — the mnemonic image
 // result panel's three mutually-exclusive states, see ImageResultPanel.jsx.
 export const imageResultStore = createStore(null);
+
+// #search-results (public/dotto/mnemonic-search-matching.js's renderCanvasResultsPanel) —
+// { matches, isSourceFolder } | null. Genuine JSX rows (see CanvasResultsPanel.jsx), portaled via
+// createPortal unlike the single-owner panels above, since there IS real list identity here.
+// IMPORTANT: because this is a real portal (React tracks its children), nothing outside
+// CanvasResultsPanel.jsx may touch #search-results' innerHTML/children directly — always go
+// through window.__setCanvasResults(null) to clear it, never a raw DOM write (that would desync
+// React's fiber tree from the actual DOM and risk a crash on the next update). Plain attribute
+// reads/writes on the node itself (style.display, querySelectorAll for the existing keyboard-nav
+// code) are fine — React's portal only owns the CHILDREN, never the target node's own attributes.
+export const canvasResultsStore = createStore(null);
+
+// #search-suggestions — shared by 6 different producers across 4 files (live AI suggestions, the
+// mnemonic story/loading/error trio, a Dotbot scheduling-conversation prompt, and an orchestrate
+// error), so this holds a small discriminated union ({kind, ...}) rather than one plain value —
+// only ONE of them is ever shown at a time, same "replaces this one slot" idea as
+// notificationStore. See renderMnemonicResultCard's own comment in mnemonic-search-matching.js
+// for the full producer list, and SearchSuggestionsPanel.jsx for how each kind is built. Unlike
+// canvasResultsStore above, this one is NOT a portal (every kind's content stays 100%
+// vanilla-built, mounted the same "return null, mutate in an effect" way as
+// TranslationPanel.jsx/DictionaryPanel.jsx/etc.) — so, same as those, direct DOM clears from
+// elsewhere are harmless as long as they only ever touch this SPECIFIC node's children (never
+// true for #search-results, see above).
+export const searchSuggestionsStore = createStore(null);

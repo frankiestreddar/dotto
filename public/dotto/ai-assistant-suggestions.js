@@ -210,12 +210,17 @@ import { render } from './waypoints-render-loop.js';
         autoGrowSearchInput();
         updateSearchSpaceHint();
         appState.searchDotbotAnswer.innerHTML = ''; appState.searchDotbotAnswer.style.display = 'none';
-        appState.searchResults.innerHTML = ''; appState.searchResults.style.display = 'none';
+        // #search-results (CanvasResultsPanel.jsx) is portaled — React tracks real children there,
+        // so a direct innerHTML write would desync its fiber tree from the actual DOM and risk a
+        // crash on the next update. Every other panel here renders no JSX children of its own
+        // (returns null, only ever touches its node from its own effect), so a direct clear is
+        // harmless for those — see hideDotbotResultPanels' own comment for the full reasoning.
+        window.__setCanvasResults(null);
         if (appState.searchTranslation) { appState.searchTranslation.innerHTML = ''; appState.searchTranslation.style.display = 'none'; }
         appState.searchDictionary.innerHTML = ''; appState.searchDictionary.style.display = 'none';
         appState.searchExamples.innerHTML = ''; appState.searchExamples.style.display = 'none';
         if (appState.searchImageResult) { appState.searchImageResult.innerHTML = ''; appState.searchImageResult.style.display = 'none'; }
-        appState.searchSuggestions.innerHTML = ''; appState.searchSuggestions.style.display = 'none';
+        window.__setSearchSuggestions(null);
         if (appState.searchRecommended) { appState.searchRecommended.innerHTML = ''; appState.searchRecommended.style.display = 'none'; }
         updateSearchDropdown();
     }
@@ -279,9 +284,8 @@ import { render } from './waypoints-render-loop.js';
         appState.searchInputWrap.classList.add('idle-pulsing');
         const v = appState.searchInput.value.trim();
         if (v !== "") return;
-        appState.searchSuggestions.innerHTML = '';
-        appState.searchSuggestions.style.display = 'none';
-        appState.searchResults.style.display = 'none';
+        window.__setSearchSuggestions(null);
+        window.__setCanvasResults(null);
         updateSearchDropdown();
     }
 
@@ -290,7 +294,7 @@ import { render } from './waypoints-render-loop.js';
         clearTimeout(appState.dotbotSuggestDebounceTimer);
         if (appState.dotbotSuggestAbortController) appState.dotbotSuggestAbortController.abort();
         const q = value.trim();
-        if (q.length < 2) { appState.searchSuggestions.innerHTML = ''; appState.searchSuggestions.style.display = 'none'; updateSearchDropdown(); return; }
+        if (q.length < 2) { window.__setSearchSuggestions(null); updateSearchDropdown(); return; }
         const generationAtScheduleTime = appState.dotbotSearchGeneration;
         appState.dotbotSuggestDebounceTimer = setTimeout(async () => {
             appState.dotbotSuggestAbortController = new AbortController();
@@ -323,17 +327,25 @@ import { render } from './waypoints-render-loop.js';
     // itself, specifically when the typed text looks like a single word/short phrase worth one —
     // clicking any suggestion here already routes through commenceSearchOrMnemonic, so a
     // suggested "generate a mnemonic for X" string is picked up correctly with no special-casing.
-    function renderLiveSuggestions(suggestions) {
-        appState.searchSuggestions.innerHTML = '';
+    // Rows built vanilla (see buildLiveSuggestionsRows) — no internal state of their own, just
+    // event wiring, not worth rewriting as JSX for this pass (same reasoning as
+    // buildRecommendedSearchesRows). #search-suggestions' content itself is real React state now
+    // (see app/dotto/SearchSuggestionsPanel.jsx, searchSuggestionsStore) — see
+    // renderMnemonicResultCard's own comment in mnemonic-search-matching.js for the full picture
+    // of why (shared by 6 different producers across 4 files).
+    function buildLiveSuggestionsRows(suggestions) {
+        const frag = document.createDocumentFragment();
         suggestions.slice(0, 4).forEach(text => {
             const div = document.createElement('div');
             div.className = 'search-suggestion-item';
             div.textContent = text;
             div.onclick = (e) => { e.stopPropagation(); appState.searchInput.value = text; autoGrowSearchInput(); commenceSearchOrMnemonic(text); };
-            appState.searchSuggestions.appendChild(div);
+            frag.appendChild(div);
         });
-
-        appState.searchSuggestions.style.display = 'block';
+        return frag;
+    }
+    function renderLiveSuggestions(suggestions) {
+        window.__setSearchSuggestions({ kind: 'live-suggestions', suggestions });
         updateSearchDropdown();
     }
 
@@ -475,6 +487,7 @@ import { render } from './waypoints-render-loop.js';
         clearSearch();
     }
 
-export { applyAlignHighlightToggle, buildAlignedSentenceEls, clearSearch, countSourceEntries, dotbotErrorMessage, escapeHtml, findParentFolderId, getItemSearchText, handleSearchFocus, handleSearchInput, isLatinScriptText, setSearchActive, setupDotbotResultDrag, speakerIconHTML, stripHtml, truncateCenter, typewriterReveal, updateSearchDropdown };
+export { applyAlignHighlightToggle, buildAlignedSentenceEls, buildLiveSuggestionsRows, clearSearch, countSourceEntries, dotbotErrorMessage, escapeHtml, findParentFolderId, getItemSearchText, handleSearchFocus, handleSearchInput, isLatinScriptText, setSearchActive, setupDotbotResultDrag, speakerIconHTML, stripHtml, truncateCenter, typewriterReveal, updateSearchDropdown };
 
 window.__countSourceEntries = countSourceEntries;
+window.__buildLiveSuggestionsRows = buildLiveSuggestionsRows;

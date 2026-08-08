@@ -1,11 +1,10 @@
 import { searchTypeLabel } from './add-menu.js';
-import { applyAlignHighlightToggle, buildAlignedSentenceEls, clearSearch, dotbotErrorMessage, escapeHtml, getItemSearchText, isLatinScriptText, setupDotbotResultDrag, speakerIconHTML, stripHtml, typewriterReveal, updateSearchDropdown } from './ai-assistant-suggestions.js';
+import { applyAlignHighlightToggle, buildAlignedSentenceEls, clearSearch, dotbotErrorMessage, getItemSearchText, isLatinScriptText, setupDotbotResultDrag, speakerIconHTML, stripHtml, typewriterReveal, updateSearchDropdown } from './ai-assistant-suggestions.js';
 import { appState, canvas } from './core-state.js';
 import { saveSnapshot, smoothPanTo } from './history-autosave.js';
 import { findItemById } from './live-presence.js';
 import { openDotbotUpgradeModal, refreshDotbotUsage } from './profile-achievements-pricing.js';
 import { commenceDotbotSearch } from './search-orchestration-selection.js';
-import { kindIconHTML } from './shared-canvases-outline.js';
 import { autoGrowSearchInput } from './stopwatch-search-notifications.js';
 import { expandWaypointCard, render } from './waypoints-render-loop.js';
 
@@ -41,12 +40,24 @@ import { expandWaypointCard, render } from './waypoints-render-loop.js';
         render();
         clearSearch();
     }
-    function renderMnemonicResultCard(content, options) {
-        options = options || {};
-        appState.searchSuggestions.innerHTML = '';
+    // #search-suggestions' content is real React state now (see app/dotto/SearchSuggestionsPanel.jsx,
+    // searchSuggestionsStore) — it's shared by 6 different producers across 4 files (live AI
+    // suggestions, this mnemonic story/loading/error trio, the Dotbot scheduling-conversation
+    // prompt in dotbot-schedule-notifications.js, and the orchestrate error in search-
+    // orchestration-selection.js), so the store holds a small discriminated union ({kind, ...})
+    // rather than one plain value — the panel only ever shows ONE of them at a time, same as
+    // #search-notification "replacing" #search-input's content. Each variant's own build stays
+    // vanilla (typewriter reveal, drag-to-canvas wiring); render just decides which one to show.
+    // buildMnemonicResultCard/startMnemonicResultReveal split the same way
+    // buildDotbotAnswerTextEl/startDotbotAnswerReveal do, for the same reason (typewriterReveal
+    // needs the element already connected to the DOM).
+    function buildMnemonicResultCard() {
         const card = document.createElement('div');
         card.className = 'search-suggestion-item dotbot-result-card';
-        appState.searchSuggestions.appendChild(card);
+        return card;
+    }
+    function startMnemonicResultReveal(card, content, options) {
+        options = options || {};
         function finish() {
             if (options.canvasItem) {
                 appState.dotbotMnemonicPair.text = options.canvasItem;
@@ -54,10 +65,12 @@ import { expandWaypointCard, render } from './waypoints-render-loop.js';
             }
             updateSearchDropdown();
         }
-        appState.searchSuggestions.style.display = 'block';
-        updateSearchDropdown();
         if (content.typeText !== undefined) typewriterReveal(card, content.typeText, finish);
         else { card.innerHTML = content.html; finish(); }
+    }
+    function renderMnemonicResultCard(content, options) {
+        window.__setSearchSuggestions({ kind: 'mnemonic-result', content, options: options || null });
+        updateSearchDropdown();
     }
     // A terminal-style typing loop for "AI is working" states: types one word out character by
     // character, holds briefly, deletes it, then moves to the next — looping — with a solid
@@ -93,23 +106,25 @@ import { expandWaypointCard, render } from './waypoints-render-loop.js';
         };
         step();
     }
-    function renderMnemonicLoading() {
-        appState.dotbotMnemonicPair = { text: null, image: null };
-        appState.searchSuggestions.innerHTML = '';
+    function buildMnemonicLoadingEl() {
         const loading = document.createElement('div');
         loading.className = 'search-suggestion-item typewriter-loading';
-        appState.searchSuggestions.appendChild(loading);
         startTypewriterLoading(loading);
-        appState.searchSuggestions.style.display = 'block';
+        return loading;
+    }
+    function renderMnemonicLoading() {
+        appState.dotbotMnemonicPair = { text: null, image: null };
+        window.__setSearchSuggestions({ kind: 'mnemonic-loading' });
         updateSearchDropdown();
     }
-    function renderMnemonicError(reason) {
-        appState.searchSuggestions.innerHTML = '';
+    function buildMnemonicErrorEl(reason) {
         const errEl = document.createElement('div');
         errEl.className = 'search-suggestion-item';
         errEl.textContent = dotbotErrorMessage(reason);
-        appState.searchSuggestions.appendChild(errEl);
-        appState.searchSuggestions.style.display = 'block';
+        return errEl;
+    }
+    function renderMnemonicError(reason) {
+        window.__setSearchSuggestions({ kind: 'mnemonic-error', reason });
         updateSearchDropdown();
         if (reason === 'no_credits') { appState.dotbotUpgradePromptedForFullness = true; openDotbotUpgradeModal(); }
     }
@@ -314,34 +329,18 @@ import { expandWaypointCard, render } from './waypoints-render-loop.js';
             .sort((a, b) => a.ri - b.ri)
             .slice(0, 4);
     }
-    // Renders whichever ranked+capped match list it's given — hides entirely on zero matches
-    // (no "No matches" placeholder anymore). `index` is this row's position (0-based) in the
+    // Whichever ranked+capped match list this is given is real React state now (see
+    // app/dotto/CanvasResultsPanel.jsx, canvasResultsStore) — genuine JSX rows, not a vanilla
+    // builder like the other converted panels, since there's no complex per-row widget state here
+    // (just an icon, some text, an onclick — setSearchActive's keyboard-nav code below still finds
+    // these rows fine via querySelectorAll('.search-result-item'), since that's a plain DOM query
+    // that doesn't care who created the elements). `index` is each row's position (0-based) in the
     // capped max-4 list — shown as a 1-4 pill on the right, and pressing that digit key while the
     // dropdown is open clicks the row exactly like a mouse click would (see the keydown handler
-    // near ArrowDown/ArrowUp/Enter further down).
-    function renderMatchRow(m, isSourceFolder, index) {
-        const div = document.createElement('div');
-        div.className = 'search-result-item';
-        const indexPill = `<span class="search-result-index-pill">${index + 1}</span>`;
-        if (isSourceFolder) {
-            div.innerHTML = `<span class="search-result-kind">Row ${m.ri + 1}</span><span class="search-result-text">${escapeHtml(m.text.slice(0, 60))}</span>${indexPill}`;
-            div.onclick = (e) => { e.stopPropagation(); goToSourceRow(m.tableId, m.ri); };
-        } else {
-            div.innerHTML = `${kindIconHTML(m.it.kind, m.it.level, 'search-result-kind-icon')}<span class="search-result-text">${escapeHtml((m.text || '(untitled)').slice(0, 60))}</span>${indexPill}`;
-            div.onclick = (e) => { e.stopPropagation(); goToCanvasItem(m.it.id); };
-        }
-        return div;
-    }
+    // near ArrowDown/ArrowUp/Enter further down, in search-orchestration-selection.js).
     function renderCanvasResultsPanel(matches, isSourceFolder) {
-        appState.searchResults.innerHTML = '';
-        if (!matches.length) { appState.searchResults.style.display = 'none'; appState.searchActiveIndex = -1; return; }
-        matches.forEach((m, i) => {
-            const div = renderMatchRow(m, isSourceFolder, i);
-            div.dataset.index = i;
-            appState.searchResults.appendChild(div);
-        });
-        appState.searchResults.style.display = 'block';
         appState.searchActiveIndex = -1;
+        window.__setCanvasResults(matches.length ? { matches, isSourceFolder } : null);
     }
     function goToCanvasItem(id) {
         const it = findItemById(id);
@@ -735,12 +734,13 @@ import { expandWaypointCard, render } from './waypoints-render-loop.js';
         return wrap;
     }
 
-export { buildAnswerBlocksWrap, buildDictionaryCard, buildDotbotAnswerTextEl, buildExamplesCard, buildImageResultCard, buildImageResultError, buildImageResultLoading, buildRecommendedSearchesRows, buildTranslationCard, commenceSearchOrMnemonic, computeCanvasMatches, computeSourceMatches, flashCanvasElement, renderCanvasResultsPanel, renderDictionaryPanel, renderDotbotAnswerPanel, renderExamplesPanel, renderRecommendedSearchesPanel, renderTranslationPanel, startDotbotAnswerReveal };
+export { buildAnswerBlocksWrap, buildDictionaryCard, buildDotbotAnswerTextEl, buildExamplesCard, buildImageResultCard, buildImageResultError, buildImageResultLoading, buildMnemonicErrorEl, buildMnemonicLoadingEl, buildMnemonicResultCard, buildRecommendedSearchesRows, buildTranslationCard, commenceSearchOrMnemonic, computeCanvasMatches, computeSourceMatches, flashCanvasElement, goToCanvasItem, goToSourceRow, renderCanvasResultsPanel, renderDictionaryPanel, renderDotbotAnswerPanel, renderExamplesPanel, renderRecommendedSearchesPanel, renderTranslationPanel, startDotbotAnswerReveal, startMnemonicResultReveal };
 
 // React → vanilla bridge (see the identical pattern/comment in other converted-panel files) —
 // used by TranslationPanel.jsx/DictionaryPanel.jsx/ExamplesPanel.jsx/RecommendedSearchesPanel.jsx/
-// DotbotAnswerPanel.jsx/ImageResultPanel.jsx (app/dotto/), which can't import these directly since
-// public/dotto/*.js isn't reachable from app/dotto/.
+// DotbotAnswerPanel.jsx/ImageResultPanel.jsx/SearchSuggestionsPanel.jsx/CanvasResultsPanel.jsx
+// (app/dotto/), which can't import these directly since public/dotto/*.js isn't reachable from
+// app/dotto/.
 window.__buildTranslationCard = buildTranslationCard;
 window.__buildDictionaryCard = buildDictionaryCard;
 window.__buildExamplesCard = buildExamplesCard;
@@ -751,3 +751,9 @@ window.__buildAnswerBlocksWrap = buildAnswerBlocksWrap;
 window.__buildImageResultLoading = buildImageResultLoading;
 window.__buildImageResultError = buildImageResultError;
 window.__buildImageResultCard = buildImageResultCard;
+window.__buildMnemonicResultCard = buildMnemonicResultCard;
+window.__startMnemonicResultReveal = startMnemonicResultReveal;
+window.__buildMnemonicLoadingEl = buildMnemonicLoadingEl;
+window.__buildMnemonicErrorEl = buildMnemonicErrorEl;
+window.__goToCanvasItem = goToCanvasItem;
+window.__goToSourceRow = goToSourceRow;
