@@ -64,7 +64,9 @@
         <button id="btn-cart" class="btn" title="Template Marketplace"><img src="/assets/icons/market-button.png" alt=""></button>
         <button id="btn-messages" class="btn" title="Messages"><img src="/assets/icons/chats-btn.png" alt=""></button>
         <button id="btn-profile" title="Profile">
-            <div class="profile-avatar-sm" id="profile-avatar-sm">YO</div>
+            <!-- Content is React-owned now (see app/dotto/ProfileAvatarSm.jsx) — "YO" was a
+                 pre-JS placeholder, removed so the portaled avatar doesn't render alongside it. -->
+            <div class="profile-avatar-sm" id="profile-avatar-sm"></div>
             <!-- Shown instead of the avatar above on hover/while the profile panel is open (see
                  #btn-profile:hover/.active in globals.css) — clicking in that state logs out instead
                  of opening the panel (see the profileBtn click handler). -->

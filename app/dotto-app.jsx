@@ -4,6 +4,7 @@ import Script from "next/script";
 import { flushSync } from "react-dom";
 import { createClient } from "@/lib/supabase/client";
 import {
+  achievementsStore,
   addToSourcePopupStore,
   canvasItemsStore,
   canvasResultsStore,
@@ -14,6 +15,7 @@ import {
   imageResultStore,
   notificationStore,
   pricingOverlayStore,
+  profileLevelStore,
   recommendedSearchesStore,
   scheduleAgendaStore,
   searchSuggestionsStore,
@@ -21,6 +23,7 @@ import {
   translationPanelStore,
   waypointsListStore,
 } from "./dotto/bridges";
+import AchievementsGrid from "./dotto/AchievementsGrid";
 import AddToSourcePopup from "./dotto/AddToSourcePopup";
 import CanvasItemsLayer from "./dotto/CanvasItemsLayer";
 import CanvasResultsPanel from "./dotto/CanvasResultsPanel";
@@ -31,6 +34,9 @@ import HubCollabListPanel from "./dotto/HubCollabListPanel";
 import ImageResultPanel from "./dotto/ImageResultPanel";
 import NotificationBar from "./dotto/NotificationBar";
 import PricingOverlay from "./dotto/PricingOverlay";
+import ProfileAvatarSm from "./dotto/ProfileAvatarSm";
+import ProfileIdentity from "./dotto/ProfileIdentity";
+import ProfileLevelPill from "./dotto/ProfileLevelPill";
 import RecommendedSearchesPanel from "./dotto/RecommendedSearchesPanel";
 import ScheduleAgenda from "./dotto/ScheduleAgenda";
 import SearchSuggestionsPanel from "./dotto/SearchSuggestionsPanel";
@@ -173,6 +179,11 @@ if (typeof window !== "undefined") {
   // hamburger-collab.js's renderHubCollabList/renderHubCollabRequests) — same reasoning as
   // __setWaypointsList: both entry points are real async Supabase calls.
   window.__setHubCollabList = hubCollabListStore.set;
+  // Profile panel (see app/dotto/ProfileLevelPill.jsx/AchievementsGrid.jsx,
+  // profile-achievements-pricing.js's renderProfileLevel/renderSpriteGrid) — plain store.sets,
+  // no synchronous DOM read follows either one.
+  window.__setProfileLevel = profileLevelStore.set;
+  window.__setAchievements = achievementsStore.set;
 }
 
 export default function DottoApp({ sections, currentUser }) {
@@ -228,6 +239,10 @@ export default function DottoApp({ sections, currentUser }) {
       <AddToSourcePopup />
       <WaypointsListPanel />
       <HubCollabListPanel />
+      <ProfileLevelPill />
+      <ProfileIdentity />
+      <ProfileAvatarSm />
+      <AchievementsGrid />
       <Script src="/dotto-script.js" type="module" strategy="afterInteractive" />
     </>
   );
