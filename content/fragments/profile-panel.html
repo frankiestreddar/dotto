@@ -5,7 +5,10 @@
         <div class="profile-identity-text">
             <div id="profile-username"></div>
             <div class="profile-level-streak-row">
-                <span id="profile-level-pill" class="profile-level-pill"><span class="profile-level-pill-text"></span></span>
+                <!-- Text content + background color are React-owned now (see
+                     app/dotto/ProfileLevelPill.jsx) — the inner .profile-level-pill-text span used
+                     to be static markup here; removed so the portaled one doesn't duplicate it. -->
+                <span id="profile-level-pill" class="profile-level-pill"></span>
                 <span class="profile-streak">
                     <span class="profile-streak-icon icon-mask" style="mask-image:url(/assets/icons/flame.png);-webkit-mask-image:url(/assets/icons/flame.png)"></span>
                     <span id="profile-streak-count"></span>

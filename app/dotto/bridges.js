@@ -142,3 +142,14 @@ export const waypointsListStore = createStore({ rows: [], query: "" });
 // waypointsListStore. Not flushSync'd on the bridge (app/dotto-app.jsx) — both entry points are
 // real async Supabase calls, so there's no synchronous DOM read to race.
 export const hubCollabListStore = createStore({ view: "main", requestsCount: 0, ownedShown: [], sharedShown: [], query: "" });
+
+// Profile panel's level pill (public/dotto/profile-achievements-pricing.js's renderProfileLevel)
+// — { displayName, tierColor }, updated once at init and again live after awardUserPoints. Text +
+// background color move together as one store value — see ProfileLevelPill.jsx.
+export const profileLevelStore = createStore({ displayName: "", tierColor: "" });
+
+// Profile panel's achievement spritebook (renderSpriteGrid) — just the array of unlocked
+// achievement ids; window.__ACHIEVEMENTS/__SPRITE_TOTAL_COUNT (bridged as plain constants, not
+// through a store, since they never change) supply everything else AchievementsGrid.jsx needs to
+// render every cell. Genuine JSX, same reasoning as canvasResultsStore/waypointsListStore.
+export const achievementsStore = createStore([]);

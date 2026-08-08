@@ -1,5 +1,4 @@
 import { appState, supabase } from './core-state.js';
-import { initials } from './friends-presence.js';
 import { hmenuAction } from './hamburger-collab.js';
 import { closeAllPanels, pinOnInsideClick, scheduleHoverClose } from './panels-hamburger.js';
 import { pushNotification } from './stopwatch-search-notifications.js';
@@ -61,29 +60,23 @@ import { pushNotification } from './stopwatch-search-notifications.js';
         const hue = Math.round((tierIndex * 360) / appState.LEVEL_NAMES.length);
         return `hsl(${hue}, 62%, 38%)`;
     }
+    // Real React state now (see app/dotto/ProfileLevelPill.jsx, profileLevelStore) — text +
+    // background color both move together as one store value.
     function renderProfileLevel() {
         if (!appState.currentUser.id) return;
         const lvl = calculateUserLevel(appState.currentUser.totalScore);
-        const pillEl = document.getElementById('profile-level-pill');
-        if (!pillEl) return;
-        const textEl = pillEl.querySelector('.profile-level-pill-text');
-        if (textEl) textEl.textContent = lvl.displayName;
-        pillEl.style.background = levelTierColor(lvl.tierIndex);
-        pillEl.style.color = '#fff';
-    }
-    // Populates the flame+day-count streak pill from currentUser.loginStreak, computed
-    // server-side once per page load (see bump_login_streak / app/page.js) — there's nothing to
-    // recompute client-side, this just displays it.
-    function renderProfileStreak() {
-        if (!appState.currentUser.id) return;
-        const el = document.getElementById('profile-streak-count');
-        if (el) el.textContent = appState.currentUser.loginStreak || 0;
+        window.__setProfileLevel({ displayName: lvl.displayName, tierColor: levelTierColor(lvl.tierIndex) });
     }
     // `avatar` is { id, url } — url is the saved custom avatar-builder composite (Supabase
     // Storage public URL, once a user completes /avatar-setup) and always wins when present;
     // id falls back to the older static /assets/avatar/avatar-{n}.png set (0 = default
     // silhouette) for accounts that haven't built a custom avatar. Falls back to initials if the
-    // resolved src fails to load.
+    // resolved src fails to load. Still used for every OTHER avatar spot in the app (remote cursor
+    // labels, message/friends/per-canvas-collab rows) — only the profile panel's own avatar/
+    // avatar-sm/username/streak are React-owned now (see app/dotto/ProfileIdentity.jsx), since
+    // those four never change after initial page load (unlike this function's other callers,
+    // which render a DIFFERENT person's avatar each time) and window.__DOTTO_USER__ (already set
+    // once during DottoApp's own render, app/dotto-app.jsx) already carries the exact same data.
     function renderAvatarInto(el, avatar, fallbackText) {
         if (!el) return;
         const src = (avatar && avatar.url) ? avatar.url : `/assets/avatar/avatar-${(avatar && avatar.id) || 0}.png`;
@@ -95,12 +88,7 @@ import { pushNotification } from './stopwatch-search-notifications.js';
         el.appendChild(img);
     }
     if (appState.currentUser.id) {
-        document.getElementById('profile-username').textContent = appState.currentUser.displayName;
-        const avatar = { id: appState.currentUser.avatarId ?? 0, url: appState.currentUser.avatarUrl || null };
-        renderAvatarInto(document.getElementById('profile-avatar'), avatar, initials(appState.currentUser.displayName));
-        renderAvatarInto(document.getElementById('profile-avatar-sm'), avatar, initials(appState.currentUser.displayName));
         renderProfileLevel();
-        renderProfileStreak();
     }
 
     // ---------- Achievements ----------
@@ -133,34 +121,21 @@ import { pushNotification } from './stopwatch-search-notifications.js';
         const row = Array.isArray(data) ? data[0] : data;
         if (row && row.newly_unlocked) {
             appState.unlockedAchievementIds.add(def.id);
-            const grid = document.getElementById('profile-sprite-grid');
-            if (grid) renderSpriteGrid(grid, appState.SPRITE_TOTAL_COUNT);
+            renderSpriteGrid();
             pushNotification({ type: 'achievement_unlock', message: `Achievement unlocked! (${def.name})` });
             pushNotification({ type: 'achievement_unlock', message: `Sprite ${def.spriteIndex} will spawn soon` });
         }
     }
 
-    // Static asset grid, dropped into /public/sprites by hand: the first 8 cells are the
-    // achievement-tied sprites above, each showing its own locked/unlocked art
-    // (sprite-N-locked.png / sprite-N.png) based on unlockedAchievementIds; every cell after that
-    // has no achievement at all, so it always shows the shared unknown-sprite.png regardless of
-    // any state. A cell with a missing file just shows its empty placeholder space rather than a
-    // broken-image icon. Always renders the full set (no separate compact/expanded view) — the
-    // block itself just grows to fill the panel and scrolls internally (see
-    // #profile-spritebook-block/positionProfilePanel).
-    function renderSpriteGrid(container, count) {
-        container.innerHTML = '';
-        for (let i = 1; i <= count; i++) {
-            const cell = document.createElement('div');
-            cell.className = 'profile-sprite-cell';
-            const img = document.createElement('img');
-            img.src = i > appState.ACHIEVEMENTS.length ? '/sprites/unknown-sprite.png'
-                : appState.unlockedAchievementIds.has(appState.ACHIEVEMENTS[i - 1].id) ? `/sprites/sprite-${i}.png` : `/sprites/sprite-${i}-locked.png`;
-            img.alt = '';
-            img.onerror = () => img.remove();
-            cell.appendChild(img);
-            container.appendChild(cell);
-        }
+    // Real React state now (see app/dotto/AchievementsGrid.jsx, achievementsStore) — genuine JSX
+    // cells: the first 8 are the achievement-tied sprites, each showing its own locked/unlocked
+    // art (sprite-N-locked.png / sprite-N.png) based on unlockedAchievementIds; every cell after
+    // that has no achievement at all, so it always shows the shared unknown-sprite.png regardless
+    // of any state. window.__ACHIEVEMENTS/__SPRITE_TOTAL_COUNT (below) are true constants (never
+    // reassigned after init), bridged once rather than routed through the store — only
+    // unlockedAchievementIds actually varies over a session.
+    function renderSpriteGrid() {
+        window.__setAchievements(Array.from(appState.unlockedAchievementIds));
     }
     // Active-time-only platform-usage tracker for the day_in_platform achievement — only ever
     // advances while the tab is actually visible/focused at the moment each tick fires (no
@@ -169,7 +144,7 @@ import { pushNotification } from './stopwatch-search-notifications.js';
     setInterval(() => {
         if (document.visibilityState === 'visible') bumpAchievementStat('day_in_platform', 60);
     }, 60000);
-    renderSpriteGrid(document.getElementById('profile-sprite-grid'), appState.SPRITE_TOTAL_COUNT);
+    renderSpriteGrid();
     function closeProfilePanel() { appState.profilePanel.classList.remove('open'); appState.profileBtn.classList.remove('active'); appState.panelPinned.profile = false; }
     // Panel height is set explicitly (not just left to CSS) so #profile-spritebook-block's
     // flex:1 has an actual constrained container to grow into and scroll within, filling from
@@ -336,3 +311,10 @@ import { pushNotification } from './stopwatch-search-notifications.js';
     pinOnInsideClick('profile', [appState.profilePanel]);
 
 export { awardUserPoints, bumpAchievementStat, closeDotbotUpgradeModal, closePricingOverlay, closeProfilePanel, openDotbotUpgradeModal, openPricingOverlay, refreshDotbotUsage, renderAvatarInto };
+
+// React → vanilla bridge — used by AchievementsGrid.jsx (app/dotto/), which can't import these
+// directly since public/dotto/*.js isn't reachable from app/dotto/. True constants (never
+// reassigned after init), unlike window.__setProfileLevel/__setAchievements (app/dotto-app.jsx),
+// which are store setters for the parts that actually vary.
+window.__ACHIEVEMENTS = appState.ACHIEVEMENTS;
+window.__SPRITE_TOTAL_COUNT = appState.SPRITE_TOTAL_COUNT;
