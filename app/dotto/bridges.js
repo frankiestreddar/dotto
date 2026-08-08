@@ -177,3 +177,10 @@ export const collabListStore = createStore({ rows: [], query: "" });
 // cluster stay vanilla for now — see marketplace.js's own comment for why this is one
 // self-contained slice, not the whole roadmap item 8 at once.
 export const marketDiscoverStore = createStore([]);
+
+// Marketplace item detail view's content (public/dotto/marketplace.js's openMarketDetail/
+// closeMarketDetail) — the selected item, or null. Text fields as real JSX; the canvas preview
+// (renderInlineCanvas) stays vanilla-built, mounted via a ref — see MarketDetailPanel.jsx. Which
+// VIEW is showing (#view-discover vs #market-detail-view) stays a vanilla classList toggle, shared
+// machinery with switchCartTab/openItemDetail/startPublishFlow elsewhere in this cluster.
+export const marketDetailStore = createStore(null);

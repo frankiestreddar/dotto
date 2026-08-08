@@ -2,7 +2,7 @@ import { clearSearch, escapeHtml } from './ai-assistant-suggestions.js';
 import { appState, canvas, supabase } from './core-state.js';
 import { saveSnapshot } from './history-autosave.js';
 import { openItemDetail } from './library-publish.js';
-import { findItemById, importSharedCardsAtScreenPoint, renderInlineCanvas, sanitizeFlashcardSnapshot, snapshotItem } from './live-presence.js';
+import { findItemById, importSharedCardsAtScreenPoint, sanitizeFlashcardSnapshot, snapshotItem } from './live-presence.js';
 import { closeAllPanels, pinOnInsideClick, scheduleHoverClose } from './panels-hamburger.js';
 import { render, renderSelectedOutlines } from './waypoints-render-loop.js';
 
@@ -152,29 +152,25 @@ import { render, renderSelectedOutlines } from './waypoints-render-loop.js';
         window.__setMarketDiscover(filtered);
     }
 
+    // #market-detail-content's content is real React state now (see app/dotto/MarketDetailPanel.jsx,
+    // marketDetailStore) — text fields as real JSX, the canvas preview mounted via a ref (same
+    // "vanilla builds live DOM, React just mounts it" pattern as buildFolderInlineCanvas — the
+    // preview needs a real live DOM tree of its own, pdf.js-style, not an HTML string). Which VIEW
+    // is showing (#view-discover vs #market-detail-view) stays a vanilla classList toggle — that's
+    // shared machinery with switchCartTab/openItemDetail/startPublishFlow elsewhere in this
+    // cluster, not something to partially hand to React without converting all of them together.
     function openMarketDetail(item) {
         appState.selectedMarketItem = item;
         document.getElementById('view-discover').classList.remove('active');
         document.getElementById('market-detail-view').classList.add('active');
-        
-        const content = document.getElementById('market-detail-content');
-        content.innerHTML = `
-            <div class="detail-title">${escapeHtml(item.title)}</div>
-            <div class="detail-creator">Created by ${escapeHtml(item.creatorUsername)}</div>
-            <div class="detail-price">${item.price}</div>
-            <div class="detail-desc">${escapeHtml(item.description)}\n\nIncludes multiple interactive notes, tables, flashcard maps and customized language learning layouts. Supports real-time reference updates.</div>
-        `;
-
-        if (item.canvasSnapshot && item.canvasSnapshot.length) {
-            // Preview only — pass draggableOut=false so this can't be dragged onto the user's own canvas
-            content.appendChild(renderInlineCanvas(item.canvasSnapshot, false));
-        }
+        window.__setMarketDetail(item);
     }
 
     function closeMarketDetail() {
         appState.selectedMarketItem = null;
         document.getElementById('market-detail-view').classList.remove('active');
         document.getElementById('view-discover').classList.add('active');
+        window.__setMarketDetail(null);
     }
 
     async function purchaseCurrentMarketItem() {
