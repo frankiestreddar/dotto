@@ -614,18 +614,20 @@ import { expandWaypointCard, render } from './waypoints-render-loop.js';
         });
         return card;
     }
+    // Content (buildTranslationCard/buildDictionaryCard's own return value) is real React state
+    // now — see app/dotto/TranslationPanel.jsx/DictionaryPanel.jsx, both simple side-effect-only
+    // components that mount the SAME vanilla builder's output into #search-translation/
+    // #search-dictionary (window.__buildTranslationCard/__buildDictionaryCard) whenever the store
+    // changes. The builders themselves stay vanilla — each is a small self-contained widget with
+    // its own internal cycling/drag state, not worth rewriting as JSX for this pass.
     function renderTranslationPanel(panel) {
         if (!appState.searchTranslation) return;
-        appState.searchTranslation.innerHTML = '';
-        if (!panel || !panel.sourceWord || !panel.targetWord) { appState.searchTranslation.style.display = 'none'; return; }
-        appState.searchTranslation.appendChild(buildTranslationCard(panel));
-        appState.searchTranslation.style.display = 'block';
+        if (!panel || !panel.sourceWord || !panel.targetWord) { window.__setTranslationPanel(null); return; }
+        window.__setTranslationPanel(panel);
     }
     function renderDictionaryPanel(panel) {
-        appState.searchDictionary.innerHTML = '';
-        if (!panel || !panel.entries || !panel.entries.length) { appState.searchDictionary.style.display = 'none'; return; }
-        appState.searchDictionary.appendChild(buildDictionaryCard(panel));
-        appState.searchDictionary.style.display = 'block';
+        if (!panel || !panel.entries || !panel.entries.length) { window.__setDictionaryPanel(null); return; }
+        window.__setDictionaryPanel(panel);
     }
     function renderExamplesPanel(panel) {
         appState.searchExamples.innerHTML = '';
@@ -715,4 +717,10 @@ import { expandWaypointCard, render } from './waypoints-render-loop.js';
         appState.searchDotbotAnswer.style.display = 'block';
     }
 
-export { commenceSearchOrMnemonic, computeCanvasMatches, computeSourceMatches, flashCanvasElement, renderAnswerBlocksPanel, renderCanvasResultsPanel, renderDictionaryPanel, renderDotbotAnswerPanel, renderExamplesPanel, renderRecommendedSearchesPanel, renderTranslationPanel };
+export { buildDictionaryCard, buildTranslationCard, commenceSearchOrMnemonic, computeCanvasMatches, computeSourceMatches, flashCanvasElement, renderAnswerBlocksPanel, renderCanvasResultsPanel, renderDictionaryPanel, renderDotbotAnswerPanel, renderExamplesPanel, renderRecommendedSearchesPanel, renderTranslationPanel };
+
+// React → vanilla bridge (see the identical pattern/comment in other converted-panel files) —
+// used by TranslationPanel.jsx/DictionaryPanel.jsx (app/dotto/), which can't import these
+// directly since public/dotto/*.js isn't reachable from app/dotto/.
+window.__buildTranslationCard = buildTranslationCard;
+window.__buildDictionaryCard = buildDictionaryCard;

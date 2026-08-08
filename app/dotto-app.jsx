@@ -3,12 +3,14 @@
 import Script from "next/script";
 import { flushSync } from "react-dom";
 import { createClient } from "@/lib/supabase/client";
-import { canvasItemsStore, notificationStore, pricingOverlayStore, scheduleAgendaStore, selectionToolbarStore } from "./dotto/bridges";
+import { canvasItemsStore, dictionaryPanelStore, notificationStore, pricingOverlayStore, scheduleAgendaStore, selectionToolbarStore, translationPanelStore } from "./dotto/bridges";
 import CanvasItemsLayer from "./dotto/CanvasItemsLayer";
+import DictionaryPanel from "./dotto/DictionaryPanel";
 import NotificationBar from "./dotto/NotificationBar";
 import PricingOverlay from "./dotto/PricingOverlay";
 import ScheduleAgenda from "./dotto/ScheduleAgenda";
 import SelectionToolbar from "./dotto/SelectionToolbar";
+import TranslationPanel from "./dotto/TranslationPanel";
 
 import TopBar from "./dotto/sections/TopBar";
 import ProfilePanel from "./dotto/sections/ProfilePanel";
@@ -109,6 +111,11 @@ if (typeof window !== "undefined") {
   // __setNotificationContent: nothing reads #schedule-view-hours/#schedule-view-stack's DOM
   // synchronously right after calling renderScheduleAgenda.
   window.__setScheduleAgenda = scheduleAgendaStore.set;
+  // Search-dropdown result panels (see app/dotto/TranslationPanel.jsx/DictionaryPanel.jsx,
+  // public/dotto/mnemonic-search-matching.js's renderTranslationPanel/renderDictionaryPanel) —
+  // plain store.sets, same reasoning as __setNotificationContent.
+  window.__setTranslationPanel = translationPanelStore.set;
+  window.__setDictionaryPanel = dictionaryPanelStore.set;
 }
 
 export default function DottoApp({ sections, currentUser }) {
@@ -153,6 +160,8 @@ export default function DottoApp({ sections, currentUser }) {
       <CanvasItemsLayer />
       <NotificationBar />
       <ScheduleAgenda />
+      <TranslationPanel />
+      <DictionaryPanel />
       <Script src="/dotto-script.js" type="module" strategy="afterInteractive" />
     </>
   );

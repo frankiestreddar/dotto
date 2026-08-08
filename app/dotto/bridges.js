@@ -59,3 +59,15 @@ export const notificationStore = createStore(null);
 // function builds live DOM, React just mounts it" reasoning as CanvasCard's
 // buildFolderInlineCanvas — see ScheduleAgenda.jsx.
 export const scheduleAgendaStore = createStore({ hours: [], events: [] });
+
+// Search-dropdown result panels (public/dotto/mnemonic-search-matching.js) — each a single-owner
+// static container (#search-translation/#search-dictionary), unlike #search-suggestions/
+// #search-results which are shared by multiple producers and not converted yet. null means
+// "nothing to show" (matches the panel's own display:none default) — the actual card content
+// still comes from a vanilla builder (buildTranslationCard/buildDictionaryCard, each a small
+// self-contained widget with its own internal cycling/drag state), mounted by a plain side-effect
+// component (TranslationPanel.jsx/DictionaryPanel.jsx) rather than a portal, since there's no
+// list to key/diff — one blob of vanilla-built content, wholesale-replaced each time, same as
+// before, just triggered by React state instead of a direct DOM write.
+export const translationPanelStore = createStore(null);
+export const dictionaryPanelStore = createStore(null);
