@@ -14,6 +14,7 @@ import {
   examplesPanelStore,
   hubCollabListStore,
   imageResultStore,
+  libraryViewStore,
   marketDetailStore,
   marketDiscoverStore,
   msgListStore,
@@ -37,6 +38,7 @@ import DotbotAnswerPanel from "./dotto/DotbotAnswerPanel";
 import ExamplesPanel from "./dotto/ExamplesPanel";
 import HubCollabListPanel from "./dotto/HubCollabListPanel";
 import ImageResultPanel from "./dotto/ImageResultPanel";
+import LibraryPanel from "./dotto/LibraryPanel";
 import MarketDetailPanel from "./dotto/MarketDetailPanel";
 import MarketDiscoverPanel from "./dotto/MarketDiscoverPanel";
 import MessagesListPanel from "./dotto/MessagesListPanel";
@@ -206,6 +208,9 @@ if (typeof window !== "undefined") {
   // Marketplace item detail view (see app/dotto/MarketDetailPanel.jsx, marketplace.js's
   // openMarketDetail/closeMarketDetail) — a plain store.set, no synchronous DOM read follows it.
   window.__setMarketDetail = marketDetailStore.set;
+  // Library tab's list content (see app/dotto/LibraryPanel.jsx, marketplace.js's renderLibrary) —
+  // a plain store.set, no synchronous DOM read follows it.
+  window.__setLibraryView = libraryViewStore.set;
 }
 
 export default function DottoApp({ sections, currentUser }) {
@@ -265,6 +270,7 @@ export default function DottoApp({ sections, currentUser }) {
       <CollabListPanel />
       <MarketDiscoverPanel />
       <MarketDetailPanel />
+      <LibraryPanel />
       <ProfileLevelPill />
       <ProfileIdentity />
       <ProfileAvatarSm />

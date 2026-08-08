@@ -213,3 +213,7 @@ import { refreshMyLibrary, renderLibrary, switchLibraryFolder } from './marketpl
     }
 
 export { blurPublishFlowName, commitItemDetailDesc, commitItemDetailTitle, confirmPublishFlow, deleteDetailDraft, focusPublishFlowName, onItemDetailFieldChange, openItemDetail, startPublishFlow, unpublishDetailItem, updateDetailItem };
+
+// React → vanilla bridge — used by LibraryPanel.jsx (app/dotto/), which can't import this
+// directly since public/dotto/*.js isn't reachable from app/dotto/.
+window.__openItemDetail = openItemDetail;

@@ -184,3 +184,12 @@ export const marketDiscoverStore = createStore([]);
 // VIEW is showing (#view-discover vs #market-detail-view) stays a vanilla classList toggle, shared
 // machinery with switchCartTab/openItemDetail/startPublishFlow elsewhere in this cluster.
 export const marketDetailStore = createStore(null);
+
+// Library tab's list content (public/dotto/marketplace.js's renderLibrary) — a discriminated union
+// covering all three sub-views it can show: { view: 'folders', fixed, custom } (the folder
+// picker), { view: 'items', folderKey, isCustom, customFolders, items } (inside one folder), or
+// { view: 'search', results } (cross-folder search, appState.librarySearchQuery set). Genuine JSX
+// rows, same reasoning as the other list panels. Drag-out-to-canvas for draft items
+// (makeDraftItemDraggable) and opening the item detail view (openItemDetail, library-publish.js)
+// stay vanilla, invoked via bridges from row handlers — see LibraryPanel.jsx.
+export const libraryViewStore = createStore({ view: "folders", fixed: [], custom: [] });

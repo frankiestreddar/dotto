@@ -1,4 +1,4 @@
-import { clearSearch, escapeHtml } from './ai-assistant-suggestions.js';
+import { clearSearch } from './ai-assistant-suggestions.js';
 import { appState, canvas, supabase } from './core-state.js';
 import { saveSnapshot } from './history-autosave.js';
 import { openItemDetail } from './library-publish.js';
@@ -195,41 +195,25 @@ import { render, renderSelectedOutlines } from './waypoints-render-loop.js';
         switchLibraryFolder('purchased');
     }
 
+    // Real React state now (see app/dotto/LibraryPanel.jsx, libraryViewStore) — genuine JSX rows
+    // for all three sub-views (folder picker / item list within a folder / cross-folder search
+    // results), same reasoning as the other list panels in this cluster. Drag-out-to-canvas for
+    // draft items (makeDraftItemDraggable) and opening the item detail view (openItemDetail,
+    // library-publish.js) stay vanilla, invoked from row handlers via window.__* bridges.
     function renderLibrary() {
-        const container = document.getElementById('library-list-container');
-        container.innerHTML = '';
-
         if (appState.librarySearchQuery) {
-            renderLibrarySearchResults(container);
+            window.__setLibraryView({ view: 'search', results: computeLibrarySearchResults() });
             return;
         }
 
         if (!appState.activeLibraryFolder) {
-            ['purchased', 'drafts', 'published'].forEach(key => {
-                const row = document.createElement('div');
-                row.className = 'lib-folder-row';
-                row.innerHTML = `<span>${appState.libraryFolderLabels[key]}</span><span class="lib-folder-count">${appState.userLibrary[key].length} item${appState.userLibrary[key].length === 1 ? '' : 's'}</span>`;
-                row.onclick = () => switchLibraryFolder(key);
-                container.appendChild(row);
-            });
-
-            const divider = document.createElement('div');
-            divider.className = 'library-divider';
-            container.appendChild(divider);
-
-            appState.userLibrary.customFolders.forEach(folder => {
-                const row = document.createElement('div');
-                row.className = 'lib-folder-row';
-                row.innerHTML = `<span>${escapeHtml(folder.name)}</span><span class="lib-folder-count">${folder.items.length} item${folder.items.length === 1 ? '' : 's'}</span>`;
-                row.onclick = () => switchLibraryFolder(folder.id);
-                container.appendChild(row);
-            });
-
-            const newFolderRow = document.createElement('div');
-            newFolderRow.className = 'lib-new-folder-row';
-            newFolderRow.innerHTML = `<span>+</span><span>New folder</span>`;
-            newFolderRow.onclick = () => createCustomFolder();
-            container.appendChild(newFolderRow);
+            const fixed = ['purchased', 'drafts', 'published'].map(key => ({
+                key, label: appState.libraryFolderLabels[key], count: appState.userLibrary[key].length
+            }));
+            const custom = appState.userLibrary.customFolders.map(folder => ({
+                id: folder.id, name: folder.name, count: folder.items.length
+            }));
+            window.__setLibraryView({ view: 'folders', fixed, custom });
             return;
         }
 
@@ -237,42 +221,12 @@ import { render, renderSelectedOutlines } from './waypoints-render-loop.js';
         const customFolder = isCustom ? appState.userLibrary.customFolders.find(f => f.id === appState.activeLibraryFolder) : null;
         const list = isCustom ? (customFolder ? customFolder.items : []) : appState.userLibrary[appState.activeLibraryFolder];
 
-        if (!list || !list.length) {
-            container.innerHTML = `<div class="text-xs text-neutral-500 text-center py-12 font-mono">
-                No templates inside folder. <br><br>
-                ${appState.activeLibraryFolder === 'drafts' ? 'Drag elements over marketplace when active to build a blueprint draft!' : ''}
-                ${isCustom ? 'Use the "+ Folder…" picker on any item in Purchased, Drafts, or Published to add it here.' : ''}
-            </div>`;
-            return;
-        }
-
-        list.forEach(item => {
-            const div = document.createElement('div');
-            div.className = 'lib-item-card';
-
-            const addToFolderControl = (!isCustom && appState.userLibrary.customFolders.length)
-                ? `<select class="lib-add-to-folder-select" onmousedown="event.stopPropagation()" onclick="event.stopPropagation()" onchange="if(this.value){addItemToCustomFolderById(this.value, '${appState.activeLibraryFolder}', '${item.id}');} this.value='';">
-                    <option value="">+ Folder…</option>
-                    ${appState.userLibrary.customFolders.map(f => `<option value="${f.id}">${escapeHtml(f.name)}</option>`).join('')}
-                </select>`
-                : '';
-
-            const removeControl = isCustom
-                ? `<button class="lib-remove-btn" title="Remove from folder" onclick="event.stopPropagation(); removeFromCustomFolder('${appState.activeLibraryFolder}', '${item.id}')">✕</button>`
-                : '';
-
-            div.innerHTML = `
-                <div class="lib-item-meta">
-                    <div class="lib-item-title">${escapeHtml(item.title)}</div>
-                    <div class="lib-item-count">${item.count || 0} cards packaged</div>
-                </div>
-                ${addToFolderControl}
-                ${removeControl}
-            `;
-            const status = isCustom ? resolveItemStatus(item) : appState.activeLibraryFolder;
-            if (status === 'drafts') makeDraftItemDraggable(div, item);
-            else makeLibItemClickable(div, item, status);
-            container.appendChild(div);
+        window.__setLibraryView({
+            view: 'items',
+            folderKey: appState.activeLibraryFolder,
+            isCustom,
+            customFolders: appState.userLibrary.customFolders.map(f => ({ id: f.id, name: f.name })),
+            items: (list || []).map(item => ({ item, status: isCustom ? resolveItemStatus(item) : appState.activeLibraryFolder }))
         });
     }
 
@@ -282,13 +236,6 @@ import { render, renderSelectedOutlines } from './waypoints-render-loop.js';
         if (appState.userLibrary.drafts.some(x => x.id === item.id)) return 'drafts';
         if (appState.userLibrary.published.some(x => x.id === item.id)) return 'published';
         return 'purchased';
-    }
-
-    function makeLibItemClickable(div, item, status) {
-        div.addEventListener('click', (e) => {
-            if (e.target.closest('select') || e.target.closest('.lib-remove-btn')) return;
-            openItemDetail(item, status);
-        });
     }
 
     function isCustomFolderId(id) {
@@ -326,7 +273,7 @@ import { render, renderSelectedOutlines } from './waypoints-render-loop.js';
         renderLibrary();
     }
 
-    function renderLibrarySearchResults(container) {
+    function computeLibrarySearchResults() {
         const q = appState.librarySearchQuery;
         const groups = [
             { key: 'purchased', label: appState.libraryFolderLabels.purchased, items: appState.userLibrary.purchased },
@@ -340,37 +287,20 @@ import { render, renderSelectedOutlines } from './waypoints-render-loop.js';
             const folderMatches = g.label.toLowerCase().includes(q);
             g.items.forEach(item => {
                 if (folderMatches || (item.title || '').toLowerCase().includes(q)) {
-                    results.push({ folderKey: g.key, folderLabel: g.label, item });
+                    const status = ['purchased', 'drafts', 'published'].includes(g.key) ? g.key : resolveItemStatus(item);
+                    results.push({ folderKey: g.key, folderLabel: g.label, item, status });
                 }
             });
         });
+        return results;
+    }
 
-        if (!results.length) {
-            container.innerHTML = '<div class="text-xs text-neutral-500 text-center py-12 font-mono">No matches in your library.</div>';
-            return;
-        }
-
-        results.forEach(({ folderKey, folderLabel, item }) => {
-            const div = document.createElement('div');
-            div.className = 'lib-item-card';
-            div.style.cursor = 'pointer';
-            div.innerHTML = `
-                <div class="lib-item-meta">
-                    <div class="lib-item-title">${escapeHtml(item.title)}</div>
-                    <div class="lib-item-count">${item.count || 0} cards packaged</div>
-                    <div class="lib-search-result-folder">in ${escapeHtml(folderLabel)}</div>
-                </div>
-            `;
-            div.onclick = () => {
-                const input = document.getElementById('library-search');
-                if (input) input.value = '';
-                appState.librarySearchQuery = '';
-                const status = ['purchased', 'drafts', 'published'].includes(folderKey) ? folderKey : resolveItemStatus(item);
-                switchLibraryFolder(folderKey);
-                openItemDetail(item, status);
-            };
-            container.appendChild(div);
-        });
+    function openLibrarySearchResult(folderKey, item, status) {
+        const input = document.getElementById('library-search');
+        if (input) input.value = '';
+        appState.librarySearchQuery = '';
+        switchLibraryFolder(folderKey);
+        openItemDetail(item, status);
     }
 
     // Lets a saved draft's card in the library list be dragged out onto the main
@@ -484,6 +414,12 @@ import { render, renderSelectedOutlines } from './waypoints-render-loop.js';
 
 export { addItemToCustomFolderById, closeCartPanel, closeMarketDetail, deployPurchasedTemplate, handleLibrarySearch, handleMarketplaceSearch, openMarketDetail, packageSelectedAsTemplate, purchaseCurrentMarketItem, refreshMyLibrary, removeFromCustomFolder, renderLibrary, switchCartTab, switchLibraryFolder };
 
-// React → vanilla bridge — used by MarketDiscoverPanel.jsx (app/dotto/), which can't import this
-// directly since public/dotto/*.js isn't reachable from app/dotto/.
+// React → vanilla bridges — used by MarketDiscoverPanel.jsx/LibraryPanel.jsx (app/dotto/), which
+// can't import this directly since public/dotto/*.js isn't reachable from app/dotto/.
 window.__openMarketDetail = openMarketDetail;
+window.__switchLibraryFolder = switchLibraryFolder;
+window.__createCustomFolder = createCustomFolder;
+window.__addItemToCustomFolderById = addItemToCustomFolderById;
+window.__removeFromCustomFolder = removeFromCustomFolder;
+window.__makeDraftItemDraggable = makeDraftItemDraggable;
+window.__openLibrarySearchResult = openLibrarySearchResult;
