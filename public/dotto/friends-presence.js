@@ -79,13 +79,18 @@ import { pushNotification } from './stopwatch-search-notifications.js';
         // whatever's currently true rather than anything captured earlier.
         ensureCanvasPresenceChannel();
     }
+    // A raw insert here fails outright (unique constraint violation) for anyone whose invite
+    // already reached a terminal state -- declined, or removed via revoke_canvas_collaboration
+    // (status='revoked') -- since canvas_collaborations has no other way to distinguish "never
+    // invited" from "invited before, now available again". invite_canvas_collaborator (see
+    // 20260808_fix_canvas_collab_reinvite.sql) upserts instead, same insert-on-conflict pattern
+    // revoke_canvas_collaboration already uses for its own direction.
     async function sendCanvasCollabInvite(collaboratorId) {
         if (!supabase || !appState.currentUser.id) return;
         const folderObj = appState.folders[appState.currentFolderId];
         if (!folderObj) return;
-        const { error } = await supabase.from('canvas_collaborations').insert({
-            owner_id: appState.currentUser.id, folder_id: appState.currentFolderId,
-            folder_title: folderObj.title, collaborator_id: collaboratorId,
+        const { error } = await supabase.rpc('invite_canvas_collaborator', {
+            p_folder_id: appState.currentFolderId, p_folder_title: folderObj.title, p_collaborator_id: collaboratorId,
         });
         if (error) { console.error('[collab] failed to send canvas collaboration invite:', error); return; }
         appState.outgoingCanvasInvitePendingIds.add(collaboratorId);
