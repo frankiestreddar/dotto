@@ -3,11 +3,27 @@
 import Script from "next/script";
 import { flushSync } from "react-dom";
 import { createClient } from "@/lib/supabase/client";
-import { canvasItemsStore, dictionaryPanelStore, notificationStore, pricingOverlayStore, scheduleAgendaStore, selectionToolbarStore, translationPanelStore } from "./dotto/bridges";
+import {
+  canvasItemsStore,
+  dictionaryPanelStore,
+  dotbotAnswerStore,
+  examplesPanelStore,
+  imageResultStore,
+  notificationStore,
+  pricingOverlayStore,
+  recommendedSearchesStore,
+  scheduleAgendaStore,
+  selectionToolbarStore,
+  translationPanelStore,
+} from "./dotto/bridges";
 import CanvasItemsLayer from "./dotto/CanvasItemsLayer";
 import DictionaryPanel from "./dotto/DictionaryPanel";
+import DotbotAnswerPanel from "./dotto/DotbotAnswerPanel";
+import ExamplesPanel from "./dotto/ExamplesPanel";
+import ImageResultPanel from "./dotto/ImageResultPanel";
 import NotificationBar from "./dotto/NotificationBar";
 import PricingOverlay from "./dotto/PricingOverlay";
+import RecommendedSearchesPanel from "./dotto/RecommendedSearchesPanel";
 import ScheduleAgenda from "./dotto/ScheduleAgenda";
 import SelectionToolbar from "./dotto/SelectionToolbar";
 import TranslationPanel from "./dotto/TranslationPanel";
@@ -111,11 +127,20 @@ if (typeof window !== "undefined") {
   // __setNotificationContent: nothing reads #schedule-view-hours/#schedule-view-stack's DOM
   // synchronously right after calling renderScheduleAgenda.
   window.__setScheduleAgenda = scheduleAgendaStore.set;
-  // Search-dropdown result panels (see app/dotto/TranslationPanel.jsx/DictionaryPanel.jsx,
-  // public/dotto/mnemonic-search-matching.js's renderTranslationPanel/renderDictionaryPanel) —
-  // plain store.sets, same reasoning as __setNotificationContent.
-  window.__setTranslationPanel = translationPanelStore.set;
-  window.__setDictionaryPanel = dictionaryPanelStore.set;
+  // Search-dropdown result panels (see app/dotto/TranslationPanel.jsx and friends,
+  // public/dotto/mnemonic-search-matching.js). Unlike __setNotificationContent/__setScheduleAgenda
+  // above, these DO need flushSync — updateSearchDropdown (ai-assistant-suggestions.js) reads
+  // each panel's real DOM node's style.display synchronously right after calling its
+  // render*Panel function (see renderOrchestrateResult, search-orchestration-selection.js, which
+  // calls several of these back-to-back and then updateSearchDropdown once at the end) — without
+  // flushSync that read would race the layout effect that actually sets style.display, same bug
+  // flushSync already exists to prevent for canvasItemsStore above.
+  window.__setTranslationPanel = (panel) => flushSync(() => translationPanelStore.set(panel));
+  window.__setDictionaryPanel = (panel) => flushSync(() => dictionaryPanelStore.set(panel));
+  window.__setExamplesPanel = (panel) => flushSync(() => examplesPanelStore.set(panel));
+  window.__setRecommendedSearches = (panel) => flushSync(() => recommendedSearchesStore.set(panel));
+  window.__setDotbotAnswer = (answer) => flushSync(() => dotbotAnswerStore.set(answer));
+  window.__setImageResult = (state) => flushSync(() => imageResultStore.set(state));
 }
 
 export default function DottoApp({ sections, currentUser }) {
@@ -162,6 +187,10 @@ export default function DottoApp({ sections, currentUser }) {
       <ScheduleAgenda />
       <TranslationPanel />
       <DictionaryPanel />
+      <ExamplesPanel />
+      <RecommendedSearchesPanel />
+      <DotbotAnswerPanel />
+      <ImageResultPanel />
       <Script src="/dotto-script.js" type="module" strategy="afterInteractive" />
     </>
   );

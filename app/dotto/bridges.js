@@ -61,13 +61,32 @@ export const notificationStore = createStore(null);
 export const scheduleAgendaStore = createStore({ hours: [], events: [] });
 
 // Search-dropdown result panels (public/dotto/mnemonic-search-matching.js) — each a single-owner
-// static container (#search-translation/#search-dictionary), unlike #search-suggestions/
+// static container (#search-translation/#search-dictionary/etc.), unlike #search-suggestions/
 // #search-results which are shared by multiple producers and not converted yet. null means
-// "nothing to show" (matches the panel's own display:none default) — the actual card content
-// still comes from a vanilla builder (buildTranslationCard/buildDictionaryCard, each a small
-// self-contained widget with its own internal cycling/drag state), mounted by a plain side-effect
-// component (TranslationPanel.jsx/DictionaryPanel.jsx) rather than a portal, since there's no
-// list to key/diff — one blob of vanilla-built content, wholesale-replaced each time, same as
-// before, just triggered by React state instead of a direct DOM write.
+// "nothing to show" (matches each panel's own display:none default) — the actual card content
+// still comes from a vanilla builder (buildTranslationCard/buildDictionaryCard/etc., several of
+// them small self-contained widgets with their own internal cycling/drag state), mounted by a
+// plain side-effect component (TranslationPanel.jsx and friends) rather than a portal, since
+// there's no list to key/diff — one blob of vanilla-built content, wholesale-replaced each time,
+// same as before, just triggered by React state instead of a direct DOM write.
+//
+// All six __set* bridges for these (app/dotto-app.jsx) wrap their store.set in flushSync, unlike
+// notificationStore/scheduleAgendaStore above — updateSearchDropdown (ai-assistant-suggestions.js)
+// reads each panel's real DOM node's style.display SYNCHRONOUSLY right after calling its
+// render*Panel function (see renderOrchestrateResult in search-orchestration-selection.js, which
+// calls several of these back-to-back and then updateSearchDropdown once at the end) — without
+// flushSync, that read would race the layout effect that actually sets style.display and could
+// see a stale value, exactly the bug flushSync already exists to prevent for canvasItemsStore.
 export const translationPanelStore = createStore(null);
 export const dictionaryPanelStore = createStore(null);
+export const examplesPanelStore = createStore(null);
+export const recommendedSearchesStore = createStore(null);
+// { text, answerBlocksPanel, answerBlocksLanguage } | null — combines what were originally two
+// separate vanilla functions (renderDotbotAnswerPanel/renderAnswerBlocksPanel) into one store:
+// the second always ran immediately after the first, appending into the SAME container the first
+// had just cleared, so they were never really two independent panels — see
+// DotbotAnswerPanel.jsx and renderDotbotAnswerPanel's own updated comment.
+export const dotbotAnswerStore = createStore(null);
+// { status: 'loading' | 'error' | 'success', reason, imageDataUrl } | null — the mnemonic image
+// result panel's three mutually-exclusive states, see ImageResultPanel.jsx.
+export const imageResultStore = createStore(null);
