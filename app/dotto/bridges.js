@@ -153,3 +153,12 @@ export const profileLevelStore = createStore({ displayName: "", tierColor: "" })
 // through a store, since they never change) supply everything else AchievementsGrid.jsx needs to
 // render every cell. Genuine JSX, same reasoning as canvasResultsStore/waypointsListStore.
 export const achievementsStore = createStore([]);
+
+// Messages panel's chat/friend list (public/dotto/friends-presence.js's renderMsgList/
+// renderMsgRequests) — same two-view shape as hubCollabListStore:
+// { view: 'main', requestsCount, matchedFriends, searchResults, query } or
+// { view: 'requests', requests }. Genuine JSX rows (see MessagesListPanel.jsx). Not flushSync'd —
+// both entry points are real async Supabase calls. The actual conversation thread (openConvo/
+// renderConvoBody) stays vanilla — part of the much larger "Live canvas presence" cluster
+// (PHASE2_ROADMAP.md item 11), not this list.
+export const msgListStore = createStore({ view: "main", requestsCount: 0, matchedFriends: [], searchResults: [], query: "" });

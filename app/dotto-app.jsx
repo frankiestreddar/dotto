@@ -13,6 +13,7 @@ import {
   examplesPanelStore,
   hubCollabListStore,
   imageResultStore,
+  msgListStore,
   notificationStore,
   pricingOverlayStore,
   profileLevelStore,
@@ -32,6 +33,7 @@ import DotbotAnswerPanel from "./dotto/DotbotAnswerPanel";
 import ExamplesPanel from "./dotto/ExamplesPanel";
 import HubCollabListPanel from "./dotto/HubCollabListPanel";
 import ImageResultPanel from "./dotto/ImageResultPanel";
+import MessagesListPanel from "./dotto/MessagesListPanel";
 import NotificationBar from "./dotto/NotificationBar";
 import PricingOverlay from "./dotto/PricingOverlay";
 import ProfileAvatarSm from "./dotto/ProfileAvatarSm";
@@ -184,6 +186,10 @@ if (typeof window !== "undefined") {
   // no synchronous DOM read follows either one.
   window.__setProfileLevel = profileLevelStore.set;
   window.__setAchievements = achievementsStore.set;
+  // Messages panel (see app/dotto/MessagesListPanel.jsx, friends-presence.js's renderMsgList/
+  // renderMsgRequests) — same reasoning as __setWaypointsList/__setHubCollabList: both entry
+  // points are real async Supabase calls.
+  window.__setMsgList = msgListStore.set;
 }
 
 export default function DottoApp({ sections, currentUser }) {
@@ -239,6 +245,7 @@ export default function DottoApp({ sections, currentUser }) {
       <AddToSourcePopup />
       <WaypointsListPanel />
       <HubCollabListPanel />
+      <MessagesListPanel />
       <ProfileLevelPill />
       <ProfileIdentity />
       <ProfileAvatarSm />
