@@ -383,106 +383,45 @@ import { pushNotification } from './stopwatch-search-notifications.js';
     // Accept/Decline each) — same drill-down pattern as hubCollabView in the Collaborations hub
     // panel, right down to reusing its "Requests" row/count-badge/back-row styling. The Requests
     // row itself only ever shows when there's actually something in it, exactly like that panel.
+    // Real React state now (see app/dotto/MessagesListPanel.jsx, msgListStore) — same two-view
+    // shape (main list + Requests drill-down) as HubCollabListPanel, genuine JSX rows for the same
+    // reason (no complex per-row widget state). The actual conversation thread (openConvo/
+    // renderConvoBody, live-presence.js) stays vanilla — that's part of the much larger "Live
+    // canvas presence + real-time content sync" cluster (PHASE2_ROADMAP.md item 11), not this
+    // list, and needs its own foundation-first pass; a chat row here just calls window.__openConvo.
     async function renderMsgList(query) {
         await refreshFriendsData();
         if (appState.msgView === 'requests') { renderMsgRequests(); return; }
-        appState.msgList.innerHTML = '';
         const q = (query || '').trim().toLowerCase();
-
-        if (appState.incomingRequests.length) {
-            const reqRow = document.createElement('div');
-            reqRow.className = 'outline-item requests-row';
-            reqRow.innerHTML = `<span class="outline-label">Requests</span><span class="requests-count">${appState.incomingRequests.length}</span>`;
-            reqRow.onclick = (e) => { e.stopPropagation(); appState.msgView = 'requests'; renderMsgRequests(); };
-            appState.msgList.appendChild(reqRow);
-        }
-
-        const matchedFriends = appState.friends.filter(f => f.displayName.toLowerCase().includes(q) || f.username.toLowerCase().includes(q));
-        if (matchedFriends.length) {
-            const label = document.createElement('div');
-            label.className = 'msg-section-label';
-            label.textContent = 'Chats';
-            appState.msgList.appendChild(label);
-            matchedFriends.forEach(f => {
-                const row = document.createElement('div');
-                row.className = 'msg-chat-row';
-                row.innerHTML = `<div class="msg-avatar"></div>
-                    <div class="msg-chat-meta"><div class="msg-chat-name">${escapeHtml(f.displayName)}</div><div class="msg-chat-preview">${escapeHtml(lastPreview(f))}</div></div>`;
-                renderAvatarInto(row.querySelector('.msg-avatar'), { id: f.avatarId ?? 0, url: f.avatarUrl || null }, initials(f.displayName));
-                row.onclick = () => openConvo(f.id);
-                appState.msgList.appendChild(row);
-            });
-        }
-
+        const matchedFriends = appState.friends
+            .filter(f => f.displayName.toLowerCase().includes(q) || f.username.toLowerCase().includes(q))
+            .map(f => ({ id: f.id, displayName: f.displayName, avatarId: f.avatarId ?? 0, avatarUrl: f.avatarUrl || null, preview: lastPreview(f) }));
         let searchResults = [];
         if (q) {
-            searchResults = await searchDiscoverableUsers(q);
-            if (searchResults.length) {
-                const label = document.createElement('div');
-                label.className = 'msg-section-label';
-                label.textContent = 'Add a friend';
-                appState.msgList.appendChild(label);
-                searchResults.forEach(u => {
-                    const row = document.createElement('div');
-                    row.className = 'msg-add-row';
-                    const pending = appState.outgoingPendingIds.has(u.id);
-                    row.innerHTML = `<div class="msg-chat-meta"><div class="msg-chat-name">@${escapeHtml(u.username)}</div></div>
-                        <button class="msg-add-btn" ${pending ? 'disabled' : ''}>${pending ? 'Requested' : 'Add'}</button>`;
-                    row.querySelector('.msg-add-btn').onclick = async (e) => {
-                        e.stopPropagation();
-                        if (appState.outgoingPendingIds.has(u.id)) return;
-                        await sendFriendRequest(u.id);
-                        renderMsgList(query);
-                    };
-                    appState.msgList.appendChild(row);
-                });
-            }
+            const users = await searchDiscoverableUsers(q);
+            searchResults = users.map(u => ({ id: u.id, username: u.username, pending: appState.outgoingPendingIds.has(u.id) }));
         }
-
-        if (!matchedFriends.length && !searchResults.length) {
-            const empty = document.createElement('div');
-            empty.className = 'msg-empty';
-            empty.textContent = q ? 'No chats or usernames found.' : 'No conversations yet.';
-            appState.msgList.appendChild(empty);
-        }
+        window.__setMsgList({ view: 'main', requestsCount: appState.incomingRequests.length, matchedFriends, searchResults, query: q });
     }
     function renderMsgRequests() {
-        appState.msgList.innerHTML = '';
-        const backRow = document.createElement('div');
-        backRow.className = 'requests-back-row';
-        backRow.innerHTML = `<span>&larr;</span><span>Requests</span>`;
-        backRow.onclick = (e) => { e.stopPropagation(); appState.msgView = 'main'; renderMsgList(appState.msgSearchInput.value); };
-        appState.msgList.appendChild(backRow);
-
-        if (!appState.incomingRequests.length) {
-            const empty = document.createElement('div');
-            empty.className = 'msg-empty';
-            empty.textContent = 'No pending requests.';
-            appState.msgList.appendChild(empty);
-            return;
-        }
-        appState.incomingRequests.forEach(req => {
-            const row = document.createElement('div');
-            row.className = 'msg-add-row';
-            row.innerHTML = `<div class="msg-chat-meta"><div class="msg-chat-name">@${escapeHtml(req.requester.username)}</div></div>
-                <div style="display:flex;gap:6px;">
-                    <button class="msg-add-btn msg-req-accept">Accept</button>
-                    <button class="msg-add-btn msg-req-decline">Decline</button>
-                </div>`;
-            row.querySelector('.msg-req-accept').onclick = async (e) => {
-                e.stopPropagation();
-                await respondToFriendRequest(req.id, true);
-                await refreshFriendsData();
-                renderMsgRequests();
-            };
-            row.querySelector('.msg-req-decline').onclick = async (e) => {
-                e.stopPropagation();
-                await respondToFriendRequest(req.id, false);
-                await refreshFriendsData();
-                renderMsgRequests();
-            };
-            appState.msgList.appendChild(row);
+        window.__setMsgList({
+            view: 'requests',
+            requests: appState.incomingRequests.map(req => ({ id: req.id, username: req.requester.username })),
         });
+    }
+    // Wired up from MessagesListPanel.jsx's JSX handlers — see that file for the row shapes these
+    // feed.
+    function openMsgRequestsView() { appState.msgView = 'requests'; renderMsgRequests(); }
+    function backToMsgMain() { appState.msgView = 'main'; renderMsgList(appState.msgSearchInput.value); }
+    async function handleAddFriendClick(userId, query) {
+        if (appState.outgoingPendingIds.has(userId)) return;
+        await sendFriendRequest(userId);
+        renderMsgList(query);
+    }
+    async function respondToMsgRequest(id, accept) {
+        await respondToFriendRequest(id, accept);
+        await refreshFriendsData();
+        renderMsgRequests();
     }
     function handleMsgSearch(v) { renderMsgList(v); }
 
@@ -601,7 +540,14 @@ import { pushNotification } from './stopwatch-search-notifications.js';
         });
     }
 
-export { closeCollabPanel, handleCollabSearch, handleMsgSearch, initials, openCollabPanel, refreshCanvasCollabForCurrentFolder, refreshFriendsData, renderCollabPill, renderMsgList, syncCanvasCollabTitle };
+export { backToMsgMain, closeCollabPanel, handleAddFriendClick, handleCollabSearch, handleMsgSearch, initials, openCollabPanel, openMsgRequestsView, refreshCanvasCollabForCurrentFolder, refreshFriendsData, renderCollabPill, renderMsgList, respondToMsgRequest, syncCanvasCollabTitle };
+
+// React → vanilla bridge — used by MessagesListPanel.jsx (app/dotto/), which can't import these
+// directly since public/dotto/*.js isn't reachable from app/dotto/.
+window.__openMsgRequestsView = openMsgRequestsView;
+window.__backToMsgMain = backToMsgMain;
+window.__handleAddFriendClick = handleAddFriendClick;
+window.__respondToMsgRequest = respondToMsgRequest;
 
 // No window.__initials bridge — Avatar.jsx (app/dotto/) reimplements this directly instead (see
 // its own comment for why: plain string logic with no vanilla-only dependency, and needing it to
