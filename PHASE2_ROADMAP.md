@@ -338,7 +338,21 @@ buckets slotted in by the same principle:
    the vanilla `renderRealCardPreview`.
 6. **Hamburger menu + Profile/Messages/Friends panels** + **Achievements**
    (tightly linked to Profile's leveling code) — before wiring real backend
-   data so the seam is already React state.
+   data so the seam is already React state. **Done**, granular (one PR per
+   panel, not a batch — this bucket had no acute bug the way card kinds/
+   search panels did, converted for architectural consistency instead):
+   Waypoints panel, Hub Collab panel, Profile identity/level pill/
+   achievements spritebook, Messages panel, per-canvas Collaborations
+   flyout. The hamburger's Outline panel is the one exception, left
+   vanilla — no natural content parameter to route through React state
+   (pure appState-read + DOM-build, triggered once per menu-open), so
+   converting it would mean either a full rewrite of its recursive
+   proximity-clustering algorithm or a no-op wrapper that changes nothing
+   (see WaypointsListPanel's own commit for the full reasoning). Also
+   added a per-component `<ErrorBoundary>` around every top-level piece
+   `DottoApp` renders (`app/dotto/ErrorBoundary.jsx`) partway through this
+   wave, after a bug in one small component (twice) took the entire app
+   down with it — no error boundary existed anywhere before that.
 7. **AI/search feature cluster** (Dotbot core, mnemonic, dictionary panels,
    text-selection/add-to-source, orchestrated search last, as the
    dispatcher) — biggest single cluster after source/table and live
