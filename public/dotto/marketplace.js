@@ -138,43 +138,18 @@ import { render, renderSelectedOutlines } from './waypoints-render-loop.js';
         renderMarketplaceDiscover();
     }
 
+    // Real React state now (see app/dotto/MarketDiscoverPanel.jsx, marketDiscoverStore) —
+    // genuine JSX rows, same reasoning as CanvasResultsPanel/WaypointsListPanel (simple title/
+    // price/desc/meta, no per-row widget state). openMarketDetail/the rest of the marketplace/
+    // library cluster stay vanilla for now — this is one self-contained slice of a much bigger
+    // file, converted incrementally rather than all at once.
     function renderMarketplaceDiscover() {
-        const container = document.getElementById('market-list-container');
-        container.innerHTML = '';
-        
         const filtered = appState.trendingMarketplace.filter(item => {
             return item.title.toLowerCase().includes(appState.marketplaceSearchQuery) ||
                    item.description.toLowerCase().includes(appState.marketplaceSearchQuery) ||
                    (item.tagline || '').toLowerCase().includes(appState.marketplaceSearchQuery);
         });
-
-        if (!filtered.length) {
-            container.innerHTML = '<div class="text-xs text-neutral-500 text-center py-6 font-mono">No matching templates.</div>';
-            return;
-        }
-
-        const label = document.createElement('div');
-        label.className = 'waypoint-folder-header !px-1';
-        label.textContent = 'Trending';
-        container.appendChild(label);
-
-        filtered.forEach(item => {
-            const div = document.createElement('div');
-            div.className = 'market-item-row';
-            div.innerHTML = `
-                <div class="market-item-header">
-                    <div class="market-item-title">${escapeHtml(item.title)}</div>
-                    <div class="market-item-price">${item.price}</div>
-                </div>
-                <div class="market-item-desc">${escapeHtml(item.tagline || item.description)}</div>
-                <div class="market-item-meta">
-                    <span>by ${escapeHtml(item.creatorUsername)}</span>
-                    <span>★ 4.9</span>
-                </div>
-            `;
-            div.onclick = () => openMarketDetail(item);
-            container.appendChild(div);
-        });
+        window.__setMarketDiscover(filtered);
     }
 
     function openMarketDetail(item) {
@@ -511,4 +486,8 @@ import { render, renderSelectedOutlines } from './waypoints-render-loop.js';
         openItemDetail(newItem, 'drafts');
     }
 
-export { addItemToCustomFolderById, closeCartPanel, closeMarketDetail, deployPurchasedTemplate, handleLibrarySearch, handleMarketplaceSearch, packageSelectedAsTemplate, purchaseCurrentMarketItem, refreshMyLibrary, removeFromCustomFolder, renderLibrary, switchCartTab, switchLibraryFolder };
+export { addItemToCustomFolderById, closeCartPanel, closeMarketDetail, deployPurchasedTemplate, handleLibrarySearch, handleMarketplaceSearch, openMarketDetail, packageSelectedAsTemplate, purchaseCurrentMarketItem, refreshMyLibrary, removeFromCustomFolder, renderLibrary, switchCartTab, switchLibraryFolder };
+
+// React → vanilla bridge — used by MarketDiscoverPanel.jsx (app/dotto/), which can't import this
+// directly since public/dotto/*.js isn't reachable from app/dotto/.
+window.__openMarketDetail = openMarketDetail;
