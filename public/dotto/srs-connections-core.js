@@ -7,6 +7,7 @@ import { defaultFlashcardDeck } from './games-flashcard-typeright.js';
 import { applyTransform, saveSnapshot, scheduleApplyTransform } from './history-autosave.js';
 import { broadcastEditingState } from './live-presence.js';
 import { awardUserPoints, bumpAchievementStat } from './profile-achievements-pricing.js';
+import { handleScheduleModeWheel, SCHEDULE_ALL } from './schedule-view-canvas.js';
 import { setOutlineActive, toggleHamburgerMenu } from './shared-canvases-outline.js';
 import { pushNotification } from './stopwatch-search-notifications.js';
 import { render, renderSelectedOutlines, startBoxSelection, syncWaypointToDb } from './waypoints-render-loop.js';
@@ -635,6 +636,10 @@ import { render, renderSelectedOutlines, startBoxSelection, syncWaypointToDb } f
     }
     canvas.addEventListener('pointerdown', (e) => {
         if (e.target !== canvas) return;
+        // Single-canvas Schedule Mode locks the viewport entirely (no free pan, no box-select) —
+        // today's overlay-based SCHEDULE_ALL mode never reaches here at all, since #schedule-view
+        // physically covers the canvas and intercepts pointer events itself.
+        if (appState.scheduleViewMode) return;
         if (appState.folders[appState.currentFolderId] && appState.folders[appState.currentFolderId].isSource) return;
 
         // Clicking blank canvas cancels a click-to-link gesture in progress (see
@@ -671,7 +676,14 @@ import { render, renderSelectedOutlines, startBoxSelection, syncWaypointToDb } f
     });
 
     canvas.addEventListener('wheel', (e) => {
-        if (appState.scheduleViewMode) return; // let the agenda's own vertical-only scroll handle it natively
+        if (appState.scheduleViewMode) {
+            // SCHEDULE_ALL: the old overlay's own #schedule-view-canvas has native
+            // overflow-y:auto — let it handle its own scroll, nothing to do here. Any other
+            // selection: a single canvas shown in-place, vertical-scroll-only, driven directly
+            // against the real camera (there's no separate scrolling DOM element to defer to).
+            if (appState.scheduleViewSelection !== SCHEDULE_ALL) handleScheduleModeWheel(e);
+            return;
+        }
         if (appState.folders[appState.currentFolderId] && appState.folders[appState.currentFolderId].isSource) return;
         const bodyEl = e.target.closest && e.target.closest('.item.note .body');
         if (bodyEl && bodyEl.scrollHeight > bodyEl.clientHeight) return;

@@ -260,3 +260,19 @@ export const sharedCanvasModalStore = createStore(null);
 // canvas-core-tier risk as item 12, not this migration's usual mechanical conversion. Cell image/
 // audio upload, AI-generated source content, and SM-2 are all pure logic with no DOM of their own.
 export const cellTagPickerListStore = createStore({ rows: [], id: null, r: null });
+
+// Single-canvas Schedule Mode's in-place canvas transform (public/dotto/schedule-view-canvas.js) —
+// { active, itemsById: Map<itemId, {time, name, kindLabel}> }. Read by CanvasItem
+// (CanvasItemsLayer.jsx): when active and an item's id is a key in itemsById, it renders
+// ScheduleModeCardBody instead of its real CARD_KIND_COMPONENTS entry — the wrapper <div
+// id="item-X"> stays the same DOM node either way, which is what lets the position transition
+// (a plain CSS transition on .item while this mode is active, not a JS-driven one — see
+// schedule-view-canvas.js) visually connect real position -> arranged slot -> real position across
+// entry and exit without ever unmounting anything. Every OTHER item (not a key in itemsById) keeps
+// rendering its real Component — it stays exactly where it is and just fades via CSS opacity (see
+// the .schedule-hidden class), so it needs no entry in this store at all. Deliberately not the same
+// store as scheduleAgendaStore (the SCHEDULE_ALL cross-canvas overlay's hour-timeline data) — the
+// two views are mutually exclusive and have very different shapes; sharing one store would mean
+// most fields are meaningless in either mode.
+export const SCHEDULE_MODE_OFF = { active: false, itemsById: new Map() };
+export const scheduleModeStore = createStore(SCHEDULE_MODE_OFF);
