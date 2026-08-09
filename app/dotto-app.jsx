@@ -20,6 +20,7 @@ import {
   libraryViewStore,
   marketDetailStore,
   marketDiscoverStore,
+  msgConvoStore,
   msgListStore,
   notificationStore,
   pricingOverlayStore,
@@ -28,6 +29,7 @@ import {
   scheduleAgendaStore,
   searchSuggestionsStore,
   selectionToolbarStore,
+  sharedCanvasModalStore,
   translationPanelStore,
   waypointsListStore,
 } from "./dotto/bridges";
@@ -49,6 +51,7 @@ import LibraryPanel from "./dotto/LibraryPanel";
 import MarketDetailPanel from "./dotto/MarketDetailPanel";
 import MarketDiscoverPanel from "./dotto/MarketDiscoverPanel";
 import MessagesListPanel from "./dotto/MessagesListPanel";
+import MsgConvo from "./dotto/MsgConvo";
 import NotificationBar from "./dotto/NotificationBar";
 import PricingOverlay from "./dotto/PricingOverlay";
 import ProfileAvatarSm from "./dotto/ProfileAvatarSm";
@@ -58,6 +61,7 @@ import RecommendedSearchesPanel from "./dotto/RecommendedSearchesPanel";
 import ScheduleAgenda from "./dotto/ScheduleAgenda";
 import SearchSuggestionsPanel from "./dotto/SearchSuggestionsPanel";
 import SelectionToolbar from "./dotto/SelectionToolbar";
+import SharedCanvasModalBody from "./dotto/SharedCanvasModalBody";
 import TranslationPanel from "./dotto/TranslationPanel";
 import WaypointsListPanel from "./dotto/WaypointsListPanel";
 
@@ -230,6 +234,13 @@ if (typeof window !== "undefined") {
   // positionBreadcrumbMapPanel immediately after, which reads the panel's own
   // content-driven offsetWidth.
   window.__setBreadcrumbMap = (rows) => flushSync(() => breadcrumbMapStore.set(rows));
+  // Open conversation thread (see app/dotto/MsgConvo.jsx, live-presence.js's renderConvoBody) — a
+  // plain store.set, no synchronous DOM read follows it (the scroll-to-bottom reset lives in a
+  // useLayoutEffect inside MsgConvo.jsx itself instead).
+  window.__setMsgConvo = msgConvoStore.set;
+  // Shared Card preview modal's body (see app/dotto/SharedCanvasModalBody.jsx, live-presence.js's
+  // openSharedCanvasView) — a plain store.set, no synchronous DOM read follows it.
+  window.__setSharedCanvasModal = sharedCanvasModalStore.set;
 }
 
 export default function DottoApp({ sections, currentUser }) {
@@ -293,6 +304,8 @@ export default function DottoApp({ sections, currentUser }) {
       <ErrorBoundary name="ItemDetailFooter"><ItemDetailFooter /></ErrorBoundary>
       <ErrorBoundary name="CollabPill"><CollabPill /></ErrorBoundary>
       <ErrorBoundary name="BreadcrumbMapPanel"><BreadcrumbMapPanel /></ErrorBoundary>
+      <ErrorBoundary name="MsgConvo"><MsgConvo /></ErrorBoundary>
+      <ErrorBoundary name="SharedCanvasModalBody"><SharedCanvasModalBody /></ErrorBoundary>
       <ErrorBoundary name="ProfileLevelPill"><ProfileLevelPill /></ErrorBoundary>
       <ErrorBoundary name="ProfileIdentity"><ProfileIdentity /></ErrorBoundary>
       <ErrorBoundary name="ProfileAvatarSm"><ProfileAvatarSm /></ErrorBoundary>

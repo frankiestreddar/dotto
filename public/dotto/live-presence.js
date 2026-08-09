@@ -748,12 +748,12 @@ import { render } from './waypoints-render-loop.js';
         appState.activeConvoId = friendId;
         const f = appState.friends.find(x => x.id === friendId);
         if (!f) return;
-        renderAvatarInto(document.getElementById('msg-convo-avatar'), { id: f.avatarId ?? 0, url: f.avatarUrl || null }, initials(f.displayName));
-        document.getElementById('msg-convo-title').textContent = f.displayName;
         // #msg-convo (and #msg-convo-body inside it) is display:none until the 'open' class is
         // added — made visible BEFORE renderConvoBody runs, since setting scrollTop on a still-
         // hidden 0-height element is a no-op that doesn't stick once it becomes visible
-        // afterward (this is what silently broke the always-start-at-the-bottom reset).
+        // afterward (this is what silently broke the always-start-at-the-bottom reset; the actual
+        // reset now happens in a useLayoutEffect, see MsgConvo.jsx, but the same ordering still
+        // matters for it).
         document.getElementById('msg-search-wrap').style.display = 'none';
         appState.msgList.style.display = 'none';
         appState.msgConvo.classList.add('open');
@@ -1309,60 +1309,32 @@ import { render } from './waypoints-render-loop.js';
         closeMessagesPanel();
     }
 
+    // Real React state now (see app/dotto/SharedCanvasModalBody.jsx, sharedCanvasModalStore) — the
+    // list itself is genuine JSX-owned, but each item's own card content still comes from
+    // renderMsgSnapshotCard (below), ref-mounted — same "vanilla builds live DOM, React just
+    // mounts it" pattern as InlineCanvasPreview, since that function builds real per-kind DOM
+    // (tables, checklists, media), not something worth re-expressing as JSX. The overlay's own
+    // open/close class toggle and the title text stay vanilla (plain attribute writes on the
+    // modal shell, not on anything React portals into).
     function openSharedCanvasView(items) {
-        const overlay = document.getElementById('canvas-modal-overlay');
-        const body = document.getElementById('canvas-modal-body');
         document.getElementById('canvas-modal-title').textContent = 'Shared Card';
-        body.innerHTML = '';
-        body.style.display = 'flex';
-        body.style.flexDirection = 'column';
-        body.style.gap = '10px';
-        items.forEach(item => body.appendChild(renderMsgSnapshotCard(item)));
-        overlay.classList.add('open');
+        window.__setSharedCanvasModal({ items });
+        document.getElementById('canvas-modal-overlay').classList.add('open');
     }
     function closeSharedCanvasView() {
         document.getElementById('canvas-modal-overlay').classList.remove('open');
     }
 
+    // Real React state now (see app/dotto/MsgConvo.jsx, msgConvoStore) — the header (avatar/title)
+    // and the message list are genuine JSX; each canvas-snapshot message's own card content still
+    // comes from renderInlineCanvas/renderMsgSnapshotCard, ref-mounted, same reasoning as
+    // SharedCanvasModalBody above. Not flushSync'd: every caller (openConvo, sendMsg, the realtime
+    // message-insert handler in friends-presence.js) has no synchronous DOM read right after —
+    // the scrollTop-to-bottom reset that used to happen here now lives in a useLayoutEffect inside
+    // MsgConvo.jsx itself, so it stays correctly synchronous with THAT component's own commit
+    // regardless of whether the store update that triggered it was flushSync'd.
     function renderConvoBody(f) {
-        const body = document.getElementById('msg-convo-body');
-        body.innerHTML = '';
-        if (!f.messages.length) {
-            const empty = document.createElement('div');
-            empty.className = 'msg-empty';
-            empty.textContent = 'Say hi to ' + f.displayName.split(' ')[0] + '!';
-            body.appendChild(empty);
-        } else {
-            f.messages.forEach(m => {
-                const isMine = m.senderId === appState.currentUser.id;
-                const wrapper = document.createElement('div');
-                wrapper.className = 'flex flex-col ' + (isMine ? 'items-end' : 'items-start') + ' w-full';
-
-                if (m.canvasSnapshot) {
-                    if (m.canvasSnapshot.length > 1) {
-                        wrapper.appendChild(renderInlineCanvas(m.canvasSnapshot));
-                    } else {
-                        const snapBox = document.createElement('div');
-                        snapBox.className = 'msg-canvas-snapshot';
-                        snapBox.appendChild(renderMsgSnapshotCard(m.canvasSnapshot[0]));
-                        snapBox.onclick = () => openSharedCanvasView(m.canvasSnapshot);
-                        wrapper.appendChild(snapBox);
-                    }
-                } else {
-                    const b = document.createElement('div');
-                    b.className = 'msg-bubble ' + (isMine ? 'me' : 'them');
-                    b.textContent = m.text;
-                    wrapper.appendChild(b);
-                }
-
-                // Prepended (not appended) so the DOM ends up newest-message-first — paired
-                // with #msg-convo-body's flex-direction:column-reverse, that's what pins the
-                // view to the bottom (newest message) and makes new messages push the older
-                // ones up, rather than the conversation growing downward from the top.
-                body.insertBefore(wrapper, body.firstChild);
-            });
-        }
-        body.scrollTop = 0;
+        window.__setMsgConvo({ friendId: f.id, displayName: f.displayName, avatarId: f.avatarId ?? 0, avatarUrl: f.avatarUrl || null, messages: f.messages });
     }
     function closeConvo() {
         appState.msgConvo.classList.remove('open');
@@ -1484,3 +1456,5 @@ window.__renderRealCardPreview = renderRealCardPreview;
 window.__openConvo = openConvo;
 window.__goToCollaboratorCursor = goToCollaboratorCursor;
 window.__renderInlineCanvas = renderInlineCanvas;
+window.__renderMsgSnapshotCard = renderMsgSnapshotCard;
+window.__openSharedCanvasView = openSharedCanvasView;
