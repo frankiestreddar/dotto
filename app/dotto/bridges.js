@@ -204,3 +204,20 @@ export const libraryViewStore = createStore({ view: "folders", fixed: [], custom
 // fields to React state risks regressing caret behavior for zero behavior gain, same reasoning as
 // the hamburger menu's Outline panel exception (see PHASE2_ROADMAP.md item 6).
 export const itemDetailFooterStore = createStore(null);
+
+// Collaborators pill under the search bar (public/dotto/friends-presence.js's renderCollabPill) —
+// { show, collabs: [{avatarId, avatarUrl, displayName}] (up to 3), moreCount }. Genuine JSX, same
+// Avatar.jsx-based reasoning as CollabListPanel — this is just the small trigger/indicator for
+// that panel, not the panel itself (already done, item 6). Portals into #collab-content only;
+// #collab-bubble's own `.show` class and #collab-tooltip's text are plain sibling/ancestor nodes
+// outside the portal, synced imperatively via useLayoutEffect in CollabPill.jsx. MUST be
+// flushSync'd (see app/dotto-app.jsx): openCollabPanel (friends-presence.js) reads collabBubble's
+// `.show` class synchronously right after a caller in hamburger-collab.js calls this.
+export const collabPillStore = createStore({ show: false, collabs: [], moreCount: 0 });
+
+// Breadcrumb map dropdown (public/dotto/shared-canvases-outline.js's renderBreadcrumbMapPanel) —
+// [{label, indent, folderId, isCurrent, isSyntheticRoot}]. Genuine JSX rows, same reasoning as the
+// other list panels. flushSync'd (see app/dotto-app.jsx): openBreadcrumbMapPanel calls
+// positionBreadcrumbMapPanel immediately after, which reads the panel's own offsetWidth —
+// content-driven (white-space:nowrap up to max-width), so it needs the rows already painted.
+export const breadcrumbMapStore = createStore([]);

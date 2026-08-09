@@ -3,7 +3,7 @@ import { appState, supabase } from './core-state.js';
 import { ensureCanvasPresenceChannel, openConvo, renderConvoBody } from './live-presence.js';
 import { openMessagesPanel } from './messages-schedule.js';
 import { closeAllPanels, pinOnInsideClick, scheduleHoverClose } from './panels-hamburger.js';
-import { bumpAchievementStat, renderAvatarInto } from './profile-achievements-pricing.js';
+import { bumpAchievementStat } from './profile-achievements-pricing.js';
 import { pushNotification } from './stopwatch-search-notifications.js';
 
 
@@ -187,6 +187,12 @@ import { pushNotification } from './stopwatch-search-notifications.js';
     }
     function handleCollabSearch(v) { renderCollabList(v); }
 
+    // Real React state now (see app/dotto/CollabPill.jsx, collabPillStore) — genuine JSX, same
+    // Avatar.jsx-based reasoning as CollabListPanel. #collab-bubble's own `.show` class and
+    // #collab-tooltip's text are synced imperatively by that component (plain sibling/ancestor
+    // nodes it doesn't portal into) — see collabPillStore's own comment in bridges.js for why this
+    // needs flushSync (openCollabPanel, right below, reads collabBubble's `.show` class
+    // synchronously right after a caller in hamburger-collab.js calls this).
     function renderCollabPill() {
         const folderObj = appState.folders[appState.currentFolderId];
         // The root canvas is always private to the user, so no collaborators indicator there —
@@ -197,31 +203,14 @@ import { pushNotification } from './stopwatch-search-notifications.js';
         // see findParentFolderId/the breadcrumb "..", which had the same bug for the same reason).
         // A canvas someone else shared with you isn't yours to invite further collaborators on.
         if (!folderObj || appState.currentFolderId === 'root' || folderObj.isSharedView) {
-            appState.collabBubble.classList.remove('show');
             closeCollabPanel();
+            window.__setCollabPill({ show: false, collabs: [], moreCount: 0 });
             return;
         }
-        appState.collabBubble.classList.add('show');
         const collabIds = folderObj.collaborators || [];
         const collabs = collabIds.map(id => appState.friends.find(f => f.id === id)).filter(Boolean);
-        const content = document.getElementById('collab-content');
-        const tooltip = document.getElementById('collab-tooltip');
-        if (collabs.length === 0) {
-            content.innerHTML = `<button id="collab-add-btn" title="Add collaborators" onclick="event.stopPropagation(); openCollabPanel(true);">+</button>`;
-            tooltip.textContent = '';
-        } else {
-            tooltip.textContent = collabs.length + (collabs.length === 1 ? ' collaborator' : ' collaborators');
-            const shown = collabs.slice(0, 3);
-            let html = '<div class="collab-avatars">';
-            shown.forEach((f, i) => { html += `<div class="collab-avatar" data-idx="${i}"></div>`; });
-            if (collabs.length > 3) html += `<div class="collab-avatar collab-more">+${collabs.length - 3}</div>`;
-            html += '</div>';
-            content.innerHTML = html;
-            content.querySelectorAll('.collab-avatar[data-idx]').forEach(el => {
-                const f = shown[parseInt(el.dataset.idx, 10)];
-                renderAvatarInto(el, { id: f.avatarId ?? 0, url: f.avatarUrl || null }, initials(f.displayName));
-            });
-        }
+        const shown = collabs.slice(0, 3).map(f => ({ avatarId: f.avatarId ?? 0, avatarUrl: f.avatarUrl || null, displayName: f.displayName }));
+        window.__setCollabPill({ show: true, collabs: shown, moreCount: Math.max(0, collabs.length - 3) });
     }
 
     // `friends` / incoming / outgoing requests are loaded from Supabase
@@ -530,13 +519,15 @@ import { pushNotification } from './stopwatch-search-notifications.js';
 
 export { backToMsgMain, closeCollabPanel, handleAddFriendClick, handleCollabAddRemoveClick, handleCollabSearch, handleMsgSearch, initials, openCollabPanel, openMsgRequestsView, refreshCanvasCollabForCurrentFolder, refreshFriendsData, renderCollabPill, renderMsgList, respondToMsgRequest, syncCanvasCollabTitle };
 
-// React → vanilla bridge — used by MessagesListPanel.jsx/CollabListPanel.jsx (app/dotto/), which
-// can't import these directly since public/dotto/*.js isn't reachable from app/dotto/.
+// React → vanilla bridge — used by MessagesListPanel.jsx/CollabListPanel.jsx/CollabPill.jsx
+// (app/dotto/), which can't import these directly since public/dotto/*.js isn't reachable from
+// app/dotto/.
 window.__openMsgRequestsView = openMsgRequestsView;
 window.__backToMsgMain = backToMsgMain;
 window.__handleAddFriendClick = handleAddFriendClick;
 window.__handleCollabAddRemoveClick = handleCollabAddRemoveClick;
 window.__respondToMsgRequest = respondToMsgRequest;
+window.__openCollabPanel = openCollabPanel;
 
 // No window.__initials bridge — Avatar.jsx (app/dotto/) reimplements this directly instead (see
 // its own comment for why: plain string logic with no vanilla-only dependency, and needing it to
