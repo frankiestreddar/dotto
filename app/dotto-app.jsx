@@ -35,6 +35,7 @@ import CanvasResultsPanel from "./dotto/CanvasResultsPanel";
 import CollabListPanel from "./dotto/CollabListPanel";
 import DictionaryPanel from "./dotto/DictionaryPanel";
 import DotbotAnswerPanel from "./dotto/DotbotAnswerPanel";
+import ErrorBoundary from "./dotto/ErrorBoundary";
 import ExamplesPanel from "./dotto/ExamplesPanel";
 import HubCollabListPanel from "./dotto/HubCollabListPanel";
 import ImageResultPanel from "./dotto/ImageResultPanel";
@@ -231,50 +232,50 @@ export default function DottoApp({ sections, currentUser }) {
   return (
     <>
       <div id="dotto-root">
-        <TopBar html={sections["top-bar"]} />
-        <ProfilePanel html={sections["profile-panel"]} />
-        <MessagesPanel html={sections["messages-panel"]} />
-        <CollaboratorsPanel html={sections["collab-panel"]} />
-        <SharedCanvasModal html={sections["canvas-modal"]} />
-        <MarketplacePanel html={sections["cart-panel"]} />
-        <HamburgerMenu html={sections["hamburger-stack"]} />
-        <CanvasArea html={sections["canvas-area"]} />
-        <BottomToolbars html={sections["bottom-toolbars"]} />
-        <ZoomControl html={sections["zoom-control"]} />
-        <AddMenu html={sections["add-menu"]} />
-        <SourceAddMenu html={sections["source-add-menu"]} />
-        <CellTagPicker html={sections["cell-tag-picker"]} />
-        <AudioRecordIndicator html={sections["audio-record-indicator"]} />
-        <DrawSettingsBar html={sections["draw-settings"]} />
-        <ItemContextMenu html={sections["context-menu"]} />
-        <CanvasContextMenu html={sections["canvas-context-menu"]} />
-        <Footer html={sections["footer"]} />
+        <ErrorBoundary name="TopBar"><TopBar html={sections["top-bar"]} /></ErrorBoundary>
+        <ErrorBoundary name="ProfilePanel"><ProfilePanel html={sections["profile-panel"]} /></ErrorBoundary>
+        <ErrorBoundary name="MessagesPanel"><MessagesPanel html={sections["messages-panel"]} /></ErrorBoundary>
+        <ErrorBoundary name="CollaboratorsPanel"><CollaboratorsPanel html={sections["collab-panel"]} /></ErrorBoundary>
+        <ErrorBoundary name="SharedCanvasModal"><SharedCanvasModal html={sections["canvas-modal"]} /></ErrorBoundary>
+        <ErrorBoundary name="MarketplacePanel"><MarketplacePanel html={sections["cart-panel"]} /></ErrorBoundary>
+        <ErrorBoundary name="HamburgerMenu"><HamburgerMenu html={sections["hamburger-stack"]} /></ErrorBoundary>
+        <ErrorBoundary name="CanvasArea"><CanvasArea html={sections["canvas-area"]} /></ErrorBoundary>
+        <ErrorBoundary name="BottomToolbars"><BottomToolbars html={sections["bottom-toolbars"]} /></ErrorBoundary>
+        <ErrorBoundary name="ZoomControl"><ZoomControl html={sections["zoom-control"]} /></ErrorBoundary>
+        <ErrorBoundary name="AddMenu"><AddMenu html={sections["add-menu"]} /></ErrorBoundary>
+        <ErrorBoundary name="SourceAddMenu"><SourceAddMenu html={sections["source-add-menu"]} /></ErrorBoundary>
+        <ErrorBoundary name="CellTagPicker"><CellTagPicker html={sections["cell-tag-picker"]} /></ErrorBoundary>
+        <ErrorBoundary name="AudioRecordIndicator"><AudioRecordIndicator html={sections["audio-record-indicator"]} /></ErrorBoundary>
+        <ErrorBoundary name="DrawSettingsBar"><DrawSettingsBar html={sections["draw-settings"]} /></ErrorBoundary>
+        <ErrorBoundary name="ItemContextMenu"><ItemContextMenu html={sections["context-menu"]} /></ErrorBoundary>
+        <ErrorBoundary name="CanvasContextMenu"><CanvasContextMenu html={sections["canvas-context-menu"]} /></ErrorBoundary>
+        <ErrorBoundary name="Footer"><Footer html={sections["footer"]} /></ErrorBoundary>
       </div>
-      <PricingOverlay />
-      <SelectionToolbar />
-      <CanvasItemsLayer />
-      <NotificationBar />
-      <ScheduleAgenda />
-      <TranslationPanel />
-      <DictionaryPanel />
-      <ExamplesPanel />
-      <RecommendedSearchesPanel />
-      <DotbotAnswerPanel />
-      <ImageResultPanel />
-      <CanvasResultsPanel />
-      <SearchSuggestionsPanel />
-      <AddToSourcePopup />
-      <WaypointsListPanel />
-      <HubCollabListPanel />
-      <MessagesListPanel />
-      <CollabListPanel />
-      <MarketDiscoverPanel />
-      <MarketDetailPanel />
-      <LibraryPanel />
-      <ProfileLevelPill />
-      <ProfileIdentity />
-      <ProfileAvatarSm />
-      <AchievementsGrid />
+      <ErrorBoundary name="PricingOverlay"><PricingOverlay /></ErrorBoundary>
+      <ErrorBoundary name="SelectionToolbar"><SelectionToolbar /></ErrorBoundary>
+      <ErrorBoundary name="CanvasItemsLayer"><CanvasItemsLayer /></ErrorBoundary>
+      <ErrorBoundary name="NotificationBar"><NotificationBar /></ErrorBoundary>
+      <ErrorBoundary name="ScheduleAgenda"><ScheduleAgenda /></ErrorBoundary>
+      <ErrorBoundary name="TranslationPanel"><TranslationPanel /></ErrorBoundary>
+      <ErrorBoundary name="DictionaryPanel"><DictionaryPanel /></ErrorBoundary>
+      <ErrorBoundary name="ExamplesPanel"><ExamplesPanel /></ErrorBoundary>
+      <ErrorBoundary name="RecommendedSearchesPanel"><RecommendedSearchesPanel /></ErrorBoundary>
+      <ErrorBoundary name="DotbotAnswerPanel"><DotbotAnswerPanel /></ErrorBoundary>
+      <ErrorBoundary name="ImageResultPanel"><ImageResultPanel /></ErrorBoundary>
+      <ErrorBoundary name="CanvasResultsPanel"><CanvasResultsPanel /></ErrorBoundary>
+      <ErrorBoundary name="SearchSuggestionsPanel"><SearchSuggestionsPanel /></ErrorBoundary>
+      <ErrorBoundary name="AddToSourcePopup"><AddToSourcePopup /></ErrorBoundary>
+      <ErrorBoundary name="WaypointsListPanel"><WaypointsListPanel /></ErrorBoundary>
+      <ErrorBoundary name="HubCollabListPanel"><HubCollabListPanel /></ErrorBoundary>
+      <ErrorBoundary name="MessagesListPanel"><MessagesListPanel /></ErrorBoundary>
+      <ErrorBoundary name="CollabListPanel"><CollabListPanel /></ErrorBoundary>
+      <ErrorBoundary name="MarketDiscoverPanel"><MarketDiscoverPanel /></ErrorBoundary>
+      <ErrorBoundary name="MarketDetailPanel"><MarketDetailPanel /></ErrorBoundary>
+      <ErrorBoundary name="LibraryPanel"><LibraryPanel /></ErrorBoundary>
+      <ErrorBoundary name="ProfileLevelPill"><ProfileLevelPill /></ErrorBoundary>
+      <ErrorBoundary name="ProfileIdentity"><ProfileIdentity /></ErrorBoundary>
+      <ErrorBoundary name="ProfileAvatarSm"><ProfileAvatarSm /></ErrorBoundary>
+      <ErrorBoundary name="AchievementsGrid"><AchievementsGrid /></ErrorBoundary>
       <Script src="/dotto-script.js" type="module" strategy="afterInteractive" />
     </>
   );
