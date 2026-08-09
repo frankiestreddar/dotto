@@ -221,3 +221,26 @@ export const collabPillStore = createStore({ show: false, collabs: [], moreCount
 // positionBreadcrumbMapPanel immediately after, which reads the panel's own offsetWidth —
 // content-driven (white-space:nowrap up to max-width), so it needs the rows already painted.
 export const breadcrumbMapStore = createStore([]);
+
+// First slice of item 11's "Live canvas presence + real-time content sync" grab-bag (see
+// PHASE2_ROADMAP.md — that section needed a 3-way split before extraction): the messaging/
+// conversation-thread part. Cursor/typing/selection presence sync and the diff-based content-sync
+// engine stay fully vanilla — tightly coupled to live pan/zoom pixel math and per-frame drag
+// updates, same "canvas-core-adjacent, migrate last" reasoning as canvas core itself, not a list
+// with any natural React-owned identity.
+//
+// Open conversation thread (public/dotto/live-presence.js's openConvo/renderConvoBody) —
+// { friendId, displayName, avatarId, avatarUrl, messages } | null. Genuine JSX for the header
+// (Avatar.jsx) and each plain-text message bubble; each canvas-snapshot message's own card
+// content is ref-mounted vanilla DOM (renderInlineCanvas/renderMsgSnapshotCard) — see
+// MsgConvo.jsx. Not flushSync'd — no caller reads the DOM synchronously right after; the
+// scroll-to-bottom reset that used to happen inline now lives in a useLayoutEffect inside
+// MsgConvo.jsx itself, so it's correctly synchronous with that component's own commit regardless.
+export const msgConvoStore = createStore(null);
+
+// Shared Card preview modal's body (public/dotto/live-presence.js's openSharedCanvasView) —
+// { items } | null. Genuine JSX list, each item's own card content ref-mounted the same way as
+// MsgConvo's canvas-snapshot messages (renderMsgSnapshotCard) — see SharedCanvasModalBody.jsx. The
+// modal shell's own open/close class toggle and title text stay vanilla (plain attribute writes
+// on the shell, not on anything React portals into).
+export const sharedCanvasModalStore = createStore(null);

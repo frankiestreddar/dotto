@@ -418,7 +418,22 @@ buckets slotted in by the same principle:
     `folders`/`render()` canvas-core machinery, migrated last (item 12).
 11. **Live canvas presence + real-time content sync** — split into its
     three internal parts first (see grab-bag warning above), migrate each
-    separately rather than as one 1,468-line unit.
+    separately rather than as one 1,468-line unit. **Done** — auditing the split found only one of
+    the parts had a real rendering surface: **messaging functions**
+    (`renderConvoBody`/`openSharedCanvasView`) are converted (`MsgConvo.jsx`, header + message list
+    as genuine JSX; `SharedCanvasModalBody.jsx`, the Shared Card preview modal's list), with each
+    canvas-snapshot message's own card content still ref-mounted from
+    `renderInlineCanvas`/`renderMsgSnapshotCard` (vanilla, same "vanilla builds live DOM" pattern
+    as `InlineCanvasPreview`) — `sendMsg`/`openConvo`/`closeConvo`/`importSharedCardsAtScreenPoint`
+    stay vanilla logic with no rendering surface of their own. **Cursor/typing/selection presence
+    sync** and the **diff-based content-sync engine** (`queueSyncDiff`/`flushSyncDiff`/
+    `applyRemoteSyncBroadcast`) stay fully vanilla by design, not deferred to a future slice —
+    both are tightly coupled to live pan/zoom pixel math and per-frame drag/remote-sync updates
+    against the real canvas DOM, the same "canvas-core-adjacent, migrate last" reasoning as item
+    12 itself, with no list/identity structure that would benefit from React reconciliation. The
+    **card-kind helpers** and the **mini-canvas-preview widget** (`renderInlineCanvas`) scattered
+    in this same file are already covered elsewhere (bridged into real Components, or the
+    established ref-mount pattern) — nothing left to convert in either.
 12. **Connections layer + drag/resize/select + canvas core** — still last.
     Highest-regression-risk chunk; benefits most from everything else
     already being proven out.
