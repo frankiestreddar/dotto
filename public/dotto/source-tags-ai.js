@@ -169,32 +169,24 @@ import { render } from './waypoints-render-loop.js';
         appState.cellTagPicker.style.top = (rect.top) + 'px';
         appState.cellTagPicker.style.display = 'flex';
     }
+    // Real React state now (see app/dotto/CellTagPickerList.jsx, cellTagPickerListStore) —
+    // genuine JSX rows, same reasoning as the other list panels. Not risky the way the Source
+    // table itself is (contentEditable, live hover-zone pixel math) — this popover's own rename
+    // input is a plain <input>, not contentEditable, and its position is a one-shot
+    // getBoundingClientRect() on open (openRowTagPicker), not continuous. The picker's own
+    // show/hide/position and the new-tag row + tag-context-menu stay vanilla (static markup,
+    // untouched by this conversion).
     function renderCellTagPickerList() {
-        if (!appState.activeTagRow) return;
+        if (!appState.activeTagRow) { window.__setCellTagPickerList({ rows: [], id: null, r: null }); return; }
         const { id, r } = appState.activeTagRow;
-        const it = resolveTableForEdit(id); if (!it) return;
+        const it = resolveTableForEdit(id); if (!it) { window.__setCellTagPickerList({ rows: [], id: null, r: null }); return; }
         const tags = ensureTableTags(it);
         const assigned = new Set((ensureCellTags(it)[r]) || []);
-        const list = document.getElementById('cell-tag-picker-list');
-        list.innerHTML = tags.map(t => {
-            if (t.id === appState.renamingTagId) {
-                return `<div class="cell-tag-picker-row${assigned.has(t.id) ? ' selected' : ''}" data-tag-id="${t.id}">
-                    <span class="tag-swatch" style="background:${t.color}"></span>
-                    <input type="text" class="tag-picker-rename-input" value="${escapeHtml(t.name)}" onclick="event.stopPropagation()" onkeydown="handleTagRenameKeydown(event, '${t.id}')" onblur="commitTagRename('${t.id}', this.value)">
-                </div>`;
-            }
-            return `<div class="cell-tag-picker-row${assigned.has(t.id) ? ' selected' : ''}" data-tag-id="${t.id}" onclick="toggleCellTag(${id}, ${r}, '${t.id}')" oncontextmenu="openTagContextMenu(event, '${t.id}')">
-                <span class="tag-swatch" style="background:${t.color}"></span>
-                <span class="tag-picker-name">${escapeHtml(t.name)}</span>
-                <span class="tag-picker-check">✓</span>
-            </div>`;
-        }).join('');
-        // The divider above the new-tag input only makes sense once there's something above it.
+        const rows = tags.map(t => ({ tagId: t.id, name: t.name, color: t.color, selected: assigned.has(t.id), renaming: t.id === appState.renamingTagId }));
+        window.__setCellTagPickerList({ rows, id, r });
+        // The divider above the new-tag input only makes sense once there's something above it —
+        // a plain sibling of #cell-tag-picker-list, not something React portals into.
         document.getElementById('cell-tag-picker-new-row').classList.toggle('has-divider', tags.length > 0);
-        if (appState.renamingTagId) {
-            const input = list.querySelector('.tag-picker-rename-input');
-            if (input) { input.focus(); input.select(); }
-        }
     }
     function createTagFromCellPicker() {
         if (!appState.activeTagRow) return;
@@ -303,3 +295,10 @@ import { render } from './waypoints-render-loop.js';
     }
 
 export { applyAiAddRowsToSource, closeCellTagPicker, closeTagContextMenu, commitTagRename, createSourceFromAI, createTagFromCellPicker, deleteActiveTag, handleTagRenameKeydown, openRowTagPicker, openTagContextMenu, startRenameActiveTag, tagPillsHTML, toggleCellTag, triggerSourceUpload };
+
+// React → vanilla bridges — used by CellTagPickerList.jsx (app/dotto/), which can't import these
+// directly since public/dotto/*.js isn't reachable from app/dotto/.
+window.__toggleCellTag = toggleCellTag;
+window.__openTagContextMenu = openTagContextMenu;
+window.__handleTagRenameKeydown = handleTagRenameKeydown;
+window.__commitTagRename = commitTagRename;

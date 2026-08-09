@@ -394,10 +394,22 @@ buckets slotted in by the same principle:
    is now a real Component (`CARD_KIND_COMPONENTS` in
    `app/dotto/CanvasItemsLayer.jsx`); `renderLegacyCardBody` and the
    `window.__renderLegacyCardBody` bridge have been deleted outright, not
-   just emptied. Still outstanding and much larger: the actual Source
-   *database page* itself (`renderStaticTableHTML` and its whole cluster —
-   tags, cell image/audio, AI content, SM-2, drag-select), which needs
-   canvas-core-level work, not a simple card conversion.
+   just emptied. The Source *database page* cluster (`renderStaticTableHTML`
+   and its whole cluster — tags, cell image/audio, AI content, SM-2,
+   drag-select) has been **audited**: only one clean, low-risk surface
+   existed — the cell tag picker's dropdown list (`renderCellTagPickerList`,
+   `CellTagPickerList.jsx`), genuine JSX including its plain (not
+   contentEditable) rename `<input>`. Everything else stays vanilla by
+   design: cell image/audio upload, AI-generated source content, and SM-2
+   are all pure logic with no DOM of their own; the Source table itself
+   (`renderStaticTableHTML`) is built by the legacy `folderObj.isSource`
+   branch in `render()` (`waypoints-render-loop.js`), entirely bypassing
+   `CanvasItemsLayer`, and is deeply contentEditable-per-cell plus
+   continuous pointermove-driven hover-zone pixel math (`attachStaticTableHoverZones`)
+   — genuinely canvas-core-tier risk, folded into item 12 rather than
+   attempted as a standalone conversion. "Drag-select" turned out not to be
+   its own table-specific mechanism at all — it's the same generic canvas
+   `startBoxSelection` covered by item 12.
 10. **Friend presence**, **Canvas collaborations (hamburger)**,
     **Live-shared canvases** — real-time/collaboration cluster, done
     together since they share subscription-lifecycle risk. **Done** — turned out to have very

@@ -244,3 +244,16 @@ export const msgConvoStore = createStore(null);
 // modal shell's own open/close class toggle and title text stay vanilla (plain attribute writes
 // on the shell, not on anything React portals into).
 export const sharedCanvasModalStore = createStore(null);
+
+// Item 9's remainder (the Source database page cluster) turned out to have only one clean, low-
+// risk conversion candidate: the cell tag picker's dropdown list (public/dotto/source-tags-ai.js's
+// renderCellTagPickerList) — { rows: [{tagId, name, color, selected, renaming}], id, r }. Genuine
+// JSX, including the rename row's plain <input> (not contentEditable, so none of the
+// caret-regression risk that ruled out converting the Source table's own cells or the Item Detail/
+// Publish Flow contentEditable fields). The rest of the cluster stays vanilla: the Source table
+// itself (renderStaticTableHTML) is built by the legacy `folderObj.isSource` branch in render()
+// (waypoints-render-loop.js), entirely bypassing CanvasItemsLayer, and is deeply
+// contentEditable-per-cell plus continuous pointermove-driven hover-zone pixel math — the same
+// canvas-core-tier risk as item 12, not this migration's usual mechanical conversion. Cell image/
+// audio upload, AI-generated source content, and SM-2 are all pure logic with no DOM of their own.
+export const cellTagPickerListStore = createStore({ rows: [], id: null, r: null });
