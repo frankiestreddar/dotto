@@ -1,9 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import { useSyncExternalStore } from "react";
 import { createPortal } from "react-dom";
 import { itemDetailFooterStore } from "./bridges";
+import usePortalNode from "./usePortalNode";
 
 // Portals into #item-detail-footer (content/fragments/cart-panel.html) — a plain positioned div,
 // safe to portal into directly (only ever written by renderItemDetailFooter, see that function's
@@ -11,11 +11,7 @@ import { itemDetailFooterStore } from "./bridges";
 // the whole Publish Flow view stay vanilla — see itemDetailFooterStore's comment in bridges.js.
 export default function ItemDetailFooter() {
   const state = useSyncExternalStore(itemDetailFooterStore.subscribe, itemDetailFooterStore.getSnapshot, () => null);
-  const [portalNode, setPortalNode] = useState(null);
-  useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setPortalNode(document.getElementById("item-detail-footer"));
-  }, []);
+  const portalNode = usePortalNode("item-detail-footer");
 
   if (!portalNode || !state) return null;
 

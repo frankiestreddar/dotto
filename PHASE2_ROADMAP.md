@@ -22,11 +22,13 @@ Current phase numbering (supersedes "Phase 2 increment N" below):
   handler names are bridged via `window.fnName = fnName` assignments, concentrated in
   `public/dotto/window-bridge.js` (see that file's own header comment) plus a few more added
   per-module as needed for the React bridge (see the next bullet).
-- **Phase 2+ — convert each module to real React state, one subsystem at a time — in progress.**
-  All of "Suggested migration order" items 1–3 below are done (every overlay and every canvas
-  card kind is a real Component under `app/dotto/`, keyed-diffed via `CanvasItemsLayer.jsx`
-  instead of the old `world.innerHTML=''` full-teardown rebuild). Items 4–12 are still vanilla
-  `public/dotto/*.js` code, unconverted.
+- **Phase 2+ — convert each module to real React state, one subsystem at a time — done.**
+  All of "Suggested migration order" items 1–12 below are done — every subsystem audited, every
+  genuine rendering surface converted to a real Component under `app/dotto/` (every overlay and
+  every canvas card kind, keyed-diffed via `CanvasItemsLayer.jsx` instead of the old
+  `world.innerHTML=''` full-teardown rebuild), and everything left vanilla left there by a
+  documented decision recorded against its own item below, not by oversight. **Phase 2 as scoped
+  by this document is complete.**
 
 ## Where things stand
 
@@ -51,10 +53,25 @@ identity (focus/scroll/CSS-transition state) is preserved across a `render()` ca
 old rebuild-from-scratch approach couldn't do. Two small overlay shells (Pricing/upgrade,
 text-selection toolbar) are also real Components.
 
-**What's still exactly as it was, functionally, even though it's a real ES module now:**
-everything in migration-order items 4–12 below — still `document.getElementById`-driven, still
-holding its state in `appState`/module-level closures rather than React state. That's the work
-this document still plans out.
+**What's still exactly as it was, functionally, even though it's a real ES module now** — the final
+vanilla surface area, each left there by a documented decision (see each item's own closeout entry
+below for the full reasoning), not oversight:
+- The hamburger menu's Outline panel (item 6) — no natural content-parameter/ownership boundary.
+- The Item Detail view's form fields and the entire Publish Flow view (item 8), and the Source
+  table's cell-editing/keyboard-nav (item 9/12) — contentEditable-heavy, converting risks
+  caret-position regressions for no behavior gain.
+- Cursor/typing/selection presence sync and the diff-based content-sync engine (item 11) — tightly
+  coupled to live pan/zoom pixel math against the real canvas DOM.
+- Canvas core (`render()`'s camera/math/lookup helpers), drag/resize/select, and connections (item
+  12) — already coexist correctly with the React-owned `#items-layer`/`CanvasItemsLayer.jsx` by
+  design (proven during that foundation's own build), not something that needed converting.
+- The Source database page's own rendering (`renderStaticTableHTML`, `attachStaticTableHoverZones`,
+  item 9/12) — continuous pointermove-driven hover-zone pixel math with no discrete data/render
+  seam, same reasoning as the contentEditable fields above.
+
+Any further work on this vanilla surface area (a real React rewrite of drag/resize, collapsing the
+vanilla/React split entirely) is a new initiative, not a continuation of this document — see
+`CONTRIBUTING.md` for a scoped-out sketch of what that would involve.
 
 ## Why this is a multi-pass job, not a single rewrite
 
@@ -448,7 +465,49 @@ buckets slotted in by the same principle:
     established ref-mount pattern) — nothing left to convert in either.
 12. **Connections layer + drag/resize/select + canvas core** — still last.
     Highest-regression-risk chunk; benefits most from everything else
-    already being proven out.
+    already being proven out. **Done — audited, no conversion needed.** The "highest risk" framing
+    predated the canvas-items-react foundation (`CanvasItemsLayer.jsx`); that foundation was
+    explicitly designed up front to coexist with this bucket rather than require converting it, and
+    three independent checks (two research passes plus a direct read of the cited line numbers)
+    confirmed it does:
+    - **Canvas core** (`render()`, `waypoints-render-loop.js:441-641`) does a *scoped* wipe that
+      never touches `#items-layer` (line 448), then hands items to React via
+      `window.__renderCanvasItems` (line 624). `applyTransform`/`layoutDotLayer`
+      (`history-autosave.js`), `itemRect`/`itemCenter`/`findItemById`, `bringCardToFront`,
+      `centerOnContent` are camera-transform/math/lookup functions with no rendering surface —
+      never conversion candidates.
+    - **Drag/resize/select** (`setupDraggingAndClicking`, `drag-drop-chat.js:22`; `setupResizing`,
+      `resize-shortcuts-init.js`; `startBoxSelection`/`renderSelectedOutlines`; `linkSelectedCards`)
+      already operate directly on the `id="item-"+it.id` wrapper divs `CanvasItem` creates, using
+      `AbortController`-based idempotent re-registration (`drag-drop-chat.js:24`) specifically so
+      `CanvasItemsLayer.jsx`'s own layout effect can safely re-run them on every render
+      (`window.__attachUniversalItemBehavior`, `CanvasItemsLayer.jsx:84`). This coexistence was
+      designed and proven during the canvas-items-react foundation itself, not left for this item
+      to finish — the strongest "already correct" case in the whole bucket.
+    - **Connections** (`renderConnectionsLayer`, `startConnectionDrag`, `isValidConnection`,
+      `propagateCanvasStreams`, `applyConnections`, `createConnection`, `findTableById`,
+      `srs-connections-core.js`) insert as a sibling of `#items-layer` via `world.insertBefore`,
+      exactly as that same foundation's own plan required up front — designed correctly before this
+      item was ever reached.
+    - The **`folderObj.isSource` branch** (`waypoints-render-loop.js:560-584`) is a structurally
+      distinct "database view" rendering mode, not a card that bypasses the portal by oversight: it
+      forces the camera to identity (`tx=0,ty=0,scale=1`), hides all three toolbars + zoom control,
+      synthesizes a `w:0,h:0` table item that was never meant to carry real position/size, and
+      explicitly blanks the portal (`window.__renderCanvasItems([])`, line 582) because the two
+      modes are mutually exclusive by design. Routing it through `#items-layer` would mean teaching
+      the shared per-item wrapper-attrs code a special case for a "kind" that isn't really a
+      positioned item, for no behavior change — not worth it.
+    - The **Source table's** remaining ~350 lines (`renderStaticTableHTML`,
+      `attachStaticTableHoverZones` — ~190 lines of continuous pointermove-driven pixel math —
+      `layoutSourceTableColumns`, contentEditable-per-cell editing/keyboard-nav) have no discrete
+      data/render seam the way item 9's cell tag picker did — same no-acute-bug/real-regression-risk
+      precedent as item 8's Item Detail exception. Audited (carrying forward item 9's remainder),
+      confirmed nothing further to extract.
+
+    Verified by design review (three independent passes, cross-checked against the exact line
+    numbers cited above) — not by a runtime click-through, which remains this environment's
+    standing gap (see "How this was verified" below). This closes out Phase 2 as scoped by this
+    document.
 
 After each subsystem, the check that was used to verify Phases 1–2 in this
 pass still applies: diff the relevant DOM ids/classes/content against

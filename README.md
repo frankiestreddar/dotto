@@ -1,9 +1,14 @@
-# Dotto (Dotter v0.1.3) — Next.js migration
+# Dotto (Dotter v0.1.3)
 
-This is the original single-file `Dotto.html` (infinite-canvas study/notes
-app) migrated into a real Next.js project (App Router, Tailwind v4 +
-PostCSS build — no CDN scripts). It runs and behaves the same as the
-original file. See `PHASE2_ROADMAP.md` for what's next.
+An infinite-canvas study/notes app — cards (notes, tables, flashcards, checklists, media, and
+more) on a pannable/zoomable canvas, with folders as nested canvases, spaced-repetition flashcards,
+real-time collaboration, a marketplace for sharing canvas templates, and an AI assistant (Dotbot)
+for search, mnemonics, and content generation.
+
+Originally a single `Dotto.html` file; migrated into a real Next.js project (App Router, Tailwind
+v4 + PostCSS, Supabase backend) over two phases documented in `PHASE2_ROADMAP.md`. Both phases are
+now complete — see that document for the full migration history, and `CONTRIBUTING.md` for how to
+work in the codebase as it stands today.
 
 ## Running it
 
@@ -12,61 +17,55 @@ npm install
 npm run dev
 ```
 
-Open http://localhost:3000.
+Open http://localhost:3000. Requires Supabase environment variables (see `.env.local`) — the app
+redirects to `/login` without a signed-in Supabase session.
 
-## What's real vs. what's a shim, right now
+## Architecture
 
-- **Markup**: split into 18 verbatim fragments in `content/fragments/*.html`,
-  each rendered by a small named component in `app/dotto/sections/`
-  (`TopBar`, `AddMenu`, `SchedulePanel`, `MarketplacePanel`, etc. — see
-  `app/dotto-app.jsx`). This is organizational only; the HTML itself is
-  unchanged from `Dotto.html`.
-- **Styling**: `app/globals.css` = Tailwind v4 import + the original
-  `<style>` block copied verbatim. `@source` directives tell Tailwind's
-  scanner to also look inside the markup fragments and
-  `public/dotto-script.js`, since the original app mixes custom CSS classes
-  with Tailwind utility classes in both places.
-- **Behavior**: `public/dotto-script.js` is the original ~5,100-line script,
-  byte-for-byte, still loaded as one classic global script
-  (`<script src>`, not a module) via `next/script`. None of its 269
-  functions have been rewritten yet — it still manipulates the DOM
-  directly with `document.getElementById`, exactly like it did in the
-  single HTML file. This is intentional (see `PHASE2_ROADMAP.md` for why
-  rewriting it in one pass was skipped).
+The app is two layers, bridged together:
 
-## Known gaps
+- **`public/dotto/*.js`** — ~30 real ES modules (no bundler, loaded via a single
+  `<Script type="module">` in `app/dotto-app.jsx`) holding most of the app's actual behavior:
+  canvas rendering, drag/resize/select, connections, live collaboration presence, the Source
+  database page, and more. State lives on one shared `appState` object
+  (`public/dotto/core-state.js`). This is intentionally still vanilla, not a gap — see
+  `CONTRIBUTING.md` and `PHASE2_ROADMAP.md` item 12 for why.
+- **`app/dotto/*.jsx`** — real React components for every subsystem worth converting to React
+  state (overlays, dropdown panels, list panels, every canvas card kind). These portal into
+  existing static DOM nodes rather than owning markup outright, and talk to the vanilla layer in
+  both directions through a small `window.__*` bridge convention (`app/dotto/bridges.js`).
 
-- **Icon assets are missing.** `Dotto.html` referenced 7 PNGs via
-  `assets/icons/*.png`, but only the HTML file was provided — no sibling
-  `assets` folder — so those icons never existed to migrate. Drop the real
-  files into `public/assets/icons/` (see the README there) and the top
-  bar / toolbar buttons will pick them up automatically; no code changes
-  needed.
-- **No backend, no persistence** — same as the original. Nothing was added
-  here; that's explicitly out of scope for this pass.
-- **Not yet interactively verified in a real browser.** Everything that
-  could be checked without a browser was checked (byte-diffed markup/CSS/JS
-  against `Dotto.html`, script syntax, correct SSR output, correct Tailwind
-  CSS generation). Clicking through each feature (add every card kind, draw,
-  connect cards, flip an SRS deck, open every panel, browse the
-  marketplace) still needs a real run-through on your end — see the last
-  section of `PHASE2_ROADMAP.md`.
+`app/dotto-app.jsx` is the seam: it renders the 18 static markup fragments
+(`content/fragments/*.html`, one per top-level section of the original page), wires up every
+`window.__*` bridge, and mounts every React component, each wrapped in an `<ErrorBoundary>` so a
+crash in one small piece can't take the whole app down.
+
+See `CONTRIBUTING.md` before adding a new feature — it walks through the pattern for adding either
+a new piece of React-owned UI or new vanilla behavior, and links back to the specific examples in
+`bridges.js` to copy.
 
 ## Project structure
 
 ```
 app/
-  layout.js          root layout — fonts, <head> links, imports globals.css
-  page.js             Server Component — reads content/fragments/*.html, passes to DottoApp
-  dotto-app.jsx        Client component — assembles the 18 sections, loads dotto-script.js
-  globals.css          Tailwind v4 + migrated custom CSS
-  dotto/sections/      18 named shell components (one per Dotto.html top-level section)
+  layout.js            root layout — fonts, <head> links, imports globals.css
+  page.js               Server Component — reads Supabase session/profile + content/fragments/*.html, passes to DottoApp
+  dotto-app.jsx          Client component — the seam described above
+  dotto/                 React components for every converted subsystem, plus bridges.js and usePortalNode.js
+  dotto/sections/        18 named shell components (one per top-level page section), each rendering a static fragment
+  api/dotbot/             API routes backing the AI assistant (ask/orchestrate/mnemonic/image/suggest/tts)
+  globals.css             Tailwind v4 + the app's own CSS
 content/
-  fragments/*.html      the 18 markup fragments (source of truth for the shell)
-  dotto-markup.html      reference copy of the original unsplit markup (unused by the app)
-  dotto-original.css     reference copy of the original CSS (unused by the app)
+  fragments/*.html        the 18 static markup fragments (source of truth for the shell)
 public/
-  dotto-script.js       the original ~5,100-line script, verbatim
-  assets/icons/          drop the 7 missing icon PNGs here
-PHASE2_ROADMAP.md        subsystem inventory + suggested migration order for the rest of Phase 2
+  dotto/*.js              the vanilla ES-module layer described above
+  assets/                 icons, sprites, fonts
+lib/
+  supabase/                Supabase client setup (browser + server)
+  leveling.js              daily login bonus / streak logic used by app/page.js
+supabase/
+  migrations/*.sql          schema migrations — apply these yourself, this environment has no DB access
+PHASE2_ROADMAP.md          full migration history (both phases), kept as a historical record
+CONTRIBUTING.md            how to work in the codebase today — start here for new features
+QA_CHECKLIST.md            manual regression checklist (no automated test suite exists yet)
 ```

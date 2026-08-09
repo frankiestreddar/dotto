@@ -1,10 +1,11 @@
 "use client";
 
-import { useEffect, useLayoutEffect, useState } from "react";
+import { useLayoutEffect } from "react";
 import { useSyncExternalStore } from "react";
 import { createPortal } from "react-dom";
 import Avatar from "./Avatar";
 import { collabPillStore } from "./bridges";
+import usePortalNode from "./usePortalNode";
 
 const EMPTY_STATE = { show: false, collabs: [], moreCount: 0 };
 
@@ -17,11 +18,7 @@ const EMPTY_STATE = { show: false, collabs: [], moreCount: 0 };
 // class synchronously right after one of its callers re-renders this pill.
 export default function CollabPill() {
   const state = useSyncExternalStore(collabPillStore.subscribe, collabPillStore.getSnapshot, () => EMPTY_STATE);
-  const [portalNode, setPortalNode] = useState(null);
-  useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setPortalNode(document.getElementById("collab-content"));
-  }, []);
+  const portalNode = usePortalNode("collab-content");
 
   useLayoutEffect(() => {
     const bubble = document.getElementById("collab-bubble");
@@ -42,8 +39,8 @@ export default function CollabPill() {
 
   return createPortal(
     <div className="collab-avatars">
-      {state.collabs.map((f, i) => (
-        <Avatar key={i} className="collab-avatar" avatar={{ id: f.avatarId, url: f.avatarUrl }} name={f.displayName} />
+      {state.collabs.map((f) => (
+        <Avatar key={f.id} className="collab-avatar" avatar={{ id: f.avatarId, url: f.avatarUrl }} name={f.displayName} />
       ))}
       {state.moreCount > 0 && <div className="collab-avatar collab-more">+{state.moreCount}</div>}
     </div>,

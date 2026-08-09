@@ -1,9 +1,10 @@
 "use client";
 
-import { useEffect, useLayoutEffect, useState } from "react";
+import { useLayoutEffect } from "react";
 import { useSyncExternalStore } from "react";
 import { createPortal } from "react-dom";
 import { profileLevelStore } from "./bridges";
+import usePortalNode from "./usePortalNode";
 
 const EMPTY_LEVEL = { displayName: "", tierColor: "" };
 
@@ -14,11 +15,7 @@ const EMPTY_LEVEL = { displayName: "", tierColor: "" };
 // attributes, same as CanvasResultsPanel's #search-results style.display handling.
 export default function ProfileLevelPill() {
   const level = useSyncExternalStore(profileLevelStore.subscribe, profileLevelStore.getSnapshot, () => EMPTY_LEVEL);
-  const [portalNode, setPortalNode] = useState(null);
-  useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setPortalNode(document.getElementById("profile-level-pill"));
-  }, []);
+  const portalNode = usePortalNode("profile-level-pill");
 
   useLayoutEffect(() => {
     const el = document.getElementById("profile-level-pill");

@@ -1,9 +1,10 @@
 "use client";
 
-import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useLayoutEffect, useRef } from "react";
 import { useSyncExternalStore } from "react";
 import { createPortal } from "react-dom";
 import { sharedCanvasModalStore } from "./bridges";
+import usePortalNode from "./usePortalNode";
 
 // Each item's own card content still comes from renderMsgSnapshotCard (public/dotto/
 // live-presence.js) — same "vanilla builds live DOM, React just mounts it via ref" pattern as
@@ -27,11 +28,7 @@ function SnapshotCardMount({ item }) {
 // writes to the target node's own attributes.
 export default function SharedCanvasModalBody() {
   const state = useSyncExternalStore(sharedCanvasModalStore.subscribe, sharedCanvasModalStore.getSnapshot, () => null);
-  const [portalNode, setPortalNode] = useState(null);
-  useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setPortalNode(document.getElementById("canvas-modal-body"));
-  }, []);
+  const portalNode = usePortalNode("canvas-modal-body");
 
   if (!portalNode || !state) return null;
 

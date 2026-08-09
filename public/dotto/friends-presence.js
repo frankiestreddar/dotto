@@ -209,7 +209,7 @@ import { pushNotification } from './stopwatch-search-notifications.js';
         }
         const collabIds = folderObj.collaborators || [];
         const collabs = collabIds.map(id => appState.friends.find(f => f.id === id)).filter(Boolean);
-        const shown = collabs.slice(0, 3).map(f => ({ avatarId: f.avatarId ?? 0, avatarUrl: f.avatarUrl || null, displayName: f.displayName }));
+        const shown = collabs.slice(0, 3).map(f => ({ id: f.id, avatarId: f.avatarId ?? 0, avatarUrl: f.avatarUrl || null, displayName: f.displayName }));
         window.__setCollabPill({ show: true, collabs: shown, moreCount: Math.max(0, collabs.length - 3) });
     }
 

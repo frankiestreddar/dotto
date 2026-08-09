@@ -1,9 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import { useSyncExternalStore } from "react";
 import { createPortal } from "react-dom";
 import { breadcrumbMapStore } from "./bridges";
+import usePortalNode from "./usePortalNode";
 
 const EMPTY_ROWS = [];
 
@@ -23,11 +23,7 @@ function BreadcrumbMapRow({ r }) {
 // portal into directly, same as #waypoints-list and friends.
 export default function BreadcrumbMapPanel() {
   const rows = useSyncExternalStore(breadcrumbMapStore.subscribe, breadcrumbMapStore.getSnapshot, () => EMPTY_ROWS);
-  const [portalNode, setPortalNode] = useState(null);
-  useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setPortalNode(document.getElementById("breadcrumb-map-list"));
-  }, []);
+  const portalNode = usePortalNode("breadcrumb-map-list");
 
   if (!portalNode) return null;
 
