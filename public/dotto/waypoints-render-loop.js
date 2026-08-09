@@ -7,6 +7,7 @@ import { closeGameOptionsPanel, openGameOptionsPanel } from './games-flashcard-t
 import { applyTransform, ensureSwTicking, saveSnapshot, scheduleWorkspaceSave, updateContextMenuPosition } from './history-autosave.js';
 import { broadcastEditingState, miniLabelForItem, placeCaretEnd, renderRealCardPreview, repositionAllRemoteCursors, syncColorPicker } from './live-presence.js';
 import { findNextFreeSlot, setupResizing } from './resize-shortcuts-init.js';
+import { applyScheduleModeWrapperAttrs, SCHEDULE_ALL } from './schedule-view-canvas.js';
 import { ensureSharedFolderLoaded, openBreadcrumbMapPanel } from './shared-canvases-outline.js';
 import { closeSourceAddMenu } from './source-buttons-cursor-mode.js';
 import { attachStaticTableHoverZones, layoutSourceTableColumns, renderStaticTableHTML } from './source-table.js';
@@ -648,6 +649,14 @@ import { applyConnections, renderConnectionsLayer } from './srs-connections-core
     // calls, never recreated, so every assignment below is a plain overwrite exactly as it always
     // was on a freshly created node.
     function applyItemWrapperAttrs(el, it) {
+        // Single-canvas Schedule Mode (schedule-view-canvas.js) owns wrapper attrs instead while
+        // active — real cards get an arranged slot position, everything else keeps its real x/y
+        // and just fades via CSS (see that file's own comment for why). Never reachable for
+        // SCHEDULE_ALL (the cross-canvas overlay), which doesn't touch real canvas items at all.
+        if (appState.scheduleViewMode && appState.scheduleViewSelection !== SCHEDULE_ALL) {
+            applyScheduleModeWrapperAttrs(el, it);
+            return;
+        }
         el.className = `item ${it.kind}`;
         el.style.left = it.x + 'px'; el.style.top = it.y + 'px';
         if (it.zIndex) el.style.zIndex = it.zIndex;
@@ -804,6 +813,15 @@ import { applyConnections, renderConnectionsLayer } from './srs-connections-core
     // aiGenerated badge, right-click suppression, and — critically — drag/click wiring
     // (setupDraggingAndClicking) aren't kind-specific.
     function attachUniversalItemBehavior(el, it) {
+            // Single-canvas Schedule Mode is read-only by design (see the user-facing spec this
+            // was built from) — no drag, no right-click menu, no AI badge. Aborting any
+            // already-attached drag listener (rather than just skipping setupDraggingAndClicking)
+            // matters when entering this mode on a card that was draggable a moment ago.
+            if (appState.scheduleViewMode && appState.scheduleViewSelection !== SCHEDULE_ALL) {
+                el.__dragListenerAbort?.abort();
+                el.oncontextmenu = null;
+                return;
+            }
             // Kind-agnostic — covers every drag-to-canvas Dotbot result (dictionary/answer/
             // mnemonic story/image, all still kind:'note', plus the new 'sentence' cards), since
             // importDotbotResultAtScreenPoint sets aiGenerated:true on all of them in one place.

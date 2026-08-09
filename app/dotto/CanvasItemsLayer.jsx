@@ -2,7 +2,7 @@
 
 import { useLayoutEffect, useRef, useSyncExternalStore } from "react";
 import { createPortal } from "react-dom";
-import { canvasItemsStore } from "./bridges";
+import { canvasItemsStore, scheduleModeStore, SCHEDULE_MODE_OFF } from "./bridges";
 import usePortalNode from "./usePortalNode";
 import CanvasCard from "./CanvasCard";
 import ChecklistCard from "./ChecklistCard";
@@ -11,6 +11,7 @@ import FilterCard from "./FilterCard";
 import FlashcardCard from "./FlashcardCard";
 import MediaCard from "./MediaCard";
 import NoteCard from "./NoteCard";
+import ScheduleModeCardBody from "./ScheduleModeCardBody";
 import SentenceCard from "./SentenceCard";
 import ShelfCard from "./ShelfCard";
 import SourceCard from "./SourceCard";
@@ -78,6 +79,16 @@ const CARD_KIND_COMPONENTS = {
 function CanvasItem({ it }) {
   const ref = useRef(null);
   const Component = CARD_KIND_COMPONENTS[it.kind];
+  // Single-canvas Schedule Mode (public/dotto/schedule-view-canvas.js) swaps this item's real
+  // per-kind Component for a simplified schedule row while it's one of today's scheduled items on
+  // the currently-shown canvas — see scheduleModeStore's own comment in bridges.js for why the
+  // wrapper <div> below staying the exact same DOM node either way is load-bearing for the
+  // slide-in/out animation. Every other item (not a key in itemsById) keeps rendering its real
+  // Component untouched — it just fades via CSS opacity, driven by the wrapper's own className
+  // (applyScheduleModeWrapperAttrs, called from the layout effect below like any other wrapper
+  // attr), not by anything here.
+  const scheduleMode = useSyncExternalStore(scheduleModeStore.subscribe, scheduleModeStore.getSnapshot, () => SCHEDULE_MODE_OFF);
+  const scheduleSlot = scheduleMode.active ? scheduleMode.itemsById.get(it.id) : null;
 
   useLayoutEffect(() => {
     if (!ref.current) return;
@@ -85,7 +96,11 @@ function CanvasItem({ it }) {
     window.__attachUniversalItemBehavior(ref.current, it);
   });
 
-  return <div ref={ref} id={"item-" + it.id}>{Component ? <Component it={it} /> : null}</div>;
+  return (
+    <div ref={ref} id={"item-" + it.id}>
+      {scheduleSlot ? <ScheduleModeCardBody it={it} slot={scheduleSlot} /> : Component ? <Component it={it} /> : null}
+    </div>
+  );
 }
 
 // Portals the current folder's item cards into #items-layer, a stable child of #world added to

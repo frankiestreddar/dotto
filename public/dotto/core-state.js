@@ -238,6 +238,11 @@
         scheduleViewDate: new Date(),
         scheduleBtn: document.getElementById('btn-schedule'),
         scheduleViewMode: false,
+        // 'all' (the cross-canvas aggregate — see schedule-view-canvas.js's SCHEDULE_ALL) or a
+        // folder id (a single canvas shown in-place, real cards hidden/rearranged) — defaults to
+        // 'all' so today's behavior (the #schedule-view overlay) is exactly unchanged until a
+        // later PR starts setting this to a specific folder id.
+        scheduleViewSelection: 'all',
         scheduleViewSavedTransform: null,
         scheduleView: document.getElementById('schedule-view'),
         scheduleViewCanvasEl: document.getElementById('schedule-view-canvas'),
@@ -248,6 +253,11 @@
         scheduleScrollStartY: 0,
         scheduleScrollStartTop: 0,
         SCHEDULE_HOUR_ROW: 96,
+        // In-place single-canvas Schedule Mode's arranged list row size (world/screen px — the two
+        // are numerically identical here since this mode locks scale to 1, see
+        // schedule-view-canvas.js) — unused until that mode's real arrange algorithm lands.
+        SCHEDULE_LIST_ROW_HEIGHT: 76,
+        SCHEDULE_LIST_ROW_GAP: 10,
         dotbotScheduleConversation: null,
         notifiedScheduledEventIds: new Set(),
         SCHEDULE_WEEKDAYS: ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'],
