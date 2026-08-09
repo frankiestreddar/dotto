@@ -366,7 +366,7 @@
     #add-menu-actions{position:absolute;left:100%;top:142px;transform:translateY(-50%);padding-left:8px;display:flex;flex-direction:column;gap:10px;}
     .add-menu-action-btn{width:40px;height:40px;padding:0;border-radius:50%;display:flex;align-items:center;justify-content:center;}
     .add-menu-action-btn img{width:20px;height:20px;object-fit:contain;}
-    .add-tab{cursor:pointer;color:var(--ink-soft);border-radius:10px;font-size:13px;font-weight:600;background:var(--bar);border:1px solid var(--card-border);box-shadow:0 6px 20px rgba(0,0,0,0.45);}
+    .add-tab{cursor:pointer;color:var(--ink-soft);border-radius:10px;font-size:13px;font-weight:500;background:var(--bar);border:1px solid var(--card-border);box-shadow:0 6px 20px rgba(0,0,0,0.45);}
     .add-tab:hover{color:var(--ink);}
     .add-tab.active{background:#2E2E2E;color:var(--ink);}
     /* Always exactly 5 rows tall (40px each) — no tab currently has more than 5 items, and this
@@ -376,7 +376,7 @@
     .add-menu-row{display:flex;align-items:center;gap:10px;height:40px;box-sizing:border-box;padding:8px 14px;cursor:pointer;}
     .add-menu-row:hover{background:#2a2a2a;}
     .add-menu-row-icon{width:22px;height:22px;flex:0 0 auto;object-fit:contain;}
-    .add-menu-row-name{flex:1 1 auto;min-width:0;font-size:14px;font-weight:700;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+    .add-menu-row-name{flex:1 1 auto;min-width:0;font-size:14px;font-weight:400;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
     /* Each category tab is its own separate pill now (just the base .add-tab look, unmodified) —
        previously this container supplied one shared background/border/radius and the tabs
        flattened themselves out (border-radius:0 etc.) to fuse into a single joined bar.
