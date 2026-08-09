@@ -657,18 +657,28 @@
     /* padding-top clears #top-bar (fixed, top:20px, height:40px, z-index:1000 — well above this
        overlay's own z-index:5), same 68px convention other panels anchor to below it. */
     /* Same dot-grid background as #schedule-view-canvas below, so the dotted grid reads as one
-       continuous surface across the whole overlay instead of cutting off at the header — the
-       canvas area keeps its OWN copy of this background (not inherited from here) since it needs
-       to scroll with the timeline's content, which a parent's background never does. */
-    #schedule-view-header{flex:0 0 auto;display:flex;align-items:center;justify-content:center;gap:24px;padding:68px 20px 18px;background-image:radial-gradient(var(--dot) 1px, transparent 1px);background-size:28px 28px;}
+       continuous surface across the whole overlay instead of cutting off at the header. Each
+       element still declares its own copy (a parent's background never scrolls with a child's
+       content, so #schedule-view-canvas needs one of its own regardless) — background-attachment:
+       fixed is what actually makes them line up: it anchors the tiling to the VIEWPORT's own
+       origin rather than each element's own box, so the pattern is continuous across the
+       header/canvas seam no matter how tall the header ends up being. Without it, two separately-
+       declared backgrounds each restart their 28px tiling from their own top-left corner and
+       visibly desync at the boundary between them. */
+    #schedule-view-header{flex:0 0 auto;display:flex;align-items:center;justify-content:center;gap:24px;padding:68px 20px 18px;background-image:radial-gradient(var(--dot) 1px, transparent 1px);background-size:28px 28px;background-attachment:fixed;}
     .schedule-nav-card{display:flex;align-items:center;gap:2px;background:var(--card);border:1px solid var(--card-border);border-radius:10px;padding:4px;box-shadow:0 4px 12px rgba(0,0,0,0.3);}
     .schedule-nav-card-btn{background:transparent;border:none;color:var(--ink-soft);border-radius:6px;width:30px;height:30px;cursor:pointer;font-size:13px;flex:0 0 auto;}
     .schedule-nav-card-btn:hover{background:#2e2e2e;color:var(--ink);}
     .schedule-heading-block{background:var(--card);border:1px solid var(--card-border);border-radius:10px;box-shadow:0 4px 12px rgba(0,0,0,0.3);padding:8px 20px;font-size:28px;font-weight:700;color:var(--ink);min-width:220px;text-align:center;font-family:'Space Mono', monospace;}
 
-    /* The "canvas" itself: same dot grid as the real one, vertical-scroll-only (no panning, no
-       horizontal scroll — cards can be clicked into but not dragged/moved). */
-    #schedule-view-canvas{position:relative;flex:1 1 auto;min-height:0;width:100%;overflow-y:auto;overflow-x:hidden;background-image:radial-gradient(var(--dot) 1px, transparent 1px);background-size:28px 28px;cursor:grab;}
+    /* The "canvas" itself: same dot grid as the real one. background-attachment:fixed (see
+       #schedule-view-header's comment above) means these dots stay put relative to the viewport
+       rather than scrolling with the timeline's content — a deliberate trade against the main
+       canvas's own dot layer (which does pan with content), made so the grid can align seamlessly
+       with the header above it; the timeline content itself still scrolls normally; only the
+       background texture behind it stays fixed. No horizontal scroll, no free panning — only
+       vertical scroll, and only once the timeline is taller than the viewport. */
+    #schedule-view-canvas{position:relative;flex:1 1 auto;min-height:0;width:100%;overflow-y:auto;overflow-x:hidden;background-image:radial-gradient(var(--dot) 1px, transparent 1px);background-size:28px 28px;background-attachment:fixed;cursor:grab;}
     #schedule-view-canvas:active{cursor:grabbing;}
     /* One shared positioning root for both the hour markers and the cards, sized in JS
        (renderScheduleAgenda) to exactly the day's first-to-last scheduled hour span — that
