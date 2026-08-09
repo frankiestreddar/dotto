@@ -14,6 +14,7 @@ import {
   examplesPanelStore,
   hubCollabListStore,
   imageResultStore,
+  itemDetailFooterStore,
   libraryViewStore,
   marketDetailStore,
   marketDiscoverStore,
@@ -39,6 +40,7 @@ import ErrorBoundary from "./dotto/ErrorBoundary";
 import ExamplesPanel from "./dotto/ExamplesPanel";
 import HubCollabListPanel from "./dotto/HubCollabListPanel";
 import ImageResultPanel from "./dotto/ImageResultPanel";
+import ItemDetailFooter from "./dotto/ItemDetailFooter";
 import LibraryPanel from "./dotto/LibraryPanel";
 import MarketDetailPanel from "./dotto/MarketDetailPanel";
 import MarketDiscoverPanel from "./dotto/MarketDiscoverPanel";
@@ -212,6 +214,9 @@ if (typeof window !== "undefined") {
   // Library tab's list content (see app/dotto/LibraryPanel.jsx, marketplace.js's renderLibrary) —
   // a plain store.set, no synchronous DOM read follows it.
   window.__setLibraryView = libraryViewStore.set;
+  // Item Detail view's footer button set (see app/dotto/ItemDetailFooter.jsx, library-publish.js's
+  // renderItemDetailFooter) — a plain store.set, no synchronous DOM read follows it.
+  window.__setItemDetailFooter = itemDetailFooterStore.set;
 }
 
 export default function DottoApp({ sections, currentUser }) {
@@ -272,6 +277,7 @@ export default function DottoApp({ sections, currentUser }) {
       <ErrorBoundary name="MarketDiscoverPanel"><MarketDiscoverPanel /></ErrorBoundary>
       <ErrorBoundary name="MarketDetailPanel"><MarketDetailPanel /></ErrorBoundary>
       <ErrorBoundary name="LibraryPanel"><LibraryPanel /></ErrorBoundary>
+      <ErrorBoundary name="ItemDetailFooter"><ItemDetailFooter /></ErrorBoundary>
       <ErrorBoundary name="ProfileLevelPill"><ProfileLevelPill /></ErrorBoundary>
       <ErrorBoundary name="ProfileIdentity"><ProfileIdentity /></ErrorBoundary>
       <ErrorBoundary name="ProfileAvatarSm"><ProfileAvatarSm /></ErrorBoundary>

@@ -48,19 +48,15 @@ import { refreshMyLibrary, renderLibrary, switchLibraryFolder } from './marketpl
         renderItemDetailFooter();
     }
 
+    // Real React state now (see app/dotto/ItemDetailFooter.jsx, itemDetailFooterStore) — a
+    // natural, self-contained discriminated union, unlike the rest of this view (see that store's
+    // own comment in bridges.js for why the form fields stay vanilla).
     function renderItemDetailFooter() {
-        const footer = document.getElementById('item-detail-footer');
-        if (appState.detailSourceFolder === 'drafts') {
-            footer.innerHTML = `
-                <button class="btn-buy btn-secondary" onclick="deleteDetailDraft()">Delete</button>
-                <button class="btn-buy" onclick="startPublishFlow()">Publish</button>`;
-        } else if (appState.detailSourceFolder === 'published') {
-            footer.innerHTML = `
-                <button class="btn-buy btn-secondary" onclick="unpublishDetailItem()">Unpublish</button>
-                <button class="btn-buy" id="item-detail-update-btn" ${isDetailDirty() ? '' : 'disabled'} onclick="updateDetailItem()">Update</button>`;
-        } else {
-            footer.innerHTML = `<button class="btn-buy" onclick="deployPurchasedTemplate('${appState.detailItem.id}')">Deploy</button>`;
-        }
+        window.__setItemDetailFooter({
+            sourceFolder: appState.detailSourceFolder,
+            itemId: appState.detailItem.id,
+            dirty: appState.detailSourceFolder === 'published' ? isDetailDirty() : false
+        });
     }
 
     function isDetailDirty() {
@@ -73,8 +69,7 @@ import { refreshMyLibrary, renderLibrary, switchLibraryFolder } from './marketpl
 
     function onItemDetailFieldChange() {
         if (appState.detailSourceFolder !== 'published') return;
-        const btn = document.getElementById('item-detail-update-btn');
-        if (btn) btn.disabled = !isDetailDirty();
+        renderItemDetailFooter();
     }
 
     // Drafts are private and low-stakes, so title/description edits autosave on blur rather
@@ -214,6 +209,10 @@ import { refreshMyLibrary, renderLibrary, switchLibraryFolder } from './marketpl
 
 export { blurPublishFlowName, commitItemDetailDesc, commitItemDetailTitle, confirmPublishFlow, deleteDetailDraft, focusPublishFlowName, onItemDetailFieldChange, openItemDetail, startPublishFlow, unpublishDetailItem, updateDetailItem };
 
-// React → vanilla bridge — used by LibraryPanel.jsx (app/dotto/), which can't import this
-// directly since public/dotto/*.js isn't reachable from app/dotto/.
+// React → vanilla bridges — used by LibraryPanel.jsx/ItemDetailFooter.jsx (app/dotto/), which
+// can't import this directly since public/dotto/*.js isn't reachable from app/dotto/.
 window.__openItemDetail = openItemDetail;
+window.__deleteDetailDraft = deleteDetailDraft;
+window.__startPublishFlow = startPublishFlow;
+window.__unpublishDetailItem = unpublishDetailItem;
+window.__updateDetailItem = updateDetailItem;

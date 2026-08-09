@@ -414,8 +414,9 @@ import { render, renderSelectedOutlines } from './waypoints-render-loop.js';
 
 export { addItemToCustomFolderById, closeCartPanel, closeMarketDetail, deployPurchasedTemplate, handleLibrarySearch, handleMarketplaceSearch, openMarketDetail, packageSelectedAsTemplate, purchaseCurrentMarketItem, refreshMyLibrary, removeFromCustomFolder, renderLibrary, switchCartTab, switchLibraryFolder };
 
-// React → vanilla bridges — used by MarketDiscoverPanel.jsx/LibraryPanel.jsx (app/dotto/), which
-// can't import this directly since public/dotto/*.js isn't reachable from app/dotto/.
+// React → vanilla bridges — used by MarketDiscoverPanel.jsx/LibraryPanel.jsx/ItemDetailFooter.jsx
+// (app/dotto/), which can't import this directly since public/dotto/*.js isn't reachable from
+// app/dotto/.
 window.__openMarketDetail = openMarketDetail;
 window.__switchLibraryFolder = switchLibraryFolder;
 window.__createCustomFolder = createCustomFolder;
@@ -423,3 +424,4 @@ window.__addItemToCustomFolderById = addItemToCustomFolderById;
 window.__removeFromCustomFolder = removeFromCustomFolder;
 window.__makeDraftItemDraggable = makeDraftItemDraggable;
 window.__openLibrarySearchResult = openLibrarySearchResult;
+window.__deployPurchasedTemplate = deployPurchasedTemplate;
