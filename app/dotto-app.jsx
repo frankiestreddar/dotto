@@ -9,6 +9,7 @@ import {
   breadcrumbMapStore,
   canvasItemsStore,
   canvasResultsStore,
+  cellTagPickerListStore,
   collabListStore,
   collabPillStore,
   dictionaryPanelStore,
@@ -38,6 +39,7 @@ import AddToSourcePopup from "./dotto/AddToSourcePopup";
 import BreadcrumbMapPanel from "./dotto/BreadcrumbMapPanel";
 import CanvasItemsLayer from "./dotto/CanvasItemsLayer";
 import CanvasResultsPanel from "./dotto/CanvasResultsPanel";
+import CellTagPickerList from "./dotto/CellTagPickerList";
 import CollabListPanel from "./dotto/CollabListPanel";
 import CollabPill from "./dotto/CollabPill";
 import DictionaryPanel from "./dotto/DictionaryPanel";
@@ -241,6 +243,9 @@ if (typeof window !== "undefined") {
   // Shared Card preview modal's body (see app/dotto/SharedCanvasModalBody.jsx, live-presence.js's
   // openSharedCanvasView) — a plain store.set, no synchronous DOM read follows it.
   window.__setSharedCanvasModal = sharedCanvasModalStore.set;
+  // Cell tag picker dropdown (see app/dotto/CellTagPickerList.jsx, source-tags-ai.js's
+  // renderCellTagPickerList) — a plain store.set, no synchronous DOM read follows it.
+  window.__setCellTagPickerList = cellTagPickerListStore.set;
 }
 
 export default function DottoApp({ sections, currentUser }) {
@@ -306,6 +311,7 @@ export default function DottoApp({ sections, currentUser }) {
       <ErrorBoundary name="BreadcrumbMapPanel"><BreadcrumbMapPanel /></ErrorBoundary>
       <ErrorBoundary name="MsgConvo"><MsgConvo /></ErrorBoundary>
       <ErrorBoundary name="SharedCanvasModalBody"><SharedCanvasModalBody /></ErrorBoundary>
+      <ErrorBoundary name="CellTagPickerList"><CellTagPickerList /></ErrorBoundary>
       <ErrorBoundary name="ProfileLevelPill"><ProfileLevelPill /></ErrorBoundary>
       <ErrorBoundary name="ProfileIdentity"><ProfileIdentity /></ErrorBoundary>
       <ErrorBoundary name="ProfileAvatarSm"><ProfileAvatarSm /></ErrorBoundary>
