@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore } from "react";
+import { useLayoutEffect, useRef, useSyncExternalStore } from "react";
 import { createPortal } from "react-dom";
 import { canvasItemsStore } from "./bridges";
+import usePortalNode from "./usePortalNode";
 import CanvasCard from "./CanvasCard";
 import ChecklistCard from "./ChecklistCard";
 import EmbedCard from "./EmbedCard";
@@ -101,11 +102,7 @@ export default function CanvasItemsLayer() {
   // this component's own first commit has happened) and is otherwise harmless: it happens once, on
   // initial mount, well before the vanilla render() loop's first real call (see the flushSync
   // caller in app/dotto-app.jsx) — see that comment for why later calls are unaffected.
-  const [portalNode, setPortalNode] = useState(null);
-  useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setPortalNode(document.getElementById("items-layer"));
-  }, []);
+  const portalNode = usePortalNode("items-layer");
 
   if (!portalNode) return null;
   return createPortal(items.map((it) => <CanvasItem key={it.id} it={it} />), portalNode);

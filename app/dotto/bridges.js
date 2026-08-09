@@ -24,6 +24,9 @@ function createStore(initialValue) {
   };
 }
 
+// Pricing/upgrade overlay (Phase 2 increment 1, the first subsystem converted) — a plain boolean.
+// See public/dotto/profile-achievements-pricing.js's openPricingOverlay/closePricingOverlay for
+// the vanilla callers (inline onclick="..." attributes, other ES modules) that still trigger this.
 export const pricingOverlayStore = createStore(false);
 
 // Text-selection toolbar shell (Phase 2 increment 2) — {isOpen, left, top}, richer than
@@ -206,7 +209,7 @@ export const libraryViewStore = createStore({ view: "folders", fixed: [], custom
 export const itemDetailFooterStore = createStore(null);
 
 // Collaborators pill under the search bar (public/dotto/friends-presence.js's renderCollabPill) —
-// { show, collabs: [{avatarId, avatarUrl, displayName}] (up to 3), moreCount }. Genuine JSX, same
+// { show, collabs: [{id, avatarId, avatarUrl, displayName}] (up to 3), moreCount }. Genuine JSX, same
 // Avatar.jsx-based reasoning as CollabListPanel — this is just the small trigger/indicator for
 // that panel, not the panel itself (already done, item 6). Portals into #collab-content only;
 // #collab-bubble's own `.show` class and #collab-tooltip's text are plain sibling/ancestor nodes

@@ -1,9 +1,10 @@
 "use client";
 
-import { useEffect, useLayoutEffect, useState } from "react";
+import { useLayoutEffect } from "react";
 import { useSyncExternalStore } from "react";
 import { createPortal } from "react-dom";
 import { canvasResultsStore } from "./bridges";
+import usePortalNode from "./usePortalNode";
 
 // One ranked match row — real JSX, not a vanilla builder, since there's no complex per-row widget
 // state here (just an icon, some text, an onclick) — see canvasResultsStore's own comment in
@@ -49,11 +50,7 @@ function ResultRow({ m, isSourceFolder, index }) {
 // flushSync: those handlers, and updateSearchDropdown, both read the DOM synchronously.
 export default function CanvasResultsPanel() {
   const state = useSyncExternalStore(canvasResultsStore.subscribe, canvasResultsStore.getSnapshot, () => null);
-  const [portalNode, setPortalNode] = useState(null);
-  useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setPortalNode(document.getElementById("search-results"));
-  }, []);
+  const portalNode = usePortalNode("search-results");
 
   useLayoutEffect(() => {
     const el = document.getElementById("search-results");

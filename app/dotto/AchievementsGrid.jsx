@@ -1,9 +1,10 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useSyncExternalStore } from "react";
 import { createPortal } from "react-dom";
 import { achievementsStore } from "./bridges";
+import usePortalNode from "./usePortalNode";
 
 const EMPTY_UNLOCKED = [];
 
@@ -32,11 +33,7 @@ function SpriteCell({ index, achievements, unlockedSet }) {
 // ids list is real store state.
 export default function AchievementsGrid() {
   const unlockedIds = useSyncExternalStore(achievementsStore.subscribe, achievementsStore.getSnapshot, () => EMPTY_UNLOCKED);
-  const [portalNode, setPortalNode] = useState(null);
-  useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setPortalNode(document.getElementById("profile-sprite-grid"));
-  }, []);
+  const portalNode = usePortalNode("profile-sprite-grid");
 
   if (!portalNode) return null;
 

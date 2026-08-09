@@ -1,9 +1,10 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef } from "react";
 import { useSyncExternalStore } from "react";
 import { createPortal } from "react-dom";
 import { cellTagPickerListStore } from "./bridges";
+import usePortalNode from "./usePortalNode";
 
 const EMPTY_STATE = { rows: [], id: null, r: null };
 
@@ -50,11 +51,7 @@ function TagRow({ row, id, r }) {
 // this component never touches.
 export default function CellTagPickerList() {
   const state = useSyncExternalStore(cellTagPickerListStore.subscribe, cellTagPickerListStore.getSnapshot, () => EMPTY_STATE);
-  const [portalNode, setPortalNode] = useState(null);
-  useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setPortalNode(document.getElementById("cell-tag-picker-list"));
-  }, []);
+  const portalNode = usePortalNode("cell-tag-picker-list");
 
   if (!portalNode) return null;
 

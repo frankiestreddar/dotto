@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect, useState, useSyncExternalStore } from "react";
+import { useSyncExternalStore } from "react";
 import { createPortal } from "react-dom";
 import { notificationStore } from "./bridges";
+import usePortalNode from "./usePortalNode";
 
 // Renders the search-bar notification's content (image/message/action button) — the queue engine
 // and the staged CSS-class choreography that shows/hides this bar both stay fully vanilla (see
@@ -16,11 +17,7 @@ import { notificationStore } from "./bridges";
 // wrapper doesn't create a new containing block), so no extra layout handling is needed here.
 export default function NotificationBar() {
   const config = useSyncExternalStore(notificationStore.subscribe, notificationStore.getSnapshot, () => null);
-  const [portalNode, setPortalNode] = useState(null);
-  useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setPortalNode(document.getElementById("search-notification-root"));
-  }, []);
+  const portalNode = usePortalNode("search-notification-root");
 
   if (!portalNode) return null;
 

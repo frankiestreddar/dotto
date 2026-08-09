@@ -1,9 +1,10 @@
 "use client";
 
-import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useLayoutEffect, useRef } from "react";
 import { useSyncExternalStore } from "react";
 import { createPortal } from "react-dom";
 import { marketDetailStore } from "./bridges";
+import usePortalNode from "./usePortalNode";
 
 // renderInlineCanvas builds a whole live DOM subtree (its own pan/zoom/nav state) — same "vanilla
 // function builds live DOM, React just mounts it" pattern as CanvasCard's buildFolderInlineCanvas.
@@ -25,11 +26,7 @@ function InlineCanvasPreview({ item }) {
 // container, safe to portal into directly, same as the other panels this wave.
 export default function MarketDetailPanel() {
   const item = useSyncExternalStore(marketDetailStore.subscribe, marketDetailStore.getSnapshot, () => null);
-  const [portalNode, setPortalNode] = useState(null);
-  useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setPortalNode(document.getElementById("market-detail-content"));
-  }, []);
+  const portalNode = usePortalNode("market-detail-content");
 
   if (!portalNode || !item) return null;
 

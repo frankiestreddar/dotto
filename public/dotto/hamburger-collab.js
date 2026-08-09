@@ -227,7 +227,6 @@ import { deleteCanvasCollabsForFolder, expandWaypointCard, openFolder, render } 
         if (it) peekWaypointCard(appState.currentFolderId, it);
     }
     function hmenuAction(action) {
-        console.log('[Menu] action:', action);
         closeHamburgerMenu();
         closeProfilePanel();
         if (action === 'upgrade') {

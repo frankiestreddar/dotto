@@ -1,9 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import { useSyncExternalStore } from "react";
 import { createPortal } from "react-dom";
 import { marketDiscoverStore } from "./bridges";
+import usePortalNode from "./usePortalNode";
 
 const EMPTY_ITEMS = [];
 
@@ -27,11 +27,7 @@ function MarketItemRow({ item }) {
 // container, safe to portal into directly, same as #waypoints-list and friends.
 export default function MarketDiscoverPanel() {
   const items = useSyncExternalStore(marketDiscoverStore.subscribe, marketDiscoverStore.getSnapshot, () => EMPTY_ITEMS);
-  const [portalNode, setPortalNode] = useState(null);
-  useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setPortalNode(document.getElementById("market-list-container"));
-  }, []);
+  const portalNode = usePortalNode("market-list-container");
 
   if (!portalNode) return null;
 

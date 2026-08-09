@@ -500,7 +500,7 @@ import { applyFolderView, centerOnContent, expandWaypointCard, openFolder, rende
         }
     }
 
-export { announceEnteredCollaboration, breadcrumbMapRowClick, buildOutline, closeBreadcrumbMapPanel, ensureSharedFolderLoaded, goToOutlineItem, jumpToHistoryIndex, kindIconFile, kindIconHTML, namespaceSharedFolderIds, openBreadcrumbMapPanel, openSharedCanvas, outlineIcon, parseSharedFolderKey, setOutlineActive, sharedFolderKey, stripSharedFolderIds, toggleHamburgerMenu };
+export { announceEnteredCollaboration, breadcrumbMapRowClick, buildOutline, closeBreadcrumbMapPanel, ensureSharedFolderLoaded, goToOutlineItem, jumpToHistoryIndex, kindIconFile, kindIconHTML, namespaceSharedFolderIds, openBreadcrumbMapPanel, openSharedCanvas, parseSharedFolderKey, setOutlineActive, sharedFolderKey, stripSharedFolderIds, toggleHamburgerMenu };
 
 window.__kindIconFile = kindIconFile;
 window.__openSharedCanvas = openSharedCanvas;

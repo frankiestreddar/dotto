@@ -1,10 +1,10 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import { useSyncExternalStore } from "react";
 import { createPortal } from "react-dom";
 import Avatar from "./Avatar";
 import { msgListStore } from "./bridges";
+import usePortalNode from "./usePortalNode";
 
 // Module-level, not inline — see CanvasItemsLayer.jsx's identical EMPTY_ITEMS comment for why a
 // fresh object literal as the getServerSnapshot fallback trips React's "should be cached" warning.
@@ -82,11 +82,7 @@ function FriendRequestRow({ req }) {
 // safe to portal into directly, same as #waypoints-list/#hub-collab-list.
 export default function MessagesListPanel() {
   const state = useSyncExternalStore(msgListStore.subscribe, msgListStore.getSnapshot, () => EMPTY_STATE);
-  const [portalNode, setPortalNode] = useState(null);
-  useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setPortalNode(document.getElementById("msg-list"));
-  }, []);
+  const portalNode = usePortalNode("msg-list");
 
   if (!portalNode) return null;
 

@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore } from "react";
+import { useLayoutEffect, useRef, useSyncExternalStore } from "react";
 import { createPortal } from "react-dom";
 import { scheduleAgendaStore } from "./bridges";
+import usePortalNode from "./usePortalNode";
 
 // Module-level, not inline — see CanvasItemsLayer.jsx's identical EMPTY_ITEMS comment for why a
 // fresh object literal as the getServerSnapshot fallback trips React's "should be cached" warning.
@@ -69,13 +70,8 @@ function AgendaEventCard({ it, ev, top, w, h }) {
 // list-diffing involved, not worth a third portal.
 export default function ScheduleAgenda() {
   const { hours, events } = useSyncExternalStore(scheduleAgendaStore.subscribe, scheduleAgendaStore.getSnapshot, () => EMPTY_AGENDA);
-  const [hoursNode, setHoursNode] = useState(null);
-  const [stackNode, setStackNode] = useState(null);
-  useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setHoursNode(document.getElementById("schedule-view-hours"));
-    setStackNode(document.getElementById("schedule-view-stack"));
-  }, []);
+  const hoursNode = usePortalNode("schedule-view-hours");
+  const stackNode = usePortalNode("schedule-view-stack");
 
   if (!hoursNode || !stackNode) return null;
 

@@ -1,10 +1,10 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import { useSyncExternalStore } from "react";
 import { createPortal } from "react-dom";
 import Avatar from "./Avatar";
 import { collabListStore } from "./bridges";
+import usePortalNode from "./usePortalNode";
 
 const EMPTY_STATE = { rows: [], query: "" };
 
@@ -42,11 +42,7 @@ function CollabRow({ r }) {
 // safe to portal into directly, same as #waypoints-list/#hub-collab-list/#msg-list.
 export default function CollabListPanel() {
   const state = useSyncExternalStore(collabListStore.subscribe, collabListStore.getSnapshot, () => EMPTY_STATE);
-  const [portalNode, setPortalNode] = useState(null);
-  useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setPortalNode(document.getElementById("collab-list"));
-  }, []);
+  const portalNode = usePortalNode("collab-list");
 
   if (!portalNode) return null;
 

@@ -1,9 +1,10 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef } from "react";
 import { useSyncExternalStore } from "react";
 import { createPortal } from "react-dom";
 import { libraryViewStore } from "./bridges";
+import usePortalNode from "./usePortalNode";
 
 const EMPTY_STATE = { view: "folders", fixed: [], custom: [] };
 
@@ -121,11 +122,7 @@ function LibrarySearchResultRow({ r }) {
 // container, safe to portal into directly, same as #market-list-container and friends.
 export default function LibraryPanel() {
   const state = useSyncExternalStore(libraryViewStore.subscribe, libraryViewStore.getSnapshot, () => EMPTY_STATE);
-  const [portalNode, setPortalNode] = useState(null);
-  useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setPortalNode(document.getElementById("library-list-container"));
-  }, []);
+  const portalNode = usePortalNode("library-list-container");
 
   if (!portalNode) return null;
 
