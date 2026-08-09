@@ -375,7 +375,17 @@ buckets slotted in by the same principle:
    `document.body`), so it renders independently like
    `PricingOverlay`/`SelectionToolbar` rather than portaling; its own
    search/entry-row content stays vanilla.
-8. **Marketplace/cart** + **Library item detail view** + **Publish flow**.
+8. **Marketplace/cart** + **Library item detail view** + **Publish flow**. **Done**, granular:
+   Discover tab's trending list (`MarketDiscoverPanel.jsx`) and item detail content
+   (`MarketDetailPanel.jsx`, canvas preview ref-mounted), the Library tab's three sub-views (folder
+   picker / item list / cross-folder search, `LibraryPanel.jsx`, one discriminated-union store),
+   and the Item Detail view's 3-way footer button set (`ItemDetailFooter.jsx` — a natural,
+   self-contained discriminated union, same shape as `ImageResultPanel`). Left vanilla, same
+   reasoning as the hamburger menu's Outline panel exception (item 6): the Item Detail form fields
+   (contentEditable title, autosave-on-blur for drafts, disabled-until-dirty tracking for
+   published) and the entire Publish Flow view (including `focusPublishFlowName`'s manual caret/
+   scroll positioning) — no acute bug in any of it, and converting contentEditable fields to React
+   state risks regressing caret behavior for zero behavior gain.
 9. **Source/table cards** — largest, most interconnected card kind. The
    thin **Canvas** (`kind:'folder'`, a nested canvas) and **Source**
    (`kind:'source'`, a database block) card *kinds* — i.e. what a folder or
