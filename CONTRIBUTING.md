@@ -11,8 +11,9 @@ The app is split into two cooperating layers:
 - **`public/dotto/*.js`** — ~30 vanilla ES modules, no bundler, loaded as one `<Script
   type="module">`. This is where the app's behavior and shared state (`appState`,
   `public/dotto/core-state.js`) live — canvas rendering, drag/resize/select, connections, live
-  collaboration, the Source database page, and more. It's intentionally staying vanilla, not
-  unfinished — see "Should this be React?" below.
+  collaboration, the Source database page, and more. Staying vanilla for now is a deliberate
+  sequencing choice, not a verdict that it's fine forever — see "A note on the architecture itself"
+  below for the real plan.
 - **`app/dotto/*.jsx`** — real React components, one per converted subsystem (overlays, dropdown
   panels, list panels, every canvas card kind). Each one portals into an *existing* static DOM node
   from `content/fragments/*.html` rather than owning new markup.
@@ -56,20 +57,32 @@ comments are the closest thing to a style guide, worth skimming before you add o
 
 ### Should this be React?
 
-Not everything should convert. Real reasons *not* to, all with precedent in this codebase (see
-`PHASE2_ROADMAP.md` for the specifics):
-- **contentEditable fields** — converting risks caret-position regressions for no behavior gain
-  (Item Detail's title field, the Publish Flow view, the Source table's cells all stay vanilla for
-  this reason).
-- **Continuous pointer-driven pixel math** — drag, resize, connection-dragging, hover-zone
-  geometry. These already coexist correctly with React-owned DOM (see below) and converting them
-  would fight the framework's reconciliation model for no benefit.
-- **No natural content-parameter boundary** — if there's no clean "here's the data, here's the
-  render" split (the hamburger menu's Outline panel is the standing example), forcing a conversion
-  usually means either a full rewrite or a no-op wrapper.
-- Otherwise: if it's a self-contained rendering surface (a list, a dropdown, a form's button set)
-  with no continuous imperative state of its own, it's very likely a good, low-risk candidate —
-  that's the shape of nearly every component in `app/dotto/`.
+For a **new** piece of UI: yes, essentially always — that's the default in this section above, and
+it's the shape of nearly every component in `app/dotto/`.
+
+For **existing vanilla code** you're just touching in passing (not planning to redesign): don't
+convert it as a drive-by. Not because it's fine to stay vanilla forever — the end goal is one
+cohesive React codebase, see "A note on the architecture itself" below — but because converting it
+*properly* is real, deliberate work, and doing it halfway while you're really there for an
+unrelated feature produces the opposite of a professional codebase: a half-migrated mess with two
+competing patterns for the same thing. Three categories that specifically need doing properly
+rather than opportunistically, all with precedent in this codebase (see `PHASE2_ROADMAP.md`):
+- **contentEditable fields** (Item Detail's title, the Publish Flow view, the Source table's
+  cells) — a real conversion here means adopting an actual rich-text/contentEditable approach that
+  doesn't fight React's diffing (a library like Lexical/Slate/TipTap, or a carefully-designed
+  uncontrolled-ref pattern), not wrapping the existing DOM-string logic in JSX and hoping the caret
+  behaves. Worth doing right, as its own scoped piece of the full consolidation.
+- **Continuous pointer-driven pixel math** (drag, resize, connection-dragging, hover-zone
+  geometry) — a real conversion means React-owned components with ref-based imperative escape
+  hatches for the hot path (same technique used today, just living inside components instead of a
+  separate global-bridge module system), designed and tested as a unit, not bolted on piecemeal.
+- **No natural content-parameter boundary** (the hamburger menu's Outline panel is the standing
+  example) — needs an actual design pass (what should its React-owned state even look like?), not
+  a mechanical port of the existing recursive DOM-building function.
+
+If you're doing focused, scoped work on one of these areas specifically (not a drive-by touch),
+that's exactly the kind of subsystem-sized slice the full consolidation should be built from — flag
+it and do it properly rather than avoiding it by default.
 
 ## Working in `public/dotto/*.js`
 
@@ -109,8 +122,12 @@ imperative escape hatches implemented as component-local refs, not a separate gl
 system), use a real state library (Zustand/Valtio/Jotai) instead of the hand-rolled `createStore`
 here, and have zero `window.__*` global functions.
 
-Collapsing the two layers into one cohesive React architecture is a legitimate future direction,
-but it's a new, large, separately-scoped initiative — not something to start opportunistically
-alongside unrelated feature work. It would need the same incremental, subsystem-by-subsystem
-discipline this migration used (arguably more, given how much imperative canvas-core logic it would
-touch), not a single pass.
+Collapsing the two layers into one cohesive React architecture is planned, not optional — the goal
+is a codebase that reads as intentionally, professionally built end to end, not one with a
+permanent "legacy vanilla half." It's scheduled to happen before external developers are onboarded
+or this ships, as its own dedicated initiative — not something to chip away at opportunistically
+alongside unrelated feature work, since a half-converted state (some canvas interactions React,
+some still vanilla, mid-migration) would read as *less* professional than the current, consistent
+split does. When it happens, plan it fresh at that time rather than off a plan drafted long before,
+and expect it to need the same incremental, subsystem-by-subsystem discipline this migration used
+(arguably more, given how much imperative canvas-core logic it touches), not a single pass.
