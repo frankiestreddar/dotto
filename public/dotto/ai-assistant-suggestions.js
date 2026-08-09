@@ -10,9 +10,9 @@ import { render } from './waypoints-render-loop.js';
     // ---------- Animated Placeholder (types out & deletes a looping series of suggestions) ----------
     (function animateSearchPlaceholder() {
         const suggestions = [
-            'find anything in your canvas...',
-            'ask me how to conjugate verbs...',
-            'generate a mnemonic for ananas...'
+            'Find anything in your canvas...',
+            'Ask me how to conjugate verbs...',
+            'Generate a mnemonic for ananas...'
         ];
         const TYPE_SPEED = 60, DELETE_SPEED = 45, PAUSE_AFTER_TYPE = 2400, PAUSE_AFTER_DELETE = 800;
         let sIndex = 0, charIndex = 0, deleting = false;
