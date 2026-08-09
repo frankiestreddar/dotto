@@ -14,6 +14,12 @@ export default function ProfileIdentity() {
   const usernameNode = usePortalNode("profile-username");
   const streakNode = usePortalNode("profile-streak-count");
 
+  // usePortalNode's returned nodes are always null during SSR (they only resolve in an effect,
+  // which never runs server-side) — the original combined `if (!nodes) return null` guard here
+  // relied on that timing to also protect this window access, before the refactor to independent
+  // per-node checks below dropped it. Guard explicitly instead of relying on that side effect.
+  if (typeof window === "undefined") return null;
+
   const user = window.__DOTTO_USER__ || {};
   const displayName = user.displayName || "";
   const avatar = { id: user.avatarId ?? 0, url: user.avatarUrl || null };
