@@ -4,6 +4,7 @@ import { renderMsgList } from './friends-presence.js';
 import { applyTransform } from './history-autosave.js';
 import { closeConvo } from './live-presence.js';
 import { closeAllPanels, pinOnInsideClick, scheduleHoverClose } from './panels-hamburger.js';
+import { ensureSharedFolderLoaded } from './shared-canvases-outline.js';
 
 
     // ---------- Messages Panel Controls ----------
@@ -72,12 +73,15 @@ import { closeAllPanels, pinOnInsideClick, scheduleHoverClose } from './panels-h
     }
 
     // ---------- Schedule View Mode ----------
-    // Clicking the schedule button turns the current canvas into a read-only timeline: unscheduled
-    // cards disappear, scheduled ones from *this* canvas appear as real cards positioned against
-    // an hour-marked timeline (see renderScheduleAgenda), on the same dotted grid as the normal
-    // canvas. They can't be dragged/moved, but folder/source cards can still be clicked into and
-    // notes can still be edited in place. No horizontal scroll, no free panning — only vertical
-    // scroll, and only once the timeline is taller than the viewport.
+    // Clicking the schedule button turns the current canvas into a read-only agenda: unscheduled
+    // cards disappear, and everything scheduled for the active date appears as real cards
+    // positioned against an hour-marked timeline (see renderScheduleAgenda), on the same dotted
+    // grid as the normal canvas. The agenda aggregates across ALL of this user's canvases — their
+    // own whole folder tree (already loaded, see loadWorkspace) plus canvases shared with them
+    // (loaded on demand per event, see renderScheduleAgenda) — not just whichever canvas happened
+    // to be open when it was entered. Cards can't be dragged/moved, but folder/source cards can
+    // still be clicked into and notes can still be edited in place. No horizontal scroll, no free
+    // panning — only vertical scroll, and only once the timeline is taller than the viewport.
 
     // Drag-to-scroll (vertical only), same feel as panning the real canvas — set up once since
     // this is a single persistent DOM element, not rebuilt on every render.
@@ -158,15 +162,28 @@ import { closeAllPanels, pinOnInsideClick, scheduleHoverClose } from './panels-h
     // hands it off via window.__setScheduleAgenda. #schedule-view-date's textContent and
     // #schedule-view-inner's height stay direct DOM writes: trivial, no list-diffing involved, not
     // worth a bridge of their own.
-    function renderScheduleAgenda() {
+    //
+    // Aggregates across every canvas this user can see, not just appState.currentFolderId — a flat
+    // scan over the whole scheduledEvents array (already how the due-event notifier in
+    // dotbot-schedule-notifications.js reads it) rather than one folder's item list. Owned folders
+    // are always already loaded (loadWorkspace loads the whole tree up front); a folderId can also
+    // be a shared:owner:id key (scheduling already works on a shared canvas today, it just wasn't
+    // surfaced anywhere except that exact canvas) — those load on demand here, one RPC per distinct
+    // shared folder actually referenced by today's events, not every shared canvas wholesale. A
+    // folder/event that fails to resolve (access revoked, canvas deleted since) is silently
+    // dropped rather than erroring the whole agenda, same defensive stance renderHubCollabList
+    // takes for the same class of problem.
+    async function renderScheduleAgenda() {
         document.getElementById('schedule-view-date').textContent = formatDateLabel(appState.scheduleViewDate);
         const key = dateKey(appState.scheduleViewDate);
-        // Scoped to the current canvas only — matches every other schedule entry point
-        // (scheduling itself always records the folderId you were in at the time).
-        const folderObj = appState.folders[appState.currentFolderId];
-        const list = (folderObj ? folderObj.items : [])
-            .map(it => ({ it, ev: appState.scheduledEvents.find(e => e.folderId === appState.currentFolderId && e.itemId === it.id && e.date === key) }))
-            .filter(x => x.ev)
+        const todaysEvents = appState.scheduledEvents.filter(e => e.date === key);
+
+        const sharedFolderIds = [...new Set(todaysEvents.map(e => e.folderId).filter(id => id.startsWith('shared:') && !appState.folders[id]))];
+        await Promise.all(sharedFolderIds.map(id => ensureSharedFolderLoaded(id)));
+
+        const list = todaysEvents
+            .map(ev => ({ ev, it: findItemInFolder(ev.folderId, ev.itemId) }))
+            .filter(x => x.it)
             .sort((a, b) => a.ev.time.localeCompare(b.ev.time));
 
         if (!list.length) {

@@ -4,7 +4,7 @@
    statically-injected markup and in the legacy Dotto script (which lives
    outside app/ as a plain global script served from /public). */
 @source "../content/fragments/*.html";
-@source "../public/dotto-script.js";
+@source "../public/dotto/*.js";
 
 /* App typeface: Golos Text (loaded via the Google Fonts <link> in app/layout.js, variable weight
    400-900), replacing the old local 'Dotto Sans' otf files. Space Mono (same file) stays reserved
@@ -650,15 +650,21 @@
     #schedule-view{display:none;position:absolute;inset:0;z-index:5;background:var(--paper);flex-direction:column;align-items:center;overflow:hidden;}
     #schedule-view.active{display:flex;}
 
-    /* Header: date as a bare heading (matches a real title card's own typography — no box),
-       flanked by two button-cards of three nav buttons each (month/week/day, mirrored). */
+    /* Header: date as a heading BLOCK (.schedule-heading-block — same card/border/shadow
+       treatment as .schedule-nav-card right next to it, so it reads as one consistent piece of
+       chrome rather than bare text floating between two boxed button groups), flanked by two
+       button-cards of three nav buttons each (month/week/day, mirrored). */
     /* padding-top clears #top-bar (fixed, top:20px, height:40px, z-index:1000 — well above this
        overlay's own z-index:5), same 68px convention other panels anchor to below it. */
-    #schedule-view-header{flex:0 0 auto;display:flex;align-items:center;justify-content:center;gap:24px;padding:68px 20px 18px;}
+    /* Same dot-grid background as #schedule-view-canvas below, so the dotted grid reads as one
+       continuous surface across the whole overlay instead of cutting off at the header — the
+       canvas area keeps its OWN copy of this background (not inherited from here) since it needs
+       to scroll with the timeline's content, which a parent's background never does. */
+    #schedule-view-header{flex:0 0 auto;display:flex;align-items:center;justify-content:center;gap:24px;padding:68px 20px 18px;background-image:radial-gradient(var(--dot) 1px, transparent 1px);background-size:28px 28px;}
     .schedule-nav-card{display:flex;align-items:center;gap:2px;background:var(--card);border:1px solid var(--card-border);border-radius:10px;padding:4px;box-shadow:0 4px 12px rgba(0,0,0,0.3);}
     .schedule-nav-card-btn{background:transparent;border:none;color:var(--ink-soft);border-radius:6px;width:30px;height:30px;cursor:pointer;font-size:13px;flex:0 0 auto;}
     .schedule-nav-card-btn:hover{background:#2e2e2e;color:var(--ink);}
-    #schedule-view-date{font-size:28px;font-weight:700;color:var(--ink);min-width:220px;text-align:center;font-family:'Space Mono', monospace;}
+    .schedule-heading-block{background:var(--card);border:1px solid var(--card-border);border-radius:10px;box-shadow:0 4px 12px rgba(0,0,0,0.3);padding:8px 20px;font-size:28px;font-weight:700;color:var(--ink);min-width:220px;text-align:center;font-family:'Space Mono', monospace;}
 
     /* The "canvas" itself: same dot grid as the real one, vertical-scroll-only (no panning, no
        horizontal scroll — cards can be clicked into but not dragged/moved). */
