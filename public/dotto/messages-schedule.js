@@ -1,10 +1,11 @@
 import { clearSearch } from './ai-assistant-suggestions.js';
 import { appState, canvas, zoomControl } from './core-state.js';
 import { renderMsgList } from './friends-presence.js';
-import { applyTransform } from './history-autosave.js';
-import { closeConvo } from './live-presence.js';
+import { applyTransform, smoothPanTo } from './history-autosave.js';
+import { closeConvo, miniLabelForItem } from './live-presence.js';
 import { closeAllPanels, pinOnInsideClick, scheduleHoverClose } from './panels-hamburger.js';
-import { ensureSharedFolderLoaded } from './shared-canvases-outline.js';
+import { cameraCenterFor, clearArrangedSlots, computeArrangedLayout, SCHEDULE_ALL, setArrangedSlots } from './schedule-view-canvas.js';
+import { ensureSharedFolderLoaded, kindTypeLabel } from './shared-canvases-outline.js';
 
 
     // ---------- Messages Panel Controls ----------
@@ -73,15 +74,17 @@ import { ensureSharedFolderLoaded } from './shared-canvases-outline.js';
     }
 
     // ---------- Schedule View Mode ----------
-    // Clicking the schedule button turns the current canvas into a read-only agenda: unscheduled
-    // cards disappear, and everything scheduled for the active date appears as real cards
-    // positioned against an hour-marked timeline (see renderScheduleAgenda), on the same dotted
-    // grid as the normal canvas. The agenda aggregates across ALL of this user's canvases — their
-    // own whole folder tree (already loaded, see loadWorkspace) plus canvases shared with them
-    // (loaded on demand per event, see renderScheduleAgenda) — not just whichever canvas happened
-    // to be open when it was entered. Cards can't be dragged/moved, but folder/source cards can
-    // still be clicked into and notes can still be edited in place. No horizontal scroll, no free
-    // panning — only vertical scroll, and only once the timeline is taller than the viewport.
+    // Clicking the schedule button transforms the CURRENT canvas in place, animated, rather than
+    // opening a separate page: the camera zooms to 100%, every card not scheduled for the active
+    // date fades out, and every scheduled one slides from its real position into a clean
+    // sorted-by-time list (a simplified icon+name+type+time row, not the full card — see
+    // ScheduleModeCardBody.jsx/app/dotto/CanvasItemsLayer.jsx). Exiting reverses all of it —
+    // everything flies back to exactly where it was. See enterCanvasScheduleMode/
+    // renderCanvasScheduleAgenda below, and schedule-view-canvas.js for the arrange/animate
+    // mechanics themselves (deliberately kept out of this and the canvas-core files). The
+    // cross-canvas aggregate view (every canvas at once, via the old hour-timeline overlay) is
+    // still here too (renderScheduleAgenda/enterScheduleModeAll, further down) — not reachable via
+    // any UI yet, wired back up by the canvas-switcher in a later PR.
 
     // Drag-to-scroll (vertical only), same feel as panning the real canvas — set up once since
     // this is a single persistent DOM element, not rebuilt on every render.
@@ -102,17 +105,22 @@ import { ensureSharedFolderLoaded } from './shared-canvases-outline.js';
     function toggleScheduleViewMode() {
         if (appState.scheduleViewMode) exitScheduleViewMode(); else enterScheduleViewMode();
     }
+    // Default entry point (the schedule button) — always targets the currently open canvas for
+    // now; the canvas-switcher (a later PR) will let this retarget to a different folder or to
+    // SCHEDULE_ALL instead.
     function enterScheduleViewMode() {
+        enterCanvasScheduleMode(appState.currentFolderId);
+    }
+    // Cross-canvas aggregate (SCHEDULE_ALL) — the original overlay-based hour-timeline, unchanged.
+    // Not reachable via any UI yet (the schedule button defaults to enterScheduleViewMode above) —
+    // wired up by the canvas-switcher's "select all" option in a later PR.
+    function enterScheduleModeAll() {
         if (appState.scheduleViewMode) return;
         closeAllPanels(null);
         appState.scheduleViewMode = true;
+        appState.scheduleViewSelection = SCHEDULE_ALL;
         appState.scheduleBtn.classList.add('active');
-        canvas.classList.add('schedule-view-mode');
-        // Mirrors the exact mechanism render() already uses to hide these same three toolbars
-        // for source pages (see the folderObj.isSource branch) — they're toggled via inline
-        // style there, which a stylesheet rule can never win against, so schedule view mode has
-        // to hide them the same way rather than through a CSS class. The schedule toolbar itself
-        // is deliberately left alone: it's what toggles the mode back off.
+        canvas.classList.add('schedule-view-mode', 'schedule-view-all');
         appState.modeToolbar.style.display = 'none';
         appState.addToolbar.style.display = 'none';
         zoomControl.style.display = 'none';
@@ -120,22 +128,74 @@ import { ensureSharedFolderLoaded } from './shared-canvases-outline.js';
         appState.scale = 1; appState.tx = 0; appState.ty = 0;
         applyTransform();
         appState.scheduleViewDate = new Date();
+        appState.scheduleViewHeader.classList.add('active');
         appState.scheduleView.classList.add('active');
         renderScheduleAgenda();
     }
+
+    // Single-canvas in-place transform for `folderId`'s canvas — real cards hide/rearrange, camera
+    // zooms to 100% centered on the arranged list. Idempotent: call this again (not
+    // enterScheduleViewMode) to retarget an already-active session at a different canvas (the
+    // switcher) or a new date (scheduleAgendaShift below) — `isFreshEntry` skips the mode-entry
+    // side effects (toolbar hiding, saving the prior camera transform) when they're already done.
+    async function enterCanvasScheduleMode(folderId) {
+        const isFreshEntry = !appState.scheduleViewMode;
+        if (isFreshEntry) {
+            closeAllPanels(null);
+            appState.scheduleViewMode = true;
+            appState.scheduleBtn.classList.add('active');
+            canvas.classList.add('schedule-view-mode');
+            // Mirrors the exact mechanism render() already uses to hide these same three toolbars
+            // for source pages (see the folderObj.isSource branch) — inline style, since a
+            // stylesheet rule can never win against one set elsewhere. The schedule toolbar itself
+            // is deliberately left alone: it's what toggles the mode back off.
+            appState.modeToolbar.style.display = 'none';
+            appState.addToolbar.style.display = 'none';
+            zoomControl.style.display = 'none';
+            appState.scheduleViewSavedTransform = { tx: appState.tx, ty: appState.ty, scale: appState.scale };
+            appState.scheduleViewDate = new Date();
+            appState.scheduleViewHeader.classList.add('active');
+        }
+        appState.scheduleViewSelection = folderId;
+        document.getElementById('schedule-view-date').textContent = formatDateLabel(appState.scheduleViewDate);
+        await renderCanvasScheduleAgenda(folderId);
+    }
+
     function exitScheduleViewMode() {
         if (!appState.scheduleViewMode) return;
+        const wasAll = appState.scheduleViewSelection === SCHEDULE_ALL;
         appState.scheduleViewMode = false;
+        appState.scheduleViewSelection = SCHEDULE_ALL;
         appState.scheduleBtn.classList.remove('active');
-        canvas.classList.remove('schedule-view-mode');
         appState.modeToolbar.style.display = '';
         appState.addToolbar.style.display = '';
         zoomControl.style.display = '';
-        appState.scheduleView.classList.remove('active');
+        appState.scheduleViewHeader.classList.remove('active');
+        canvas.classList.remove('schedule-view-all');
+        if (wasAll) {
+            appState.scheduleView.classList.remove('active');
+            canvas.classList.remove('schedule-view-mode');
+        } else {
+            clearArrangedSlots();
+            window.__setScheduleMode({ active: false, itemsById: new Map() });
+            // Keep the item slide/fade transition CSS (#canvas.schedule-view-mode:not(.schedule-
+            // view-all) .item{...}, globals.css) alive for exactly as long as the fly-back
+            // animation needs, THEN drop the class — same set-transition/wait/clear technique
+            // smoothPanTo itself uses, just delayed to the end since this is the LEAVING
+            // transition. Dropping the class immediately would snap items back instantly instead
+            // of animating — appState.scheduleViewMode already flipped to false above is what
+            // makes applyItemWrapperAttrs (waypoints-render-loop.js) go back to writing each
+            // item's real x/y the moment its layout effect re-runs (triggered by the store update
+            // right above), so the class only needs to keep the CSS transition itself alive.
+            clearTimeout(appState.scheduleExitTransitionTimeout);
+            appState.scheduleExitTransitionTimeout = setTimeout(() => {
+                canvas.classList.remove('schedule-view-mode');
+            }, 520);
+        }
         if (appState.scheduleViewSavedTransform) {
-            ({ tx: appState.tx, ty: appState.ty, scale: appState.scale } = appState.scheduleViewSavedTransform);
+            const target = appState.scheduleViewSavedTransform;
             appState.scheduleViewSavedTransform = null;
-            applyTransform();
+            smoothPanTo(target.tx, target.ty, target.scale, 500);
         }
     }
     appState.scheduleBtn.addEventListener('click', (e) => { e.stopPropagation(); toggleScheduleViewMode(); });
@@ -146,7 +206,8 @@ import { ensureSharedFolderLoaded } from './shared-canvases-outline.js';
         else if (unit === 'week') d.setDate(d.getDate() + delta * 7);
         else if (unit === 'month') d.setMonth(d.getMonth() + delta);
         appState.scheduleViewDate = d;
-        renderScheduleAgenda();
+        if (appState.scheduleViewSelection === SCHEDULE_ALL) { renderScheduleAgenda(); return; }
+        enterCanvasScheduleMode(appState.scheduleViewSelection);
     }
 
     function formatHourLabel(h) {
@@ -156,6 +217,44 @@ import { ensureSharedFolderLoaded } from './shared-canvases-outline.js';
     }
 
  // px per hour in the timeline
+
+    // Computes and commits one canvas's arranged schedule-mode list for the active date: resolves
+    // today's scheduledEvents for `folderId` to real items (loading a shared folder on demand,
+    // same defensive drop-if-unresolvable stance renderScheduleAgenda below already takes), hands
+    // the sorted list to schedule-view-canvas.js's pure layout math, commits the result so
+    // applyScheduleModeWrapperAttrs/handleScheduleModeWheel can read it, pushes the simplified
+    // per-card display data (time/name/type) to React via scheduleModeStore, and animates the
+    // camera to center on the arranged list at 100% zoom. Doesn't touch appState.scheduleViewMode/
+    // toolbars/saved-transform itself — enterCanvasScheduleMode (above) owns entry side effects;
+    // this just (re)computes the arrangement for whichever canvas+date is currently selected, so
+    // it's also what scheduleAgendaShift calls on a date change.
+    async function renderCanvasScheduleAgenda(folderId) {
+        const key = dateKey(appState.scheduleViewDate);
+        let todaysEvents = appState.scheduledEvents.filter(e => e.date === key && e.folderId === folderId);
+
+        if (folderId.startsWith('shared:') && !appState.folders[folderId]) {
+            const ok = await ensureSharedFolderLoaded(folderId);
+            if (!ok) todaysEvents = [];
+        }
+
+        const list = todaysEvents
+            .map(ev => ({ ev, it: findItemInFolder(folderId, ev.itemId) }))
+            .filter(x => x.it)
+            .sort((a, b) => a.ev.time.localeCompare(b.ev.time));
+
+        const { slotsById, centerX, centerY, totalHeight } = computeArrangedLayout(list);
+        setArrangedSlots(slotsById, totalHeight);
+
+        const itemsById = new Map(list.map(({ it, ev }) => [it.id, {
+            time: formatTimeLabel(ev.time),
+            name: miniLabelForItem(it),
+            kindLabel: kindTypeLabel(it.kind, it.level),
+        }]));
+        window.__setScheduleMode({ active: true, itemsById });
+
+        const { tx, ty } = cameraCenterFor(centerX, centerY);
+        smoothPanTo(tx, ty, 1, 500);
+    }
 
     // Hour markers + event cards are real React state now (see app/dotto/ScheduleAgenda.jsx,
     // portaling into #schedule-view-hours/#schedule-view-stack) — this only computes the data and

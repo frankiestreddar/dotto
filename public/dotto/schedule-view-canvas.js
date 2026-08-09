@@ -1,3 +1,6 @@
+import { appState } from './core-state.js';
+import { applyTransform } from './history-autosave.js';
+
 // ---------- Schedule Mode: in-place canvas transform (single-canvas view) ----------
 // Deliberately kept in its own file, separate from waypoints-render-loop.js/srs-connections-core.js
 // (canvas core) — those two only get small guarded delegating stubs (see
@@ -12,18 +15,73 @@
 // handle that case unchanged; this file only ever runs for a single specific canvas.
 export const SCHEDULE_ALL = 'all';
 
-// PR1 stub: always reports "nothing arranged," so every guard wired up in this PR is reachable in
-// code review but a provable runtime no-op — appState.scheduleViewSelection also never becomes
-// anything other than SCHEDULE_ALL yet (see core-state.js's default), so these guards aren't even
-// reachable at runtime until a later PR starts setting it. Real arrange algorithm lands in PR2.
-export function getScheduleModeSlot() {
-    return null;
+// Set by setArrangedSlots/clearArrangedSlots below (called from messages-schedule.js's
+// enter/exitScheduleViewMode and date-shift orchestration) — read by
+// applyScheduleModeWrapperAttrs (every item's own layout effect, via CanvasItemsLayer.jsx) and
+// handleScheduleModeWheel (the canvas's own wheel listener, srs-connections-core.js). Kept as
+// plain module state rather than on appState itself since nothing outside this file needs it.
+let arrangedSlotsById = new Map();
+let scrollBounds = { min: 0, max: 0 };
+
+// Column layout for the arranged list: sorted-by-time items stacked vertically at a fixed column
+// width, centered on their own local origin. Pure geometry — no DOM writes, no appState.tx/ty/scale
+// reads or writes (the caller owns the camera move via the returned centerX/centerY, and owns
+// committing the result via setArrangedSlots below). `sortedItems` is an array of `{it}` (already
+// resolved to a real item and already sorted by scheduled time) — this function doesn't know or
+// care where that ordering came from.
+export function computeArrangedLayout(sortedItems) {
+    const w = appState.SCHEDULE_LIST_COLUMN_WIDTH;
+    const rowH = appState.SCHEDULE_LIST_ROW_HEIGHT, gap = appState.SCHEDULE_LIST_ROW_GAP;
+    const totalHeight = sortedItems.length ? sortedItems.length * rowH + (sortedItems.length - 1) * gap : 0;
+    const originX = -w / 2, originY = -totalHeight / 2;
+    const slotsById = new Map();
+    sortedItems.forEach(({ it }, i) => {
+        slotsById.set(it.id, { x: originX, y: originY + i * (rowH + gap), w, h: rowH });
+    });
+    return { slotsById, centerX: originX + w / 2, centerY: originY + totalHeight / 2, totalHeight };
 }
 
-// PR1 stub — mirrors applyItemWrapperAttrs' real body (waypoints-render-loop.js) exactly, so PR2
-// only has to change what gets computed here, not how the call site delegates to it.
+// tx/ty that would center (centerX, centerY) in the current viewport at scale 1 — same formula
+// centerOnContent (waypoints-render-loop.js) uses for the real canvas's own "center on everything"
+// action, just not scoped to that function since this needs to run before this mode's items even
+// have real DOM positions to measure.
+export function cameraCenterFor(centerX, centerY) {
+    return { tx: window.innerWidth / 2 - centerX, ty: window.innerHeight / 2 - centerY };
+}
+
+// Commits a freshly computed arrangement so applyScheduleModeWrapperAttrs/handleScheduleModeWheel
+// (below) pick it up. totalHeight drives the vertical-scroll clamp: a short list (fits the
+// viewport) gets scrollBounds {0,0} — no scroll at all, matching "only able to scroll... if there
+// is more scheduled than what fits."
+export function setArrangedSlots(slotsById, totalHeight) {
+    arrangedSlotsById = slotsById;
+    const margin = 140; // keeps the topmost/bottommost row off #schedule-view-header / the screen edge
+    const overflow = totalHeight + margin * 2 - window.innerHeight;
+    scrollBounds = { min: overflow > 0 ? -overflow : 0, max: 0 };
+}
+
+export function clearArrangedSlots() {
+    arrangedSlotsById = new Map();
+    scrollBounds = { min: 0, max: 0 };
+}
+
+// Real per-item wrapper attrs while single-canvas Schedule Mode is active — called instead of
+// applyItemWrapperAttrs' own body (waypoints-render-loop.js), which delegates here. A scheduled
+// item (a key in arrangedSlotsById) gets its arranged slot position + .schedule-mode-card; every
+// other item keeps its REAL x/y/w/h (mirroring applyItemWrapperAttrs' own title/waypoint/unsized-
+// table width-height exception) and gets .schedule-hidden instead — it's already exactly where it
+// needs to be the instant it fades back in on exit, so it needs no position logic of its own (see
+// scheduleModeStore's own comment in bridges.js).
 export function applyScheduleModeWrapperAttrs(el, it) {
-    el.className = `item ${it.kind}`;
+    const slot = arrangedSlotsById.get(it.id);
+    if (slot) {
+        el.className = `item ${it.kind} schedule-mode-card`;
+        el.style.left = slot.x + 'px'; el.style.top = slot.y + 'px';
+        el.style.width = slot.w + 'px'; el.style.height = slot.h + 'px';
+        el.style.zIndex = '';
+        return;
+    }
+    el.className = `item ${it.kind} schedule-hidden`;
     el.style.left = it.x + 'px'; el.style.top = it.y + 'px';
     if (it.zIndex) el.style.zIndex = it.zIndex;
     if (it.kind !== 'title' && it.kind !== 'waypoint' && !(it.kind === 'table' && !it.userSized)) {
@@ -31,7 +89,12 @@ export function applyScheduleModeWrapperAttrs(el, it) {
     }
 }
 
-// PR1 stub — PR2 fills this in to drive appState.ty (clamped to the arranged list's bounds) via
-// applyTransform(), consuming only e.deltaY. Unreachable in PR1 (see the module comment above), so
-// the empty body is intentional, not a placeholder that needs appState/applyTransform imported yet.
-export function handleScheduleModeWheel() {}
+// Vertical-scroll-only, driven directly against the real camera (there's no separate scrolling DOM
+// element to defer to here, unlike SCHEDULE_ALL's #schedule-view-canvas) — consumes only
+// e.deltaY, clamped to the arranged list's own bounds; tx/scale never move, so the column can't
+// drift sideways or the zoom level change while this mode is active.
+export function handleScheduleModeWheel(e) {
+    e.preventDefault();
+    appState.ty = Math.min(scrollBounds.max, Math.max(scrollBounds.min, appState.ty - e.deltaY));
+    applyTransform();
+}

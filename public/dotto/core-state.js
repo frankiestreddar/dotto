@@ -239,12 +239,23 @@
         scheduleBtn: document.getElementById('btn-schedule'),
         scheduleViewMode: false,
         // 'all' (the cross-canvas aggregate — see schedule-view-canvas.js's SCHEDULE_ALL) or a
-        // folder id (a single canvas shown in-place, real cards hidden/rearranged) — defaults to
-        // 'all' so today's behavior (the #schedule-view overlay) is exactly unchanged until a
-        // later PR starts setting this to a specific folder id.
+        // folder id (a single canvas shown in-place, real cards hidden/rearranged) — the schedule
+        // button's default entry point targets appState.currentFolderId (see
+        // enterScheduleViewMode, messages-schedule.js); 'all' is reachable again once the
+        // canvas-switcher lands.
         scheduleViewSelection: 'all',
         scheduleViewSavedTransform: null,
+        // Timer handle for delaying the .schedule-view-mode class's REMOVAL on exit (same
+        // set-transition/wait/clear technique smoothPanTo itself uses, see history-autosave.js) —
+        // the class has to outlive appState.scheduleViewMode flipping back to false by exactly the
+        // fly-back animation's own duration, or items would snap back to their real position
+        // instead of animating there.
+        scheduleExitTransitionTimeout: null,
         scheduleView: document.getElementById('schedule-view'),
+        // Sibling of #schedule-view now (see content/fragments/canvas-area.html), shown
+        // independently for both schedule sub-modes — its own .active toggle, not inherited from
+        // #schedule-view's.
+        scheduleViewHeader: document.getElementById('schedule-view-header'),
         scheduleViewCanvasEl: document.getElementById('schedule-view-canvas'),
         scheduleViewInner: document.getElementById('schedule-view-inner'),
         scheduleViewHours: document.getElementById('schedule-view-hours'),
@@ -258,6 +269,7 @@
         // schedule-view-canvas.js) — unused until that mode's real arrange algorithm lands.
         SCHEDULE_LIST_ROW_HEIGHT: 76,
         SCHEDULE_LIST_ROW_GAP: 10,
+        SCHEDULE_LIST_COLUMN_WIDTH: 340,
         dotbotScheduleConversation: null,
         notifiedScheduledEventIds: new Set(),
         SCHEDULE_WEEKDAYS: ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'],
