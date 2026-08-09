@@ -191,37 +191,35 @@ import { applyFolderView, centerOnContent, expandWaypointCard, openFolder, rende
         positionBreadcrumbMapPanel();
         appState.panelPinned.breadcrumbMap = true;
     }
-    // Always shows the user's own root at the top (pinned there via a synthetic row when
-    // currently inside a shared tree, since the real ancestor chain never reaches it from there —
-    // see buildAncestorChain), then the current path indented to show the real nesting — the
-    // collaboration's own top-level entry sits at the SAME indent as Root (both are top-level
-    // entry points into their own tree), with its own nested levels indented further below it.
+    // Real React state now (see app/dotto/BreadcrumbMapPanel.jsx, breadcrumbMapStore) — genuine
+    // JSX rows, same reasoning as the other list panels. Always shows the user's own root at the
+    // top (pinned there via a synthetic row when currently inside a shared tree, since the real
+    // ancestor chain never reaches it from there — see buildAncestorChain), then the current path
+    // indented to show the real nesting — the collaboration's own top-level entry sits at the SAME
+    // indent as Root (both are top-level entry points into their own tree), with its own nested
+    // levels indented further below it.
     function renderBreadcrumbMapPanel() {
-        appState.breadcrumbMapList.innerHTML = '';
         const folderObj = appState.folders[appState.currentFolderId];
-        if (!folderObj) return;
+        if (!folderObj) { window.__setBreadcrumbMap([]); return; }
         const showSyntheticRoot = folderObj.isSharedView;
-        function addRow(label, indent, folderId, isCurrent) {
-            const row = document.createElement('div');
-            row.className = 'breadcrumb-map-row' + (isCurrent ? ' current' : '');
-            row.style.setProperty('--map-indent', (indent * 16) + 'px');
-            row.textContent = label;
-            if (!isCurrent) {
-                row.onclick = (e) => {
-                    e.stopPropagation();
-                    closeBreadcrumbMapPanel();
-                    if (folderId === 'root' && showSyntheticRoot) exitSharedCanvasToRoot();
-                    else openFolder(folderId);
-                };
-            }
-            appState.breadcrumbMapList.appendChild(row);
+        const rows = [];
+        if (showSyntheticRoot) {
+            rows.push({ label: appState.folders['root'] ? appState.folders['root'].title : 'Root', indent: 0, folderId: 'root', isCurrent: false, isSyntheticRoot: true });
         }
-        if (showSyntheticRoot) addRow(appState.folders['root'] ? appState.folders['root'].title : 'Root', 0, 'root', false);
         buildAncestorChain(appState.currentFolderId).forEach((id, idx) => {
             const target = appState.folders[id];
             if (!target) return;
-            addRow(target.title || id, idx, id, id === appState.currentFolderId);
+            rows.push({ label: target.title || id, indent: idx, folderId: id, isCurrent: id === appState.currentFolderId, isSyntheticRoot: false });
         });
+        window.__setBreadcrumbMap(rows);
+    }
+
+    // Wired up from BreadcrumbMapPanel.jsx's row onClick — a non-current row's click either exits
+    // to root (the one synthetic row) or navigates there directly, same as the vanilla version.
+    function breadcrumbMapRowClick(folderId, isSyntheticRoot) {
+        closeBreadcrumbMapPanel();
+        if (isSyntheticRoot) exitSharedCanvasToRoot();
+        else openFolder(folderId);
     }
     pinOnInsideClick('breadcrumbMap', [appState.breadcrumbMapPanel]);
 
@@ -502,7 +500,11 @@ import { applyFolderView, centerOnContent, expandWaypointCard, openFolder, rende
         }
     }
 
-export { announceEnteredCollaboration, buildOutline, closeBreadcrumbMapPanel, ensureSharedFolderLoaded, goToOutlineItem, jumpToHistoryIndex, kindIconFile, kindIconHTML, namespaceSharedFolderIds, openBreadcrumbMapPanel, openSharedCanvas, outlineIcon, parseSharedFolderKey, setOutlineActive, sharedFolderKey, stripSharedFolderIds, toggleHamburgerMenu };
+export { announceEnteredCollaboration, breadcrumbMapRowClick, buildOutline, closeBreadcrumbMapPanel, ensureSharedFolderLoaded, goToOutlineItem, jumpToHistoryIndex, kindIconFile, kindIconHTML, namespaceSharedFolderIds, openBreadcrumbMapPanel, openSharedCanvas, outlineIcon, parseSharedFolderKey, setOutlineActive, sharedFolderKey, stripSharedFolderIds, toggleHamburgerMenu };
 
 window.__kindIconFile = kindIconFile;
 window.__openSharedCanvas = openSharedCanvas;
+
+// React → vanilla bridge — used by BreadcrumbMapPanel.jsx (app/dotto/), which can't import this
+// directly since public/dotto/*.js isn't reachable from app/dotto/.
+window.__breadcrumbMapRowClick = breadcrumbMapRowClick;

@@ -400,7 +400,22 @@ buckets slotted in by the same principle:
    canvas-core-level work, not a simple card conversion.
 10. **Friend presence**, **Canvas collaborations (hamburger)**,
     **Live-shared canvases** — real-time/collaboration cluster, done
-    together since they share subscription-lifecycle risk.
+    together since they share subscription-lifecycle risk. **Done** — turned out to have very
+    little left after item 6: **Friend presence** (`subscribeToAllFriendMessages`,
+    `handleFriendPresenceSync`) is pure realtime-channel lifecycle with no rendering surface of its
+    own (it calls into `pushNotification`/`renderMsgList`, both already React); **Canvas
+    collaborations (hamburger)**'s rendering (`renderHubCollabList`/`renderWaypointsList`) was
+    already converted in item 6, leaving only pure data/navigation logic
+    (`refreshCanvasCollabData`/`respondToCanvasCollabRequest`/`goToWaypointCard`) with nothing to
+    convert. Two genuine small surfaces WERE found and converted: the collaborators pill under the
+    search bar (`renderCollabPill`, `CollabPill.jsx` — the small avatar-cluster trigger for the
+    per-canvas Collaborations panel, missed by item 6's pass since it's a different function/id
+    than that panel itself) and the breadcrumb map dropdown
+    (`renderBreadcrumbMapPanel`, `BreadcrumbMapPanel.jsx`, in shared-canvases-outline.js's
+    **Live-shared canvases** section — shows the synthetic-root row when inside a shared canvas).
+    The rest of "Live-shared canvases" (`openSharedCanvas`/`exitSharedCanvasToRoot`/folder-id
+    namespacing) has no rendering surface of its own — it operates entirely through the shared
+    `folders`/`render()` canvas-core machinery, migrated last (item 12).
 11. **Live canvas presence + real-time content sync** — split into its
     three internal parts first (see grab-bag warning above), migrate each
     separately rather than as one 1,468-line unit.

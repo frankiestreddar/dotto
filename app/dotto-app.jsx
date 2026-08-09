@@ -6,9 +6,11 @@ import { createClient } from "@/lib/supabase/client";
 import {
   achievementsStore,
   addToSourcePopupStore,
+  breadcrumbMapStore,
   canvasItemsStore,
   canvasResultsStore,
   collabListStore,
+  collabPillStore,
   dictionaryPanelStore,
   dotbotAnswerStore,
   examplesPanelStore,
@@ -31,9 +33,11 @@ import {
 } from "./dotto/bridges";
 import AchievementsGrid from "./dotto/AchievementsGrid";
 import AddToSourcePopup from "./dotto/AddToSourcePopup";
+import BreadcrumbMapPanel from "./dotto/BreadcrumbMapPanel";
 import CanvasItemsLayer from "./dotto/CanvasItemsLayer";
 import CanvasResultsPanel from "./dotto/CanvasResultsPanel";
 import CollabListPanel from "./dotto/CollabListPanel";
+import CollabPill from "./dotto/CollabPill";
 import DictionaryPanel from "./dotto/DictionaryPanel";
 import DotbotAnswerPanel from "./dotto/DotbotAnswerPanel";
 import ErrorBoundary from "./dotto/ErrorBoundary";
@@ -217,6 +221,15 @@ if (typeof window !== "undefined") {
   // Item Detail view's footer button set (see app/dotto/ItemDetailFooter.jsx, library-publish.js's
   // renderItemDetailFooter) — a plain store.set, no synchronous DOM read follows it.
   window.__setItemDetailFooter = itemDetailFooterStore.set;
+  // Collaborators pill (see app/dotto/CollabPill.jsx, friends-presence.js's renderCollabPill) —
+  // MUST be flushSync: openCollabPanel (friends-presence.js) reads collabBubble's `.show` class
+  // synchronously right after a caller in hamburger-collab.js calls this.
+  window.__setCollabPill = (state) => flushSync(() => collabPillStore.set(state));
+  // Breadcrumb map dropdown (see app/dotto/BreadcrumbMapPanel.jsx, shared-canvases-outline.js's
+  // renderBreadcrumbMapPanel) — MUST be flushSync: openBreadcrumbMapPanel calls
+  // positionBreadcrumbMapPanel immediately after, which reads the panel's own
+  // content-driven offsetWidth.
+  window.__setBreadcrumbMap = (rows) => flushSync(() => breadcrumbMapStore.set(rows));
 }
 
 export default function DottoApp({ sections, currentUser }) {
@@ -278,6 +291,8 @@ export default function DottoApp({ sections, currentUser }) {
       <ErrorBoundary name="MarketDetailPanel"><MarketDetailPanel /></ErrorBoundary>
       <ErrorBoundary name="LibraryPanel"><LibraryPanel /></ErrorBoundary>
       <ErrorBoundary name="ItemDetailFooter"><ItemDetailFooter /></ErrorBoundary>
+      <ErrorBoundary name="CollabPill"><CollabPill /></ErrorBoundary>
+      <ErrorBoundary name="BreadcrumbMapPanel"><BreadcrumbMapPanel /></ErrorBoundary>
       <ErrorBoundary name="ProfileLevelPill"><ProfileLevelPill /></ErrorBoundary>
       <ErrorBoundary name="ProfileIdentity"><ProfileIdentity /></ErrorBoundary>
       <ErrorBoundary name="ProfileAvatarSm"><ProfileAvatarSm /></ErrorBoundary>
