@@ -265,12 +265,12 @@ export const cellTagPickerListStore = createStore({ rows: [], id: null, r: null 
 // { active, itemsById: Map<itemId, {time, name, kindLabel}> }. Read by CanvasItem
 // (CanvasItemsLayer.jsx): when active and an item's id is a key in itemsById, it renders
 // ScheduleModeCardBody instead of its real CARD_KIND_COMPONENTS entry — the wrapper <div
-// id="item-X"> stays the same DOM node either way, which is what lets the position transition
-// (a plain CSS transition on .item while this mode is active, not a JS-driven one — see
-// schedule-view-canvas.js) visually connect real position -> arranged slot -> real position across
-// entry and exit without ever unmounting anything. Every OTHER item (not a key in itemsById) keeps
-// rendering its real Component — it stays exactly where it is and just fades via CSS opacity (see
-// the .schedule-hidden class), so it needs no entry in this store at all. Deliberately not the same
+// id="item-X"> stays the same DOM node either way, which is what lets a card's entrance animation
+// (a CSS keyframe, alternating left/right by row — see applyScheduleModeWrapperAttrs/globals.css,
+// deliberately NOT sourced from the item's real canvas position) swap it in without ever
+// unmounting anything. Every OTHER item (not a key in itemsById) keeps rendering its real
+// Component — it stays exactly where it is and just fades via CSS opacity (see the
+// .schedule-hidden class), so it needs no entry in this store at all. Deliberately not the same
 // store as scheduleAgendaStore (the SCHEDULE_ALL cross-canvas overlay's hour-timeline data) — the
 // two views are mutually exclusive and have very different shapes; sharing one store would mean
 // most fields are meaningless in either mode.

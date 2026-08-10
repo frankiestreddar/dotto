@@ -178,15 +178,17 @@ import { ensureSharedFolderLoaded, kindTypeLabel } from './shared-canvases-outli
         } else {
             clearArrangedSlots();
             window.__setScheduleMode({ active: false, itemsById: new Map() });
-            // Keep the item slide/fade transition CSS (#canvas.schedule-view-mode:not(.schedule-
-            // view-all) .item{...}, globals.css) alive for exactly as long as the fly-back
-            // animation needs, THEN drop the class — same set-transition/wait/clear technique
-            // smoothPanTo itself uses, just delayed to the end since this is the LEAVING
-            // transition. Dropping the class immediately would snap items back instantly instead
-            // of animating — appState.scheduleViewMode already flipped to false above is what
-            // makes applyItemWrapperAttrs (waypoints-render-loop.js) go back to writing each
-            // item's real x/y the moment its layout effect re-runs (triggered by the store update
-            // right above), so the class only needs to keep the CSS transition itself alive.
+            // Keep the item opacity transition CSS (#canvas.schedule-view-mode:not(.schedule-
+            // view-all) .item{...}, globals.css) alive for exactly as long as a previously-HIDDEN
+            // card's fade-back-in needs, THEN drop the class — same set-transition/wait/clear
+            // technique smoothPanTo itself uses, just delayed to the end since this is the LEAVING
+            // transition. appState.scheduleViewMode already flipped to false above is what makes
+            // applyItemWrapperAttrs (waypoints-render-loop.js) go back to writing each item's real
+            // x/y the moment its layout effect re-runs (triggered by the store update right above);
+            // a previously-SCHEDULED card has no position transition to preserve (its entrance was
+            // a keyframe animation, not a position tween — see applyScheduleModeWrapperAttrs' own
+            // comment) so it simply snaps back to its real spot at that same moment, a known,
+            // accepted trade-off rather than something this pass attempted to also animate.
             clearTimeout(appState.scheduleExitTransitionTimeout);
             appState.scheduleExitTransitionTimeout = setTimeout(() => {
                 canvas.classList.remove('schedule-view-mode');

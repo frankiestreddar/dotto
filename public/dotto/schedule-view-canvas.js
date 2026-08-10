@@ -28,7 +28,10 @@ let scrollBounds = { min: 0, max: 0 };
 // reads or writes (the caller owns the camera move via the returned centerX/centerY, and owns
 // committing the result via setArrangedSlots below). `sortedItems` is an array of `{it}` (already
 // resolved to a real item and already sorted by scheduled time) — this function doesn't know or
-// care where that ordering came from.
+// care where that ordering came from. Each slot's `index` (its row position) is what
+// applyScheduleModeWrapperAttrs below uses to alternate the entrance animation's direction and
+// stagger its timing — it has nothing to do with the item's real canvas position, on purpose (see
+// that function's own comment).
 export function computeArrangedLayout(sortedItems) {
     const w = appState.SCHEDULE_LIST_COLUMN_WIDTH;
     const rowH = appState.SCHEDULE_LIST_ROW_HEIGHT, gap = appState.SCHEDULE_LIST_ROW_GAP;
@@ -36,7 +39,7 @@ export function computeArrangedLayout(sortedItems) {
     const originX = -w / 2, originY = -totalHeight / 2;
     const slotsById = new Map();
     sortedItems.forEach(({ it }, i) => {
-        slotsById.set(it.id, { x: originX, y: originY + i * (rowH + gap), w, h: rowH });
+        slotsById.set(it.id, { x: originX, y: originY + i * (rowH + gap), w, h: rowH, index: i });
     });
     return { slotsById, centerX: originX + w / 2, centerY: originY + totalHeight / 2, totalHeight };
 }
@@ -67,22 +70,30 @@ export function clearArrangedSlots() {
 
 // Real per-item wrapper attrs while single-canvas Schedule Mode is active — called instead of
 // applyItemWrapperAttrs' own body (waypoints-render-loop.js), which delegates here. A scheduled
-// item (a key in arrangedSlotsById) gets its arranged slot position + .schedule-mode-card; every
-// other item keeps its REAL x/y/w/h (mirroring applyItemWrapperAttrs' own title/waypoint/unsized-
-// table width-height exception) and gets .schedule-hidden instead — it's already exactly where it
-// needs to be the instant it fades back in on exit, so it needs no position logic of its own (see
+// item (a key in arrangedSlotsById) gets its arranged slot position + .schedule-mode-card, which
+// enters via a CSS keyframe animation (globals.css) that alternates sliding in from the left/right
+// of the screen based on the slot's own row index, staggered in order via animation-delay — NOT
+// from the item's real canvas position (deliberately: real positions can be scattered arbitrarily
+// far apart, which looked chaotic animating dozens of cards in from all over the screen at once;
+// a uniform alternating reveal reads as a single intentional motion instead). Every other item
+// keeps its REAL x/y/w/h (mirroring applyItemWrapperAttrs' own title/waypoint/unsized-table
+// width-height exception) and gets .schedule-hidden instead — it's already exactly where it needs
+// to be the instant it fades back in on exit, so it needs no position logic of its own (see
 // scheduleModeStore's own comment in bridges.js).
 export function applyScheduleModeWrapperAttrs(el, it) {
     const slot = arrangedSlotsById.get(it.id);
     if (slot) {
-        el.className = `item ${it.kind} schedule-mode-card`;
+        const fromRight = slot.index % 2 === 1;
+        el.className = `item ${it.kind} schedule-mode-card` + (fromRight ? ' schedule-card-from-right' : '');
         el.style.left = slot.x + 'px'; el.style.top = slot.y + 'px';
         el.style.width = slot.w + 'px'; el.style.height = slot.h + 'px';
         el.style.zIndex = '';
+        el.style.animationDelay = (slot.index * 70) + 'ms';
         return;
     }
     el.className = `item ${it.kind} schedule-hidden`;
     el.style.left = it.x + 'px'; el.style.top = it.y + 'px';
+    el.style.animationDelay = '';
     if (it.zIndex) el.style.zIndex = it.zIndex;
     if (it.kind !== 'title' && it.kind !== 'waypoint' && !(it.kind === 'table' && !it.userSized)) {
         el.style.width = it.w + 'px'; el.style.height = it.h + 'px';
