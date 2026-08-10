@@ -4,7 +4,7 @@ import { renderMsgList } from './friends-presence.js';
 import { applyTransform, smoothPanTo } from './history-autosave.js';
 import { closeConvo, miniLabelForItem } from './live-presence.js';
 import { closeAllPanels, pinOnInsideClick, scheduleHoverClose } from './panels-hamburger.js';
-import { cameraCenterFor, clearArrangedSlots, computeArrangedLayout, SCHEDULE_ALL, setArrangedSlots } from './schedule-view-canvas.js';
+import { cameraCenterFor, clearArrangedSlots, computeArrangedLayout, markRevealed, SCHEDULE_ALL, SCHEDULE_FADE_OUT_MS, SCHEDULE_ZOOM_MS, setArrangedSlots } from './schedule-view-canvas.js';
 import { ensureSharedFolderLoaded, kindTypeLabel } from './shared-canvases-outline.js';
 
 
@@ -102,6 +102,12 @@ import { ensureSharedFolderLoaded, kindTypeLabel } from './shared-canvases-outli
     appState.scheduleViewCanvasEl.addEventListener('pointerup', () => { appState.scheduleScrollDragging = false; });
     appState.scheduleViewCanvasEl.addEventListener('pointercancel', () => { appState.scheduleScrollDragging = false; });
 
+    // Bumped by every renderCanvasScheduleAgenda call and by exitScheduleViewMode — its own staged
+    // sequence (three awaited steps) checks this after each wait and bails if a newer call has
+    // superseded it, so rapid double-clicks (a nav arrow, or exiting mid-animation) can't leave two
+    // overlapping sequences fighting over canvas.classList/scheduleModeStore/markRevealed.
+    let scheduleRenderToken = 0;
+
     function toggleScheduleViewMode() {
         if (appState.scheduleViewMode) exitScheduleViewMode(); else enterScheduleViewMode();
     }
@@ -133,11 +139,17 @@ import { ensureSharedFolderLoaded, kindTypeLabel } from './shared-canvases-outli
         renderScheduleAgenda();
     }
 
+    function wait(ms) {
+        return new Promise(resolve => setTimeout(resolve, ms));
+    }
+
     // Single-canvas in-place transform for `folderId`'s canvas — real cards hide/rearrange, camera
     // zooms to 100% centered on the arranged list. Idempotent: call this again (not
     // enterScheduleViewMode) to retarget an already-active session at a different canvas (the
     // switcher) or a new date (scheduleAgendaShift below) — `isFreshEntry` skips the mode-entry
     // side effects (toolbar hiding, saving the prior camera transform) when they're already done.
+    // The header's own fade-in is staged inside renderCanvasScheduleAgenda now (stage 3, alongside
+    // the cards it's revealed with), not set here.
     async function enterCanvasScheduleMode(folderId) {
         const isFreshEntry = !appState.scheduleViewMode;
         if (isFreshEntry) {
@@ -154,7 +166,6 @@ import { ensureSharedFolderLoaded, kindTypeLabel } from './shared-canvases-outli
             zoomControl.style.display = 'none';
             appState.scheduleViewSavedTransform = { tx: appState.tx, ty: appState.ty, scale: appState.scale };
             appState.scheduleViewDate = new Date();
-            appState.scheduleViewHeader.classList.add('active');
         }
         appState.scheduleViewSelection = folderId;
         document.getElementById('schedule-view-date').textContent = formatDateLabel(appState.scheduleViewDate);
@@ -163,6 +174,9 @@ import { ensureSharedFolderLoaded, kindTypeLabel } from './shared-canvases-outli
 
     function exitScheduleViewMode() {
         if (!appState.scheduleViewMode) return;
+        // Invalidates any in-flight renderCanvasScheduleAgenda sequence so it bails at its next
+        // token check instead of resurrecting schedule-mode state after the user has already left.
+        scheduleRenderToken++;
         const wasAll = appState.scheduleViewSelection === SCHEDULE_ALL;
         appState.scheduleViewMode = false;
         appState.scheduleViewSelection = SCHEDULE_ALL;
@@ -220,22 +234,34 @@ import { ensureSharedFolderLoaded, kindTypeLabel } from './shared-canvases-outli
 
  // px per hour in the timeline
 
-    // Computes and commits one canvas's arranged schedule-mode list for the active date: resolves
-    // today's scheduledEvents for `folderId` to real items (loading a shared folder on demand,
-    // same defensive drop-if-unresolvable stance renderScheduleAgenda below already takes), hands
-    // the sorted list to schedule-view-canvas.js's pure layout math, commits the result so
-    // applyScheduleModeWrapperAttrs/handleScheduleModeWheel can read it, pushes the simplified
-    // per-card display data (time/name/type) to React via scheduleModeStore, and animates the
-    // camera to center on the arranged list at 100% zoom. Doesn't touch appState.scheduleViewMode/
+    // Computes and commits one canvas's arranged schedule-mode list for the active date, in three
+    // staged steps rather than all at once — every real card fades out first (exactly as it
+    // currently looks, before any content swap), THEN the camera zooms, THEN scheduled cards
+    // actually play their entrance and the header fades in. Doesn't touch appState.scheduleViewMode/
     // toolbars/saved-transform itself — enterCanvasScheduleMode (above) owns entry side effects;
     // this just (re)computes the arrangement for whichever canvas+date is currently selected, so
-    // it's also what scheduleAgendaShift calls on a date change.
+    // it's also what scheduleAgendaShift calls on a date change (re-running the same three stages).
     async function renderCanvasScheduleAgenda(folderId) {
+        // Own token for this call — checked after every await below so a superseding call (a rapid
+        // date-nav click, a canvas switch, or exitScheduleViewMode) can cleanly abort this one
+        // instead of both sequences fighting over shared state (canvas.classList, scheduleModeStore,
+        // markRevealed). See the module-level scheduleRenderToken comment above toggleScheduleViewMode.
+        const myToken = ++scheduleRenderToken;
+
+        // Stage 1: fade everything out first. #canvas.schedule-view-mode.schedule-fading-out .item
+        // (globals.css) forces every card to opacity:0 regardless of its eventual hidden/scheduled
+        // fate, so the transition into schedule mode reads as "everything clears away," not cards
+        // reshuffling live underneath a moving camera.
+        canvas.classList.add('schedule-fading-out');
+        await wait(SCHEDULE_FADE_OUT_MS + 20);
+        if (myToken !== scheduleRenderToken) return;
+
         const key = dateKey(appState.scheduleViewDate);
         let todaysEvents = appState.scheduledEvents.filter(e => e.date === key && e.folderId === folderId);
 
         if (folderId.startsWith('shared:') && !appState.folders[folderId]) {
             const ok = await ensureSharedFolderLoaded(folderId);
+            if (myToken !== scheduleRenderToken) return;
             if (!ok) todaysEvents = [];
         }
 
@@ -246,16 +272,32 @@ import { ensureSharedFolderLoaded, kindTypeLabel } from './shared-canvases-outli
 
         const { slotsById, centerX, centerY, totalHeight } = computeArrangedLayout(list);
         setArrangedSlots(slotsById, totalHeight);
-
         const itemsById = new Map(list.map(({ it, ev }) => [it.id, {
             time: formatTimeLabel(ev.time),
             name: miniLabelForItem(it),
             kindLabel: kindTypeLabel(it.kind, it.level),
         }]));
-        window.__setScheduleMode({ active: true, itemsById });
 
+        // Stage 2: with every card still invisible (schedule-fading-out is still on #canvas),
+        // commit the new content/position and move the camera — scheduled cards get their arranged
+        // slot + .schedule-mode-card class now (so they're ready the instant they're revealed),
+        // but not yet .schedule-card-entering (see markRevealed's own comment for why that has to
+        // wait for stage 3). This is what makes the zoom read as its own distinct step rather than
+        // happening underneath already-visible content.
+        window.__setScheduleMode({ active: true, itemsById });
         const { tx, ty } = cameraCenterFor(centerX, centerY);
-        smoothPanTo(tx, ty, 1, 500);
+        smoothPanTo(tx, ty, 1, SCHEDULE_ZOOM_MS);
+        await wait(SCHEDULE_ZOOM_MS + 20);
+        if (myToken !== scheduleRenderToken) return;
+
+        // Stage 3: reveal — drop schedule-fading-out, let scheduled cards actually play their
+        // entrance keyframe (markRevealed flips the flag applyScheduleModeWrapperAttrs reads,
+        // schedule-view-canvas.js; re-pushing itemsById forces every CanvasItem to re-render and
+        // pick that up), and fade the header in alongside them.
+        canvas.classList.remove('schedule-fading-out');
+        markRevealed();
+        window.__setScheduleMode({ active: true, itemsById });
+        appState.scheduleViewHeader.classList.add('active');
     }
 
     // Hour markers + event cards are real React state now (see app/dotto/ScheduleAgenda.jsx,

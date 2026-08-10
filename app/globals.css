@@ -672,8 +672,8 @@
        tiling to the viewport's own origin rather than each element's own box; without it, two
        separately-declared backgrounds each restart their 28px tiling from their own top-left
        corner and visibly desync at the boundary between them). */
-    #schedule-view-header{display:none;position:absolute;top:0;left:0;right:0;z-index:5;align-items:center;justify-content:center;gap:24px;padding:68px 20px 18px;}
-    #schedule-view-header.active{display:flex;}
+    #schedule-view-header{display:flex;position:absolute;top:0;left:0;right:0;z-index:5;align-items:center;justify-content:center;gap:24px;padding:68px 20px 18px;opacity:0;pointer-events:none;transition:opacity .3s ease;}
+    #schedule-view-header.active{opacity:1;pointer-events:auto;}
     #canvas.schedule-view-all #schedule-view-header{background-image:radial-gradient(var(--dot) 1px, transparent 1px);background-size:28px 28px;background-attachment:fixed;}
     .schedule-nav-card{display:flex;align-items:center;gap:2px;background:var(--card);border:1px solid var(--card-border);border-radius:10px;padding:4px;box-shadow:0 4px 12px rgba(0,0,0,0.3);}
     .schedule-nav-card-btn{background:transparent;border:none;color:var(--ink-soft);border-radius:6px;width:30px;height:30px;cursor:pointer;font-size:13px;flex:0 0 auto;}
@@ -717,11 +717,25 @@
        which could be scattered arbitrarily far away and looked chaotic animating many cards in
        from all over the screen at once. animation-fill-mode:both holds the settled state
        afterward, so a later render() call re-applying the same class/delay doesn't visibly replay
-       it (browsers only restart a CSS animation when the animation-name actually changes). */
-    .item.schedule-mode-card{flex-direction:row;align-items:center;gap:10px;cursor:default;animation-name:schedule-card-slide-in-left;animation-duration:.4s;animation-timing-function:ease;animation-fill-mode:both;}
-    .item.schedule-mode-card.schedule-card-from-right{animation-name:schedule-card-slide-in-right;}
+       it (browsers only restart a CSS animation when the animation-name actually changes).
+       .schedule-mode-card itself carries no animation — a card gets that class (plus its final
+       position) as soon as it's part of the arrangement, but stays invisible via
+       .schedule-fading-out below until entry's stage 3 actually adds .schedule-card-entering
+       (markRevealed, schedule-view-canvas.js), which is what starts the animation playing. */
+    .item.schedule-mode-card{flex-direction:row;align-items:center;gap:10px;cursor:default;}
+    .item.schedule-mode-card.schedule-card-entering{animation-name:schedule-card-slide-in-left;animation-duration:.4s;animation-timing-function:ease;animation-fill-mode:both;}
+    .item.schedule-mode-card.schedule-card-entering.schedule-card-from-right{animation-name:schedule-card-slide-in-right;}
     @keyframes schedule-card-slide-in-left{from{transform:translateX(-56px);opacity:0;}to{transform:translateX(0);opacity:1;}}
     @keyframes schedule-card-slide-in-right{from{transform:translateX(56px);opacity:0;}to{transform:translateX(0);opacity:1;}}
+    /* Entry stage 1 (renderCanvasScheduleAgenda, messages-schedule.js): every real .item fades out
+       exactly as it currently looks, before any content swap/rearrangement/zoom happens. Higher
+       specificity than .item.schedule-hidden/.schedule-mode-card (has the #canvas id) so it wins
+       over those without needing !important, and — since NO element carries
+       .schedule-card-entering yet at this stage — there's no CSS animation active to fight it
+       either (animations always beat plain cascade for the properties they control, regardless of
+       specificity, which is exactly why .schedule-card-entering is deliberately withheld until
+       stage 3, after this class is gone). */
+    #canvas.schedule-view-mode.schedule-fading-out .item{opacity:0;}
     .schedule-mode-card-icon{width:22px;height:22px;flex:0 0 auto;color:var(--ink-soft);}
     .schedule-mode-card-meta{flex:1 1 auto;min-width:0;display:flex;flex-direction:column;gap:2px;}
     .schedule-mode-card-name{font-size:14px;font-weight:600;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}

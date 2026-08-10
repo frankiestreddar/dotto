@@ -15,6 +15,14 @@ import { applyTransform } from './history-autosave.js';
 // handle that case unchanged; this file only ever runs for a single specific canvas.
 export const SCHEDULE_ALL = 'all';
 
+// Entry is staged (see messages-schedule.js's renderCanvasScheduleAgenda): every card fades out
+// first, THEN the camera zooms, THEN scheduled cards actually play their entrance — durations here
+// must stay in sync with the matching CSS transition/animation durations (globals.css) and with
+// the smoothPanTo call's own duration, same "JS wait matches CSS time, plus a small buffer"
+// convention smoothPanTo itself already uses.
+export const SCHEDULE_FADE_OUT_MS = 300; // matches #canvas.schedule-view-mode .item{transition:opacity .3s ease}
+export const SCHEDULE_ZOOM_MS = 500; // smoothPanTo's own duration for the camera move
+
 // Set by setArrangedSlots/clearArrangedSlots below (called from messages-schedule.js's
 // enter/exitScheduleViewMode and date-shift orchestration) — read by
 // applyScheduleModeWrapperAttrs (every item's own layout effect, via CanvasItemsLayer.jsx) and
@@ -22,6 +30,14 @@ export const SCHEDULE_ALL = 'all';
 // plain module state rather than on appState itself since nothing outside this file needs it.
 let arrangedSlotsById = new Map();
 let scrollBounds = { min: 0, max: 0 };
+// False while stages 1-2 of entry are still playing out (fade-out, then zoom) — a scheduled item
+// still gets its arranged position/.schedule-mode-card class during that window (so it's ready the
+// instant it's revealed), but NOT the .schedule-card-entering class that actually starts its
+// keyframe animation, which only gets added once this flips true (markRevealed, stage 3) — CSS
+// animations always take visual precedence over a plain opacity rule for the same element
+// regardless of selector specificity, so starting the animation any earlier than intended would
+// make a card visible mid-fade-out/zoom instead of staying hidden until the reveal stage.
+let revealed = false;
 
 // Column layout for the arranged list: sorted-by-time items stacked vertically at a fixed column
 // width, centered on their own local origin. Pure geometry — no DOM writes, no appState.tx/ty/scale
@@ -66,25 +82,36 @@ export function setArrangedSlots(slotsById, totalHeight) {
 export function clearArrangedSlots() {
     arrangedSlotsById = new Map();
     scrollBounds = { min: 0, max: 0 };
+    revealed = false;
+}
+
+// Stage 3 of entry — see the module comment on `revealed` above.
+export function markRevealed() {
+    revealed = true;
 }
 
 // Real per-item wrapper attrs while single-canvas Schedule Mode is active — called instead of
 // applyItemWrapperAttrs' own body (waypoints-render-loop.js), which delegates here. A scheduled
-// item (a key in arrangedSlotsById) gets its arranged slot position + .schedule-mode-card, which
-// enters via a CSS keyframe animation (globals.css) that alternates sliding in from the left/right
-// of the screen based on the slot's own row index, staggered in order via animation-delay — NOT
-// from the item's real canvas position (deliberately: real positions can be scattered arbitrarily
-// far apart, which looked chaotic animating dozens of cards in from all over the screen at once;
-// a uniform alternating reveal reads as a single intentional motion instead). Every other item
-// keeps its REAL x/y/w/h (mirroring applyItemWrapperAttrs' own title/waypoint/unsized-table
-// width-height exception) and gets .schedule-hidden instead — it's already exactly where it needs
-// to be the instant it fades back in on exit, so it needs no position logic of its own (see
-// scheduleModeStore's own comment in bridges.js).
+// item (a key in arrangedSlotsById) gets its arranged slot position + .schedule-mode-card always,
+// plus .schedule-card-entering — which is what actually carries the entrance keyframe animation,
+// see globals.css — only once `revealed` is true (stage 3 of entry; see the module comment on that
+// flag above). The animation alternates sliding in from the left/right of the screen based on the
+// slot's own row index, staggered in order via animation-delay — NOT from the item's real canvas
+// position (deliberately: real positions can be scattered arbitrarily far apart, which looked
+// chaotic animating dozens of cards in from all over the screen at once; a uniform alternating
+// reveal reads as a single intentional motion instead). Every other item keeps its REAL x/y/w/h
+// (mirroring applyItemWrapperAttrs' own title/waypoint/unsized-table width-height exception) and
+// gets .schedule-hidden instead — it's already exactly where it needs to be the instant it fades
+// back in on exit, so it needs no position logic of its own (see scheduleModeStore's own comment
+// in bridges.js).
 export function applyScheduleModeWrapperAttrs(el, it) {
     const slot = arrangedSlotsById.get(it.id);
     if (slot) {
         const fromRight = slot.index % 2 === 1;
-        el.className = `item ${it.kind} schedule-mode-card` + (fromRight ? ' schedule-card-from-right' : '');
+        let cls = `item ${it.kind} schedule-mode-card`;
+        if (fromRight) cls += ' schedule-card-from-right';
+        if (revealed) cls += ' schedule-card-entering';
+        el.className = cls;
         el.style.left = slot.x + 'px'; el.style.top = slot.y + 'px';
         el.style.width = slot.w + 'px'; el.style.height = slot.h + 'px';
         el.style.zIndex = '';
