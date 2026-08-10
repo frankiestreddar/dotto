@@ -696,24 +696,32 @@
     .schedule-view-card-wrap{position:absolute;left:110px;}
     .schedule-view-card-wrap .item{position:relative !important;left:auto !important;top:auto !important;box-shadow:0 4px 12px rgba(0,0,0,0.3);}
 
-    /* Single-canvas in-place transform (schedule-view-canvas.js/ScheduleModeCardBody.jsx) — every
-       real .item on the canvas gets this transition while the mode is active, so
-       applyScheduleModeWrapperAttrs' left/top/width/height/opacity writes (an arranged slot for a
-       scheduled item, or the item's own real position for a hidden one) animate instead of
-       snapping, on both entry and exit. Safe to leave on for the whole time the mode is active
-       (unlike smoothPanTo's timer-bounded approach for the camera) specifically because dragging
-       is fully disabled in this mode (attachUniversalItemBehavior's own guard,
-       waypoints-render-loop.js) — there's no legitimate "instant" left/top write this would ever
-       need to get out of the way of. Scoped to :not(.schedule-view-all) — the cross-canvas overlay
-       never touches real canvas items at all. */
-    #canvas.schedule-view-mode:not(.schedule-view-all) .item{transition:left .5s ease, top .5s ease, width .5s ease, height .5s ease, opacity .3s ease;}
-    /* A real card that isn't scheduled for the active date — keeps its own real x/y/w/h the whole
-       time (see applyScheduleModeWrapperAttrs' own comment for why), just fades out/in. */
+    /* Single-canvas in-place transform (schedule-view-canvas.js/ScheduleModeCardBody.jsx). A real
+       card that isn't scheduled for the active date keeps its own real x/y/w/h the whole time (see
+       applyScheduleModeWrapperAttrs' own comment for why) and just fades out/in via this plain
+       opacity transition — safe to leave on for the whole time the mode is active (unlike
+       smoothPanTo's timer-bounded approach for the camera) specifically because dragging is fully
+       disabled in this mode (attachUniversalItemBehavior's own guard, waypoints-render-loop.js).
+       Scoped to :not(.schedule-view-all) — the cross-canvas overlay never touches real canvas
+       items at all. */
+    #canvas.schedule-view-mode:not(.schedule-view-all) .item{transition:opacity .3s ease;}
     .item.schedule-hidden{opacity:0;pointer-events:none;}
     /* The simplified schedule-mode row (ScheduleModeCardBody.jsx) an item swaps to when it IS
-       scheduled for the active date — same base .item look (background/border/shadow/radius),
-       just a horizontal icon+meta+time row instead of the real card's own content. */
-    .item.schedule-mode-card{flex-direction:row;align-items:center;gap:10px;cursor:default;}
+       scheduled for the active date — same base .item look (background/border/shadow/radius), a
+       horizontal icon+meta+time row instead of the real card's own content, positioned directly at
+       its arranged slot (no position transition — applyScheduleModeWrapperAttrs writes left/top
+       straight to the slot). The entrance itself is a keyframe animation, not a position tween:
+       every scheduled card slides + fades in from the same fixed offset, alternating left/right by
+       row (.schedule-card-from-right, applyScheduleModeWrapperAttrs) and staggered in order via
+       animation-delay (same file) — deliberately NOT sourced from the item's real canvas position,
+       which could be scattered arbitrarily far away and looked chaotic animating many cards in
+       from all over the screen at once. animation-fill-mode:both holds the settled state
+       afterward, so a later render() call re-applying the same class/delay doesn't visibly replay
+       it (browsers only restart a CSS animation when the animation-name actually changes). */
+    .item.schedule-mode-card{flex-direction:row;align-items:center;gap:10px;cursor:default;animation-name:schedule-card-slide-in-left;animation-duration:.4s;animation-timing-function:ease;animation-fill-mode:both;}
+    .item.schedule-mode-card.schedule-card-from-right{animation-name:schedule-card-slide-in-right;}
+    @keyframes schedule-card-slide-in-left{from{transform:translateX(-56px);opacity:0;}to{transform:translateX(0);opacity:1;}}
+    @keyframes schedule-card-slide-in-right{from{transform:translateX(56px);opacity:0;}to{transform:translateX(0);opacity:1;}}
     .schedule-mode-card-icon{width:22px;height:22px;flex:0 0 auto;color:var(--ink-soft);}
     .schedule-mode-card-meta{flex:1 1 auto;min-width:0;display:flex;flex-direction:column;gap:2px;}
     .schedule-mode-card-name{font-size:14px;font-weight:600;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
