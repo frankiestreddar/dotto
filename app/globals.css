@@ -640,44 +640,50 @@
 
     #messages-panel{display:none;position:fixed;top:68px;left:20px;width:320px;height:min(520px, calc(100vh - 100px));background:var(--bar);border:1px solid var(--card-border);border-radius:12px;z-index:2000;box-shadow:0 4px 16px rgba(0,0,0,0.5);flex-direction:column;overflow:hidden;}
     #messages-panel.open{display:flex;}
-    /* Schedule View Mode: a full read-only agenda overlay on top of the canvas (see
-       enterScheduleViewMode/renderScheduleAgenda in JS). The mode-toolbar/add-toolbar/
-       zoom-control are hidden via inline style directly in JS, not a CSS class here — render()
-       already toggles those same three elements via inline style for source pages, and an
-       inline style always beats a stylesheet rule regardless of selector specificity. */
+    /* Schedule View Mode has two sub-modes sharing one #canvas.schedule-view-mode class:
+       - Single-canvas in-place transform (default — see enterCanvasScheduleMode/
+         renderCanvasScheduleAgenda in JS): the REAL canvas stays visible; real cards hide/
+         rearrange via applyScheduleModeWrapperAttrs (schedule-view-canvas.js) and a plain CSS
+         transition, below. #schedule-view (the old overlay body) stays inactive.
+       - Cross-canvas aggregate (.schedule-view-all — see enterScheduleModeAll/renderScheduleAgenda):
+         the original read-only hour-timeline overlay, unchanged, real canvas hidden underneath it.
+       The mode-toolbar/add-toolbar/zoom-control are hidden via inline style directly in JS, not a
+       CSS class here — render() already toggles those same three elements via inline style for
+       source pages, and an inline style always beats a stylesheet rule regardless of selector
+       specificity. */
     #canvas.schedule-view-mode{cursor:default;}
-    #canvas.schedule-view-mode #dot-layer, #canvas.schedule-view-mode #world{visibility:hidden;}
-    #schedule-view{display:none;position:absolute;inset:0;z-index:5;background:var(--paper);flex-direction:column;align-items:center;overflow:hidden;}
+    #canvas.schedule-view-mode.schedule-view-all #dot-layer, #canvas.schedule-view-mode.schedule-view-all #world{visibility:hidden;}
+    #schedule-view{display:none;position:absolute;inset:0;z-index:5;background:var(--paper);overflow:hidden;}
     #schedule-view.active{display:flex;}
 
-    /* Header: date as a heading BLOCK (.schedule-heading-block — same card/border/shadow
-       treatment as .schedule-nav-card right next to it, so it reads as one consistent piece of
-       chrome rather than bare text floating between two boxed button groups), flanked by two
-       button-cards of three nav buttons each (month/week/day, mirrored). */
-    /* padding-top clears #top-bar (fixed, top:20px, height:40px, z-index:1000 — well above this
-       overlay's own z-index:5), same 68px convention other panels anchor to below it. */
-    /* Same dot-grid background as #schedule-view-canvas below, so the dotted grid reads as one
-       continuous surface across the whole overlay instead of cutting off at the header. Each
-       element still declares its own copy (a parent's background never scrolls with a child's
-       content, so #schedule-view-canvas needs one of its own regardless) — background-attachment:
-       fixed is what actually makes them line up: it anchors the tiling to the VIEWPORT's own
-       origin rather than each element's own box, so the pattern is continuous across the
-       header/canvas seam no matter how tall the header ends up being. Without it, two separately-
-       declared backgrounds each restart their 28px tiling from their own top-left corner and
-       visibly desync at the boundary between them. */
-    #schedule-view-header{flex:0 0 auto;display:flex;align-items:center;justify-content:center;gap:24px;padding:68px 20px 18px;background-image:radial-gradient(var(--dot) 1px, transparent 1px);background-size:28px 28px;background-attachment:fixed;}
+    /* Header (date + prev/next nav) is a SIBLING of #schedule-view now — content/fragments/
+       canvas-area.html — shown for BOTH sub-modes via its own .active toggle, independent of
+       #schedule-view's (which only activates for .schedule-view-all). position:absolute + a flex
+       row replicates the centering it used to get for free as #schedule-view's flex child.
+       padding-top clears #top-bar (fixed, top:20px, height:40px, z-index:1000 — well above this
+       header's own z-index:5), same 68px convention other panels anchor to below it. Deliberately
+       NO background of its own by default — the real canvas's own #dot-layer (visible again in
+       the single-canvas sub-mode) shows through underneath it, already correctly phase-aligned
+       since it's the exact same dot layer the rest of the canvas uses (a separately-declared
+       background here would desync from it the instant the camera pans/zooms, the same seam bug
+       fixed for .schedule-view-all below). ONLY .schedule-view-all needs its own manual dot
+       background, matching #schedule-view-canvas's, since the real canvas is hidden in that mode —
+       background-attachment:fixed is what makes those two line up with each other (anchors the
+       tiling to the viewport's own origin rather than each element's own box; without it, two
+       separately-declared backgrounds each restart their 28px tiling from their own top-left
+       corner and visibly desync at the boundary between them). */
+    #schedule-view-header{display:none;position:absolute;top:0;left:0;right:0;z-index:5;align-items:center;justify-content:center;gap:24px;padding:68px 20px 18px;}
+    #schedule-view-header.active{display:flex;}
+    #canvas.schedule-view-all #schedule-view-header{background-image:radial-gradient(var(--dot) 1px, transparent 1px);background-size:28px 28px;background-attachment:fixed;}
     .schedule-nav-card{display:flex;align-items:center;gap:2px;background:var(--card);border:1px solid var(--card-border);border-radius:10px;padding:4px;box-shadow:0 4px 12px rgba(0,0,0,0.3);}
     .schedule-nav-card-btn{background:transparent;border:none;color:var(--ink-soft);border-radius:6px;width:30px;height:30px;cursor:pointer;font-size:13px;flex:0 0 auto;}
     .schedule-nav-card-btn:hover{background:#2e2e2e;color:var(--ink);}
     .schedule-heading-block{background:var(--card);border:1px solid var(--card-border);border-radius:10px;box-shadow:0 4px 12px rgba(0,0,0,0.3);padding:8px 20px;font-size:28px;font-weight:700;color:var(--ink);min-width:220px;text-align:center;font-family:'Space Mono', monospace;}
 
-    /* The "canvas" itself: same dot grid as the real one. background-attachment:fixed (see
-       #schedule-view-header's comment above) means these dots stay put relative to the viewport
-       rather than scrolling with the timeline's content — a deliberate trade against the main
-       canvas's own dot layer (which does pan with content), made so the grid can align seamlessly
-       with the header above it; the timeline content itself still scrolls normally; only the
-       background texture behind it stays fixed. No horizontal scroll, no free panning — only
-       vertical scroll, and only once the timeline is taller than the viewport. */
+    /* The old overlay's own scrollable "canvas" (.schedule-view-all only) — same dot grid as the
+       real one; background-attachment:fixed reasoning is on #schedule-view-header above. No
+       horizontal scroll, no free panning — only vertical scroll, and only once the timeline is
+       taller than the viewport. */
     #schedule-view-canvas{position:relative;flex:1 1 auto;min-height:0;width:100%;overflow-y:auto;overflow-x:hidden;background-image:radial-gradient(var(--dot) 1px, transparent 1px);background-size:28px 28px;background-attachment:fixed;cursor:grab;}
     #schedule-view-canvas:active{cursor:grabbing;}
     /* One shared positioning root for both the hour markers and the cards, sized in JS
@@ -689,6 +695,31 @@
     #schedule-view-empty{font-size:12px;color:var(--ink-soft);text-align:center;padding:60px 20px;position:absolute;top:40px;left:110px;right:20px;}
     .schedule-view-card-wrap{position:absolute;left:110px;}
     .schedule-view-card-wrap .item{position:relative !important;left:auto !important;top:auto !important;box-shadow:0 4px 12px rgba(0,0,0,0.3);}
+
+    /* Single-canvas in-place transform (schedule-view-canvas.js/ScheduleModeCardBody.jsx) — every
+       real .item on the canvas gets this transition while the mode is active, so
+       applyScheduleModeWrapperAttrs' left/top/width/height/opacity writes (an arranged slot for a
+       scheduled item, or the item's own real position for a hidden one) animate instead of
+       snapping, on both entry and exit. Safe to leave on for the whole time the mode is active
+       (unlike smoothPanTo's timer-bounded approach for the camera) specifically because dragging
+       is fully disabled in this mode (attachUniversalItemBehavior's own guard,
+       waypoints-render-loop.js) — there's no legitimate "instant" left/top write this would ever
+       need to get out of the way of. Scoped to :not(.schedule-view-all) — the cross-canvas overlay
+       never touches real canvas items at all. */
+    #canvas.schedule-view-mode:not(.schedule-view-all) .item{transition:left .5s ease, top .5s ease, width .5s ease, height .5s ease, opacity .3s ease;}
+    /* A real card that isn't scheduled for the active date — keeps its own real x/y/w/h the whole
+       time (see applyScheduleModeWrapperAttrs' own comment for why), just fades out/in. */
+    .item.schedule-hidden{opacity:0;pointer-events:none;}
+    /* The simplified schedule-mode row (ScheduleModeCardBody.jsx) an item swaps to when it IS
+       scheduled for the active date — same base .item look (background/border/shadow/radius),
+       just a horizontal icon+meta+time row instead of the real card's own content. */
+    .item.schedule-mode-card{flex-direction:row;align-items:center;gap:10px;cursor:default;}
+    .schedule-mode-card-icon{width:22px;height:22px;flex:0 0 auto;color:var(--ink-soft);}
+    .schedule-mode-card-meta{flex:1 1 auto;min-width:0;display:flex;flex-direction:column;gap:2px;}
+    .schedule-mode-card-name{font-size:14px;font-weight:600;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+    .schedule-mode-card-type{font-size:11px;color:var(--ink-soft);}
+    .schedule-mode-card-time{flex:0 0 auto;font-size:12px;font-weight:700;color:var(--ink-soft);font-family:'Space Mono', monospace;}
+
     .dotbot-prompt-msg{cursor:default;}
     #msg-search-wrap{flex:0 0 auto;padding:10px;border-bottom:1px solid var(--card-border);}
     #msg-search{width:100%;height:34px;border-radius:9px;background:#2a2a2a;border:1px solid var(--card-border);color:var(--ink);padding:0 12px;font-size:13px;outline:none;}

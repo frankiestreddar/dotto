@@ -28,6 +28,7 @@ import {
   profileLevelStore,
   recommendedSearchesStore,
   scheduleAgendaStore,
+  scheduleModeStore,
   searchSuggestionsStore,
   selectionToolbarStore,
   sharedCanvasModalStore,
@@ -166,6 +167,11 @@ if (typeof window !== "undefined") {
   // __setNotificationContent: nothing reads #schedule-view-hours/#schedule-view-stack's DOM
   // synchronously right after calling renderScheduleAgenda.
   window.__setScheduleAgenda = scheduleAgendaStore.set;
+  // Single-canvas Schedule Mode's in-place transform (see app/dotto/ScheduleModeCardBody.jsx,
+  // CanvasItemsLayer.jsx's CanvasItem, public/dotto/messages-schedule.js's
+  // renderCanvasScheduleAgenda) — a plain store.set: nothing reads any item's DOM synchronously
+  // right after this call, only smoothPanTo's own unrelated #world/#dot-layer transform writes.
+  window.__setScheduleMode = scheduleModeStore.set;
   // Search-dropdown result panels (see app/dotto/TranslationPanel.jsx and friends,
   // public/dotto/mnemonic-search-matching.js). Unlike __setNotificationContent/__setScheduleAgenda
   // above, these DO need flushSync — updateSearchDropdown (ai-assistant-suggestions.js) reads
