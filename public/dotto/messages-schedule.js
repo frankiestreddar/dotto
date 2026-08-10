@@ -1,5 +1,5 @@
 import { clearSearch } from './ai-assistant-suggestions.js';
-import { appState, canvas, zoomControl } from './core-state.js';
+import { appState, canvas, world, zoomControl } from './core-state.js';
 import { renderMsgList } from './friends-presence.js';
 import { applyTransform, smoothPanTo } from './history-autosave.js';
 import { closeConvo, miniLabelForItem } from './live-presence.js';
@@ -282,10 +282,23 @@ import { ensureSharedFolderLoaded, kindTypeLabel } from './shared-canvases-outli
         // commit the new content/position and move the camera — scheduled cards get their arranged
         // slot + .schedule-mode-card class now (so they're ready the instant they're revealed),
         // but not yet .schedule-card-entering (see markRevealed's own comment for why that has to
-        // wait for stage 3). This is what makes the zoom read as its own distinct step rather than
-        // happening underneath already-visible content.
-        window.__setScheduleMode({ active: true, itemsById });
+        // wait for stage 3).
+        //
+        // The camera itself must only ever appear to ZOOM here, never pan — the user explicitly
+        // doesn't want to see the canvas glide sideways into place. So the pan portion happens as
+        // an instant, untransitioned jump straight to the arranged list's center WHILE cards are
+        // still invisible (nothing on screen to show the jump), and `void world.offsetHeight`
+        // forces the browser to commit that jump as its own paint before smoothPanTo starts a new
+        // transition — otherwise both style writes would collapse into one JS task and the browser
+        // would animate the full old-position-to-new-position pan underneath the zoom instead of
+        // treating the snapped position as the transition's starting point. Once that jump is
+        // committed, smoothPanTo's target tx/ty are identical to what's already set, so its
+        // transition only ever has scale left to animate — a pure zoom.
         const { tx, ty } = cameraCenterFor(centerX, centerY);
+        appState.tx = tx; appState.ty = ty;
+        applyTransform();
+        void world.offsetHeight;
+        window.__setScheduleMode({ active: true, itemsById });
         smoothPanTo(tx, ty, 1, SCHEDULE_ZOOM_MS);
         await wait(SCHEDULE_ZOOM_MS + 20);
         if (myToken !== scheduleRenderToken) return;
