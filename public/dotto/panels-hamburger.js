@@ -6,7 +6,7 @@ import { renderHubCollabList, renderWaypointsList } from './hamburger-collab.js'
 import { closeCartPanel } from './marketplace.js';
 import { closeMessagesPanel } from './messages-schedule.js';
 import { closeProfilePanel } from './profile-achievements-pricing.js';
-import { buildOutline, closeBreadcrumbMapPanel } from './shared-canvases-outline.js';
+import { buildOutline } from './shared-canvases-outline.js';
 import { closeSourceAddMenu } from './source-buttons-cursor-mode.js';
 
 
@@ -44,7 +44,6 @@ import { closeSourceAddMenu } from './source-buttons-cursor-mode.js';
         if (except !== 'add') closeAddMenu();
         if (except !== 'collab') closeCollabPanel();
         if (except !== 'sourceAdd') closeSourceAddMenu();
-        if (except !== 'breadcrumbMap') closeBreadcrumbMapPanel();
     }
 
     // ---------- Hamburger Menu Controls ----------
@@ -56,10 +55,10 @@ import { closeSourceAddMenu } from './source-buttons-cursor-mode.js';
     // #collab-panel/collabPanel (the per-canvas "add a collaborator" flyout off the top bar) — a
     // completely different feature that happens to share the English word.
     // hmenu-full is what distinguishes the two shapes the panel can take (see #hamburger-stack's
-    // own comment, globals.css): a full-height sidebar pinned open by a click (pushes
-    // #top-bar-left, swaps #btn-menu's icon) vs. a short hover preview that leaves the top bar
-    // completely alone. Applied to all three elements together since each one's CSS keys off it
-    // independently — the panel itself, the button (icon swap), and #top-bar-left (the push).
+    // own comment, globals.css): a full-height sidebar pinned open by a click (square corners,
+    // one continuous shell, #btn-menu's icon swaps) vs. a short hover preview that leaves the top
+    // bar completely alone. Applied to both the panel and the button together since each one's
+    // CSS keys off it independently — the panel's own shape, and the button's icon swap.
     function closeHamburgerMenu() {
         appState.outlineMenu.classList.remove('open');
         appState.accountMenu.classList.remove('open');
@@ -67,7 +66,6 @@ import { closeSourceAddMenu } from './source-buttons-cursor-mode.js';
         appState.hamburgerBtn.classList.remove('active');
         appState.hamburgerStack.classList.remove('open', 'hmenu-full');
         appState.hamburgerBtn.classList.remove('hmenu-full');
-        appState.topBarLeft.classList.remove('hmenu-full');
         appState.panelPinned.menu = false;
     }
     function openHamburgerMenu(pin) {
@@ -82,7 +80,6 @@ import { closeSourceAddMenu } from './source-buttons-cursor-mode.js';
             appState.panelPinned.menu = true;
             appState.hamburgerStack.classList.add('hmenu-full');
             appState.hamburgerBtn.classList.add('hmenu-full');
-            appState.topBarLeft.classList.add('hmenu-full');
         }
     }
     appState.hamburgerBtn.addEventListener('click', (e) => {
@@ -128,7 +125,6 @@ import { closeSourceAddMenu } from './source-buttons-cursor-mode.js';
         appState.hamburgerBtn.classList.add('active');
         appState.hamburgerStack.classList.add('open', 'hmenu-full');
         appState.hamburgerBtn.classList.add('hmenu-full');
-        appState.topBarLeft.classList.add('hmenu-full');
         appState.panelPinned.menu = true;
         searchInputEl.value = '';
         renderFn('');

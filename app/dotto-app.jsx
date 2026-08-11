@@ -237,11 +237,10 @@ if (typeof window !== "undefined") {
   // MUST be flushSync: openCollabPanel (friends-presence.js) reads collabBubble's `.show` class
   // synchronously right after a caller in hamburger-collab.js calls this.
   window.__setCollabPill = (state) => flushSync(() => collabPillStore.set(state));
-  // Breadcrumb map dropdown (see app/dotto/BreadcrumbMapPanel.jsx, shared-canvases-outline.js's
-  // renderBreadcrumbMapPanel) — MUST be flushSync: openBreadcrumbMapPanel calls
-  // positionBreadcrumbMapPanel immediately after, which reads the panel's own
-  // content-driven offsetWidth.
-  window.__setBreadcrumbMap = (rows) => flushSync(() => breadcrumbMapStore.set(rows));
+  // Breadcrumb map — the sidebar's always-visible indented ancestor path (see
+  // app/dotto/BreadcrumbMapPanel.jsx, shared-canvases-outline.js's renderBreadcrumbMapPanel,
+  // called from every render()) — a plain store.set, no synchronous DOM read follows it.
+  window.__setBreadcrumbMap = breadcrumbMapStore.set;
   // Open conversation thread (see app/dotto/MsgConvo.jsx, live-presence.js's renderConvoBody) — a
   // plain store.set, no synchronous DOM read follows it (the scroll-to-bottom reset lives in a
   // useLayoutEffect inside MsgConvo.jsx itself instead).

@@ -1,18 +1,28 @@
 "use client";
 
-import { useSyncExternalStore } from "react";
+import { useRef, useSyncExternalStore } from "react";
 import { createPortal } from "react-dom";
 import { breadcrumbMapStore } from "./bridges";
 import usePortalNode from "./usePortalNode";
 
 const EMPTY_ROWS = [];
 
+// The current-folder row doubles as its rename control — same click-to-edit contentEditable flow
+// every other title in the app uses (window.__startRenameFolderCardTitle, shared with folder/
+// source cards — see its own comment in waypoints-render-loop.js), just handed this row's own DOM
+// node via a ref instead of a canvas card's. A plain {folderId} stands in for the `it` object
+// those callers pass; there's no real `.id`/canvas item behind a sidebar row.
 function BreadcrumbMapRow({ r }) {
+  const elRef = useRef(null);
+  const isCurrent = r.isCurrent;
   return (
     <div
-      className={"breadcrumb-map-row" + (r.isCurrent ? " current" : "")}
+      ref={elRef}
+      className={"breadcrumb-map-row" + (isCurrent ? " current" : "")}
       style={{ "--map-indent": r.indent * 16 + "px" }}
-      onClick={r.isCurrent ? undefined : (e) => { e.stopPropagation(); window.__breadcrumbMapRowClick(r.folderId, r.isSyntheticRoot); }}
+      onClick={isCurrent
+        ? (e) => { e.stopPropagation(); window.__startRenameFolderCardTitle(elRef.current, { folderId: r.folderId }, "breadcrumb-map-row"); }
+        : (e) => { e.stopPropagation(); window.__breadcrumbMapRowClick(r.folderId, r.isSyntheticRoot); }}
     >
       {r.label}
     </div>

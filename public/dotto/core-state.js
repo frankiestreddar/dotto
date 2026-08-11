@@ -1,6 +1,6 @@
     const canvas = document.getElementById('canvas'), world = document.getElementById('world'), dotLayer = document.getElementById('dot-layer'),
         cursorOverlay = document.getElementById('cursor-overlay'),
-        breadcrumbs = document.getElementById('breadcrumbs'), btnBack = document.getElementById('btn-back'),
+        btnBack = document.getElementById('btn-back'),
         btnForward = document.getElementById('btn-forward'), btnAdd = document.getElementById('btn-add'),
         addMenu = document.getElementById('add-menu'), contextMenu = document.getElementById('context-menu'),
         zoomTrack = document.getElementById('zoom-track'), zoomFill = document.getElementById('zoom-fill'),
@@ -190,12 +190,11 @@
         MODE_ORDER_WEIGHT: { normal: 0, data: 1, select: 2 },
         MODE_HOLD_THRESHOLD_MS: 180,
         modeKeyHoldStart: null,
-        panelPinned: { menu: false, messages: false, cart: false, add: false, profile: false, collab: false, sourceAdd: false, breadcrumbMap: false },
+        panelPinned: { menu: false, messages: false, cart: false, add: false, profile: false, collab: false, sourceAdd: false },
         hamburgerBtn: document.getElementById('btn-menu'),
         outlineMenu: document.getElementById('outline-menu'),
         accountMenu: document.getElementById('account-menu'),
         hamburgerStack: document.getElementById('hamburger-stack'),
-        topBarLeft: document.getElementById('top-bar-left'),
         waypointsPanel: document.getElementById('waypoints-panel'),
         waypointsSearchInput: document.getElementById('waypoints-search'),
         hubCollabPanel: document.getElementById('hub-collab-panel'),
@@ -368,8 +367,6 @@
         WAYPOINT_COLLAPSED_W: 28,
         waypointPeekTimer: null,
         sharedOwnerNameCache: {},
-        breadcrumbMapPanel: document.getElementById('breadcrumb-map-panel'),
-        breadcrumbMapList: document.getElementById('breadcrumb-map-list'),
         outlineRows: [],
         outlineActiveIndex: -1,
         OUTLINE_MAX_DEPTH: 2,
@@ -421,4 +418,4 @@
         appState.topCardZIndex = max;
     }
 
-export { addMenu, appState, breadcrumbs, bringCardToFront, btnAdd, btnBack, btnForward, canvas, canvasContextMenu, contextMenu, cursorOverlay, dotLayer, drawBackBtn, drawColorInput, drawEraserBtn, drawFrontBtn, drawPenBtn, drawSettings, drawSizeInput, effectiveMode, recomputeTopCardZIndex, supabase, world, zoomControl, zoomFill, zoomThumb, zoomTrack };
+export { addMenu, appState, bringCardToFront, btnAdd, btnBack, btnForward, canvas, canvasContextMenu, contextMenu, cursorOverlay, dotLayer, drawBackBtn, drawColorInput, drawEraserBtn, drawFrontBtn, drawPenBtn, drawSettings, drawSizeInput, effectiveMode, recomputeTopCardZIndex, supabase, world, zoomControl, zoomFill, zoomThumb, zoomTrack };

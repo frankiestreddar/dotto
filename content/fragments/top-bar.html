@@ -5,7 +5,6 @@
             <button id="btn-back" class="btn">←</button>
             <button id="btn-forward" class="btn">→</button>
         </div>
-        <div class="bubble" id="breadcrumbs"></div>
         <div class="bubble" id="collab-bubble">
             <div id="collab-content"></div>
             <div class="collab-tooltip" id="collab-tooltip"></div>
@@ -51,13 +50,6 @@
                  that text, never above it. -->
             <div id="search-suggestions"></div>
             <div id="search-image-result"></div>
-        </div>
-        <!-- Full breadcrumb map — opened by clicking ".." in the breadcrumb (see render()'s
-             breadcrumb block and openBreadcrumbMapPanel/renderBreadcrumbMapPanel). Shows the
-             user's own root canvas plus, when currently inside a shared canvas, that collaboration
-             and its own nested path, all indented to show real structural nesting. -->
-        <div id="breadcrumb-map-panel" onclick="event.stopPropagation()">
-            <div id="breadcrumb-map-list"></div>
         </div>
     </div>
     <div id="top-bar-right">

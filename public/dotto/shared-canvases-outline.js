@@ -1,9 +1,9 @@
 import { clearSearch, escapeHtml, findParentFolderId, stripHtml } from './ai-assistant-suggestions.js';
 import { shortUrl } from './cards-misc.js';
-import { appState, breadcrumbs, supabase } from './core-state.js';
+import { appState, supabase } from './core-state.js';
 import { applyTransform, smoothPanTo } from './history-autosave.js';
 import { flashCanvasElement } from './mnemonic-search-matching.js';
-import { closeAllPanels, closeHamburgerMenu, pinOnInsideClick } from './panels-hamburger.js';
+import { closeHamburgerMenu } from './panels-hamburger.js';
 import { pushNotification } from './stopwatch-search-notifications.js';
 import { applyFolderView, centerOnContent, expandWaypointCard, openFolder, render } from './waypoints-render-loop.js';
 
@@ -174,30 +174,14 @@ import { applyFolderView, centerOnContent, expandWaypointCard, openFolder, rende
         }
         return chain;
     }
-    function closeBreadcrumbMapPanel() { appState.breadcrumbMapPanel.classList.remove('open'); appState.panelPinned.breadcrumbMap = false; }
-    function positionBreadcrumbMapPanel() {
-        const rect = breadcrumbs.getBoundingClientRect();
-        appState.breadcrumbMapPanel.style.top = (rect.bottom + 8) + 'px';
-        let leftPos = rect.left;
-        const panelWidth = appState.breadcrumbMapPanel.offsetWidth || 220;
-        if (leftPos + panelWidth > window.innerWidth - 20) leftPos = window.innerWidth - panelWidth - 20;
-        appState.breadcrumbMapPanel.style.left = leftPos + 'px';
-    }
-    function openBreadcrumbMapPanel() {
-        closeAllPanels('breadcrumbMap');
-        clearSearch();
-        renderBreadcrumbMapPanel();
-        appState.breadcrumbMapPanel.classList.add('open');
-        positionBreadcrumbMapPanel();
-        appState.panelPinned.breadcrumbMap = true;
-    }
-    // Real React state now (see app/dotto/BreadcrumbMapPanel.jsx, breadcrumbMapStore) — genuine
-    // JSX rows, same reasoning as the other list panels. Always shows the user's own root at the
-    // top (pinned there via a synthetic row when currently inside a shared tree, since the real
-    // ancestor chain never reaches it from there — see buildAncestorChain), then the current path
-    // indented to show the real nesting — the collaboration's own top-level entry sits at the SAME
-    // indent as Root (both are top-level entry points into their own tree), with its own nested
-    // levels indented further below it.
+    // Real React state (see app/dotto/BreadcrumbMapPanel.jsx, breadcrumbMapStore) — an always-
+    // visible sidebar panel now, not a click-triggered popup, so this is called straight from
+    // render() (waypoints-render-loop.js) on every navigation rather than only on-open. Always
+    // shows the user's own root at the top (pinned there via a synthetic row when currently inside
+    // a shared tree, since the real ancestor chain never reaches it from there — see
+    // buildAncestorChain), then the current path indented to show the real nesting — the
+    // collaboration's own top-level entry sits at the SAME indent as Root (both are top-level
+    // entry points into their own tree), with its own nested levels indented further below it.
     function renderBreadcrumbMapPanel() {
         const folderObj = appState.folders[appState.currentFolderId];
         if (!folderObj) { window.__setBreadcrumbMap([]); return; }
@@ -215,13 +199,12 @@ import { applyFolderView, centerOnContent, expandWaypointCard, openFolder, rende
     }
 
     // Wired up from BreadcrumbMapPanel.jsx's row onClick — a non-current row's click either exits
-    // to root (the one synthetic row) or navigates there directly, same as the vanilla version.
+    // to root (the one synthetic row) or navigates there directly, same as before; there's no more
+    // popup to close first now that the map is a permanent sidebar panel.
     function breadcrumbMapRowClick(folderId, isSyntheticRoot) {
-        closeBreadcrumbMapPanel();
         if (isSyntheticRoot) exitSharedCanvasToRoot();
         else openFolder(folderId);
     }
-    pinOnInsideClick('breadcrumbMap', [appState.breadcrumbMapPanel]);
 
     // Steps to an EXISTING position in historyStack (back/forward, breadcrumb "..") — no
     // truncation, no push, just moves the pointer.
@@ -517,7 +500,7 @@ import { applyFolderView, centerOnContent, expandWaypointCard, openFolder, rende
         }
     }
 
-export { announceEnteredCollaboration, breadcrumbMapRowClick, buildOutline, closeBreadcrumbMapPanel, ensureSharedFolderLoaded, goToOutlineItem, jumpToHistoryIndex, kindIconFile, kindIconHTML, kindTypeLabel, namespaceSharedFolderIds, openBreadcrumbMapPanel, openSharedCanvas, parseSharedFolderKey, setOutlineActive, sharedFolderKey, stripSharedFolderIds, toggleHamburgerMenu };
+export { announceEnteredCollaboration, breadcrumbMapRowClick, buildOutline, ensureSharedFolderLoaded, goToOutlineItem, jumpToHistoryIndex, kindIconFile, kindIconHTML, kindTypeLabel, namespaceSharedFolderIds, openSharedCanvas, parseSharedFolderKey, renderBreadcrumbMapPanel, setOutlineActive, sharedFolderKey, stripSharedFolderIds, toggleHamburgerMenu };
 
 window.__kindIconFile = kindIconFile;
 window.__kindTypeLabel = kindTypeLabel;

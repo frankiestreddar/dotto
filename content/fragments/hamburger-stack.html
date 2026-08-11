@@ -1,5 +1,12 @@
 <!-- Hamburger Panels (stacked) -->
 <div id="hamburger-stack">
+    <!-- Always visible whenever the sidebar/preview itself is (no .open toggle like the panels
+         below — see renderBreadcrumbMapPanel, shared-canvases-outline.js, called from every
+         render()). Indented line-by-line ancestor path; the current-folder row doubles as its
+         rename control (see startRenameFolderCardTitle via BreadcrumbMapPanel.jsx). -->
+    <div id="breadcrumb-menu" class="hmenu-persistent-panel">
+        <div id="breadcrumb-map-list"></div>
+    </div>
     <div id="account-menu" class="hmenu-panel">
         <div class="hmenu-item hmenu-simple" onclick="openWaypointsPanel()"><span class="hmenu-item-icon icon-mask" style="mask-image:url(/assets/icons/waypoint.png);-webkit-mask-image:url(/assets/icons/waypoint.png)"></span><span>Waypoints</span></div>
         <div class="hmenu-item hmenu-simple" onclick="openHubCollabPanel()"><span class="hmenu-item-icon icon-mask" style="mask-image:url(/assets/icons/collaboration.png);-webkit-mask-image:url(/assets/icons/collaboration.png)"></span><span>Collaborations</span></div>
