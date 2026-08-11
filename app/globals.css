@@ -148,14 +148,22 @@
     .bubble{background:var(--bar);border:1px solid var(--card-border);border-radius:12px;padding:4px;box-shadow:0 4px 12px rgba(0,0,0,0.3);display:flex;align-items:center;gap:2px;height:40px;}
 
     /* Three grid tracks — left cluster, search bar, right cluster — rather than a plain flex
-       row. The search bar sits in the middle (minmax(0,1fr)) track, whose width is simply
-       whatever's left over between the other two, so it's geometrically impossible for it to
-       overlap either cluster: shrinking the window shrinks that track first (search bar and its
-       flanking gaps shrink together), and the left/right clusters never move independently of
-       it. See #search-bar/#top-bar-left/#top-bar-right below. */
-    #top-bar{position:fixed;top:20px;left:20px;right:20px;z-index:1000;display:grid;grid-template-columns:auto minmax(0,1fr) auto;align-items:center;gap:10px;height:40px;}
-    #top-bar-left{display:flex;align-items:center;gap:10px;min-width:0;}
-    #top-bar-right{display:flex;align-items:center;gap:10px;}
+       row. The outer two tracks share the same minmax(max-content,1fr): each is never smaller
+       than its own cluster's actual content (so the clusters can't compress or overlap), but
+       above that floor they're equal 1fr shares of whatever's left, which is what keeps the
+       search bar dead-center — any "extra" space beyond each cluster's own content is always
+       split evenly between the two sides, regardless of how wide the breadcrumb happens to be,
+       instead of the old auto/auto sizing where a wider left cluster shifted the whole middle
+       track (and the search bar centered within it) off true-center. The middle track
+       (minmax(0,426px)) is what search bar's own responsiveness rides on: while there's slack in
+       the outer tracks, narrowing the window just eats into that slack (the gap closes in);
+       once both outer tracks hit their content floor, they can't shrink further, so any
+       additional narrowing comes out of the middle track instead — the search bar shrinking
+       toward 0, exactly the point it needs to for nothing to overlap. See
+       #search-bar/#top-bar-left/#top-bar-right below. */
+    #top-bar{position:fixed;top:20px;left:20px;right:20px;z-index:1000;display:grid;grid-template-columns:minmax(max-content,1fr) minmax(0,426px) minmax(max-content,1fr);align-items:center;gap:10px;height:40px;}
+    #top-bar-left{display:flex;align-items:center;gap:10px;min-width:0;justify-self:start;}
+    #top-bar-right{display:flex;align-items:center;gap:10px;justify-self:end;}
     #breadcrumbs{padding:0 12px;font-size:14px;color:var(--ink-soft);flex:0 0 auto;width:max-content;max-width:35vw;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;height:40px;align-items:center;display:flex;}
     .crumb-item{cursor:pointer;padding:2px 4px;border-radius:4px;outline:none;}
     .crumb-item:hover{background:#333;color:white;}
