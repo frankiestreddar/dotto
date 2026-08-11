@@ -7,9 +7,9 @@
 @source "../public/dotto/*.js";
 
 /* App typeface: Golos Text (loaded via the Google Fonts <link> in app/layout.js, variable weight
-   400-900), replacing the old local 'Dotto Sans' otf files. Space Mono (same file) stays reserved
-   for headings and usernames — see .item.title, #schedule-view-date, and the username/display-
-   name classes below. */
+   400-900), replacing the old local 'Dotto Sans' otf files. Space Grotesk (same file) stays
+   reserved for headings and usernames — see .item.title, #schedule-view-date, and the username/
+   display-name classes below. */
 
 /* ===================================================================
    Original Dotto (Dotter v0.1.3) CSS, migrated verbatim from the
@@ -30,10 +30,10 @@
     select, input, .format-bar{touch-action: auto;}
     [contenteditable="true"], input, textarea{user-select:text !important; -webkit-user-select:text !important;}
     html,body{margin:0;padding:0;width:100%;height:100%;overflow:hidden;font-family: 'Golos Text', -apple-system, sans-serif;background:var(--paper); color: var(--ink);}
-    /* Semantic headings (e.g. the login/register page titles) keep Space Mono regardless of
+    /* Semantic headings (e.g. the login/register page titles) keep Space Grotesk regardless of
        where they appear — canvas title cards and username displays are plain divs/spans, not
        real h1-h3 tags, so those get the same override individually where they're styled below. */
-    h1,h2,h3{font-family:'Space Mono', monospace;}
+    h1,h2,h3{font-family:'Space Grotesk', sans-serif;}
     body.dragging, body.dragging * { cursor: grabbing !important; }
     
     #canvas{
@@ -285,7 +285,7 @@
     .collab-row-avatar{width:32px;height:32px;border-radius:0;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:600;flex:0 0 auto;overflow:hidden;}
     .collab-row-avatar img{width:100%;height:100%;object-fit:cover;display:block;}
     .collab-row-meta{flex:1 1 auto;min-width:0;}
-    .collab-row-name{font-size:13px;color:var(--ink);font-weight:600;font-family:'Space Mono', monospace;}
+    .collab-row-name{font-size:13px;color:var(--ink);font-weight:600;font-family:'Space Grotesk', sans-serif;}
     /* Only added when this collaborator is currently present on this exact canvas (see
        goToCollaboratorCursor/renderCollabList) — clicking pans to their live cursor position. */
     .collab-row-name-live{display:flex;align-items:center;gap:10px;cursor:pointer;}
@@ -520,7 +520,7 @@
     .profile-avatar-lg{width:56px;height:56px;flex:0 0 auto;border-radius:0;overflow:hidden;background:none;color:white;display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:600;}
     .profile-avatar-lg img{width:100%;height:100%;object-fit:cover;display:block;}
     .profile-identity-text{display:flex;flex-direction:column;gap:5px;min-width:0;margin-top:3px;}
-    #profile-username{font-size:14px;color:var(--ink);font-weight:700;font-family:'Space Mono', monospace;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+    #profile-username{font-size:14px;color:var(--ink);font-weight:700;font-family:'Space Grotesk', sans-serif;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
     /* Level pill, then streak to its right — its own row below the username. */
     .profile-level-streak-row{display:flex;align-items:center;gap:8px;}
     /* Pill background/text colour is set per-tier inline (see renderProfileLevel) rather than
@@ -723,7 +723,7 @@
     .schedule-nav-card{display:flex;align-items:center;gap:2px;background:var(--card);border:1px solid var(--card-border);border-radius:10px;padding:4px;box-shadow:0 4px 12px rgba(0,0,0,0.3);}
     .schedule-nav-card-btn{background:transparent;border:none;color:var(--ink-soft);border-radius:6px;width:30px;height:30px;cursor:pointer;font-size:13px;flex:0 0 auto;}
     .schedule-nav-card-btn:hover{background:#2e2e2e;color:var(--ink);}
-    .schedule-heading-block{background:var(--card);border:1px solid var(--card-border);border-radius:10px;box-shadow:0 4px 12px rgba(0,0,0,0.3);padding:8px 20px;font-size:28px;font-weight:700;color:var(--ink);min-width:220px;text-align:center;font-family:'Space Mono', monospace;}
+    .schedule-heading-block{background:var(--card);border:1px solid var(--card-border);border-radius:10px;box-shadow:0 4px 12px rgba(0,0,0,0.3);padding:8px 20px;font-size:28px;font-weight:700;color:var(--ink);min-width:220px;text-align:center;font-family:'Space Grotesk', sans-serif;}
 
     /* The old overlay's own scrollable "canvas" (.schedule-view-all only) — same dot grid as the
        real one; background-attachment:fixed reasoning is on #schedule-view-header above. No
@@ -771,7 +771,7 @@
     .schedule-mode-card-meta{flex:1 1 auto;min-width:0;display:flex;flex-direction:column;gap:2px;}
     .schedule-mode-card-name{font-size:14px;font-weight:600;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
     .schedule-mode-card-type{font-size:11px;color:var(--ink-soft);}
-    .schedule-mode-card-time{flex:0 0 auto;font-size:12px;font-weight:700;color:var(--ink-soft);font-family:'Space Mono', monospace;}
+    .schedule-mode-card-time{flex:0 0 auto;font-size:12px;font-weight:700;color:var(--ink-soft);font-family:'Space Grotesk', sans-serif;}
 
     .dotbot-prompt-msg{cursor:default;}
     #msg-search-wrap{flex:0 0 auto;padding:10px;border-bottom:1px solid var(--card-border);}
@@ -790,7 +790,7 @@
     /* A few px lower than pure geometric centering — the two-line block visually reads as
        slightly high against the (now overflowing/bottom-anchored) avatar otherwise. */
     .msg-chat-meta{flex:1 1 auto;min-width:0;margin-top:3px;}
-    .msg-chat-name{font-size:13px;color:var(--ink);font-weight:600;font-family:'Space Mono', monospace;}
+    .msg-chat-name{font-size:13px;color:var(--ink);font-weight:600;font-family:'Space Grotesk', sans-serif;}
     .msg-chat-preview{font-size:12px;color:var(--ink-soft);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
     .msg-add-row{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:8px 10px;border-radius:8px;cursor:pointer;}
     .msg-add-row:hover{background:#333;}
@@ -802,7 +802,7 @@
     #msg-convo-header{flex:0 0 auto;display:flex;align-items:center;gap:8px;padding:8px 10px;border-bottom:1px solid var(--card-border);}
     #msg-convo-back{background:none;border:none;color:var(--ink-soft);cursor:pointer;font-size:15px;padding:4px;}
     #msg-convo-back:hover{color:var(--ink);}
-    #msg-convo-title{font-size:13px;font-weight:600;color:var(--ink);font-family:'Space Mono', monospace;}
+    #msg-convo-title{font-size:13px;font-weight:600;color:var(--ink);font-family:'Space Grotesk', sans-serif;}
     /* column-reverse (paired with the DOM being built newest-first in JS) is what pins the
        conversation to the bottom and makes new messages push existing ones upward, instead of
        the list growing downward from the top. */
@@ -1322,7 +1322,7 @@
     .dotbot-dictionary-arrow{background:var(--bar);border:1px solid var(--card-border);border-radius:6px;cursor:pointer;color:var(--ink-soft);font-size:9px;padding:4px 5px;line-height:1;box-shadow:0 2px 8px rgba(0,0,0,0.35);}
     .dotbot-dictionary-arrow:hover{color:var(--ink);}
     .dotbot-dictionary-translit{font-size:12px;color:var(--ink-soft);font-style:italic;}
-    /* A standard system UI font, not Golos Text/Space Mono — both are display faces that don't
+    /* A standard system UI font, not Golos Text/Space Grotesk — both are display faces that don't
        reliably cover IPA's extended Unicode phonetic symbols, unlike the OS's own UI font stack. */
     .dotbot-dictionary-ipa{display:inline-block;font-size:12px;color:var(--ink-soft);font-family:-apple-system,BlinkMacSystemFont,"Helvetica Neue",Helvetica,Arial,sans-serif;background:#2a2a2a;padding:2px 8px;border-radius:999px;}
     /* Separate pills, one per grammarTag (part of speech first, then gender/tense/number/etc —
@@ -1409,7 +1409,7 @@
         border-width: 1px !important;
     }
     
-    .item.title{white-space:nowrap; width: fit-content; padding: 12px; font-weight: 700; font-size: 24px; outline: none; cursor: pointer; font-family:'Space Mono', monospace;}
+    .item.title{white-space:nowrap; width: fit-content; padding: 12px; font-weight: 700; font-size: 24px; outline: none; cursor: pointer; font-family:'Space Grotesk', sans-serif;}
     .item.title .body{white-space:nowrap;}
     /* Folder cards are a title bar (the canvas's name, click-to-rename — see
        startRenameFolderCardTitle) over a smaller buildFolderInlineCanvas preview beneath it,
