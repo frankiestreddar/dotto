@@ -607,13 +607,13 @@
        satisfying "the close button sits at the top, panels under" without needing a second close
        control duplicated inside the sidebar. z-index sits below #top-bar (1000) so #btn-menu
        stays visually on top and clickable; above #world (1) so it fully overlays canvas content.
-       left/top/max-height/transform/padding-top all transition together — the same properties
-       change (both in value and in which rule is driving them) whether going from closed to
-       preview, closed to full, or preview to full (e.g. hovering into a peek, then clicking to
-       expand it), so every path animates smoothly without needing separate transition rules per
-       path. pointer-events stay off until .open so the always-in-the-DOM container never blocks
-       clicks over the canvas while closed. */
-    #hamburger-stack{position:fixed;left:calc(var(--hmenu-width) * -1);width:var(--hmenu-width);z-index:900;display:flex;flex-direction:column;gap:5px;pointer-events:none;top:50%;max-height:60vh;padding-top:0;transform:translateY(-50%);transition:left .3s ease, top .3s ease, max-height .3s ease, padding-top .3s ease, transform .3s ease;}
+       Only `left` ever animates — top/max-height/padding-top/transform apply instantly the
+       moment .hmenu-full is toggled, so the full sidebar is already its final full-height shape
+       before it starts sliding in, rather than visibly growing into that shape as it slides (the
+       preview shape isn't affected either way, since its own top/max-height/transform values are
+       already the closed-state defaults — nothing to snap). pointer-events stay off until .open
+       so the always-in-the-DOM container never blocks clicks over the canvas while closed. */
+    #hamburger-stack{position:fixed;left:calc(var(--hmenu-width) * -1);width:var(--hmenu-width);z-index:900;display:flex;flex-direction:column;gap:5px;pointer-events:none;top:50%;max-height:60vh;padding-top:0;transform:translateY(-50%);transition:left .3s ease;}
     #hamburger-stack.open{left:0;pointer-events:auto;}
     #hamburger-stack.hmenu-full{top:0;max-height:none;height:100vh;padding-top:60px;gap:0;transform:none;background:var(--bar);border-right:1px solid var(--card-border);}
     .hmenu-panel{display:none;width:100%;background:var(--bar);border:1px solid var(--card-border);border-radius:12px;box-shadow:0 4px 16px rgba(0,0,0,0.5);pointer-events:auto;}
