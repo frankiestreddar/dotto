@@ -1116,8 +1116,17 @@
        Always display:flex now (opacity-driven visibility, not display:none/flex) so it can slide
        away smoothly when a notification comes in instead of vanishing instantly — see the
        notification choreography block below. */
-    #search-space-hint{display:flex;position:absolute;right:12px;top:50%;transform:translateY(-50%);height:20px;padding:0 8px;border-radius:6px;background:transparent;border:1px solid var(--card-border);color:var(--ink-soft);font-family:'Space Grotesk', sans-serif;font-size:10px;font-weight:700;align-items:center;pointer-events:none;white-space:nowrap;opacity:0;transition:transform .3s ease, opacity .3s ease;}
-    #search-space-hint.visible{opacity:1;}
+    /* Two faint hint pills, reading left-to-right as "Space  /" — pressing Space (unfocused,
+       anywhere) focuses the search box; pressing / does the same AND types a literal "/" into it
+       to start a slash command (see both keydown handlers, srs-connections-core.js). Both share
+       the same visibility rule (updateSearchSpaceHint, stopwatch-search-notifications.js — empty
+       and unfocused) and slide out together during a notification (below) — kept as two
+       individually-positioned elements rather than a shared wrapper so neither disturbs the
+       other's existing transform-based animations. */
+    #search-space-hint, #search-slash-hint{display:flex;position:absolute;top:50%;transform:translateY(-50%);height:20px;padding:0 8px;border-radius:6px;background:transparent;border:1px solid var(--card-border);color:var(--ink-soft);font-family:'Space Grotesk', sans-serif;font-size:10px;font-weight:700;align-items:center;justify-content:center;pointer-events:none;white-space:nowrap;opacity:0;transition:transform .3s ease, opacity .3s ease;}
+    #search-slash-hint{right:12px;min-width:20px;}
+    #search-space-hint{right:44px;}
+    #search-space-hint.visible, #search-slash-hint.visible{opacity:1;}
     @keyframes dotbot-spin{to{transform:rotate(360deg);}}
     #search-card-pill{display:none;position:absolute;left:14px;bottom:5px;height:22px;border-radius:999px;background:#3a3a3a;pointer-events:auto;align-items:center;}
     #search-card-pill.visible{display:flex;}
@@ -1132,18 +1141,18 @@
        animates its position — only the content layered inside it does:
        1. The box's border flashes 2 quick pulses in place while its contents still look completely
           normal (.notif-flash — see notif-flash-pulse below, now targeting the wrap directly).
-       2. #search-input (holding the animated placeholder) and #search-space-hint slide up and out
+       2. #search-input (holding the animated placeholder) and the two hint pills slide up and out
           through the top edge, while #search-notification slides up into view from the bottom,
           simultaneously (.notifying toggling is what drives both — see the transitions below).
-          Both are transparent content layers, absolutely positioned inside the same fixed-height
+          All are transparent content layers, absolutely positioned inside the same fixed-height
           box, clipped by the wrap's own overflow:hidden while this is happening, rather than the
           wrap changing height (or position) out from under them.
        3. Once settled, a slow continuous "breathing" pulse plays on the box's border
           (.notif-pulse-slow — see notif-pulse-slow below) for the remainder of its display time.
        4. Right before it goes away, the fast double-pulse plays again, then the notification
-          content slides back down and away while #search-input/#search-space-hint slide back down
+          content slides back down and away while #search-input/the hint pills slide back down
           into place — the exact reverse of steps 1-2. */
-    #search-input, #search-space-hint{transition:transform .3s ease, opacity .3s ease;}
+    #search-input, #search-space-hint, #search-slash-hint{transition:transform .3s ease, opacity .3s ease;}
     /* #search-notification is always absolutely positioned (never contributes to the wrap's
        natural height, which #search-input alone drives while idle) — its resting (non-notifying)
        state sits translated fully out of view below the box. #search-input only switches to
@@ -1162,10 +1171,10 @@
     #search-input-wrap.notif-clipping{overflow:hidden;height:42px;}
     #search-input-wrap.notif-clipping.notification-grows{height:76px;}
     #search-input-wrap.notifying #search-input{position:absolute;top:0;left:0;right:0;transform:translateY(-135%);opacity:0;pointer-events:none;}
-    /* #search-space-hint's own base transform is already translateY(-50%) for vertical centering
-       (see its own rule) — layering the extra upward offset here (rather than a plain, separate
+    /* Both hint pills' own base transform is already translateY(-50%) for vertical centering (see
+       their shared rule) — layering the extra upward offset here (rather than a plain, separate
        translateY value) keeps that centering intact whenever this rule DOESN'T apply. */
-    #search-input-wrap.notifying #search-space-hint{transform:translateY(calc(-50% - 60px));opacity:0;}
+    #search-input-wrap.notifying #search-space-hint, #search-input-wrap.notifying #search-slash-hint{transform:translateY(calc(-50% - 60px));opacity:0;}
     /* A transparent content layer, not a box of its own — the wrap behind it already supplies the
        rounded pill/background/border/shadow, so this just needs its own layout (padding/flex) and
        slide behavior. A hard `height` (not min-height) plus overflow:hidden guarantees it NEVER
@@ -1186,9 +1195,10 @@
     #search-input-wrap.notification-grows #search-notification-text{white-space:normal;overflow:visible;text-overflow:clip;}
     /* No dismiss/secondary button — every notification just auto-dismisses (or Escape dismisses
        it early, see the notification keydown handler below); the only button is the primary
-       action. Sized and colored to match #search-space-hint (the "Enter" pill) exactly, since its
-       label already ends in an enter-arrow glyph (see showNotification) reinforcing that Enter
-       activates it — not a separate visual language, the same pill the user already knows. */
+       action. Sized to match #search-space-hint/#search-slash-hint, since its label already ends
+       in an enter-arrow glyph (see showNotification) reinforcing that Enter activates it — the
+       same pill shape the user already knows from those two, just with its own filled background
+       (rather than their stroke-only look), since this one's a real clickable button. */
     #search-notification-action{display:none;flex:0 0 auto;height:20px;padding:0 8px;border-radius:6px;background:#2a2a2a;color:var(--ink-soft);font-size:10px;font-weight:700;border:none;cursor:pointer;font-family:inherit;align-items:center;white-space:nowrap;}
     #search-notification-action:hover{background:#3a3a3a;color:var(--ink);}
     #search-notification-action.visible{display:flex;}
@@ -1263,9 +1273,11 @@
        already encoded in which file this is (heading-1/2/3.png), so unlike the old text badge
        this needs no separate h1/h2/h3 size/weight variants. */
     .search-result-kind-icon{flex:0 0 auto;width:18px;height:18px;color:var(--ink-soft);}
-    /* Same faint-pill look as #search-space-hint — 1-4, matching this row's position in the
-       (always max-4) results list. Pressing that digit key while the dropdown is open clicks the
-       row, same as Enter does for the arrow-selected one (see the keydown handler). */
+    /* Same pill shape/size as #search-space-hint (a filled background, not that pill's stroke-only
+       look, since these are dense inline badges rather than a lone hint) — 1-4, matching this
+       row's position in the (always max-4) results list. Pressing that digit key while the
+       dropdown is open clicks the row, same as Enter does for the arrow-selected one (see the
+       keydown handler). */
     .search-result-index-pill{flex:0 0 auto;min-width:18px;height:18px;padding:0 5px;border-radius:6px;background:#3a3a3a;color:var(--ink-soft);font-size:10px;font-weight:700;display:flex;align-items:center;justify-content:center;}
 
     #search-translation, #search-dictionary, #search-examples, #search-image-result{display:none;background:var(--bar);border:1px solid var(--card-border);border-radius:12px;box-shadow:0 6px 20px rgba(0,0,0,0.45);}

@@ -334,6 +334,7 @@
         searchCardPill: document.getElementById('search-card-pill'),
         searchCardPillLabel: document.getElementById('search-card-pill-label'),
         searchSpaceHint: document.getElementById('search-space-hint'),
+        searchSlashHint: document.getElementById('search-slash-hint'),
         NOTIFICATION_DEFAULT_DURATION_MS: 5000,
         NOTIF_FLASH_MS: 400,
         NOTIF_SLIDE_MS: 300,

@@ -1,5 +1,5 @@
 import { kindLabel, kindSize } from './add-menu.js';
-import { stripHtml } from './ai-assistant-suggestions.js';
+import { handleSearchInput, stripHtml } from './ai-assistant-suggestions.js';
 import { removePlacementGhost } from './copy-paste.js';
 import { addMenu, appState, btnAdd, canvas, drawBackBtn, drawColorInput, drawEraserBtn, drawFrontBtn, drawPenBtn, drawSettings, drawSizeInput, effectiveMode, world, zoomTrack } from './core-state.js';
 import { computeConnectorPoints, createConnection, ensureConnections, ensureDrawings, findLinkedTable, findTableById, itemRect, makeLayerSVG, pathNearPoint, pointsToLinePath, pointsToPath } from './drawing-connections.js';
@@ -556,6 +556,23 @@ import { render, renderSelectedOutlines, startBoxSelection, syncWaypointToDb } f
         }
 
         if (!isEditingText && e.key === ' ') { e.preventDefault(); if (appState.searchInput) appState.searchInput.focus(); return; }
+        // Same idea as Space above, but actually types the "/" rather than just focusing, since
+        // that's meant to start a slash command. preventDefault + writing .value ourselves (rather
+        // than letting the keystroke's own default action insert it after we focus) sidesteps any
+        // browser's own default behavior for "/" outside a text field (e.g. Firefox's
+        // quick-find-on-slash). Command recognition/suggestions themselves aren't built yet — this
+        // just gets "/" reliably into the box from anywhere; handleSearchInput currently treats it
+        // as an ordinary (if unusual) search query character.
+        if (!isEditingText && e.key === '/') {
+            e.preventDefault();
+            if (appState.searchInput) {
+                appState.searchInput.focus();
+                appState.searchInput.value = '/';
+                appState.searchInput.setSelectionRange(1, 1);
+                handleSearchInput('/');
+            }
+            return;
+        }
         if (!isEditingText && (e.key === 'm' || e.key === 'M')) { e.preventDefault(); toggleHamburgerMenu(); return; }
         // Debug shortcut for tweaking the notification entrance/exit animation — fires a plain
         // notification with no buttons on every press. Remove once done tweaking.

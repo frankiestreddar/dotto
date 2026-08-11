@@ -457,18 +457,21 @@ import { openFolder, render } from './waypoints-render-loop.js';
         }
     });
 
-    // Faint "Enter" pill on the right of the search box — visible only while it's both empty and
-    // NOT focused (the hint is for the "press Enter to open it" case; once it's actually focused
-    // that action no longer applies — pressing Enter at that point closes it instead, see the
-    // search-input keydown handler further down). Called from handleSearchInput/clearSearch (on
-    // every value change) and on focus/blur, plus once here for the correct state on first load
-    // (the markup itself defaults to visible for a flash-free first paint, but that default is
-    // only actually right if the box starts empty and unfocused).
+    // Two faint hint pills ("Space" and "/") on the right of the search box — visible only while
+    // it's both empty and NOT focused (once it's actually focused, or has real content, neither
+    // shortcut's starting condition applies anymore — see both keydown handlers,
+    // srs-connections-core.js). Called from handleSearchInput/clearSearch (on every value change)
+    // and on focus/blur, plus once here for the correct state on first load (the markup itself
+    // defaults to visible for a flash-free first paint, but that default is only actually right
+    // if the box starts empty and unfocused). Kept as one function driving both elements (rather
+    // than two near-identical ones) since they always share the exact same visibility condition.
     function updateSearchSpaceHint() {
         if (!appState.searchSpaceHint || !appState.searchInput) return;
         const focused = document.activeElement === appState.searchInput;
         const notifying = appState.searchInputWrap.classList.contains('notifying');
-        appState.searchSpaceHint.classList.toggle('visible', !focused && !notifying && appState.searchInput.value.trim() === '');
+        const visible = !focused && !notifying && appState.searchInput.value.trim() === '';
+        appState.searchSpaceHint.classList.toggle('visible', visible);
+        if (appState.searchSlashHint) appState.searchSlashHint.classList.toggle('visible', visible);
     }
     updateSearchSpaceHint();
 
