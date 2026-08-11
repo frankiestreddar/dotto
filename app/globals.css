@@ -476,10 +476,6 @@
     #btn-menu .btn-menu-close-icon{display:none;font-size:16px;}
     #btn-menu.hmenu-full img{display:none;}
     #btn-menu.hmenu-full .btn-menu-close-icon{display:block;}
-    /* Shifts everything but the menu button itself out of the pinned sidebar's way — a transform
-       on flex children only moves them visually, leaving #top-bar-left's own internal layout and
-       gaps untouched. */
-    #top-bar-left.hmenu-full > *:not(#btn-menu){transform:translateX(calc(var(--hmenu-width) + 20px));transition:transform .3s ease;}
     /* align-items:flex-end: the (deliberately oversized) avatar is anchored to the bottom of the
        circle. No overflow:hidden here — clipping is handled entirely by .profile-avatar-sm's own
        clip-path below, which only follows the button's circular boundary in the bottom 25%; the
@@ -600,23 +596,34 @@
        menu-only state. */
     /* Two very different shapes for the same panel, both sliding out from the left edge of the
        screen (Notion-style): hovering near the edge (leftmost 20px, see the pointermove listener
-       in panels-hamburger.js) or hovering #btn-menu itself previews the menu — capped at 60vh,
-       vertically centered, never touching or shifting the top bar. Clicking #btn-menu instead
-       pins it open as a full-height sidebar (.hmenu-full) that also pushes the rest of
-       #top-bar-left out of its way. z-index sits below #top-bar (1000) so #btn-menu — which
-       intentionally never moves — stays visually on top and clickable the whole time, even
-       while the sidebar slides in underneath the top bar's (backgroundless) left cluster; above
-       #world (1) so it fully overlays canvas content. left/top/max-height/transform all
-       transition together — the same properties change (both in value and in which rule is
-       driving them) whether going from closed to preview, closed to full, or preview to full
-       (e.g. hovering into a peek, then clicking to expand it), so every path animates smoothly
-       without needing separate transition rules per path. pointer-events stay off until .open so
-       the always-in-the-DOM container never blocks clicks over the canvas while closed. */
-    #hamburger-stack{position:fixed;left:calc(var(--hmenu-width) * -1);width:var(--hmenu-width);z-index:900;display:flex;flex-direction:column;gap:5px;pointer-events:none;top:50%;max-height:60vh;transform:translateY(-50%);transition:left .3s ease, top .3s ease, max-height .3s ease, transform .3s ease;}
+       in panels-hamburger.js) or hovering #btn-menu itself previews the menu — a small floating,
+       rounded, vertically-centered card capped at 60vh, never touching or shifting the top bar.
+       Clicking #btn-menu instead pins it open as a real full-height sidebar (.hmenu-full): edge
+       to edge, square corners, one continuous shell rather than a floating card — #account-menu/
+       #outline-menu (etc, see below) lose their own independent card chrome in that state and
+       read as sections inside it instead. #btn-menu itself intentionally never moves, staying in
+       the top bar — padding-top on the full-height shell (matching the top bar's own 60px band)
+       keeps every actual panel's content starting below it, never underneath/overlapped by it,
+       satisfying "the close button sits at the top, panels under" without needing a second close
+       control duplicated inside the sidebar. z-index sits below #top-bar (1000) so #btn-menu
+       stays visually on top and clickable; above #world (1) so it fully overlays canvas content.
+       left/top/max-height/transform/padding-top all transition together — the same properties
+       change (both in value and in which rule is driving them) whether going from closed to
+       preview, closed to full, or preview to full (e.g. hovering into a peek, then clicking to
+       expand it), so every path animates smoothly without needing separate transition rules per
+       path. pointer-events stay off until .open so the always-in-the-DOM container never blocks
+       clicks over the canvas while closed. */
+    #hamburger-stack{position:fixed;left:calc(var(--hmenu-width) * -1);width:var(--hmenu-width);z-index:900;display:flex;flex-direction:column;gap:5px;pointer-events:none;top:50%;max-height:60vh;padding-top:0;transform:translateY(-50%);transition:left .3s ease, top .3s ease, max-height .3s ease, padding-top .3s ease, transform .3s ease;}
     #hamburger-stack.open{left:0;pointer-events:auto;}
-    #hamburger-stack.hmenu-full{top:0;max-height:none;height:100vh;transform:none;}
+    #hamburger-stack.hmenu-full{top:0;max-height:none;height:100vh;padding-top:60px;gap:0;transform:none;background:var(--bar);border-right:1px solid var(--card-border);}
     .hmenu-panel{display:none;width:100%;background:var(--bar);border:1px solid var(--card-border);border-radius:12px;box-shadow:0 4px 16px rgba(0,0,0,0.5);pointer-events:auto;}
     .hmenu-panel.open{display:block;}
+    /* Inside the full sidebar shell, panels are sections of one continuous surface, not
+       independently-carded floating panels — the shell above already supplies the
+       background/edge; #account-menu keeps a divider instead of its own border, same
+       section-divider convention as .hub-subpanel-search-wrap below. */
+    #hamburger-stack.hmenu-full .hmenu-panel{background:transparent;border:none;border-radius:0;box-shadow:none;}
+    #hamburger-stack.hmenu-full #account-menu{border-bottom:1px solid var(--card-border);}
     #account-menu{flex:0 0 auto;padding:6px;}
     #account-menu .hmenu-item{height:40px;box-sizing:border-box;}
     #outline-menu{flex:1 1 auto;min-height:0;overflow:hidden;}
