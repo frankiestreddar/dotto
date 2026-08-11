@@ -1116,7 +1116,7 @@
        Always display:flex now (opacity-driven visibility, not display:none/flex) so it can slide
        away smoothly when a notification comes in instead of vanishing instantly — see the
        notification choreography block below. */
-    #search-space-hint{display:flex;position:absolute;right:12px;top:50%;transform:translateY(-50%);height:20px;padding:0 8px;border-radius:6px;background:#2a2a2a;color:var(--ink-soft);font-size:10px;font-weight:700;align-items:center;pointer-events:none;white-space:nowrap;opacity:0;transition:transform .3s ease, opacity .3s ease;}
+    #search-space-hint{display:flex;position:absolute;right:12px;top:50%;transform:translateY(-50%);height:20px;padding:0 8px;border-radius:6px;background:transparent;border:1px solid var(--card-border);color:var(--ink-soft);font-family:'Space Grotesk', sans-serif;font-size:10px;font-weight:700;align-items:center;pointer-events:none;white-space:nowrap;opacity:0;transition:transform .3s ease, opacity .3s ease;}
     #search-space-hint.visible{opacity:1;}
     @keyframes dotbot-spin{to{transform:rotate(360deg);}}
     #search-card-pill{display:none;position:absolute;left:14px;bottom:5px;height:22px;border-radius:999px;background:#3a3a3a;pointer-events:auto;align-items:center;}
