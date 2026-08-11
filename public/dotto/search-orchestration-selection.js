@@ -204,7 +204,7 @@ import { render } from './waypoints-render-loop.js';
         const rect = rectOverride || range.getBoundingClientRect();
         appState.selectionToolbarRect = rect;
         // Clamped so a selection near the top/left edge of the screen doesn't push the toolbar
-        // off-screen — same 20px-from-edge convention used elsewhere (positionHamburgerMenu etc).
+        // off-screen — same 20px-from-edge convention used for other floating-panel clamping.
         const toolbarWidth = 150; // rough estimate ahead of layout (two small pills); good enough for clamping
         let left = Math.round(rect.left + rect.width / 2 - toolbarWidth / 2);
         left = Math.max(8, Math.min(left, window.innerWidth - toolbarWidth - 8));

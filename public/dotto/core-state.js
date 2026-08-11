@@ -195,6 +195,7 @@
         outlineMenu: document.getElementById('outline-menu'),
         accountMenu: document.getElementById('account-menu'),
         hamburgerStack: document.getElementById('hamburger-stack'),
+        topBarLeft: document.getElementById('top-bar-left'),
         waypointsPanel: document.getElementById('waypoints-panel'),
         waypointsSearchInput: document.getElementById('waypoints-search'),
         hubCollabPanel: document.getElementById('hub-collab-panel'),
