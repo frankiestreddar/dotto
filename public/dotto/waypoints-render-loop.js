@@ -284,6 +284,14 @@ import { applyConnections, renderConnectionsLayer } from './srs-connections-core
         if (!folderObj.isSharedView) {
             await deleteCanvasCollabsForFolder(folderId);
         }
+        // Best-effort — a shared-view folder never has its own global_items row under the current
+        // (collaborator) user's owner_id in the first place, so this naturally no-ops for those
+        // rather than needing its own isSharedView guard like deleteCanvasCollabsForFolder above.
+        if (supabase && appState.currentUser.id) {
+            const { error: globalItemErr } = await supabase.from('global_items').delete()
+                .eq('owner_id', appState.currentUser.id).eq('folder_id', folderId);
+            if (globalItemErr) console.error('[global-ids] failed to remove global item for deleted folder:', globalItemErr);
+        }
         delete appState.folders[folderId];
     }
 
@@ -414,6 +422,13 @@ import { applyConnections, renderConnectionsLayer } from './srs-connections-core
     // SourceCard (app/dotto/) render it directly and can't reach appState themselves.
     function folderTitle(folderId) {
         return (appState.folders[folderId] && appState.folders[folderId].title) || '';
+    }
+
+    // Same reasoning as folderTitle above, for the new global-id display (global-ids.js) —
+    // CanvasCard/SourceCard read this directly, no store needed since they already re-render on
+    // every canvas update.
+    function folderGlobalId(folderId) {
+        return (appState.folders[folderId] && appState.folders[folderId].globalId) || '';
     }
 
     // Wires up a folder (Canvas) card's wrapper click routing — mechanically lifted out of the old
@@ -955,7 +970,7 @@ import { applyConnections, renderConnectionsLayer } from './srs-connections-core
         applyFolderView(folderId);
     }
 
-export { applyFolderView, applyItemWrapperAttrs, attachFolderCardClick, attachNoteBody, attachSourceCardClick, attachTitleBody, attachUniversalItemBehavior, attachWatermarkBody, attachWaypointCardBody, buildFolderInlineCanvas, cascadeDeleteFolderContents, centerOnContent, deleteCanvasCollabsForFolder, deleteWaypointFromDb, expandWaypointCard, folderTitle, openFolder, performMerge, render, renderSelectedOutlines, startBoxSelection, startRenameFolderCardTitle, syncNoteFormatButtons, syncWaypointToDb };
+export { applyFolderView, applyItemWrapperAttrs, attachFolderCardClick, attachNoteBody, attachSourceCardClick, attachTitleBody, attachUniversalItemBehavior, attachWatermarkBody, attachWaypointCardBody, buildFolderInlineCanvas, cascadeDeleteFolderContents, centerOnContent, deleteCanvasCollabsForFolder, deleteWaypointFromDb, expandWaypointCard, folderGlobalId, folderTitle, openFolder, performMerge, render, renderSelectedOutlines, startBoxSelection, startRenameFolderCardTitle, syncNoteFormatButtons, syncWaypointToDb };
 
 // React → vanilla bridge, the other direction from window-bridge.js (which is specifically the
 // ~107 auto-generated inline onclick="..." names — see its own header comment). CanvasItem
@@ -975,6 +990,7 @@ window.__syncNoteFormatButtons = syncNoteFormatButtons;
 window.__buildFolderInlineCanvas = buildFolderInlineCanvas;
 window.__startRenameFolderCardTitle = startRenameFolderCardTitle;
 window.__folderTitle = folderTitle;
+window.__folderGlobalId = folderGlobalId;
 window.__attachFolderCardClick = attachFolderCardClick;
 window.__attachWaypointCardBody = attachWaypointCardBody;
 window.__attachSourceCardClick = attachSourceCardClick;

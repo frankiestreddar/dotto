@@ -33,11 +33,15 @@ export default function CanvasCard({ it }) {
   });
 
   const liveTitle = window.__folderTitle(it.folderId);
+  const globalId = window.__folderGlobalId(it.folderId);
 
   return (
     <>
-      <div ref={titleRef} className="folder-card-title" title={liveTitle}>
-        {liveTitle}
+      <div className="folder-card-title-row">
+        <div ref={titleRef} className="folder-card-title" title={liveTitle}>
+          {liveTitle}
+        </div>
+        {globalId && <span className="global-id-pill">{globalId}</span>}
       </div>
       <div ref={previewWrapRef} className="folder-card-preview" />
     </>
