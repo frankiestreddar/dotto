@@ -24,6 +24,7 @@
         --card-border:#2E2E2E;
         --bar:#161616;
         --brand:#6366f1; /* Beautiful Indigo */
+        --hmenu-width:280px;
     }
     *{box-sizing:border-box; touch-action: none; user-select:none; -webkit-user-select:none;}
     select, input, .format-bar{touch-action: auto;}
@@ -458,6 +459,19 @@
     #dotto-footer-link:hover{color:var(--ink);text-decoration:underline;}
 
     #btn-menu.active{background:#2E2E2E;color:var(--ink);}
+    /* .active (above) already highlights on hover-preview OR pin, matching every other hover/pin
+       button in the app — this is a separate, narrower class so the icon only swaps to a close
+       affordance once the sidebar is genuinely pinned open (not on a mere hover peek). No
+       close.png asset exists yet, so this borrows the app's existing plain-glyph close-button
+       convention (canvas-modal-close, search-cards-modal-close) rather than an image — swap in a
+       real icon later if one gets added. */
+    #btn-menu .btn-menu-close-icon{display:none;font-size:16px;}
+    #btn-menu.hmenu-full img{display:none;}
+    #btn-menu.hmenu-full .btn-menu-close-icon{display:block;}
+    /* Shifts everything but the menu button itself out of the pinned sidebar's way — a transform
+       on flex children only moves them visually, leaving #top-bar-left's own internal layout and
+       gaps untouched. */
+    #top-bar-left.hmenu-full > *:not(#btn-menu){transform:translateX(calc(var(--hmenu-width) + 20px));transition:transform .3s ease;}
     /* align-items:flex-end: the (deliberately oversized) avatar is anchored to the bottom of the
        circle. No overflow:hidden here — clipping is handled entirely by .profile-avatar-sm's own
        clip-path below, which only follows the button's circular boundary in the bottom 25%; the
@@ -572,12 +586,27 @@
     #profile-upgrade-btn:hover{background:#2a2a2a;}
     .profile-upgrade-crown{width:16px;height:16px;flex:0 0 auto;color:#ffca28;}
     /* #account-menu is fixed-height and never grows; #outline-menu flexes to fill whatever
-       viewport height remains, its tree list scrolling internally. No breadcrumb - the rolling
-       window is always anchored to the live canvas position, not a separate menu-only state. */
-    /* pointer-events:none so this always-in-the-DOM, always-full-height container never blocks
-       clicks over whatever's behind it (e.g. the profile panel, which sits in the same corner)
-       while every panel inside it is closed — each open .hmenu-panel re-enables its own. */
-    #hamburger-stack{position:fixed;top:68px;right:20px;width:240px;z-index:2000;display:flex;flex-direction:column;gap:5px;height:calc(100vh - 100px);pointer-events:none;}
+       height the panel actually has (full viewport when pinned open as a sidebar, capped at
+       60vh when just previewed on hover), its tree list scrolling internally. No breadcrumb -
+       the rolling window is always anchored to the live canvas position, not a separate
+       menu-only state. */
+    /* Two very different shapes for the same panel, both sliding out from the left edge of the
+       screen (Notion-style): hovering near the edge (leftmost 20px, see the pointermove listener
+       in panels-hamburger.js) or hovering #btn-menu itself previews the menu — capped at 60vh,
+       vertically centered, never touching or shifting the top bar. Clicking #btn-menu instead
+       pins it open as a full-height sidebar (.hmenu-full) that also pushes the rest of
+       #top-bar-left out of its way. z-index sits below #top-bar (1000) so #btn-menu — which
+       intentionally never moves — stays visually on top and clickable the whole time, even
+       while the sidebar slides in underneath the top bar's (backgroundless) left cluster; above
+       #world (1) so it fully overlays canvas content. left/top/max-height/transform all
+       transition together — the same properties change (both in value and in which rule is
+       driving them) whether going from closed to preview, closed to full, or preview to full
+       (e.g. hovering into a peek, then clicking to expand it), so every path animates smoothly
+       without needing separate transition rules per path. pointer-events stay off until .open so
+       the always-in-the-DOM container never blocks clicks over the canvas while closed. */
+    #hamburger-stack{position:fixed;left:calc(var(--hmenu-width) * -1);width:var(--hmenu-width);z-index:900;display:flex;flex-direction:column;gap:5px;pointer-events:none;top:50%;max-height:60vh;transform:translateY(-50%);transition:left .3s ease, top .3s ease, max-height .3s ease, transform .3s ease;}
+    #hamburger-stack.open{left:0;pointer-events:auto;}
+    #hamburger-stack.hmenu-full{top:0;max-height:none;height:100vh;transform:none;}
     .hmenu-panel{display:none;width:100%;background:var(--bar);border:1px solid var(--card-border);border-radius:12px;box-shadow:0 4px 16px rgba(0,0,0,0.5);pointer-events:auto;}
     .hmenu-panel.open{display:block;}
     #account-menu{flex:0 0 auto;padding:6px;}

@@ -55,22 +55,20 @@ import { closeSourceAddMenu } from './source-buttons-cursor-mode.js';
     // close path. Named hub-collab (not just "collab") to avoid colliding with the pre-existing
     // #collab-panel/collabPanel (the per-canvas "add a collaborator" flyout off the top bar) — a
     // completely different feature that happens to share the English word.
+    // hmenu-full is what distinguishes the two shapes the panel can take (see #hamburger-stack's
+    // own comment, globals.css): a full-height sidebar pinned open by a click (pushes
+    // #top-bar-left, swaps #btn-menu's icon) vs. a short hover preview that leaves the top bar
+    // completely alone. Applied to all three elements together since each one's CSS keys off it
+    // independently — the panel itself, the button (icon swap), and #top-bar-left (the push).
     function closeHamburgerMenu() {
         appState.outlineMenu.classList.remove('open');
         appState.accountMenu.classList.remove('open');
         appState.hubSubpanels.forEach(p => p.classList.remove('open'));
         appState.hamburgerBtn.classList.remove('active');
+        appState.hamburgerStack.classList.remove('open', 'hmenu-full');
+        appState.hamburgerBtn.classList.remove('hmenu-full');
+        appState.topBarLeft.classList.remove('hmenu-full');
         appState.panelPinned.menu = false;
-    }
-    function positionHamburgerMenu() {
-        const rect = appState.hamburgerBtn.getBoundingClientRect();
-        appState.hamburgerStack.style.top = (rect.bottom + 10) + 'px';
-        const stackWidth = 240;
-        let leftPos = rect.left;
-        if (leftPos + stackWidth > window.innerWidth - 20) leftPos = window.innerWidth - stackWidth - 20;
-        if (leftPos < 20) leftPos = 20;
-        appState.hamburgerStack.style.left = leftPos + 'px';
-        appState.hamburgerStack.style.right = 'auto';
     }
     function openHamburgerMenu(pin) {
         closeAllPanels('menu');
@@ -78,9 +76,14 @@ import { closeSourceAddMenu } from './source-buttons-cursor-mode.js';
         appState.outlineMenu.classList.add('open');
         appState.accountMenu.classList.add('open');
         appState.hamburgerBtn.classList.add('active');
+        appState.hamburgerStack.classList.add('open');
         buildOutline();
-        positionHamburgerMenu();
-        if (pin) appState.panelPinned.menu = true;
+        if (pin) {
+            appState.panelPinned.menu = true;
+            appState.hamburgerStack.classList.add('hmenu-full');
+            appState.hamburgerBtn.classList.add('hmenu-full');
+            appState.topBarLeft.classList.add('hmenu-full');
+        }
     }
     appState.hamburgerBtn.addEventListener('click', (e) => {
         e.stopPropagation();
@@ -94,15 +97,38 @@ import { closeSourceAddMenu } from './source-buttons-cursor-mode.js';
     appState.hubSubpanels.forEach(p => p.addEventListener('mouseleave', () => scheduleHoverClose('menu', appState.hamburgerHoverEls, closeHamburgerMenu)));
     pinOnInsideClick('menu', [appState.outlineMenu, appState.accountMenu, ...appState.hubSubpanels]);
     document.getElementById('hamburger-stack').addEventListener('click', (e) => e.stopPropagation());
+    // Notion-style edge peek: hovering the leftmost 20px of the whole screen previews the menu,
+    // not just hovering the button. A real hit-target element the same width would sit in front
+    // of the canvas and silently block clicks/drags on any card panned into that strip, so this
+    // tracks pointer position passively instead (same idea as the cursor-broadcast pointermove
+    // listener in history-autosave.js) — nothing here ever intercepts a pointer event. Edge-
+    // triggered (only acts when crossing the 20px line, not on every pointermove past it), and
+    // reuses the exact same guard the button's own mouseenter uses so hovering the edge while a
+    // sub-panel (Waypoints/Collaborations) is already open doesn't reset it back to the main view.
+    let nearLeftEdge = false;
+    window.addEventListener('pointermove', (e) => {
+        const inZone = e.clientX < 20;
+        if (inZone === nearLeftEdge) return;
+        nearLeftEdge = inZone;
+        if (inZone) {
+            if (!appState.outlineMenu.classList.contains('open') && !appState.hubSubpanels.some(p => p.classList.contains('open'))) openHamburgerMenu(false);
+        } else {
+            scheduleHoverClose('menu', appState.hamburgerHoverEls, closeHamburgerMenu);
+        }
+    });
     // Shared by the three open*Panel functions below — swaps #account-menu/#outline-menu out for
-    // just the one requested panel.
+    // just the one requested panel. Always pins (a sub-panel is only ever reached by clicking an
+    // #account-menu row, which requires the sidebar to already be open) — see openWaypointsPanel/
+    // openHubCollabPanel below.
     function openHubSubpanel(panel, searchInputEl, renderFn) {
         appState.outlineMenu.classList.remove('open');
         appState.accountMenu.classList.remove('open');
         appState.hubSubpanels.forEach(p => { if (p !== panel) p.classList.remove('open'); });
         panel.classList.add('open');
         appState.hamburgerBtn.classList.add('active');
-        positionHamburgerMenu();
+        appState.hamburgerStack.classList.add('open', 'hmenu-full');
+        appState.hamburgerBtn.classList.add('hmenu-full');
+        appState.topBarLeft.classList.add('hmenu-full');
         appState.panelPinned.menu = true;
         searchInputEl.value = '';
         renderFn('');
