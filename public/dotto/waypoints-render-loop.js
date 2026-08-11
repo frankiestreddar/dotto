@@ -1,5 +1,5 @@
-import { clearSearch, findParentFolderId, truncateCenter } from './ai-assistant-suggestions.js';
-import { appState, breadcrumbs, bringCardToFront, btnBack, btnForward, canvas, contextMenu, supabase, world, zoomControl } from './core-state.js';
+import { clearSearch } from './ai-assistant-suggestions.js';
+import { appState, bringCardToFront, btnBack, btnForward, canvas, contextMenu, supabase, world, zoomControl } from './core-state.js';
 import { setupDraggingAndClicking } from './drag-drop-chat.js';
 import { ensureDrawings, makeLayerSVG } from './drawing-connections.js';
 import { refreshCanvasCollabForCurrentFolder, renderCollabPill, syncCanvasCollabTitle } from './friends-presence.js';
@@ -8,7 +8,7 @@ import { applyTransform, ensureSwTicking, saveSnapshot, scheduleWorkspaceSave, u
 import { broadcastEditingState, miniLabelForItem, placeCaretEnd, renderRealCardPreview, repositionAllRemoteCursors, syncColorPicker } from './live-presence.js';
 import { findNextFreeSlot, setupResizing } from './resize-shortcuts-init.js';
 import { applyScheduleModeWrapperAttrs, SCHEDULE_ALL } from './schedule-view-canvas.js';
-import { ensureSharedFolderLoaded, openBreadcrumbMapPanel } from './shared-canvases-outline.js';
+import { ensureSharedFolderLoaded, renderBreadcrumbMapPanel } from './shared-canvases-outline.js';
 import { closeSourceAddMenu } from './source-buttons-cursor-mode.js';
 import { attachStaticTableHoverZones, layoutSourceTableColumns, renderStaticTableHTML } from './source-table.js';
 import { closeCellTagPicker } from './source-tags-ai.js';
@@ -350,11 +350,11 @@ import { applyConnections, renderConnectionsLayer } from './srs-connections-core
         return viewport;
     }
 
-    // Inline-rename a folder card's title, right on the card — same contentEditable
-    // click-to-edit flow as the breadcrumb rename (see the crumb-item span.onclick further down),
-    // just parameterized on `it.folderId` instead of always being currentFolderId. Writes to the
-    // exact same folders[folderId].title the breadcrumb writes to, so the two stay in sync for
-    // free — no separate propagation needed, they're just two editors of the same property.
+    // Inline-rename a folder/source card's title, right on the card — also reused by the
+    // sidebar's breadcrumb map (BreadcrumbMapPanel.jsx, via window.__startRenameFolderCardTitle)
+    // for renaming the current-folder row, passing a plain {folderId} with no real `.id` — see the
+    // targetSelector guard below. Writes to the exact same folders[folderId].title every one of
+    // these editors shares, so they all stay in sync for free, no separate propagation needed.
     // Guarded on folders[it.folderId] existing at all: a folder card nested INSIDE a canvas
     // someone else shared with you is a static, non-drillable preview (see the sharing scope note
     // in 20260726_add_canvas_collaboration.sql) with no local data to rename in the first place.
@@ -373,7 +373,10 @@ import { applyConnections, renderConnectionsLayer } from './srs-connections-core
             titleEl.textContent = fullTitle;
         }
         titleEl.contentEditable = true;
-        broadcastEditingState(true, `#item-${it.id} .${editingClass}`);
+        // No real `#item-X` wrapper to pin a remote caret indicator to for a sidebar row (it's not
+        // a canvas element) — omitting targetSelector there just falls back to a plain floating
+        // cursor for other viewers, same as the old breadcrumb-title rename always did.
+        broadcastEditingState(true, it.id != null ? `#item-${it.id} .${editingClass}` : undefined);
         titleEl.focus();
         // Same caret-at-end-on-a-deferred-macrotask dance as the breadcrumb rename — see its own
         // comment for why the deferral is load-bearing (a pending native click-to-caret action
@@ -456,105 +459,12 @@ import { applyConnections, renderConnectionsLayer } from './srs-connections-core
         // choice for shared ones (owner still sees it, collaborators don't, rather than everyone).
         const folderOwnerId = folderObj.isSharedView ? folderObj.sharedOwnerId : appState.currentUser.id;
         const currentItems = folderObj.items.filter(it => it.kind !== 'waypoint' || (it.creatorId || folderOwnerId) === appState.currentUser.id);
-        breadcrumbs.innerHTML = '';
-        // ".." opens the full breadcrumb map (see openBreadcrumbMapPanel) rather than jumping
-        // straight to the parent — shown whenever there's anywhere to go: a real structural
-        // parent (see findParentFolderId — reflects the true canvas hierarchy, not navigation
-        // history, so this is correct regardless of how this folder was reached: drilling in, a
-        // waypoint jump, search, or the hamburger menu), or, within a shared tree, always (since
-        // the map's own "Root" row is what gets you home from there — see
-        // renderBreadcrumbMapPanel).
-        const parentFolderId = findParentFolderId(appState.currentFolderId);
-        if (parentFolderId || folderObj.isSharedView) {
-            const dots = document.createElement('span');
-            dots.textContent = '..';
-            dots.className = 'crumb-item';
-            dots.onclick = (e) => {
-                e.stopPropagation();
-                openBreadcrumbMapPanel();
-            };
-            breadcrumbs.appendChild(dots);
-            breadcrumbs.appendChild(document.createTextNode(' / '));
-        }
-        {
-            const id = appState.currentFolderId;
-            const span = document.createElement('span');
-            span.textContent = truncateCenter(appState.folders[id].title, 12);
-            span.className = 'crumb-item';
-            span.onclick = (e) => {
-                e.stopPropagation();
-                // The handler stays attached for the whole edit session (needed so a later click
-                // outside of it, via the blur handler, can commit) — without this guard, EVERY
-                // click while already editing (e.g. clicking elsewhere in the text to reposition
-                // the caret, completely normal mid-edit behavior) would re-run the "enter edit
-                // mode" logic below from scratch: resetting the text back to the last-committed
-                // title (discarding whatever had been typed since) and recomputing a caret
-                // position against that now-mismatched text. That's the actual bug behind the
-                // caret seeming to land in the wrong place — once already editing, just let the
-                // click behave as an ordinary native contentEditable click (reposition the caret
-                // where clicked) and do nothing else.
-                if (span.contentEditable === 'true') return;
-                saveSnapshot();
-                const fullTitle = appState.folders[id].title;
-                // Still-default, never-renamed titles start truly empty with the default shown
-                // only as a CSS placeholder (see .crumb-placeholder:empty::before) — typing the
-                // first character replaces it outright, rather than editing "New Canvas" as if
-                // it were real text the user would need to select/delete first.
-                const isDefaultTitle = fullTitle === 'New Canvas' || fullTitle === 'New Source';
-                if (isDefaultTitle) {
-                    span.textContent = '';
-                    span.setAttribute('data-placeholder', fullTitle);
-                    span.classList.add('crumb-placeholder');
-                } else {
-                    span.textContent = fullTitle;
-                }
-                span.contentEditable = true;
-                broadcastEditingState(true);
-                span.focus();
-                // Entering edit mode always puts the caret at the end (not wherever the click
-                // that triggered entry happened to land) — a click once already editing (see the
-                // early return above) repositions it normally via the browser's own native
-                // click-to-caret behavior instead.
-                //
-                // contentEditable flips to true DURING this same click's dispatch, so the click
-                // still has a pending default action that places the caret at the original click
-                // coordinates — that default action runs AFTER this handler returns, so it wins
-                // over (silently undoes) a selection set synchronously here. Deferring to a
-                // fresh macrotask runs after that default action has already settled, so this
-                // explicit placement is what actually sticks.
-                const placeCaretAtEnd = () => {
-                    const range = document.createRange();
-                    range.selectNodeContents(span);
-                    range.collapse(false);
-                    const sel = window.getSelection();
-                    sel.removeAllRanges();
-                    sel.addRange(range);
-                };
-                placeCaretAtEnd();
-                setTimeout(placeCaretAtEnd, 0);
-                span.onblur = () => {
-                    span.contentEditable = false;
-                    broadcastEditingState(false);
-                    span.classList.remove('crumb-placeholder');
-                    const newTitle = span.textContent.trim();
-                    if (newTitle) { appState.folders[id].title = newTitle; syncCanvasCollabTitle(id, newTitle); }
-                    render();
-                };
-                // Live per-keystroke sync (not a full render() — that would wipe/rebuild #world
-                // mid-edit and risk disrupting the caret, which this rename flow already has
-                // fragile positioning logic for; scheduleWorkspaceSave() alone is enough to reach
-                // collaborators without touching this card's own DOM at all).
-                span.oninput = () => {
-                    const liveTitle = span.textContent;
-                    if (liveTitle.trim()) { appState.folders[id].title = liveTitle; scheduleWorkspaceSave(); }
-                };
-                span.onkeydown = (ke) => {
-                    if (ke.key === 'Enter') { ke.preventDefault(); span.blur(); }
-                    if (ke.key === 'Escape') { ke.preventDefault(); span.textContent = isDefaultTitle ? '' : fullTitle; span.blur(); }
-                };
-            };
-            breadcrumbs.appendChild(span);
-        }
+        // Location/wayfinding now lives entirely in the sidebar's always-visible indented map
+        // (see renderBreadcrumbMapPanel, shared-canvases-outline.js, and BreadcrumbMapPanel.jsx) —
+        // there's no more top-bar breadcrumb pill to rebuild here. The current-folder row's
+        // rename click reuses startRenameFolderCardTitle below, the same flow folder/source cards
+        // already use.
+        renderBreadcrumbMapPanel();
 
         renderCollabPill();
 

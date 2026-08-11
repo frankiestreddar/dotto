@@ -6,7 +6,7 @@ import { renderHubCollabList, renderWaypointsList } from './hamburger-collab.js'
 import { closeCartPanel } from './marketplace.js';
 import { closeMessagesPanel } from './messages-schedule.js';
 import { closeProfilePanel } from './profile-achievements-pricing.js';
-import { buildOutline, closeBreadcrumbMapPanel } from './shared-canvases-outline.js';
+import { buildOutline } from './shared-canvases-outline.js';
 import { closeSourceAddMenu } from './source-buttons-cursor-mode.js';
 
 
@@ -44,7 +44,6 @@ import { closeSourceAddMenu } from './source-buttons-cursor-mode.js';
         if (except !== 'add') closeAddMenu();
         if (except !== 'collab') closeCollabPanel();
         if (except !== 'sourceAdd') closeSourceAddMenu();
-        if (except !== 'breadcrumbMap') closeBreadcrumbMapPanel();
     }
 
     // ---------- Hamburger Menu Controls ----------

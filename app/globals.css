@@ -165,12 +165,10 @@
     #top-bar{position:fixed;top:20px;left:20px;right:20px;z-index:1000;display:grid;grid-template-columns:minmax(max-content,1fr) minmax(0,426px) minmax(max-content,1fr);align-items:center;gap:10px;height:40px;}
     #top-bar-left{display:flex;align-items:center;gap:10px;min-width:0;justify-self:start;}
     #top-bar-right{display:flex;align-items:center;gap:10px;justify-self:end;}
-    #breadcrumbs{padding:0 12px;font-size:14px;color:var(--ink-soft);flex:0 0 auto;width:max-content;max-width:35vw;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;height:40px;align-items:center;display:flex;}
-    .crumb-item{cursor:pointer;padding:2px 4px;border-radius:4px;outline:none;}
-    .crumb-item:hover{background:#333;color:white;}
-    /* Shown only while the current-folder crumb is empty (its still-default title, being edited
-       for the first time) — disappears the instant real text exists, since :empty then no
-       longer matches. */
+    /* Shown only while a title being edited is empty (its still-default text, being renamed for
+       the first time) — disappears the instant real text exists, since :empty then no longer
+       matches. Shared by every click-to-edit title in the app (folder/source cards, and now the
+       sidebar breadcrumb's current row) via startRenameFolderCardTitle. */
     .crumb-placeholder:empty::before{content:attr(data-placeholder);color:var(--ink-soft);pointer-events:none;}
     /* min-width:0 overrides the grid default (min-width:auto, which floors a grid item at its
        content's min-content size) so this can actually shrink down through its whole range
@@ -178,18 +176,13 @@
        is load-bearing, not decorative — #search-dropdown positions itself absolutely off this
        box (top:49px;left:0;right:0), so this has to stay the nearest positioned ancestor. */
     #search-bar{position:relative;width:426px;max-width:100%;min-width:0;margin:0 auto;display:flex;flex-direction:column;align-items:stretch;transition: width 0.1s ease;}
-    /* Opened by clicking ".." in the breadcrumb (see render()'s breadcrumb block and
-       openBreadcrumbMapPanel) — positioned via JS off #breadcrumbs' own rect (see
-       positionBreadcrumbMapPanel), same fixed-dropdown convention as #collab-panel. Replaces the
-       old "jump straight to the parent" behavior with a full indented map of the current path,
-       always anchored by the user's own root at the top so there's always a way home even from
-       deep inside someone else's canvas. */
-    #breadcrumb-map-panel{display:none;position:fixed;min-width:220px;max-width:320px;max-height:min(420px, calc(100vh - 100px));background:var(--bar);border:1px solid var(--card-border);border-radius:12px;z-index:2000;box-shadow:0 4px 16px rgba(0,0,0,0.5);overflow-y:auto;padding:6px;}
-    #breadcrumb-map-panel.open{display:block;}
+    /* Indented ancestor-path rows inside #breadcrumb-menu (hamburger-stack.html) — see its own
+       comment there and renderBreadcrumbMapPanel (shared-canvases-outline.js). The current row
+       doubles as a rename control (cursor:text hints at that, matching a real text field) instead
+       of being unclickable like the others. */
     .breadcrumb-map-row{display:flex;align-items:center;gap:8px;padding:7px 10px;padding-left:calc(10px + var(--map-indent, 0px));border-radius:8px;cursor:pointer;font-size:13px;color:var(--ink-soft);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
     .breadcrumb-map-row:hover{background:#333;color:var(--ink);}
-    .breadcrumb-map-row.current{color:var(--ink);font-weight:600;cursor:default;}
-    .breadcrumb-map-row.current:hover{background:none;}
+    .breadcrumb-map-row.current{color:var(--ink);font-weight:600;cursor:text;}
     #btn-menu{background:var(--bar);border:1px solid var(--card-border);border-radius:10px;height:40px;width:40px;flex:0 0 auto;}
     #btn-cart{background:var(--bar);border:1px solid var(--card-border);border-radius:10px;height:40px;width:40px;flex:0 0 auto;}
     #btn-cart.active{background:#2E2E2E;color:var(--ink);}
@@ -616,14 +609,22 @@
     #hamburger-stack{position:fixed;left:calc(var(--hmenu-width) * -1);width:var(--hmenu-width);z-index:900;display:flex;flex-direction:column;gap:5px;pointer-events:none;top:50%;max-height:60vh;padding-top:0;transform:translateY(-50%);transition:left .3s ease;}
     #hamburger-stack.open{left:0;pointer-events:auto;}
     #hamburger-stack.hmenu-full{top:0;max-height:none;height:100vh;padding-top:60px;gap:0;transform:none;background:var(--bar);border-right:1px solid var(--card-border);}
-    .hmenu-panel{display:none;width:100%;background:var(--bar);border:1px solid var(--card-border);border-radius:12px;box-shadow:0 4px 16px rgba(0,0,0,0.5);pointer-events:auto;}
+    .hmenu-panel, .hmenu-persistent-panel{width:100%;background:var(--bar);border:1px solid var(--card-border);border-radius:12px;box-shadow:0 4px 16px rgba(0,0,0,0.5);pointer-events:auto;}
+    .hmenu-panel{display:none;}
     .hmenu-panel.open{display:block;}
+    /* Unlike .hmenu-panel (toggled per hamburger sub-view — account-menu vs. Waypoints vs.
+       Collaborations), a persistent panel has no .open gate: it's meant to stay visible
+       throughout, in both preview and full mode, regardless of which sub-view is showing below
+       it — currently only #breadcrumb-menu (hamburger-stack.html). */
+    .hmenu-persistent-panel{flex:0 0 auto;display:block;}
     /* Inside the full sidebar shell, panels are sections of one continuous surface, not
        independently-carded floating panels — the shell above already supplies the
-       background/edge; #account-menu keeps a divider instead of its own border, same
-       section-divider convention as .hub-subpanel-search-wrap below. */
-    #hamburger-stack.hmenu-full .hmenu-panel{background:transparent;border:none;border-radius:0;box-shadow:none;}
-    #hamburger-stack.hmenu-full #account-menu{border-bottom:1px solid var(--card-border);}
+       background/edge; #account-menu/#breadcrumb-menu keep a divider instead of their own
+       border, same section-divider convention as .hub-subpanel-search-wrap below. */
+    #hamburger-stack.hmenu-full .hmenu-panel, #hamburger-stack.hmenu-full .hmenu-persistent-panel{background:transparent;border:none;border-radius:0;box-shadow:none;}
+    #hamburger-stack.hmenu-full #account-menu, #hamburger-stack.hmenu-full #breadcrumb-menu{border-bottom:1px solid var(--card-border);}
+    #breadcrumb-menu{max-height:160px;overflow-y:auto;padding:6px 4px;scrollbar-width:none;}
+    #breadcrumb-menu::-webkit-scrollbar{display:none;}
     #account-menu{flex:0 0 auto;padding:6px;}
     #account-menu .hmenu-item{height:40px;box-sizing:border-box;}
     #outline-menu{flex:1 1 auto;min-height:0;overflow:hidden;}
