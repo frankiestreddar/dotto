@@ -3,6 +3,7 @@ import { copySelectedCards, cutSelectedCards, pasteClipboardCards } from './copy
 import { appState, canvas, canvasContextMenu, contextMenu, dotLayer, recomputeTopCardZIndex, supabase, world, zoomFill, zoomThumb, zoomTrack } from './core-state.js';
 import { cancelDotbotScheduleConversation } from './dotbot-schedule-notifications.js';
 import { resolveTableForEdit } from './drawing-connections.js';
+import { generateGlobalId } from './global-ids.js';
 import { resolveSharedFolderChain } from './hamburger-collab.js';
 import { broadcastCursorPositionThrottled, closeSharedCanvasView, ensureCanvasPresenceChannel, findItemById, queueSyncDiff, repositionAllRemoteCursors } from './live-presence.js';
 import { exitScheduleViewMode } from './messages-schedule.js';
@@ -88,6 +89,13 @@ import { centerOnContent, render } from './waypoints-render-loop.js';
         // since that key wouldn't mean anything on a fresh load without re-fetching.
         const localFolders = {};
         for (const id in appState.folders) { if (!id.startsWith('shared:')) localFolders[id] = appState.folders[id]; }
+        // Backfills globalId (global-ids.js) on any local folder that doesn't have one yet — every
+        // canvas/source created through add()/deepCloneItem already gets one immediately, but the
+        // built-in 'root' canvas (declared directly in core-state.js, which can't import this —
+        // see its own comment on why) and anything saved before this feature existed never did.
+        // Mutates the same objects localFolders already points at, so this doubles as fixing
+        // appState.folders itself, not just what gets sent below.
+        for (const id in localFolders) { if (!localFolders[id].globalId) localFolders[id].globalId = generateGlobalId(); }
         const resumeFolderId = appState.preSharedViewState ? appState.preSharedViewState.currentFolderId : appState.currentFolderId;
         const resumeStack = appState.preSharedViewState ? appState.preSharedViewState.historyStack : appState.historyStack;
         const resumeIndex = appState.preSharedViewState ? appState.preSharedViewState.historyIndex : appState.historyIndex;
@@ -121,6 +129,24 @@ import { centerOnContent, render } from './waypoints-render-loop.js';
             updated_at: new Date().toISOString()
         });
         if (error) console.error('[workspace] save failed:', error);
+
+        // Lazy global-id registration (global-ids.js) — every local folder, every save. Simpler
+        // than tracking which ones already round-tripped successfully, at the cost of one cheap
+        // upsert-per-folder on every save cycle; register_global_items batches them into a single
+        // RPC call regardless of how many there are. Best-effort: a failure here (including a
+        // genuine cross-owner id collision — see the migration's own comment) doesn't block or
+        // roll back the real workspace save above, it just retries again next cycle with whatever
+        // globalId is on the folder at that point.
+        const globalItems = Object.keys(localFolders).map(id => ({
+            global_id: localFolders[id].globalId,
+            folder_id: id,
+            kind: localFolders[id].isSource ? 'source' : 'canvas',
+            title: localFolders[id].title || '',
+        }));
+        if (globalItems.length) {
+            const { error: globalItemsErr } = await supabase.rpc('register_global_items', { p_items: globalItems });
+            if (globalItemsErr) console.error('[global-ids] registration failed:', globalItemsErr);
+        }
 
         // A currently-open shared canvas is saved separately — patches just that one folder in
         // the OWNER's own workspace row (see update_shared_folder), never this user's own.

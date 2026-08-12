@@ -1417,7 +1417,15 @@
        still reaches the card's edges (left/right/bottom) instead of sitting inset like a normal
        card body. */
     .item.folder{width:448px;height:280px;padding:0;overflow:hidden;}
-    .folder-card-title{flex:0 0 auto;padding:8px 12px;font-weight:600;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;border-bottom:1px solid var(--card-border);cursor:text;outline:none;}
+    /* Title bar row: the contentEditable title itself (still the exact element
+       attachFolderCardClick/startRenameFolderCardTitle operate on — clicking it renames, clicking
+       elsewhere on the card navigates in, same closest('.folder-card-title') check as before,
+       unaffected by the id pill now sitting alongside it as a sibling rather than inside it) plus
+       the faint global-id pill (see global-ids.js), which deliberately sits OUTSIDE
+       .folder-card-title so clicking it falls through to the normal "navigate in" behavior
+       instead of triggering rename. */
+    .folder-card-title-row{flex:0 0 auto;display:flex;align-items:center;gap:8px;padding:0 12px;border-bottom:1px solid var(--card-border);}
+    .folder-card-title{flex:1 1 auto;min-width:0;padding:8px 0;font-weight:600;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:text;outline:none;}
     .folder-card-title:hover{background:#242424;}
     /* Positioning context for .msg-inline-canvas below (position:absolute;inset:0) — without this,
        .item's own position:absolute would be the nearest positioned ancestor instead, and the
@@ -1436,6 +1444,10 @@
     .source-card-title{font-weight:600;font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;cursor:text;outline:none;}
     .source-card-title:hover{text-decoration:underline;text-decoration-color:var(--card-border);}
     .source-card-count{font-size:11px;opacity:0.65;}
+    /* Faint global-id display (see global-ids.js) on both canvas and source cards — monospace
+       reads as "this is a code," not prose, same reasoning as .market-item-meta's identical
+       font-family choice. */
+    .global-id-pill{font-size:9px;font-family:monospace;color:var(--ink-soft);opacity:0.55;letter-spacing:0.02em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 
     .item.table{background:var(--paper);box-shadow:none;padding:0;overflow:visible;}
     .item.table.static-table{padding:96px 16px 16px 16px;}

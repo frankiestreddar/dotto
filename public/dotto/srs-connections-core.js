@@ -4,6 +4,7 @@ import { removePlacementGhost } from './copy-paste.js';
 import { addMenu, appState, btnAdd, canvas, drawBackBtn, drawColorInput, drawEraserBtn, drawFrontBtn, drawPenBtn, drawSettings, drawSizeInput, effectiveMode, world, zoomTrack } from './core-state.js';
 import { computeConnectorPoints, createConnection, ensureConnections, ensureDrawings, findLinkedTable, findTableById, itemRect, makeLayerSVG, pathNearPoint, pointsToLinePath, pointsToPath } from './drawing-connections.js';
 import { defaultFlashcardDeck } from './games-flashcard-typeright.js';
+import { generateGlobalId } from './global-ids.js';
 import { applyTransform, saveSnapshot, scheduleApplyTransform } from './history-autosave.js';
 import { broadcastEditingState } from './live-presence.js';
 import { awardUserPoints, bumpAchievementStat } from './profile-achievements-pricing.js';
@@ -747,7 +748,9 @@ import { render, renderSelectedOutlines, startBoxSelection, syncWaypointToDb } f
         if (kind === 'title') { base.html = ''; base.level = 1; }
         else if (kind === 'folder') {
             const fid = 'folder-' + appState.idCounter++;
-            appState.folders[fid] = { id: fid, title: 'New Canvas', items: [], drawings: [], collaborators: [] };
+            // globalId: see global-ids.js — assigned at creation, same as every other id here
+            // (fully local/synchronous), registered with the server lazily on the next autosave.
+            appState.folders[fid] = { id: fid, title: 'New Canvas', items: [], drawings: [], collaborators: [], globalId: generateGlobalId() };
             base.folderId = fid;
         }
         else if (kind === 'source') {
@@ -756,7 +759,7 @@ import { render, renderSelectedOutlines, startBoxSelection, syncWaypointToDb } f
                 // Header cells start blank — "Column 1"/"Column 2" show only as placeholder
                 // text (see renderStaticTableHTML) until the user actually names them.
                 { id: appState.idCounter++, x: 28, y: 28, w: 560, h: 360, kind: 'table', tableData: [['', ''], ['', ''], ['', ''], ['', '']] }
-            ], drawings: [], collaborators: [] };
+            ], drawings: [], collaborators: [], globalId: generateGlobalId() };
             base.folderId = fid;
         }
         else if (kind === 'table') { base.tableData = [['', '', ''], ['', '', ''], ['', '', '']]; base.w = null; base.h = null; }
@@ -801,6 +804,7 @@ import { render, renderSelectedOutlines, startBoxSelection, syncWaypointToDb } f
             const newFolder = JSON.parse(JSON.stringify(srcFolder));
             newFolder.id = newFid;
             newFolder.collaborators = []; // a duplicate starts with no collaborators of its own
+            newFolder.globalId = generateGlobalId(); // a duplicate is independent content, not the same shareable item
             delete newFolder.isSharedView; delete newFolder.sharedOwnerId; delete newFolder.sharedRemoteFolderId;
             newFolder.items = srcFolder.items.map(deepCloneItem); // recursive — nested folders/sources get their own fresh folder ids too
             appState.folders[newFid] = newFolder;
