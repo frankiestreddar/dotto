@@ -145,7 +145,12 @@ import { centerOnContent, render } from './waypoints-render-loop.js';
         }));
         if (globalItems.length) {
             const { error: globalItemsErr } = await supabase.rpc('register_global_items', { p_items: globalItems });
-            if (globalItemsErr) console.error('[global-ids] registration failed:', globalItemsErr);
+            // Spelled out explicitly rather than logging the PostgrestError object directly — its
+            // own useful fields (message/code/details/hint) don't reliably show up that way, see
+            // ensureSharedFolderLoaded's identical comment (shared-canvases-outline.js). A "does
+            // not exist" message here almost always means the 20260812_add_global_items.sql
+            // migration hasn't been applied to the actual Supabase project yet, not a real bug.
+            if (globalItemsErr) console.error(`[global-ids] registration failed: message=${globalItemsErr.message} code=${globalItemsErr.code} details=${globalItemsErr.details} hint=${globalItemsErr.hint}`);
         }
 
         // A currently-open shared canvas is saved separately — patches just that one folder in
