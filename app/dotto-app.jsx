@@ -12,6 +12,7 @@ import {
   cellTagPickerListStore,
   collabListStore,
   collabPillStore,
+  commandPaletteStore,
   dictionaryPanelStore,
   dotbotAnswerStore,
   examplesPanelStore,
@@ -43,6 +44,7 @@ import CanvasResultsPanel from "./dotto/CanvasResultsPanel";
 import CellTagPickerList from "./dotto/CellTagPickerList";
 import CollabListPanel from "./dotto/CollabListPanel";
 import CollabPill from "./dotto/CollabPill";
+import CommandPalette from "./dotto/CommandPalette";
 import DictionaryPanel from "./dotto/DictionaryPanel";
 import DotbotAnswerPanel from "./dotto/DotbotAnswerPanel";
 import ErrorBoundary from "./dotto/ErrorBoundary";
@@ -193,6 +195,11 @@ if (typeof window !== "undefined") {
   // (search-orchestration-selection.js) reads its rows via querySelectorAll synchronously on
   // every arrow/digit/Enter keypress.
   window.__setCanvasResults = (state) => flushSync(() => canvasResultsStore.set(state));
+  // #search-command-palette (see app/dotto/CommandPalette.jsx, command-palette.js's
+  // updateCommandPalette) — same two reasons as __setCanvasResults right above: a real portal,
+  // and search-orchestration-selection.js's command-mode keydown branches read its rows via
+  // querySelectorAll synchronously right after this is called.
+  window.__setCommandPalette = (state) => flushSync(() => commandPaletteStore.set(state));
   window.__setSearchSuggestions = (state) => flushSync(() => searchSuggestionsStore.set(state));
   // Add-to-source popup (see app/dotto/AddToSourcePopup.jsx, addToSourcePopupStore) — MUST be
   // flushSync: openAddToSourcePopup (search-orchestration-selection.js) calls
@@ -302,6 +309,7 @@ export default function DottoApp({ sections, currentUser }) {
       <ErrorBoundary name="DotbotAnswerPanel"><DotbotAnswerPanel /></ErrorBoundary>
       <ErrorBoundary name="ImageResultPanel"><ImageResultPanel /></ErrorBoundary>
       <ErrorBoundary name="CanvasResultsPanel"><CanvasResultsPanel /></ErrorBoundary>
+      <ErrorBoundary name="CommandPalette"><CommandPalette /></ErrorBoundary>
       <ErrorBoundary name="SearchSuggestionsPanel"><SearchSuggestionsPanel /></ErrorBoundary>
       <ErrorBoundary name="AddToSourcePopup"><AddToSourcePopup /></ErrorBoundary>
       <ErrorBoundary name="WaypointsListPanel"><WaypointsListPanel /></ErrorBoundary>

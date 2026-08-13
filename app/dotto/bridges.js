@@ -106,6 +106,15 @@ export const imageResultStore = createStore(null);
 // code) are fine — React's portal only owns the CHILDREN, never the target node's own attributes.
 export const canvasResultsStore = createStore(null);
 
+// #search-command-palette (public/dotto/command-palette.js's updateCommandPalette) —
+// { rows: [...] } | null, the slash-command live suggestions list. Same "genuine JSX rows via
+// createPortal" reasoning as canvasResultsStore right above (real list identity, clicked rows
+// need their own onClick) — see CommandPalette.jsx. Row selection (click, or Enter on an
+// arrow-selected row) always calls back into vanilla via window.__selectCommandRow
+// (command-palette.js) rather than executing anything in the component itself, same "React
+// renders, vanilla owns the app-state mutation" split as every other bridge here.
+export const commandPaletteStore = createStore(null);
+
 // #search-suggestions — shared by 6 different producers across 4 files (live AI suggestions, the
 // mnemonic story/loading/error trio, a Dotbot scheduling-conversation prompt, and an orchestrate
 // error), so this holds a small discriminated union ({kind, ...}) rather than one plain value —

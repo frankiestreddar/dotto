@@ -108,6 +108,11 @@
         activeConvoId: null,
         msgView: 'main',
         searchActiveIndex: -1,
+        // Same idea as searchActiveIndex right above, for #search-command-palette's own row list
+        // (see command-palette.js) — a separate tracker since the two panels are never both
+        // meaningfully arrow-navigable at once (command mode replaces the normal search flow
+        // entirely, see handleSearchInput's new branch).
+        commandActiveIndex: -1,
         dotbotAlignedRegistry: [],
         dotbotSearchGeneration: 0,
         preSharedViewState: null,
@@ -321,6 +326,7 @@
         shelfRowClickTimer: null,
         searchInput: document.getElementById('search-input'),
         searchResults: document.getElementById('search-results'),
+        searchCommandPalette: document.getElementById('search-command-palette'),
         searchDotbotAnswer: document.getElementById('search-dotbot-answer'),
         searchTranslation: document.getElementById('search-translation'),
         searchDictionary: document.getElementById('search-dictionary'),

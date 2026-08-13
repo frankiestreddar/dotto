@@ -1,3 +1,4 @@
+import { updateCommandPalette } from './command-palette.js';
 import { appState, canvas } from './core-state.js';
 import { saveSnapshot, scheduleWorkspaceSave } from './history-autosave.js';
 import { findItemById } from './live-presence.js';
@@ -226,7 +227,7 @@ import { render } from './waypoints-render-loop.js';
     }
     function updateSearchDropdown() {
         if (!appState.searchDropdown) return;
-        const panels = [appState.searchDotbotAnswer, appState.searchResults, appState.searchTranslation, appState.searchDictionary, appState.searchExamples, appState.searchImageResult, appState.searchSuggestions, appState.searchRecommended].filter(Boolean);
+        const panels = [appState.searchCommandPalette, appState.searchDotbotAnswer, appState.searchResults, appState.searchTranslation, appState.searchDictionary, appState.searchExamples, appState.searchImageResult, appState.searchSuggestions, appState.searchRecommended].filter(Boolean);
         const visible = panels.some(el => el.style.display !== 'none');
         appState.searchDropdown.classList.toggle('visible', visible);
     }
@@ -258,6 +259,18 @@ import { render } from './waypoints-render-loop.js';
         autoGrowSearchInput();
         updateSearchSpaceHint();
         if (appState.dotbotScheduleConversation) return; // typing the "when" reply — not a search query
+        // Slash commands (see command-palette.js) take over the box entirely — none of the normal
+        // canvas-match/live-suggestion machinery below applies, and any of its panels left over
+        // from before "/" was typed need clearing so they don't linger behind the command palette.
+        if (value.startsWith('/')) {
+            hideDotbotResultPanels();
+            window.__setCanvasResults(null);
+            window.__setSearchSuggestions(null);
+            updateCommandPalette(value);
+            updateSearchDropdown();
+            return;
+        }
+        window.__setCommandPalette(null);
         const folderObj = appState.folders[appState.currentFolderId];
         if (!folderObj) return;
         hideDotbotResultPanels();

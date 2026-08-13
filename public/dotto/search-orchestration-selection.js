@@ -1,4 +1,5 @@
 import { clearSearch, escapeHtml, handleSearchFocus, setSearchActive, stripHtml, updateSearchDropdown } from './ai-assistant-suggestions.js';
+import { executeCurrentCommand, setCommandActive } from './command-palette.js';
 import { appState } from './core-state.js';
 import { cancelDotbotScheduleConversation, submitDotbotScheduleAnswer } from './dotbot-schedule-notifications.js';
 import { ensureConnections } from './drawing-connections.js';
@@ -440,6 +441,27 @@ import { render } from './waypoints-render-loop.js';
                 return;
             }
             if (e.key === 'Escape') { clearSearch(); return; }
+            // Slash-command mode (see command-palette.js) — Arrow/Enter get their own meaning
+            // here (navigate/execute a command) instead of falling through to the
+            // #search-results-specific logic below, which stays harmlessly inert anyway (that
+            // panel is always hidden while a command is being typed — see handleSearchInput's own
+            // command branch) but this is clearer than relying on that. Every other key (typing,
+            // Backspace, Tab, ...) intentionally falls through to the textarea's normal behavior —
+            // nothing here should ever swallow an edit keystroke.
+            if (appState.searchInput.value.startsWith('/')) {
+                if (e.key === 'ArrowDown' && appState.searchCommandPalette.style.display === 'block') { e.preventDefault(); setCommandActive(appState.commandActiveIndex + 1); return; }
+                if (e.key === 'ArrowUp' && appState.searchCommandPalette.style.display === 'block') { e.preventDefault(); setCommandActive(appState.commandActiveIndex - 1); return; }
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    if (appState.searchCommandPalette.style.display === 'block' && appState.commandActiveIndex >= 0) {
+                        const items = Array.from(appState.searchCommandPalette.querySelectorAll('.command-palette-row'));
+                        const target = items[appState.commandActiveIndex];
+                        if (target) { target.click(); return; }
+                    }
+                    executeCurrentCommand(appState.searchInput.value);
+                    return;
+                }
+            }
             // Mirrors the global Enter-to-open shortcut (see the document-level keydown handler,
             // which only fires while nothing's focused) — once the box itself is focused and still
             // empty, Enter closes it back up instead of submitting, so the same key toggles the

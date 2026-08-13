@@ -40,6 +40,10 @@
             <div id="search-notification-root"></div>
         </div>
         <div id="search-dropdown">
+            <!-- Slash-command live suggestions (see command-palette.js) — first, so it visually
+                 leads whenever there's a "/" command being typed rather than appearing after
+                 unrelated search-result panels. -->
+            <div id="search-command-palette"></div>
             <div id="search-dotbot-answer"></div>
             <div id="search-results"></div>
             <div id="search-translation"></div>
