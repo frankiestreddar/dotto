@@ -86,9 +86,13 @@ import { centerOnContent, render } from './waypoints-render-loop.js';
         // workspace row, only patched back to the OWNER's via update_shared_folder below. While
         // one is open, the "resume here" fields also fall back to wherever this user's own
         // navigation was just before entering it (preSharedViewState), not the shared key itself,
-        // since that key wouldn't mean anything on a fresh load without re-fetching.
+        // since that key wouldn't mean anything on a fresh load without re-fetching. public:
+        // entries (openPublicCanvas, shared-canvases-outline.js) get the same exclusion but for a
+        // stronger reason: there's no update_public_folder counterpart at all to patch one back
+        // to — a public view is read-only and never persisted anywhere, so it must never even be
+        // attempted here.
         const localFolders = {};
-        for (const id in appState.folders) { if (!id.startsWith('shared:')) localFolders[id] = appState.folders[id]; }
+        for (const id in appState.folders) { if (!id.startsWith('shared:') && !id.startsWith('public:')) localFolders[id] = appState.folders[id]; }
         // Backfills globalId (global-ids.js) on any local folder that doesn't have one yet — every
         // canvas/source created through add()/deepCloneItem already gets one immediately, but the
         // built-in 'root' canvas (declared directly in core-state.js, which can't import this —

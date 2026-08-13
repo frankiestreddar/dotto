@@ -136,6 +136,82 @@ import { applyFolderView, centerOnContent, expandWaypointCard, openFolder, rende
             message: `Collaborating on "${folderObj.title}" with ${ownerName}${othersCount > 0 ? ` and ${othersCount} ${othersCount === 1 ? 'other' : 'others'}` : ''}.`,
         });
     }
+
+    // ---------- Publicly-shared canvases (see set_global_item_visibility/global_items,
+    // 20260812_add_global_items.sql, and resolve_global_id/get_public_folder,
+    // 20260813_add_global_id_resolution.sql) ----------
+    // A second, deliberately much narrower sharing mode alongside the collaboration system above:
+    // an owner can mark a specific canvas/source public, after which ANYONE can view it read-only
+    // by its exact global id — never by name, and never inherited by nested items automatically.
+    // Each nested folder/source has its own independent visibility flag; get_public_folder's own
+    // gate is per-(owner,folder), so navigating into a nested item here only works if THAT item
+    // was separately marked public too — no cascading, unlike canvas_access_status's inheritance
+    // for the private-collaboration case above. Same local-namespaced-key reuse trick as the
+    // shared: convention, under its own public: prefix — and, critically, NEVER written back
+    // anywhere: saveWorkspaceNow's own filter excludes public: keys the same way it already
+    // excludes shared: ones (history-autosave.js), and there is no update_public_folder RPC at
+    // all. Leaving and coming back forgets it completely — nothing about a public view is ever
+    // persisted, locally or remotely, matching "obtain" on a public item being a one-off,
+    // no-lasting-record read (see the slash-command plan's own "obtain" semantics).
+    function publicFolderKey(ownerId, folderId) { return `public:${ownerId}:${folderId}`; }
+    function parsePublicFolderKey(key) {
+        const parts = key.split(':');
+        return { ownerId: parts[1], remoteFolderId: parts.slice(2).join(':') };
+    }
+    // No stripPublicFolderIds/fullyUnwrapPublicFolderId counterpart to the shared: versions above
+    // — those exist only because a shared folder's edits get written BACK to the owner's canonical
+    // (bare-id) storage via update_shared_folder, which needs the unwrap. A public: id never gets
+    // written anywhere, so it never needs unwrapping either.
+    function namespacePublicFolderIds(ownerId, items) {
+        return (items || []).map(it => (it.kind === 'folder' || it.kind === 'source')
+            ? { ...it, folderId: publicFolderKey(ownerId, it.folderId) }
+            : it);
+    }
+    function injectPublicFolder(ownerId, remoteFolderId, data) {
+        const localKey = publicFolderKey(ownerId, remoteFolderId);
+        const items = namespacePublicFolderIds(ownerId, data.items);
+        appState.folders[localKey] = { ...data, items, id: localKey, title: data.title || remoteFolderId, collaborators: [], isPublicView: true, publicOwnerId: ownerId, publicRemoteFolderId: remoteFolderId };
+        return localKey;
+    }
+    async function ensurePublicFolderLoaded(localKey) {
+        if (appState.folders[localKey]) return true;
+        if (!supabase || !appState.currentUser.id) return false;
+        const { ownerId, remoteFolderId } = parsePublicFolderKey(localKey);
+        const { data, error } = await supabase.rpc('get_public_folder', { p_owner_id: ownerId, p_folder_id: remoteFolderId });
+        if (error || !data) {
+            console.error(`[public] failed to load public folder (owner=${ownerId} folder=${remoteFolderId}):`,
+                error ? `message=${error.message} code=${error.code} details=${error.details} hint=${error.hint}` : 'no data returned (not public, or deleted?)');
+            return false;
+        }
+        injectPublicFolder(ownerId, remoteFolderId, data);
+        return true;
+    }
+    // Entry point for the future "/source|canvas <id>" obtain command on a public item that isn't
+    // the caller's own and isn't shared with them (see command-verbs.js, not built yet — this PR
+    // is plumbing only, nothing calls this yet). Unlike openSharedCanvas, never announces a
+    // collaboration (this isn't one) — reuses preSharedViewState purely as "where to resume when
+    // backing out of someone else's read-only content," the same resume slot a shared view uses,
+    // since the two cases need identical resume behavior and there's no reason to duplicate it.
+    async function openPublicCanvas(ownerId, folderId, title) {
+        if (!supabase || !appState.currentUser.id) return;
+        const { data, error } = await supabase.rpc('get_public_folder', { p_owner_id: ownerId, p_folder_id: folderId });
+        if (error || !data) {
+            console.error(`[public] failed to open public canvas (owner=${ownerId} folder=${folderId}):`,
+                error ? `message=${error.message} code=${error.code} details=${error.details} hint=${error.hint}` : 'no data returned (not public, or deleted?)');
+            return;
+        }
+        const localKey = injectPublicFolder(ownerId, folderId, data);
+        if (title) appState.folders[localKey].title = data.title || title;
+        const isFreshEntry = !appState.preSharedViewState;
+        if (isFreshEntry) appState.preSharedViewState = { currentFolderId: appState.currentFolderId, historyStack: appState.historyStack.slice(), historyIndex: appState.historyIndex };
+        appState.currentFolderId = localKey;
+        appState.historyStack = [localKey];
+        appState.historyIndex = 0;
+        closeHamburgerMenu();
+        render();
+        centerOnContent();
+    }
+
     // Leaves the WHOLE shared tree (not just its top level) and lands on the user's own ACTUAL
     // root — not wherever they happened to be right before entering (that distinction used to
     // matter when this was reachable via the breadcrumb "..", but the breadcrumb map's "Root" row
@@ -143,7 +219,10 @@ import { applyFolderView, centerOnContent, expandWaypointCard, openFolder, rende
     // affordance, always available regardless of how deep into someone else's canvas you are).
     function exitSharedCanvasToRoot() {
         if (!appState.preSharedViewState) return;
-        for (const id in appState.folders) { if (id.startsWith('shared:')) delete appState.folders[id]; }
+        // public: entries (openPublicCanvas above) reuse this same preSharedViewState resume slot
+        // and need the identical cleanup — they're never persisted anywhere, so simply dropping
+        // them from memory here is the whole story, no server-side "leave" call needed.
+        for (const id in appState.folders) { if (id.startsWith('shared:') || id.startsWith('public:')) delete appState.folders[id]; }
         appState.preSharedViewState = null;
         appState.currentFolderId = 'root';
         appState.historyStack = ['root'];
@@ -500,7 +579,7 @@ import { applyFolderView, centerOnContent, expandWaypointCard, openFolder, rende
         }
     }
 
-export { announceEnteredCollaboration, breadcrumbMapRowClick, buildOutline, ensureSharedFolderLoaded, goToOutlineItem, jumpToHistoryIndex, kindIconFile, kindIconHTML, kindTypeLabel, namespaceSharedFolderIds, openSharedCanvas, parseSharedFolderKey, renderBreadcrumbMapPanel, setOutlineActive, sharedFolderKey, stripSharedFolderIds, toggleHamburgerMenu };
+export { announceEnteredCollaboration, breadcrumbMapRowClick, buildOutline, ensurePublicFolderLoaded, ensureSharedFolderLoaded, goToOutlineItem, jumpToHistoryIndex, kindIconFile, kindIconHTML, kindTypeLabel, namespacePublicFolderIds, namespaceSharedFolderIds, openPublicCanvas, openSharedCanvas, parsePublicFolderKey, parseSharedFolderKey, publicFolderKey, renderBreadcrumbMapPanel, setOutlineActive, sharedFolderKey, stripSharedFolderIds, toggleHamburgerMenu };
 
 window.__kindIconFile = kindIconFile;
 window.__kindTypeLabel = kindTypeLabel;
