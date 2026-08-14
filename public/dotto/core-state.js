@@ -359,6 +359,10 @@
         dotbotAlignHighlightOn: true,
         dotbotSuggestDebounceTimer: null,
         dotbotSuggestAbortController: null,
+        // Same idea as dotbotSuggestDebounceTimer above, for the slash-command palette's nested
+        // shared-tree name search (search_accessible_by_name RPC) — see
+        // scheduleSharedCommandSuggestions, command-palette.js.
+        commandSuggestDebounceTimer: null,
         dotbotMnemonicPair: { text: null, image: null },
         TYPEWRITER_LOADING_WORDS: ['Thinking', 'Consulting', 'Reasoning', 'Picturing', 'Composing', 'Imagining'],
         typewriterLoadingTimers: new WeakMap(),

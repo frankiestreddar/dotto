@@ -39,10 +39,30 @@ function searchOwnTreeByNameAll(query, kind, limit = 4) {
     return results;
 }
 
+// Nested shared-tree name search (search_accessible_by_name RPC, see the matching migration) —
+// everything the caller has effective (possibly multi-level inherited) access to via any accepted
+// collaboration, however deep. Unlike searchOwnTreeByNameAll this is a real network round trip, so
+// callers (command-palette.js) debounce it the same way scheduleLiveSuggestions already debounces
+// the live AI suggestions fetch — this function itself doesn't debounce, it's called already-
+// debounced. The RPC doesn't filter by kind itself (simpler to keep that logic in one place,
+// client-side, matching the id-lookup branch below), so that's done here.
+async function searchAccessibleByNameAll(query, kind, limit = 4) {
+    const q = query.trim();
+    if (!q || !supabase) return [];
+    const { data, error } = await supabase.rpc('search_accessible_by_name', { p_query: q });
+    if (error) {
+        console.error(`[commands] search_accessible_by_name failed: message=${error.message} code=${error.code} details=${error.details} hint=${error.hint}`);
+        return [];
+    }
+    return (data || []).filter(r => r.kind === kind).slice(0, limit);
+}
+
 // Resolves a slash command's target (typed name or id) to a single concrete
 // { owner_id, folder_id, kind, title, visibility, access, source }, or null if nothing matches.
-// `source` is 'id' | 'own' for now — nested shared-tree name search (source: 'shared') is a
-// later PR (see the feature plan's own PR sequencing), not built yet.
+// Tries, in order: id shape -> resolve_global_id, own tree (local, instant), then the nested
+// shared tree (search_accessible_by_name, a real round trip) — own-tree matches deliberately win
+// over shared ones when both exist, since "my own canvas by this name" is the more likely intent
+// for an ambiguous title (see the feature plan's own trade-offs note on this exact ambiguity).
 async function resolveCommandTarget(kind, targetRaw) {
     const trimmed = (targetRaw || '').trim();
     if (!trimmed) return null;
@@ -61,7 +81,9 @@ async function resolveCommandTarget(kind, targetRaw) {
     }
     const [own] = searchOwnTreeByNameAll(trimmed, kind, 1);
     if (own) return { owner_id: appState.currentUser.id, folder_id: own.folder_id, kind: own.kind, title: own.title, visibility: 'private', access: 'owner', source: 'own' };
+    const [shared] = await searchAccessibleByNameAll(trimmed, kind, 1);
+    if (shared) return { owner_id: shared.owner_id, folder_id: shared.folder_id, kind: shared.kind, title: shared.title, visibility: 'private', access: 'collaborator', source: 'shared' };
     return null;
 }
 
-export { GLOBAL_ID_SHAPE, resolveCommandTarget, searchOwnTreeByNameAll };
+export { GLOBAL_ID_SHAPE, resolveCommandTarget, searchAccessibleByNameAll, searchOwnTreeByNameAll };

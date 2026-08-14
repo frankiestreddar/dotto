@@ -1,19 +1,19 @@
 import { appState } from './core-state.js';
 import { obtainTarget } from './command-verbs.js';
 import { parseCommandInput } from './command-parser.js';
-import { GLOBAL_ID_SHAPE, resolveCommandTarget, searchOwnTreeByNameAll } from './command-target-lookup.js';
+import { GLOBAL_ID_SHAPE, resolveCommandTarget, searchAccessibleByNameAll, searchOwnTreeByNameAll } from './command-target-lookup.js';
 import { pushNotification } from './stopwatch-search-notifications.js';
 
 // ---------- Slash-command suggestions panel (see command-parser.js/command-target-lookup.js/
 // command-verbs.js — orchestration lives here since it's the one place that needs all three) ----------
-// Builds the live-typing suggestion rows shown in #search-command-palette (CommandPalette.jsx,
-// commandPaletteStore) as the user types — purely synchronous/local for now: kind-stage rows are
-// a static pair, target-stage rows are the caller's own-tree name matches
-// (searchOwnTreeByNameAll). An id-shaped target gets a single "look up this id" row instead of a
+// Builds the SYNCHRONOUS/instant rows for the current input — kind-stage rows are a static pair;
+// target-stage rows are the caller's own-tree name matches (searchOwnTreeByNameAll, already
+// loaded locally, no round trip). The nested shared-tree half (scheduleSharedCommandSuggestions
+// below) is a real network call, debounced and merged in separately once it resolves, so typing
+// itself never waits on it. An id-shaped target gets a single "look up this id" row instead of a
 // name search, since ids and free-text titles don't need to compete for the same row — actual id
-// resolution (a network round trip) only happens once that row is actually selected, not while
-// building the list, so typing stays instant.
-function buildCommandRows(parsed) {
+// resolution only happens once that row is actually selected.
+function buildOwnCommandRows(parsed) {
     if (!parsed) return [];
     if (parsed.stage === 'kind') {
         return ['source', 'canvas']
@@ -30,8 +30,30 @@ function buildCommandRows(parsed) {
         return [{ type: 'id', key: 'id', kind: parsed.kind, globalId: parsed.targetRaw, label: parsed.targetRaw, sublabel: `Look up this ${parsed.kind} by id` }];
     }
     return searchOwnTreeByNameAll(parsed.targetRaw, parsed.kind).map(m => ({
-        type: 'own', key: m.folder_id, kind: m.kind, folderId: m.folder_id, label: m.title || '(untitled)', sublabel: m.kind === 'source' ? 'Source' : 'Canvas',
+        type: 'own', key: `own-${m.folder_id}`, kind: m.kind, folderId: m.folder_id, label: m.title || '(untitled)', sublabel: m.kind === 'source' ? 'Source' : 'Canvas',
     }));
+}
+
+// Nested shared-tree matches (search_accessible_by_name RPC, see its own migration) — debounced
+// the same way scheduleLiveSuggestions debounces the AI suggestions fetch (ai-assistant-
+// suggestions.js), and merged into whatever own-tree rows are already showing rather than
+// replacing them, since both can legitimately have matches at once. Re-derives the own-tree rows
+// fresh at merge time (cheap/synchronous) instead of trying to read the store back — there's no
+// read bridge for it, only window.__setCommandPalette (write-only, same as every other store).
+function scheduleSharedCommandSuggestions(parsed) {
+    clearTimeout(appState.commandSuggestDebounceTimer);
+    if (!parsed || parsed.stage !== 'target' || parsed.verb !== 'obtain' || !parsed.targetRaw || GLOBAL_ID_SHAPE.test(parsed.targetRaw)) return;
+    const valueAtScheduleTime = appState.searchInput.value;
+    appState.commandSuggestDebounceTimer = setTimeout(async () => {
+        const shared = await searchAccessibleByNameAll(parsed.targetRaw, parsed.kind);
+        if (!shared.length || appState.searchInput.value !== valueAtScheduleTime) return; // stale or nothing to add
+        const ownRows = buildOwnCommandRows(parsed);
+        const sharedRows = shared.map(m => ({
+            type: 'shared', key: `shared-${m.owner_id}-${m.folder_id}`, kind: m.kind, ownerId: m.owner_id, folderId: m.folder_id, title: m.title,
+            label: m.title || '(untitled)', sublabel: `Shared • ${m.kind === 'source' ? 'Source' : 'Canvas'}`,
+        }));
+        window.__setCommandPalette({ rows: [...ownRows, ...sharedRows] });
+    }, 250);
 }
 
 // Same pattern as setSearchActive (ai-assistant-suggestions.js), for #search-command-palette's
@@ -52,7 +74,9 @@ function setCommandActive(idx) {
 function updateCommandPalette(value) {
     const parsed = parseCommandInput(value);
     appState.commandActiveIndex = -1;
-    window.__setCommandPalette(parsed ? { rows: buildCommandRows(parsed) } : null);
+    clearTimeout(appState.commandSuggestDebounceTimer); // a stale in-flight shared search must never clobber this fresh set of rows once it lands
+    window.__setCommandPalette(parsed ? { rows: buildOwnCommandRows(parsed) } : null);
+    scheduleSharedCommandSuggestions(parsed);
     return parsed;
 }
 
@@ -68,6 +92,10 @@ async function selectCommandRow(row) {
     }
     if (row.type === 'own') {
         obtainTarget({ owner_id: appState.currentUser.id, folder_id: row.folderId, kind: row.kind, title: row.label, access: 'owner' });
+        return;
+    }
+    if (row.type === 'shared') {
+        obtainTarget({ owner_id: row.ownerId, folder_id: row.folderId, kind: row.kind, title: row.title, access: 'collaborator' });
         return;
     }
     if (row.type === 'id') {
