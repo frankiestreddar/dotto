@@ -170,11 +170,19 @@
        still needed for Safari's backdrop-filter support. */
     #search-overlay-backdrop{display:none;position:fixed;inset:0;z-index:1500;background:rgba(0,0,0,0.7);-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);align-items:flex-start;justify-content:center;padding-top:15vh;}
     #search-overlay-backdrop.open{display:flex;}
-    /* position:relative is load-bearing, not decorative — #search-dropdown positions itself
-       absolutely off this box (top:49px;left:0;right:0), so this has to stay the nearest
-       positioned ancestor. Width is a first-pass guess at the Supabase reference's proportions,
-       now that this is a free-floating palette instead of a grid cell competing for top-bar space. */
-    #search-bar{position:relative;width:560px;max-width:calc(100vw - 40px);display:flex;flex-direction:column;align-items:stretch;}
+    /* The ONE card for the whole palette — input row and results both live inside it now (see
+       #search-input-wrap/#search-dropdown's own comments for why each of THEM had to give up
+       their own separate background/border/radius/shadow to make that true, rather than just
+       stacking two cards with a gap). Width is a first-pass guess at the Supabase reference's
+       proportions, now that this is a free-floating palette instead of a grid cell competing for
+       top-bar space. Deliberately NOT overflow:hidden, even though that would guarantee content
+       never pokes past these rounded corners — the dictionary/examples panels' hover-out nav
+       arrows intentionally slide outside their own panel's edge, and clipping would break that;
+       a hover highlight on the very last row very slightly overrunning a rounded bottom corner is
+       an accepted, minor trade-off for keeping that working. */
+    #search-bar{position:relative;width:560px;max-width:calc(100vw - 40px);display:flex;flex-direction:column;align-items:stretch;background:var(--bar);border:1px solid var(--card-border);border-radius:16px;box-shadow:0 20px 60px rgba(0,0,0,0.5);}
+    #search-bar:hover{border-color:#454545;}
+    #search-bar:focus-within{border-color:var(--ink-soft);}
     /* Indented ancestor-path rows inside #breadcrumb-menu (hamburger-stack.html) — see its own
        comment there and renderBreadcrumbMapPanel (shared-canvases-outline.js). The current row
        doubles as a rename control (cursor:text hints at that, matching a real text field) instead
@@ -1027,18 +1035,25 @@
     .dropzone-title{font-size:16px;font-weight:700;}
     .dropzone-sub{font-size:11px;opacity:0.8;line-height:1.4;}
 
-    /* #search-input-wrap IS the visible search box — border-radius/background/border/box-shadow
-       all live here, once, permanently. It never gets a transform anywhere in this file, so the
-       box itself never moves; #search-input and #search-notification are just transparent content
-       layers stacked inside it that slide/fade past each other during a notification (see the
-       choreography comment below) while the box around them stays completely still. The spinner/
-       pill/rings are absolutely positioned relative to this same wrap. The search bar's horizontal
-       position never moves either — only the wrap's height, as #search-input (a textarea) grows
-       line by line up to 4 lines (see autoGrowSearchInput), or as forced to 42/76px while a
-       notification is showing (see .notifying below). */
-    #search-input-wrap{position:relative;width:100%;border-radius:12px;background:var(--bar);border:1px solid var(--card-border);box-shadow:0 4px 12px rgba(0,0,0,0.35);}
-    #search-input-wrap:hover{border-color:#454545;}
-    #search-input-wrap:focus-within{border-color:var(--ink-soft);}
+    /* #search-input-wrap used to BE the visible search box on its own; now #search-bar is the one
+       shared card for the whole palette (input row + results, see #search-bar's own comment) and
+       this wrap's background/border/shadow are gone — except the border ITSELF stays, just made
+       transparent, rather than removed outright. Its WIDTH is load-bearing for the height-precision
+       system described below (.notif-clipping's hard-coded 42px accounts for this 1px+1px border),
+       so deleting the border property entirely would shrink the wrap by 2px and reintroduce the
+       exact "visible height jump" bug that system was built to avoid. It never gets a transform
+       anywhere in this file, so the box itself never moves; #search-input and #search-notification
+       are just transparent content layers stacked inside it that slide/fade past each other during
+       a notification (see the choreography comment below) while the box around them stays
+       completely still. The spinner/pill/rings are absolutely positioned relative to this same
+       wrap. The search bar's horizontal position never moves either — only the wrap's height, as
+       #search-input (a textarea) grows line by line up to 4 lines (see autoGrowSearchInput), or as
+       forced to 42/76px while a notification is showing (see .notifying below). border-radius is
+       kept (matching #search-bar's own, even though this border is invisible at rest) purely so
+       the notif-flash/notif-pulse-slow keyframes below — which set a real border-color on THIS
+       element — round off consistently with the outer card instead of flashing square corners
+       inside it. */
+    #search-input-wrap{position:relative;width:100%;border:1px solid transparent;border-radius:16px;}
     /* Never scrollable, even past the 4-line cap - overflow is hidden, not auto. The caret still
        auto-scrolls into view internally as you type (native textarea behavior, independent of
        this property), it just never shows/permits an interactive scrollbar. */
@@ -1061,15 +1076,6 @@
        since the wrap can grow taller than one line and the icon should stay pinned to the first
        line like a real search-box icon, not drift to the vertical center of a multi-line box. */
     #search-input-icon{position:absolute;left:14px;top:13px;width:16px;height:16px;color:var(--ink-soft);pointer-events:none;}
-    /* Forces the box's real border back to its plain unfocused color while loading — beats
-       :hover/:focus-within above by source order (equal specificity, declared later — see the
-       comment on .search-loading-ring-chase below for why the border itself must sit still while
-       a separate ring overlay animates). Needed because the loading ring below is only an overlay
-       traced 1px outside the real border; without this, the cursor still sitting over the box (the
-       normal case right after clicking/pressing Enter) kept painting the real border in its
-       brighter :hover color, which visually bled through around the thin ring and looked like the
-       border was never actually returning to unfocused. */
-    #search-input-wrap.loading{border-color:var(--card-border);}
     /* Loading indicator while a Dotbot response is in flight (see commenceDotbotSearch, which
        toggles .loading here alongside #search-spinner) — the border itself sits at its plain
        unfocused color (.search-loading-ring-base, always the full perimeter) while a short pure-
@@ -1208,22 +1214,22 @@
     }
     #search-input-wrap.notif-pulse-slow{animation:notif-pulse-slow 2s ease-in-out infinite;}
 
-    /* Base top matches the 1-line (42px) case; autoGrowSearchInput sets an inline top as the
-       input's height changes so the dropdown stays glued 7px below it at every height. Same 7px
-       value reused as the flex gap *between* panels, per the "same gap" ask.
-       ONE shared card for every result panel (background/border/radius/shadow all live here now,
-       not duplicated on each of the ~9 panels below) — previously each panel carried its own
-       identical copy of this exact declaration, which is what made multiple simultaneously-shown
-       panels (e.g. Dotbot's answer + a translation + a dictionary entry all at once) read as a
-       stack of separate floating cards instead of one palette, unlike the Supabase reference this
-       is modeled on. Deliberately NOT also given overflow-y/max-height here (unlike the input box
-       above, whose own OWN card styling stays completely untouched — see its own comment on the
-       loading-ring animation being traced to that specific border) — the dictionary/examples
-       panels' hover-out nav arrows (.dotbot-dictionary-arrows/.dotbot-examples-toggle below)
-       deliberately slide OUTSIDE their own panel's right edge, and an overflow:auto here would
-       clip them; individual panels that genuinely need their own internal scroll cap (the answer/
-       command-palette/results panels) still have their own max-height+overflow-y, unchanged. */
-    #search-dropdown{display:none;position:absolute;top:49px;left:0;right:0;flex-direction:column;gap:5px;z-index:5;background:var(--bar);border:1px solid var(--card-border);border-radius:12px;box-shadow:0 6px 20px rgba(0,0,0,0.45);padding:6px;}
+    /* Normal flex-flow child now, not absolutely positioned — #search-bar (a plain flex column) is
+       the single shared card for the WHOLE palette, input row and results together, so this just
+       needs to stack directly below #search-input-wrap in flow, not float independently glued to
+       its bottom edge via a synced inline `top` (autoGrowSearchInput no longer sets one). A plain
+       border-top divider stands in for the old separate-card border between the two. No background
+       /border-radius/box-shadow/padding of its own — #search-bar already supplies all of that, and
+       giving this its OWN padding on top is exactly what made row hover states look inset/cut off
+       instead of reaching the shared card's edges. Each row/panel keeps its own internal padding
+       (see e.g. .search-result-item/.command-palette-row below) to keep text off the card's edges;
+       this element itself stays edge-to-edge. Deliberately NOT given overflow-y/max-height here —
+       the dictionary/examples panels' hover-out nav arrows (.dotbot-dictionary-arrows/
+       .dotbot-examples-toggle below) deliberately slide OUTSIDE their own panel's right edge, and
+       an overflow:auto here would clip them; individual panels that genuinely need their own
+       internal scroll cap (the answer/command-palette/results panels) still have their own
+       max-height+overflow-y, unchanged. */
+    #search-dropdown{display:none;flex-direction:column;gap:5px;border-top:1px solid var(--card-border);margin-top:7px;padding-top:7px;padding-bottom:6px;}
     #search-dropdown.visible{display:flex;}
 
     /* No panel has a heading/label anymore — each one is just its content, shown or hidden
@@ -1262,12 +1268,12 @@
        convention too, see command-palette.js's setCommandActive. */
     #search-command-palette{display:none;max-height:300px;overflow-y:auto;}
     .command-palette-row{padding:9px 14px;font-size:13px;color:var(--ink);cursor:pointer;display:flex;align-items:center;justify-content:space-between;gap:8px;}
-    .command-palette-row:hover, .command-palette-row.active{background:#333;}
+    .command-palette-row:hover, .command-palette-row.active{background:#242424;}
     .command-palette-row-label{flex:0 0 auto;font-family:monospace;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
     .command-palette-row-sublabel{flex:1 1 auto;min-width:0;text-align:right;color:var(--ink-soft);font-size:11px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
     #search-results{display:none;max-height:300px;overflow-y:auto;}
     .search-result-item{padding:9px 14px;font-size:13px;color:var(--ink);cursor:pointer;display:flex;align-items:center;gap:8px;}
-    .search-result-item:hover, .search-result-item.active{background:#333;}
+    .search-result-item:hover, .search-result-item.active{background:#242424;}
     /* Ellipsis lives here (not on .search-result-item itself) — flex:1 so it fills whatever space
        the icon/badge and the index pill don't use, pushing the pill to the row's far right edge. */
     .search-result-text{flex:1 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
@@ -1376,7 +1382,7 @@
     .dotbot-schedule-card-preview{padding:10px 14px 4px;display:flex;justify-content:center;}
     #search-suggestions .msg-inline-canvas-wrap{margin:8px auto 0;}
     .search-suggestion-item{padding:9px 14px;font-size:13px;color:var(--ink);cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-    .search-suggestion-item:hover{background:#333;}
+    .search-suggestion-item:hover{background:#242424;}
 
     /* Shown below Dotbot's answer only when it couldn't help with the query (see
        renderRecommendedSearchesPanel) — a separate div from #search-suggestions, which already

@@ -482,7 +482,8 @@ import { openFolder, render } from './waypoints-render-loop.js';
             h = Math.max(minH, Math.min(100, appState.searchInput.scrollHeight));
         }
         appState.searchInput.style.height = h + 'px';
-        appState.searchDropdown.style.top = (appState.searchInputWrap.offsetHeight + 7) + 'px';
+        // #search-dropdown is a normal flex-flow sibling now, not absolutely positioned against
+        // the wrap's height (see globals.css) — it just follows in flow, no synced top needed.
         // style.height='auto' above forces a reflow that resets scrollTop to 0 — once content
         // no longer fits (capped at 100px), that leaves the caret's actual line scrolled out of
         // view after every keystroke. Pin back to the bottom, where the caret always is (typing
