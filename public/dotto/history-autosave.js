@@ -383,8 +383,7 @@ import { centerOnContent, render } from './waypoints-render-loop.js';
             closePricingOverlay();
             closeCellTagPicker();
             if (appState.dotbotScheduleConversation) cancelDotbotScheduleConversation();
-            clearSearch();
-            if (appState.searchInput) appState.searchInput.blur();
+            clearSearch(); // also closes the search overlay + blurs the input, see its own comment
             if (appState.drawMode) setDrawMode(false);
             if (appState.addingKind) cancelAddingKind();
             if (appState.scheduleViewMode) exitScheduleViewMode();

@@ -4,7 +4,7 @@ import { saveSnapshot, scheduleWorkspaceSave } from './history-autosave.js';
 import { findItemById } from './live-presence.js';
 import { commenceSearchOrMnemonic, computeCanvasMatches, computeSourceMatches, renderCanvasResultsPanel } from './mnemonic-search-matching.js';
 import { closeAllPanels } from './panels-hamburger.js';
-import { autoGrowSearchInput, updateSearchSpaceHint } from './stopwatch-search-notifications.js';
+import { autoGrowSearchInput } from './stopwatch-search-notifications.js';
 import { render } from './waypoints-render-loop.js';
 
 
@@ -205,11 +205,17 @@ import { render } from './waypoints-render-loop.js';
     // right as/after Enter is pressed (too late for the abort() below to actually cancel it) —
     // otherwise it would clobber the "thinking..." loading state with a stale suggestions list.
 
+    // The single "make the search UI go away" function — called from ~15 places across the
+    // codebase any time something else takes over (opening the hamburger menu, messages panel,
+    // marketplace, etc. all defensively call this on their own way open), plus Escape and
+    // clicking the overlay backdrop. Since every one of those call sites' actual intent is "the
+    // search overlay (search-overlay.html) should not be showing anymore," closing it and
+    // blurring the input live here too — rather than a separate close function every call site
+    // would need switching over to — makes all of them correctly close the overlay for free.
     function clearSearch() {
         if (!appState.searchInput) return;
         appState.searchInput.value = '';
         autoGrowSearchInput();
-        updateSearchSpaceHint();
         appState.searchDotbotAnswer.innerHTML = ''; appState.searchDotbotAnswer.style.display = 'none';
         // #search-results (CanvasResultsPanel.jsx) is portaled — React tracks real children there,
         // so a direct innerHTML write would desync its fiber tree from the actual DOM and risk a
@@ -217,6 +223,7 @@ import { render } from './waypoints-render-loop.js';
         // (returns null, only ever touches its node from its own effect), so a direct clear is
         // harmless for those — see hideDotbotResultPanels' own comment for the full reasoning.
         window.__setCanvasResults(null);
+        window.__setCommandPalette(null);
         if (appState.searchTranslation) { appState.searchTranslation.innerHTML = ''; appState.searchTranslation.style.display = 'none'; }
         appState.searchDictionary.innerHTML = ''; appState.searchDictionary.style.display = 'none';
         appState.searchExamples.innerHTML = ''; appState.searchExamples.style.display = 'none';
@@ -224,6 +231,17 @@ import { render } from './waypoints-render-loop.js';
         window.__setSearchSuggestions(null);
         if (appState.searchRecommended) { appState.searchRecommended.innerHTML = ''; appState.searchRecommended.style.display = 'none'; }
         updateSearchDropdown();
+        if (appState.searchOverlayBackdrop) appState.searchOverlayBackdrop.classList.remove('open');
+        appState.searchInput.blur();
+    }
+    // Opens the command-palette overlay (search-overlay.html) — called from the global Space/"/"
+    // keydown shortcuts and #btn-search's click handler (srs-connections-core.js). Showing the
+    // backdrop BEFORE focusing is load-bearing: focusing an element inside a still-display:none
+    // subtree is a silent no-op in every browser, so the overlay has to actually be visible first.
+    function openSearchOverlay() {
+        if (!appState.searchOverlayBackdrop || !appState.searchInput) return;
+        appState.searchOverlayBackdrop.classList.add('open');
+        appState.searchInput.focus();
     }
     function updateSearchDropdown() {
         if (!appState.searchDropdown) return;
@@ -257,7 +275,6 @@ import { render } from './waypoints-render-loop.js';
 
     function handleSearchInput(value) {
         autoGrowSearchInput();
-        updateSearchSpaceHint();
         if (appState.dotbotScheduleConversation) return; // typing the "when" reply — not a search query
         // Slash commands (see command-palette.js) take over the box entirely — none of the normal
         // canvas-match/live-suggestion machinery below applies, and any of its panels left over
@@ -290,7 +307,6 @@ import { render } from './waypoints-render-loop.js';
     // ring the moment a search actually commences (see commenceSearchOrMnemonic/
     // commenceDotbotSearch, which remove this class right before they run).
     function handleSearchFocus() {
-        updateSearchSpaceHint();
         closeAllPanels(null);
         if (appState.dotbotScheduleConversation) return; // keep Dotbot's prompt showing, not generic suggestions
         hideDotbotResultPanels();
@@ -500,7 +516,7 @@ import { render } from './waypoints-render-loop.js';
         clearSearch();
     }
 
-export { applyAlignHighlightToggle, buildAlignedSentenceEls, buildLiveSuggestionsRows, clearSearch, countSourceEntries, dotbotErrorMessage, escapeHtml, findParentFolderId, getItemSearchText, handleSearchFocus, handleSearchInput, isLatinScriptText, setSearchActive, setupDotbotResultDrag, speakerIconHTML, stripHtml, truncateCenter, typewriterReveal, updateSearchDropdown };
+export { applyAlignHighlightToggle, buildAlignedSentenceEls, buildLiveSuggestionsRows, clearSearch, countSourceEntries, dotbotErrorMessage, escapeHtml, findParentFolderId, getItemSearchText, handleSearchFocus, handleSearchInput, isLatinScriptText, openSearchOverlay, setSearchActive, setupDotbotResultDrag, speakerIconHTML, stripHtml, truncateCenter, typewriterReveal, updateSearchDropdown };
 
 window.__countSourceEntries = countSourceEntries;
 window.__buildLiveSuggestionsRows = buildLiveSuggestionsRows;

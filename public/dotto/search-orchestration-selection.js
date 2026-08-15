@@ -9,7 +9,7 @@ import { commenceSearchOrMnemonic, computeCanvasMatches, computeSourceMatches, r
 import { bumpAchievementStat, openDotbotUpgradeModal, refreshDotbotUsage } from './profile-achievements-pricing.js';
 import { colgroupHTML } from './source-table.js';
 import { applyAiAddRowsToSource, createSourceFromAI } from './source-tags-ai.js';
-import { autoGrowSearchInput, updateSearchSpaceHint } from './stopwatch-search-notifications.js';
+import { autoGrowSearchInput } from './stopwatch-search-notifications.js';
 import { render } from './waypoints-render-loop.js';
 
 
@@ -430,7 +430,6 @@ import { render } from './waypoints-render-loop.js';
         // onfocus="handleSearchFocus()" alone would silently do nothing until the next keystroke.
         // Calling it here too makes a click always reopen the initial-suggestion state.
         appState.searchInput.addEventListener('click', (e) => { e.stopPropagation(); handleSearchFocus(); });
-        appState.searchInput.addEventListener('blur', updateSearchSpaceHint);
         // Clicking/tabbing away without submitting stops the idle pulse (see handleSearchFocus) —
         // Escape's own searchInput.blur() call elsewhere routes through this same listener too.
         appState.searchInput.addEventListener('blur', () => appState.searchInputWrap.classList.remove('idle-pulsing'));

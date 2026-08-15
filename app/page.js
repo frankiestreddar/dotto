@@ -17,6 +17,7 @@ import DottoApp from "./dotto-app";
 // its own named file/component, without changing any behavior yet.
 const FRAGMENT_NAMES = [
   "top-bar",
+  "search-overlay",
   "profile-panel",
   "messages-panel",
   "collab-panel",
