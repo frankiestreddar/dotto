@@ -343,6 +343,25 @@ import { pushNotification } from './stopwatch-search-notifications.js';
             .map(u => ({ id: u.id, username: u.username, displayName: u.display_name || u.username }));
     }
 
+    // Exact-match counterpart to searchDiscoverableUsers above, for the slash-command "invite
+    // <username>"/"remove <username>" verbs (command-verbs.js) — those need to resolve one exact
+    // username typed as a command argument, not a fuzzy list to pick from. Deliberately doesn't
+    // require the target to already be a friend (unlike the existing Collaborations-panel invite
+    // flow, which only lists friends) — that restriction lives entirely in that panel's own UI,
+    // not in invite_canvas_collaborator itself, so a command can bypass it correctly rather than
+    // working around a UI-only gate.
+    async function resolveUsernameToUserId(username) {
+        if (!supabase || !username) return null;
+        const { data, error } = await supabase
+            .from('profiles')
+            .select('id')
+            .eq('username', username)
+            .neq('id', appState.currentUser.id)
+            .maybeSingle();
+        if (error) { console.error(`[commands] username lookup failed: message=${error.message} code=${error.code}`); return null; }
+        return data ? data.id : null;
+    }
+
     function initials(name) { return name.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase(); }
     function lastPreview(f) { const m = f.messages[f.messages.length - 1]; return m ? m.text : 'No messages yet'; }
 
@@ -517,7 +536,7 @@ import { pushNotification } from './stopwatch-search-notifications.js';
         });
     }
 
-export { backToMsgMain, closeCollabPanel, handleAddFriendClick, handleCollabAddRemoveClick, handleCollabSearch, handleMsgSearch, initials, openCollabPanel, openMsgRequestsView, refreshCanvasCollabForCurrentFolder, refreshFriendsData, renderCollabPill, renderMsgList, respondToMsgRequest, syncCanvasCollabTitle };
+export { backToMsgMain, closeCollabPanel, handleAddFriendClick, handleCollabAddRemoveClick, handleCollabSearch, handleMsgSearch, initials, openCollabPanel, openMsgRequestsView, refreshCanvasCollabForCurrentFolder, refreshFriendsData, renderCollabPill, renderMsgList, resolveUsernameToUserId, respondToMsgRequest, syncCanvasCollabTitle };
 
 // React → vanilla bridge — used by MessagesListPanel.jsx/CollabListPanel.jsx/CollabPill.jsx
 // (app/dotto/), which can't import these directly since public/dotto/*.js isn't reachable from
