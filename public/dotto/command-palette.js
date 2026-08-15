@@ -1,5 +1,5 @@
 import { appState } from './core-state.js';
-import { inviteUser, obtainTarget, placeTarget, removeUser, setVisibility } from './command-verbs.js';
+import { copyTarget, inviteUser, obtainTarget, placeTarget, removeUser, setVisibility } from './command-verbs.js';
 import { parseCommandInput } from './command-parser.js';
 import { GLOBAL_ID_SHAPE, resolveCommandTarget, searchAccessibleByNameAll, searchOwnTreeByNameAll } from './command-target-lookup.js';
 import { pushNotification } from './stopwatch-search-notifications.js';
@@ -22,10 +22,9 @@ function buildOwnCommandRows(parsed) {
     }
     // stage === 'target'
     if (parsed.verb !== 'obtain') {
-        // set/invite/remove all execute directly on Enter (see executeCurrentCommand) once a
-        // verb's typed out in full — no target-picker row needed at that point, the target text
-        // is already fixed. place/copy aren't wired to execute at all yet (see command-verbs.js).
-        // Either way, no suggestion rows make sense here once a real verb appears.
+        // Every verb executes directly on Enter (see executeCurrentCommand) once it's typed out
+        // in full — no target-picker row needed at that point, the target text is already fixed.
+        // No suggestion rows make sense here once a real verb appears.
         return [];
     }
     if (GLOBAL_ID_SHAPE.test(parsed.targetRaw)) {
@@ -110,16 +109,11 @@ async function selectCommandRow(row) {
 // Plain Enter with nothing arrow-selected — parses and resolves the FULL current value as a
 // complete command (not just whatever's in the suggestions list), so typing the whole thing and
 // hitting Enter works without ever touching arrows/clicks, same as any other command palette.
-// copy is recognized by the parser but not wired to execute yet (see command-verbs.js) —
-// everything else (obtain, set public/private, invite, remove, place) resolves the target once,
-// then dispatches to its own verb function, each of which owns reporting its own success/failure.
+// Every verb the parser recognizes is wired up as of this PR — resolves the target once, then
+// dispatches to its own verb function, each of which owns reporting its own success/failure.
 async function executeCurrentCommand(value) {
     const parsed = parseCommandInput(value);
     if (!parsed || parsed.stage !== 'target' || !parsed.targetRaw) return;
-    if (parsed.verb === 'copy') {
-        pushNotification({ type: 'command_error', message: `"${parsed.verb}" isn't available yet — more commands are coming.` });
-        return;
-    }
     const target = await resolveCommandTarget(parsed.kind, parsed.targetRaw);
     if (!target) { pushNotification({ type: 'command_error', message: `No ${parsed.kind} found matching "${parsed.targetRaw}".` }); return; }
     if (parsed.verb === 'obtain') { obtainTarget(target); return; }
@@ -127,6 +121,7 @@ async function executeCurrentCommand(value) {
     if (parsed.verb === 'invite') { inviteUser(target, parsed.arg); return; }
     if (parsed.verb === 'remove') { removeUser(target, parsed.arg); return; }
     if (parsed.verb === 'place') { placeTarget(target); return; }
+    if (parsed.verb === 'copy') { copyTarget(target); return; }
 }
 
 export { executeCurrentCommand, selectCommandRow, setCommandActive, updateCommandPalette };
