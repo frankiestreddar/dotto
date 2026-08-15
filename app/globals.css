@@ -1435,8 +1435,14 @@
        startRenameFolderCardTitle) over a smaller buildFolderInlineCanvas preview beneath it,
        stacked via the base .item's own flex-column — padding:0/overflow:hidden so the preview
        still reaches the card's edges (left/right/bottom) instead of sitting inset like a normal
-       card body. */
-    .item.folder{width:448px;height:280px;padding:0;overflow:hidden;}
+       card body. .item.reference (ReferenceCard.jsx, the "place" slash command) shares this exact
+       box shape — same title-bar-over-preview structure, just read-only and pointed at someone
+       else's canvas instead of one of its own child folders. */
+    .item.folder, .item.reference{width:448px;height:280px;padding:0;overflow:hidden;}
+    /* Not click-to-rename (ReferenceCard.jsx doesn't wire up startRenameFolderCardTitle at all) —
+       overrides .folder-card-title's own cursor:text below. */
+    .reference-card-title{cursor:default;}
+    .reference-card-unavailable{flex:1 1 auto;display:flex;align-items:center;justify-content:center;text-align:center;padding:16px;font-size:12px;color:var(--ink-soft);}
     /* Title bar row: the contentEditable title itself (still the exact element
        attachFolderCardClick/startRenameFolderCardTitle operate on — clicking it renames, clicking
        elsewhere on the card navigates in, same closest('.folder-card-title') check as before,

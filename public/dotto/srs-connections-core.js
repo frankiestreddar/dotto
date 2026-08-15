@@ -745,13 +745,21 @@ import { render, renderSelectedOutlines, startBoxSelection, syncWaypointToDb } f
         window.addEventListener('pointermove', move);
         window.addEventListener('pointerup', up);
     });
+    // The world-space point currently at the center of the screen — same inverse-of-applyTransform
+    // math the zoom dblclick handler below already used inline (now shared, since the 'place'
+    // command, command-verbs.js, needs the identical "where's the middle of the viewport right
+    // now" computation to know where to drop a reference card).
+    function viewportCenterWorldPoint() {
+        const cx = window.innerWidth / 2, cy = window.innerHeight / 2;
+        return { x: (cx - appState.tx) / appState.scale, y: (cy - appState.ty) / appState.scale };
+    }
     // Double-clicking the zoom bar jumps straight back to 100%, anchored on the current
     // viewport center (same centering math as dragging the slider itself).
     zoomTrack.addEventListener('dblclick', (e) => {
         e.stopPropagation();
         const newScale = 1;
         const cx = window.innerWidth / 2, cy = window.innerHeight / 2;
-        const worldX = (cx - appState.tx) / appState.scale, worldY = (cy - appState.ty) / appState.scale;
+        const { x: worldX, y: worldY } = viewportCenterWorldPoint();
         appState.tx = cx - worldX * newScale;
         appState.ty = cy - worldY * newScale;
         appState.scale = newScale;
@@ -1082,7 +1090,7 @@ import { render, renderSelectedOutlines, startBoxSelection, syncWaypointToDb } f
         },
     };
 
-export { add, applyConnections, applyFilterToRows, calculateSM2, cancelAddingKind, clearDataLinkPending, collectAvailableFilterTags, deepCloneItem, defaultSrsState, deleteClonedItemFolders, diffRatings, isValidConnection, renderConnectionsLayer, setDrawMode, startConnectionDrag, startDrawStroke, toggleDrawFromMenu, updateDrawLayerBtns };
+export { add, applyConnections, applyFilterToRows, calculateSM2, cancelAddingKind, clearDataLinkPending, collectAvailableFilterTags, deepCloneItem, defaultSrsState, deleteClonedItemFolders, diffRatings, isValidConnection, renderConnectionsLayer, setDrawMode, startConnectionDrag, startDrawStroke, toggleDrawFromMenu, updateDrawLayerBtns, viewportCenterWorldPoint };
 
 // React → vanilla bridge (see the identical pattern/comment in cards-misc.js) — used by
 // FilterCard.jsx (app/dotto/), which can't import these directly since public/dotto/*.js isn't

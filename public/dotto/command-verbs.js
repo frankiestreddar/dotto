@@ -1,15 +1,18 @@
-import { supabase } from './core-state.js';
+import { appState, supabase } from './core-state.js';
 import { resolveUsernameToUserId } from './friends-presence.js';
-import { openFolder } from './waypoints-render-loop.js';
+import { saveSnapshot } from './history-autosave.js';
+import { openFolder, render } from './waypoints-render-loop.js';
+import { CARD_KINDS } from './card-kinds.js';
 import { openPublicCanvas, openSharedCanvas } from './shared-canvases-outline.js';
+import { viewportCenterWorldPoint } from './srs-connections-core.js';
 import { pushNotification } from './stopwatch-search-notifications.js';
 
 // Executes the 'obtain' verb for an already-resolved command target (see
 // command-target-lookup.js's resolveCommandTarget) — navigates in for your own or shared-with-you
 // items (exactly like clicking into them normally would), or opens a public item view-only with
-// no lasting record (see openPublicCanvas's own comment on why). place/copy arrive in later PRs —
-// see the slash-command feature's own PR sequencing; this file only grows one function per PR as
-// each verb actually ships.
+// no lasting record (see openPublicCanvas's own comment on why). copy arrives in a later PR — see
+// the slash-command feature's own PR sequencing; this file only grows one function per PR as each
+// verb actually ships.
 function obtainTarget(target) {
     if (!target) return;
     if (target.access === 'owner') { openFolder(target.folder_id); return; }
@@ -73,4 +76,27 @@ async function removeUser(target, username) {
     pushNotification({ type: 'command_success', message: `Removed ${username} from "${target.title}".` });
 }
 
-export { inviteUser, obtainTarget, removeUser, setVisibility };
+// 'place' — drops a read-only reference card (kind: 'reference', ReferenceCard.jsx) at the center
+// of the current viewport, pointing at the resolved target by (owner_id, folder_id) rather than
+// copying any content — see resolveReferenceFolderKey's own comment (shared-canvases-outline.js)
+// for how that card finds/loads the live data every time it (re)mounts, refetched fresh rather
+// than cached. Valid for a target you own, a target shared with you, or a public one — obtaining
+// isn't required first, "place" is its own independent way to reach something. refTitle/
+// refGlobalId are a display-only snapshot (the card re-derives the real content live; these two
+// fields just avoid an extra round trip before the preview itself has loaded).
+function placeTarget(target) {
+    if (!target) return;
+    saveSnapshot();
+    const { w, h } = CARD_KINDS.reference.defaultSize;
+    const center = viewportCenterWorldPoint();
+    appState.folders[appState.currentFolderId].items.push({
+        id: appState.idCounter++,
+        x: Math.round(center.x - w / 2), y: Math.round(center.y - h / 2), w, h,
+        kind: 'reference',
+        refOwnerId: target.owner_id, refFolderId: target.folder_id, refKind: target.kind,
+        refTitle: target.title, refGlobalId: target.global_id || null,
+    });
+    render();
+}
+
+export { inviteUser, obtainTarget, placeTarget, removeUser, setVisibility };
