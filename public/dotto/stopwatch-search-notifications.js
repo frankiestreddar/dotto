@@ -357,17 +357,16 @@ import { openFolder, render } from './waypoints-render-loop.js';
         showNotification(appState.notificationQueue.shift());
     }
     // Entrance: (1) the border flashes 2 quick pulses while the bar still looks completely
-    // normal, (2) #search-input/#search-space-hint slide up and out while #search-notification
-    // slides up into view (both driven by the same .notifying toggle — see globals.css), (3) once
-    // settled, a slow continuous pulse plays until the exit sequence begins.
+    // normal, (2) #search-input slides up and out while #search-notification slides up into view
+    // (both driven by the same .notifying toggle — see globals.css), (3) once settled, a slow
+    // continuous pulse plays until the exit sequence begins.
     function showNotification(config) {
         appState.currentNotification = config;
         const seq = ++appState.notificationSeq;
         appState.searchInputWrap.classList.toggle('notification-grows', !!config.grows);
 
         // Content itself is real React state now (see app/dotto/NotificationBar.jsx) — the
-        // enter-arrow suffix on a configured action label (mirroring #search-space-hint's own
-        // "Enter" pill) is built there, not here.
+        // enter-arrow suffix on a configured action label is built there, not here.
         window.__setNotificationContent(config);
 
         appState.searchInputWrap.classList.add('notif-flash');
@@ -375,7 +374,6 @@ import { openFolder, render } from './waypoints-render-loop.js';
             if (seq !== appState.notificationSeq) return; // superseded mid-flash (e.g. dismissed already)
             appState.searchInputWrap.classList.remove('notif-flash');
             appState.searchInputWrap.classList.add('notifying', 'notif-clipping');
-            updateSearchSpaceHint(); // starts its slide-out now, in lockstep with #search-input
             setTimeout(() => {
                 if (seq !== appState.notificationSeq) return;
                 appState.searchInputWrap.classList.add('notif-pulse-slow');
@@ -395,10 +393,10 @@ import { openFolder, render } from './waypoints-render-loop.js';
         if (cb) cb();
     }
     // Exit: (1) the border flashes 2 quick pulses again while the notification is still fully on
-    // screen, (2) it slides back down and away while #search-input/#search-space-hint slide back
-    // into place (the exact reverse of showNotification's entrance) — only once that settles is
-    // the queue allowed to advance to the next notification, so a back-to-back pair never
-    // overlaps or snaps between each other mid-animation.
+    // screen, (2) it slides back down and away while #search-input slides back into place (the
+    // exact reverse of showNotification's entrance) — only once that settles is the queue allowed
+    // to advance to the next notification, so a back-to-back pair never overlaps or snaps between
+    // each other mid-animation.
     function dismissCurrentNotification() {
         if (!appState.currentNotification) return;
         clearTimeout(appState.notificationTimer);
@@ -413,7 +411,6 @@ import { openFolder, render } from './waypoints-render-loop.js';
             // stays on through that whole slide so the content stays clipped to the box the entire
             // time, instead of spending its last 0.3s visible outside the border.
             appState.searchInputWrap.classList.remove('notif-flash', 'notifying');
-            updateSearchSpaceHint(); // may need to reappear now that the box is back to normal — slides back in alongside #search-input
             setTimeout(() => {
                 if (seq !== appState.notificationSeq) return;
                 appState.searchInputWrap.classList.remove('notification-grows', 'notif-clipping');
@@ -456,24 +453,6 @@ import { openFolder, render } from './waypoints-render-loop.js';
             clearTimeout(appState.notificationTimer);
         }
     });
-
-    // Two faint hint pills ("Space" and "/") on the right of the search box — visible only while
-    // it's both empty and NOT focused (once it's actually focused, or has real content, neither
-    // shortcut's starting condition applies anymore — see both keydown handlers,
-    // srs-connections-core.js). Called from handleSearchInput/clearSearch (on every value change)
-    // and on focus/blur, plus once here for the correct state on first load (the markup itself
-    // defaults to visible for a flash-free first paint, but that default is only actually right
-    // if the box starts empty and unfocused). Kept as one function driving both elements (rather
-    // than two near-identical ones) since they always share the exact same visibility condition.
-    function updateSearchSpaceHint() {
-        if (!appState.searchSpaceHint || !appState.searchInput) return;
-        const focused = document.activeElement === appState.searchInput;
-        const notifying = appState.searchInputWrap.classList.contains('notifying');
-        const visible = !focused && !notifying && appState.searchInput.value.trim() === '';
-        appState.searchSpaceHint.classList.toggle('visible', visible);
-        if (appState.searchSlashHint) appState.searchSlashHint.classList.toggle('visible', visible);
-    }
-    updateSearchSpaceHint();
 
     // #search-input is a <textarea> that grows line by line as typed text wraps, up to 4 lines
     // (100px) — or 3 text lines + the card-context pill's own line (80px) when cards are
@@ -599,7 +578,7 @@ import { openFolder, render } from './waypoints-render-loop.js';
         document.getElementById('search-cards-modal-overlay').classList.remove('open');
     }
 
-export { addCardsToSearchContext, autoGrowSearchInput, clearSearchCardContext, closeSearchCardsModal, filterShelfRows, handleShelfSourceRowClick, openSearchCardsModal, pushNotification, renderShelfHTML, renderStopwatchHTML, runNotificationAction, setFilterMode, shelfSelectSession, startRenameShelfName, startRenameShelfSourceRow, swCurrentElapsedMs, swFormatTime, swTogglePause, swToggleRun, toggleFilterTag, updateSearchSpaceHint };
+export { addCardsToSearchContext, autoGrowSearchInput, clearSearchCardContext, closeSearchCardsModal, filterShelfRows, handleShelfSourceRowClick, openSearchCardsModal, pushNotification, renderShelfHTML, renderStopwatchHTML, runNotificationAction, setFilterMode, shelfSelectSession, startRenameShelfName, startRenameShelfSourceRow, swCurrentElapsedMs, swFormatTime, swTogglePause, swToggleRun, toggleFilterTag };
 
 // Not an inline-HTML onclick target (see window-bridge.js's own header comment for why those
 // live there instead) — this is the first real React component (app/dotto/PricingOverlay.jsx,

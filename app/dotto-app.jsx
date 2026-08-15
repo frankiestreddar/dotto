@@ -71,6 +71,7 @@ import TranslationPanel from "./dotto/TranslationPanel";
 import WaypointsListPanel from "./dotto/WaypointsListPanel";
 
 import TopBar from "./dotto/sections/TopBar";
+import SearchOverlay from "./dotto/sections/SearchOverlay";
 import ProfilePanel from "./dotto/sections/ProfilePanel";
 import MessagesPanel from "./dotto/sections/MessagesPanel";
 import CollaboratorsPanel from "./dotto/sections/CollaboratorsPanel";
@@ -279,6 +280,7 @@ export default function DottoApp({ sections, currentUser }) {
     <>
       <div id="dotto-root">
         <ErrorBoundary name="TopBar"><TopBar html={sections["top-bar"]} /></ErrorBoundary>
+        <ErrorBoundary name="SearchOverlay"><SearchOverlay html={sections["search-overlay"]} /></ErrorBoundary>
         <ErrorBoundary name="ProfilePanel"><ProfilePanel html={sections["profile-panel"]} /></ErrorBoundary>
         <ErrorBoundary name="MessagesPanel"><MessagesPanel html={sections["messages-panel"]} /></ErrorBoundary>
         <ErrorBoundary name="CollaboratorsPanel"><CollaboratorsPanel html={sections["collab-panel"]} /></ErrorBoundary>

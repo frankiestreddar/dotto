@@ -1,5 +1,5 @@
 import { kindLabel, kindSize } from './add-menu.js';
-import { handleSearchInput, stripHtml } from './ai-assistant-suggestions.js';
+import { handleSearchInput, openSearchOverlay, stripHtml } from './ai-assistant-suggestions.js';
 import { removePlacementGhost } from './copy-paste.js';
 import { addMenu, appState, btnAdd, canvas, drawBackBtn, drawColorInput, drawEraserBtn, drawFrontBtn, drawPenBtn, drawSettings, drawSizeInput, effectiveMode, world, zoomTrack } from './core-state.js';
 import { computeConnectorPoints, createConnection, ensureConnections, ensureDrawings, findLinkedTable, findTableById, itemRect, makeLayerSVG, pathNearPoint, pointsToLinePath, pointsToPath } from './drawing-connections.js';
@@ -556,18 +556,19 @@ import { render, renderSelectedOutlines, startBoxSelection, syncWaypointToDb } f
             }
         }
 
-        if (!isEditingText && e.key === ' ') { e.preventDefault(); if (appState.searchInput) appState.searchInput.focus(); return; }
-        // Same idea as Space above, but actually types the "/" rather than just focusing, since
-        // that's meant to start a slash command. preventDefault + writing .value ourselves (rather
-        // than letting the keystroke's own default action insert it after we focus) sidesteps any
-        // browser's own default behavior for "/" outside a text field (e.g. Firefox's
-        // quick-find-on-slash). Command recognition/suggestions themselves aren't built yet — this
-        // just gets "/" reliably into the box from anywhere; handleSearchInput currently treats it
-        // as an ordinary (if unusual) search query character.
+        // Space opens the command-palette overlay (search-overlay.html) empty. openSearchOverlay
+        // shows the overlay THEN focuses the input — focusing an element inside a still-hidden
+        // (display:none) subtree is a silent no-op, so that order is load-bearing, not stylistic.
+        if (!isEditingText && e.key === ' ') { e.preventDefault(); openSearchOverlay(); return; }
+        // Same idea as Space above, but also types the "/" rather than opening empty, since that's
+        // meant to start a slash command (see command-parser.js) — preventDefault + writing
+        // .value ourselves (rather than letting the keystroke's own default action insert it
+        // after we focus) sidesteps any browser's own default behavior for "/" outside a text
+        // field (e.g. Firefox's quick-find-on-slash).
         if (!isEditingText && e.key === '/') {
             e.preventDefault();
+            openSearchOverlay();
             if (appState.searchInput) {
-                appState.searchInput.focus();
                 appState.searchInput.value = '/';
                 appState.searchInput.setSelectionRange(1, 1);
                 handleSearchInput('/');
@@ -579,6 +580,11 @@ import { render, renderSelectedOutlines, startBoxSelection, syncWaypointToDb } f
         // notification with no buttons on every press. Remove once done tweaking.
         if (!isEditingText && (e.key === 'n' || e.key === 'N')) { e.preventDefault(); pushNotification({ type: 'debug', message: 'this is an example notification' }); return; }
     });
+
+    // Bottom-toolbar entry point for the search overlay (bottom-toolbars.html), alongside the
+    // cursor-mode/Add/Schedule buttons — same open path as the Space shortcut above (opens empty,
+    // never seeds a "/" the way the slash shortcut does).
+    if (appState.searchBtn) appState.searchBtn.addEventListener('click', (e) => { e.stopPropagation(); openSearchOverlay(); });
 
     function toggleDrawFromMenu() { addMenu.style.display = 'none'; setDrawMode(!appState.drawMode); }
     drawColorInput.oninput = (e) => { appState.drawColor = e.target.value; };
