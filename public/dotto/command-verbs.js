@@ -1,10 +1,11 @@
 import { appState, supabase } from './core-state.js';
 import { resolveUsernameToUserId } from './friends-presence.js';
+import { generateGlobalId } from './global-ids.js';
 import { saveSnapshot } from './history-autosave.js';
 import { openFolder, render } from './waypoints-render-loop.js';
 import { CARD_KINDS } from './card-kinds.js';
 import { openPublicCanvas, openSharedCanvas } from './shared-canvases-outline.js';
-import { viewportCenterWorldPoint } from './srs-connections-core.js';
+import { deepCloneItem, viewportCenterWorldPoint } from './srs-connections-core.js';
 import { pushNotification } from './stopwatch-search-notifications.js';
 
 // Executes the 'obtain' verb for an already-resolved command target (see
@@ -99,4 +100,77 @@ function placeTarget(target) {
     render();
 }
 
-export { inviteUser, obtainTarget, placeTarget, removeUser, setVisibility };
+// Recursively rebuilds a fetched remote folder — and everything nested inside it the caller can
+// still reach — as brand-new local folders/items with fresh local AND global ids throughout. The
+// remote-data counterpart to deepCloneItem (srs-connections-core.js), which does the identical
+// thing for data already sitting in appState.folders; this exists because deepCloneItem only ever
+// reads that local map, never fetches. get_shared_folder/get_public_folder are both gated
+// per-folder (not per-tree — see their own migrations), so a nested folder/source the caller can
+// no longer reach (revoked partway down a shared tree, or — for a public copy — simply not
+// independently public itself, since visibility never cascades to nested items) is silently
+// dropped from the copy rather than left as a broken reference. No recursion-depth cap here
+// (unlike search_accessible_by_name's defensive one) — real trees are nowhere near deep enough
+// for it to matter in practice; worth adding if that ever changes.
+async function fetchRemoteFolderData(ownerId, folderId, accessKind) {
+    const rpcName = accessKind === 'public' ? 'get_public_folder' : 'get_shared_folder';
+    const { data, error } = await supabase.rpc(rpcName, { p_owner_id: ownerId, p_folder_id: folderId });
+    if (error) {
+        console.error(`[commands] ${rpcName} failed during copy: message=${error.message} code=${error.code} details=${error.details} hint=${error.hint}`);
+        return null;
+    }
+    return data || null;
+}
+async function cloneRemoteFolder(ownerId, folderId, accessKind) {
+    const data = await fetchRemoteFolderData(ownerId, folderId, accessKind);
+    if (!data) return null;
+    const newFid = 'folder-' + appState.idCounter++;
+    const newItems = [];
+    for (const item of (data.items || [])) {
+        if ((item.kind === 'folder' || item.kind === 'source') && item.folderId) {
+            const clonedChild = await cloneRemoteFolder(ownerId, item.folderId, accessKind);
+            if (!clonedChild) continue; // inaccessible nested item — dropped, see comment above
+            newItems.push({ ...JSON.parse(JSON.stringify(item)), id: appState.idCounter++, folderId: clonedChild.folderId });
+        } else {
+            newItems.push({ ...JSON.parse(JSON.stringify(item)), id: appState.idCounter++ });
+        }
+    }
+    // ...data may carry the ORIGINAL owner's own globalId (folders persist that field like any
+    // other, see saveWorkspaceNow) — spread first, then override every field a real independent
+    // copy needs its own fresh value for, same "duplicate starts fresh" reasoning deepCloneItem's
+    // own comment already states for the local case.
+    appState.folders[newFid] = { ...data, id: newFid, items: newItems, collaborators: [], globalId: generateGlobalId() };
+    delete appState.folders[newFid].isSharedView; delete appState.folders[newFid].sharedOwnerId; delete appState.folders[newFid].sharedRemoteFolderId;
+    return { folderId: newFid };
+}
+
+// 'copy' — creates a full independent duplicate, owned by the caller, placed at the viewport
+// center with its own brand-new global id (a real fork, not a live reference — contrast with
+// placeTarget above, which never copies content). The 'owner' case reuses deepCloneItem directly
+// (already-local data, a synchronous clone, exactly like an Alt-drag duplicate elsewhere in the
+// app); 'collaborator'/'public' targets go through cloneRemoteFolder above instead, since
+// deepCloneItem has no way to fetch anything.
+async function copyTarget(target) {
+    if (!target) return;
+    saveSnapshot();
+    let clonedFolderId;
+    if (target.access === 'owner') {
+        const clone = deepCloneItem({ kind: target.kind === 'source' ? 'source' : 'folder', folderId: target.folder_id });
+        clonedFolderId = clone.folderId;
+    } else {
+        const result = await cloneRemoteFolder(target.owner_id, target.folder_id, target.access);
+        if (!result) { pushNotification({ type: 'command_error', message: `Couldn't copy "${target.title}" — it may no longer be accessible.` }); return; }
+        clonedFolderId = result.folderId;
+    }
+    const kind = target.kind === 'source' ? 'source' : 'folder';
+    const { w, h } = CARD_KINDS[kind].defaultSize;
+    const center = viewportCenterWorldPoint();
+    appState.folders[appState.currentFolderId].items.push({
+        id: appState.idCounter++,
+        x: Math.round(center.x - w / 2), y: Math.round(center.y - h / 2), w, h,
+        kind, folderId: clonedFolderId,
+    });
+    render();
+    pushNotification({ type: 'command_success', message: `Copied "${target.title}".` });
+}
+
+export { copyTarget, inviteUser, obtainTarget, placeTarget, removeUser, setVisibility };
