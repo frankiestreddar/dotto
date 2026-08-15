@@ -39,6 +39,11 @@ export const CARD_KINDS = {
     sentence: { label: 'Sentence', defaultSize: { w: 220, h: 130 } },
     // Collapsed size (1 grid cell) — .item.waypoint.expanded overrides via CSS, not this.
     waypoint: { defaultSize: { w: 28, h: 28 } },
+    // Read-only live reference to another canvas/source (the "place" slash command,
+    // command-verbs.js) — not creatable from the add-menu, only ever produced by that command.
+    // Same size as folder's own preview card, since it reuses the exact same inline-preview
+    // rendering (see ReferenceCard.jsx).
+    reference: { defaultSize: { w: 448, h: 280 }, icon: '⧉' },
 };
 
 export const DEFAULT_CARD_SIZE = { w: 200, h: 112 };

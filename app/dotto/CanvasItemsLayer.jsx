@@ -11,6 +11,7 @@ import FilterCard from "./FilterCard";
 import FlashcardCard from "./FlashcardCard";
 import MediaCard from "./MediaCard";
 import NoteCard from "./NoteCard";
+import ReferenceCard from "./ReferenceCard";
 import ScheduleModeCardBody from "./ScheduleModeCardBody";
 import SentenceCard from "./SentenceCard";
 import ShelfCard from "./ShelfCard";
@@ -39,6 +40,7 @@ const CARD_KIND_COMPONENTS = {
   folder: CanvasCard,
   media: MediaCard,
   note: NoteCard,
+  reference: ReferenceCard,
   sentence: SentenceCard,
   shelf: ShelfCard,
   source: SourceCard,

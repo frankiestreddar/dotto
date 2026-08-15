@@ -58,11 +58,14 @@ async function searchAccessibleByNameAll(query, kind, limit = 4) {
 }
 
 // Resolves a slash command's target (typed name or id) to a single concrete
-// { owner_id, folder_id, kind, title, visibility, access, source }, or null if nothing matches.
-// Tries, in order: id shape -> resolve_global_id, own tree (local, instant), then the nested
-// shared tree (search_accessible_by_name, a real round trip) — own-tree matches deliberately win
-// over shared ones when both exist, since "my own canvas by this name" is the more likely intent
-// for an ambiguous title (see the feature plan's own trade-offs note on this exact ambiguity).
+// { owner_id, folder_id, kind, title, visibility, access, source, global_id }, or null if nothing
+// matches. Tries, in order: id shape -> resolve_global_id, own tree (local, instant), then the
+// nested shared tree (search_accessible_by_name, a real round trip) — own-tree matches
+// deliberately win over shared ones when both exist, since "my own canvas by this name" is the
+// more likely intent for an ambiguous title (see the feature plan's own trade-offs note on this
+// exact ambiguity). global_id is threaded through every branch (not just the id-lookup one) since
+// the 'place' command (command-verbs.js) needs it for the reference card's own id display,
+// regardless of how the target was originally found.
 async function resolveCommandTarget(kind, targetRaw) {
     const trimmed = (targetRaw || '').trim();
     if (!trimmed) return null;
@@ -77,12 +80,12 @@ async function resolveCommandTarget(kind, targetRaw) {
         // Matched a real id, but of the wrong kind (e.g. "/source" on a canvas's id) — don't fall
         // through to a name search on the same string, that would silently ignore a real typo
         // and match something unrelated instead.
-        if (row) return row.kind === kind ? { ...row, source: 'id' } : null;
+        if (row) return row.kind === kind ? { ...row, source: 'id', global_id: trimmed } : null;
     }
     const [own] = searchOwnTreeByNameAll(trimmed, kind, 1);
-    if (own) return { owner_id: appState.currentUser.id, folder_id: own.folder_id, kind: own.kind, title: own.title, visibility: 'private', access: 'owner', source: 'own' };
+    if (own) return { owner_id: appState.currentUser.id, folder_id: own.folder_id, kind: own.kind, title: own.title, visibility: 'private', access: 'owner', source: 'own', global_id: (appState.folders[own.folder_id] && appState.folders[own.folder_id].globalId) || null };
     const [shared] = await searchAccessibleByNameAll(trimmed, kind, 1);
-    if (shared) return { owner_id: shared.owner_id, folder_id: shared.folder_id, kind: shared.kind, title: shared.title, visibility: 'private', access: 'collaborator', source: 'shared' };
+    if (shared) return { owner_id: shared.owner_id, folder_id: shared.folder_id, kind: shared.kind, title: shared.title, visibility: 'private', access: 'collaborator', source: 'shared', global_id: shared.global_id || null };
     return null;
 }
 

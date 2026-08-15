@@ -212,6 +212,24 @@ import { applyFolderView, centerOnContent, expandWaypointCard, openFolder, rende
         centerOnContent();
     }
 
+    // Resolves whichever LOCAL key currently represents (ownerId, folderId) for THIS viewer —
+    // their own bare folder id, the shared: namespaced key (if they have collaboration access),
+    // or the public: namespaced key (if it's public and they don't otherwise have access) — used
+    // by ReferenceCard.jsx (the 'place' command's read-only reference card, command-verbs.js) to
+    // find/load whatever it should preview. Deliberately re-checked fresh every time, never
+    // cached: a reference card needs to reflect an access change (revoked, or flipped back to
+    // private after being placed) the next time it loads, not whatever was true when it was first
+    // placed — see the feature plan's own trade-offs note on exactly this. Returns null if none
+    // of the three currently apply.
+    async function resolveReferenceFolderKey(ownerId, folderId) {
+        if (ownerId === appState.currentUser.id) return appState.folders[folderId] ? folderId : null;
+        const sKey = sharedFolderKey(ownerId, folderId);
+        if (await ensureSharedFolderLoaded(sKey)) return sKey;
+        const pKey = publicFolderKey(ownerId, folderId);
+        if (await ensurePublicFolderLoaded(pKey)) return pKey;
+        return null;
+    }
+
     // Leaves the WHOLE shared tree (not just its top level) and lands on the user's own ACTUAL
     // root — not wherever they happened to be right before entering (that distinction used to
     // matter when this was reachable via the breadcrumb "..", but the breadcrumb map's "Root" row
@@ -310,6 +328,7 @@ import { applyFolderView, centerOnContent, expandWaypointCard, openFolder, rende
             stopwatch: 'stopwatch.png', shelf: 'shelf.png', waypoint: 'waypoint.png',
             filter: 'tag-button.png', // no dedicated icon asset yet — closest existing one, since filtering is tag-based
             embed: 'embed.png', // no icon asset exists yet either — add public/assets/icons/embed.png; missing files already degrade gracefully throughout this app
+            reference: 'canvas.png', // no dedicated asset either — closest existing one, same reasoning as filter/embed above
         };
         return files[kind] || 'note.png';
     }
@@ -579,7 +598,7 @@ import { applyFolderView, centerOnContent, expandWaypointCard, openFolder, rende
         }
     }
 
-export { announceEnteredCollaboration, breadcrumbMapRowClick, buildOutline, ensurePublicFolderLoaded, ensureSharedFolderLoaded, goToOutlineItem, jumpToHistoryIndex, kindIconFile, kindIconHTML, kindTypeLabel, namespacePublicFolderIds, namespaceSharedFolderIds, openPublicCanvas, openSharedCanvas, parsePublicFolderKey, parseSharedFolderKey, publicFolderKey, renderBreadcrumbMapPanel, setOutlineActive, sharedFolderKey, stripSharedFolderIds, toggleHamburgerMenu };
+export { announceEnteredCollaboration, breadcrumbMapRowClick, buildOutline, ensurePublicFolderLoaded, ensureSharedFolderLoaded, goToOutlineItem, jumpToHistoryIndex, kindIconFile, kindIconHTML, kindTypeLabel, namespacePublicFolderIds, namespaceSharedFolderIds, openPublicCanvas, openSharedCanvas, parsePublicFolderKey, parseSharedFolderKey, publicFolderKey, renderBreadcrumbMapPanel, resolveReferenceFolderKey, setOutlineActive, sharedFolderKey, stripSharedFolderIds, toggleHamburgerMenu };
 
 window.__kindIconFile = kindIconFile;
 window.__kindTypeLabel = kindTypeLabel;
@@ -588,3 +607,4 @@ window.__openSharedCanvas = openSharedCanvas;
 // React → vanilla bridge — used by BreadcrumbMapPanel.jsx (app/dotto/), which can't import this
 // directly since public/dotto/*.js isn't reachable from app/dotto/.
 window.__breadcrumbMapRowClick = breadcrumbMapRowClick;
+window.__resolveReferenceFolderKey = resolveReferenceFolderKey;
