@@ -164,8 +164,11 @@
        as its one child (padding-top instead of align-items:center, so it sits high like Supabase's
        own palette rather than dead-center in the viewport), and closing on a direct click here is
        what "click outside to dismiss" means — #search-bar's own onclick stops that click from ever
-       reaching this element when it originates inside the palette. */
-    #search-overlay-backdrop{display:none;position:fixed;inset:0;z-index:1500;background:rgba(0,0,0,0.55);align-items:flex-start;justify-content:center;padding-top:15vh;}
+       reaching this element when it originates inside the palette. Blurred, not just dimmed —
+       darker/blurring the canvas behind it is what actually reads as "the app is paused behind a
+       modal" instead of just floating cards over a normal (already-dark) page. -webkit- prefix is
+       still needed for Safari's backdrop-filter support. */
+    #search-overlay-backdrop{display:none;position:fixed;inset:0;z-index:1500;background:rgba(0,0,0,0.7);-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);align-items:flex-start;justify-content:center;padding-top:15vh;}
     #search-overlay-backdrop.open{display:flex;}
     /* position:relative is load-bearing, not decorative — #search-dropdown positions itself
        absolutely off this box (top:49px;left:0;right:0), so this has to stay the nearest
@@ -1045,9 +1048,19 @@
        fudge here (left over from before the border lived on #search-input itself) is exactly what
        made the wrap render 2px taller at rest than its own hard-coded 42px .notif-clipping height,
        producing a visible height jump right when a notification opened/closed. */
-    #search-input{display:block;width:100%;min-height:40px;max-height:100px;background:transparent;border:none;color:var(--ink);padding:10px 32px 10px 14px;font-size:14px;line-height:20px;font-family:inherit;outline:none;resize:none;overflow-y:hidden;transition:height 0.15s ease, padding-bottom 0.15s ease;}
+    /* Left padding only (40px, was 14px) makes room for #search-input-icon below — every other
+       value here is untouched on purpose, see the height-precision comment right above: changing
+       min-height/line-height/vertical padding would shift the wrap's natural resting height away
+       from .notif-clipping's hard-coded 42px, reintroducing the exact jump that comment warns about. */
+    #search-input{display:block;width:100%;min-height:40px;max-height:100px;background:transparent;border:none;color:var(--ink);padding:10px 32px 10px 40px;font-size:14px;line-height:20px;font-family:inherit;outline:none;resize:none;overflow-y:hidden;transition:height 0.15s ease, padding-bottom 0.15s ease;}
     #search-input.has-pill{padding-bottom:30px;}
     #search-input::placeholder{color:var(--ink-soft);}
+    /* Static (no transitions/animations of its own to conflict with the loading-ring/idle-pulse
+       system right below) — just a plain left-aligned glyph, vertically centered against the
+       input's OWN first-line height (20px line-height + 10px top padding), not the wrap's,
+       since the wrap can grow taller than one line and the icon should stay pinned to the first
+       line like a real search-box icon, not drift to the vertical center of a multi-line box. */
+    #search-input-icon{position:absolute;left:14px;top:13px;width:16px;height:16px;color:var(--ink-soft);pointer-events:none;}
     /* Forces the box's real border back to its plain unfocused color while loading — beats
        :hover/:focus-within above by source order (equal specificity, declared later — see the
        comment on .search-loading-ring-chase below for why the border itself must sit still while
@@ -1197,8 +1210,20 @@
 
     /* Base top matches the 1-line (42px) case; autoGrowSearchInput sets an inline top as the
        input's height changes so the dropdown stays glued 7px below it at every height. Same 7px
-       value reused as the flex gap *between* panels, per the "same gap" ask. */
-    #search-dropdown{display:none;position:absolute;top:49px;left:0;right:0;flex-direction:column;gap:5px;z-index:5;}
+       value reused as the flex gap *between* panels, per the "same gap" ask.
+       ONE shared card for every result panel (background/border/radius/shadow all live here now,
+       not duplicated on each of the ~9 panels below) — previously each panel carried its own
+       identical copy of this exact declaration, which is what made multiple simultaneously-shown
+       panels (e.g. Dotbot's answer + a translation + a dictionary entry all at once) read as a
+       stack of separate floating cards instead of one palette, unlike the Supabase reference this
+       is modeled on. Deliberately NOT also given overflow-y/max-height here (unlike the input box
+       above, whose own OWN card styling stays completely untouched — see its own comment on the
+       loading-ring animation being traced to that specific border) — the dictionary/examples
+       panels' hover-out nav arrows (.dotbot-dictionary-arrows/.dotbot-examples-toggle below)
+       deliberately slide OUTSIDE their own panel's right edge, and an overflow:auto here would
+       clip them; individual panels that genuinely need their own internal scroll cap (the answer/
+       command-palette/results panels) still have their own max-height+overflow-y, unchanged. */
+    #search-dropdown{display:none;position:absolute;top:49px;left:0;right:0;flex-direction:column;gap:5px;z-index:5;background:var(--bar);border:1px solid var(--card-border);border-radius:12px;box-shadow:0 6px 20px rgba(0,0,0,0.45);padding:6px;}
     #search-dropdown.visible{display:flex;}
 
     /* No panel has a heading/label anymore — each one is just its content, shown or hidden
@@ -1212,7 +1237,7 @@
        .dotbot-answer-blocks below) runs much longer than the short lead-in text alone ever did,
        so the old cap read as cramped for it. Still capped + scrollable rather than unbounded, for
        the rare pathological case. */
-    #search-dotbot-answer{display:none;background:var(--bar);border:1px solid var(--card-border);border-radius:12px;max-height:480px;overflow-y:auto;box-shadow:0 6px 20px rgba(0,0,0,0.45);}
+    #search-dotbot-answer{display:none;max-height:480px;overflow-y:auto;}
     .dotbot-answer-text{padding:12px 14px;font-size:14px;color:var(--ink);line-height:1.5;}
     /* The in-depth continuation of a grammar/explanation answer (see renderAnswerBlocksPanel) —
        sits below the short intro above, separated by a line break/divider so it clearly reads as
@@ -1232,15 +1257,15 @@
     .align-hl-3{background:rgba(236,72,153,0.3);}
     .align-hl-4{background:rgba(59,130,246,0.3);}
     .align-hl-5{background:rgba(168,85,247,0.3);}
-    /* Same box treatment as #search-results right below (they're never both visible at once — see
-       handleSearchInput's command-mode branch, ai-assistant-suggestions.js) — rows use the same
-       .active hover/keyboard-selection convention too, see command-palette.js's setCommandActive. */
-    #search-command-palette{display:none;background:var(--bar);border:1px solid var(--card-border);border-radius:12px;max-height:300px;overflow-y:auto;box-shadow:0 6px 20px rgba(0,0,0,0.45);}
+    /* Never visible at the same time as #search-results (see handleSearchInput's command-mode
+       branch, ai-assistant-suggestions.js) — rows use the same .active hover/keyboard-selection
+       convention too, see command-palette.js's setCommandActive. */
+    #search-command-palette{display:none;max-height:300px;overflow-y:auto;}
     .command-palette-row{padding:9px 14px;font-size:13px;color:var(--ink);cursor:pointer;display:flex;align-items:center;justify-content:space-between;gap:8px;}
     .command-palette-row:hover, .command-palette-row.active{background:#333;}
     .command-palette-row-label{flex:0 0 auto;font-family:monospace;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
     .command-palette-row-sublabel{flex:1 1 auto;min-width:0;text-align:right;color:var(--ink-soft);font-size:11px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
-    #search-results{display:none;background:var(--bar);border:1px solid var(--card-border);border-radius:12px;max-height:300px;overflow-y:auto;box-shadow:0 6px 20px rgba(0,0,0,0.45);}
+    #search-results{display:none;max-height:300px;overflow-y:auto;}
     .search-result-item{padding:9px 14px;font-size:13px;color:var(--ink);cursor:pointer;display:flex;align-items:center;gap:8px;}
     .search-result-item:hover, .search-result-item.active{background:#333;}
     /* Ellipsis lives here (not on .search-result-item itself) — flex:1 so it fills whatever space
@@ -1258,7 +1283,7 @@
        for the arrow-selected one (see the keydown handler). */
     .search-result-index-pill{flex:0 0 auto;min-width:18px;height:18px;padding:0 5px;border-radius:6px;background:#3a3a3a;color:var(--ink-soft);font-size:10px;font-weight:700;display:flex;align-items:center;justify-content:center;}
 
-    #search-translation, #search-dictionary, #search-examples, #search-image-result{display:none;background:var(--bar);border:1px solid var(--card-border);border-radius:12px;box-shadow:0 6px 20px rgba(0,0,0,0.45);}
+    #search-translation, #search-dictionary, #search-examples, #search-image-result{display:none;}
     /* Its own dedicated panel (not shared with #search-suggestions, where the mnemonic story
        card lives) so a generated image stays visible alongside its story rather than replacing
        it — see generateMnemonicStoryAndImage/renderImageResultPanel. */
@@ -1345,7 +1370,7 @@
     .dotbot-translation-pill{font-size:15px;font-weight:600;color:var(--ink);background:#2a2a2a;padding:6px 14px;border-radius:999px;}
     .dotbot-translation-arrow{font-size:18px;color:var(--ink-soft);}
 
-    #search-suggestions{display:none;background:var(--bar);border:1px solid var(--card-border);border-radius:12px;overflow:hidden;box-shadow:0 6px 20px rgba(0,0,0,0.45);}
+    #search-suggestions{display:none;overflow:hidden;}
     /* The card(s) being scheduled, shown above Dotbot's "when would you like to schedule this
        for?" prompt — the dropdown just grows to fit, nothing here caps its height. */
     .dotbot-schedule-card-preview{padding:10px 14px 4px;display:flex;justify-content:center;}
@@ -1356,7 +1381,7 @@
     /* Shown below Dotbot's answer only when it couldn't help with the query (see
        renderRecommendedSearchesPanel) — a separate div from #search-suggestions, which already
        juggles idle-focus defaults, live autosuggest, and generic error text. */
-    #search-recommended{display:none;background:var(--bar);border:1px solid var(--card-border);border-radius:12px;overflow:hidden;box-shadow:0 6px 20px rgba(0,0,0,0.45);}
+    #search-recommended{display:none;overflow:hidden;}
 
     /* Dotbot's own messages (answers, mnemonic stories, schedule prompts/confirmations) wrap
        within the panel instead of truncating/overflowing like the plain single-line suggestion

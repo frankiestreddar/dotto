@@ -10,6 +10,7 @@
 <div id="search-overlay-backdrop">
     <div id="search-bar" onclick="event.stopPropagation()">
         <div id="search-input-wrap">
+            <svg id="search-input-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" aria-hidden="true"><circle cx="7" cy="7" r="5"></circle><path d="M11 11L14.5 14.5"></path></svg>
             <textarea id="search-input" rows="1" placeholder="" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" oninput="handleSearchInput(this.value)" onfocus="handleSearchFocus()"></textarea>
             <svg id="search-loading-ring" aria-hidden="true">
                 <rect class="search-loading-ring-base"></rect>
