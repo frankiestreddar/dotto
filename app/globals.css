@@ -185,9 +185,13 @@
        "hover highlight looks cut off" bug — #search-dropdown itself still has no side padding of
        its own, so a row's hover background still stretches edge-to-edge within the space this
        padding leaves it, rather than leaving a second, inconsistent gap around the highlight. */
+    /* No :hover/:focus-within border brightening (unlike a plain input box) — the whole palette is
+       one hoverable card now, and its own input is essentially always focused while it's open, so
+       either rule would be active almost the entire time the palette is visible, permanently
+       overriding the resting border below regardless of how subtle THAT was made. That's exactly
+       why previous passes at darkening this border kept reading as "still very light" — the base
+       color was never actually what was showing. Border stays fixed at #202020 in every state. */
     #search-bar{position:relative;width:560px;max-width:calc(100vw - 40px);display:flex;flex-direction:column;align-items:stretch;background:var(--bar);border:1px solid #202020;border-radius:16px;box-shadow:0 20px 60px rgba(0,0,0,0.5);padding:8px;}
-    #search-bar:hover{border-color:#454545;}
-    #search-bar:focus-within{border-color:var(--ink-soft);}
     /* Indented ancestor-path rows inside #breadcrumb-menu (hamburger-stack.html) — see its own
        comment there and renderBreadcrumbMapPanel (shared-canvases-outline.js). The current row
        doubles as a rename control (cursor:text hints at that, matching a real text field) instead
