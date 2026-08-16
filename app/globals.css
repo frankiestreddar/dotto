@@ -160,15 +160,15 @@
        matches. Shared by every click-to-edit title in the app (folder/source cards, and now the
        sidebar breadcrumb's current row) via startRenameFolderCardTitle. */
     .crumb-placeholder:empty::before{content:attr(data-placeholder);color:var(--ink-soft);pointer-events:none;}
-    /* Dimming layer for the command-palette overlay (search-overlay.html) — flex-centers #search-bar
-       as its one child (padding-top instead of align-items:center, so it sits high like Supabase's
-       own palette rather than dead-center in the viewport), and closing on a direct click here is
-       what "click outside to dismiss" means — #search-bar's own onclick stops that click from ever
-       reaching this element when it originates inside the palette. Blurred, not just dimmed —
-       darker/blurring the canvas behind it is what actually reads as "the app is paused behind a
-       modal" instead of just floating cards over a normal (already-dark) page. -webkit- prefix is
-       still needed for Safari's backdrop-filter support. */
-    #search-overlay-backdrop{display:none;position:fixed;inset:0;z-index:1500;background:rgba(0,0,0,0.7);-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);align-items:flex-start;justify-content:center;padding-top:15vh;}
+    /* Blur-only layer for the command-palette overlay (search-overlay.html) — flex-centers
+       #search-bar as its one child (padding-top instead of align-items:center, so it sits high
+       like Supabase's own palette rather than dead-center in the viewport), and closing on a
+       direct click here is what "click outside to dismiss" means — #search-bar's own onclick
+       stops that click from ever reaching this element when it originates inside the palette. No
+       background dimming (deliberately no `background` here at all) — blurring the canvas behind
+       it is enough on its own to read as "the app is paused behind a modal" without also darkening
+       it. -webkit- prefix is still needed for Safari's backdrop-filter support. */
+    #search-overlay-backdrop{display:none;position:fixed;inset:0;z-index:1500;-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);align-items:flex-start;justify-content:center;padding-top:15vh;}
     #search-overlay-backdrop.open{display:flex;}
     /* The ONE card for the whole palette — input row and results both live inside it now (see
        #search-input-wrap/#search-dropdown's own comments for why each of THEM had to give up
@@ -179,8 +179,13 @@
        never pokes past these rounded corners — the dictionary/examples panels' hover-out nav
        arrows intentionally slide outside their own panel's edge, and clipping would break that;
        a hover highlight on the very last row very slightly overrunning a rounded bottom corner is
-       an accepted, minor trade-off for keeping that working. */
-    #search-bar{position:relative;width:560px;max-width:calc(100vw - 40px);display:flex;flex-direction:column;align-items:stretch;background:var(--bar);border:1px solid var(--card-border);border-radius:16px;box-shadow:0 20px 60px rgba(0,0,0,0.5);}
+       an accepted, minor trade-off for keeping that working. padding is on THIS element (not
+       #search-input-wrap or #search-dropdown individually) so the input row and every result row
+       inset from the card's edges by the same amount, uniformly, without reintroducing the old
+       "hover highlight looks cut off" bug — #search-dropdown itself still has no side padding of
+       its own, so a row's hover background still stretches edge-to-edge within the space this
+       padding leaves it, rather than leaving a second, inconsistent gap around the highlight. */
+    #search-bar{position:relative;width:560px;max-width:calc(100vw - 40px);display:flex;flex-direction:column;align-items:stretch;background:var(--bar);border:1px solid var(--card-border);border-radius:16px;box-shadow:0 20px 60px rgba(0,0,0,0.5);padding:8px;}
     #search-bar:hover{border-color:#454545;}
     #search-bar:focus-within{border-color:var(--ink-soft);}
     /* Indented ancestor-path rows inside #breadcrumb-menu (hamburger-stack.html) — see its own
