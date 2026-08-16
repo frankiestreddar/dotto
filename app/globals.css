@@ -161,14 +161,20 @@
        sidebar breadcrumb's current row) via startRenameFolderCardTitle. */
     .crumb-placeholder:empty::before{content:attr(data-placeholder);color:var(--ink-soft);pointer-events:none;}
     /* Blur-only layer for the command-palette overlay (search-overlay.html) — flex-centers
-       #search-bar as its one child (padding-top instead of align-items:center, so it sits high
-       like Supabase's own palette rather than dead-center in the viewport), and closing on a
-       direct click here is what "click outside to dismiss" means — #search-bar's own onclick
-       stops that click from ever reaching this element when it originates inside the palette. No
+       #search-bar as its one child on BOTH axes (align-items:center, not the old flex-start +
+       fixed padding-top:15vh). That fixed-offset approach anchored the panel's TOP edge, so as
+       #search-bar grew taller (more result panels appearing), it only ever grew further downward,
+       away from center — true centering has to be recomputed off the panel's actual current
+       height, not a constant offset from the viewport's top edge. align-items:center does exactly
+       that, automatically, on every layout pass: whatever #search-bar's height happens to be right
+       now, the backdrop repositions it dead-center immediately, so it stays centered continuously
+       as content is added or removed rather than drifting off-center while it grows. Closing on a
+       direct click here is what "click outside to dismiss" means — #search-bar's own onclick stops
+       that click from ever reaching this element when it originates inside the palette. No
        background dimming (deliberately no `background` here at all) — blurring the canvas behind
        it is enough on its own to read as "the app is paused behind a modal" without also darkening
        it. -webkit- prefix is still needed for Safari's backdrop-filter support. */
-    #search-overlay-backdrop{display:none;position:fixed;inset:0;z-index:1500;-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);align-items:flex-start;justify-content:center;padding-top:15vh;}
+    #search-overlay-backdrop{display:none;position:fixed;inset:0;z-index:1500;-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);align-items:center;justify-content:center;}
     #search-overlay-backdrop.open{display:flex;}
     /* The ONE card for the whole palette — input row and results both live inside it now (see
        #search-input-wrap/#search-dropdown's own comments for why each of THEM had to give up
