@@ -185,7 +185,7 @@
        "hover highlight looks cut off" bug — #search-dropdown itself still has no side padding of
        its own, so a row's hover background still stretches edge-to-edge within the space this
        padding leaves it, rather than leaving a second, inconsistent gap around the highlight. */
-    #search-bar{position:relative;width:560px;max-width:calc(100vw - 40px);display:flex;flex-direction:column;align-items:stretch;background:var(--bar);border:1px solid var(--card-border);border-radius:16px;box-shadow:0 20px 60px rgba(0,0,0,0.5);padding:8px;}
+    #search-bar{position:relative;width:560px;max-width:calc(100vw - 40px);display:flex;flex-direction:column;align-items:stretch;background:var(--bar);border:1px solid rgba(255,255,255,0.05);border-radius:16px;box-shadow:0 20px 60px rgba(0,0,0,0.5);padding:8px;}
     #search-bar:hover{border-color:#454545;}
     #search-bar:focus-within{border-color:var(--ink-soft);}
     /* Indented ancestor-path rows inside #breadcrumb-menu (hamburger-stack.html) — see its own
@@ -1222,19 +1222,21 @@
     /* Normal flex-flow child now, not absolutely positioned — #search-bar (a plain flex column) is
        the single shared card for the WHOLE palette, input row and results together, so this just
        needs to stack directly below #search-input-wrap in flow, not float independently glued to
-       its bottom edge via a synced inline `top` (autoGrowSearchInput no longer sets one). A plain
-       border-top divider stands in for the old separate-card border between the two. No background
-       /border-radius/box-shadow/padding of its own — #search-bar already supplies all of that, and
-       giving this its OWN padding on top is exactly what made row hover states look inset/cut off
-       instead of reaching the shared card's edges. Each row/panel keeps its own internal padding
-       (see e.g. .search-result-item/.command-palette-row below) to keep text off the card's edges;
+       its bottom edge via a synced inline `top` (autoGrowSearchInput no longer sets one). No
+       divider line between the input row and results anymore — margin-top alone is what separates
+       them now, a plain gap rather than a ruled line. No background/border-radius/box-shadow/
+       padding of its own — #search-bar already supplies all of that, and giving this its OWN
+       padding on top is exactly what made row hover states look inset/cut off instead of reaching
+       the shared card's edges (#search-bar's own padding now provides that inset, uniformly, for
+       both the input row and every result row). Each row/panel keeps its own internal padding (see
+       e.g. .search-result-item/.command-palette-row below) to keep text off its own rounded edges;
        this element itself stays edge-to-edge. Deliberately NOT given overflow-y/max-height here —
        the dictionary/examples panels' hover-out nav arrows (.dotbot-dictionary-arrows/
        .dotbot-examples-toggle below) deliberately slide OUTSIDE their own panel's right edge, and
        an overflow:auto here would clip them; individual panels that genuinely need their own
        internal scroll cap (the answer/command-palette/results panels) still have their own
        max-height+overflow-y, unchanged. */
-    #search-dropdown{display:none;flex-direction:column;gap:5px;border-top:1px solid var(--card-border);margin-top:7px;padding-top:7px;padding-bottom:6px;}
+    #search-dropdown{display:none;flex-direction:column;gap:5px;margin-top:8px;padding-bottom:2px;}
     #search-dropdown.visible{display:flex;}
 
     /* No panel has a heading/label anymore — each one is just its content, shown or hidden
@@ -1272,13 +1274,13 @@
        branch, ai-assistant-suggestions.js) — rows use the same .active hover/keyboard-selection
        convention too, see command-palette.js's setCommandActive. */
     #search-command-palette{display:none;max-height:300px;overflow-y:auto;}
-    .command-palette-row{padding:9px 14px;font-size:13px;color:var(--ink);cursor:pointer;display:flex;align-items:center;justify-content:space-between;gap:8px;}
-    .command-palette-row:hover, .command-palette-row.active{background:#242424;}
+    .command-palette-row{padding:12px 14px;border-radius:8px;font-size:13px;color:var(--ink);cursor:pointer;display:flex;align-items:center;justify-content:space-between;gap:8px;}
+    .command-palette-row:hover, .command-palette-row.active{background:#1e1e1e;}
     .command-palette-row-label{flex:0 0 auto;font-family:monospace;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
     .command-palette-row-sublabel{flex:1 1 auto;min-width:0;text-align:right;color:var(--ink-soft);font-size:11px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
     #search-results{display:none;max-height:300px;overflow-y:auto;}
-    .search-result-item{padding:9px 14px;font-size:13px;color:var(--ink);cursor:pointer;display:flex;align-items:center;gap:8px;}
-    .search-result-item:hover, .search-result-item.active{background:#242424;}
+    .search-result-item{padding:12px 14px;border-radius:8px;font-size:13px;color:var(--ink);cursor:pointer;display:flex;align-items:center;gap:8px;}
+    .search-result-item:hover, .search-result-item.active{background:#1e1e1e;}
     /* Ellipsis lives here (not on .search-result-item itself) — flex:1 so it fills whatever space
        the icon/badge and the index pill don't use, pushing the pill to the row's far right edge. */
     .search-result-text{flex:1 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
@@ -1386,8 +1388,8 @@
        for?" prompt — the dropdown just grows to fit, nothing here caps its height. */
     .dotbot-schedule-card-preview{padding:10px 14px 4px;display:flex;justify-content:center;}
     #search-suggestions .msg-inline-canvas-wrap{margin:8px auto 0;}
-    .search-suggestion-item{padding:9px 14px;font-size:13px;color:var(--ink);cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-    .search-suggestion-item:hover{background:#242424;}
+    .search-suggestion-item{padding:12px 14px;border-radius:8px;font-size:13px;color:var(--ink);cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+    .search-suggestion-item:hover{background:#1e1e1e;}
 
     /* Shown below Dotbot's answer only when it couldn't help with the query (see
        renderRecommendedSearchesPanel) — a separate div from #search-suggestions, which already
