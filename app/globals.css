@@ -1113,30 +1113,41 @@
        then snapping straight back to fast for the next lap — a CSS animation restarts its timing
        curve fresh each iteration by default, so a fast-start/slow-end curve (ease-out) repeating
        gives exactly that "sudden propel again" snap for free, no custom keyframe math needed. A
-       lighter grey than the loading ring's pure white, not pure white itself. Four staggered
-       copies (search-idle-chase-1..4, brightest to faintest, painted in reverse markup order so
-       1 sits on top) fake a fading comet tail: negative animation-delay time-shifts each COPY
-       along the SAME eased curve, so they trail correctly — bunching up or spreading out in sync
-       with the leader's own speed changes — rather than sitting at a fixed spatial offset that
-       would only look right at one constant speed. A negative animation-delay makes a copy START
-       already partway INTO its cycle — i.e. further ALONG the path, not further behind — so the
-       brightest copy (the leader) needs the MOST negative delay and the faintest needs the LEAST
-       (0s), the opposite of what "delay" sounds like it should mean. Getting this backwards (as an
-       earlier version of this rule did) doesn't reverse the direction of travel, it just swaps
-       which end of the four-copy streak is out front — the faded tail visibly leads and the bright
-       head trails behind it, which reads as wrong even though the rotation itself is still correct. */
-    .search-idle-chase{stroke:#b0b0b0;stroke-width:1;stroke-dasharray:1.5 98.5;opacity:0;animation:search-idle-ring-chase 2.4s ease-out infinite;}
+       lighter grey than the loading ring's pure white, not pure white itself.
+       Four copies (search-idle-chase-1..4, brightest/leader to faintest/tail, painted in reverse
+       markup order so 1 sits on top) fake one continuous fading flare. Each copy runs its OWN
+       @keyframes — same 2.4s/ease-out timing, no animation-delay — offset from the leader's
+       (chase-1's) start/end dashoffset by a fixed PERCENT of the path (1.5/3/4.5), not by time.
+       That distinction is the whole reason this looks like one rigid object instead of a scattering
+       of beads: since every copy is driven by the identical time->progress curve, a trailing copy's
+       position is always exactly "leader's current position, minus a constant percent" at every
+       instant, regardless of how fast the leader itself is moving right then — so the streak's
+       spacing never stretches during the fast opening burst or bunches up during the slow finish.
+       Staggering via animation-delay instead (an earlier version of this rule did that) looks
+       identical only at one single constant speed; against this curve's actual varying speed, a
+       FIXED TIME gap between copies means a LARGE position gap during the fast phase (visible gaps
+       in the flare) and a near-zero position gap during the slow phase (copies bunching into one
+       blob) — exactly the "spreads apart into gaps as it goes round" symptom. Each dash segment
+       (2.2% of the path) is deliberately a bit longer than the 1.5% spacing between copies, so
+       consecutive copies overlap slightly and alpha-blend at the seam instead of butting into a
+       visible hard edge, reinforcing the "one smooth flare" read rather than 4 distinct blobs. */
+    .search-idle-chase{stroke:#b0b0b0;stroke-width:1;stroke-dasharray:2.2 97.8;opacity:0;animation-duration:2.4s;animation-timing-function:ease-out;animation-iteration-count:infinite;}
     #search-input-wrap.idle-pulsing .search-idle-chase{opacity:1;}
-    .search-idle-chase-1{stroke-opacity:1;animation-delay:-0.15s;}
-    .search-idle-chase-2{stroke-opacity:0.6;animation-delay:-0.1s;}
-    .search-idle-chase-3{stroke-opacity:0.32;animation-delay:-0.05s;}
-    .search-idle-chase-4{stroke-opacity:0.15;animation-delay:0s;}
+    .search-idle-chase-1{stroke-opacity:1;animation-name:search-idle-ring-chase-1;}
+    .search-idle-chase-2{stroke-opacity:0.6;animation-name:search-idle-ring-chase-2;}
+    .search-idle-chase-3{stroke-opacity:0.32;animation-name:search-idle-ring-chase-3;}
+    .search-idle-chase-4{stroke-opacity:0.15;animation-name:search-idle-ring-chase-4;}
     /* -23 (rather than 0) starts the lap at roughly the top-CENTER of the box instead of its
        top-left corner (a rounded rect's implicit SVG path starts there) — approximate, since
        exactly where "center" falls depends on the box's current width (it grows taller up to 4
        lines but that doesn't move this — see #search-input's min/max-height comment above), but
-       close enough for a decorative idle pulse. */
-    @keyframes search-idle-ring-chase{from{stroke-dashoffset:-23;}to{stroke-dashoffset:-123;}}
+       close enough for a decorative idle pulse. Each trailing copy's endpoints are the leader's
+       (-23/-123) shifted toward zero — i.e. LESS negative, meaning less progressed/further behind,
+       per the sign convention noted above — by that copy's fixed percent offset from the leader. */
+    @keyframes search-idle-ring-chase-1{from{stroke-dashoffset:-23;}to{stroke-dashoffset:-123;}}
+    @keyframes search-idle-ring-chase-2{from{stroke-dashoffset:-21.5;}to{stroke-dashoffset:-121.5;}}
+    @keyframes search-idle-ring-chase-3{from{stroke-dashoffset:-20;}to{stroke-dashoffset:-120;}}
+    @keyframes search-idle-ring-chase-4{from{stroke-dashoffset:-18.5;}to{stroke-dashoffset:-118.5;}}
     #search-spinner{display:none;position:absolute;right:12px;top:14px;width:14px;height:14px;border:2px solid var(--card-border);border-top-color:var(--ink-soft);border-radius:50%;animation:dotbot-spin 0.7s linear infinite;pointer-events:none;}
     #search-spinner.visible{display:block;}
     @keyframes dotbot-spin{to{transform:rotate(360deg);}}
