@@ -1116,15 +1116,21 @@
        lighter grey than the loading ring's pure white, not pure white itself. Four staggered
        copies (search-idle-chase-1..4, brightest to faintest, painted in reverse markup order so
        1 sits on top) fake a fading comet tail: negative animation-delay time-shifts each COPY
-       along the SAME eased curve as the leader, so they trail correctly — bunching up or
-       spreading out in sync with the leader's own speed changes — rather than sitting at a fixed
-       spatial offset that would only look right at one constant speed. */
+       along the SAME eased curve, so they trail correctly — bunching up or spreading out in sync
+       with the leader's own speed changes — rather than sitting at a fixed spatial offset that
+       would only look right at one constant speed. A negative animation-delay makes a copy START
+       already partway INTO its cycle — i.e. further ALONG the path, not further behind — so the
+       brightest copy (the leader) needs the MOST negative delay and the faintest needs the LEAST
+       (0s), the opposite of what "delay" sounds like it should mean. Getting this backwards (as an
+       earlier version of this rule did) doesn't reverse the direction of travel, it just swaps
+       which end of the four-copy streak is out front — the faded tail visibly leads and the bright
+       head trails behind it, which reads as wrong even though the rotation itself is still correct. */
     .search-idle-chase{stroke:#b0b0b0;stroke-width:1;stroke-dasharray:1.5 98.5;opacity:0;animation:search-idle-ring-chase 2.4s ease-out infinite;}
     #search-input-wrap.idle-pulsing .search-idle-chase{opacity:1;}
-    .search-idle-chase-1{stroke-opacity:1;animation-delay:0s;}
-    .search-idle-chase-2{stroke-opacity:0.6;animation-delay:-0.05s;}
-    .search-idle-chase-3{stroke-opacity:0.32;animation-delay:-0.1s;}
-    .search-idle-chase-4{stroke-opacity:0.15;animation-delay:-0.15s;}
+    .search-idle-chase-1{stroke-opacity:1;animation-delay:-0.15s;}
+    .search-idle-chase-2{stroke-opacity:0.6;animation-delay:-0.1s;}
+    .search-idle-chase-3{stroke-opacity:0.32;animation-delay:-0.05s;}
+    .search-idle-chase-4{stroke-opacity:0.15;animation-delay:0s;}
     /* -23 (rather than 0) starts the lap at roughly the top-CENTER of the box instead of its
        top-left corner (a rounded rect's implicit SVG path starts there) — approximate, since
        exactly where "center" falls depends on the box's current width (it grows taller up to 4
