@@ -185,7 +185,7 @@
        "hover highlight looks cut off" bug — #search-dropdown itself still has no side padding of
        its own, so a row's hover background still stretches edge-to-edge within the space this
        padding leaves it, rather than leaving a second, inconsistent gap around the highlight. */
-    #search-bar{position:relative;width:560px;max-width:calc(100vw - 40px);display:flex;flex-direction:column;align-items:stretch;background:var(--bar);border:1px solid rgba(255,255,255,0.05);border-radius:16px;box-shadow:0 20px 60px rgba(0,0,0,0.5);padding:8px;}
+    #search-bar{position:relative;width:560px;max-width:calc(100vw - 40px);display:flex;flex-direction:column;align-items:stretch;background:var(--bar);border:1px solid #202020;border-radius:16px;box-shadow:0 20px 60px rgba(0,0,0,0.5);padding:8px;}
     #search-bar:hover{border-color:#454545;}
     #search-bar:focus-within{border-color:var(--ink-soft);}
     /* Indented ancestor-path rows inside #breadcrumb-menu (hamburger-stack.html) — see its own
