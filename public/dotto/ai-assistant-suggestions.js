@@ -262,17 +262,21 @@ import { render } from './waypoints-render-loop.js';
             // just haven't shown it yet. Snap to 0/hidden/transparent with transitions off, force a
             // reflow so the browser actually commits that as the "before" state (otherwise the very
             // next style change below would get coalesced with this one and there'd be nothing to
-            // transition FROM), then re-enable transitions and animate up to the real height —
-            // height first (ease-in, so it starts slow and gathers pace), opacity delayed to start
-            // near the end of that grow and finish just after, so the content visibly fades in
-            // AFTER the box has grown to size rather than fading in while still expanding.
+            // transition FROM), then re-enable transitions and animate up to the real height.
+            // cubic-bezier(0.22,1,0.36,1) ("easeOutExpo"-ish — fast start, long gentle glide to a
+            // stop) reads as smooth/premium the way plain `ease-in` doesn't: ease-in is fastest at
+            // the exact instant it stops, so the motion reads as an abrupt cutoff rather than a
+            // settle, no matter how long the duration is. Opacity is a separate transition, delayed
+            // to start well after the grow begins and finish shortly after it ends, so the content
+            // visibly fades in AFTER the box has grown to size rather than fading in while still
+            // expanding.
             dropdown.style.transition = 'none';
             dropdown.style.height = '0px';
             dropdown.style.opacity = '0';
             dropdown.style.overflow = 'hidden';
             void dropdown.offsetHeight;
             const target = dropdown.scrollHeight;
-            dropdown.style.transition = 'height .13s ease-in, opacity .09s ease .1s';
+            dropdown.style.transition = 'height .26s cubic-bezier(0.22,1,0.36,1), opacity .2s ease-out .15s';
             dropdown.style.height = target + 'px';
             dropdown.style.opacity = '1';
             const onDone = (e) => {
@@ -299,7 +303,7 @@ import { render } from './waypoints-render-loop.js';
             dropdown.style.height = current + 'px';
             dropdown.style.overflow = 'hidden';
             void dropdown.offsetHeight;
-            dropdown.style.transition = 'height .09s ease-in, opacity .07s ease-in';
+            dropdown.style.transition = 'height .16s cubic-bezier(0.4,0,1,1), opacity .12s ease-in';
             dropdown.style.height = '0px';
             dropdown.style.opacity = '0';
         }

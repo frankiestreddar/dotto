@@ -1259,20 +1259,30 @@
        e.g. .search-result-item/.command-palette-row below) to keep text off its own rounded edges;
        this element itself stays edge-to-edge.
        display stays flex always now (never display:none) — height:0 is what hides it at rest, and
-       updateSearchDropdown (ai-assistant-suggestions.js) animates height (plus opacity, and this
-       rule's own margin-top/padding-bottom transition) from 0 up to the content's real scrollHeight
-       whenever a panel first appears, so it grows in and fades in rather than snapping open. The
-       overflow:hidden below looks like it contradicts "Deliberately NOT overflow:hidden" on
+       updateSearchDropdown (ai-assistant-suggestions.js) animates height (plus opacity) from 0 up
+       to the content's real scrollHeight whenever a panel first appears, so it grows in and fades
+       in rather than snapping open. margin-top/padding-bottom are constant, NOT tied to .visible or
+       animated — an earlier version toggled them via the .visible class with their own CSS
+       transition, but updateSearchDropdown sets this element's inline `style.transition` (the
+       shorthand) to drive height/opacity, and an inline shorthand transition fully overrides
+       every sub-property a stylesheet rule declares for the same element, not just the ones the
+       inline value mentions — so that separate margin/padding transition was silently never
+       applying, and they were jumping instantly while only height eased, undercutting the whole
+       "smooth" effect. Keeping them constant means there's a small fixed gap under the input row
+       even while collapsed (worth revisiting if that's ever noticeable), but it's a minor trade for
+       correctness over reintroducing that bug (folding them into the JS-driven transition instead
+       has its own trap: measuring scrollHeight while they're temporarily zeroed would undercount
+       the eventual open height by however much they contribute).
+       The overflow:hidden below looks like it contradicts "Deliberately NOT overflow:hidden" on
        #search-bar just above (needed so the dictionary/examples panels' hover-out nav arrows,
        .dotbot-dictionary-arrows/.dotbot-examples-toggle below, can slide OUTSIDE their own panel's
        right edge) — it doesn't: this is only ever the RESTING value while collapsed (nothing to
-       clip at height 0 anyway) or the TRANSIENT value for the ~130ms grow itself; the JS flips it
-       back to overflow:visible the instant that transition finishes, so the arrows work normally
-       the entire time the palette is actually open and settled. Individual panels that need their
-       own internal scroll cap (the answer/command-palette/results panels) still have their own
-       max-height+overflow-y, unchanged. */
-    #search-dropdown{display:flex;flex-direction:column;gap:5px;height:0;overflow:hidden;margin-top:0;padding-bottom:0;transition:margin-top .13s ease-in,padding-bottom .13s ease-in;}
-    #search-dropdown.visible{margin-top:8px;padding-bottom:2px;}
+       clip at height 0 anyway) or the TRANSIENT value for the grow/collapse transition itself; the
+       JS flips it back to overflow:visible the instant that transition finishes, so the arrows
+       work normally the entire time the palette is actually open and settled. Individual panels
+       that need their own internal scroll cap (the answer/command-palette/results panels) still
+       have their own max-height+overflow-y, unchanged. */
+    #search-dropdown{display:flex;flex-direction:column;gap:5px;height:0;overflow:hidden;margin-top:8px;padding-bottom:2px;}
 
     /* No panel has a heading/label anymore — each one is just its content, shown or hidden
        as a whole (display:none by default; JS toggles display:block/flex only when there's
