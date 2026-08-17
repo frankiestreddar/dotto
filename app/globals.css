@@ -1261,18 +1261,24 @@
        display stays flex always now (never display:none) — height:0 is what hides it at rest, and
        updateSearchDropdown (ai-assistant-suggestions.js) animates height (plus opacity) from 0 up
        to the content's real scrollHeight whenever a panel first appears, so it grows in and fades
-       in rather than snapping open. margin-top/padding-bottom are constant, NOT tied to .visible or
-       animated — an earlier version toggled them via the .visible class with their own CSS
-       transition, but updateSearchDropdown sets this element's inline `style.transition` (the
-       shorthand) to drive height/opacity, and an inline shorthand transition fully overrides
-       every sub-property a stylesheet rule declares for the same element, not just the ones the
-       inline value mentions — so that separate margin/padding transition was silently never
-       applying, and they were jumping instantly while only height eased, undercutting the whole
-       "smooth" effect. Keeping them constant means there's a small fixed gap under the input row
-       even while collapsed (worth revisiting if that's ever noticeable), but it's a minor trade for
-       correctness over reintroducing that bug (folding them into the JS-driven transition instead
-       has its own trap: measuring scrollHeight while they're temporarily zeroed would undercount
-       the eventual open height by however much they contribute).
+       in rather than snapping open. margin-top/padding-bottom are toggled by the .visible class
+       below, INSTANTLY, with no CSS transition of their own — a previous version made them
+       constant instead (always present, even while collapsed), specifically to dodge a real bug:
+       updateSearchDropdown sets this element's inline `style.transition` (the shorthand) to drive
+       height/opacity, and an inline shorthand transition fully overrides every sub-property a
+       stylesheet rule declares for the same element, not just the ones the inline value mentions —
+       so a stylesheet transition on margin/padding would silently never apply, jumping instantly
+       while only height eased. But "constant" meant #search-bar's own 8px padding plus this
+       element's always-on 8px margin-top + 2px padding-bottom added up to a visibly bigger gap
+       below the input row than the 8px on every other side, even with nothing open at all. The fix
+       isn't to animate margin/padding (that was never the actual goal, and re-attempting it hits
+       the scrollHeight-measurement trap noted below) — it's to just not apply them AT ALL while
+       collapsed, via a plain class-based toggle with no transition property, so there's nothing for
+       the inline shorthand to collide with. They still snap on instantly alongside the height grow
+       starting, rather than easing in, but that's fine: they're static breathing room, not part of
+       the "growth" motion. Folding them into the JS-driven height transition instead has its own
+       trap: measuring scrollHeight while they're temporarily zeroed would undercount the eventual
+       open height by however much they contribute.
        The overflow:hidden below looks like it contradicts "Deliberately NOT overflow:hidden" on
        #search-bar just above (needed so the dictionary/examples panels' hover-out nav arrows,
        .dotbot-dictionary-arrows/.dotbot-examples-toggle below, can slide OUTSIDE their own panel's
@@ -1282,7 +1288,8 @@
        work normally the entire time the palette is actually open and settled. Individual panels
        that need their own internal scroll cap (the answer/command-palette/results panels) still
        have their own max-height+overflow-y, unchanged. */
-    #search-dropdown{display:flex;flex-direction:column;gap:5px;height:0;overflow:hidden;margin-top:8px;padding-bottom:2px;}
+    #search-dropdown{display:flex;flex-direction:column;gap:5px;height:0;overflow:hidden;margin-top:0;padding-bottom:0;}
+    #search-dropdown.visible{margin-top:8px;padding-bottom:2px;}
 
     /* No panel has a heading/label anymore — each one is just its content, shown or hidden
        as a whole (display:none by default; JS toggles display:block/flex only when there's
