@@ -243,11 +243,69 @@ import { render } from './waypoints-render-loop.js';
         appState.searchOverlayBackdrop.classList.add('open');
         appState.searchInput.focus();
     }
+    // Handle for the in-progress reveal/collapse transitionend listener (see updateSearchDropdown
+    // below) — stored so a rapid-fire toggle (e.g. clearing right after typing) can remove the
+    // stale listener from the previous transition instead of stacking a new one on top of it.
+    let dropdownTransitionCleanup = null;
     function updateSearchDropdown() {
         if (!appState.searchDropdown) return;
+        const dropdown = appState.searchDropdown;
         const panels = [appState.searchCommandPalette, appState.searchDotbotAnswer, appState.searchResults, appState.searchTranslation, appState.searchDictionary, appState.searchExamples, appState.searchImageResult, appState.searchSuggestions, appState.searchRecommended].filter(Boolean);
         const visible = panels.some(el => el.style.display !== 'none');
-        appState.searchDropdown.classList.toggle('visible', visible);
+        const wasVisible = dropdown.classList.contains('visible');
+        dropdown.classList.toggle('visible', visible);
+        if (dropdownTransitionCleanup) { dropdown.removeEventListener('transitionend', dropdownTransitionCleanup); dropdownTransitionCleanup = null; }
+        if (visible && !wasVisible) {
+            // Reveal: by this point every call site above has already written the new panel(s)'
+            // content into the DOM and flipped their own display to something other than 'none' —
+            // #search-dropdown's natural (scrollHeight) size already reflects that new content, we
+            // just haven't shown it yet. Snap to 0/hidden/transparent with transitions off, force a
+            // reflow so the browser actually commits that as the "before" state (otherwise the very
+            // next style change below would get coalesced with this one and there'd be nothing to
+            // transition FROM), then re-enable transitions and animate up to the real height —
+            // height first (ease-in, so it starts slow and gathers pace), opacity delayed to start
+            // near the end of that grow and finish just after, so the content visibly fades in
+            // AFTER the box has grown to size rather than fading in while still expanding.
+            dropdown.style.transition = 'none';
+            dropdown.style.height = '0px';
+            dropdown.style.opacity = '0';
+            dropdown.style.overflow = 'hidden';
+            void dropdown.offsetHeight;
+            const target = dropdown.scrollHeight;
+            dropdown.style.transition = 'height .13s ease-in, opacity .09s ease .1s';
+            dropdown.style.height = target + 'px';
+            dropdown.style.opacity = '1';
+            const onDone = (e) => {
+                if (e.target !== dropdown || e.propertyName !== 'height') return;
+                // Hand height back to normal flow (not a value we keep chasing) so any further
+                // content change while it stays open just resizes it directly — overflow goes back
+                // to visible too, since #search-bar/#search-dropdown are deliberately non-clipping
+                // at rest (the dictionary/examples panels' hover-out nav arrows slide outside their
+                // own edge — see #search-bar's own comment on that). hidden/fixed-height only needs
+                // to hold for this one transition, not permanently.
+                dropdown.style.transition = '';
+                dropdown.style.height = 'auto';
+                dropdown.style.overflow = 'visible';
+                dropdown.removeEventListener('transitionend', onDone);
+                dropdownTransitionCleanup = null;
+            };
+            dropdown.addEventListener('transitionend', onDone);
+            dropdownTransitionCleanup = onDone;
+        } else if (!visible && wasVisible) {
+            // Collapse: quick fade + shrink together, no separate sequencing — closing should read
+            // as fast/immediate, not a mirrored replay of the (slower, deliberately sequenced) open.
+            const current = dropdown.getBoundingClientRect().height;
+            dropdown.style.transition = 'none';
+            dropdown.style.height = current + 'px';
+            dropdown.style.overflow = 'hidden';
+            void dropdown.offsetHeight;
+            dropdown.style.transition = 'height .09s ease-in, opacity .07s ease-in';
+            dropdown.style.height = '0px';
+            dropdown.style.opacity = '0';
+        }
+        // Already in the target state either way (still open, still closed) — left alone: an
+        // in-place content resize while already open just snaps to its new size via height:auto,
+        // same as before this whole reveal/collapse animation existed.
     }
 
     // Hides the panels that hold a *completed* search's result (Dotbot's answer, dictionary,

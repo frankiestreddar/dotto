@@ -571,7 +571,17 @@ import { render, renderSelectedOutlines, startBoxSelection, syncWaypointToDb } f
             if (appState.searchInput) {
                 appState.searchInput.value = '/';
                 appState.searchInput.setSelectionRange(1, 1);
-                handleSearchInput('/');
+                // Deliberately NOT called synchronously here. If handleSearchInput ran in the same
+                // tick as opening the overlay and setting the value, the browser would coalesce all
+                // of it into one paint — the box would just appear already showing suggestions,
+                // with no visible "/" -> grows -> suggestions fade in sequence (see
+                // updateSearchDropdown's own reveal animation, ai-assistant-suggestions.js). The
+                // double rAF forces an actual paint of the just-opened box with a bare "/" in it
+                // first (one rAF fires before the next paint, so it isn't enough on its own —
+                // nesting a second one inside it guarantees that paint has already happened by the
+                // time the callback runs), then triggers the suggestions a beat later so their
+                // reveal animation is an actually-visible second step, not a coalesced no-op.
+                requestAnimationFrame(() => requestAnimationFrame(() => handleSearchInput('/')));
             }
             return;
         }
