@@ -388,37 +388,50 @@ import { render } from './waypoints-render-loop.js';
             if (!wasVisible) dropdown.style.opacity = '0';
             dropdown.style.overflow = 'hidden';
             void dropdown.offsetHeight;
-            // cubic-bezier(0,0,0.2,1) is Material Design's standard "decelerate" curve — the
-            // deliberate PAIR of the collapse's cubic-bezier(0.4,0,1,1) "accelerate" curve below,
-            // not an unrelated choice: an accelerate/decelerate pair sharing the same underlying
-            // shape (just mirrored) is what makes an enter and its matching exit feel like the same
-            // physical object, rather than two differently-tempered motions. The earlier
-            // cubic-bezier(0.22,1,0.36,1) ("easeOutExpo") was tried first for a "smooth/premium"
-            // feel, but it's far more front-loaded than this: its second control point already
-            // sits at the FULL target value, so well over half the visible size change happens in
-            // roughly the first third of the duration and the rest is an almost imperceptible
-            // settle — which reads as a fast jump followed by a barely-visible creep, not a
-            // continuous grow. Material's decelerate curve spreads the deceleration much more
-            // evenly across the whole duration instead of front-loading it. On a fresh reveal,
-            // opacity overlaps the grow (starts early, finishes a bit after) rather than waiting
-            // for it to finish first — a fully-sequenced "grow, THEN fade" leaves the box entirely
-            // empty (opacity 0) for most of the transition, which reads as an empty container
-            // snapping to size before content pops in separately, the same "jumpy" symptom by a
-            // different route.
-            dropdown.style.transition = wasVisible
-                ? 'height .22s cubic-bezier(0,0,0.2,1)'
-                : 'height .22s cubic-bezier(0,0,0.2,1), opacity .26s ease-out .05s';
         }
-        // else: a previous grow is still actively in flight (height is a live, currently-
-        // interpolating px value — the common case while typing, see the `settled` comment above).
-        // Deliberately NOT resetting transition/height/overflow here: this element's `transition`
-        // is already set from the last call, and simply pointing the CURRENTLY-RUNNING transition
-        // at a new target height makes the browser redirect smoothly from wherever it visually,
-        // currently is — that's standard, well-supported behavior. Forcing a reset on every call
-        // instead (what this used to do) is exactly what caused a visible stutter/snap on every
-        // single keystroke: each retrigger snapped back to the stale dropdownSettledHeight first,
-        // undoing whatever progress the in-flight transition had already made, before restarting —
-        // a series of instant snaps rather than one continuous motion.
+        // cubic-bezier(0,0,0.2,1) is Material Design's standard "decelerate" curve — the
+        // deliberate PAIR of the collapse's cubic-bezier(0.4,0,1,1) "accelerate" curve below, not
+        // an unrelated choice: an accelerate/decelerate pair sharing the same underlying shape
+        // (just mirrored) is what makes an enter and its matching exit feel like the same physical
+        // object, rather than two differently-tempered motions. The earlier
+        // cubic-bezier(0.22,1,0.36,1) ("easeOutExpo") was tried first for a "smooth/premium" feel,
+        // but it's far more front-loaded than this: its second control point already sits at the
+        // FULL target value, so well over half the visible size change happens in roughly the
+        // first third of the duration and the rest is an almost imperceptible settle — which reads
+        // as a fast jump followed by a barely-visible creep, not a continuous grow. Material's
+        // decelerate curve spreads the deceleration much more evenly across the whole duration
+        // instead of front-loading it. On a fresh reveal, opacity overlaps the grow (starts early,
+        // finishes a bit after) rather than waiting for it to finish first — a fully-sequenced
+        // "grow, THEN fade" leaves the box entirely empty (opacity 0) for most of the transition,
+        // which reads as an empty container snapping to size before content pops in separately,
+        // the same "jumpy" symptom by a different route.
+        //
+        // This is set UNCONDITIONALLY, every single call, not just inside `if (settled)` above —
+        // that was the actual bug behind results still looking jumpy while typing: canvas matches
+        // fluctuate keystroke to keystroke (some, then none, then some again), so a shrink can
+        // easily still be mid-flight when results reappear a keystroke later. The collapse branch
+        // above already re-applies ITS OWN transition unconditionally on every call (which is
+        // exactly why the shrink has looked right this whole time) — but this grow transition used
+        // to only get set inside `if (settled)`, so a grow interrupting an in-flight shrink would
+        // silently keep the shrink's transition active (its short, ACCELERATING curve) instead of
+        // switching to the grow's own decelerating one, animating the wrong direction's motion
+        // shape for however much of the grow was left. Setting it fresh every time, regardless of
+        // settled state, is what the collapse branch already knew to do.
+        dropdown.style.transition = wasVisible
+            ? 'height .22s cubic-bezier(0,0,0.2,1)'
+            : 'height .22s cubic-bezier(0,0,0.2,1), opacity .26s ease-out .05s';
+        // else (when settled was false above): a previous grow OR shrink was still actively in
+        // flight (height is a live, currently-interpolating px value — the common case while
+        // typing, see the `settled` comment above). We didn't force a starting height/opacity/
+        // overflow reset in that case: this element's CURRENT live value is already a real,
+        // valid starting point, and simply pointing a (freshly-set, correctly-directioned)
+        // transition at a new target height makes the browser redirect smoothly from wherever it
+        // visually, currently is — that's standard, well-supported behavior. Forcing a full reset
+        // on every call instead (what an earlier version of this did) is what caused a visible
+        // stutter/snap on every single keystroke: each retrigger snapped back to the stale
+        // dropdownSettledHeight first, undoing whatever progress the in-flight transition had
+        // already made, before restarting — a series of instant snaps rather than one continuous
+        // motion.
         dropdown.style.height = target + 'px';
         dropdown.style.opacity = '1';
         dropdownSettledHeight = target;
