@@ -353,12 +353,18 @@ import { render } from './waypoints-render-loop.js';
             // cubic-bezier(0.22,1,0.36,1) ("easeOutExpo"-ish — fast start, long gentle glide to a
             // stop) reads as smooth/premium the way plain `ease-in` doesn't: ease-in is fastest at
             // the exact instant it stops, so the motion reads as an abrupt cutoff, no matter how
-            // long the duration is. On a fresh reveal, opacity is a separate transition delayed to
-            // start well after the grow begins and finish shortly after, so content visibly fades
-            // in AFTER the box has grown to size rather than while still expanding.
+            // long the duration is. On a fresh reveal, opacity now OVERLAPS the grow instead of
+            // waiting for it to finish first — an earlier version delayed the fade until well after
+            // the grow (matching the original "grow, THEN fade" ask literally), but that meant the
+            // box spent most of the transition completely empty (opacity still 0), so it read as an
+            // empty container snapping to size with nothing to visually anchor the motion to,
+            // followed by a separate, disconnected pop-in — exactly the "jumpy" complaint, just
+            // moved from the height curve to the height/opacity relationship. Starting the fade
+            // early, while the box is still visibly growing, and letting it finish a bit after the
+            // grow settles, reads as one connected motion instead of two sequential ones.
             dropdown.style.transition = wasVisible
                 ? 'height .22s cubic-bezier(0.22,1,0.36,1)'
-                : 'height .26s cubic-bezier(0.22,1,0.36,1), opacity .2s ease-out .19s';
+                : 'height .26s cubic-bezier(0.22,1,0.36,1), opacity .3s ease-out .06s';
         }
         // else: a previous grow is still actively in flight (height is a live, currently-
         // interpolating px value — the common case while typing, see the `settled` comment above).
