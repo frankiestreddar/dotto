@@ -250,7 +250,35 @@ import { render } from './waypoints-render-loop.js';
     // previous transition finished) can remove the stale listener instead of stacking a new one.
     let dropdownSettledHeight = 0;
     let dropdownTransitionCleanup = null;
+    // Keeps dropdownSettledHeight honest during growth that happens WITHOUT ever calling
+    // updateSearchDropdown() — the one real case is typewriterReveal (mnemonic-search-matching.js/
+    // dotbot-schedule-notifications.js): Dotbot's answer text is typed out character by character
+    // over ~700ms via its own setTimeout loop, growing #search-dotbot-answer (and so
+    // #search-dropdown, once height is back to 'auto') the whole time via completely ordinary
+    // auto-height reflow — updateSearchDropdown itself is only called once, at the very end, when
+    // the typewriter finishes. Without this observer, dropdownSettledHeight is stuck at whatever it
+    // was BEFORE the typewriter started (the answer card's height right when it first appeared,
+    // essentially empty) for that entire 700ms, even though the box visually already grew to fit
+    // the text in real time via ordinary auto-height tracking. Then the final updateSearchDropdown()
+    // call reads that stale value, force-snaps the box back down to it (since it still believes
+    // that's the current settled height), and re-grows from there — a real, visible jump, even
+    // though the box was already sitting at the correct size the entire time. Only trusted while
+    // settled (no explicit JS-driven transition live) — mid-transition, height is a deliberately
+    // controlled explicit px value this function already tracks itself, and this observer firing
+    // on every animation frame during that would just be redundant noise.
+    const dropdownResizeObserver = (typeof ResizeObserver !== 'undefined') ? new ResizeObserver((entries) => {
+        const dropdown = appState.searchDropdown;
+        if (!dropdown) return;
+        const settled = dropdown.style.height === '' || dropdown.style.height === 'auto';
+        if (!settled) return;
+        dropdownSettledHeight = entries[0].contentRect.height;
+    }) : null;
+    let dropdownResizeObserverStarted = false;
     function updateSearchDropdown() {
+        if (appState.searchDropdown && dropdownResizeObserver && !dropdownResizeObserverStarted) {
+            dropdownResizeObserver.observe(appState.searchDropdown);
+            dropdownResizeObserverStarted = true;
+        }
         if (!appState.searchDropdown) return;
         const dropdown = appState.searchDropdown;
         const panels = [appState.searchCommandPalette, appState.searchDotbotAnswer, appState.searchResults, appState.searchTranslation, appState.searchDictionary, appState.searchExamples, appState.searchImageResult, appState.searchSuggestions, appState.searchRecommended].filter(Boolean);
