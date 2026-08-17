@@ -78,6 +78,17 @@ import { render } from './waypoints-render-loop.js';
         if (!folderObj) return;
         const matches = folderObj.isSource ? computeSourceMatches(query) : computeCanvasMatches(query);
         renderCanvasResultsPanel(matches, folderObj.isSource); // instant, sync — visible before the spinner even shows
+        // The comment above predates #search-dropdown's height-animation system (it used to be a
+        // simple display:block/none toggle, so a panel's own style.display was enough to reveal
+        // it) — now #search-dropdown itself needs a matching updateSearchDropdown() call to grow
+        // into showing it, or it just sits clipped behind height:0/overflow:hidden. Without this,
+        // canvas results were fully ready and "visible" (their own style.display was already
+        // 'block') but invisible the entire ~1s+ the orchestrate fetch below was in flight, since
+        // nothing called updateSearchDropdown() until renderOrchestrateResult at the very end —
+        // reading as "canvas results take a second to load" when they were actually ready
+        // instantly, just hidden behind a dropdown that hadn't been told to grow yet, then all of
+        // it (canvas results + whatever the orchestrate response adds) jumping into view at once.
+        updateSearchDropdown();
         appState.searchDotbotAnswer.innerHTML = ''; appState.searchDotbotAnswer.style.display = 'none';
         appState.searchDictionary.innerHTML = ''; appState.searchDictionary.style.display = 'none';
         appState.searchExamples.innerHTML = ''; appState.searchExamples.style.display = 'none';
