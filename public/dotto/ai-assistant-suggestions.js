@@ -231,6 +231,24 @@ import { render } from './waypoints-render-loop.js';
         window.__setSearchSuggestions(null);
         if (appState.searchRecommended) { appState.searchRecommended.innerHTML = ''; appState.searchRecommended.style.display = 'none'; }
         updateSearchDropdown();
+        // updateSearchDropdown() just started (or was already mid-) a collapse transition on
+        // #search-dropdown — but the very next line hides the WHOLE overlay backdrop
+        // (display:none), which silently cancels that transition without ever firing
+        // 'transitionend' (browsers don't dispatch it for a transition interrupted by an ancestor
+        // going display:none). That means the handler which normally hands height back to 'auto'
+        // once a collapse finishes never runs here, leaving #search-dropdown's height stuck at
+        // whatever explicit px value it was at the moment of interruption — which then breaks
+        // `settled` detection (updateSearchDropdown only recognizes '' / 'auto' as settled) for
+        // every future reveal, reusing whatever transition happened to be live at THIS moment
+        // instead of the correct one. Force it back to a clean rest state directly instead — there's
+        // no point letting a collapse animate toward something the user is about to not see anyway,
+        // since the backdrop is disappearing regardless.
+        if (appState.searchDropdown) {
+            appState.searchDropdown.style.transition = '';
+            appState.searchDropdown.style.height = 'auto';
+            appState.searchDropdown.style.opacity = '1';
+            appState.searchDropdown.style.overflow = 'visible';
+        }
         if (appState.searchOverlayBackdrop) appState.searchOverlayBackdrop.classList.remove('open');
         appState.searchInput.blur();
     }
