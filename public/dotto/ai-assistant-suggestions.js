@@ -312,6 +312,26 @@ import { render } from './waypoints-render-loop.js';
             dropdown.style.height = '0px';
             dropdown.style.opacity = '0';
             dropdownSettledHeight = 0;
+            // Without this, `settled` is permanently wrong from here on: height stays pinned at
+            // the explicit '0px' string forever (neither '' nor 'auto'), so every SUBSEQUENT reveal
+            // attempt reads settled as false, skips the block above that actually sets up the grow's
+            // real transition, and falls straight through using whatever transition string happened
+            // to be left over from THIS collapse — the shrink's accelerate curve/duration, not the
+            // grow's decelerate one. That's a standing bug, not a one-off: only the very first
+            // reveal of the whole page load (before any collapse has ever run) was ever using the
+            // grow's actual intended transition at all; every reveal after the first close reused
+            // stale collapse timing, which is short/accelerating enough to read as a near-instant
+            // jump regardless of how the grow's own curve gets tuned.
+            const onCollapseDone = (e) => {
+                if (e.target !== dropdown || e.propertyName !== 'height') return;
+                dropdown.style.transition = '';
+                dropdown.style.height = 'auto';
+                dropdown.style.overflow = 'visible';
+                dropdown.removeEventListener('transitionend', onCollapseDone);
+                dropdownTransitionCleanup = null;
+            };
+            dropdown.addEventListener('transitionend', onCollapseDone);
+            dropdownTransitionCleanup = onCollapseDone;
             return;
         }
         // Visible — either a fresh reveal (wasVisible false) or the dropdown is already open and
