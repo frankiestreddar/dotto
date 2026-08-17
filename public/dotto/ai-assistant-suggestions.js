@@ -257,15 +257,29 @@ import { render } from './waypoints-render-loop.js';
         const visible = panels.some(el => el.style.display !== 'none');
         const wasVisible = dropdown.classList.contains('visible');
         dropdown.classList.toggle('visible', visible);
-        if (dropdownTransitionCleanup) { dropdown.removeEventListener('transitionend', dropdownTransitionCleanup); dropdownTransitionCleanup = null; }
+        // 'auto'/'' means no transition is currently live — the last one already ran its
+        // transitionend handler and handed height back to normal flow. A non-empty px value means
+        // one is still actively interpolating right now (handleSearchInput calls this on every
+        // keystroke, since the canvas-results panel can resize on each one — typing at a normal
+        // pace easily retriggers this well inside the ~220-260ms these transitions take, so "still
+        // mid-flight" is the COMMON case here, not an edge case).
+        const settled = dropdown.style.height === '' || dropdown.style.height === 'auto';
         if (!visible) {
             if (!wasVisible) return; // already closed, staying closed — nothing to animate
+            if (dropdownTransitionCleanup) { dropdown.removeEventListener('transitionend', dropdownTransitionCleanup); dropdownTransitionCleanup = null; }
             // Collapse: quick fade + shrink together, no separate sequencing — closing should read
             // as fast/immediate, not a mirrored replay of the (slower, deliberately sequenced) open.
-            dropdown.style.transition = 'none';
-            dropdown.style.height = dropdownSettledHeight + 'px';
-            dropdown.style.overflow = 'hidden';
-            void dropdown.offsetHeight;
+            // Only force a starting px value if we're coming from a settled 'auto' rest — if a grow
+            // was still in flight, its current live height is already a real px value we can
+            // redirect from directly (see the long comment below on why forcing a reset here on
+            // every call was the actual bug: it stutter-snapped back to the stale settled value on
+            // every single keystroke instead of smoothly continuing from wherever it visually was).
+            if (settled) {
+                dropdown.style.transition = 'none';
+                dropdown.style.height = dropdownSettledHeight + 'px';
+                dropdown.style.overflow = 'hidden';
+                void dropdown.offsetHeight;
+            }
             dropdown.style.transition = 'height .16s cubic-bezier(0.4,0,1,1), opacity .12s ease-in';
             dropdown.style.height = '0px';
             dropdown.style.opacity = '0';
@@ -274,52 +288,63 @@ import { render } from './waypoints-render-loop.js';
         }
         // Visible — either a fresh reveal (wasVisible false) or the dropdown is already open and
         // its content just changed size (wasVisible true, e.g. live suggestions were already
-        // showing and Dotbot's actual answer just replaced/grew them). Both cases animate the same
-        // way now: by this point every call site above has already written the new panel(s)'
-        // content into the DOM and flipped their own display to something other than 'none' —
-        // #search-dropdown's natural (scrollHeight) size already reflects that new content, we
-        // just haven't grown into it yet.
+        // showing and Dotbot's actual answer just replaced/grew them, or the canvas-results panel
+        // resized on this keystroke). Both cases animate the same way now: by this point every call
+        // site above has already written the new panel(s)' content into the DOM and flipped their
+        // own display to something other than 'none' — #search-dropdown's natural (scrollHeight)
+        // size already reflects that new content, we just haven't grown into it yet.
         //
-        // The "already open" case is the one that was silently never animating before this: it
-        // used to be treated as a no-op ("it's already in the visible state, leave it"), on the
-        // assumption that a bare open/close toggle was the only thing worth animating — but in
-        // practice, live suggestions usually open the dropdown FIRST (at a small height), and the
-        // real Dotbot answer/results arrive a moment later and just grow it further — so that
-        // second, bigger change is the one a query mostly plays out through, and it was hitting the
-        // untouched height:auto path the whole time: no transition at all, an instant snap the
-        // moment the content changed. That's "doesn't grow until the items appear, then suddenly
-        // grows" exactly — the box wasn't growing gradually beforehand, it just sat still at its
-        // small size (correctly still, not a bug) and then jumped, unanimated, right as the real
-        // content landed.
-        //
-        // Can't just re-measure the CURRENT height from the DOM to find where to animate FROM,
-        // either: once a previous transition settles, height is handed back to 'auto' (see below),
-        // and an 'auto'-height element instantly, silently resizes to match new content as part of
-        // the very same reflow the content mutation itself causes — by the time this function's
-        // code runs, an 'auto' box has ALREADY jumped to the new size, so measuring it now would
-        // just report the new size back, not the true "before" one. dropdownSettledHeight is our
-        // own memory of that true "before" value, updated only once a transition actually finishes.
+        // The "already open" case used to be treated as a no-op entirely ("it's already visible,
+        // leave it"), on the assumption that a bare open/close toggle was the only thing worth
+        // animating — but live suggestions usually open the dropdown FIRST at a small height, and
+        // the real answer/results arrive a moment later and just grow it further, so THAT second,
+        // bigger change is the one a query mostly plays out through, and it was hitting the
+        // untouched height:auto path the whole time: no transition, an instant snap the moment the
+        // content changed. That's "doesn't grow until the items appear, then suddenly grows"
+        // exactly — the box wasn't growing gradually beforehand, it just sat still at its small
+        // size (correctly still) and then jumped, unanimated, right as the real content landed.
         const target = dropdown.scrollHeight;
-        if (wasVisible && Math.abs(target - dropdownSettledHeight) < 1) return; // no real size change
-        dropdown.style.transition = 'none';
-        dropdown.style.height = dropdownSettledHeight + 'px';
-        // Only fade in from transparent on a genuinely fresh reveal — an in-place resize keeps
-        // existing, already-visible content at full opacity throughout (fading it out and back in
-        // while it also resizes would read as an unwanted flicker, not a smooth grow).
-        if (!wasVisible) dropdown.style.opacity = '0';
-        dropdown.style.overflow = 'hidden';
-        void dropdown.offsetHeight;
-        // cubic-bezier(0.22,1,0.36,1) ("easeOutExpo"-ish — fast start, long gentle glide to a stop)
-        // reads as smooth/premium the way plain `ease-in` doesn't: ease-in is fastest at the exact
-        // instant it stops, so the motion reads as an abrupt cutoff rather than a settle, no matter
-        // how long the duration is. On a fresh reveal, opacity is a separate transition delayed to
-        // start well after the grow begins and finish shortly after it ends, so content visibly
-        // fades in AFTER the box has grown to size rather than while still expanding.
-        dropdown.style.transition = wasVisible
-            ? 'height .22s cubic-bezier(0.22,1,0.36,1)'
-            : 'height .26s cubic-bezier(0.22,1,0.36,1), opacity .2s ease-out .15s';
+        if (wasVisible && settled && Math.abs(target - dropdownSettledHeight) < 1) return; // no real change, nothing in flight either
+        if (dropdownTransitionCleanup) { dropdown.removeEventListener('transitionend', dropdownTransitionCleanup); dropdownTransitionCleanup = null; }
+        if (settled) {
+            // Coming from a fully-settled rest state — 'auto' can't be transitioned FROM directly,
+            // so pin to a known starting px value first. Can't just re-measure the CURRENT height
+            // from the DOM for that starting value, either: an 'auto'-height element instantly,
+            // silently resizes to match new content as part of the very same reflow the content
+            // mutation itself causes, so by the time this function's code runs, it's ALREADY jumped
+            // to the new size — measuring now would just report the new size back, not the true
+            // "before" one. dropdownSettledHeight is our own memory of that true "before" value.
+            dropdown.style.transition = 'none';
+            dropdown.style.height = dropdownSettledHeight + 'px';
+            // Only fade in from transparent on a genuinely fresh reveal — an in-place resize keeps
+            // existing, already-visible content at full opacity throughout (fading it out and back
+            // in while it also resizes would read as an unwanted flicker, not a smooth grow).
+            if (!wasVisible) dropdown.style.opacity = '0';
+            dropdown.style.overflow = 'hidden';
+            void dropdown.offsetHeight;
+            // cubic-bezier(0.22,1,0.36,1) ("easeOutExpo"-ish — fast start, long gentle glide to a
+            // stop) reads as smooth/premium the way plain `ease-in` doesn't: ease-in is fastest at
+            // the exact instant it stops, so the motion reads as an abrupt cutoff, no matter how
+            // long the duration is. On a fresh reveal, opacity is a separate transition delayed to
+            // start well after the grow begins and finish shortly after, so content visibly fades
+            // in AFTER the box has grown to size rather than while still expanding.
+            dropdown.style.transition = wasVisible
+                ? 'height .22s cubic-bezier(0.22,1,0.36,1)'
+                : 'height .26s cubic-bezier(0.22,1,0.36,1), opacity .2s ease-out .15s';
+        }
+        // else: a previous grow is still actively in flight (height is a live, currently-
+        // interpolating px value — the common case while typing, see the `settled` comment above).
+        // Deliberately NOT resetting transition/height/overflow here: this element's `transition`
+        // is already set from the last call, and simply pointing the CURRENTLY-RUNNING transition
+        // at a new target height makes the browser redirect smoothly from wherever it visually,
+        // currently is — that's standard, well-supported behavior. Forcing a reset on every call
+        // instead (what this used to do) is exactly what caused a visible stutter/snap on every
+        // single keystroke: each retrigger snapped back to the stale dropdownSettledHeight first,
+        // undoing whatever progress the in-flight transition had already made, before restarting —
+        // a series of instant snaps rather than one continuous motion.
         dropdown.style.height = target + 'px';
         dropdown.style.opacity = '1';
+        dropdownSettledHeight = target;
         const onDone = (e) => {
             if (e.target !== dropdown || e.propertyName !== 'height') return;
             // Hand height back to normal flow (not a value we keep chasing) so any further content
