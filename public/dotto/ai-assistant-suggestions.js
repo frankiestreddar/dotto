@@ -350,21 +350,26 @@ import { render } from './waypoints-render-loop.js';
             if (!wasVisible) dropdown.style.opacity = '0';
             dropdown.style.overflow = 'hidden';
             void dropdown.offsetHeight;
-            // cubic-bezier(0.22,1,0.36,1) ("easeOutExpo"-ish — fast start, long gentle glide to a
-            // stop) reads as smooth/premium the way plain `ease-in` doesn't: ease-in is fastest at
-            // the exact instant it stops, so the motion reads as an abrupt cutoff, no matter how
-            // long the duration is. On a fresh reveal, opacity now OVERLAPS the grow instead of
-            // waiting for it to finish first — an earlier version delayed the fade until well after
-            // the grow (matching the original "grow, THEN fade" ask literally), but that meant the
-            // box spent most of the transition completely empty (opacity still 0), so it read as an
-            // empty container snapping to size with nothing to visually anchor the motion to,
-            // followed by a separate, disconnected pop-in — exactly the "jumpy" complaint, just
-            // moved from the height curve to the height/opacity relationship. Starting the fade
-            // early, while the box is still visibly growing, and letting it finish a bit after the
-            // grow settles, reads as one connected motion instead of two sequential ones.
+            // cubic-bezier(0,0,0.2,1) is Material Design's standard "decelerate" curve — the
+            // deliberate PAIR of the collapse's cubic-bezier(0.4,0,1,1) "accelerate" curve below,
+            // not an unrelated choice: an accelerate/decelerate pair sharing the same underlying
+            // shape (just mirrored) is what makes an enter and its matching exit feel like the same
+            // physical object, rather than two differently-tempered motions. The earlier
+            // cubic-bezier(0.22,1,0.36,1) ("easeOutExpo") was tried first for a "smooth/premium"
+            // feel, but it's far more front-loaded than this: its second control point already
+            // sits at the FULL target value, so well over half the visible size change happens in
+            // roughly the first third of the duration and the rest is an almost imperceptible
+            // settle — which reads as a fast jump followed by a barely-visible creep, not a
+            // continuous grow. Material's decelerate curve spreads the deceleration much more
+            // evenly across the whole duration instead of front-loading it. On a fresh reveal,
+            // opacity overlaps the grow (starts early, finishes a bit after) rather than waiting
+            // for it to finish first — a fully-sequenced "grow, THEN fade" leaves the box entirely
+            // empty (opacity 0) for most of the transition, which reads as an empty container
+            // snapping to size before content pops in separately, the same "jumpy" symptom by a
+            // different route.
             dropdown.style.transition = wasVisible
-                ? 'height .22s cubic-bezier(0.22,1,0.36,1)'
-                : 'height .26s cubic-bezier(0.22,1,0.36,1), opacity .3s ease-out .06s';
+                ? 'height .22s cubic-bezier(0,0,0.2,1)'
+                : 'height .22s cubic-bezier(0,0,0.2,1), opacity .26s ease-out .05s';
         }
         // else: a previous grow is still actively in flight (height is a live, currently-
         // interpolating px value — the common case while typing, see the `settled` comment above).
