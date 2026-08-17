@@ -330,7 +330,7 @@ import { render } from './waypoints-render-loop.js';
             // in AFTER the box has grown to size rather than while still expanding.
             dropdown.style.transition = wasVisible
                 ? 'height .22s cubic-bezier(0.22,1,0.36,1)'
-                : 'height .26s cubic-bezier(0.22,1,0.36,1), opacity .2s ease-out .15s';
+                : 'height .26s cubic-bezier(0.22,1,0.36,1), opacity .2s ease-out .19s';
         }
         // else: a previous grow is still actively in flight (height is a live, currently-
         // interpolating px value — the common case while typing, see the `settled` comment above).
