@@ -512,7 +512,7 @@ import { render } from './waypoints-render-loop.js';
     // Debounced canvas-item matching — computeCanvasMatches/computeSourceMatches are themselves
     // synchronous (no fetch, no artificial delay), so this exists purely to avoid resizing
     // #search-dropdown on every single keystroke as matches flicker in and out while typing, not
-    // for performance. 500ms of no typing before the results panel updates, mirroring the existing
+    // for performance. 350ms of no typing before the results panel updates, mirroring the existing
     // debounce pattern already used for live AI suggestions (scheduleLiveSuggestions) just below.
     // Re-checks the input's CURRENT value against what was scheduled before applying anything —
     // if the user kept typing (or cleared the box, or switched to a "/" command) since this was
@@ -525,7 +525,7 @@ import { render } from './waypoints-render-loop.js';
             const matches = isSourceFolder ? computeSourceMatches(value) : computeCanvasMatches(value);
             renderCanvasResultsPanel(matches, isSourceFolder);
             updateSearchDropdown();
-        }, 500);
+        }, 350);
     }
 
     // Focusing the box no longer drops a static suggestion list on you — instead the border
