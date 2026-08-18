@@ -359,6 +359,13 @@
         dotbotAlignHighlightOn: true,
         dotbotSuggestDebounceTimer: null,
         dotbotSuggestAbortController: null,
+        // Same idea as dotbotSuggestDebounceTimer, for canvas-item matches (scheduleCanvasResults,
+        // ai-assistant-suggestions.js) — computeCanvasMatches/computeSourceMatches themselves are
+        // synchronous with no fetch involved, but resizing #search-dropdown on every single
+        // keystroke as matches flicker in and out while typing looked distracting/jumpy even once
+        // the underlying animation bugs were fixed, so this is debounced purely for a calmer feel,
+        // not for performance.
+        canvasResultsDebounceTimer: null,
         // Same idea as dotbotSuggestDebounceTimer above, for the slash-command palette's nested
         // shared-tree name search (search_accessible_by_name RPC) — see
         // scheduleSharedCommandSuggestions, command-palette.js.

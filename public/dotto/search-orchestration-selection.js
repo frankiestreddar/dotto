@@ -76,6 +76,11 @@ import { render } from './waypoints-render-loop.js';
         bumpAchievementStat('twenty_searches');
         const folderObj = appState.folders[appState.currentFolderId];
         if (!folderObj) return;
+        // A canvas-results debounce may still be pending from recent typing (scheduleCanvasResults,
+        // ai-assistant-suggestions.js) — this computes and renders the same thing synchronously
+        // right below, so let the pending one go stale rather than have it redundantly re-fire
+        // ~500ms into this search.
+        clearTimeout(appState.canvasResultsDebounceTimer);
         const matches = folderObj.isSource ? computeSourceMatches(query) : computeCanvasMatches(query);
         renderCanvasResultsPanel(matches, folderObj.isSource); // instant, sync — visible before the spinner even shows
         // The comment above predates #search-dropdown's height-animation system (it used to be a

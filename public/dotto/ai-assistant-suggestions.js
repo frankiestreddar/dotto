@@ -214,6 +214,7 @@ import { render } from './waypoints-render-loop.js';
     // would need switching over to — makes all of them correctly close the overlay for free.
     function clearSearch() {
         if (!appState.searchInput) return;
+        clearTimeout(appState.canvasResultsDebounceTimer);
         appState.searchInput.value = '';
         autoGrowSearchInput();
         appState.searchDotbotAnswer.innerHTML = ''; appState.searchDotbotAnswer.style.display = 'none';
@@ -485,6 +486,7 @@ import { render } from './waypoints-render-loop.js';
         // canvas-match/live-suggestion machinery below applies, and any of its panels left over
         // from before "/" was typed need clearing so they don't linger behind the command palette.
         if (value.startsWith('/')) {
+            clearTimeout(appState.canvasResultsDebounceTimer);
             hideDotbotResultPanels();
             window.__setCanvasResults(null);
             window.__setSearchSuggestions(null);
@@ -497,13 +499,33 @@ import { render } from './waypoints-render-loop.js';
         if (!folderObj) return;
         hideDotbotResultPanels();
         if (value.trim() === "") {
+            clearTimeout(appState.canvasResultsDebounceTimer);
+            window.__setCanvasResults(null);
             handleSearchFocus();
             return;
         }
-        const matches = folderObj.isSource ? computeSourceMatches(value) : computeCanvasMatches(value);
-        renderCanvasResultsPanel(matches, folderObj.isSource);
+        scheduleCanvasResults(value, folderObj.isSource);
         scheduleLiveSuggestions(value, folderObj.isSource);
         updateSearchDropdown();
+    }
+
+    // Debounced canvas-item matching — computeCanvasMatches/computeSourceMatches are themselves
+    // synchronous (no fetch, no artificial delay), so this exists purely to avoid resizing
+    // #search-dropdown on every single keystroke as matches flicker in and out while typing, not
+    // for performance. 500ms of no typing before the results panel updates, mirroring the existing
+    // debounce pattern already used for live AI suggestions (scheduleLiveSuggestions) just below.
+    // Re-checks the input's CURRENT value against what was scheduled before applying anything —
+    // if the user kept typing (or cleared the box, or switched to a "/" command) since this was
+    // scheduled, this timer's own stale result is simply discarded rather than clobbering whatever
+    // state the box has actually moved on to.
+    function scheduleCanvasResults(value, isSourceFolder) {
+        clearTimeout(appState.canvasResultsDebounceTimer);
+        appState.canvasResultsDebounceTimer = setTimeout(() => {
+            if (appState.searchInput.value !== value) return; // stale — superseded by later typing
+            const matches = isSourceFolder ? computeSourceMatches(value) : computeCanvasMatches(value);
+            renderCanvasResultsPanel(matches, isSourceFolder);
+            updateSearchDropdown();
+        }, 500);
     }
 
     // Focusing the box no longer drops a static suggestion list on you — instead the border
