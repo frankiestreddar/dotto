@@ -132,8 +132,16 @@ import { render } from './waypoints-render-loop.js';
             const data = await res.json();
             appState.searchSpinner.classList.remove('visible');
             appState.searchInputWrap.classList.remove('loading');
-            appState.searchInput.blur(); // forces the border back to its plain unfocused state, not whatever :focus/:hover would otherwise show
+            // Stay focused with the idle-pulse ring back on, rather than blurring — a response
+            // landing is exactly when you're most likely to want to type a follow-up immediately.
+            // (This used to blur() with a comment about forcing the border back from a :focus/
+            // :hover-brightened state — that #search-input-wrap border behavior doesn't exist
+            // anymore, so blurring here just meant the box visibly went quiet: no loading ring,
+            // no idle-pulse ring, nothing but #search-bar's own deliberately subtle border left,
+            // which read as "the border disappeared" even though it was never actually removed.)
             appState.searchInput.value = '';
+            appState.searchInput.focus();
+            appState.searchInputWrap.classList.add('idle-pulsing');
             autoGrowSearchInput();
             if (!res.ok) { renderDotbotOrchestrateError(data.error); return; }
             refreshDotbotUsage();
@@ -141,8 +149,9 @@ import { render } from './waypoints-render-loop.js';
         } catch (e) {
             appState.searchSpinner.classList.remove('visible');
             appState.searchInputWrap.classList.remove('loading');
-            appState.searchInput.blur();
             appState.searchInput.value = '';
+            appState.searchInput.focus();
+            appState.searchInputWrap.classList.add('idle-pulsing');
             autoGrowSearchInput();
             console.error('[dotbot/orchestrate] failed:', e);
             renderDotbotOrchestrateError('error');
