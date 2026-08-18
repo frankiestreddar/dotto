@@ -1288,8 +1288,12 @@
        work normally the entire time the palette is actually open and settled. Individual panels
        that need their own internal scroll cap (the answer/command-palette/results panels) still
        have their own max-height+overflow-y, unchanged. */
-    #search-dropdown{display:flex;flex-direction:column;gap:5px;height:0;overflow:hidden;margin-top:0;padding-bottom:0;}
-    #search-dropdown.visible{margin-top:8px;padding-bottom:2px;}
+    #search-dropdown{display:flex;flex-direction:column;gap:5px;height:0;overflow:hidden;margin-top:0;}
+    /* No padding-bottom (there used to be a 2px one) — #search-bar's own 8px padding is already
+       the bottom gap below the last row; adding padding-bottom here on top of that stacked to 10px
+       at the bottom of the card versus 8px on every other side, most noticeable with a sparse
+       panel open (e.g. one canvas-match row while a search is loading). */
+    #search-dropdown.visible{margin-top:8px;}
 
     /* No panel has a heading/label anymore — each one is just its content, shown or hidden
        as a whole (display:none by default; JS toggles display:block/flex only when there's
