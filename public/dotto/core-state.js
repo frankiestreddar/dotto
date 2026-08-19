@@ -210,6 +210,7 @@
         waypointsSearchInput: document.getElementById('waypoints-search'),
         hubCollabPanel: document.getElementById('hub-collab-panel'),
         hubCollabSearchInput: document.getElementById('hub-collab-search'),
+        chatsPanel: document.getElementById('chats-panel'),
         incomingCanvasRequests: [],
         acceptedCanvasCollaborations: [],
         ownedCanvasCollaborations: [],
@@ -411,7 +412,7 @@
     appState.dotLayerBaseY = -appState.DOT_LAYER_MARGIN / 2;
     appState.addMenuHoverEls = [appState.addToolbar, addMenu, appState.addMenuActions];
     appState.modeButtons = Array.from(appState.modeToolbar.querySelectorAll('.mode-btn'));
-    appState.hubSubpanels = [appState.waypointsPanel, appState.hubCollabPanel];
+    appState.hubSubpanels = [appState.waypointsPanel, appState.hubCollabPanel, appState.chatsPanel];
     appState.hamburgerHoverEls = [appState.hamburgerBtn, appState.outlineMenu, appState.accountMenu, ...appState.hubSubpanels];
     appState.TOTAL_SUB_LEVELS = appState.LEVEL_NAMES.length * appState.SUB_RANKS_PER_TIER;
     // Same reason as the block above: can't reference appState.currentUser from inside appState's

@@ -165,6 +165,13 @@ export const addToSourcePopupStore = createStore({ isOpen: false, left: 0, top: 
 // state message ("No waypoints yet." vs "No matching waypoints."), matching the original.
 export const waypointsListStore = createStore({ rows: [], query: "" });
 
+// Hamburger menu's Chats panel (public/dotto/hamburger-collab.js's renderChatsList) — a plain
+// array of { id, title, updated_at } rows (see ChatsListPanel.jsx), no search/query state (v1: no
+// search box, unlike Waypoints/Collaborations above — a saved-chat list is likely short enough not
+// to need one yet). Row click reopens that conversation in the search palette — see
+// window.__openSavedChat, search-orchestration-selection.js.
+export const chatsListStore = createStore([]);
+
 // Hamburger menu's Collaborations panel (public/dotto/hamburger-collab.js's renderHubCollabList/
 // renderHubCollabRequests) — two views sharing #hub-collab-list, same as the vanilla version:
 // { view: 'main', requestsCount, ownedShown, sharedShown, query } or

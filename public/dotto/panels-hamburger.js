@@ -2,7 +2,7 @@ import { clearSearch } from './ai-assistant-suggestions.js';
 import { closeAddMenu } from './copy-paste.js';
 import { appState } from './core-state.js';
 import { closeCollabPanel } from './friends-presence.js';
-import { renderHubCollabList, renderWaypointsList } from './hamburger-collab.js';
+import { renderChatsList, renderHubCollabList, renderWaypointsList } from './hamburger-collab.js';
 import { closeCartPanel } from './marketplace.js';
 import { closeMessagesPanel } from './messages-schedule.js';
 import { closeProfilePanel } from './profile-achievements-pricing.js';
@@ -117,6 +117,8 @@ import { closeSourceAddMenu } from './source-buttons-cursor-mode.js';
     // just the one requested panel. Always pins (a sub-panel is only ever reached by clicking an
     // #account-menu row, which requires the sidebar to already be open) — see openWaypointsPanel/
     // openHubCollabPanel below.
+    // searchInputEl is optional — chats-panel (below) has no search box of its own (v1: a saved-
+    // chat list is likely short enough not to need one yet).
     function openHubSubpanel(panel, searchInputEl, renderFn) {
         appState.outlineMenu.classList.remove('open');
         appState.accountMenu.classList.remove('open');
@@ -126,7 +128,7 @@ import { closeSourceAddMenu } from './source-buttons-cursor-mode.js';
         appState.hamburgerStack.classList.add('open', 'hmenu-full');
         appState.hamburgerBtn.classList.add('hmenu-full');
         appState.panelPinned.menu = true;
-        searchInputEl.value = '';
+        if (searchInputEl) searchInputEl.value = '';
         renderFn('');
     }
     function openWaypointsPanel() { openHubSubpanel(appState.waypointsPanel, appState.waypointsSearchInput, renderWaypointsList); }
@@ -134,7 +136,8 @@ import { closeSourceAddMenu } from './source-buttons-cursor-mode.js';
         appState.hubCollabView = 'main'; // always land on the main list, never mid-Requests from last time
         openHubSubpanel(appState.hubCollabPanel, appState.hubCollabSearchInput, renderHubCollabList);
     }
+    function openChatsPanel() { openHubSubpanel(appState.chatsPanel, null, renderChatsList); }
     function handleWaypointsSearch(v) { renderWaypointsList(v); }
     function handleHubCollabSearch(v) { renderHubCollabList(v); }
 
-export { closeAllPanels, closeHamburgerMenu, handleHubCollabSearch, handleWaypointsSearch, openHubCollabPanel, openWaypointsPanel, pinOnInsideClick, scheduleHoverClose };
+export { closeAllPanels, closeHamburgerMenu, handleHubCollabSearch, handleWaypointsSearch, openChatsPanel, openHubCollabPanel, openWaypointsPanel, pinOnInsideClick, scheduleHoverClose };

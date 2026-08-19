@@ -10,6 +10,7 @@ import {
   canvasItemsStore,
   canvasResultsStore,
   cellTagPickerListStore,
+  chatsListStore,
   chatThreadStore,
   collabListStore,
   collabPillStore,
@@ -43,6 +44,7 @@ import BreadcrumbMapPanel from "./dotto/BreadcrumbMapPanel";
 import CanvasItemsLayer from "./dotto/CanvasItemsLayer";
 import CanvasResultsPanel from "./dotto/CanvasResultsPanel";
 import CellTagPickerList from "./dotto/CellTagPickerList";
+import ChatsListPanel from "./dotto/ChatsListPanel";
 import ChatThread from "./dotto/ChatThread";
 import CollabListPanel from "./dotto/CollabListPanel";
 import CollabPill from "./dotto/CollabPill";
@@ -222,6 +224,9 @@ if (typeof window !== "undefined") {
   // it follows is async (a real network round-trip), so there's no synchronous DOM read racing
   // this the way there was for the search panels.
   window.__setWaypointsList = waypointsListStore.set;
+  // Hamburger menu's Chats panel (see app/dotto/ChatsListPanel.jsx, hamburger-collab.js's
+  // renderChatsList) — same reasoning as __setWaypointsList: a real async Supabase call.
+  window.__setChatsList = chatsListStore.set;
   // Hamburger menu's Collaborations panel (see app/dotto/HubCollabListPanel.jsx,
   // hamburger-collab.js's renderHubCollabList/renderHubCollabRequests) — same reasoning as
   // __setWaypointsList: both entry points are real async Supabase calls.
@@ -326,6 +331,7 @@ export default function DottoApp({ sections, currentUser }) {
       <ErrorBoundary name="ChatThread"><ChatThread /></ErrorBoundary>
       <ErrorBoundary name="AddToSourcePopup"><AddToSourcePopup /></ErrorBoundary>
       <ErrorBoundary name="WaypointsListPanel"><WaypointsListPanel /></ErrorBoundary>
+      <ErrorBoundary name="ChatsListPanel"><ChatsListPanel /></ErrorBoundary>
       <ErrorBoundary name="HubCollabListPanel"><HubCollabListPanel /></ErrorBoundary>
       <ErrorBoundary name="MessagesListPanel"><MessagesListPanel /></ErrorBoundary>
       <ErrorBoundary name="CollabListPanel"><CollabListPanel /></ErrorBoundary>

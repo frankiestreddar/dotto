@@ -170,6 +170,20 @@ import { deleteCanvasCollabsForFolder, expandWaypointCard, openFolder, render } 
         const rows = (data || []).filter(r => !q || (r.name || 'New Waypoint').toLowerCase().includes(q));
         window.__setWaypointsList({ rows, query: q });
     }
+    // Hamburger menu's Chats panel — every saved Dotbot conversation belonging to this user, most
+    // recently updated first. Same fresh-fetch-every-open pattern as renderWaypointsList right
+    // above (RLS already scopes this to the caller's own rows via owner_id = auth.uid() — see
+    // supabase/migrations/20260819_add_dotbot_conversations.sql — no client-side filtering needed
+    // beyond that). No search box for v1 (unlike waypoints), so no query param here.
+    async function renderChatsList() {
+        if (!supabase || !appState.currentUser.id) { window.__setChatsList([]); return; }
+        const { data, error } = await supabase.from('dotbot_conversations')
+            .select('id, title, updated_at')
+            .eq('owner_id', appState.currentUser.id)
+            .order('updated_at', { ascending: false });
+        if (error) { console.error('[chats] failed to load conversations:', error); window.__setChatsList([]); return; }
+        window.__setChatsList(data || []);
+    }
     // Pans to and briefly expands (read-only "peek") a waypoint card already present in the
     // CURRENTLY open folder's DOM — shared by both branches of goToWaypointCard below.
     function peekWaypointCard(folderId, it) {
@@ -245,7 +259,7 @@ import { deleteCanvasCollabsForFolder, expandWaypointCard, openFolder, render } 
     drawSettings.addEventListener('click', (e) => e.stopPropagation());
     addMenu.addEventListener('click', (e) => e.stopPropagation());
 
-export { backToHubCollabMain, goToWaypointCard, handleOwnedHubCollabRowClick, hmenuAction, openHubCollabRequestsView, renderHubCollabList, renderWaypointsList, resolveSharedFolderChain, respondToHubCollabRequest };
+export { backToHubCollabMain, goToWaypointCard, handleOwnedHubCollabRowClick, hmenuAction, openHubCollabRequestsView, renderChatsList, renderHubCollabList, renderWaypointsList, resolveSharedFolderChain, respondToHubCollabRequest };
 
 // React → vanilla bridge — used by WaypointsListPanel.jsx/HubCollabListPanel.jsx (app/dotto/),
 // which can't import these directly since public/dotto/*.js isn't reachable from app/dotto/.

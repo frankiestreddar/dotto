@@ -10,6 +10,11 @@
     <div id="account-menu" class="hmenu-panel">
         <div class="hmenu-item hmenu-simple" onclick="openWaypointsPanel()"><span class="hmenu-item-icon icon-mask" style="mask-image:url(/assets/icons/waypoint.png);-webkit-mask-image:url(/assets/icons/waypoint.png)"></span><span>Waypoints</span></div>
         <div class="hmenu-item hmenu-simple" onclick="openHubCollabPanel()"><span class="hmenu-item-icon icon-mask" style="mask-image:url(/assets/icons/collaboration.png);-webkit-mask-image:url(/assets/icons/collaboration.png)"></span><span>Collaborations</span></div>
+        <!-- No dotbot-chat.png icon asset exists yet — same "missing icon files degrade
+             gracefully" precedent already established elsewhere (e.g. search.png) — referenced
+             anyway rather than reusing chats-btn.png (top-bar.html's Messages/friend-DM button),
+             which would read as the same feature when it isn't. -->
+        <div class="hmenu-item hmenu-simple" onclick="openChatsPanel()"><span class="hmenu-item-icon icon-mask" style="mask-image:url(/assets/icons/dotbot-chat.png);-webkit-mask-image:url(/assets/icons/dotbot-chat.png)"></span><span>Chats</span></div>
     </div>
     <div id="outline-menu" class="hmenu-panel">
         <div id="hmenu-outline-container"></div>
@@ -28,5 +33,10 @@
             <input id="waypoints-search" class="hub-subpanel-search" type="text" placeholder="Search..." oninput="handleWaypointsSearch(this.value)">
         </div>
         <div id="waypoints-list" class="hub-subpanel-list"></div>
+    </div>
+    <!-- No search box for v1 (unlike waypoints-panel/hub-collab-panel above) — a saved-chat list
+         is likely short enough not to need one yet; easy to add later with the same pattern. -->
+    <div id="chats-panel" class="hmenu-panel hub-subpanel" onclick="event.stopPropagation()">
+        <div id="chats-list" class="hub-subpanel-list"></div>
     </div>
 </div>
