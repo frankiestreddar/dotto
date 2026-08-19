@@ -1,6 +1,6 @@
 import { searchTypeLabel } from './add-menu.js';
 import { applyAlignHighlightToggle, buildAlignedSentenceEls, clearSearch, dotbotErrorMessage, getItemSearchText, isLatinScriptText, setupDotbotResultDrag, speakerIconHTML, stripHtml, typewriterReveal, typewriterRevealSegments, updateSearchDropdown } from './ai-assistant-suggestions.js';
-import { appState, canvas } from './core-state.js';
+import { appState, canvas, canvasViewportCenterX } from './core-state.js';
 import { saveSnapshot, smoothPanTo } from './history-autosave.js';
 import { findItemById } from './live-presence.js';
 import { openDotbotUpgradeModal, refreshDotbotUsage } from './profile-achievements-pricing.js';
@@ -349,7 +349,7 @@ import { expandWaypointCard, render } from './waypoints-render-loop.js';
         const h = (it.kind === 'title' ? (el ? el.offsetHeight : 50) : it.h) || 0;
         const cx = it.x + w / 2, cy = it.y + h / 2;
         const targetScale = Math.max(appState.scale, 1);
-        smoothPanTo(window.innerWidth / 2 - cx * targetScale, window.innerHeight / 2 - cy * targetScale, targetScale);
+        smoothPanTo(canvasViewportCenterX() - cx * targetScale, window.innerHeight / 2 - cy * targetScale, targetScale);
         clearSearch();
         if (el) {
             if (it.kind === 'waypoint') expandWaypointCard(el, it, { editable: false });

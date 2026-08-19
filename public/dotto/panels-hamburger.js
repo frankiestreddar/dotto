@@ -95,25 +95,12 @@ import { closeSourceAddMenu } from './source-buttons-cursor-mode.js';
     appState.hubSubpanels.forEach(p => p.addEventListener('mouseleave', () => scheduleHoverClose('menu', appState.hamburgerHoverEls, closeHamburgerMenu)));
     pinOnInsideClick('menu', [appState.outlineMenu, appState.accountMenu, ...appState.hubSubpanels]);
     document.getElementById('hamburger-stack').addEventListener('click', (e) => e.stopPropagation());
-    // Notion-style edge peek: hovering the leftmost 20px of the whole screen previews the menu,
-    // not just hovering the button. A real hit-target element the same width would sit in front
-    // of the canvas and silently block clicks/drags on any card panned into that strip, so this
-    // tracks pointer position passively instead (same idea as the cursor-broadcast pointermove
-    // listener in history-autosave.js) — nothing here ever intercepts a pointer event. Edge-
-    // triggered (only acts when crossing the 20px line, not on every pointermove past it), and
-    // reuses the exact same guard the button's own mouseenter uses so hovering the edge while a
-    // sub-panel (Waypoints/Collaborations) is already open doesn't reset it back to the main view.
-    let nearLeftEdge = false;
-    window.addEventListener('pointermove', (e) => {
-        const inZone = e.clientX < 20;
-        if (inZone === nearLeftEdge) return;
-        nearLeftEdge = inZone;
-        if (inZone) {
-            if (!appState.outlineMenu.classList.contains('open') && !appState.hubSubpanels.some(p => p.classList.contains('open'))) openHamburgerMenu(false);
-        } else {
-            scheduleHoverClose('menu', appState.hamburgerHoverEls, closeHamburgerMenu);
-        }
-    });
+    // No more "Notion-style edge peek" pointermove hack here — #btn-menu is now a permanent,
+    // always-visible full-height rail (see its own comment, globals.css), a real element that
+    // already receives genuine mouseenter/mouseleave events (wired above) covering everything the
+    // hack used to simulate. The hack existed only because a real hit-target the same width would
+    // have blocked canvas clicks/drags underneath it — the rail now reserves its own screen space
+    // instead of floating over the canvas, so that concern no longer applies.
     // Shared by the three open*Panel functions below — swaps #account-menu/#outline-menu out for
     // just the one requested panel. Always pins (a sub-panel is only ever reached by clicking an
     // #account-menu row, which requires the sidebar to already be open) — see openWaypointsPanel/

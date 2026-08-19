@@ -1,5 +1,5 @@
 import { openSearchOverlay, scrollChatThreadToBottom, updateChatThread } from './ai-assistant-suggestions.js';
-import { addMenu, appState, drawSettings, supabase } from './core-state.js';
+import { addMenu, appState, canvasViewportCenterX, drawSettings, supabase } from './core-state.js';
 import { openCollabPanel, renderCollabPill } from './friends-presence.js';
 import { saveWorkspaceNow, smoothPanTo } from './history-autosave.js';
 import { flashCanvasElement } from './mnemonic-search-matching.js';
@@ -200,7 +200,7 @@ import { deleteCanvasCollabsForFolder, deleteWaypointCardEverywhere, expandWaypo
         const el = document.getElementById('item-' + it.id);
         const w = el ? el.offsetWidth : (it.w || 28);
         const h = el ? el.offsetHeight : (it.h || 28);
-        smoothPanTo(window.innerWidth / 2 - (it.x + w / 2), window.innerHeight / 2 - (it.y + h / 2), 1);
+        smoothPanTo(canvasViewportCenterX() - (it.x + w / 2), window.innerHeight / 2 - (it.y + h / 2), 1);
         if (el) expandWaypointCard(el, it, { editable: false });
         flashCanvasElement(el);
     }

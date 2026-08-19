@@ -2,7 +2,7 @@ import { searchKindLabel } from './add-menu.js';
 import { countSourceEntries, escapeHtml, stripHtml } from './ai-assistant-suggestions.js';
 import { CARD_KINDS, DEFAULT_CARD_ICON } from './card-kinds.js';
 import { renderChecklistHTML, renderStatcardHTML, shortUrl } from './cards-misc.js';
-import { appState, canvas, cursorOverlay, supabase } from './core-state.js';
+import { appState, canvas, canvasViewportCenterX, cursorOverlay, supabase } from './core-state.js';
 import { ensureConnections } from './drawing-connections.js';
 import { closeCollabPanel, initials, renderMsgList } from './friends-presence.js';
 import { defaultFlashcardDeck, renderFlashcardHTML, renderTypeRightHTML } from './games-flashcard-typeright.js';
@@ -383,7 +383,7 @@ import { render } from './waypoints-render-loop.js';
             const canvasRect = canvas.getBoundingClientRect();
             const cx = (rect.left + rect.width / 2 - canvasRect.left - appState.tx) / appState.scale;
             const cy = (rect.top + rect.height / 2 - canvasRect.top - appState.ty) / appState.scale;
-            smoothPanTo(window.innerWidth / 2 - cx * targetScale, window.innerHeight / 2 - cy * targetScale, targetScale);
+            smoothPanTo(canvasViewportCenterX() - cx * targetScale, window.innerHeight / 2 - cy * targetScale, targetScale);
             // A one-off navigation flash, distinct from (and not drawn during) normal typing — the
             // block itself otherwise stays plain per the current design, so the color is set just
             // for this brief animation rather than left on the element.
@@ -392,7 +392,7 @@ import { render } from './waypoints-render-loop.js';
             flashEl.classList.add('remote-editing-highlight--flash');
             setTimeout(() => { flashEl.classList.remove('remote-editing-highlight--flash'); flashEl.style.removeProperty('--remote-edit-color'); }, 1200);
         } else {
-            smoothPanTo(window.innerWidth / 2 - entry.x * targetScale, window.innerHeight / 2 - entry.y * targetScale, targetScale);
+            smoothPanTo(canvasViewportCenterX() - entry.x * targetScale, window.innerHeight / 2 - entry.y * targetScale, targetScale);
         }
     }
     function handleRemoteCursorBroadcast(payload) {

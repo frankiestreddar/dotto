@@ -1,4 +1,4 @@
-import { appState } from './core-state.js';
+import { appState, canvasViewportCenterX } from './core-state.js';
 import { applyTransform } from './history-autosave.js';
 
 // ---------- Schedule Mode: in-place canvas transform (single-canvas view) ----------
@@ -49,7 +49,7 @@ export function computeArrangedLayout(sortedItems) {
 // action, just not scoped to that function since this needs to run before this mode's items even
 // have real DOM positions to measure.
 export function cameraCenterFor(centerX, centerY) {
-    return { tx: window.innerWidth / 2 - centerX, ty: window.innerHeight / 2 - centerY };
+    return { tx: canvasViewportCenterX() - centerX, ty: window.innerHeight / 2 - centerY };
 }
 
 // Commits a freshly computed arrangement so applyScheduleModeWrapperAttrs/handleScheduleModeWheel

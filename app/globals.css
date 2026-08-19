@@ -25,6 +25,7 @@
         --bar:#161616;
         --brand:#6366f1; /* Beautiful Indigo */
         --hmenu-width:280px;
+        --rail-width:64px;
     }
     *{box-sizing:border-box; touch-action: none; user-select:none; -webkit-user-select:none;}
     select, input, .format-bar{touch-action: auto;}
@@ -36,8 +37,15 @@
     h1,h2,h3{font-family:'Space Grotesk', sans-serif;}
     body.dragging, body.dragging * { cursor: grabbing !important; }
     
+    /* left/width leave room for the permanent hamburger rail (#btn-menu, see its own comment) —
+       overflow:hidden here is what actually stops canvas content from rendering under the rail,
+       not just being visually covered by it. #world (canvas-area.html) is position:absolute with
+       no explicit width of its own, so its containing block is this element — narrowing #canvas's
+       box shifts #world's whole coordinate frame with it for free, which is exactly why the JS
+       pan/zoom math (canvasViewportCenterX, core-state.js) subtracts --rail-width from
+       window.innerWidth rather than adding it a second time. */
     #canvas{
-        position:absolute;top:0;left:0;width:100vw;height:100vh;
+        position:absolute;top:0;left:var(--rail-width);width:calc(100vw - var(--rail-width));height:100vh;
         overflow:hidden;
         background-color: var(--paper);
         z-index: 0;
@@ -152,7 +160,11 @@
        git history for that centering math if it's ever needed again), but it's a standalone
        overlay now (search-overlay.html, opened by Space/"/"/#btn-search rather than living inline)
        so there's nothing left to center between these two. */
-    #top-bar{position:fixed;top:20px;left:20px;right:20px;z-index:1000;display:flex;align-items:center;justify-content:space-between;gap:10px;height:40px;}
+    /* left leaves room for the permanent hamburger rail (--rail-width, #btn-menu) — required, not
+       cosmetic: #btn-menu is position:fixed (out of this row's flex flow entirely), so without
+       this offset the next element (the back/forward bubble) would slide left and render starting
+       underneath the rail. */
+    #top-bar{position:fixed;top:20px;left:calc(var(--rail-width) + 20px);right:20px;z-index:1000;display:flex;align-items:center;justify-content:space-between;gap:10px;height:40px;}
     #top-bar-left{display:flex;align-items:center;gap:10px;min-width:0;}
     #top-bar-right{display:flex;align-items:center;gap:10px;}
     /* Shown only while a title being edited is empty (its still-default text, being renamed for
@@ -205,7 +217,19 @@
     .breadcrumb-map-row{display:flex;align-items:center;gap:8px;padding:7px 10px;padding-left:calc(10px + var(--map-indent, 0px));border-radius:8px;cursor:pointer;font-size:13px;color:var(--ink-soft);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
     .breadcrumb-map-row:hover{background:#333;color:var(--ink);}
     .breadcrumb-map-row.current{color:var(--ink);font-weight:600;cursor:text;}
-    #btn-menu{background:var(--bar);border:1px solid var(--card-border);border-radius:10px;height:40px;width:40px;flex:0 0 auto;}
+    /* Permanent skinny sidebar rail — always visible (not hidden behind a hover/edge-peek gesture
+       like it used to be), a real full-height strip that reserves its own screen space rather than
+       floating over the canvas (see #canvas's own comment on why: a full-height floating hit-target
+       would otherwise permanently block canvas clicks/drags in that column, which is exactly what
+       the removed "Notion-style edge peek" hack in panels-hamburger.js existed to avoid — reserving
+       real space sidesteps the problem entirely instead). padding-top:20px aligns the icon with
+       #top-bar's own top:20px inset, so it visually reads as part of the same top row rather than
+       centered in the full 100vh column. No explicit z-index needed: #btn-menu stays inside
+       #top-bar (position:fixed, z-index:1000) in the DOM, so it paints within that stacking context
+       as a single unit — always above #hamburger-stack (900) and #world (1) — without ever being
+       compared against those z-index values directly. Do NOT "fix" this by adding a z-index here;
+       it would be comparing #btn-menu against the wrong siblings. */
+    #btn-menu{position:fixed;left:0;top:0;width:var(--rail-width);height:100vh;background:var(--bar);border:none;border-right:1px solid var(--card-border);border-radius:0;display:flex;align-items:flex-start;justify-content:center;padding-top:20px;flex:none;}
     #btn-cart{background:var(--bar);border:1px solid var(--card-border);border-radius:10px;height:40px;width:40px;flex:0 0 auto;}
     #btn-cart.active{background:#2E2E2E;color:var(--ink);}
     #btn-messages{background:var(--bar);border:1px solid var(--card-border);border-radius:10px;height:40px;width:40px;flex:0 0 auto;}
@@ -476,7 +500,9 @@
     /* Bottom-left is otherwise unused by any fixed-position chrome (top-bar spans the full top
        edge, zoom-control/bottom-toolbars sit bottom-right/bottom-center) — matches zoom-control's
        20px inset and z-index:1000 tier so it reads as the same "persistent chrome" layer. */
-    #dotto-footer{position:fixed;bottom:20px;left:20px;z-index:1000;font-size:11px;color:var(--ink-soft);pointer-events:none;}
+    /* left leaves room for the permanent hamburger rail (--rail-width) — same offset #top-bar
+       uses, otherwise this would sit directly inside the rail's own column and get covered by it. */
+    #dotto-footer{position:fixed;bottom:20px;left:calc(var(--rail-width) + 20px);z-index:1000;font-size:11px;color:var(--ink-soft);pointer-events:none;}
     #dotto-footer-sep{opacity:0.5;}
     #dotto-footer-link{color:var(--ink-soft);text-decoration:none;pointer-events:auto;}
     #dotto-footer-link:hover{color:var(--ink);text-decoration:underline;}
@@ -609,27 +635,34 @@
        60vh when just previewed on hover), its tree list scrolling internally. No breadcrumb -
        the rolling window is always anchored to the live canvas position, not a separate
        menu-only state. */
-    /* Two very different shapes for the same panel, both sliding out from the left edge of the
-       screen (Notion-style): hovering near the edge (leftmost 20px, see the pointermove listener
-       in panels-hamburger.js) or hovering #btn-menu itself previews the menu — a small floating,
-       rounded, vertically-centered card capped at 60vh, never touching or shifting the top bar.
-       Clicking #btn-menu instead pins it open as a real full-height sidebar (.hmenu-full): edge
-       to edge, square corners, one continuous shell rather than a floating card — #account-menu/
-       #outline-menu (etc, see below) lose their own independent card chrome in that state and
-       read as sections inside it instead. #btn-menu itself intentionally never moves, staying in
-       the top bar — padding-top on the full-height shell (matching the top bar's own 60px band)
-       keeps every actual panel's content starting below it, never underneath/overlapped by it,
-       satisfying "the close button sits at the top, panels under" without needing a second close
-       control duplicated inside the sidebar. z-index sits below #top-bar (1000) so #btn-menu
-       stays visually on top and clickable; above #world (1) so it fully overlays canvas content.
-       Only `left` ever animates — top/max-height/padding-top/transform apply instantly the
-       moment .hmenu-full is toggled, so the full sidebar is already its final full-height shape
-       before it starts sliding in, rather than visibly growing into that shape as it slides (the
-       preview shape isn't affected either way, since its own top/max-height/transform values are
-       already the closed-state defaults — nothing to snap). pointer-events stay off until .open
-       so the always-in-the-DOM container never blocks clicks over the canvas while closed. */
-    #hamburger-stack{position:fixed;left:calc(var(--hmenu-width) * -1);width:var(--hmenu-width);z-index:900;display:flex;flex-direction:column;gap:5px;pointer-events:none;top:50%;max-height:60vh;padding-top:0;transform:translateY(-50%);transition:left .3s ease;}
-    #hamburger-stack.open{left:0;pointer-events:auto;}
+    /* Two very different shapes for the same panel, both sliding out from behind the permanent
+       rail (#btn-menu — now a real full-height strip, always visible, not a hidden edge-peek
+       gesture): hovering #btn-menu previews the menu — a small floating, rounded, vertically-
+       centered card capped at 60vh, never touching or shifting the top bar. Clicking #btn-menu
+       instead pins it open as a real full-height sidebar (.hmenu-full): edge to edge, square
+       corners, one continuous shell rather than a floating card — #account-menu/#outline-menu
+       (etc, see below) lose their own independent card chrome in that state and read as sections
+       inside it instead. #btn-menu itself intentionally never moves — padding-top on the
+       full-height shell (matching the top bar's own 60px band) keeps every actual panel's content
+       starting below it, never underneath/overlapped by it, satisfying "the close button sits at
+       the top, panels under" without needing a second close control duplicated inside the sidebar.
+       z-index sits below #top-bar (1000, and #btn-menu paints as part of that same stacking
+       context — see #btn-menu's own comment) so #btn-menu stays visually on top and clickable;
+       above #world (1) so it fully overlays canvas content. Only `left` ever animates — top/
+       max-height/padding-top/transform apply instantly the moment .hmenu-full is toggled, so the
+       full sidebar is already its final full-height shape before it starts sliding in, rather than
+       visibly growing into that shape as it slides (the preview shape isn't affected either way,
+       since its own top/max-height/transform values are already the closed-state defaults —
+       nothing to snap). pointer-events stay off until .open so the always-in-the-DOM container
+       never blocks clicks over the canvas while closed. */
+    /* Both left values shifted by +var(--rail-width) now that the permanent rail (#btn-menu) sits
+       at the true left edge: closed lands at rail-width - hmenu-width (=-216px at the default
+       64px/280px), so the panel's right edge sits at exactly -216+280=64px — flush with the rail's
+       own right edge, meaning it's hidden BEHIND the rail (which paints above it, see #btn-menu's
+       own z-index comment) for free, no separate "peek" reveal logic needed. Open still lands
+       flush against the rail's right edge (var(--rail-width), was 0) rather than overlapping it. */
+    #hamburger-stack{position:fixed;left:calc(var(--rail-width) - var(--hmenu-width));width:var(--hmenu-width);z-index:900;display:flex;flex-direction:column;gap:5px;pointer-events:none;top:50%;max-height:60vh;padding-top:0;transform:translateY(-50%);transition:left .3s ease;}
+    #hamburger-stack.open{left:var(--rail-width);pointer-events:auto;}
     #hamburger-stack.hmenu-full{top:0;max-height:none;height:100vh;padding-top:60px;gap:0;transform:none;background:var(--bar);border-right:1px solid var(--card-border);}
     .hmenu-panel, .hmenu-persistent-panel{width:100%;background:var(--bar);border:1px solid var(--card-border);border-radius:12px;box-shadow:0 4px 16px rgba(0,0,0,0.5);pointer-events:auto;}
     .hmenu-panel{display:none;}

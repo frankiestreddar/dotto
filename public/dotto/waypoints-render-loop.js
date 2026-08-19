@@ -1,5 +1,5 @@
 import { clearSearch } from './ai-assistant-suggestions.js';
-import { appState, bringCardToFront, btnBack, btnForward, canvas, contextMenu, supabase, world, zoomControl } from './core-state.js';
+import { appState, bringCardToFront, btnBack, btnForward, canvas, canvasViewportCenterX, contextMenu, supabase, world, zoomControl } from './core-state.js';
 import { setupDraggingAndClicking } from './drag-drop-chat.js';
 import { ensureDrawings, makeLayerSVG } from './drawing-connections.js';
 import { refreshCanvasCollabForCurrentFolder, renderCollabPill, syncCanvasCollabTitle } from './friends-presence.js';
@@ -960,7 +960,7 @@ import { applyConnections, renderConnectionsLayer } from './srs-connections-core
         const items = appState.folders[appState.currentFolderId] ? appState.folders[appState.currentFolderId].items : [];
         appState.scale = 1;
         if (!items.length) {
-            appState.tx = window.innerWidth / 2; appState.ty = window.innerHeight / 2;
+            appState.tx = canvasViewportCenterX(); appState.ty = window.innerHeight / 2;
             applyTransform();
             return;
         }
@@ -972,7 +972,7 @@ import { applyConnections, renderConnectionsLayer } from './srs-connections-core
             maxX = Math.max(maxX, it.x + w); maxY = Math.max(maxY, it.y + h);
         });
         const cx = (minX + maxX) / 2, cy = (minY + maxY) / 2;
-        appState.tx = window.innerWidth / 2 - cx;
+        appState.tx = canvasViewportCenterX() - cx;
         appState.ty = window.innerHeight / 2 - cy;
         applyTransform();
     }

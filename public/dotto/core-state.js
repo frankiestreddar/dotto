@@ -452,4 +452,16 @@
         appState.topCardZIndex = max;
     }
 
-export { addMenu, appState, bringCardToFront, btnAdd, btnBack, btnForward, canvas, canvasContextMenu, contextMenu, cursorOverlay, dotLayer, drawBackBtn, drawColorInput, drawEraserBtn, drawFrontBtn, drawPenBtn, drawSettings, drawSizeInput, effectiveMode, recomputeTopCardZIndex, supabase, world, zoomControl, zoomFill, zoomThumb, zoomTrack };
+    // Reserved space on the left for the permanent hamburger rail (#btn-menu — see --rail-width,
+    // globals.css). #canvas's own box already starts to the right of it and #world's containing
+    // block is #canvas (both position:absolute, #world is a DOM child) — so #world's coordinate
+    // frame is already offset from the raw browser window purely via CSS layout. Every pan/center
+    // call site using this must use the REDUCED width, not add the rail back on top of it a second
+    // time. Read from the CSS custom property (not hardcoded a second time here) so globals.css
+    // stays the single source of truth — safe at module-eval time since dotto-script.js loads via
+    // a <Script strategy="afterInteractive"> tag, well after layout.js's blocking globals.css
+    // import has applied.
+    const RAIL_WIDTH = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--rail-width')) || 64;
+    function canvasViewportCenterX() { return (window.innerWidth - RAIL_WIDTH) / 2; }
+
+export { addMenu, appState, bringCardToFront, btnAdd, btnBack, btnForward, canvas, canvasContextMenu, canvasViewportCenterX, contextMenu, cursorOverlay, dotLayer, drawBackBtn, drawColorInput, drawEraserBtn, drawFrontBtn, drawPenBtn, drawSettings, drawSizeInput, effectiveMode, recomputeTopCardZIndex, supabase, world, zoomControl, zoomFill, zoomThumb, zoomTrack };

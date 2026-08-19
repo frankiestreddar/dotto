@@ -1,7 +1,7 @@
 import { kindLabel, kindSize } from './add-menu.js';
 import { handleSearchInput, openSearchOverlay, stripHtml } from './ai-assistant-suggestions.js';
 import { removePlacementGhost } from './copy-paste.js';
-import { addMenu, appState, btnAdd, canvas, drawBackBtn, drawColorInput, drawEraserBtn, drawFrontBtn, drawPenBtn, drawSettings, drawSizeInput, effectiveMode, world, zoomTrack } from './core-state.js';
+import { addMenu, appState, btnAdd, canvas, canvasViewportCenterX, drawBackBtn, drawColorInput, drawEraserBtn, drawFrontBtn, drawPenBtn, drawSettings, drawSizeInput, effectiveMode, world, zoomTrack } from './core-state.js';
 import { computeConnectorPoints, createConnection, ensureConnections, ensureDrawings, findLinkedTable, findTableById, itemRect, makeLayerSVG, pathNearPoint, pointsToLinePath, pointsToPath } from './drawing-connections.js';
 import { defaultFlashcardDeck } from './games-flashcard-typeright.js';
 import { generateGlobalId } from './global-ids.js';
@@ -741,7 +741,7 @@ import { render, renderSelectedOutlines, startBoxSelection, syncWaypointToDb } f
         let pct = 1 - (clientY - rect.top) / rect.height;
         pct = Math.max(0, Math.min(1, pct));
         const newScale = appState.ZOOM_MIN + pct * (appState.ZOOM_MAX - appState.ZOOM_MIN);
-        const cx = window.innerWidth / 2, cy = window.innerHeight / 2;
+        const cx = canvasViewportCenterX(), cy = window.innerHeight / 2;
         const worldX = (cx - appState.tx) / appState.scale, worldY = (cy - appState.ty) / appState.scale;
         appState.tx = cx - worldX * newScale;
         appState.ty = cy - worldY * newScale;
@@ -766,7 +766,7 @@ import { render, renderSelectedOutlines, startBoxSelection, syncWaypointToDb } f
     // command, command-verbs.js, needs the identical "where's the middle of the viewport right
     // now" computation to know where to drop a reference card).
     function viewportCenterWorldPoint() {
-        const cx = window.innerWidth / 2, cy = window.innerHeight / 2;
+        const cx = canvasViewportCenterX(), cy = window.innerHeight / 2;
         return { x: (cx - appState.tx) / appState.scale, y: (cy - appState.ty) / appState.scale };
     }
     // Double-clicking the zoom bar jumps straight back to 100%, anchored on the current
@@ -774,7 +774,7 @@ import { render, renderSelectedOutlines, startBoxSelection, syncWaypointToDb } f
     zoomTrack.addEventListener('dblclick', (e) => {
         e.stopPropagation();
         const newScale = 1;
-        const cx = window.innerWidth / 2, cy = window.innerHeight / 2;
+        const cx = canvasViewportCenterX(), cy = window.innerHeight / 2;
         const { x: worldX, y: worldY } = viewportCenterWorldPoint();
         appState.tx = cx - worldX * newScale;
         appState.ty = cy - worldY * newScale;

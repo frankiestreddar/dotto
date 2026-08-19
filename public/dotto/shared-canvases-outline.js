@@ -1,6 +1,6 @@
 import { clearSearch, escapeHtml, findParentFolderId, stripHtml } from './ai-assistant-suggestions.js';
 import { shortUrl } from './cards-misc.js';
-import { appState, supabase } from './core-state.js';
+import { appState, canvasViewportCenterX, supabase } from './core-state.js';
 import { applyTransform, smoothPanTo } from './history-autosave.js';
 import { flashCanvasElement } from './mnemonic-search-matching.js';
 import { closeHamburgerMenu } from './panels-hamburger.js';
@@ -423,7 +423,7 @@ import { applyFolderView, centerOnContent, expandWaypointCard, openFolder, rende
         // tx) / scale. null (skip proximity ordering, fall back to natural creation order) for a
         // folder that's neither the live one nor has ever been visited.
         const view = (folder.id === appState.currentFolderId) ? { tx: appState.tx, ty: appState.ty, scale: appState.scale } : folder.lastView;
-        const viewCenter = view ? { x: (window.innerWidth / 2 - view.tx) / view.scale, y: (window.innerHeight / 2 - view.ty) / view.scale } : null;
+        const viewCenter = view ? { x: (canvasViewportCenterX() - view.tx) / view.scale, y: (window.innerHeight / 2 - view.ty) / view.scale } : null;
         function sortByProximity(list) {
             if (!viewCenter) return list;
             return list.sort((a, b) => Math.hypot(a.x - viewCenter.x, a.y - viewCenter.y) - Math.hypot(b.x - viewCenter.x, b.y - viewCenter.y));
@@ -572,7 +572,7 @@ import { applyFolderView, centerOnContent, expandWaypointCard, openFolder, rende
             const el = document.getElementById('item-' + it.id);
             const w = el ? el.offsetWidth : (it.w || 100);
             const h = el ? el.offsetHeight : (it.h || 50);
-            smoothPanTo(window.innerWidth / 2 - (it.x + w / 2), window.innerHeight / 2 - (it.y + h / 2), 1);
+            smoothPanTo(canvasViewportCenterX() - (it.x + w / 2), window.innerHeight / 2 - (it.y + h / 2), 1);
             if (el && it.kind === 'waypoint') expandWaypointCard(el, it, { editable: false });
             flashCanvasElement(el);
         }

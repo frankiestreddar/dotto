@@ -1,6 +1,6 @@
 import { kindSize } from './add-menu.js';
 import { escapeHtml, stripHtml } from './ai-assistant-suggestions.js';
-import { appState } from './core-state.js';
+import { appState, canvasViewportCenterX } from './core-state.js';
 import { resolveTableForEdit } from './drawing-connections.js';
 import { saveSnapshot, scheduleWorkspaceSave } from './history-autosave.js';
 import { closeAllPanels } from './panels-hamburger.js';
@@ -76,7 +76,7 @@ import { render } from './waypoints-render-loop.js';
     // AI-generated columns/rows instead of the usual blank 2x4 grid.
     function createSourceFromAI(title, columns, rows) {
         const { w, h } = kindSize('source');
-        const cx = window.innerWidth / 2, cy = window.innerHeight / 2;
+        const cx = canvasViewportCenterX(), cy = window.innerHeight / 2;
         const x = Math.round((((cx - appState.tx) / appState.scale) - w / 2) / 28) * 28;
         const y = Math.round((((cy - appState.ty) / appState.scale) - h / 2) / 28) * 28;
         add('source', x, y);
