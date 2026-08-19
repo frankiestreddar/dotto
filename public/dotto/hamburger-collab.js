@@ -1,3 +1,4 @@
+import { openSearchOverlay, scrollChatThreadToBottom, updateChatThread } from './ai-assistant-suggestions.js';
 import { addMenu, appState, drawSettings, supabase } from './core-state.js';
 import { openCollabPanel, renderCollabPill } from './friends-presence.js';
 import { saveWorkspaceNow, smoothPanTo } from './history-autosave.js';
@@ -240,6 +241,43 @@ import { deleteCanvasCollabsForFolder, expandWaypointCard, openFolder, render } 
         const it = appState.folders[appState.currentFolderId] && appState.folders[appState.currentFolderId].items.find(i => String(i.id) === String(itemId));
         if (it) peekWaypointCard(appState.currentFolderId, it);
     }
+    // Reopens a saved conversation (see ChatsListPanel.jsx's row onClick) in the search palette,
+    // fully restoring its history — no live AI call, just Stage 2's read path (dotbot_messages,
+    // RLS-scoped) replayed into the same turn-rendering ChatThread.jsx uses for live results.
+    // openSearchOverlay doesn't call clearSearch (confirmed directly — see clearSearch's own
+    // comment on this), so setting currentConversationId/chatThreadStore right after it here is
+    // never immediately wiped out by that reset.
+    async function openSavedChat(conversationId) {
+        closeHamburgerMenu();
+        openSearchOverlay();
+        if (!supabase || !appState.currentUser.id) return;
+        const { data, error } = await supabase.from('dotbot_messages')
+            .select('role, content')
+            .eq('conversation_id', conversationId)
+            .order('created_at', { ascending: true });
+        if (error) { console.error('[chats] failed to load conversation:', error); return; }
+        appState.currentConversationId = conversationId;
+        // append_dotbot_turn always inserts one user row then one assistant row per turn, in that
+        // order (supabase/migrations/20260819_add_dotbot_conversations.sql) — created_at ascending
+        // naturally yields [user1, assistant1, user2, assistant2, ...], so pairing sequentially
+        // here is reliable rather than needing an explicit turn/sequence id on each row.
+        const turns = [];
+        let pendingUserQuery = null;
+        (data || []).forEach(m => {
+            if (m.role === 'user') {
+                pendingUserQuery = (m.content && m.content.query) || '';
+            } else if (m.role === 'assistant' && pendingUserQuery !== null) {
+                // fresh: false (the default, omitted) — history must render fully settled
+                // instantly, never re-typewriter text that was already delivered in a past
+                // session (see ChatTurn's own comment, ChatThread.jsx).
+                turns.push({ id: 'turn_' + (appState.idCounter++), query: pendingUserQuery, panels: m.content || [] });
+                pendingUserQuery = null;
+            }
+        });
+        window.__setChatThread(turns);
+        updateChatThread();
+        scrollChatThreadToBottom();
+    }
     function hmenuAction(action) {
         closeHamburgerMenu();
         closeProfilePanel();
@@ -259,11 +297,12 @@ import { deleteCanvasCollabsForFolder, expandWaypointCard, openFolder, render } 
     drawSettings.addEventListener('click', (e) => e.stopPropagation());
     addMenu.addEventListener('click', (e) => e.stopPropagation());
 
-export { backToHubCollabMain, goToWaypointCard, handleOwnedHubCollabRowClick, hmenuAction, openHubCollabRequestsView, renderChatsList, renderHubCollabList, renderWaypointsList, resolveSharedFolderChain, respondToHubCollabRequest };
+export { backToHubCollabMain, goToWaypointCard, handleOwnedHubCollabRowClick, hmenuAction, openHubCollabRequestsView, openSavedChat, renderChatsList, renderHubCollabList, renderWaypointsList, resolveSharedFolderChain, respondToHubCollabRequest };
 
 // React → vanilla bridge — used by WaypointsListPanel.jsx/HubCollabListPanel.jsx (app/dotto/),
 // which can't import these directly since public/dotto/*.js isn't reachable from app/dotto/.
 window.__goToWaypointCard = goToWaypointCard;
+window.__openSavedChat = openSavedChat;
 window.__openHubCollabRequestsView = openHubCollabRequestsView;
 window.__backToHubCollabMain = backToHubCollabMain;
 window.__handleOwnedHubCollabRowClick = handleOwnedHubCollabRowClick;
