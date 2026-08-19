@@ -110,6 +110,12 @@ import { render } from './waypoints-render-loop.js';
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     query,
+                    // Null on the first message of a session (starts a fresh conversation
+                    // server-side); set from that response's own conversationId afterward, so
+                    // every subsequent message in the same open-palette session — or in a chat
+                    // explicitly reopened from the sidebar, see the reopen-flow bridge — continues
+                    // that same thread instead of starting over each time.
+                    conversationId: appState.currentConversationId || undefined,
                     canvasMatches: matches.map(m => folderObj.isSource
                         ? { id: m.ri, kind: 'row', label: m.text.slice(0, 60) }
                         : { id: m.it.id, kind: m.it.kind, label: (m.text || '').slice(0, 60) }),
@@ -145,6 +151,10 @@ import { render } from './waypoints-render-loop.js';
             autoGrowSearchInput();
             if (!res.ok) { renderDotbotOrchestrateError(data.error); return; }
             refreshDotbotUsage();
+            // Carries forward even if the route's own persistence failed server-side (in which
+            // case data.conversationId is just whatever was already sent, possibly still null —
+            // see the route's own fail-soft handling) rather than ever going backward to null here.
+            if (data.conversationId) appState.currentConversationId = data.conversationId;
             renderOrchestrateResult(data.panels || []);
         } catch (e) {
             appState.searchSpinner.classList.remove('visible');

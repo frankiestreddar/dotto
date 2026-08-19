@@ -115,6 +115,12 @@
         commandActiveIndex: -1,
         dotbotAlignedRegistry: [],
         dotbotSearchGeneration: 0,
+        // The persisted chat thread the next Dotbot message continues, if any — null means the
+        // next commenceDotbotSearch call starts a fresh conversation. Set from the orchestrate
+        // route's response.conversationId after the first exchange in a session; reset to null in
+        // clearSearch() (closing the overlay ends that thread for continuation purposes) unless a
+        // saved chat was just explicitly reopened from the sidebar, which sets it directly instead.
+        currentConversationId: null,
         preSharedViewState: null,
         // Added in a second follow-up pass: the module split's import graph turned out to be
         // deeply, pervasively circular (147 circular edges across all 29 files, confirmed by

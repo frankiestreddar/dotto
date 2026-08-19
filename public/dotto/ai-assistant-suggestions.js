@@ -215,6 +215,12 @@ import { render } from './waypoints-render-loop.js';
     function clearSearch() {
         if (!appState.searchInput) return;
         clearTimeout(appState.canvasResultsDebounceTimer);
+        // Closing the overlay ends the current thread for continuation purposes — the next
+        // message (whenever the overlay next opens) starts a fresh conversation server-side.
+        // openSavedChat (the sidebar reopen flow) sets this directly AFTER calling
+        // openSearchOverlay, which itself doesn't call clearSearch, so this reset never fights
+        // with reopening a saved chat.
+        appState.currentConversationId = null;
         appState.searchInput.value = '';
         autoGrowSearchInput();
         appState.searchDotbotAnswer.innerHTML = ''; appState.searchDotbotAnswer.style.display = 'none';
