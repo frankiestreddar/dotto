@@ -32,6 +32,7 @@ const MAX_ANSWER_BLOCKS = 12;
 const MAX_BLOCK_TEXT_LEN = 600; // one prose paragraph in an in-depth grammar/explanation answer
 const MAX_HISTORY_MESSAGES = 20; // most-recent N prior turns (user+assistant combined) sent as context
 const MAX_HISTORY_TEXT_LEN = 500; // one flattened assistant turn's summary, in the history sent back to the model
+const MAX_INLINE_MARKERS = 20; // {{dictionary:N}}/{{example:N}}/{{translation}} refs per text field — defensive cap, see sanitizeInlineMarkers
 
 // {sourcePhrase, targetPhrase} pairs for word-for-word highlighting between a sentence's "text"
 // and "translation" — see lib/dotbot.js's ALIGNMENT_SCHEMA. Only shape/length is validated here;
@@ -68,6 +69,27 @@ function sanitizeSentence(s) {
     romanization: s.romanization ? String(s.romanization).trim().slice(0, MAX_DEF_LEN) : "",
     alignment: sanitizeAlignment(s.alignment),
   };
+}
+
+// Strips any {{dictionary:N}}/{{example:N}}/{{translation}} inline marker (see lib/dotbot.js's
+// "Inline references" guidance) whose reference doesn't actually exist among THIS response's own
+// already-sanitized dictionary/examples/translation panels — same "never trust the model's indices
+// blindly" convention as sanitizeAlignment above. An invalid marker is replaced with '' (a minor
+// grammatical artifact is an acceptable outcome for the rare case, rather than dropping the whole
+// sentence); valid markers pass through completely untouched as literal text, since dotbotText/
+// answerBlocks[].content stay plain strings all the way to the client (see parseInlineMarkers,
+// public/dotto/mnemonic-search-matching.js).
+function sanitizeInlineMarkers(text, { dictEntryCount, exampleCount, hasTranslation }) {
+  if (!text) return text;
+  let count = 0;
+  return text.replace(/\{\{(dictionary|example):(\d+)\}\}|\{\{translation\}\}/g, (match, kind, idxStr) => {
+    if (++count > MAX_INLINE_MARKERS) return "";
+    if (match === "{{translation}}") return hasTranslation ? match : "";
+    const idx = parseInt(idxStr, 10);
+    if (kind === "dictionary") return idx < dictEntryCount ? match : "";
+    if (kind === "example") return idx < exampleCount ? match : "";
+    return "";
+  });
 }
 
 // One query's contents, appended as the final user turn after any prior conversation history
@@ -243,7 +265,15 @@ function buildPanels(parsed, hasCanvasMatches) {
 
   if (hasCanvasMatches && parsed.showCanvasResults) panels.push({ type: "canvas_results" });
 
-  const text = String(parsed.dotbotText || "").trim();
+  // Validated against THIS response's own entries/sentences/tr (computed just above) — see
+  // sanitizeInlineMarkers.
+  const markerContext = {
+    dictEntryCount: entries.length,
+    exampleCount: panels.some((p) => p.type === "examples") ? panels.find((p) => p.type === "examples").sentences.length : 0,
+    hasTranslation: panels.some((p) => p.type === "translation"),
+  };
+
+  const text = sanitizeInlineMarkers(String(parsed.dotbotText || "").trim(), markerContext);
   if (text) panels.push({ type: "dotbot_text", text });
 
   // An in-depth grammar/explanation answer, ordered blocks of prose + highlighted example
@@ -255,7 +285,7 @@ function buildPanels(parsed, hasCanvasMatches) {
       .map((b) => {
         if (!b || typeof b !== "object") return null;
         if (b.type === "text") {
-          const content = String(b.content || "").trim().slice(0, MAX_BLOCK_TEXT_LEN);
+          const content = sanitizeInlineMarkers(String(b.content || "").trim().slice(0, MAX_BLOCK_TEXT_LEN), markerContext);
           return content ? { type: "text", content } : null;
         }
         if (b.type === "example") {
