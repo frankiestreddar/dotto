@@ -29,6 +29,8 @@ const MAX_ALIGNMENT_PHRASE_LEN = 80;
 const MAX_GRAMMAR_TAGS = 4; // per dictionary entry — part of speech plus a few notable properties, each renders as its own pill
 const MAX_ANSWER_BLOCKS = 12;
 const MAX_BLOCK_TEXT_LEN = 600; // one prose paragraph in an in-depth grammar/explanation answer
+const MAX_HISTORY_MESSAGES = 20; // most-recent N prior turns (user+assistant combined) sent as context
+const MAX_HISTORY_TEXT_LEN = 500; // one flattened assistant turn's summary, in the history sent back to the model
 
 // {sourcePhrase, targetPhrase} pairs for word-for-word highlighting between a sentence's "text"
 // and "translation" — see lib/dotbot.js's ALIGNMENT_SCHEMA. Only shape/length is validated here;
@@ -67,14 +69,14 @@ function sanitizeSentence(s) {
   };
 }
 
-// Each search is a fresh, independent query — no conversation memory across searches, matching
-// how every panel (dictionary/examples/canvas-results) already just gets replaced fresh each
-// time rather than accumulating a history. cardContext/cardConnections are the cards the user
-// dragged into the search box (see addCardsToSearchContext in dotto-script.js) — already
-// reduced to short plain-text descriptions client-side, so this just re-caps defensively and
-// appends them as a labeled block the prompt tells the model how to use. Returns a plain string
-// (the user message's content) rather than Gemini's {role,parts} contents array, since Groq's
-// chat completion API takes a flat OpenAI-style messages array instead — see generateOnce below.
+// One query's contents, appended as the final user turn after any prior conversation history
+// (see loadConversationHistory/generateOnce below — a query can now be a follow-up continuing an
+// earlier exchange, not always a fresh independent one). cardContext/cardConnections are the
+// cards the user dragged into the search box (see addCardsToSearchContext in dotto-script.js) —
+// already reduced to short plain-text descriptions client-side, so this just re-caps defensively
+// and appends them as a labeled block the prompt tells the model how to use. Returns a plain
+// string (the user message's content) rather than Gemini's {role,parts} contents array, since
+// Groq's chat completion API takes a flat OpenAI-style messages array instead.
 function buildContents(query, canvasMatches, cardContext, cardConnections, sourceContext) {
   const contextLine =
     canvasMatches && canvasMatches.length
@@ -111,6 +113,64 @@ function buildContents(query, canvasMatches, cardContext, cardConnections, sourc
     }
   }
   return `${contextLine}${cardBlock}\n\nUser query: "${query}"`;
+}
+
+// Flattens one stored assistant turn's `panels` array (the exact shape buildPanels returns, and
+// the exact shape persisted verbatim in dotbot_messages.content — see append_dotbot_turn) into a
+// short plain-text summary for the MODEL's own memory of what it previously told the user. The
+// model doesn't need its own past structured JSON back, just a reasonable recollection of what it
+// said, the same way a human wouldn't recite their own prior answer verbatim before continuing —
+// dictionary/translation entries collapse to compact "word: definition" lines, dotbot_text and
+// answer_blocks' prose paragraphs are taken close to verbatim (they're already the closest thing
+// to "what Dotbot said"), and canvas_results/source_action (not prose, nothing to summarize into
+// conversation memory) are skipped entirely.
+function summarizeAssistantContent(panels) {
+  if (!Array.isArray(panels)) return "";
+  const parts = [];
+  for (const p of panels) {
+    if (!p || typeof p !== "object") continue;
+    if (p.type === "dotbot_text" && p.text) {
+      parts.push(p.text);
+    } else if (p.type === "answer_blocks" && Array.isArray(p.blocks)) {
+      for (const b of p.blocks) {
+        if (b && b.type === "text" && b.content) parts.push(b.content);
+      }
+    } else if (p.type === "dictionary" && Array.isArray(p.entries)) {
+      for (const e of p.entries) {
+        if (e && e.word && e.definition) parts.push(`${e.word}: ${e.definition}`);
+      }
+    } else if (p.type === "translation" && p.sourceWord && p.targetWord) {
+      parts.push(`${p.sourceWord} (${p.sourceLanguage}) = ${p.targetWord} (${p.targetLanguage})`);
+    }
+  }
+  return parts.join(" ").trim().slice(0, MAX_HISTORY_TEXT_LEN);
+}
+
+// Loads the most recent prior turns of an existing conversation (RLS already scopes this to the
+// caller's own rows regardless of what conversationId was supplied — an id belonging to someone
+// else, or a stale/deleted one, just resolves to zero rows here rather than leaking anything) and
+// reshapes them into Groq's flat {role, content} message shape. User turns' stored content is
+// {query} (see append_dotbot_turn); assistant turns' content is a raw panels array, flattened via
+// summarizeAssistantContent above. Empty/unsummarizable turns are dropped rather than sent as
+// blank messages.
+async function loadConversationHistory(supabase, conversationId) {
+  if (!conversationId) return [];
+  const { data, error } = await supabase
+    .from("dotbot_messages")
+    .select("role, content")
+    .eq("conversation_id", conversationId)
+    .order("created_at", { ascending: true });
+  if (error) {
+    console.error("[dotbot/orchestrate] failed to load conversation history:", error);
+    return [];
+  }
+  return (data || [])
+    .slice(-MAX_HISTORY_MESSAGES)
+    .map((m) => {
+      const content = m.role === "user" ? String((m.content && m.content.query) || "").trim() : summarizeAssistantContent(m.content);
+      return content ? { role: m.role, content } : null;
+    })
+    .filter(Boolean);
 }
 
 // Turns the model's { dictionary, examples, dotbotText, showCanvasResults } response into the
@@ -260,7 +320,14 @@ function buildPanels(parsed, hasCanvasMatches) {
 }
 
 export async function POST(request) {
-  const { query, canvasMatches, cardContext, cardConnections, sourceContext } = await request.json();
+  const {
+    query,
+    canvasMatches,
+    cardContext,
+    cardConnections,
+    sourceContext,
+    conversationId: requestedConversationId,
+  } = await request.json();
   if (!query || !query.trim()) {
     return NextResponse.json({ error: "empty_query" }, { status: 400 });
   }
@@ -278,12 +345,19 @@ export async function POST(request) {
     return NextResponse.json({ error: "no_credits" }, { status: 402 });
   }
 
+  // A follow-up continuing an existing thread (requestedConversationId set by the client — see
+  // appState.currentConversationId, public/dotto/search-orchestration-selection.js) vs. a fresh
+  // one. RLS-scoped read, so a stale/foreign id just resolves to no history rather than a leak —
+  // treated the same as starting fresh in that case.
+  const history = await loadConversationHistory(supabase, requestedConversationId);
+
   const hasCanvasMatches = !!(canvasMatches && canvasMatches.length);
   const generateOnce = async () => {
     const completion = await groq.chat.completions.create({
       model: GROQ_TEXT_MODEL,
       messages: [
         { role: "system", content: DOTBOT_ORCHESTRATE_SYSTEM_PROMPT },
+        ...history,
         { role: "user", content: buildContents(query, canvasMatches, cardContext, cardConnections, sourceContext) },
       ],
       response_format: { type: "json_object" },
@@ -336,5 +410,26 @@ export async function POST(request) {
 
   // Only charged now that generation actually succeeded.
   await spendSearchCredits(supabase, 3);
-  return NextResponse.json({ panels });
+
+  // Persists both this turn (user query + the fresh panels just generated) and, when
+  // requestedConversationId was null, creates the conversation itself — see append_dotbot_turn
+  // (supabase/migrations/20260819_add_dotbot_conversations.sql). Deliberately fails soft: a
+  // persistence error shouldn't hide an AI answer the user already paid credits for and is about
+  // to see: catches — falls back to requestedConversationId (possibly still null) so the client
+  // simply won't have a saved thread to continue for this exchange, resuming as a fresh
+  // conversation on the next message rather than erroring out here.
+  let conversationId = requestedConversationId || null;
+  const { data: persistedConversationId, error: persistError } = await supabase.rpc("append_dotbot_turn", {
+    p_conversation_id: requestedConversationId || null,
+    p_title: query.trim().slice(0, 80),
+    p_user_content: { query: query.trim() },
+    p_assistant_content: panels,
+  });
+  if (persistError) {
+    console.error("[dotbot/orchestrate] failed to persist chat turn:", persistError);
+  } else {
+    conversationId = persistedConversationId;
+  }
+
+  return NextResponse.json({ panels, conversationId });
 }
