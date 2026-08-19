@@ -1537,11 +1537,11 @@
     .dotbot-recommended-list .search-suggestion-item{
         white-space:normal;overflow:visible;text-overflow:clip;line-height:1.4;
         padding:6px 8px;
-        text-decoration:underline dotted rgba(143,143,143,0.35);
+        text-decoration:underline dotted rgba(143,143,143,0.55);
         text-underline-offset:3px;
         transition:background-color .12s ease, text-decoration-color .12s ease;
     }
-    .dotbot-recommended-list .search-suggestion-item:hover{background:#1a1a1a;text-decoration-color:#1a1a1a;}
+    .dotbot-recommended-list .search-suggestion-item:hover{background:#262626;text-decoration-color:#262626;}
 
     /* Sequenced turn reveal (see startSequencedTurnReveal, mnemonic-search-matching.js): a
        placeholder shown mid-text while a fresh turn's answer is "typing" toward an inline
