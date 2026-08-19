@@ -178,11 +178,18 @@ function summarizeAssistantContent(panels) {
 // blank messages.
 async function loadConversationHistory(supabase, conversationId) {
   if (!conversationId) return [];
+  // Secondary sort on "role" descending is a tiebreaker for rows with an identical created_at
+  // ("user" > "assistant" alphabetically, so descending puts user first) — append_dotbot_turn now
+  // sets created_at via clock_timestamp() so new rows never actually tie (see the
+  // 20260819_fix_dotbot_turn_ordering.sql migration), but this also protects any older rows
+  // already in the database from before that fix, where both inserts shared one now()-frozen
+  // timestamp and could otherwise come back as [assistant, user] instead of [user, assistant].
   const { data, error } = await supabase
     .from("dotbot_messages")
     .select("role, content")
     .eq("conversation_id", conversationId)
-    .order("created_at", { ascending: true });
+    .order("created_at", { ascending: true })
+    .order("role", { ascending: false });
   if (error) {
     console.error("[dotbot/orchestrate] failed to load conversation history:", error);
     return [];

@@ -214,6 +214,19 @@ import { render } from './waypoints-render-loop.js';
     // would need switching over to — makes all of them correctly close the overlay for free.
     function clearSearch() {
         if (!appState.searchInput) return;
+        // Genuinely a no-op when the overlay isn't showing — which matters because this is called
+        // defensively from many places that have nothing to do with the user closing anything:
+        // render() (waypoints-render-loop.js) calls this on every canvas render, including from a
+        // running stopwatch's once-a-second tick (history-autosave.js) and from a collaborator's
+        // realtime sync broadcast landing (live-presence.js) — neither of which means "the user
+        // wants their open AI conversation ended." Without this guard, currentConversationId got
+        // reset and the visible chat thread wiped by any of those unrelated background events,
+        // which silently started a brand-new server-side conversation (empty history) on the very
+        // next message — reading exactly like "the AI only remembers the last message" even though
+        // the actual history-loading code was always correct. Every real close (Escape, backdrop
+        // click, opening a different panel) still goes through this exactly as before, since the
+        // overlay is actually open in those cases.
+        if (!appState.searchOverlayBackdrop || !appState.searchOverlayBackdrop.classList.contains('open')) return;
         clearTimeout(appState.canvasResultsDebounceTimer);
         // Closing the overlay ends the current thread for continuation purposes — the next
         // message (whenever the overlay next opens) starts a fresh conversation server-side.
