@@ -5,7 +5,6 @@ import { saveSnapshot, smoothPanTo } from './history-autosave.js';
 import { findItemById } from './live-presence.js';
 import { openDotbotUpgradeModal, refreshDotbotUsage } from './profile-achievements-pricing.js';
 import { commenceDotbotSearch } from './search-orchestration-selection.js';
-import { autoGrowSearchInput } from './stopwatch-search-notifications.js';
 import { expandWaypointCard, render } from './waypoints-render-loop.js';
 
 
@@ -701,7 +700,11 @@ import { expandWaypointCard, render } from './waypoints-render-loop.js';
             const div = document.createElement('div');
             div.className = 'search-suggestion-item';
             div.textContent = q;
-            div.onclick = (e) => { e.stopPropagation(); appState.searchInput.value = q; autoGrowSearchInput(); commenceSearchOrMnemonic(q); };
+            // Submits directly, same code path as pressing Enter on typed text — deliberately never
+            // touches appState.searchInput.value first, so the query goes straight to "becoming a
+            // message" (the box shows its normal loading state, per commenceDotbotSearch) instead
+            // of visibly landing in the search box for a moment first.
+            div.onclick = (e) => { e.stopPropagation(); commenceSearchOrMnemonic(q); };
             list.appendChild(div);
         });
         wrap.appendChild(list);
