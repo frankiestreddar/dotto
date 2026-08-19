@@ -5,6 +5,12 @@ import { createPortal } from "react-dom";
 import { chatThreadStore } from "./bridges";
 import usePortalNode from "./usePortalNode";
 
+// Module-level, not inline — see CanvasItemsLayer.jsx's identical EMPTY_ITEMS comment for why a
+// fresh array literal as the getServerSnapshot fallback trips React's "should be cached" warning
+// (a new [] every render never === the previous one, so useSyncExternalStore treats it as an
+// unstable snapshot and loops).
+const EMPTY_TURNS = [];
+
 // One turn = the user's own query (rendered here for the first time ever — previously the input's
 // value was just cleared after sending, never shown as a message anywhere) + that turn's assistant
 // panels, built into its own DOM subtree using the SAME vanilla builder functions the six now-
@@ -88,7 +94,7 @@ function ChatTurn({ turn }) {
 // identity, keyed by turn.id) like CanvasResultsPanel.jsx/CommandPalette.jsx, not a single-owner
 // side-effect component like DotbotAnswerPanel.jsx and friends, which this retires for AI content.
 export default function ChatThread() {
-  const turns = useSyncExternalStore(chatThreadStore.subscribe, chatThreadStore.getSnapshot, () => []);
+  const turns = useSyncExternalStore(chatThreadStore.subscribe, chatThreadStore.getSnapshot, () => EMPTY_TURNS);
   const portalNode = usePortalNode("search-chat-thread");
 
   if (!portalNode) return null;
