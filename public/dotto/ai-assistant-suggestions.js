@@ -524,7 +524,20 @@ import { render } from './waypoints-render-loop.js';
             return;
         }
         scheduleCanvasResults(value, folderObj.isSource);
-        scheduleLiveSuggestions(value, folderObj.isSource);
+        // Live AI suggestions are for a fresh, standalone query — mid-conversation (a follow-up in
+        // an existing chat thread, appState.currentConversationId set — see Stage 3, commit 5d1dd81)
+        // they'd suggest generic starting points unrelated to what's actually being continued, so
+        // skip scheduling them entirely rather than show something that doesn't fit the moment.
+        // Also cancels/clears anything already pending from BEFORE this became a follow-up (the
+        // conversation's first message, before a response had come back and set
+        // currentConversationId), so a stale suggestion fetch can't still land and pop in later.
+        if (appState.currentConversationId) {
+            clearTimeout(appState.dotbotSuggestDebounceTimer);
+            if (appState.dotbotSuggestAbortController) appState.dotbotSuggestAbortController.abort();
+            window.__setSearchSuggestions(null);
+        } else {
+            scheduleLiveSuggestions(value, folderObj.isSource);
+        }
         updateSearchDropdown();
     }
 

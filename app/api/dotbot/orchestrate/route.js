@@ -275,9 +275,11 @@ function buildPanels(parsed, hasCanvasMatches) {
     if (blocks.length) panels.push({ type: "answer_blocks", blocks });
   }
 
-  // Only shown when Dotbot couldn't actually help (the off-topic/casual-chat redirect
-  // branches in the prompt) — gives the user somewhere to go next instead of a dead end.
-  if (parsed.canHelp === false && Array.isArray(parsed.recommendedSearches)) {
+  // Always shown now, not just when Dotbot couldn't help — the chat thread's "what could I ask
+  // next" suggestions (see the prompt's own updated guidance on "recommendedSearches": contextual,
+  // specific follow-ups building on THIS answer for a normal success, or the original unrelated-
+  // topics redirect for the off-topic/casual-chat canHelp:false cases).
+  if (Array.isArray(parsed.recommendedSearches)) {
     const queries = parsed.recommendedSearches
       .filter((q) => typeof q === "string" && q.trim())
       .map((q) => q.trim().slice(0, MAX_WORD_LEN * 3))

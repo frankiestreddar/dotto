@@ -640,21 +640,32 @@ import { expandWaypointCard, render } from './waypoints-render-loop.js';
     function renderExamplesPanel(panel) {
         window.__setExamplesPanel(panel || null);
     }
-    // Shown below Dotbot's answer only when it couldn't help with the query (canHelp:false) —
-    // gives the user 3 generic searches to click instead of a dead end. Same row markup/click
-    // idiom as every other suggestion row in the app: fill the box, commence the search. The rows
-    // themselves stay a vanilla-built DocumentFragment (see buildRecommendedSearchesRows) — no
-    // internal state of their own, just event wiring, not worth rewriting as JSX for this pass.
+    // Shown below every Dotbot answer now, not just when it couldn't help (canHelp:false) — the
+    // chat thread's "what could I ask next" suggestions, an intro label + 3 indented rows. Same
+    // click idiom as every other suggestion row in the app: fill the box, commence the search
+    // (continuing the same conversation thread if one's active — commenceSearchOrMnemonic ->
+    // commenceDotbotSearch already sends appState.currentConversationId, no special-casing needed
+    // here). Returns one wrapping element now (not a bare DocumentFragment) so the label and the
+    // indented row list can share a single indentation container — still just appendChild'd by
+    // callers exactly the same way either shape would be.
     function buildRecommendedSearchesRows(panel) {
-        const frag = document.createDocumentFragment();
+        const wrap = document.createElement('div');
+        wrap.className = 'dotbot-recommended-wrap';
+        const label = document.createElement('div');
+        label.className = 'dotbot-recommended-label';
+        label.textContent = 'Next, I could:';
+        wrap.appendChild(label);
+        const list = document.createElement('div');
+        list.className = 'dotbot-recommended-list';
         panel.queries.forEach(q => {
             const div = document.createElement('div');
             div.className = 'search-suggestion-item';
             div.textContent = q;
             div.onclick = (e) => { e.stopPropagation(); appState.searchInput.value = q; autoGrowSearchInput(); commenceSearchOrMnemonic(q); };
-            frag.appendChild(div);
+            list.appendChild(div);
         });
-        return frag;
+        wrap.appendChild(list);
+        return wrap;
     }
     function renderRecommendedSearchesPanel(panel) {
         if (!appState.searchRecommended) return;
