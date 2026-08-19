@@ -669,6 +669,49 @@ import { render } from './waypoints-render-loop.js';
             else { el.classList.remove('dotbot-typing'); if (onDone) onDone(); }
         })();
     }
+    // Types out `segments` (parseInlineMarkers' output — mnemonic-search-matching.js) into
+    // `container` in order. A 'text' segment types character-by-character into its OWN freshly
+    // appended <span> (never wipes prior siblings, unlike typewriterReveal's whole-el.textContent
+    // reset — that's what lets placeholder elements interleave with text runs). A 'ref' segment
+    // calls opts.onPlaceholder(kind, index) synchronously — the caller appends its own placeholder
+    // element and returns it — holds for opts.holdMs (default 400ms, a fixed pacing beat: nothing
+    // is actually still loading, see the "Sequenced turn reveal" comment in globals.css), then
+    // calls opts.onSwap(kind, index, placeholderEl) so the caller can replace it with the real
+    // widget. Calls opts.onDone exactly once, after the last segment. Checks container.isConnected
+    // on every tick, same abandoned-element guard as typewriterReveal.
+    function typewriterRevealSegments(container, segments, opts) {
+        opts = opts || {};
+        const holdMs = opts.holdMs || 400;
+        let i = 0;
+        function nextSegment() {
+            if (i >= segments.length) { if (opts.onDone) opts.onDone(); return; }
+            const seg = segments[i++];
+            if (seg.type === 'text') {
+                if (!container.isConnected) return;
+                const span = document.createElement('span');
+                span.classList.add('dotbot-typing');
+                container.appendChild(span);
+                let c = 0;
+                const msPerChar = Math.max(4, Math.min(12, 700 / Math.max(seg.value.length, 1)));
+                (function step() {
+                    if (!container.isConnected) return;
+                    c++;
+                    span.textContent = seg.value.slice(0, c);
+                    if (c < seg.value.length) { setTimeout(step, msPerChar); }
+                    else { span.classList.remove('dotbot-typing'); nextSegment(); }
+                })();
+            } else {
+                if (!container.isConnected) return;
+                const placeholderEl = opts.onPlaceholder(seg.kind, seg.index);
+                setTimeout(() => {
+                    if (!container.isConnected) return;
+                    opts.onSwap(seg.kind, seg.index, placeholderEl);
+                    nextSegment();
+                }, holdMs);
+            }
+        }
+        nextSegment();
+    }
     // Mirrors the pointer-drag pattern used to drag a shared chat card onto the
     // canvas (see the draggableOut branch in renderInlineCanvas), but for a single
     // synthetic Dotbot result rather than an array of existing canvas items.
@@ -775,7 +818,7 @@ import { render } from './waypoints-render-loop.js';
         clearSearch();
     }
 
-export { applyAlignHighlightToggle, buildAlignedSentenceEls, buildLiveSuggestionsRows, clearSearch, countSourceEntries, dotbotErrorMessage, escapeHtml, findParentFolderId, getItemSearchText, handleSearchFocus, handleSearchInput, isLatinScriptText, openSearchOverlay, scrollChatThreadToBottom, setSearchActive, setupDotbotResultDrag, speakerIconHTML, stripHtml, truncateCenter, typewriterReveal, updateChatThread, updateSearchDropdown };
+export { applyAlignHighlightToggle, buildAlignedSentenceEls, buildLiveSuggestionsRows, clearSearch, countSourceEntries, dotbotErrorMessage, escapeHtml, findParentFolderId, getItemSearchText, handleSearchFocus, handleSearchInput, isLatinScriptText, openSearchOverlay, scrollChatThreadToBottom, setSearchActive, setupDotbotResultDrag, speakerIconHTML, stripHtml, truncateCenter, typewriterReveal, typewriterRevealSegments, updateChatThread, updateSearchDropdown };
 
 window.__countSourceEntries = countSourceEntries;
 window.__buildLiveSuggestionsRows = buildLiveSuggestionsRows;
@@ -783,3 +826,4 @@ window.__buildLiveSuggestionsRows = buildLiveSuggestionsRows;
 // dotto/*.js as ES modules (same constraint every other window.__* bridge here exists for).
 window.__updateChatThread = updateChatThread;
 window.__scrollChatThreadToBottom = scrollChatThreadToBottom;
+window.__typewriterRevealSegments = typewriterRevealSegments;

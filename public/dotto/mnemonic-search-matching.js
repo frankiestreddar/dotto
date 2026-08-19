@@ -415,6 +415,30 @@ import { expandWaypointCard, render } from './waypoints-render-loop.js';
         if (!entry || !entry.word) return;
         return speakText(entry.word, entry.language, btnEl);
     }
+    // Splits `text` (a dotbotText/answerBlocks text-block string, already validated server-side —
+    // see sanitizeInlineMarkers, app/api/dotbot/orchestrate/route.js) into an ordered sequence of
+    // {type:'text', value} / {type:'ref', kind, index} segments. `kind` is 'dictionary'|'example'|
+    // 'translation'; `index` is 0 for 'translation' (unused, singleton panel). Consumed by
+    // startSequencedTurnReveal to interleave real prose with inline dictionary/example/translation
+    // widgets during a fresh turn's reveal.
+    function parseInlineMarkers(text) {
+        const segments = [];
+        const re = /\{\{(dictionary|example):(\d+)\}\}|\{\{translation\}\}/g;
+        let last = 0, m;
+        while ((m = re.exec(text))) {
+            if (m.index > last) segments.push({ type: 'text', value: text.slice(last, m.index) });
+            if (m[0] === '{{translation}}') segments.push({ type: 'ref', kind: 'translation', index: 0 });
+            else segments.push({ type: 'ref', kind: m[1], index: parseInt(m[2], 10) });
+            last = re.lastIndex;
+        }
+        if (last < text.length) segments.push({ type: 'text', value: text.slice(last) });
+        return segments;
+    }
+    // Collapses markers to nothing — same fallback policy as an out-of-range server-side marker
+    // (see sanitizeInlineMarkers). Used wherever raw {{...}} syntax shouldn't ever be shown as-is.
+    function stripInlineMarkers(text) {
+        return text.replace(/\{\{(dictionary|example):\d+\}\}|\{\{translation\}\}/g, '');
+    }
     // One card, showing one sense/entry at a time. The drag payload uses getters so dragging
     // always reflects whichever entry is currently on screen, not just whichever was first
     // rendered.
@@ -428,7 +452,10 @@ import { expandWaypointCard, render } from './waypoints-render-loop.js';
     // carry a translation of the word/definition into the user's language at all (that's the
     // separate translation panel now — see buildTranslationCard) and no longer carry their own
     // example sentences — see renderOrchestrateResult, which renders "examples" independently.
-    function buildDictionaryCard(panel) {
+    // `initialIndex` (optional) opens the card on that sense instead of the first — used when this
+    // is built as an inline widget for a specific {{dictionary:N}} reference (see
+    // startSequencedTurnReveal). Omitted/invalid falls back to 0, same as every existing caller.
+    function buildDictionaryCard(panel, initialIndex) {
         const entries = (panel.entries || []).slice(0, 5);
         const wrap = document.createElement('div');
         wrap.className = 'dotbot-dictionary-wrap';
@@ -436,7 +463,7 @@ import { expandWaypointCard, render } from './waypoints-render-loop.js';
         card.className = 'dotbot-dictionary-card';
         wrap.appendChild(card);
         if (!entries.length) return wrap;
-        let index = 0;
+        let index = (Number.isInteger(initialIndex) && entries[initialIndex]) ? initialIndex : 0;
 
         let countEl = null;
         if (entries.length > 1) {
@@ -545,6 +572,37 @@ import { expandWaypointCard, render } from './waypoints-render-loop.js';
     // SAME global dotbotAlignHighlightOn switch that answerBlocks example pills also read (see
     // applyAlignHighlightToggle) — one switch for all word-alignment highlighting on screen, not
     // just this panel's own sentences.
+    // One sentence's own drag handle + TTS button (extracted from buildExamplesCard's forEach so a
+    // single referenced sentence can be shown inline — see startSequencedTurnReveal — without the
+    // rest of that panel's sentences or its color-toggle chrome, which doesn't belong floating
+    // mid-answer). `language` is the panel's own language field, same TTS fallback as before.
+    function buildExampleSentenceEl(s, language) {
+        const wrap = document.createElement('div');
+        wrap.className = 'dotbot-example-sentence-wrap';
+        const { textEl, translitEl, translationEl } = buildAlignedSentenceEls(s);
+        const textRow = document.createElement('div');
+        textRow.className = 'dotbot-example-sentence-row';
+        const speakBtn = document.createElement('button');
+        speakBtn.className = 'tts-btn dotbot-example-audio-btn';
+        speakBtn.type = 'button';
+        speakBtn.title = 'Play pronunciation';
+        speakBtn.innerHTML = speakerIconHTML();
+        speakBtn.onclick = (e) => { e.stopPropagation(); speakText(s.text, language, speakBtn); };
+        textRow.appendChild(textEl);
+        textRow.appendChild(speakBtn);
+        wrap.appendChild(textRow);
+        if (translitEl) wrap.appendChild(translitEl);
+        if (translationEl) wrap.appendChild(translationEl);
+        setupDotbotResultDrag(wrap, {
+            kind: 'sentence',
+            w: 220, h: 130,
+            text: s.text || '',
+            translit: s.romanization || '',
+            translation: translationEl ? s.translation : '',
+            html: [s.text, s.romanization, translationEl ? s.translation : ''].filter(Boolean).join(' — '),
+        });
+        return wrap;
+    }
     function buildExamplesCard(panel) {
         const wrap = document.createElement('div');
         wrap.className = 'dotbot-examples-wrap';
@@ -553,31 +611,7 @@ import { expandWaypointCard, render } from './waypoints-render-loop.js';
         wrap.appendChild(card);
         const language = panel.language || '';
         (panel.sentences || []).forEach(s => {
-            const wrap = document.createElement('div');
-            wrap.className = 'dotbot-example-sentence-wrap';
-            const { textEl, translitEl, translationEl } = buildAlignedSentenceEls(s);
-            const textRow = document.createElement('div');
-            textRow.className = 'dotbot-example-sentence-row';
-            const speakBtn = document.createElement('button');
-            speakBtn.className = 'tts-btn dotbot-example-audio-btn';
-            speakBtn.type = 'button';
-            speakBtn.title = 'Play pronunciation';
-            speakBtn.innerHTML = speakerIconHTML();
-            speakBtn.onclick = (e) => { e.stopPropagation(); speakText(s.text, language, speakBtn); };
-            textRow.appendChild(textEl);
-            textRow.appendChild(speakBtn);
-            wrap.appendChild(textRow);
-            if (translitEl) wrap.appendChild(translitEl);
-            if (translationEl) wrap.appendChild(translationEl);
-            setupDotbotResultDrag(wrap, {
-                kind: 'sentence',
-                w: 220, h: 130,
-                text: s.text || '',
-                translit: s.romanization || '',
-                translation: translationEl ? s.translation : '',
-                html: [s.text, s.romanization, translationEl ? s.translation : ''].filter(Boolean).join(' — '),
-            });
-            card.appendChild(wrap);
+            card.appendChild(buildExampleSentenceEl(s, language));
         });
         const toggleBtn = document.createElement('button');
         toggleBtn.type = 'button';
@@ -713,6 +747,36 @@ import { expandWaypointCard, render } from './waypoints-render-loop.js';
     function startDotbotAnswerReveal(textEl, text, onDone) {
         typewriterReveal(textEl, text, onDone || updateSearchDropdown);
     }
+    // One answerBlocks "example" block's pill (extracted from buildAnswerBlocksWrap so
+    // revealAnswerBlocksStaggered can build blocks one at a time — same pattern as
+    // buildExampleSentenceEl above).
+    function buildAnswerExamplePill(b, language) {
+        const pill = document.createElement('div');
+        pill.className = 'dotbot-answer-example-pill';
+        const { textEl, translitEl, translationEl } = buildAlignedSentenceEls(b);
+        const textRow = document.createElement('div');
+        textRow.className = 'dotbot-example-sentence-row';
+        const speakBtn = document.createElement('button');
+        speakBtn.className = 'tts-btn dotbot-example-audio-btn';
+        speakBtn.type = 'button';
+        speakBtn.title = 'Play pronunciation';
+        speakBtn.innerHTML = speakerIconHTML();
+        speakBtn.onclick = (e) => { e.stopPropagation(); speakText(b.text, language, speakBtn); };
+        textRow.appendChild(textEl);
+        textRow.appendChild(speakBtn);
+        pill.appendChild(textRow);
+        if (translitEl) pill.appendChild(translitEl);
+        if (translationEl) pill.appendChild(translationEl);
+        setupDotbotResultDrag(pill, {
+            kind: 'sentence',
+            w: 220, h: 130,
+            text: b.text || '',
+            translit: b.romanization || '',
+            translation: translationEl ? b.translation : '',
+            html: [b.text, b.romanization, translationEl ? b.translation : ''].filter(Boolean).join(' — '),
+        });
+        return pill;
+    }
     function buildAnswerBlocksWrap(panel, language) {
         if (!panel || !panel.blocks || !panel.blocks.length) return null;
         const wrap = document.createElement('div');
@@ -721,38 +785,155 @@ import { expandWaypointCard, render } from './waypoints-render-loop.js';
             if (b.type === 'text') {
                 const p = document.createElement('div');
                 p.className = 'dotbot-answer-block-text';
-                p.textContent = b.content || '';
+                // This is a "show the already-final content, no live reveal" path (used by
+                // ChatThread.jsx's history-restored branch and the inert DotbotAnswerPanel.jsx) —
+                // unlike startSequencedTurnReveal, it never resolves {{dictionary:N}}/{{example:N}}/
+                // {{translation}} markers into widgets, so any that made it into the stored text
+                // are stripped rather than shown as raw syntax.
+                p.textContent = stripInlineMarkers(b.content || '');
                 wrap.appendChild(p);
             } else if (b.type === 'example') {
-                const pill = document.createElement('div');
-                pill.className = 'dotbot-answer-example-pill';
-                const { textEl, translitEl, translationEl } = buildAlignedSentenceEls(b);
-                const textRow = document.createElement('div');
-                textRow.className = 'dotbot-example-sentence-row';
-                const speakBtn = document.createElement('button');
-                speakBtn.className = 'tts-btn dotbot-example-audio-btn';
-                speakBtn.type = 'button';
-                speakBtn.title = 'Play pronunciation';
-                speakBtn.innerHTML = speakerIconHTML();
-                speakBtn.onclick = (e) => { e.stopPropagation(); speakText(b.text, language, speakBtn); };
-                textRow.appendChild(textEl);
-                textRow.appendChild(speakBtn);
-                pill.appendChild(textRow);
-                if (translitEl) pill.appendChild(translitEl);
-                if (translationEl) pill.appendChild(translationEl);
-                setupDotbotResultDrag(pill, {
-                    kind: 'sentence',
-                    w: 220, h: 130,
-                    text: b.text || '',
-                    translit: b.romanization || '',
-                    translation: translationEl ? b.translation : '',
-                    html: [b.text, b.romanization, translationEl ? b.translation : ''].filter(Boolean).join(' — '),
-                });
-                wrap.appendChild(pill);
+                wrap.appendChild(buildAnswerExamplePill(b, language));
             }
         });
         if (!wrap.children.length) return null;
         return wrap;
+    }
+    // Wraps `node` for a staggered fade+rise-in reveal step (see .dotbot-block-reveal, globals.css)
+    // — shared by revealAnswerBlocksStaggered and startSequencedTurnReveal's own trailing
+    // cards/recommended-searches steps.
+    function withStaggerIn(node) {
+        const wrap = document.createElement('div');
+        wrap.className = 'dotbot-block-reveal';
+        wrap.appendChild(node);
+        requestAnimationFrame(() => wrap.classList.add('dotbot-block-in'));
+        return wrap;
+    }
+    function runStaggered(steps, gapMs, cb) {
+        let i = 0;
+        (function next() {
+            if (i >= steps.length) { cb(); return; }
+            steps[i++]();
+            setTimeout(next, gapMs);
+        })();
+    }
+    // Same as buildDotbotAnswerTextEl but with NO drag-to-canvas wiring — the fresh-turn sequenced
+    // reveal path (startSequencedTurnReveal) uses this instead, since only individual inline
+    // widgets should be draggable now, not the whole answer paragraph. buildDotbotAnswerTextEl
+    // itself stays untouched — DotbotAnswerPanel.jsx (confirmed inert, see ChatThread.jsx's own
+    // comment) still calls it directly.
+    function buildDotbotAnswerContainerEl() {
+        const textEl = document.createElement('div');
+        textEl.className = 'dotbot-answer-text dotbot-result-card';
+        return textEl;
+    }
+    // Fresh-turn-only sequenced reveal (see turn.fresh, app/dotto/ChatThread.jsx — history-restored
+    // turns never call this, they render every panel synchronously instead). ALL of `panels` is
+    // already fully resolved before this ever runs — this codebase has no streaming anywhere (one
+    // request -> one complete JSON response, see app/api/dotbot/orchestrate/route.js), so every
+    // placeholder pulse below is a fixed-duration theatrical pacing beat, not a real loading state.
+    // Order: (1) dotbotText, typed out, with any {{dictionary:N}}/{{example:N}}/{{translation}}
+    // marker resolving to an inline widget in place; (2) answerBlocks, staggered per block, with
+    // the same marker resolution inside its text blocks; (3) any dictionary/translation/example
+    // content NOT already shown inline, staggered in; (4) recommended-searches. Tracks which
+    // dictionary index / example index / translation got shown inline so step 3 never duplicates
+    // it — dictionary/translation are shown in full inline (multi-sense cycle arrows / singleton),
+    // so referencing either at all makes the standalone card fully redundant; examples are inline
+    // one sentence at a time, so the trailing card is a FILTERED copy (remaining sentences only),
+    // never entirely dropped.
+    function startSequencedTurnReveal(el, panels, onAllDone) {
+        const textPanel = panels.find(p => p.type === 'dotbot_text') || null;
+        const dictPanel = panels.find(p => p.type === 'dictionary') || null;
+        const examplesPanel = panels.find(p => p.type === 'examples') || null;
+        const translationPanel = panels.find(p => p.type === 'translation') || null;
+        const answerBlocksPanel = panels.find(p => p.type === 'answer_blocks') || null;
+        const recommendedPanel = panels.find(p => p.type === 'recommended_searches') || null;
+        const answerLanguage = (dictPanel && dictPanel.entries[0] && dictPanel.entries[0].language) || (examplesPanel && examplesPanel.language) || '';
+
+        const consumedDict = new Set();
+        const consumedExamples = new Set();
+        let consumedTranslation = false;
+
+        function buildInlineWidget(kind, index) {
+            const wrap = document.createElement('div');
+            wrap.className = 'dotbot-inline-widget';
+            if (kind === 'dictionary' && dictPanel && dictPanel.entries[index]) {
+                consumedDict.add(index);
+                wrap.appendChild(buildDictionaryCard(dictPanel, index));
+            } else if (kind === 'example' && examplesPanel && examplesPanel.sentences[index]) {
+                consumedExamples.add(index);
+                wrap.appendChild(buildExampleSentenceEl(examplesPanel.sentences[index], examplesPanel.language || ''));
+            } else if (kind === 'translation' && translationPanel) {
+                consumedTranslation = true;
+                wrap.appendChild(buildTranslationCard(translationPanel));
+            }
+            return wrap;
+        }
+
+        function runText(cb) {
+            if (!textPanel || !textPanel.text) { cb(); return; }
+            const textEl = buildDotbotAnswerContainerEl();
+            el.appendChild(textEl);
+            const segments = parseInlineMarkers(textPanel.text);
+            typewriterRevealSegments(textEl, segments, {
+                onPlaceholder: () => {
+                    const ph = document.createElement('span');
+                    ph.className = 'dotbot-inline-placeholder';
+                    textEl.appendChild(ph);
+                    return ph;
+                },
+                onSwap: (kind, index, ph) => { ph.replaceWith(buildInlineWidget(kind, index)); },
+                onDone: cb,
+            });
+        }
+
+        function runAnswerBlocks(cb) {
+            if (!answerBlocksPanel || !answerBlocksPanel.blocks.length) { cb(); return; }
+            const wrap = document.createElement('div');
+            wrap.className = 'dotbot-answer-blocks';
+            el.appendChild(wrap);
+            const steps = answerBlocksPanel.blocks.map(b => () => {
+                const blockEl = document.createElement('div');
+                if (b.type === 'text') {
+                    parseInlineMarkers(b.content).forEach(seg => {
+                        if (seg.type === 'text') blockEl.appendChild(document.createTextNode(seg.value));
+                        else blockEl.appendChild(buildInlineWidget(seg.kind, seg.index));
+                    });
+                    blockEl.className = 'dotbot-answer-block-text';
+                } else if (b.type === 'example') {
+                    blockEl.appendChild(buildAnswerExamplePill(b, answerLanguage));
+                }
+                wrap.appendChild(withStaggerIn(blockEl));
+            });
+            runStaggered(steps, 260, cb);
+        }
+
+        function runRemainingCards(cb) {
+            const steps = [];
+            if (!consumedTranslation && translationPanel) {
+                steps.push(() => el.appendChild(withStaggerIn(buildTranslationCard(translationPanel))));
+            }
+            if (!consumedDict.size && dictPanel && dictPanel.entries.length) {
+                steps.push(() => el.appendChild(withStaggerIn(buildDictionaryCard(dictPanel))));
+            }
+            if (examplesPanel && examplesPanel.sentences.length) {
+                const remaining = examplesPanel.sentences.filter((_, i) => !consumedExamples.has(i));
+                if (remaining.length) {
+                    steps.push(() => el.appendChild(withStaggerIn(buildExamplesCard(Object.assign({}, examplesPanel, { sentences: remaining })))));
+                }
+            }
+            runStaggered(steps, 260, cb);
+        }
+
+        function runRecommended(cb) {
+            if (!recommendedPanel || !recommendedPanel.queries.length) { cb(); return; }
+            el.appendChild(withStaggerIn(buildRecommendedSearchesRows(recommendedPanel)));
+            setTimeout(cb, 220);
+        }
+
+        runText(() => runAnswerBlocks(() => runRemainingCards(() => runRecommended(() => {
+            if (onAllDone) onAllDone();
+        }))));
     }
 
 export { buildAnswerBlocksWrap, buildDictionaryCard, buildDotbotAnswerTextEl, buildExamplesCard, buildImageResultCard, buildImageResultError, buildImageResultLoading, buildMnemonicErrorEl, buildMnemonicLoadingEl, buildMnemonicResultCard, buildRecommendedSearchesRows, buildTranslationCard, commenceSearchOrMnemonic, computeCanvasMatches, computeSourceMatches, flashCanvasElement, goToCanvasItem, goToSourceRow, renderCanvasResultsPanel, renderDictionaryPanel, renderDotbotAnswerPanel, renderExamplesPanel, renderRecommendedSearchesPanel, renderTranslationPanel, startDotbotAnswerReveal, startMnemonicResultReveal };
@@ -769,6 +950,8 @@ window.__buildRecommendedSearchesRows = buildRecommendedSearchesRows;
 window.__buildDotbotAnswerTextEl = buildDotbotAnswerTextEl;
 window.__startDotbotAnswerReveal = startDotbotAnswerReveal;
 window.__buildAnswerBlocksWrap = buildAnswerBlocksWrap;
+window.__startSequencedTurnReveal = startSequencedTurnReveal;
+window.__stripInlineMarkers = stripInlineMarkers;
 window.__buildImageResultLoading = buildImageResultLoading;
 window.__buildImageResultError = buildImageResultError;
 window.__buildImageResultCard = buildImageResultCard;
