@@ -3,6 +3,9 @@ import { createClient } from "@/lib/supabase/server";
 import { getGroqClient, GROQ_TEXT_MODEL, GROQ_REASONING_EFFORT } from "@/lib/groq";
 import {
   DOTBOT_ORCHESTRATE_SYSTEM_PROMPT,
+  DOTBOT_CONVERSATION_SUMMARY_INSTRUCTIONS,
+  DOTBOT_USER_MEMORY_INSTRUCTIONS,
+  getDotbotProfile,
   peekSearchCredits,
   spendSearchCredits,
 } from "@/lib/dotbot";
@@ -33,6 +36,8 @@ const MAX_BLOCK_TEXT_LEN = 600; // one prose paragraph in an in-depth grammar/ex
 const MAX_HISTORY_MESSAGES = 20; // most-recent N prior turns (user+assistant combined) sent as context
 const MAX_HISTORY_TEXT_LEN = 500; // one flattened assistant turn's summary, in the history sent back to the model
 const MAX_INLINE_MARKERS = 20; // {{dictionary:N}}/{{example:N}}/{{translation}} refs per text field — defensive cap, see sanitizeInlineMarkers
+const MAX_CONVERSATION_SUMMARY_LEN = 700; // chars — defensive cap regardless of the prompt's own "under 100 words" instruction
+const MAX_USER_MEMORY_LEN = 600; // chars — same defensive-cap convention, for "userMemoryUpdate"
 
 // {sourcePhrase, targetPhrase} pairs for word-for-word highlighting between a sentence's "text"
 // and "translation" — see lib/dotbot.js's ALIGNMENT_SCHEMA. Only shape/length is validated here;
@@ -100,12 +105,24 @@ function sanitizeInlineMarkers(text, { dictEntryCount, exampleCount, hasTranslat
 // and appends them as a labeled block the prompt tells the model how to use. Returns a plain
 // string (the user message's content) rather than Gemini's {role,parts} contents array, since
 // Groq's chat completion API takes a flat OpenAI-style messages array instead.
-function buildContents(query, canvasMatches, cardContext, cardConnections, sourceContext) {
+function buildContents(query, canvasMatches, cardContext, cardConnections, sourceContext, existingSummary, existingMemory) {
   const contextLine =
     canvasMatches && canvasMatches.length
       ? `Canvas matches found: ${JSON.stringify(canvasMatches)}`
       : "No canvas matches found for this query.";
   let cardBlock = "";
+  // Only present when loadConversationHistory reports this conversation's history has actually
+  // been truncated (see the "truncated" flag) — matches DOTBOT_CONVERSATION_SUMMARY_INSTRUCTIONS
+  // only being appended to the system prompt under that same condition, so the model is never
+  // asked to produce a field it wasn't given anything to base it on.
+  if (existingSummary) {
+    cardBlock += `\n\nSummary of earlier parts of this conversation (not shown verbatim above):\n${existingSummary}`;
+  }
+  // Only present for a pro/polyglot-plan user (see DOTBOT_USER_MEMORY_INSTRUCTIONS) — omitted
+  // entirely for a free-plan user or a user with no memory recorded yet.
+  if (existingMemory) {
+    cardBlock += `\n\nWhat you already remember about this user, from past conversations:\n${existingMemory}`;
+  }
   if (Array.isArray(cardContext) && cardContext.length) {
     const cards = cardContext
       .filter((c) => typeof c === "string" && c.trim())
@@ -172,35 +189,51 @@ function summarizeAssistantContent(panels) {
 // Loads the most recent prior turns of an existing conversation (RLS already scopes this to the
 // caller's own rows regardless of what conversationId was supplied — an id belonging to someone
 // else, or a stale/deleted one, just resolves to zero rows here rather than leaking anything) and
-// reshapes them into Groq's flat {role, content} message shape. User turns' stored content is
-// {query} (see append_dotbot_turn); assistant turns' content is a raw panels array, flattened via
+// reshapes them into Groq's flat {role, content} message shape, plus the conversation's own
+// running summary (if any — see the two-tier memory feature) and whether this conversation's
+// history has actually been truncated to the recent window (i.e. there's more before it than what
+// "messages" contains) — the signal that gates whether DOTBOT_CONVERSATION_SUMMARY_INSTRUCTIONS
+// gets appended to the prompt at all. User turns' stored content is {query} (see
+// append_dotbot_turn); assistant turns' content is a raw panels array, flattened via
 // summarizeAssistantContent above. Empty/unsummarizable turns are dropped rather than sent as
-// blank messages.
+// blank messages. A null/undefined conversationId (brand-new conversation) and a just-reopened
+// saved chat (see openSavedChat, public/dotto/hamburger-collab.js) both flow through this exact
+// same path — the summary is always read fresh from the DB per-request, never client-cached, so
+// reopening needs no special-casing at all.
 async function loadConversationHistory(supabase, conversationId) {
-  if (!conversationId) return [];
+  if (!conversationId) return { messages: [], summary: null, truncated: false };
   // Secondary sort on "role" descending is a tiebreaker for rows with an identical created_at
   // ("user" > "assistant" alphabetically, so descending puts user first) — append_dotbot_turn now
   // sets created_at via clock_timestamp() so new rows never actually tie (see the
   // 20260819_fix_dotbot_turn_ordering.sql migration), but this also protects any older rows
   // already in the database from before that fix, where both inserts shared one now()-frozen
   // timestamp and could otherwise come back as [assistant, user] instead of [user, assistant].
-  const { data, error } = await supabase
-    .from("dotbot_messages")
-    .select("role, content")
-    .eq("conversation_id", conversationId)
-    .order("created_at", { ascending: true })
-    .order("role", { ascending: false });
+  // count:"exact" piggybacks the total-row count onto this same query (no extra round trip) —
+  // that's what "truncated" below is computed from, run in parallel with the conversation's own
+  // summary lookup.
+  const [messagesRes, conversationRes] = await Promise.all([
+    supabase
+      .from("dotbot_messages")
+      .select("role, content", { count: "exact" })
+      .eq("conversation_id", conversationId)
+      .order("created_at", { ascending: true })
+      .order("role", { ascending: false }),
+    supabase.from("dotbot_conversations").select("conversation_summary").eq("id", conversationId).single(),
+  ]);
+  const { data, error, count } = messagesRes;
   if (error) {
     console.error("[dotbot/orchestrate] failed to load conversation history:", error);
-    return [];
+    return { messages: [], summary: null, truncated: false };
   }
-  return (data || [])
+  const messages = (data || [])
     .slice(-MAX_HISTORY_MESSAGES)
     .map((m) => {
       const content = m.role === "user" ? String((m.content && m.content.query) || "").trim() : summarizeAssistantContent(m.content);
       return content ? { role: m.role, content } : null;
     })
     .filter(Boolean);
+  const summary = conversationRes.error ? null : (conversationRes.data && conversationRes.data.conversation_summary) || null;
+  return { messages, summary, truncated: (count || 0) > MAX_HISTORY_MESSAGES };
 }
 
 // Turns the model's { dictionary, examples, dotbotText, showCanvasResults } response into the
@@ -397,16 +430,40 @@ export async function POST(request) {
   // appState.currentConversationId, public/dotto/search-orchestration-selection.js) vs. a fresh
   // one. RLS-scoped read, so a stale/foreign id just resolves to no history rather than a leak —
   // treated the same as starting fresh in that case.
-  const history = await loadConversationHistory(supabase, requestedConversationId);
+  const { messages: history, summary: existingSummary, truncated } = await loadConversationHistory(supabase, requestedConversationId);
+
+  // Gates the cross-conversation memory tier (see DOTBOT_USER_MEMORY_INSTRUCTIONS) — a single
+  // cheap profiles lookup, fails closed to "free"/no memory rather than blocking the request.
+  const { plan, dotbotMemory: existingMemory } = await getDotbotProfile(supabase, user.id);
+  const isProOrPolyglot = plan === "pro" || plan === "polyglot";
+
+  // Both instruction blocks are appended only when actually warranted, so a short conversation on
+  // the free plan pays zero extra prompt tokens for either — see each constant's own comment
+  // (lib/dotbot.js) for why.
+  const systemPrompt =
+    DOTBOT_ORCHESTRATE_SYSTEM_PROMPT +
+    (truncated ? DOTBOT_CONVERSATION_SUMMARY_INSTRUCTIONS : "") +
+    (isProOrPolyglot ? DOTBOT_USER_MEMORY_INSTRUCTIONS : "");
 
   const hasCanvasMatches = !!(canvasMatches && canvasMatches.length);
   const generateOnce = async () => {
     const completion = await groq.chat.completions.create({
       model: GROQ_TEXT_MODEL,
       messages: [
-        { role: "system", content: DOTBOT_ORCHESTRATE_SYSTEM_PROMPT },
+        { role: "system", content: systemPrompt },
         ...history,
-        { role: "user", content: buildContents(query, canvasMatches, cardContext, cardConnections, sourceContext) },
+        {
+          role: "user",
+          content: buildContents(
+            query,
+            canvasMatches,
+            cardContext,
+            cardConnections,
+            sourceContext,
+            existingSummary,
+            isProOrPolyglot ? existingMemory : null,
+          ),
+        },
       ],
       response_format: { type: "json_object" },
       // This org's Groq on_demand tier caps qwen/qwen3.6-27b at 8000 TPM (tokens per minute) —
@@ -422,8 +479,14 @@ export async function POST(request) {
       // while comfortably fitting under the 8000 TPM ceiling alongside the prompt. The one
       // exception is sourceAction generating close to its 150-row cap, which can genuinely need
       // more than this and may truncate/rate-limit on this tier — a real Groq billing-tier
-      // constraint, not something client-side tuning alone can fully route around.
-      max_tokens: 4000,
+      // constraint, not something client-side tuning alone can fully route around. Lowered from
+      // 4000 to 3600 when the two-tier memory feature shipped: the conditional summary/memory
+      // instructions plus their injected existing-value context add an estimated 450-530 tokens
+      // in the worst case (truncated history + pro/polyglot plan with existing memory), which was
+      // uncomfortably close to the ~700-token margin this file already documents against the
+      // 8000 TPM cap. 3600 buys back headroom without meaningfully affecting the common cases,
+      // which measured under 1000 tokens to begin with.
+      max_tokens: 3600,
       // Low and deterministic — this is structured panel selection / linguistic lookup, not
       // creative writing, and low temperature also reduces the odds of the model drifting into
       // the free-form-text failure mode json_object mode doesn't fully guard against on its own.
@@ -435,12 +498,18 @@ export async function POST(request) {
       reasoning_effort: GROQ_REASONING_EFFORT,
     });
     const parsed = JSON.parse(completion.choices[0].message.content);
-    return buildPanels(parsed, hasCanvasMatches);
+    // Pure server-side metadata, never pushed into the client-visible panels array (unlike every
+    // real panel type, these are invisible to the user) — extracted here, capped defensively the
+    // same way every other field in buildPanels is, regardless of the prompt's own length
+    // guidance. Empty after trim = "the model had nothing new to add," treated as absent.
+    const conversationSummary = truncated ? String(parsed.conversationSummary || "").trim().slice(0, MAX_CONVERSATION_SUMMARY_LEN) || null : null;
+    const userMemoryUpdate = isProOrPolyglot ? String(parsed.userMemoryUpdate || "").trim().slice(0, MAX_USER_MEMORY_LEN) || null : null;
+    return { panels: buildPanels(parsed, hasCanvasMatches), conversationSummary, userMemoryUpdate };
   };
 
-  let panels;
+  let panels, conversationSummary, userMemoryUpdate;
   try {
-    panels = await generateOnce();
+    ({ panels, conversationSummary, userMemoryUpdate } = await generateOnce());
   } catch (err) {
     // A rare but real failure mode (carried over from the Gemini implementation, and just as
     // possible here): the model occasionally rambles well past a normal response length, running
@@ -448,7 +517,7 @@ export async function POST(request) {
     // almost always, since it's a per-request quirk, not a deterministic response to the query.
     console.error("[dotbot/orchestrate] Groq request failed, retrying once:", err);
     try {
-      panels = await generateOnce();
+      ({ panels, conversationSummary, userMemoryUpdate } = await generateOnce());
     } catch (err2) {
       console.error("[dotbot/orchestrate] Groq retry also failed:", err2);
       return NextResponse.json({ error: "generation_failed" }, { status: 502 });
@@ -461,22 +530,35 @@ export async function POST(request) {
 
   // Persists both this turn (user query + the fresh panels just generated) and, when
   // requestedConversationId was null, creates the conversation itself — see append_dotbot_turn
-  // (supabase/migrations/20260819_add_dotbot_conversations.sql). Deliberately fails soft: a
-  // persistence error shouldn't hide an AI answer the user already paid credits for and is about
-  // to see: catches — falls back to requestedConversationId (possibly still null) so the client
-  // simply won't have a saved thread to continue for this exchange, resuming as a fresh
-  // conversation on the next message rather than erroring out here.
+  // (supabase/migrations/20260820_add_dotbot_memory.sql, extending the original in
+  // 20260819_add_dotbot_conversations.sql). Deliberately fails soft: a persistence error
+  // shouldn't hide an AI answer the user already paid credits for and is about to see: catches —
+  // falls back to requestedConversationId (possibly still null) so the client simply won't have a
+  // saved thread to continue for this exchange, resuming as a fresh conversation on the next
+  // message rather than erroring out here. The cross-conversation memory update runs alongside it
+  // (Promise.all, not fire-and-forget — no verified background-job mechanism exists in this
+  // codebase, and this is a single indexed UPDATE by primary key, negligible latency next to the
+  // Groq call it's already stacked after), only when there's actually something new to write.
   let conversationId = requestedConversationId || null;
-  const { data: persistedConversationId, error: persistError } = await supabase.rpc("append_dotbot_turn", {
-    p_conversation_id: requestedConversationId || null,
-    p_title: query.trim().slice(0, 80),
-    p_user_content: { query: query.trim() },
-    p_assistant_content: panels,
-  });
+  const [{ data: persistedConversationId, error: persistError }, memoryResult] = await Promise.all([
+    supabase.rpc("append_dotbot_turn", {
+      p_conversation_id: requestedConversationId || null,
+      p_title: query.trim().slice(0, 80),
+      p_user_content: { query: query.trim() },
+      p_assistant_content: panels,
+      p_conversation_summary: conversationSummary,
+    }),
+    isProOrPolyglot && userMemoryUpdate && userMemoryUpdate !== existingMemory
+      ? supabase.rpc("update_dotbot_memory", { p_memory: userMemoryUpdate })
+      : Promise.resolve({ error: null }),
+  ]);
   if (persistError) {
     console.error("[dotbot/orchestrate] failed to persist chat turn:", persistError);
   } else {
     conversationId = persistedConversationId;
+  }
+  if (memoryResult.error) {
+    console.error("[dotbot/orchestrate] failed to persist user memory:", memoryResult.error);
   }
 
   return NextResponse.json({ panels, conversationId });
