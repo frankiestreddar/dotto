@@ -1478,13 +1478,23 @@
     .search-suggestion-item{padding:12px 14px;border-radius:8px;font-size:13px;color:var(--ink);cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
     .search-suggestion-item:hover{background:#1e1e1e;}
 
-    /* "Next, I could:" + 3 follow-up rows, shown below every chat-thread answer now (see
-       buildRecommendedSearchesRows) — indented via the list's own left padding stacking on top of
-       each row's existing 14px, rather than shrinking the rows themselves, so the hover highlight
-       still reads as a clean rounded pill just inset from the card's edge, not a squeezed row. */
+    /* An AI-generated lead-in sentence + 3 "..."-continuation follow-up rows, shown below every
+       chat-thread answer now (see buildRecommendedSearchesRows) — indented via the list's own left
+       padding stacking on top of each row's existing 14px, rather than shrinking the rows
+       themselves, so the hover highlight still reads as a clean rounded pill just inset from the
+       card's edge, not a squeezed row. */
     .dotbot-recommended-wrap{margin-top:6px;}
-    .dotbot-recommended-label{padding:4px 14px;font-size:11px;font-weight:600;color:var(--ink-soft);text-transform:uppercase;letter-spacing:0.3px;}
+    /* Plain body-text styling, not the small-caps "eyebrow label" look an earlier, fixed-string
+       version of this used — this is now a real generated sentence (e.g. "But this is just the
+       present and past indicative. Next we could..."), and all-caps/letter-spacing reads badly at
+       sentence length, only worked for a short fixed label. */
+    .dotbot-recommended-label{padding:4px 14px 2px;font-size:13px;line-height:1.4;color:var(--ink-soft);}
     .dotbot-recommended-list{display:flex;flex-direction:column;gap:2px;padding-left:14px;}
+    /* Continuation fragments ("...explore the subjunctive mood...") run longer than the old short
+       suggestion phrases and shouldn't truncate mid-thought — wraps instead of the base
+       .search-suggestion-item's single-line ellipsis, scoped to just this context so other, shorter
+       uses of that class elsewhere keep their existing single-line truncation. */
+    .dotbot-recommended-list .search-suggestion-item{white-space:normal;overflow:visible;text-overflow:clip;line-height:1.4;}
 
     /* Shown below Dotbot's answer only when it couldn't help with the query (see
        renderRecommendedSearchesPanel) — a separate div from #search-suggestions, which already

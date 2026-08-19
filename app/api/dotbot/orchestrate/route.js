@@ -19,6 +19,7 @@ const MAX_WORD_LEN = 60; // headword/transliteration/grammarTags/language — de
 const MAX_IPA_LEN = 80;
 const MAX_DEF_LEN = 220; // a single definition, one sense only — should always be well under 15 words in practice
 const MAX_RECOMMENDED = 3;
+const MAX_RECOMMENDED_INTRO_LEN = 220; // "recommendedIntro" — one short trailing-off sentence, same order of magnitude as MAX_DEF_LEN
 const MAX_CARD_CONTEXT = 10; // cards dragged into the search box — defensive cap on an already-client-capped set
 const MAX_CARD_TEXT_LEN = 300; // one card's describeCardForAI() text — a note or a few flashcard rows, not a whole table dump
 const MAX_SOURCE_COLS = 10; // sourceAction.columns / an attached source's headers — a source is never just 2 columns, but still bounded
@@ -284,7 +285,15 @@ function buildPanels(parsed, hasCanvasMatches) {
       .filter((q) => typeof q === "string" && q.trim())
       .map((q) => q.trim().slice(0, MAX_WORD_LEN * 3))
       .slice(0, MAX_RECOMMENDED);
-    if (queries.length) panels.push({ type: "recommended_searches", queries });
+    // "...continues" the trailing-off intro sentence as its own fragment for a successful answer
+    // (or a plainer lead-in for the off-topic/casual-chat redirect cases) — see the prompt's own
+    // guidance on "recommendedIntro". Falls back to a generic label if the model omits it (or for
+    // panels persisted before this field existed — see ChatTurn, app/dotto/ChatThread.jsx) rather
+    // than rendering with no lead-in text at all.
+    const intro = typeof parsed.recommendedIntro === "string" && parsed.recommendedIntro.trim()
+      ? parsed.recommendedIntro.trim().slice(0, MAX_RECOMMENDED_INTRO_LEN)
+      : "Next, I could:";
+    if (queries.length) panels.push({ type: "recommended_searches", intro, queries });
   }
 
   // Generated source content — either new rows for an attached source or a whole new source

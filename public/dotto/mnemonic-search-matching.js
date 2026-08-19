@@ -641,19 +641,25 @@ import { expandWaypointCard, render } from './waypoints-render-loop.js';
         window.__setExamplesPanel(panel || null);
     }
     // Shown below every Dotbot answer now, not just when it couldn't help (canHelp:false) — the
-    // chat thread's "what could I ask next" suggestions, an intro label + 3 indented rows. Same
-    // click idiom as every other suggestion row in the app: fill the box, commence the search
-    // (continuing the same conversation thread if one's active — commenceSearchOrMnemonic ->
-    // commenceDotbotSearch already sends appState.currentConversationId, no special-casing needed
-    // here). Returns one wrapping element now (not a bare DocumentFragment) so the label and the
-    // indented row list can share a single indentation container — still just appendChild'd by
-    // callers exactly the same way either shape would be.
+    // chat thread's "what could I ask next" suggestions: an AI-generated, answer-specific lead-in
+    // sentence (panel.intro, e.g. "But this is just the present and past indicative. Next we
+    // could...") + 3 indented rows phrased as its direct continuations (e.g. "...explore the
+    // subjunctive mood for these tenses" — see the prompt's own guidance, lib/dotbot.js). Falls
+    // back to a generic label for panels persisted before this field existed (older saved chats
+    // reopened from the sidebar replay their exact stored panels — see ChatTurn,
+    // app/dotto/ChatThread.jsx — which wouldn't have `intro` at all). Same click idiom as every
+    // other suggestion row in the app: fill the box, commence the search (continuing the same
+    // conversation thread if one's active — commenceSearchOrMnemonic -> commenceDotbotSearch
+    // already sends appState.currentConversationId, no special-casing needed here). Returns one
+    // wrapping element now (not a bare DocumentFragment) so the intro and the indented row list can
+    // share a single indentation container — still just appendChild'd by callers exactly the same
+    // way either shape would be.
     function buildRecommendedSearchesRows(panel) {
         const wrap = document.createElement('div');
         wrap.className = 'dotbot-recommended-wrap';
         const label = document.createElement('div');
         label.className = 'dotbot-recommended-label';
-        label.textContent = 'Next, I could:';
+        label.textContent = panel.intro || 'Next, I could:';
         wrap.appendChild(label);
         const list = document.createElement('div');
         list.className = 'dotbot-recommended-list';
