@@ -8,7 +8,9 @@
 // (handleColNameKeydown/openTableCellContextMenu/renameTableColumn/setLastFocusedCell were found
 // missing from the original generation — the static-source table's cell-header wiring — and added
 // by hand here since no automated regeneration tooling exists in this environment; a real re-run
-// of the original grep would be the more thorough fix if that tooling is ever set up.)
+// of the original grep would be the more thorough fix if that tooling is ever set up. openChatsPanel
+// — the sidebar Chats panel's onclick, content/fragments/hamburger-stack.html — added by hand the
+// same way, for the same reason: it's a new call site added after this file was last generated.)
 
 import { handleAddMenuSearchInput, newSourceClicked, switchAddTab, toggleAddMenuSearch } from './add-menu.js';
 import { handleSearchFocus, handleSearchInput } from './ai-assistant-suggestions.js';
@@ -23,7 +25,7 @@ import { broadcastEditingState, closeConvo, closeSharedCanvasView, sendMsg, setT
 import { addItemToCustomFolderById, closeMarketDetail, deployPurchasedTemplate, handleLibrarySearch, handleMarketplaceSearch, purchaseCurrentMarketItem, removeFromCustomFolder, switchCartTab, switchLibraryFolder } from './marketplace.js';
 import { clearMedia, setMediaFromLink, triggerMediaUpload } from './media-pdf-epub.js';
 import { scheduleAgendaShift } from './messages-schedule.js';
-import { handleHubCollabSearch, handleWaypointsSearch, openHubCollabPanel, openWaypointsPanel } from './panels-hamburger.js';
+import { handleHubCollabSearch, handleWaypointsSearch, openChatsPanel, openHubCollabPanel, openWaypointsPanel } from './panels-hamburger.js';
 import { closeDotbotUpgradeModal, closePricingOverlay, openPricingOverlay } from './profile-achievements-pricing.js';
 import { setTableAlign } from './resize-shortcuts-init.js';
 import { openCellAddMenu } from './source-buttons-cursor-mode.js';
@@ -84,6 +86,7 @@ window.hmenuAction = hmenuAction;
 window.newSourceClicked = newSourceClicked;
 window.onItemDetailFieldChange = onItemDetailFieldChange;
 window.openCellAddMenu = openCellAddMenu;
+window.openChatsPanel = openChatsPanel;
 window.openCollabPanel = openCollabPanel;
 window.openHubCollabPanel = openHubCollabPanel;
 window.openPricingOverlay = openPricingOverlay;
