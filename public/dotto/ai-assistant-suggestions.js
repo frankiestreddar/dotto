@@ -322,7 +322,13 @@ import { render } from './waypoints-render-loop.js';
     //   UNCLAMPED natural content height even under a max-height + overflow:hidden, so without this
     //   an element with a real cap (#search-chat-thread) could animate past its own ceiling and
     //   then visually snap back down once the cap reasserts itself.
-    function createHeightTransitionController(getElement) {
+    // onOrganicResize (optional) fires from inside the ResizeObserver callback, right after
+    // settledHeight updates — i.e. exactly when this element grew/shrank on its own (typewriter
+    // text, etc.) without ever going through update() itself. #search-chat-thread passes
+    // scrollChatThreadToBottom here so the view keeps following newly-typed text in real time as it
+    // reveals, not just once when the turn is first appended and once more when typing finishes —
+    // #search-dropdown has no equivalent need (nothing to scroll there) and leaves this off.
+    function createHeightTransitionController(getElement, onOrganicResize) {
         let settledHeight = 0;
         let transitionCleanup = null;
         const resizeObserver = (typeof ResizeObserver !== 'undefined') ? new ResizeObserver((entries) => {
@@ -331,6 +337,7 @@ import { render } from './waypoints-render-loop.js';
             const settled = el.style.height === '' || el.style.height === 'auto';
             if (!settled) return;
             settledHeight = entries[0].contentRect.height;
+            if (onOrganicResize) onOrganicResize();
         }) : null;
         let resizeObserverStarted = false;
 
@@ -447,7 +454,7 @@ import { render } from './waypoints-render-loop.js';
         dropdownAnimator(visible, HEIGHT_TRANSITION_OPTS);
     }
 
-    const chatThreadAnimator = createHeightTransitionController(() => appState.searchChatThread);
+    const chatThreadAnimator = createHeightTransitionController(() => appState.searchChatThread, scrollChatThreadToBottom);
     // #search-chat-thread has no fixed panels to check display on the way #search-dropdown does —
     // ChatThread.jsx portals turn elements directly into it, so "does it have anything to show" is
     // just "does it currently have any children" (childElementCount, not scrollHeight — scrollHeight
