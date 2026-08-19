@@ -95,6 +95,24 @@ export const dotbotAnswerStore = createStore(null);
 // result panel's three mutually-exclusive states, see ImageResultPanel.jsx.
 export const imageResultStore = createStore(null);
 
+// #search-chat-thread (public/dotto/search-orchestration-selection.js) — a persisted, multi-turn
+// Dotbot conversation shown ABOVE the search input (chat-app style), entirely separate from the
+// six single-owner panel stores above, which stay exactly as they are for canvas
+// matches/commands/suggestions below the input. Array of turns: { id, query, panels, fresh } —
+// `panels` is the same raw panel array the orchestrate route returns (and
+// supabase/migrations/20260819_add_dotbot_conversations.sql persists verbatim as
+// dotbot_messages.content) rather than pre-split per panel type, so ChatThread.jsx can dispatch on
+// it exactly like renderOrchestrateResult already does for the single-turn panels above. `fresh`
+// is true only for a turn just appended from a LIVE response (drives ChatTurn's one-time
+// typewriter reveal + drag-to-canvas wiring on mount); turns restored from history (reopening a
+// saved chat, see the reopen-flow bridge) render with `fresh` false/omitted so they show fully
+// settled immediately, never re-typewriter. Like canvasResultsStore below, __setChatThread/
+// __appendChatTurn (app/dotto-app.jsx) are flushSync'd — the new independent chat-thread
+// height-transition function (ai-assistant-suggestions.js) reads #search-chat-thread's real
+// scrollHeight synchronously right after appending a turn, same reasoning as
+// updateSearchDropdown's own flushSync dependency.
+export const chatThreadStore = createStore([]);
+
 // #search-results (public/dotto/mnemonic-search-matching.js's renderCanvasResultsPanel) —
 // { matches, isSourceFolder } | null. Genuine JSX rows (see CanvasResultsPanel.jsx), portaled via
 // createPortal unlike the single-owner panels above, since there IS real list identity here.

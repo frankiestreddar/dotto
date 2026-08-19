@@ -159,7 +159,8 @@ import { cascadeDeleteFolderContents, centerOnContent, deleteWaypointFromDb, ren
             || appState.collabPanel.classList.contains('open')
             || addMenu.style.display === 'flex'
             || appState.sourceAddMenu.style.display === 'flex'
-            || (appState.searchDropdown && appState.searchDropdown.classList.contains('visible'));
+            || (appState.searchDropdown && appState.searchDropdown.classList.contains('visible'))
+            || (appState.searchChatThread && appState.searchChatThread.classList.contains('visible'));
     }
     document.addEventListener('keydown', (e) => {
         if (e.metaKey || e.ctrlKey || e.altKey) return;

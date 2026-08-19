@@ -1,11 +1,11 @@
-import { clearSearch, escapeHtml, handleSearchFocus, setSearchActive, stripHtml, updateSearchDropdown } from './ai-assistant-suggestions.js';
+import { clearSearch, escapeHtml, handleSearchFocus, scrollChatThreadToBottom, setSearchActive, stripHtml, updateChatThread, updateSearchDropdown } from './ai-assistant-suggestions.js';
 import { executeCurrentCommand, setCommandActive } from './command-palette.js';
 import { appState } from './core-state.js';
 import { cancelDotbotScheduleConversation, submitDotbotScheduleAnswer } from './dotbot-schedule-notifications.js';
 import { ensureConnections } from './drawing-connections.js';
 import { saveSnapshot, scheduleWorkspaceSave } from './history-autosave.js';
 import { miniLabelForItem } from './live-presence.js';
-import { commenceSearchOrMnemonic, computeCanvasMatches, computeSourceMatches, renderCanvasResultsPanel, renderDictionaryPanel, renderDotbotAnswerPanel, renderExamplesPanel, renderRecommendedSearchesPanel, renderTranslationPanel } from './mnemonic-search-matching.js';
+import { commenceSearchOrMnemonic, computeCanvasMatches, computeSourceMatches, renderCanvasResultsPanel } from './mnemonic-search-matching.js';
 import { bumpAchievementStat, openDotbotUpgradeModal, refreshDotbotUsage } from './profile-achievements-pricing.js';
 import { colgroupHTML } from './source-table.js';
 import { applyAiAddRowsToSource, createSourceFromAI } from './source-tags-ai.js';
@@ -155,7 +155,7 @@ import { render } from './waypoints-render-loop.js';
             // case data.conversationId is just whatever was already sent, possibly still null —
             // see the route's own fail-soft handling) rather than ever going backward to null here.
             if (data.conversationId) appState.currentConversationId = data.conversationId;
-            renderOrchestrateResult(data.panels || []);
+            renderOrchestrateResult(query, data.panels || []);
         } catch (e) {
             appState.searchSpinner.classList.remove('visible');
             appState.searchInputWrap.classList.remove('loading');
@@ -168,41 +168,39 @@ import { render } from './waypoints-render-loop.js';
         }
     }
 
-    function renderOrchestrateResult(panels) {
+    // Appends one turn (the query just asked + the panels Dotbot answered with) to the persisted
+    // chat thread above the search input — see chatThreadStore's own comment (app/dotto/bridges.js)
+    // for the full architecture, and ChatThread.jsx for how a turn's panels get built into their
+    // own DOM subtree using the same vanilla builders every individual panel type always used.
+    // #search-dropdown (canvas matches/"/"-commands/live suggestions) is untouched by any of this —
+    // this used to dispatch into ITS fixed nodes (renderDotbotAnswerPanel/renderTranslationPanel/
+    // etc.), which are now unused for AI content (their own components are left mounted but inert;
+    // nothing feeds them anymore).
+    function renderOrchestrateResult(query, panels) {
         // Fresh per result — every aligned sentence element built below (dictionary's examples,
         // and any answerBlocks example pills) registers itself here so the examples panel's
-        // color-coding toggle can re-render them in place (see applyAlignHighlightToggle); a
-        // stale registry would otherwise keep referencing long-gone elements from a prior search.
-        appState.dotbotAlignedRegistry = [];
-        const textPanel = panels.find(p => p.type === 'dotbot_text');
-        // dictPanel/examplesPanel are hoisted above the renderDotbotAnswerPanel call (pure lookups,
-        // no side effects, so reordering them is a no-op otherwise) since answerLanguage — the
-        // in-depth answer_blocks continuation's language, reusing whichever the dictionary/
-        // examples panel already carries so its example pills' TTS buttons speak correctly —
-        // needs both, and renderDotbotAnswerPanel now takes the answer_blocks panel + language
-        // directly (see its own comment for why it merged what used to be a second function call).
-        const dictPanel = panels.find(p => p.type === 'dictionary') || null;
-        // Always rendered independently now — dictionary entries no longer carry their own
-        // sentences (see buildDictionaryCard), so "examples" is the one place they come from
-        // whether or not a dictionary panel is also present.
-        const examplesPanel = panels.find(p => p.type === 'examples') || null;
-        const answerLanguage = (dictPanel && dictPanel.entries && dictPanel.entries[0] && dictPanel.entries[0].language) || (examplesPanel && examplesPanel.language) || '';
-        renderDotbotAnswerPanel(textPanel ? textPanel.text : null, panels.find(p => p.type === 'answer_blocks') || null, answerLanguage);
-        // Its own small panel, shown above the dictionary panel — only for direct
-        // translation-style queries (see lib/dotbot.js's "translation" field).
-        renderTranslationPanel(panels.find(p => p.type === 'translation') || null);
-        renderDictionaryPanel(dictPanel);
-        renderExamplesPanel(examplesPanel);
-        renderRecommendedSearchesPanel(panels.find(p => p.type === 'recommended_searches') || null);
+        // color-coding toggle can re-render them in place (see applyAlignHighlightToggle).
+        // Deliberately NOT reset per turn anymore (an earlier, single-slot-replaced version of this
+        // did) — multiple turns' example sentences can all be visible on screen at once now, and
+        // resetting here would only leave the LATEST turn's elements trackable while the toggle
+        // silently stopped working for every earlier turn still showing above it. Letting
+        // registrations accumulate across turns means the toggle correctly affects everything
+        // currently visible in the thread, not just the newest addition.
+        appState.dotbotAlignedRegistry = appState.dotbotAlignedRegistry || [];
         // Applies the mutation directly rather than rendering a confirmation panel of its own —
-        // "dotbotText" above already reads as the confirmation (see the prompt), and the change
-        // is immediately visible on the actual card/canvas.
+        // "dotbotText" already reads as the confirmation (see the prompt), and the change is
+        // immediately visible on the actual card/canvas. Stays a one-time side effect fired only
+        // for a genuinely fresh live response (never for history restored via the sidebar reopen
+        // flow, which sets chatThreadStore directly without ever calling this function) — applying
+        // it again every time a saved chat is reopened would duplicate rows/sources on every view.
         const sourceActionPanel = panels.find(p => p.type === 'source_action');
         if (sourceActionPanel) {
             if (sourceActionPanel.action === 'create_source') createSourceFromAI(sourceActionPanel.title, sourceActionPanel.columns, sourceActionPanel.rows);
             else if (sourceActionPanel.action === 'add_rows') applyAiAddRowsToSource(sourceActionPanel.targetIndex, sourceActionPanel.columns, sourceActionPanel.rows);
         }
-        updateSearchDropdown();
+        window.__appendChatTurn({ id: 'turn_' + (appState.idCounter++), query, panels, fresh: true });
+        updateChatThread();
+        scrollChatThreadToBottom();
     }
 
     // ---------- Text selection toolbar (copy / paste / look up / add to source) ----------

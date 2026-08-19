@@ -341,6 +341,9 @@
         searchSuggestions: document.getElementById('search-suggestions'),
         searchRecommended: document.getElementById('search-recommended'),
         searchDropdown: document.getElementById('search-dropdown'),
+        // The persisted multi-turn chat thread, above #search-input-wrap — see ChatThread.jsx/
+        // chatThreadStore (app/dotto/bridges.js) and updateChatThread (ai-assistant-suggestions.js).
+        searchChatThread: document.getElementById('search-chat-thread'),
         searchSpinner: document.getElementById('search-spinner'),
         searchInputWrap: document.getElementById('search-input-wrap'),
         searchCardPill: document.getElementById('search-card-pill'),

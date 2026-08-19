@@ -256,6 +256,21 @@ import { render } from './waypoints-render-loop.js';
             appState.searchDropdown.style.opacity = '1';
             appState.searchDropdown.style.overflow = 'visible';
         }
+        // Same fix, same reasoning, for the new #search-chat-thread — restOverflow is 'auto' here
+        // (not 'visible' like #search-dropdown above) to match its own rest-state convention (a
+        // real max-height cap that needs to actually clip/scroll, not stay non-clipping).
+        // currentConversationId already reset to null above ends the THREAD for continuation
+        // purposes; clearing chatThreadStore here ends it visually too, so reopening the overlay
+        // (without explicitly restoring a saved chat) starts on a genuinely blank palette instead
+        // of showing a now-orphaned prior conversation's turns above a box that's about to start a
+        // brand new one.
+        if (appState.searchChatThread) {
+            appState.searchChatThread.style.transition = '';
+            appState.searchChatThread.style.height = 'auto';
+            appState.searchChatThread.style.opacity = '1';
+            appState.searchChatThread.style.overflow = 'auto';
+        }
+        window.__setChatThread([]);
         if (appState.searchOverlayBackdrop) appState.searchOverlayBackdrop.classList.remove('open');
         appState.searchInput.blur();
     }
@@ -268,198 +283,189 @@ import { render } from './waypoints-render-loop.js';
         appState.searchOverlayBackdrop.classList.add('open');
         appState.searchInput.focus();
     }
-    // Our own record of the last height #search-dropdown was actually animated TO and settled at
-    // (0 while collapsed) — see updateSearchDropdown below for why this can't just be re-measured
-    // from the DOM on demand. Handle for the in-progress transitionend listener is stored
-    // alongside it so a rapid-fire update (e.g. typing fast enough to retrigger before the
-    // previous transition finished) can remove the stale listener instead of stacking a new one.
-    let dropdownSettledHeight = 0;
-    let dropdownTransitionCleanup = null;
-    // Keeps dropdownSettledHeight honest during growth that happens WITHOUT ever calling
-    // updateSearchDropdown() — the one real case is typewriterReveal (mnemonic-search-matching.js/
-    // dotbot-schedule-notifications.js): Dotbot's answer text is typed out character by character
-    // over ~700ms via its own setTimeout loop, growing #search-dotbot-answer (and so
-    // #search-dropdown, once height is back to 'auto') the whole time via completely ordinary
-    // auto-height reflow — updateSearchDropdown itself is only called once, at the very end, when
-    // the typewriter finishes. Without this observer, dropdownSettledHeight is stuck at whatever it
-    // was BEFORE the typewriter started (the answer card's height right when it first appeared,
-    // essentially empty) for that entire 700ms, even though the box visually already grew to fit
-    // the text in real time via ordinary auto-height tracking. Then the final updateSearchDropdown()
-    // call reads that stale value, force-snaps the box back down to it (since it still believes
-    // that's the current settled height), and re-grows from there — a real, visible jump, even
-    // though the box was already sitting at the correct size the entire time. Only trusted while
-    // settled (no explicit JS-driven transition live) — mid-transition, height is a deliberately
-    // controlled explicit px value this function already tracks itself, and this observer firing
-    // on every animation frame during that would just be redundant noise.
-    const dropdownResizeObserver = (typeof ResizeObserver !== 'undefined') ? new ResizeObserver((entries) => {
-        const dropdown = appState.searchDropdown;
-        if (!dropdown) return;
-        const settled = dropdown.style.height === '' || dropdown.style.height === 'auto';
-        if (!settled) return;
-        dropdownSettledHeight = entries[0].contentRect.height;
-    }) : null;
-    let dropdownResizeObserverStarted = false;
+    // Factory for the hardened open/close/resize height-transition system originally built (across
+    // many rounds of real bugs) for #search-dropdown alone — factored out once #search-chat-thread
+    // needed the exact same behavior against a completely independent element. Each call returns
+    // its own `update(visible, opts)` function with entirely private state (settledHeight,
+    // transitionCleanup, its own ResizeObserver) — two controllers must NEVER share this state,
+    // that's exactly what would reintroduce the class of bug fixed here:
+    //
+    // - settledHeight is this controller's own record of the last height its element was actually
+    //   animated TO and settled at (0 while collapsed). Can't just re-measure the DOM on demand
+    //   once height is back to 'auto': an 'auto'-height element instantly, silently resizes to
+    //   match new content as part of the very same reflow the content mutation itself causes, so by
+    //   the time `update()` runs, it's ALREADY jumped to the new size — measuring then would just
+    //   report the new size back, not the true "before" one.
+    // - The ResizeObserver keeps settledHeight honest during growth that happens WITHOUT ever
+    //   calling update() — typewriterReveal (mnemonic-search-matching.js) is the real case: text
+    //   types out character by character over ~700ms via its own setTimeout loop, growing the
+    //   element the whole time via completely ordinary auto-height reflow, with update() itself
+    //   only called once, at the very end. Without this, settledHeight would be stuck at whatever
+    //   it was BEFORE the typewriter started, and the final update() call would force-snap the
+    //   element back down to that stale value before re-growing — a real, visible jump, even though
+    //   it was already sitting at the correct size the whole time. Only trusted while settled
+    //   (mid-transition, height is a deliberately controlled explicit px value update() already
+    //   tracks itself; the observer firing on every animation frame during that would be noise).
+    // - opts.growTransition(wasVisible) and opts.shrinkTransition are re-applied UNCONDITIONALLY on
+    //   every single call, not just when starting from a settled rest state — content can flicker
+    //   in and out fast enough (canvas matches changing keystroke to keystroke, in #search-
+    //   dropdown's case) that a shrink is often still mid-flight when a grow is requested a moment
+    //   later; without reapplying, the element would silently keep animating with whichever
+    //   direction's transition curve happened to be active, not the one actually needed now.
+    // - opts.restOverflow controls what `overflow` becomes once a transition settles —
+    //   #search-dropdown wants 'visible' (deliberately non-clipping at rest, so the dictionary/
+    //   examples panels' hover-out nav arrows can slide outside their own edge); #search-chat-
+    //   thread wants 'auto' instead (it has a real max-height cap and needs to actually clip/scroll
+    //   at rest, not stay boundlessly non-clipping).
+    // - opts.capTarget, when true, clamps the measured scrollHeight target to the element's own
+    //   current computed max-height before animating toward it — scrollHeight reports the
+    //   UNCLAMPED natural content height even under a max-height + overflow:hidden, so without this
+    //   an element with a real cap (#search-chat-thread) could animate past its own ceiling and
+    //   then visually snap back down once the cap reasserts itself.
+    function createHeightTransitionController(getElement) {
+        let settledHeight = 0;
+        let transitionCleanup = null;
+        const resizeObserver = (typeof ResizeObserver !== 'undefined') ? new ResizeObserver((entries) => {
+            const el = getElement();
+            if (!el) return;
+            const settled = el.style.height === '' || el.style.height === 'auto';
+            if (!settled) return;
+            settledHeight = entries[0].contentRect.height;
+        }) : null;
+        let resizeObserverStarted = false;
+
+        return function update(visible, opts) {
+            const el = getElement();
+            if (el && resizeObserver && !resizeObserverStarted) {
+                resizeObserver.observe(el);
+                resizeObserverStarted = true;
+            }
+            if (!el) return;
+            const restOverflow = opts.restOverflow || 'visible';
+            const wasVisible = el.classList.contains('visible');
+            el.classList.toggle('visible', visible);
+            // 'auto'/'' means no transition is currently live — the last one already ran its
+            // transitionend handler and handed height back to normal flow. A non-empty px value
+            // means one is still actively interpolating right now.
+            const settled = el.style.height === '' || el.style.height === 'auto';
+            if (!visible) {
+                if (!wasVisible) return; // already closed, staying closed — nothing to animate
+                if (transitionCleanup) { el.removeEventListener('transitionend', transitionCleanup); transitionCleanup = null; }
+                // Only force a starting px value if coming from a settled 'auto' rest — if a grow
+                // was still in flight, its current live height is already a real px value we can
+                // redirect from directly.
+                if (settled) {
+                    el.style.transition = 'none';
+                    el.style.height = settledHeight + 'px';
+                    el.style.overflow = 'hidden';
+                    void el.offsetHeight;
+                }
+                el.style.transition = opts.shrinkTransition;
+                el.style.height = '0px';
+                el.style.opacity = '0';
+                settledHeight = 0;
+                const onCollapseDone = (e) => {
+                    if (e.target !== el || e.propertyName !== 'height') return;
+                    el.style.transition = '';
+                    el.style.height = 'auto';
+                    el.style.overflow = restOverflow;
+                    el.removeEventListener('transitionend', onCollapseDone);
+                    transitionCleanup = null;
+                };
+                el.addEventListener('transitionend', onCollapseDone);
+                transitionCleanup = onCollapseDone;
+                return;
+            }
+            // Visible — either a fresh reveal (wasVisible false) or already open and just resized
+            // (wasVisible true). By this point the caller has already written new content and
+            // flipped whatever display flags matter — the element's natural (scrollHeight) size
+            // already reflects that, we just haven't grown into it yet.
+            let target = el.scrollHeight;
+            if (opts.capTarget) {
+                const capPx = parseFloat(getComputedStyle(el).maxHeight);
+                if (Number.isFinite(capPx)) target = Math.min(target, capPx);
+            }
+            if (wasVisible && settled && Math.abs(target - settledHeight) < 1) return; // no real change, nothing in flight either
+            if (transitionCleanup) { el.removeEventListener('transitionend', transitionCleanup); transitionCleanup = null; }
+            if (settled) {
+                el.style.transition = 'none';
+                el.style.height = settledHeight + 'px';
+                // Only fade in from transparent on a genuinely fresh reveal — an in-place resize
+                // keeps existing, already-visible content at full opacity throughout.
+                if (!wasVisible) el.style.opacity = '0';
+                el.style.overflow = 'hidden';
+                void el.offsetHeight;
+            }
+            el.style.transition = opts.growTransition(wasVisible);
+            el.style.height = target + 'px';
+            el.style.opacity = '1';
+            settledHeight = target;
+            const onDone = (e) => {
+                if (e.target !== el || e.propertyName !== 'height') return;
+                el.style.transition = '';
+                el.style.height = 'auto';
+                el.style.overflow = restOverflow;
+                el.removeEventListener('transitionend', onDone);
+                transitionCleanup = null;
+            };
+            el.addEventListener('transitionend', onDone);
+            transitionCleanup = onDone;
+        };
+    }
+
+    // cubic-bezier(0,0,0.2,1)/cubic-bezier(0.4,0,1,1) are Material Design's standard decelerate/
+    // accelerate curves — a deliberate PAIR sharing the same underlying shape (just mirrored), not
+    // an unrelated choice: that's what makes an enter and its matching exit feel like the same
+    // physical object rather than two differently-tempered motions. An earlier easeOutExpo-style
+    // curve was tried first for a "smooth/premium" feel, but it's far more front-loaded than this:
+    // its second control point already sits at the FULL target value, so well over half the visible
+    // size change happens in roughly the first third of the duration and the rest is an almost
+    // imperceptible settle — reads as a fast jump followed by a barely-visible creep, not a
+    // continuous grow. Material's decelerate curve spreads deceleration evenly across the whole
+    // duration instead of front-loading it. On a fresh reveal, opacity overlaps the grow (starts
+    // early, finishes a bit after) rather than waiting for it to finish first — a fully-sequenced
+    // "grow, THEN fade" leaves the box entirely empty for most of the transition, reading as an
+    // empty container snapping to size before content pops in separately, the same "jumpy" symptom
+    // by a different route. Shared by both controllers below — nothing about this tuning is
+    // #search-dropdown-specific.
+    const HEIGHT_TRANSITION_OPTS = {
+        shrinkTransition: 'height .16s cubic-bezier(0.4,0,1,1), opacity .12s ease-in',
+        growTransition: (wasVisible) => wasVisible
+            ? 'height .22s cubic-bezier(0,0,0.2,1)'
+            : 'height .22s cubic-bezier(0,0,0.2,1), opacity .26s ease-out .05s',
+    };
+
+    const dropdownAnimator = createHeightTransitionController(() => appState.searchDropdown);
     function updateSearchDropdown() {
-        if (appState.searchDropdown && dropdownResizeObserver && !dropdownResizeObserverStarted) {
-            dropdownResizeObserver.observe(appState.searchDropdown);
-            dropdownResizeObserverStarted = true;
-        }
         if (!appState.searchDropdown) return;
-        const dropdown = appState.searchDropdown;
         const panels = [appState.searchCommandPalette, appState.searchDotbotAnswer, appState.searchResults, appState.searchTranslation, appState.searchDictionary, appState.searchExamples, appState.searchImageResult, appState.searchSuggestions, appState.searchRecommended].filter(Boolean);
         const visible = panels.some(el => el.style.display !== 'none');
-        const wasVisible = dropdown.classList.contains('visible');
-        dropdown.classList.toggle('visible', visible);
-        // 'auto'/'' means no transition is currently live — the last one already ran its
-        // transitionend handler and handed height back to normal flow. A non-empty px value means
-        // one is still actively interpolating right now (handleSearchInput calls this on every
-        // keystroke, since the canvas-results panel can resize on each one — typing at a normal
-        // pace easily retriggers this well inside the ~220-260ms these transitions take, so "still
-        // mid-flight" is the COMMON case here, not an edge case).
-        const settled = dropdown.style.height === '' || dropdown.style.height === 'auto';
-        if (!visible) {
-            if (!wasVisible) return; // already closed, staying closed — nothing to animate
-            if (dropdownTransitionCleanup) { dropdown.removeEventListener('transitionend', dropdownTransitionCleanup); dropdownTransitionCleanup = null; }
-            // Collapse: quick fade + shrink together, no separate sequencing — closing should read
-            // as fast/immediate, not a mirrored replay of the (slower, deliberately sequenced) open.
-            // Only force a starting px value if we're coming from a settled 'auto' rest — if a grow
-            // was still in flight, its current live height is already a real px value we can
-            // redirect from directly (see the long comment below on why forcing a reset here on
-            // every call was the actual bug: it stutter-snapped back to the stale settled value on
-            // every single keystroke instead of smoothly continuing from wherever it visually was).
-            if (settled) {
-                dropdown.style.transition = 'none';
-                dropdown.style.height = dropdownSettledHeight + 'px';
-                dropdown.style.overflow = 'hidden';
-                void dropdown.offsetHeight;
-            }
-            dropdown.style.transition = 'height .16s cubic-bezier(0.4,0,1,1), opacity .12s ease-in';
-            dropdown.style.height = '0px';
-            dropdown.style.opacity = '0';
-            dropdownSettledHeight = 0;
-            // Without this, `settled` is permanently wrong from here on: height stays pinned at
-            // the explicit '0px' string forever (neither '' nor 'auto'), so every SUBSEQUENT reveal
-            // attempt reads settled as false, skips the block above that actually sets up the grow's
-            // real transition, and falls straight through using whatever transition string happened
-            // to be left over from THIS collapse — the shrink's accelerate curve/duration, not the
-            // grow's decelerate one. That's a standing bug, not a one-off: only the very first
-            // reveal of the whole page load (before any collapse has ever run) was ever using the
-            // grow's actual intended transition at all; every reveal after the first close reused
-            // stale collapse timing, which is short/accelerating enough to read as a near-instant
-            // jump regardless of how the grow's own curve gets tuned.
-            const onCollapseDone = (e) => {
-                if (e.target !== dropdown || e.propertyName !== 'height') return;
-                dropdown.style.transition = '';
-                dropdown.style.height = 'auto';
-                dropdown.style.overflow = 'visible';
-                dropdown.removeEventListener('transitionend', onCollapseDone);
-                dropdownTransitionCleanup = null;
-            };
-            dropdown.addEventListener('transitionend', onCollapseDone);
-            dropdownTransitionCleanup = onCollapseDone;
-            return;
-        }
-        // Visible — either a fresh reveal (wasVisible false) or the dropdown is already open and
-        // its content just changed size (wasVisible true, e.g. live suggestions were already
-        // showing and Dotbot's actual answer just replaced/grew them, or the canvas-results panel
-        // resized on this keystroke). Both cases animate the same way now: by this point every call
-        // site above has already written the new panel(s)' content into the DOM and flipped their
-        // own display to something other than 'none' — #search-dropdown's natural (scrollHeight)
-        // size already reflects that new content, we just haven't grown into it yet.
-        //
-        // The "already open" case used to be treated as a no-op entirely ("it's already visible,
-        // leave it"), on the assumption that a bare open/close toggle was the only thing worth
-        // animating — but live suggestions usually open the dropdown FIRST at a small height, and
-        // the real answer/results arrive a moment later and just grow it further, so THAT second,
-        // bigger change is the one a query mostly plays out through, and it was hitting the
-        // untouched height:auto path the whole time: no transition, an instant snap the moment the
-        // content changed. That's "doesn't grow until the items appear, then suddenly grows"
-        // exactly — the box wasn't growing gradually beforehand, it just sat still at its small
-        // size (correctly still) and then jumped, unanimated, right as the real content landed.
-        const target = dropdown.scrollHeight;
-        if (wasVisible && settled && Math.abs(target - dropdownSettledHeight) < 1) return; // no real change, nothing in flight either
-        if (dropdownTransitionCleanup) { dropdown.removeEventListener('transitionend', dropdownTransitionCleanup); dropdownTransitionCleanup = null; }
-        if (settled) {
-            // Coming from a fully-settled rest state — 'auto' can't be transitioned FROM directly,
-            // so pin to a known starting px value first. Can't just re-measure the CURRENT height
-            // from the DOM for that starting value, either: an 'auto'-height element instantly,
-            // silently resizes to match new content as part of the very same reflow the content
-            // mutation itself causes, so by the time this function's code runs, it's ALREADY jumped
-            // to the new size — measuring now would just report the new size back, not the true
-            // "before" one. dropdownSettledHeight is our own memory of that true "before" value.
-            dropdown.style.transition = 'none';
-            dropdown.style.height = dropdownSettledHeight + 'px';
-            // Only fade in from transparent on a genuinely fresh reveal — an in-place resize keeps
-            // existing, already-visible content at full opacity throughout (fading it out and back
-            // in while it also resizes would read as an unwanted flicker, not a smooth grow).
-            if (!wasVisible) dropdown.style.opacity = '0';
-            dropdown.style.overflow = 'hidden';
-            void dropdown.offsetHeight;
-        }
-        // cubic-bezier(0,0,0.2,1) is Material Design's standard "decelerate" curve — the
-        // deliberate PAIR of the collapse's cubic-bezier(0.4,0,1,1) "accelerate" curve below, not
-        // an unrelated choice: an accelerate/decelerate pair sharing the same underlying shape
-        // (just mirrored) is what makes an enter and its matching exit feel like the same physical
-        // object, rather than two differently-tempered motions. The earlier
-        // cubic-bezier(0.22,1,0.36,1) ("easeOutExpo") was tried first for a "smooth/premium" feel,
-        // but it's far more front-loaded than this: its second control point already sits at the
-        // FULL target value, so well over half the visible size change happens in roughly the
-        // first third of the duration and the rest is an almost imperceptible settle — which reads
-        // as a fast jump followed by a barely-visible creep, not a continuous grow. Material's
-        // decelerate curve spreads the deceleration much more evenly across the whole duration
-        // instead of front-loading it. On a fresh reveal, opacity overlaps the grow (starts early,
-        // finishes a bit after) rather than waiting for it to finish first — a fully-sequenced
-        // "grow, THEN fade" leaves the box entirely empty (opacity 0) for most of the transition,
-        // which reads as an empty container snapping to size before content pops in separately,
-        // the same "jumpy" symptom by a different route.
-        //
-        // This is set UNCONDITIONALLY, every single call, not just inside `if (settled)` above —
-        // that was the actual bug behind results still looking jumpy while typing: canvas matches
-        // fluctuate keystroke to keystroke (some, then none, then some again), so a shrink can
-        // easily still be mid-flight when results reappear a keystroke later. The collapse branch
-        // above already re-applies ITS OWN transition unconditionally on every call (which is
-        // exactly why the shrink has looked right this whole time) — but this grow transition used
-        // to only get set inside `if (settled)`, so a grow interrupting an in-flight shrink would
-        // silently keep the shrink's transition active (its short, ACCELERATING curve) instead of
-        // switching to the grow's own decelerating one, animating the wrong direction's motion
-        // shape for however much of the grow was left. Setting it fresh every time, regardless of
-        // settled state, is what the collapse branch already knew to do.
-        dropdown.style.transition = wasVisible
-            ? 'height .22s cubic-bezier(0,0,0.2,1)'
-            : 'height .22s cubic-bezier(0,0,0.2,1), opacity .26s ease-out .05s';
-        // else (when settled was false above): a previous grow OR shrink was still actively in
-        // flight (height is a live, currently-interpolating px value — the common case while
-        // typing, see the `settled` comment above). We didn't force a starting height/opacity/
-        // overflow reset in that case: this element's CURRENT live value is already a real,
-        // valid starting point, and simply pointing a (freshly-set, correctly-directioned)
-        // transition at a new target height makes the browser redirect smoothly from wherever it
-        // visually, currently is — that's standard, well-supported behavior. Forcing a full reset
-        // on every call instead (what an earlier version of this did) is what caused a visible
-        // stutter/snap on every single keystroke: each retrigger snapped back to the stale
-        // dropdownSettledHeight first, undoing whatever progress the in-flight transition had
-        // already made, before restarting — a series of instant snaps rather than one continuous
-        // motion.
-        dropdown.style.height = target + 'px';
-        dropdown.style.opacity = '1';
-        dropdownSettledHeight = target;
-        const onDone = (e) => {
-            if (e.target !== dropdown || e.propertyName !== 'height') return;
-            // Hand height back to normal flow (not a value we keep chasing) so any further content
-            // change NOT routed through this function (there shouldn't be any — see the comment on
-            // #search-dropdown in globals.css) can't silently desync from dropdownSettledHeight.
-            // overflow goes back to visible too, since #search-bar/#search-dropdown are
-            // deliberately non-clipping at rest (the dictionary/examples panels' hover-out nav
-            // arrows slide outside their own edge — see #search-bar's own comment on that).
-            // hidden/fixed-height only needs to hold for this one transition, not permanently.
-            dropdown.style.transition = '';
-            dropdown.style.height = 'auto';
-            dropdown.style.overflow = 'visible';
-            dropdown.removeEventListener('transitionend', onDone);
-            dropdownTransitionCleanup = null;
-        };
-        dropdown.addEventListener('transitionend', onDone);
-        dropdownTransitionCleanup = onDone;
-        dropdownSettledHeight = target;
+        // #search-dropdown is deliberately non-clipping at rest (restOverflow defaults to
+        // 'visible') so the dictionary/examples panels' hover-out nav arrows can slide outside
+        // their own edge — see #search-bar's own comment on that in globals.css. No max-height
+        // cap, so capTarget is left off too.
+        dropdownAnimator(visible, HEIGHT_TRANSITION_OPTS);
+    }
+
+    const chatThreadAnimator = createHeightTransitionController(() => appState.searchChatThread);
+    // #search-chat-thread has no fixed panels to check display on the way #search-dropdown does —
+    // ChatThread.jsx portals turn elements directly into it, so "does it have anything to show" is
+    // just "does it currently have any children" (childElementCount, not scrollHeight — scrollHeight
+    // stays 0 while height:0/overflow:hidden are still in their resting collapsed state, but
+    // childElementCount reflects real DOM content regardless of the element's own current size).
+    function updateChatThread() {
+        if (!appState.searchChatThread) return;
+        const visible = appState.searchChatThread.childElementCount > 0;
+        chatThreadAnimator(visible, Object.assign({ restOverflow: 'auto', capTarget: true }, HEIGHT_TRANSITION_OPTS));
+    }
+    // Auto-follows the newest turn — called after updateChatThread() so the container's real
+    // scrollHeight already reflects any just-appended content. No-op while a transition is still
+    // hiding overflow (mid-grow, before max-height/overflow:auto can actually take effect); harmless
+    // since the eventual transitionend hand-back to overflow:auto leaves scrollTop wherever this
+    // last set it, and by then scrollHeight hasn't changed further for that turn anyway.
+    function scrollChatThreadToBottom() {
+        if (!appState.searchChatThread) return;
+        appState.searchChatThread.scrollTop = appState.searchChatThread.scrollHeight;
     }
 
     // Hides the panels that hold a *completed* search's result (Dotbot's answer, dictionary,
@@ -749,7 +755,11 @@ import { render } from './waypoints-render-loop.js';
         clearSearch();
     }
 
-export { applyAlignHighlightToggle, buildAlignedSentenceEls, buildLiveSuggestionsRows, clearSearch, countSourceEntries, dotbotErrorMessage, escapeHtml, findParentFolderId, getItemSearchText, handleSearchFocus, handleSearchInput, isLatinScriptText, openSearchOverlay, setSearchActive, setupDotbotResultDrag, speakerIconHTML, stripHtml, truncateCenter, typewriterReveal, updateSearchDropdown };
+export { applyAlignHighlightToggle, buildAlignedSentenceEls, buildLiveSuggestionsRows, clearSearch, countSourceEntries, dotbotErrorMessage, escapeHtml, findParentFolderId, getItemSearchText, handleSearchFocus, handleSearchInput, isLatinScriptText, openSearchOverlay, scrollChatThreadToBottom, setSearchActive, setupDotbotResultDrag, speakerIconHTML, stripHtml, truncateCenter, typewriterReveal, updateChatThread, updateSearchDropdown };
 
 window.__countSourceEntries = countSourceEntries;
 window.__buildLiveSuggestionsRows = buildLiveSuggestionsRows;
+// ChatTurn (app/dotto/ChatThread.jsx) calls these directly — React files can't import public/
+// dotto/*.js as ES modules (same constraint every other window.__* bridge here exists for).
+window.__updateChatThread = updateChatThread;
+window.__scrollChatThreadToBottom = scrollChatThreadToBottom;

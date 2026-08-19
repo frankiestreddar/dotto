@@ -10,6 +10,7 @@ import {
   canvasItemsStore,
   canvasResultsStore,
   cellTagPickerListStore,
+  chatThreadStore,
   collabListStore,
   collabPillStore,
   commandPaletteStore,
@@ -42,6 +43,7 @@ import BreadcrumbMapPanel from "./dotto/BreadcrumbMapPanel";
 import CanvasItemsLayer from "./dotto/CanvasItemsLayer";
 import CanvasResultsPanel from "./dotto/CanvasResultsPanel";
 import CellTagPickerList from "./dotto/CellTagPickerList";
+import ChatThread from "./dotto/ChatThread";
 import CollabListPanel from "./dotto/CollabListPanel";
 import CollabPill from "./dotto/CollabPill";
 import CommandPalette from "./dotto/CommandPalette";
@@ -189,6 +191,14 @@ if (typeof window !== "undefined") {
   window.__setRecommendedSearches = (panel) => flushSync(() => recommendedSearchesStore.set(panel));
   window.__setDotbotAnswer = (answer) => flushSync(() => dotbotAnswerStore.set(answer));
   window.__setImageResult = (state) => flushSync(() => imageResultStore.set(state));
+  // #search-chat-thread (see app/dotto/ChatThread.jsx, chatThreadStore's own comment above) — the
+  // persisted multi-turn conversation shown above the search input, entirely separate from the six
+  // single-owner panels right above (canvas matches/commands/suggestions below the input are
+  // unaffected). flushSync for the same reason as those: the new independent chat-thread
+  // height-transition function (ai-assistant-suggestions.js) reads #search-chat-thread's real
+  // scrollHeight synchronously right after a turn is appended/restored.
+  window.__setChatThread = (turns) => flushSync(() => chatThreadStore.set(turns));
+  window.__appendChatTurn = (turn) => flushSync(() => chatThreadStore.set([...chatThreadStore.getSnapshot(), turn]));
   // #search-results/#search-suggestions (see app/dotto/CanvasResultsPanel.jsx/
   // SearchSuggestionsPanel.jsx) — same flushSync reasoning as the six above. __setCanvasResults
   // specifically also needs it for a second reason: it's a real portal (see canvasResultsStore's
@@ -313,6 +323,7 @@ export default function DottoApp({ sections, currentUser }) {
       <ErrorBoundary name="CanvasResultsPanel"><CanvasResultsPanel /></ErrorBoundary>
       <ErrorBoundary name="CommandPalette"><CommandPalette /></ErrorBoundary>
       <ErrorBoundary name="SearchSuggestionsPanel"><SearchSuggestionsPanel /></ErrorBoundary>
+      <ErrorBoundary name="ChatThread"><ChatThread /></ErrorBoundary>
       <ErrorBoundary name="AddToSourcePopup"><AddToSourcePopup /></ErrorBoundary>
       <ErrorBoundary name="WaypointsListPanel"><WaypointsListPanel /></ErrorBoundary>
       <ErrorBoundary name="HubCollabListPanel"><HubCollabListPanel /></ErrorBoundary>

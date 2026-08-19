@@ -1295,6 +1295,37 @@
        panel open (e.g. one canvas-match row while a search is loading). */
     #search-dropdown.visible{margin-top:8px;}
 
+    /* Persisted multi-turn Dotbot chat, shown ABOVE #search-input-wrap (see the DOM order in
+       search-overlay.html) once the first AI answer of a session exists — entirely separate
+       surface from #search-dropdown above; canvas matches/"/"-commands/live suggestions keep
+       rendering there completely unaffected, independent of whether this is open. Same
+       height:0-until-grown technique and independent tracked state as #search-dropdown (see
+       updateChatThread/createHeightTransitionController, ai-assistant-suggestions.js) — sharing
+       #search-dropdown's own dropdownSettledHeight/transitionCleanup would reintroduce exactly the
+       bugs this session spent so many rounds fixing on the original, since these are two
+       completely independent animated elements.
+       max-height is a real cap (first-pass number, easy to tune once visible) — unlike
+       #search-dropdown, which only ever grows to fit whatever's currently shown, a chat thread can
+       accumulate arbitrarily many turns, so past some point it needs to stop growing and scroll
+       internally instead, auto-scrolled to the newest turn on each append. overflow stays hidden
+       here at the CSS level (needed while the JS-driven grow/shrink transition is actively
+       clipping content mid-animation, same as #search-dropdown) — the JS hands it back to `auto`
+       (not `visible`, unlike #search-dropdown, which is deliberately non-clipping for its nav-
+       arrow-slide-outside panels) once settled, so the scrollbar/clipping the max-height cap needs
+       actually takes effect at rest. */
+    #search-chat-thread{display:flex;flex-direction:column;gap:16px;height:0;overflow:hidden;max-height:60vh;}
+    #search-chat-thread.visible{margin-bottom:8px;}
+    .dotbot-turn{display:flex;flex-direction:column;gap:8px;}
+    /* Right-aligned pill, same --brand indigo used elsewhere for accents — the one thing this
+       whole search surface never rendered before now: the user's OWN query, as an actual message
+       rather than something that only ever lived in the input box for a moment before being
+       cleared. Assistant content below it reuses every existing card style completely unchanged
+       (buildDictionaryCard/buildExamplesCard/etc. — see ChatThread.jsx), just mounted into a
+       per-turn container instead of one shared fixed node. */
+    .dotbot-turn-user{align-self:flex-end;max-width:80%;background:var(--brand);color:#fff;border-radius:14px 14px 4px 14px;padding:10px 14px;font-size:14px;line-height:1.4;white-space:pre-wrap;word-break:break-word;}
+    .dotbot-turn-assistant{display:flex;flex-direction:column;gap:5px;}
+    .dotbot-turn-assistant:empty{display:none;}
+
     /* No panel has a heading/label anymore — each one is just its content, shown or hidden
        as a whole (display:none by default; JS toggles display:block/flex only when there's
        something to show, never an empty-state placeholder row). */

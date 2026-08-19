@@ -689,8 +689,12 @@ import { expandWaypointCard, render } from './waypoints-render-loop.js';
         setupDotbotResultDrag(textEl, { w: 240, h: 140, html: text });
         return textEl;
     }
-    function startDotbotAnswerReveal(textEl, text) {
-        typewriterReveal(textEl, text, updateSearchDropdown);
+    // onDone defaults to updateSearchDropdown for the (now-inert, see ChatThread.jsx's own comment)
+    // #search-dropdown-based DotbotAnswerPanel.jsx caller; ChatTurn (ChatThread.jsx) passes
+    // updateChatThread explicitly instead, since a fresh turn's typewriter now grows
+    // #search-chat-thread, not #search-dropdown.
+    function startDotbotAnswerReveal(textEl, text, onDone) {
+        typewriterReveal(textEl, text, onDone || updateSearchDropdown);
     }
     function buildAnswerBlocksWrap(panel, language) {
         if (!panel || !panel.blocks || !panel.blocks.length) return null;
