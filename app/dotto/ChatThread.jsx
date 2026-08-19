@@ -38,6 +38,17 @@ function ChatTurn({ turn }) {
   useLayoutEffect(() => {
     const el = assistantRef.current;
     if (!el) return;
+    // Guards against duplicated content if this effect ever runs more than once against the same
+    // DOM node — the concrete case being React StrictMode's dev-only mount->cleanup->mount effect
+    // double-invocation, which reuses the same underlying element across both mounts. Without this,
+    // the second run would append a full second copy of every panel on top of the first (exactly
+    // what showed up as a "doubled up response" — the whole answer, translation, dictionary, and
+    // example cards each appearing twice). Matches the same defensive `el.innerHTML = ""` every
+    // single-owner panel component (DotbotAnswerPanel.jsx and friends) already does at the top of
+    // its own effect, for the same reason. Any in-flight typewriter reveal from a first run whose
+    // textEl gets cleared out here stops itself on its own very next tick — typewriterReveal
+    // already checks `el.isConnected` before continuing.
+    el.innerHTML = "";
     const panels = turn.panels || [];
     const textPanel = panels.find((p) => p.type === "dotbot_text");
     const dictPanel = panels.find((p) => p.type === "dictionary") || null;
