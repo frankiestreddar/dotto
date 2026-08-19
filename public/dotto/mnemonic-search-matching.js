@@ -1,5 +1,5 @@
 import { searchTypeLabel } from './add-menu.js';
-import { applyAlignHighlightToggle, buildAlignedSentenceEls, clearSearch, dotbotErrorMessage, getItemSearchText, isLatinScriptText, setupDotbotResultDrag, speakerIconHTML, stripHtml, typewriterReveal, updateSearchDropdown } from './ai-assistant-suggestions.js';
+import { applyAlignHighlightToggle, buildAlignedSentenceEls, clearSearch, dotbotErrorMessage, getItemSearchText, isLatinScriptText, setupDotbotResultDrag, speakerIconHTML, stripHtml, typewriterReveal, typewriterRevealSegments, updateSearchDropdown } from './ai-assistant-suggestions.js';
 import { appState, canvas } from './core-state.js';
 import { saveSnapshot, smoothPanTo } from './history-autosave.js';
 import { findItemById } from './live-presence.js';
