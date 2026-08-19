@@ -7,7 +7,7 @@ import { closeHamburgerMenu } from './panels-hamburger.js';
 import { closeProfilePanel, openPricingOverlay } from './profile-achievements-pricing.js';
 import { announceEnteredCollaboration, ensureSharedFolderLoaded, sharedFolderKey } from './shared-canvases-outline.js';
 import { pushNotification } from './stopwatch-search-notifications.js';
-import { deleteCanvasCollabsForFolder, expandWaypointCard, openFolder, render } from './waypoints-render-loop.js';
+import { deleteCanvasCollabsForFolder, deleteWaypointCardEverywhere, expandWaypointCard, openFolder, render } from './waypoints-render-loop.js';
 
 
     // ---------- Hamburger "Collaborations" panel ----------
@@ -169,8 +169,17 @@ import { deleteCanvasCollabsForFolder, expandWaypointCard, openFolder, render } 
             .order('updated_at', { ascending: false });
         if (error) { console.error('[waypoints] failed to load waypoints:', error); window.__setWaypointsList({ rows: [], query: q }); return; }
         const rows = (data || []).filter(r => !q || (r.name || 'New Waypoint').toLowerCase().includes(q));
+        // Cached so deleteSelectedWaypointRows can look a selected row back up by its composite
+        // key (owner_id/folder_id/item_id can't be safely reverse-parsed OUT of that key string —
+        // owner_id is itself a UUID full of hyphens — but re-deriving the same key per cached row
+        // and comparing works fine). waypointsListStore (app/dotto/bridges.js) holds the same rows
+        // for rendering, but vanilla code can't read a React store back, only push to it.
+        appState.lastWaypointsRows = rows;
         window.__setWaypointsList({ rows, query: q });
     }
+    // Matches WaypointsListPanel.jsx's own `key={...}` computation exactly — reused here as the
+    // shift-click selection id for waypoint rows (see listPanelSelectionStore).
+    function waypointRowKey(r) { return `${r.owner_id}-${r.folder_id}-${r.item_id}`; }
     // Hamburger menu's Chats panel — every saved Dotbot conversation belonging to this user, most
     // recently updated first. Same fresh-fetch-every-open pattern as renderWaypointsList right
     // above (RLS already scopes this to the caller's own rows via owner_id = auth.uid() — see
@@ -278,6 +287,82 @@ import { deleteCanvasCollabsForFolder, expandWaypointCard, openFolder, render } 
         updateChatThread();
         scrollChatThreadToBottom();
     }
+    // ---------- Chats/Waypoints/Collaborations list-panel selection + deletion ----------
+    // One shared selection, not three — openHubSubpanel (panels-hamburger.js) already enforces
+    // exactly one hub-subpanel open at a time, so `panel` doubles as the disambiguation a single
+    // Backspace handler needs (see dispatchListPanelDelete, called from source-buttons-cursor-
+    // mode.js's keydown listener). Vanilla owns this as the source of truth (appState.
+    // listPanelSelection, core-state.js — same convention as appState.selectedCardIds for canvas
+    // cards), mirrored into React's listPanelSelectionStore via window.__setListPanelSelection
+    // purely so the list rows can show a highlight.
+    function toggleListPanelSelection(panel, id) {
+        const current = appState.listPanelSelection;
+        const ids = current.panel === panel ? new Set(current.ids) : new Set();
+        if (ids.has(id)) ids.delete(id); else ids.add(id);
+        appState.listPanelSelection = { panel, ids };
+        window.__setListPanelSelection(appState.listPanelSelection);
+    }
+    function clearListPanelSelection() {
+        appState.listPanelSelection = { panel: null, ids: new Set() };
+        window.__setListPanelSelection(appState.listPanelSelection);
+    }
+    // Also clears currentConversationId/the visible chat thread if the deleted set includes the
+    // conversation currently open in the search palette — otherwise the next follow-up message
+    // would call append_dotbot_turn with a p_conversation_id that no longer exists, which raises
+    // and surfaces as a hard 502 instead of gracefully starting a fresh conversation.
+    async function deleteSelectedChats(ids) {
+        if (!confirm(ids.length === 1 ? 'Delete this chat?' : `Delete ${ids.length} chats?`)) { clearListPanelSelection(); return; }
+        const { error } = await supabase.rpc('delete_dotbot_conversations', { p_conversation_ids: ids });
+        if (error) console.error('[chats] failed to delete conversations:', error);
+        if (ids.includes(appState.currentConversationId)) { appState.currentConversationId = null; window.__setChatThread([]); }
+        clearListPanelSelection();
+        renderChatsList();
+    }
+    async function clearAllChats() {
+        if (!confirm("Delete all saved chats? This can't be undone.")) return;
+        const { error } = await supabase.rpc('delete_dotbot_conversations', {});
+        if (error) console.error('[chats] failed to clear all conversations:', error);
+        appState.currentConversationId = null;
+        window.__setChatThread([]);
+        renderChatsList();
+    }
+    async function deleteSelectedWaypointRows(ids) {
+        const idSet = new Set(ids);
+        const rows = (appState.lastWaypointsRows || []).filter(r => idSet.has(waypointRowKey(r)));
+        if (!rows.length) { clearListPanelSelection(); return; }
+        if (!confirm(rows.length === 1 ? 'Delete this waypoint?' : `Delete ${rows.length} waypoints?`)) { clearListPanelSelection(); return; }
+        await Promise.all(rows.map(r => deleteWaypointCardEverywhere(r.owner_id, r.folder_id, r.item_id)));
+        clearListPanelSelection();
+        renderWaypointsList(appState.waypointsSearchInput ? appState.waypointsSearchInput.value : '');
+    }
+    // "owned:folderId" ids remove every collaborator via the existing deleteCanvasCollabsForFolder
+    // (owner-only, already used elsewhere for folder-deletion cascade — see waypoints-render-
+    // loop.js). "shared:id" ids are this user leaving a canvas they don't own, via the new
+    // leave_canvas_collaboration RPC. Both id spaces are self-contained once the prefix is
+    // stripped (a folder id / the collaboration row's own bigint id) — no row cache needed here,
+    // unlike waypoints.
+    async function deleteSelectedCollabs(ids) {
+        const owned = ids.filter(id => id.startsWith('owned:')).map(id => id.slice('owned:'.length));
+        const shared = ids.filter(id => id.startsWith('shared:')).map(id => Number(id.slice('shared:'.length)));
+        const count = owned.length + shared.length;
+        if (!confirm(count === 1 ? 'Remove this collaboration?' : `Remove ${count} collaborations?`)) { clearListPanelSelection(); return; }
+        await Promise.all([
+            ...owned.map((folderId) => deleteCanvasCollabsForFolder(folderId)),
+            ...shared.map(async (id) => {
+                const { error } = await supabase.rpc('leave_canvas_collaboration', { p_id: id });
+                if (error) console.error('[collab] failed to leave canvas collaboration:', error);
+            }),
+        ]);
+        clearListPanelSelection();
+        renderHubCollabList(appState.hubCollabSearchInput ? appState.hubCollabSearchInput.value : '');
+    }
+    // Routed from the shared Backspace handler (source-buttons-cursor-mode.js) — dispatches to
+    // whichever of the three panels the current selection actually belongs to.
+    function dispatchListPanelDelete(panel, ids) {
+        if (panel === 'chats') { deleteSelectedChats(ids); return; }
+        if (panel === 'waypoints') { deleteSelectedWaypointRows(ids); return; }
+        if (panel === 'collaborations') { deleteSelectedCollabs(ids); return; }
+    }
     function hmenuAction(action) {
         closeHamburgerMenu();
         closeProfilePanel();
@@ -297,13 +382,15 @@ import { deleteCanvasCollabsForFolder, expandWaypointCard, openFolder, render } 
     drawSettings.addEventListener('click', (e) => e.stopPropagation());
     addMenu.addEventListener('click', (e) => e.stopPropagation());
 
-export { backToHubCollabMain, goToWaypointCard, handleOwnedHubCollabRowClick, hmenuAction, openHubCollabRequestsView, openSavedChat, renderChatsList, renderHubCollabList, renderWaypointsList, resolveSharedFolderChain, respondToHubCollabRequest };
+export { backToHubCollabMain, clearAllChats, clearListPanelSelection, dispatchListPanelDelete, goToWaypointCard, handleOwnedHubCollabRowClick, hmenuAction, openHubCollabRequestsView, openSavedChat, renderChatsList, renderHubCollabList, renderWaypointsList, resolveSharedFolderChain, respondToHubCollabRequest };
 
-// React → vanilla bridge — used by WaypointsListPanel.jsx/HubCollabListPanel.jsx (app/dotto/),
-// which can't import these directly since public/dotto/*.js isn't reachable from app/dotto/.
+// React → vanilla bridge — used by WaypointsListPanel.jsx/HubCollabListPanel.jsx/
+// ChatsListPanel.jsx (app/dotto/), which can't import these directly since public/dotto/*.js
+// isn't reachable from app/dotto/.
 window.__goToWaypointCard = goToWaypointCard;
 window.__openSavedChat = openSavedChat;
 window.__openHubCollabRequestsView = openHubCollabRequestsView;
 window.__backToHubCollabMain = backToHubCollabMain;
 window.__handleOwnedHubCollabRowClick = handleOwnedHubCollabRowClick;
 window.__respondToHubCollabRequest = respondToHubCollabRequest;
+window.__toggleListPanelSelection = toggleListPanelSelection;

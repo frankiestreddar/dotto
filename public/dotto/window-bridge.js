@@ -10,7 +10,9 @@
 // by hand here since no automated regeneration tooling exists in this environment; a real re-run
 // of the original grep would be the more thorough fix if that tooling is ever set up. openChatsPanel
 // — the sidebar Chats panel's onclick, content/fragments/hamburger-stack.html — added by hand the
-// same way, for the same reason: it's a new call site added after this file was last generated.)
+// same way, for the same reason: it's a new call site added after this file was last generated.
+// clearAllChats — the Chats panel's "Clear all" button onclick, same file — added by hand the same
+// way.)
 
 import { handleAddMenuSearchInput, newSourceClicked, switchAddTab, toggleAddMenuSearch } from './add-menu.js';
 import { handleSearchFocus, handleSearchInput } from './ai-assistant-suggestions.js';
@@ -18,7 +20,7 @@ import { addTask, editEmbed, removeTask, toggleTask, updateTaskDeadline, updateT
 import { prepareAdd } from './copy-paste.js';
 import { handleCollabSearch, handleMsgSearch, openCollabPanel } from './friends-presence.js';
 import { addGameColumnSlot, fcFlip, fcRate, fcToggleMode, removeGameColumnSlot, setGameColumnSlot, trCheck, trFocusInput, trNext, trToggleMode, trUpdateInput } from './games-flashcard-typeright.js';
-import { hmenuAction } from './hamburger-collab.js';
+import { clearAllChats, hmenuAction } from './hamburger-collab.js';
 import { deleteContextColumn, deleteContextRow, hideCanvasContextMenu, highlightContextColumn, highlightContextRow, openTableCellContextMenu, redo, undo } from './history-autosave.js';
 import { blurPublishFlowName, commitItemDetailDesc, commitItemDetailTitle, confirmPublishFlow, deleteDetailDraft, focusPublishFlowName, onItemDetailFieldChange, startPublishFlow, unpublishDetailItem, updateDetailItem } from './library-publish.js';
 import { broadcastEditingState, closeConvo, closeSharedCanvasView, sendMsg, setTitleLevel } from './live-presence.js';
@@ -40,6 +42,7 @@ window.addTableRow = addTableRow;
 window.addTask = addTask;
 window.blurPublishFlowName = blurPublishFlowName;
 window.broadcastEditingState = broadcastEditingState;
+window.clearAllChats = clearAllChats;
 window.clearMedia = clearMedia;
 window.clearSearchCardContext = clearSearchCardContext;
 window.closeCellTagPicker = closeCellTagPicker;

@@ -3,12 +3,14 @@
 import { useSyncExternalStore } from "react";
 import { createPortal } from "react-dom";
 import Avatar from "./Avatar";
-import { hubCollabListStore } from "./bridges";
+import { hubCollabListStore, listPanelSelectionStore } from "./bridges";
 import usePortalNode from "./usePortalNode";
 
 // Module-level, not inline — see CanvasItemsLayer.jsx's identical EMPTY_ITEMS comment for why a
 // fresh object literal as the getServerSnapshot fallback trips React's "should be cached" warning.
 const EMPTY_STATE = { view: "main", requestsCount: 0, ownedShown: [], sharedShown: [], query: "" };
+const EMPTY_IDS = new Set();
+const EMPTY_SELECTION = { panel: null, ids: EMPTY_IDS };
 
 function folderIconStyle() {
   const url = `/assets/icons/${window.__kindIconFile("folder")}`;
@@ -26,11 +28,26 @@ function RequestsRow({ count }) {
 
 // Own canvas that has collaborators — up to 3 avatars (same convention as the per-canvas collab
 // bubble), hover shows the exact count via .hub-collab-avatars-tooltip, clicking navigates there
-// AND opens its collaborator panel (managing it is the obvious next step from here).
-function OwnedCanvasRow({ c }) {
+// AND opens its collaborator panel (managing it is the obvious next step from here). Selection id
+// is prefixed "owned:" — shares one listPanelSelectionStore ids Set with SharedCanvasRow's
+// "shared:" ids below (folderId and a canvas_collaborations row's own bigint id are two unrelated
+// id spaces), and lets the delete dispatcher (dispatchListPanelDelete, hamburger-collab.js) tell
+// the two apart with no extra lookup — deleting an "owned:" id removes every collaborator via
+// deleteCanvasCollabsForFolder; a "shared:" id leaves that canvas via leave_canvas_collaboration.
+function OwnedCanvasRow({ c, selected }) {
   const shown = c.collaborators.slice(0, 3);
   return (
-    <div className="outline-item hub-collab-canvas-row" onClick={(e) => { e.stopPropagation(); window.__handleOwnedHubCollabRowClick(c.folderId); }}>
+    <div
+      className={"outline-item hub-collab-canvas-row" + (selected ? " outline-item-selected" : "")}
+      onClick={(e) => {
+        e.stopPropagation();
+        if (e.shiftKey) {
+          window.__toggleListPanelSelection("collaborations", "owned:" + c.folderId);
+          return;
+        }
+        window.__handleOwnedHubCollabRowClick(c.folderId);
+      }}
+    >
       <span className="outline-icon icon-mask" style={folderIconStyle()} />
       <div className="hub-collab-row-meta">
         <span className="outline-label">{c.liveTitle}</span>
@@ -49,12 +66,20 @@ function OwnedCanvasRow({ c }) {
   );
 }
 
-// Canvas someone else shared with this user — single avatar (the owner).
-function SharedCanvasRow({ c }) {
+// Canvas someone else shared with this user — single avatar (the owner). Selection id prefixed
+// "shared:" — see OwnedCanvasRow's own comment.
+function SharedCanvasRow({ c, selected }) {
   return (
     <div
-      className="outline-item hub-collab-canvas-row"
-      onClick={(e) => { e.stopPropagation(); window.__openSharedCanvas(c.ownerId, c.folderId, c.folderTitle, c.ownerName); }}
+      className={"outline-item hub-collab-canvas-row" + (selected ? " outline-item-selected" : "")}
+      onClick={(e) => {
+        e.stopPropagation();
+        if (e.shiftKey) {
+          window.__toggleListPanelSelection("collaborations", "shared:" + c.id);
+          return;
+        }
+        window.__openSharedCanvas(c.ownerId, c.folderId, c.folderTitle, c.ownerName);
+      }}
     >
       <span className="outline-icon icon-mask" style={folderIconStyle()} />
       <div className="hub-collab-row-meta">
@@ -102,6 +127,8 @@ function RequestRow({ req }) {
 // this component only owns the row list for whichever view is currently active.
 export default function HubCollabListPanel() {
   const state = useSyncExternalStore(hubCollabListStore.subscribe, hubCollabListStore.getSnapshot, () => EMPTY_STATE);
+  const selection = useSyncExternalStore(listPanelSelectionStore.subscribe, listPanelSelectionStore.getSnapshot, () => EMPTY_SELECTION);
+  const selectedIds = selection.panel === "collaborations" ? selection.ids : EMPTY_IDS;
   const portalNode = usePortalNode("hub-collab-list");
 
   if (!portalNode) return null;
@@ -127,8 +154,8 @@ export default function HubCollabListPanel() {
       {state.requestsCount > 0 && <RequestsRow count={state.requestsCount} />}
       {hasRows ? (
         <>
-          {state.ownedShown.map((c) => <OwnedCanvasRow key={c.folderId} c={c} />)}
-          {state.sharedShown.map((c) => <SharedCanvasRow key={c.id} c={c} />)}
+          {state.ownedShown.map((c) => <OwnedCanvasRow key={c.folderId} c={c} selected={selectedIds.has("owned:" + c.folderId)} />)}
+          {state.sharedShown.map((c) => <SharedCanvasRow key={c.id} c={c} selected={selectedIds.has("shared:" + c.id)} />)}
         </>
       ) : (
         <div className="outline-empty">{state.query ? "No matching canvases." : "No collaborations yet."}</div>

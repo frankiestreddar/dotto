@@ -8,7 +8,7 @@ import { applyTransform, ensureSwTicking, saveSnapshot, scheduleWorkspaceSave, u
 import { broadcastEditingState, miniLabelForItem, placeCaretEnd, renderRealCardPreview, repositionAllRemoteCursors, syncColorPicker } from './live-presence.js';
 import { findNextFreeSlot, setupResizing } from './resize-shortcuts-init.js';
 import { applyScheduleModeWrapperAttrs, SCHEDULE_ALL } from './schedule-view-canvas.js';
-import { ensureSharedFolderLoaded, renderBreadcrumbMapPanel } from './shared-canvases-outline.js';
+import { ensureSharedFolderLoaded, renderBreadcrumbMapPanel, sharedFolderKey, stripSharedFolderIds } from './shared-canvases-outline.js';
 import { closeSourceAddMenu } from './source-buttons-cursor-mode.js';
 import { attachStaticTableHoverZones, layoutSourceTableColumns, renderStaticTableHTML } from './source-table.js';
 import { closeCellTagPicker } from './source-tags-ai.js';
@@ -237,6 +237,52 @@ import { applyConnections, renderConnectionsLayer } from './srs-connections-core
         const { error } = await supabase.from('waypoints').delete()
             .eq('owner_id', ownerId).eq('folder_id', realFolderId).eq('item_id', String(itemId));
         if (error) console.error('[waypoints] failed to remove waypoint:', error);
+    }
+    // Deletes a waypoint's own canvas-card item (not just the global waypoints-table pointer —
+    // deleteWaypointFromDb above only removes that) — used by the hamburger Waypoints panel's
+    // shift-click + Backspace gesture (see deleteSelectedWaypointRows, hamburger-collab.js), where
+    // the target folder might not even be loaded yet (a friend's shared canvas never navigated
+    // into this session — own canvases are always fully loaded up front, see loadWorkspace).
+    // For an own canvas, mutating appState.folders[...] + scheduleWorkspaceSave() is enough:
+    // saveWorkspaceNow serializes ALL local folders every save cycle, not just the current one, so
+    // no navigation is needed. For a shared canvas, load it on demand if not already loaded (same
+    // ensureSharedFolderLoaded normal navigation uses), then call update_shared_folder DIRECTLY —
+    // bypassing saveWorkspaceNow's "only if currentFolderId" gating, which is a pure client
+    // convention, not a constraint of the RPC itself — so deleting one waypoint never yanks the
+    // user's current view to a canvas they weren't looking at.
+    async function deleteWaypointCardEverywhere(ownerId, folderId, itemId) {
+        const isOwn = ownerId === appState.currentUser.id;
+        const localKey = isOwn ? folderId : sharedFolderKey(ownerId, folderId);
+        if (!appState.folders[localKey]) {
+            if (isOwn) { await deleteWaypointFromDb(localKey, itemId); return; }
+            if (!(await ensureSharedFolderLoaded(localKey))) {
+                // Access revoked or the canvas itself is gone — nothing to patch, just drop the
+                // stale global pointer directly (deleteWaypointFromDb needs a loaded folderObj to
+                // derive owner/folder from, which we don't have here).
+                if (supabase && appState.currentUser.id) {
+                    await supabase.from('waypoints').delete()
+                        .eq('creator_id', appState.currentUser.id).eq('owner_id', ownerId)
+                        .eq('folder_id', folderId).eq('item_id', String(itemId));
+                }
+                return;
+            }
+        }
+        const folderObj = appState.folders[localKey];
+        const stillThere = (folderObj.items || []).some(it => String(it.id) === String(itemId));
+        folderObj.items = (folderObj.items || []).filter(it => String(it.id) !== String(itemId));
+        await deleteWaypointFromDb(localKey, itemId);
+        if (!stillThere) return; // pointer existed, card already gone — nothing left to persist
+        if (isOwn) {
+            scheduleWorkspaceSave();
+        } else {
+            const { isSharedView, sharedOwnerId, sharedRemoteFolderId, id, ...folderData } = folderObj;
+            folderData.items = stripSharedFolderIds(folderData.items);
+            const { error } = await supabase.rpc('update_shared_folder', {
+                p_owner_id: sharedOwnerId, p_folder_id: sharedRemoteFolderId, p_new_folder_data: folderData,
+            });
+            if (error) console.error('[waypoints] failed to remove waypoint card from shared canvas:', error);
+        }
+        if (appState.currentFolderId === localKey) render();
     }
 
     // Revokes every pending/accepted collaborator on ONE exact folder — reuses
@@ -970,7 +1016,7 @@ import { applyConnections, renderConnectionsLayer } from './srs-connections-core
         applyFolderView(folderId);
     }
 
-export { applyFolderView, applyItemWrapperAttrs, attachFolderCardClick, attachNoteBody, attachSourceCardClick, attachTitleBody, attachUniversalItemBehavior, attachWatermarkBody, attachWaypointCardBody, buildFolderInlineCanvas, cascadeDeleteFolderContents, centerOnContent, deleteCanvasCollabsForFolder, deleteWaypointFromDb, expandWaypointCard, folderGlobalId, folderTitle, openFolder, performMerge, render, renderSelectedOutlines, startBoxSelection, startRenameFolderCardTitle, syncNoteFormatButtons, syncWaypointToDb };
+export { applyFolderView, applyItemWrapperAttrs, attachFolderCardClick, attachNoteBody, attachSourceCardClick, attachTitleBody, attachUniversalItemBehavior, attachWatermarkBody, attachWaypointCardBody, buildFolderInlineCanvas, cascadeDeleteFolderContents, centerOnContent, deleteCanvasCollabsForFolder, deleteWaypointCardEverywhere, deleteWaypointFromDb, expandWaypointCard, folderGlobalId, folderTitle, openFolder, performMerge, render, renderSelectedOutlines, startBoxSelection, startRenameFolderCardTitle, syncNoteFormatButtons, syncWaypointToDb };
 
 // React → vanilla bridge, the other direction from window-bridge.js (which is specifically the
 // ~107 auto-generated inline onclick="..." names — see its own header comment). CanvasItem

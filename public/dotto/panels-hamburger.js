@@ -2,7 +2,7 @@ import { clearSearch } from './ai-assistant-suggestions.js';
 import { closeAddMenu } from './copy-paste.js';
 import { appState } from './core-state.js';
 import { closeCollabPanel } from './friends-presence.js';
-import { renderChatsList, renderHubCollabList, renderWaypointsList } from './hamburger-collab.js';
+import { clearListPanelSelection, renderChatsList, renderHubCollabList, renderWaypointsList } from './hamburger-collab.js';
 import { closeCartPanel } from './marketplace.js';
 import { closeMessagesPanel } from './messages-schedule.js';
 import { closeProfilePanel } from './profile-achievements-pricing.js';
@@ -67,6 +67,7 @@ import { closeSourceAddMenu } from './source-buttons-cursor-mode.js';
         appState.hamburgerStack.classList.remove('open', 'hmenu-full');
         appState.hamburgerBtn.classList.remove('hmenu-full');
         appState.panelPinned.menu = false;
+        clearListPanelSelection();
     }
     function openHamburgerMenu(pin) {
         closeAllPanels('menu');
@@ -120,6 +121,7 @@ import { closeSourceAddMenu } from './source-buttons-cursor-mode.js';
     // searchInputEl is optional — chats-panel (below) has no search box of its own (v1: a saved-
     // chat list is likely short enough not to need one yet).
     function openHubSubpanel(panel, searchInputEl, renderFn) {
+        clearListPanelSelection();
         appState.outlineMenu.classList.remove('open');
         appState.accountMenu.classList.remove('open');
         appState.hubSubpanels.forEach(p => { if (p !== panel) p.classList.remove('open'); });

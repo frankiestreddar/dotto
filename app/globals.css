@@ -670,6 +670,11 @@
     .hub-subpanel-search::placeholder{color:var(--ink-soft);}
     .hub-subpanel-list{flex:1 1 auto;overflow-y:auto;min-height:0;padding:6px 4px;scrollbar-width:none;}
     .hub-subpanel-list::-webkit-scrollbar{display:none;}
+    /* Chats panel's "Clear all" — the one hub-subpanel with a footer action below its list (see
+       #chats-panel, content/fragments/hamburger-stack.html). */
+    .hub-subpanel-footer{flex:0 0 auto;padding:8px 10px;border-top:1px solid var(--card-border);}
+    .hub-subpanel-clear-all{width:100%;height:32px;border-radius:8px;background:transparent;border:1px solid var(--card-border);color:var(--ink-soft);font-size:12px;cursor:pointer;transition:background .15s,color .15s,border-color .15s;}
+    .hub-subpanel-clear-all:hover{background:#2a2a2a;color:var(--ink);border-color:var(--ink-soft);}
     .requests-row{justify-content:space-between;}
     .requests-count{flex:0 0 auto;min-width:16px;height:16px;padding:0 5px;border-radius:9px;background:var(--brand);color:#fff;font-size:10px;font-weight:700;display:flex;align-items:center;justify-content:center;}
     .requests-back-row{display:flex;align-items:center;gap:8px;padding:6px 10px;margin:2px 4px 6px;border-radius:6px;cursor:pointer;font-size:13px;font-weight:600;color:var(--ink-soft);}
@@ -1556,6 +1561,11 @@
     .outline-item{border-radius:6px;margin:2px 4px;padding:6px 10px 6px calc(10px + var(--outline-indent, 0px));cursor:pointer;font-size:13px;color:var(--ink-soft);display:flex;align-items:center;gap:6px;min-width:0;}
     .outline-item:hover{background:#333;color:white;}
     .outline-item.active{background:#2E2E2E;color:white;}
+    /* Shift-click selection state for the Chats/Waypoints/Collaborations hamburger list panels
+       (see listPanelSelectionStore) — same brand-tinted background already used for a "selected"
+       row elsewhere (.cell-tag-picker-row.selected), distinct from both the plain :hover (#333)
+       and .active (#2E2E2E) states above so a multi-select doesn't read as "currently open." */
+    .outline-item-selected, .outline-item-selected:hover{background:rgba(99,102,241,0.18);color:white;}
     .outline-empty{padding:12px;color:var(--ink-soft);font-size:12px;text-align:center;}
     /* No explicit color — inherits currentColor from .outline-item (grey normally, white on
        hover/active per the rules above), so the icon-mask tints along with the row's own text

@@ -2,19 +2,25 @@
 
 import { useSyncExternalStore } from "react";
 import { createPortal } from "react-dom";
-import { chatsListStore } from "./bridges";
+import { chatsListStore, listPanelSelectionStore } from "./bridges";
 import usePortalNode from "./usePortalNode";
 
 // Module-level, not inline — see CanvasItemsLayer.jsx's identical EMPTY_ITEMS comment for why a
 // fresh array literal as the getServerSnapshot fallback trips React's "should be cached" warning.
 const EMPTY_ROWS = [];
+const EMPTY_IDS = new Set();
+const EMPTY_SELECTION = { panel: null, ids: EMPTY_IDS };
 
-function ChatRow({ r }) {
+function ChatRow({ r, selected }) {
   return (
     <div
-      className="outline-item"
+      className={"outline-item" + (selected ? " outline-item-selected" : "")}
       onClick={(e) => {
         e.stopPropagation();
+        if (e.shiftKey) {
+          window.__toggleListPanelSelection("chats", r.id);
+          return;
+        }
         window.__openSavedChat(r.id);
       }}
     >
@@ -28,13 +34,15 @@ function ChatRow({ r }) {
 // query-dependent empty-state message since this panel has no search box for v1.
 export default function ChatsListPanel() {
   const rows = useSyncExternalStore(chatsListStore.subscribe, chatsListStore.getSnapshot, () => EMPTY_ROWS);
+  const selection = useSyncExternalStore(listPanelSelectionStore.subscribe, listPanelSelectionStore.getSnapshot, () => EMPTY_SELECTION);
+  const selectedIds = selection.panel === "chats" ? selection.ids : EMPTY_IDS;
   const portalNode = usePortalNode("chats-list");
 
   if (!portalNode) return null;
 
   return createPortal(
     rows.length ? (
-      rows.map((r) => <ChatRow key={r.id} r={r} />)
+      rows.map((r) => <ChatRow key={r.id} r={r} selected={selectedIds.has(r.id)} />)
     ) : (
       <div className="outline-empty">No chats yet.</div>
     ),

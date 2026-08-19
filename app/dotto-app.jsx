@@ -22,6 +22,7 @@ import {
   imageResultStore,
   itemDetailFooterStore,
   libraryViewStore,
+  listPanelSelectionStore,
   marketDetailStore,
   marketDiscoverStore,
   msgConvoStore,
@@ -231,6 +232,10 @@ if (typeof window !== "undefined") {
   // hamburger-collab.js's renderHubCollabList/renderHubCollabRequests) — same reasoning as
   // __setWaypointsList: both entry points are real async Supabase calls.
   window.__setHubCollabList = hubCollabListStore.set;
+  // Shift-click-to-select state for the Chats/Waypoints/Collaborations hamburger list panels (see
+  // listPanelSelectionStore's own comment) — plain store.set, no synchronous DOM read follows a
+  // selection toggle either.
+  window.__setListPanelSelection = listPanelSelectionStore.set;
   // Profile panel (see app/dotto/ProfileLevelPill.jsx/AchievementsGrid.jsx,
   // profile-achievements-pricing.js's renderProfileLevel/renderSpriteGrid) — plain store.sets,
   // no synchronous DOM read follows either one.

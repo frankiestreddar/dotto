@@ -180,6 +180,17 @@ export const chatsListStore = createStore([]);
 // real async Supabase calls, so there's no synchronous DOM read to race.
 export const hubCollabListStore = createStore({ view: "main", requestsCount: 0, ownedShown: [], sharedShown: [], query: "" });
 
+// Shift-click-to-select + Backspace-to-delete state for the Chats/Waypoints/Collaborations
+// hamburger list panels (public/dotto/hamburger-collab.js's window.__toggleListPanelSelection).
+// One shared store, not three — openHubSubpanel (panels-hamburger.js) already enforces exactly
+// one hub-subpanel open at a time, so `panel` (which list the ids belong to) doubles as the
+// disambiguation a Backspace handler needs for free, no separate "which panel is active"
+// bookkeeping. Collaborations' two row kinds (owned vs. shared-with-me) share this same `ids` Set
+// with an "owned:"/"shared:" id prefix to avoid any collision between the two id spaces. `ids` is
+// a real Set (not an array) purely for O(1) has()/toggle() in each row's render — never mutated in
+// place, always replaced wholesale via .set() like every other store here.
+export const listPanelSelectionStore = createStore({ panel: null, ids: new Set() });
+
 // Profile panel's level pill (public/dotto/profile-achievements-pricing.js's renderProfileLevel)
 // — { displayName, tierColor }, updated once at init and again live after awardUserPoints. Text +
 // background color move together as one store value — see ProfileLevelPill.jsx.

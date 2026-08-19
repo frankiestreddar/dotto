@@ -3,6 +3,7 @@ import { closeAddMenu } from './copy-paste.js';
 import { appState, canvas, contextMenu, effectiveMode } from './core-state.js';
 import { linkSelectedCards } from './drawing-connections.js';
 import { closeCollabPanel } from './friends-presence.js';
+import { dispatchListPanelDelete } from './hamburger-collab.js';
 import { hideCanvasContextMenu } from './history-autosave.js';
 import { findItemById } from './live-presence.js';
 import { closeCartPanel } from './marketplace.js';
@@ -99,13 +100,18 @@ import { clearDataLinkPending } from './srs-connections-core.js';
             linkSelectedCards();
             return;
         }
-        // Deletes whatever's currently selected (shift-click or select-cursor-mode click — see
-        // setupDraggingAndClicking) — the only way to delete a card now that the per-card
-        // right-click "Delete" menu item is gone.
-        if (!isEditingText && e.key === 'Backspace' && appState.selectedCardIds.length > 0) {
-            e.preventDefault();
-            deleteSelectedCards();
-            return;
+        // Deletes whatever's currently selected. List-panel selection (Chats/Waypoints/
+        // Collaborations, shift-click — see toggleListPanelSelection, hamburger-collab.js) is
+        // checked FIRST and, if present, wins outright: opening the hamburger menu doesn't clear
+        // an existing canvas-card selection, so both could genuinely be non-empty at once (e.g.
+        // select some cards, then open the menu and shift-click a chat row) — without this
+        // ordering a bare Backspace would fire both deletions. Canvas-card selection (shift-click
+        // or select-cursor-mode click — see setupDraggingAndClicking) is the only way to delete a
+        // card now that the per-card right-click "Delete" menu item is gone.
+        if (!isEditingText && e.key === 'Backspace') {
+            const sel = appState.listPanelSelection;
+            if (sel.panel && sel.ids.size) { e.preventDefault(); dispatchListPanelDelete(sel.panel, Array.from(sel.ids)); return; }
+            if (appState.selectedCardIds.length > 0) { e.preventDefault(); deleteSelectedCards(); return; }
         }
         if (!isEditingText && e.key === 'Shift' && !e.metaKey && !e.ctrlKey) { beginModeOverride('shift'); }
         else if (!isEditingText && !e.metaKey && !e.ctrlKey && (e.key === 'd' || e.key === 'D')) { beginModeOverride('d'); }

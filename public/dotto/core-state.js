@@ -51,6 +51,12 @@
         addingStatKind: null, // optional variant config threaded through to add() for kinds like 'statcard' that come in multiple flavors (e.g. Progress vs Accuracy)
         placementGhost: null,
         selectedCardIds: [],
+        // Shift-click-to-select state for the Chats/Waypoints/Collaborations hamburger list panels
+        // — vanilla owns this as the source of truth (same convention as selectedCardIds just
+        // above), mirrored into React's listPanelSelectionStore (app/dotto/bridges.js) via
+        // window.__setListPanelSelection whenever it changes, purely so those rows can highlight.
+        // See toggleListPanelSelection/clearListPanelSelection, hamburger-collab.js.
+        listPanelSelection: { panel: null, ids: new Set() },
         // The card "armed" by a first click in data mode, awaiting a second click on a different
         // card to complete the link — see handleDataModeClick/clearDataLinkPending. Click-to-link is
         // a second way to create the exact same {fromId,toId} connection that dragging between two
