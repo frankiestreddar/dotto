@@ -5,6 +5,10 @@
             <button id="btn-back" class="btn">←</button>
             <button id="btn-forward" class="btn">→</button>
         </div>
+        <!-- Compact "…/parent/current" breadcrumb (see app/dotto/BreadcrumbPill.jsx,
+             breadcrumbMapStore) — replaces the old always-visible full ancestor list that used to
+             live inside the hamburger sidebar (#breadcrumb-menu, now removed). -->
+        <div class="bubble" id="breadcrumb-pill"></div>
         <div class="bubble" id="collab-bubble">
             <div id="collab-content"></div>
             <div class="collab-tooltip" id="collab-tooltip"></div>

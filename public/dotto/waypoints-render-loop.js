@@ -405,8 +405,8 @@ import { applyConnections, renderConnectionsLayer } from './srs-connections-core
     }
 
     // Inline-rename a folder/source card's title, right on the card — also reused by the
-    // sidebar's breadcrumb map (BreadcrumbMapPanel.jsx, via window.__startRenameFolderCardTitle)
-    // for renaming the current-folder row, passing a plain {folderId} with no real `.id` — see the
+    // breadcrumb pill (BreadcrumbPill.jsx, via window.__startRenameFolderCardTitle) for renaming
+    // the current-folder segment, passing a plain {folderId} with no real `.id` — see the
     // targetSelector guard below. Writes to the exact same folders[folderId].title every one of
     // these editors shares, so they all stay in sync for free, no separate propagation needed.
     // Guarded on folders[it.folderId] existing at all: a folder card nested INSIDE a canvas
@@ -520,11 +520,10 @@ import { applyConnections, renderConnectionsLayer } from './srs-connections-core
         // choice for shared ones (owner still sees it, collaborators don't, rather than everyone).
         const folderOwnerId = folderObj.isSharedView ? folderObj.sharedOwnerId : appState.currentUser.id;
         const currentItems = folderObj.items.filter(it => it.kind !== 'waypoint' || (it.creatorId || folderOwnerId) === appState.currentUser.id);
-        // Location/wayfinding now lives entirely in the sidebar's always-visible indented map
-        // (see renderBreadcrumbMapPanel, shared-canvases-outline.js, and BreadcrumbMapPanel.jsx) —
-        // there's no more top-bar breadcrumb pill to rebuild here. The current-folder row's
-        // rename click reuses startRenameFolderCardTitle below, the same flow folder/source cards
-        // already use.
+        // Location/wayfinding lives in the top-bar breadcrumb pill (see renderBreadcrumbMapPanel,
+        // shared-canvases-outline.js, and BreadcrumbPill.jsx). The current-folder segment's rename
+        // click reuses startRenameFolderCardTitle below, the same flow folder/source cards already
+        // use.
         renderBreadcrumbMapPanel();
 
         renderCollabPill();

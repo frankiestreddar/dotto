@@ -210,13 +210,21 @@
        why previous passes at darkening this border kept reading as "still very light" — the base
        color was never actually what was showing. Border stays fixed at #202020 in every state. */
     #search-bar{position:relative;width:560px;max-width:calc(100vw - 40px);display:flex;flex-direction:column;align-items:stretch;background:var(--bar);border:1px solid #202020;border-radius:16px;box-shadow:0 20px 60px rgba(0,0,0,0.5);padding:8px;}
-    /* Indented ancestor-path rows inside #breadcrumb-menu (hamburger-stack.html) — see its own
-       comment there and renderBreadcrumbMapPanel (shared-canvases-outline.js). The current row
-       doubles as a rename control (cursor:text hints at that, matching a real text field) instead
-       of being unclickable like the others. */
-    .breadcrumb-map-row{display:flex;align-items:center;gap:8px;padding:7px 10px;padding-left:calc(10px + var(--map-indent, 0px));border-radius:8px;cursor:pointer;font-size:13px;color:var(--ink-soft);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-    .breadcrumb-map-row:hover{background:#333;color:var(--ink);}
-    .breadcrumb-map-row.current{color:var(--ink);font-weight:600;cursor:text;}
+    /* Compact "…/parent/current" breadcrumb (see app/dotto/BreadcrumbPill.jsx, breadcrumbMapStore)
+       — a bubble next to #btn-back/#btn-forward, top-bar.html, replacing the old always-visible
+       full ancestor list that used to live inside the hamburger sidebar. Reuses .bubble's own
+       capsule chrome as the outer container (var(--bar) background, rounded) rather than the
+       fully-round pill style used elsewhere (e.g. .dotbot-translation-pill) — this sits directly
+       beside another .bubble in the same toolbar row and should read as part of that same capsule
+       language. The current segment doubles as a rename control (cursor:text hints at that,
+       matching a real text field), same as before. */
+    #breadcrumb-pill{padding:0 10px;gap:4px;max-width:280px;overflow:hidden;}
+    #breadcrumb-pill .breadcrumb-pill-ellipsis,
+    #breadcrumb-pill .breadcrumb-pill-parent{color:var(--ink-soft);font-size:13px;cursor:pointer;white-space:nowrap;flex:0 0 auto;}
+    #breadcrumb-pill .breadcrumb-pill-ellipsis:hover,
+    #breadcrumb-pill .breadcrumb-pill-parent:hover{color:var(--ink);text-decoration:underline;}
+    #breadcrumb-pill .breadcrumb-pill-sep{color:var(--ink-soft);opacity:0.5;font-size:12px;flex:0 0 auto;}
+    #breadcrumb-pill .breadcrumb-pill-current{color:var(--ink);font-size:13px;font-weight:600;cursor:text;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:1 1 auto;min-width:0;}
     /* Permanent skinny sidebar rail — always visible (not hidden behind a hover/edge-peek gesture
        like it used to be), a real full-height strip that reserves its own screen space rather than
        floating over the canvas (see #canvas's own comment on why: a full-height floating hit-target
@@ -664,22 +672,15 @@
     #hamburger-stack{position:fixed;left:calc(var(--rail-width) - var(--hmenu-width));width:var(--hmenu-width);z-index:900;display:flex;flex-direction:column;gap:5px;pointer-events:none;top:50%;max-height:60vh;padding-top:0;transform:translateY(-50%);transition:left .3s ease;}
     #hamburger-stack.open{left:var(--rail-width);pointer-events:auto;}
     #hamburger-stack.hmenu-full{top:0;max-height:none;height:100vh;padding-top:60px;gap:0;transform:none;background:var(--bar);border-right:1px solid var(--card-border);}
-    .hmenu-panel, .hmenu-persistent-panel{width:100%;background:var(--bar);border:1px solid var(--card-border);border-radius:12px;box-shadow:0 4px 16px rgba(0,0,0,0.5);pointer-events:auto;}
+    .hmenu-panel{width:100%;background:var(--bar);border:1px solid var(--card-border);border-radius:12px;box-shadow:0 4px 16px rgba(0,0,0,0.5);pointer-events:auto;}
     .hmenu-panel{display:none;}
     .hmenu-panel.open{display:block;}
-    /* Unlike .hmenu-panel (toggled per hamburger sub-view — account-menu vs. Waypoints vs.
-       Collaborations), a persistent panel has no .open gate: it's meant to stay visible
-       throughout, in both preview and full mode, regardless of which sub-view is showing below
-       it — currently only #breadcrumb-menu (hamburger-stack.html). */
-    .hmenu-persistent-panel{flex:0 0 auto;display:block;}
     /* Inside the full sidebar shell, panels are sections of one continuous surface, not
        independently-carded floating panels — the shell above already supplies the
-       background/edge; #account-menu/#breadcrumb-menu keep a divider instead of their own
-       border, same section-divider convention as .hub-subpanel-search-wrap below. */
-    #hamburger-stack.hmenu-full .hmenu-panel, #hamburger-stack.hmenu-full .hmenu-persistent-panel{background:transparent;border:none;border-radius:0;box-shadow:none;}
-    #hamburger-stack.hmenu-full #account-menu, #hamburger-stack.hmenu-full #breadcrumb-menu{border-bottom:1px solid var(--card-border);}
-    #breadcrumb-menu{max-height:160px;overflow-y:auto;padding:6px 4px;scrollbar-width:none;}
-    #breadcrumb-menu::-webkit-scrollbar{display:none;}
+       background/edge; #account-menu keeps a divider instead of its own border, same
+       section-divider convention as .hub-subpanel-search-wrap below. */
+    #hamburger-stack.hmenu-full .hmenu-panel{background:transparent;border:none;border-radius:0;box-shadow:none;}
+    #hamburger-stack.hmenu-full #account-menu{border-bottom:1px solid var(--card-border);}
     #account-menu{flex:0 0 auto;padding:6px;}
     #account-menu .hmenu-item{height:40px;box-sizing:border-box;}
     #outline-menu{flex:1 1 auto;min-height:0;overflow:hidden;}

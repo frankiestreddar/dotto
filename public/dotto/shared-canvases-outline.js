@@ -271,33 +271,38 @@ import { applyFolderView, centerOnContent, expandWaypointCard, openFolder, rende
         }
         return chain;
     }
-    // Real React state (see app/dotto/BreadcrumbMapPanel.jsx, breadcrumbMapStore) — an always-
-    // visible sidebar panel now, not a click-triggered popup, so this is called straight from
-    // render() (waypoints-render-loop.js) on every navigation rather than only on-open. Always
-    // shows the user's own root at the top (pinned there via a synthetic row when currently inside
-    // a shared tree, since the real ancestor chain never reaches it from there — see
-    // buildAncestorChain), then the current path indented to show the real nesting — the
-    // collaboration's own top-level entry sits at the SAME indent as Root (both are top-level
-    // entry points into their own tree), with its own nested levels indented further below it.
+    // Real React state (see app/dotto/BreadcrumbPill.jsx, breadcrumbMapStore) — a compact
+    // "…/parent/current" pill next to the back/forward arrows now, not a full indented ancestor
+    // list, so this only ever needs the last couple of links in the chain plus whether there's
+    // more above them. Called straight from render() (waypoints-render-loop.js) on every
+    // navigation, same as before. Still walks the full structural chain (buildAncestorChain,
+    // including the synthetic Root row pinned in when currently inside a shared tree, since the
+    // real ancestor chain never reaches it from there) — just condenses it down to {hasMore, root,
+    // parent, current} instead of keeping every intermediate row. `root`/`parent`/`current` all
+    // carry `isSyntheticRoot` through untouched, since whichever one ends up being the synthetic
+    // Root row still needs breadcrumbMapRowClick to route it to exitSharedCanvasToRoot() rather
+    // than a plain openFolder('root').
     function renderBreadcrumbMapPanel() {
         const folderObj = appState.folders[appState.currentFolderId];
-        if (!folderObj) { window.__setBreadcrumbMap([]); return; }
+        if (!folderObj) { window.__setBreadcrumbMap({ hasMore: false, root: null, parent: null, current: null }); return; }
         const showSyntheticRoot = folderObj.isSharedView;
-        const rows = [];
+        const chain = [];
         if (showSyntheticRoot) {
-            rows.push({ label: appState.folders['root'] ? appState.folders['root'].title : 'Root', indent: 0, folderId: 'root', isCurrent: false, isSyntheticRoot: true });
+            chain.push({ label: appState.folders['root'] ? appState.folders['root'].title : 'Root', folderId: 'root', isSyntheticRoot: true });
         }
-        buildAncestorChain(appState.currentFolderId).forEach((id, idx) => {
+        buildAncestorChain(appState.currentFolderId).forEach((id) => {
             const target = appState.folders[id];
             if (!target) return;
-            rows.push({ label: target.title || id, indent: idx, folderId: id, isCurrent: id === appState.currentFolderId, isSyntheticRoot: false });
+            chain.push({ label: target.title || id, folderId: id, isSyntheticRoot: false });
         });
-        window.__setBreadcrumbMap(rows);
+        const current = chain[chain.length - 1] || null;
+        const parent = chain.length >= 2 ? chain[chain.length - 2] : null;
+        const root = chain.length > 2 ? chain[0] : null;
+        window.__setBreadcrumbMap({ hasMore: chain.length > 2, root, parent, current });
     }
 
-    // Wired up from BreadcrumbMapPanel.jsx's row onClick — a non-current row's click either exits
-    // to root (the one synthetic row) or navigates there directly, same as before; there's no more
-    // popup to close first now that the map is a permanent sidebar panel.
+    // Wired up from BreadcrumbPill.jsx's ellipsis/parent onClick — a non-current segment's click
+    // either exits to root (the synthetic row) or navigates there directly.
     function breadcrumbMapRowClick(folderId, isSyntheticRoot) {
         if (isSyntheticRoot) exitSharedCanvasToRoot();
         else openFolder(folderId);
@@ -604,7 +609,7 @@ window.__kindIconFile = kindIconFile;
 window.__kindTypeLabel = kindTypeLabel;
 window.__openSharedCanvas = openSharedCanvas;
 
-// React → vanilla bridge — used by BreadcrumbMapPanel.jsx (app/dotto/), which can't import this
+// React → vanilla bridge — used by BreadcrumbPill.jsx (app/dotto/), which can't import this
 // directly since public/dotto/*.js isn't reachable from app/dotto/.
 window.__breadcrumbMapRowClick = breadcrumbMapRowClick;
 window.__resolveReferenceFolderKey = resolveReferenceFolderKey;

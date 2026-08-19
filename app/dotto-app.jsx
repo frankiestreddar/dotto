@@ -41,7 +41,7 @@ import {
 } from "./dotto/bridges";
 import AchievementsGrid from "./dotto/AchievementsGrid";
 import AddToSourcePopup from "./dotto/AddToSourcePopup";
-import BreadcrumbMapPanel from "./dotto/BreadcrumbMapPanel";
+import BreadcrumbPill from "./dotto/BreadcrumbPill";
 import CanvasItemsLayer from "./dotto/CanvasItemsLayer";
 import CanvasResultsPanel from "./dotto/CanvasResultsPanel";
 import CellTagPickerList from "./dotto/CellTagPickerList";
@@ -265,9 +265,9 @@ if (typeof window !== "undefined") {
   // MUST be flushSync: openCollabPanel (friends-presence.js) reads collabBubble's `.show` class
   // synchronously right after a caller in hamburger-collab.js calls this.
   window.__setCollabPill = (state) => flushSync(() => collabPillStore.set(state));
-  // Breadcrumb map — the sidebar's always-visible indented ancestor path (see
-  // app/dotto/BreadcrumbMapPanel.jsx, shared-canvases-outline.js's renderBreadcrumbMapPanel,
-  // called from every render()) — a plain store.set, no synchronous DOM read follows it.
+  // Breadcrumb pill — the compact "…/parent/current" trail next to the back/forward arrows (see
+  // app/dotto/BreadcrumbPill.jsx, shared-canvases-outline.js's renderBreadcrumbMapPanel, called
+  // from every render()) — a plain store.set, no synchronous DOM read follows it.
   window.__setBreadcrumbMap = breadcrumbMapStore.set;
   // Open conversation thread (see app/dotto/MsgConvo.jsx, live-presence.js's renderConvoBody) — a
   // plain store.set, no synchronous DOM read follows it (the scroll-to-bottom reset lives in a
@@ -345,7 +345,7 @@ export default function DottoApp({ sections, currentUser }) {
       <ErrorBoundary name="LibraryPanel"><LibraryPanel /></ErrorBoundary>
       <ErrorBoundary name="ItemDetailFooter"><ItemDetailFooter /></ErrorBoundary>
       <ErrorBoundary name="CollabPill"><CollabPill /></ErrorBoundary>
-      <ErrorBoundary name="BreadcrumbMapPanel"><BreadcrumbMapPanel /></ErrorBoundary>
+      <ErrorBoundary name="BreadcrumbPill"><BreadcrumbPill /></ErrorBoundary>
       <ErrorBoundary name="MsgConvo"><MsgConvo /></ErrorBoundary>
       <ErrorBoundary name="SharedCanvasModalBody"><SharedCanvasModalBody /></ErrorBoundary>
       <ErrorBoundary name="CellTagPickerList"><CellTagPickerList /></ErrorBoundary>

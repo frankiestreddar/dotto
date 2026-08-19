@@ -263,12 +263,13 @@ export const itemDetailFooterStore = createStore(null);
 // `.show` class synchronously right after a caller in hamburger-collab.js calls this.
 export const collabPillStore = createStore({ show: false, collabs: [], moreCount: 0 });
 
-// Breadcrumb map dropdown (public/dotto/shared-canvases-outline.js's renderBreadcrumbMapPanel) —
-// [{label, indent, folderId, isCurrent, isSyntheticRoot}]. Genuine JSX rows, same reasoning as the
-// other list panels. flushSync'd (see app/dotto-app.jsx): openBreadcrumbMapPanel calls
-// positionBreadcrumbMapPanel immediately after, which reads the panel's own offsetWidth —
-// content-driven (white-space:nowrap up to max-width), so it needs the rows already painted.
-export const breadcrumbMapStore = createStore([]);
+// Compact "…/parent/current" breadcrumb pill next to the back/forward arrows (see
+// app/dotto/BreadcrumbPill.jsx, public/dotto/shared-canvases-outline.js's
+// renderBreadcrumbMapPanel) — { hasMore, root, parent, current }, each of `root`/`parent`/
+// `current` either null or {label, folderId, isSyntheticRoot}. Not flushSync'd — a plain store.set,
+// same reasoning as chatsListStore/waypointsListStore: no synchronous DOM read follows a
+// navigation-driven update.
+export const breadcrumbMapStore = createStore({ hasMore: false, root: null, parent: null, current: null });
 
 // First slice of item 11's "Live canvas presence + real-time content sync" grab-bag (see
 // PHASE2_ROADMAP.md — that section needed a 3-way split before extraction): the messaging/
