@@ -24,7 +24,7 @@
         --card-border:#2E2E2E;
         --bar:#161616;
         --brand:#6366f1; /* Beautiful Indigo */
-        --hmenu-width:280px;
+        --hmenu-width:400px;
         --rail-width:64px;
     }
     *{box-sizing:border-box; touch-action: none; user-select:none; -webkit-user-select:none;}
@@ -160,13 +160,14 @@
        git history for that centering math if it's ever needed again), but it's a standalone
        overlay now (search-overlay.html, opened by Space/"/"/#btn-search rather than living inline)
        so there's nothing left to center between these two. */
-    /* left leaves room for the permanent hamburger rail (--rail-width, #btn-menu) — required, not
-       cosmetic: #btn-menu is position:fixed (out of this row's flex flow entirely), so without
-       this offset the next element (the back/forward bubble) would slide left and render starting
-       underneath the rail. */
-    #top-bar{position:fixed;top:20px;left:calc(var(--rail-width) + 20px);right:20px;z-index:1000;display:flex;align-items:center;justify-content:space-between;gap:10px;height:40px;}
+    /* left leaves room for the permanent rail (--rail-width, #dotto-rail) — required, not
+       cosmetic: #dotto-rail is position:fixed (out of any shared flex flow), so without this
+       offset the top bar's own content would render starting underneath it. Only #top-bar-left
+       remains now that Marketplace/Messages/Profile moved into the rail (see #dotto-rail below) —
+       nothing left to push to the opposite edge, so justify-content is flex-start, not
+       space-between. */
+    #top-bar{position:fixed;top:20px;left:calc(var(--rail-width) + 20px);right:20px;z-index:1000;display:flex;align-items:center;justify-content:flex-start;gap:10px;height:40px;}
     #top-bar-left{display:flex;align-items:center;gap:10px;min-width:0;}
-    #top-bar-right{display:flex;align-items:center;gap:10px;}
     /* Shown only while a title being edited is empty (its still-default text, being renamed for
        the first time) — disappears the instant real text exists, since :empty then no longer
        matches. Shared by every click-to-edit title in the app (folder/source cards, and now the
@@ -230,18 +231,25 @@
        floating over the canvas (see #canvas's own comment on why: a full-height floating hit-target
        would otherwise permanently block canvas clicks/drags in that column, which is exactly what
        the removed "Notion-style edge peek" hack in panels-hamburger.js existed to avoid — reserving
-       real space sidesteps the problem entirely instead). padding-top:20px aligns the icon with
-       #top-bar's own top:20px inset, so it visually reads as part of the same top row rather than
-       centered in the full 100vh column. No explicit z-index needed: #btn-menu stays inside
-       #top-bar (position:fixed, z-index:1000) in the DOM, so it paints within that stacking context
-       as a single unit — always above #hamburger-stack (900) and #world (1) — without ever being
-       compared against those z-index values directly. Do NOT "fix" this by adding a z-index here;
-       it would be comparing #btn-menu against the wrong siblings. */
-    #btn-menu{position:fixed;left:0;top:0;width:var(--rail-width);height:100vh;background:var(--bar);border:none;border-right:1px solid var(--card-border);border-radius:0;display:flex;align-items:flex-start;justify-content:center;padding-top:20px;flex:none;}
-    #btn-cart{background:var(--bar);border:1px solid var(--card-border);border-radius:10px;height:40px;width:40px;flex:0 0 auto;}
-    #btn-cart.active{background:#2E2E2E;color:var(--ink);}
-    #btn-messages{background:var(--bar);border:1px solid var(--card-border);border-radius:10px;height:40px;width:40px;flex:0 0 auto;}
-    #btn-messages.active{background:#2E2E2E;color:var(--ink);}
+       real space sidesteps the problem entirely instead). A top-level sibling of #top-bar now (not
+       nested inside it — #btn-menu used to be, and relied on painting within #top-bar's own
+       stacking context for free; now that every rail icon lives in its own #dotto-rail container,
+       it needs its OWN z-index matching #top-bar's, so it likewise stays above #hamburger-stack
+       (900) and #world (1)). padding-top:20px on the container aligns the first icon with #top-bar's
+       own top:20px inset, so the row reads as part of the same top band rather than starting
+       mid-column. */
+    #dotto-rail{position:fixed;left:0;top:0;width:var(--rail-width);height:100vh;background:var(--bar);border-right:1px solid var(--card-border);z-index:1000;display:flex;flex-direction:column;align-items:center;gap:4px;padding:20px 0 20px;box-sizing:border-box;}
+    /* Shared sizing/shape for every icon in the rail — same 40x40 rounded-square convention the
+       old top-bar-right buttons (#btn-cart/#btn-messages) already used, just no longer needing
+       their own background/border (the rail's own background already reads as one continuous
+       surface) until hovered/active. #btn-profile overrides this to a circle below, matching its
+       own pre-existing shape. */
+    .rail-btn{background:none;border:none;border-radius:10px;height:40px;width:40px;flex:0 0 auto;display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--ink-soft);}
+    .rail-btn:hover{background:#242424;color:var(--ink);}
+    .rail-btn.active{background:#2E2E2E;color:var(--ink);}
+    /* Pushes Undo/Redo to the bottom of the rail without needing a fixed pixel gap — the column
+       above them can hold anywhere from a handful to many icons depending on future additions. */
+    #rail-bottom-group{margin-top:auto;display:flex;flex-direction:column;align-items:center;gap:4px;}
     /* Highlighted while dragging a card (or the current multi-selection) over it — the drop
        target that starts the schedule conversation (see the drag `up` handler in
        setupDraggingAndClicking) now that the old right-click "Schedule" menu item is gone. */
@@ -515,13 +523,12 @@
     #dotto-footer-link{color:var(--ink-soft);text-decoration:none;pointer-events:auto;}
     #dotto-footer-link:hover{color:var(--ink);text-decoration:underline;}
 
-    #btn-menu.active{background:#2E2E2E;color:var(--ink);}
-    /* .active (above) already highlights on hover-preview OR pin, matching every other hover/pin
-       button in the app — this is a separate, narrower class so the icon only swaps to a close
-       affordance once the sidebar is genuinely pinned open (not on a mere hover peek). No
-       close.png asset exists yet, so this borrows the app's existing plain-glyph close-button
-       convention (canvas-modal-close, search-cards-modal-close) rather than an image — swap in a
-       real icon later if one gets added. */
+    /* .rail-btn.active (see #dotto-rail's own comment) already highlights on hover-preview OR pin,
+       matching every other hover/pin button in the app — .hmenu-full below is a separate, narrower
+       class so the icon only swaps to a close affordance once the sidebar is genuinely pinned open
+       (not on a mere hover peek). No close.png asset exists yet, so this borrows the app's existing
+       plain-glyph close-button convention (canvas-modal-close, search-cards-modal-close) rather
+       than an image — swap in a real icon later if one gets added. */
     #btn-menu .btn-menu-close-icon{display:none;font-size:16px;}
     #btn-menu.hmenu-full img{display:none;}
     #btn-menu.hmenu-full .btn-menu-close-icon{display:block;}
@@ -560,14 +567,15 @@
        threshold (button y=30) becomes avatar-local y=38, intersecting the circle at x=6.68/41.32. */
     .profile-avatar-sm{width:48px;height:48px;border-radius:50%;background:none;overflow:hidden;color:white;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600;flex:0 0 auto;clip-path:path('M -20 -20 L 68 -20 L 68 38 L 41.32 38 A 20 20 0 0 1 6.68 38 L -20 38 Z');}
     .profile-avatar-sm img{width:100%;height:100%;object-fit:cover;display:block;}
-    /* The profile "tab" is now several separate stacked panels rather than one box — each
+    /* The profile "tab" is several separate stacked panels rather than one box — each
        .profile-block is its own rounded card, matching the .hmenu-panel stacked convention.
-       height is set directly in JS (see positionProfilePanel) to fill from the button down to
-       near the bottom of the viewport, since #profile-spritebook-block (flex:1 below) needs an
-       actual constrained container height to grow into/scroll within rather than just pushing
-       the panel taller. */
-    #profile-panel{display:none;position:fixed;z-index:2000;width:240px;flex-direction:column;gap:5px;}
-    #profile-panel.open{display:flex;}
+       Position/size/display now all come from the shared .hmenu-panel/.hub-subpanel rules
+       (#profile-panel shares that shell like every other rail view — see openRailView,
+       panels-hamburger.js); only the gap between the stacked .profile-block children below is
+       still specific to this panel. #profile-spritebook-block (flex:1 below) fills whatever
+       height the shell's own full-sidebar mode leaves it, no separate JS-computed height needed
+       anymore. */
+    #profile-panel{gap:5px;}
     .profile-block{background:var(--bar);border:1px solid var(--card-border);border-radius:12px;padding:14px;box-shadow:0 4px 16px rgba(0,0,0,0.5);box-sizing:border-box;}
 
     #profile-identity-block{display:flex;align-items:center;gap:12px;flex:0 0 auto;}
@@ -638,37 +646,39 @@
     #profile-upgrade-btn{width:100%;display:flex;align-items:center;justify-content:space-between;gap:8px;padding:14px;background:transparent;border:none;border-radius:12px;color:var(--ink);font-size:13px;font-weight:700;font-family:inherit;cursor:pointer;}
     #profile-upgrade-btn:hover{background:#2a2a2a;}
     .profile-upgrade-crown{width:16px;height:16px;flex:0 0 auto;color:#ffca28;}
-    /* #account-menu is fixed-height and never grows; #outline-menu flexes to fill whatever
-       height the panel actually has (full viewport when pinned open as a sidebar, capped at
-       60vh when just previewed on hover), its tree list scrolling internally. No breadcrumb -
-       the rolling window is always anchored to the live canvas position, not a separate
-       menu-only state. */
-    /* Two very different shapes for the same panel, both sliding out from behind the permanent
-       rail (#btn-menu — now a real full-height strip, always visible, not a hidden edge-peek
-       gesture): hovering #btn-menu previews the menu — a small floating, rounded, vertically-
-       centered card capped at 60vh, never touching or shifting the top bar. Clicking #btn-menu
-       instead pins it open as a real full-height sidebar (.hmenu-full): edge to edge, square
-       corners, one continuous shell rather than a floating card — #account-menu/#outline-menu
-       (etc, see below) lose their own independent card chrome in that state and read as sections
-       inside it instead. #btn-menu itself intentionally never moves — padding-top on the
-       full-height shell (matching the top bar's own 60px band) keeps every actual panel's content
-       starting below it, never underneath/overlapped by it, satisfying "the close button sits at
-       the top, panels under" without needing a second close control duplicated inside the sidebar.
-       z-index sits below #top-bar (1000, and #btn-menu paints as part of that same stacking
-       context — see #btn-menu's own comment) so #btn-menu stays visually on top and clickable;
-       above #world (1) so it fully overlays canvas content. Only `left` ever animates — top/
-       max-height/padding-top/transform apply instantly the moment .hmenu-full is toggled, so the
-       full sidebar is already its final full-height shape before it starts sliding in, rather than
-       visibly growing into that shape as it slides (the preview shape isn't affected either way,
-       since its own top/max-height/transform values are already the closed-state defaults —
+    /* #outline-menu flexes to fill whatever height the panel actually has (full viewport when
+       pinned open as a sidebar, capped at 60vh when just previewed on hover), its tree list
+       scrolling internally. No breadcrumb - the rolling window is always anchored to the live
+       canvas position, not a separate menu-only state. */
+    /* Two very different shapes for the same shell, both sliding out from behind the permanent
+       rail (#dotto-rail — a real full-height strip, always visible, not a hidden edge-peek
+       gesture): hovering a rail icon previews its view — a small floating, rounded, vertically-
+       centered card capped at 60vh, never touching or shifting the top bar. Clicking one instead
+       pins it open as a real full-height sidebar (.hmenu-full): edge to edge, square corners, one
+       continuous shell rather than a floating card — every .hmenu-panel section loses its own
+       independent card chrome in that state and reads as a section inside it instead. #dotto-rail
+       itself intentionally never moves — padding-top on the full-height shell (matching the top
+       bar's own 60px band) keeps every actual panel's content starting below it, never underneath/
+       overlapped by it, satisfying "the icons sit at the top, panels under" without needing a
+       second close control duplicated inside the sidebar. z-index (900) sits below #dotto-rail/
+       #top-bar (1000, see #dotto-rail's own comment) so the rail icons stay visually on top and
+       clickable; above #world (1) so it fully overlays canvas content. Only `left` ever animates —
+       top/max-height/padding-top/transform apply instantly the moment .hmenu-full is toggled, so
+       the full sidebar is already its final full-height shape before it starts sliding in, rather
+       than visibly growing into that shape as it slides (the preview shape isn't affected either
+       way, since its own top/max-height/transform values are already the closed-state defaults —
        nothing to snap). pointer-events stay off until .open so the always-in-the-DOM container
        never blocks clicks over the canvas while closed. */
-    /* Both left values shifted by +var(--rail-width) now that the permanent rail (#btn-menu) sits
-       at the true left edge: closed lands at rail-width - hmenu-width (=-216px at the default
-       64px/280px), so the panel's right edge sits at exactly -216+280=64px — flush with the rail's
-       own right edge, meaning it's hidden BEHIND the rail (which paints above it, see #btn-menu's
-       own z-index comment) for free, no separate "peek" reveal logic needed. Open still lands
-       flush against the rail's right edge (var(--rail-width), was 0) rather than overlapping it. */
+    /* Both left values shifted by +var(--rail-width) so the shell sits beside the permanent rail
+       rather than the true left edge: closed lands at rail-width - hmenu-width (=-336px at the
+       default 64px/400px), so the shell's right edge sits at exactly -336+400=64px — flush with
+       the rail's own right edge, meaning it's hidden BEHIND the rail (which paints above it, see
+       #dotto-rail's own z-index comment) for free, no separate "peek" reveal logic needed. Open
+       still lands flush against the rail's right edge (var(--rail-width), was 0) rather than
+       overlapping it. --hmenu-width is 400px (was 280px) — widened to comfortably fit
+       Marketplace's own content (its widest existing view, previously a standalone 380px-wide
+       floating card), now that Marketplace/Messages/Profile share this same shell/width instead of
+       each picking their own. */
     #hamburger-stack{position:fixed;left:calc(var(--rail-width) - var(--hmenu-width));width:var(--hmenu-width);z-index:900;display:flex;flex-direction:column;gap:5px;pointer-events:none;top:50%;max-height:60vh;padding-top:0;transform:translateY(-50%);transition:left .3s ease;}
     #hamburger-stack.open{left:var(--rail-width);pointer-events:auto;}
     #hamburger-stack.hmenu-full{top:0;max-height:none;height:100vh;padding-top:60px;gap:0;transform:none;background:var(--bar);border-right:1px solid var(--card-border);}
@@ -677,12 +687,8 @@
     .hmenu-panel.open{display:block;}
     /* Inside the full sidebar shell, panels are sections of one continuous surface, not
        independently-carded floating panels — the shell above already supplies the
-       background/edge; #account-menu keeps a divider instead of its own border, same
-       section-divider convention as .hub-subpanel-search-wrap below. */
+       background/edge. */
     #hamburger-stack.hmenu-full .hmenu-panel{background:transparent;border:none;border-radius:0;box-shadow:none;}
-    #hamburger-stack.hmenu-full #account-menu{border-bottom:1px solid var(--card-border);}
-    #account-menu{flex:0 0 auto;padding:6px;}
-    #account-menu .hmenu-item{height:40px;box-sizing:border-box;}
     #outline-menu{flex:1 1 auto;min-height:0;overflow:hidden;}
     #outline-menu.open{display:flex;flex-direction:column;}
     /* scrollbar-width:none + the ::-webkit-scrollbar rule below hide the scrollbar chrome without
@@ -691,12 +697,11 @@
        this menu should ever show a visible scrollbar. */
     #hmenu-outline-container{flex:1 1 auto;overflow-y:auto;min-height:0;padding:6px 4px;scrollbar-width:none;}
     #hmenu-outline-container::-webkit-scrollbar{display:none;}
-    /* Each of waypoints-panel/hub-collab-panel replaces #account-menu + #outline-menu (both
-       closed while either is open — see openWaypointsPanel/openHubCollabPanel/
-       closeHamburgerMenu) when Collaborations or Waypoints is clicked in #account-menu. Same
-       #hamburger-stack column/width, same open/close/pin machinery (panelPinned.menu) as the rest
-       of the stack — each is its own view of the same menu, not a separate panel with its own
-       pin/hover state. */
+    /* Every panel-style rail view (Waypoints/Collaborations/Marketplace/Messages/Profile/AI search
+       — see openRailView, panels-hamburger.js) replaces #outline-menu while open, one per rail
+       icon. Same #hamburger-stack column/width, same open/close/pin machinery
+       (appState.panelPinned.rail) as the rest of the stack — each is its own view of the same
+       shell, not a separate panel with its own pin/hover state. */
     .hub-subpanel{flex:1 1 auto;min-height:0;display:none;flex-direction:column;overflow:hidden;}
     .hub-subpanel.open{display:flex;}
     .hub-subpanel-search-wrap{flex:0 0 auto;padding:10px;border-bottom:1px solid var(--card-border);}
@@ -731,21 +736,6 @@
        `mask-image`/`-webkit-mask-image` inline (a per-instance URL) and size the element via
        width/height. */
     .icon-mask{display:inline-block;background-color:currentColor;-webkit-mask-repeat:no-repeat;mask-repeat:no-repeat;-webkit-mask-position:center;mask-position:center;-webkit-mask-size:contain;mask-size:contain;}
-    .hmenu-item{position:relative;display:flex;align-items:center;justify-content:flex-start;gap:8px;padding:9px 12px;border-radius:8px;cursor:pointer;font-size:13px;color:var(--ink);}
-    /* Always full white (var(--ink)), not dimmed at rest like the outline-tree/search-result
-       icons below — Collaborations/Waypoints are top-level menu entries, not a dense list, so
-       they don't need a hover state to stand out. */
-    .hmenu-item-icon{width:20px;height:20px;flex:0 0 auto;color:var(--ink);}
-    .hmenu-item:hover, .hmenu-item.sub-open{background:#333;}
-    .hmenu-caret{color:var(--ink-soft);font-size:12px;flex:0 0 auto;}
-    .hmenu-divider{height:1px;background:var(--card-border);margin:6px 4px;}
-    .hmenu-submenu{display:none;position:absolute;top:-6px;right:calc(100% + 6px);min-width:180px;background:var(--bar);border:1px solid var(--card-border);border-radius:12px;padding:6px;box-shadow:0 4px 16px rgba(0,0,0,0.5);}
-    .hmenu-item:hover > .hmenu-submenu{display:block;}
-    .hmenu-subitem{padding:9px 12px;border-radius:8px;cursor:pointer;font-size:13px;color:var(--ink);white-space:nowrap;}
-    .hmenu-subitem:hover{background:#333;}
-
-    #messages-panel{display:none;position:fixed;top:68px;left:20px;width:320px;height:min(520px, calc(100vh - 100px));background:var(--bar);border:1px solid var(--card-border);border-radius:12px;z-index:2000;box-shadow:0 4px 16px rgba(0,0,0,0.5);flex-direction:column;overflow:hidden;}
-    #messages-panel.open{display:flex;}
     /* Schedule View Mode has two sub-modes sharing one #canvas.schedule-view-mode class:
        - Single-canvas in-place transform (default — see enterCanvasScheduleMode/
          renderCanvasScheduleAgenda in JS): the REAL canvas stays visible; real cards hide/
@@ -989,8 +979,6 @@
        input) instead of staying the same dim grey whether the box is empty or full. */
     #msg-convo-send.has-text{background:var(--brand);border-color:var(--brand);color:#fff;}
 
-    #cart-panel{display:none;position:fixed;width:380px;height:min(520px, calc(100vh - 100px));background:var(--bar);border:1px solid var(--card-border);border-radius:12px;z-index:2000;box-shadow:0 4px 16px rgba(0,0,0,0.5);flex-direction:column;overflow:hidden;}
-    #cart-panel.open{display:flex;}
     #cart-tabs{display:flex;border-bottom:1px solid var(--card-border);background:#1a1a1a;}
     .cart-tab-btn{flex:1;padding:10px;font-size:12px;color:var(--ink-soft);text-align:center;cursor:pointer;font-weight:600;}
     .cart-tab-btn.active{color:var(--ink);background:var(--bar);border-bottom:1px solid var(--brand);}
@@ -1606,7 +1594,6 @@
        color for free instead of needing a duplicate hover rule here. */
     .outline-icon{flex:0 0 auto;width:18px;height:18px;}
     .outline-label{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0;}
-    .hmenu-simple{font-size:13px;}
 
     .item{position:absolute;background:var(--card);border:1px solid var(--card-border);border-radius:10px;box-shadow:0 4px 12px rgba(0,0,0,0.3);padding:8px;display:flex;flex-direction:column;cursor:pointer;z-index:1;color:var(--ink);user-select:none; cursor: pointer;}
     .item:hover{cursor: pointer;border-color:#454545;}

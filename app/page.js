@@ -18,11 +18,8 @@ import DottoApp from "./dotto-app";
 const FRAGMENT_NAMES = [
   "top-bar",
   "search-overlay",
-  "profile-panel",
-  "messages-panel",
   "collab-panel",
   "canvas-modal",
-  "cart-panel",
   "hamburger-stack",
   "canvas-area",
   "bottom-toolbars",

@@ -3,7 +3,7 @@ import { shortUrl } from './cards-misc.js';
 import { appState, canvasViewportCenterX, supabase } from './core-state.js';
 import { applyTransform, smoothPanTo } from './history-autosave.js';
 import { flashCanvasElement } from './mnemonic-search-matching.js';
-import { closeHamburgerMenu } from './panels-hamburger.js';
+import { closeRailView, openRailView } from './panels-hamburger.js';
 import { pushNotification } from './stopwatch-search-notifications.js';
 import { applyFolderView, centerOnContent, expandWaypointCard, openFolder, render } from './waypoints-render-loop.js';
 
@@ -110,7 +110,7 @@ import { applyFolderView, centerOnContent, expandWaypointCard, openFolder, rende
         appState.currentFolderId = localKey;
         appState.historyStack = [localKey];
         appState.historyIndex = 0;
-        closeHamburgerMenu();
+        closeRailView();
         render();
         centerOnContent();
         if (isFreshEntry) announceEnteredCollaboration(localKey);
@@ -207,7 +207,7 @@ import { applyFolderView, centerOnContent, expandWaypointCard, openFolder, rende
         appState.currentFolderId = localKey;
         appState.historyStack = [localKey];
         appState.historyIndex = 0;
-        closeHamburgerMenu();
+        closeRailView();
         render();
         centerOnContent();
     }
@@ -491,7 +491,7 @@ import { applyFolderView, centerOnContent, expandWaypointCard, openFolder, rende
                     // Sources are entered directly (they just show a table) rather than centered
                     // on as a card — unlike every other item kind, including canvases.
                     if (appState.currentFolderId !== item.folderId) openFolder(item.folderId);
-                    closeHamburgerMenu();
+                    closeRailView();
                 } else {
                     // Canvas cards and leaf cards alike: land on this item within its OWN direct
                     // parent (`folder`, the containing folder this row belongs to) — never
@@ -581,7 +581,7 @@ import { applyFolderView, centerOnContent, expandWaypointCard, openFolder, rende
             if (el && it.kind === 'waypoint') expandWaypointCard(el, it, { editable: false });
             flashCanvasElement(el);
         }
-        closeHamburgerMenu();
+        closeRailView();
     }
     function setOutlineActive(idx) {
         if (!appState.outlineRows.length) return;
@@ -592,15 +592,13 @@ import { applyFolderView, centerOnContent, expandWaypointCard, openFolder, rende
         row.el.classList.add('active');
         row.el.scrollIntoView({ block: 'nearest' });
     }
+    // "M" keyboard shortcut (srs-connections-core.js) — routes through the same shared rail
+    // mechanism the outline's own icon uses (openRailView/closeRailView, panels-hamburger.js)
+    // rather than toggling classes directly, so it correctly closes whichever OTHER rail view
+    // might currently be open instead of just layering the outline on top of it.
     function toggleHamburgerMenu() {
-        const willOpen = !appState.outlineMenu.classList.contains('open');
-        appState.outlineMenu.classList.toggle('open', willOpen);
-        appState.accountMenu.classList.toggle('open', willOpen);
-        appState.hamburgerBtn.classList.toggle('active', willOpen);
-        if(willOpen) {
-            buildOutline();
-            setOutlineActive(0);
-        }
+        if (appState.activeRailView === 'outline') { closeRailView(); }
+        else { openRailView('outline', appState.outlineMenu, appState.hamburgerBtn, () => { buildOutline(); setOutlineActive(0); }, true); }
     }
 
 export { announceEnteredCollaboration, breadcrumbMapRowClick, buildOutline, ensurePublicFolderLoaded, ensureSharedFolderLoaded, goToOutlineItem, jumpToHistoryIndex, kindIconFile, kindIconHTML, kindTypeLabel, namespacePublicFolderIds, namespaceSharedFolderIds, openPublicCanvas, openSharedCanvas, parsePublicFolderKey, parseSharedFolderKey, publicFolderKey, renderBreadcrumbMapPanel, resolveReferenceFolderKey, setOutlineActive, sharedFolderKey, stripSharedFolderIds, toggleHamburgerMenu };

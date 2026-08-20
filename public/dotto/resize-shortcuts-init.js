@@ -2,7 +2,7 @@ import { switchAddTab } from './add-menu.js';
 import { addMenu, appState, btnBack, btnForward, contextMenu } from './core-state.js';
 import { refreshCanvasCollabForCurrentFolder, refreshFriendsData, renderCollabPill } from './friends-presence.js';
 import { fcFlip, fcRate, trNext } from './games-flashcard-typeright.js';
-import { applyTransform, loadWorkspace, saveSnapshot, scheduleWorkspaceSave } from './history-autosave.js';
+import { applyTransform, loadWorkspace, redo, saveSnapshot, scheduleWorkspaceSave, undo } from './history-autosave.js';
 import { broadcastItemResize, findItemById } from './live-presence.js';
 import { refreshDotbotUsage } from './profile-achievements-pricing.js';
 import { announceEnteredCollaboration, jumpToHistoryIndex } from './shared-canvases-outline.js';
@@ -148,14 +148,13 @@ import { cascadeDeleteFolderContents, centerOnContent, deleteWaypointFromDb, ren
         return it && (it.kind === 'flashcard' || it.kind === 'typeright') ? it : null;
     }
     // Any panel that owns its own keyboard input while open — same set closeAllPanels() knows
-    // about, plus the search dropdown/outline menu — wins over a hovered card's shortcuts even
-    // if the cursor happens to still be sitting over that card underneath it.
+    // about, plus the search dropdown — wins over a hovered card's shortcuts even if the cursor
+    // happens to still be sitting over that card underneath it. Outline/Waypoints/Collaborations/
+    // Marketplace/Messages/Profile all share one rail shell now (see appState.railViewEls,
+    // core-state.js) — checking the whole list covers all of them in one go instead of naming each
+    // one individually.
     function isAnyUiPanelOpen() {
-        return appState.outlineMenu.classList.contains('open')
-            || appState.accountMenu.classList.contains('open')
-            || appState.messagesPanel.classList.contains('open')
-            || appState.cartPanel.classList.contains('open')
-            || appState.profilePanel.classList.contains('open')
+        return appState.railViewEls.some(el => el && el.classList.contains('open'))
             || appState.collabPanel.classList.contains('open')
             || addMenu.style.display === 'flex'
             || appState.sourceAddMenu.style.display === 'flex'
@@ -190,7 +189,12 @@ import { cascadeDeleteFolderContents, centerOnContent, deleteWaypointFromDb, ren
 
     btnBack.onclick = () => { if(appState.historyIndex > 0) jumpToHistoryIndex(appState.historyIndex - 1); };
     btnForward.onclick = () => { if(appState.historyIndex < appState.historyStack.length - 1) jumpToHistoryIndex(appState.historyIndex + 1); };
-    
+    // Plain instant-action rail icons (see content/fragments/top-bar.html) — no panel, no
+    // hover-preview/pin state, just a direct call same as the existing Cmd+Z/Cmd+Shift+Z keyboard
+    // shortcuts already wired elsewhere to these exact same functions.
+    appState.railBtnUndo.onclick = undo;
+    appState.railBtnRedo.onclick = redo;
+
     updateDrawLayerBtns();
     switchAddTab('notes');
     applyCursorMode();

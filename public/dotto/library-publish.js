@@ -10,8 +10,9 @@ import { refreshMyLibrary, renderLibrary, switchLibraryFolder } from './marketpl
         appState.detailSourceFolder = sourceFolder;
         appState.detailOriginal = { title: item.title, description: item.description || '', price: item.price || '' };
 
-        // Keep the marketplace panel open (pinned) while the detail page is showing
-        appState.panelPinned.cart = true;
+        // Keep the marketplace panel open (pinned) while the detail page is showing — Marketplace
+        // shares the one rail-wide pinned flag now (see appState.panelPinned.rail, core-state.js).
+        appState.panelPinned.rail = true;
         appState.cartPanel.classList.add('open');
         appState.btnCart.classList.add('active');
 

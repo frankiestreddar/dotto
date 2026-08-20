@@ -207,10 +207,24 @@
         MODE_ORDER_WEIGHT: { normal: 0, data: 1, select: 2 },
         MODE_HOLD_THRESHOLD_MS: 180,
         modeKeyHoldStart: null,
-        panelPinned: { menu: false, messages: false, cart: false, add: false, profile: false, collab: false, sourceAdd: false },
+        // "rail" replaces the old separate menu/messages/cart/profile flags — all four now share
+        // one #hamburger-stack shell (see openRailView, panels-hamburger.js), so there's only ever
+        // one pinned-or-not state to track, not four independent ones that happened to all mean
+        // "is #hamburger-stack pinned open." add/collab/sourceAdd are unrelated systems (add-menu,
+        // the per-canvas collab flyout, source-add-menu) and keep their own flags.
+        panelPinned: { rail: false, add: false, collab: false, sourceAdd: false },
+        // Which #hamburger-stack view is currently showing — null | 'ai' | 'outline' | 'waypoints'
+        // | 'collab' | 'marketplace' | 'messages' | 'profile'. Set by openRailView, cleared by
+        // closeRailView (panels-hamburger.js).
+        activeRailView: null,
+        dottoRail: document.getElementById('dotto-rail'),
+        railBtnAi: document.getElementById('rail-btn-ai'),
+        railBtnWaypoints: document.getElementById('rail-btn-waypoints'),
+        railBtnCollab: document.getElementById('rail-btn-collab'),
+        railBtnUndo: document.getElementById('rail-btn-undo'),
+        railBtnRedo: document.getElementById('rail-btn-redo'),
         hamburgerBtn: document.getElementById('btn-menu'),
         outlineMenu: document.getElementById('outline-menu'),
-        accountMenu: document.getElementById('account-menu'),
         hamburgerStack: document.getElementById('hamburger-stack'),
         waypointsPanel: document.getElementById('waypoints-panel'),
         waypointsSearchInput: document.getElementById('waypoints-search'),
@@ -356,6 +370,7 @@
         searchCardPill: document.getElementById('search-card-pill'),
         searchCardPillLabel: document.getElementById('search-card-pill-label'),
         searchOverlayBackdrop: document.getElementById('search-overlay-backdrop'),
+        searchBar: document.getElementById('search-bar'),
         searchBtn: document.getElementById('btn-search'),
         NOTIFICATION_DEFAULT_DURATION_MS: 5000,
         NOTIF_FLASH_MS: 400,
@@ -418,8 +433,15 @@
     appState.dotLayerBaseY = -appState.DOT_LAYER_MARGIN / 2;
     appState.addMenuHoverEls = [appState.addToolbar, addMenu, appState.addMenuActions];
     appState.modeButtons = Array.from(appState.modeToolbar.querySelectorAll('.mode-btn'));
-    appState.hubSubpanels = [appState.waypointsPanel, appState.hubCollabPanel, appState.chatsPanel];
-    appState.hamburgerHoverEls = [appState.hamburgerBtn, appState.outlineMenu, appState.accountMenu, ...appState.hubSubpanels];
+    // Every panel-style rail view, in the same order as their icons top-to-bottom in #dotto-rail
+    // (see openRailView/closeRailView, panels-hamburger.js) — replaces the old hubSubpanels (just
+    // Waypoints/Collaborations/Chats) now that Marketplace/Messages/Profile/AI search share the
+    // exact same "one shell, swap which section is .open" mechanism. #chats-panel is deliberately
+    // NOT here — Chats is a sub-view reached from inside the AI view (searchBar), not a top-level
+    // rail destination of its own.
+    appState.railViewEls = [appState.searchBar, appState.outlineMenu, appState.waypointsPanel, appState.hubCollabPanel, appState.cartPanel, appState.messagesPanel, appState.profilePanel];
+    appState.railIconBtns = [appState.railBtnAi, appState.hamburgerBtn, appState.railBtnWaypoints, appState.railBtnCollab, appState.btnCart, appState.messagesBtn, appState.profileBtn];
+    appState.railHoverEls = [appState.dottoRail, ...appState.railViewEls];
     appState.TOTAL_SUB_LEVELS = appState.LEVEL_NAMES.length * appState.SUB_RANKS_PER_TIER;
     // Same reason as the block above: can't reference appState.currentUser from inside appState's
     // own object literal, since appState doesn't exist yet until that literal finishes constructing.

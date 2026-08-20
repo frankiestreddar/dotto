@@ -3,7 +3,7 @@ import { addMenu, appState, canvasViewportCenterX, drawSettings, supabase } from
 import { openCollabPanel, renderCollabPill } from './friends-presence.js';
 import { saveWorkspaceNow, smoothPanTo } from './history-autosave.js';
 import { flashCanvasElement } from './mnemonic-search-matching.js';
-import { closeHamburgerMenu } from './panels-hamburger.js';
+import { closeRailView } from './panels-hamburger.js';
 import { closeProfilePanel, openPricingOverlay } from './profile-achievements-pricing.js';
 import { announceEnteredCollaboration, ensureSharedFolderLoaded, sharedFolderKey } from './shared-canvases-outline.js';
 import { pushNotification } from './stopwatch-search-notifications.js';
@@ -231,7 +231,7 @@ import { deleteCanvasCollabsForFolder, deleteWaypointCardEverywhere, expandWaypo
         return localKeys;
     }
     async function goToWaypointCard(ownerId, folderId, itemId) {
-        closeHamburgerMenu();
+        closeRailView();
         if (ownerId === appState.currentUser.id) {
             if (appState.currentFolderId !== folderId) openFolder(folderId);
             const it = appState.folders[folderId] && appState.folders[folderId].items.find(i => String(i.id) === String(itemId));
@@ -257,7 +257,7 @@ import { deleteCanvasCollabsForFolder, deleteWaypointCardEverywhere, expandWaypo
     // comment on this), so setting currentConversationId/chatThreadStore right after it here is
     // never immediately wiped out by that reset.
     async function openSavedChat(conversationId) {
-        closeHamburgerMenu();
+        closeRailView();
         openSearchOverlay();
         if (!supabase || !appState.currentUser.id) return;
         const { data, error } = await supabase.from('dotbot_messages')
@@ -364,7 +364,7 @@ import { deleteCanvasCollabsForFolder, deleteWaypointCardEverywhere, expandWaypo
         if (panel === 'collaborations') { deleteSelectedCollabs(ids); return; }
     }
     function hmenuAction(action) {
-        closeHamburgerMenu();
+        closeRailView();
         closeProfilePanel();
         if (action === 'upgrade') {
             openPricingOverlay();

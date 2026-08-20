@@ -1,51 +1,33 @@
-import { clearSearch } from './ai-assistant-suggestions.js';
 import { appState, canvas, zoomControl } from './core-state.js';
 import { renderMsgList } from './friends-presence.js';
 import { applyTransform, smoothPanTo } from './history-autosave.js';
 import { closeConvo, miniLabelForItem } from './live-presence.js';
-import { closeAllPanels, pinOnInsideClick, scheduleHoverClose } from './panels-hamburger.js';
+import { closeRailView, openRailView, wireRailIcon } from './panels-hamburger.js';
 import { cameraCenterFor, clearArrangedSlots, computeArrangedLayout, SCHEDULE_ALL, setArrangedSlots } from './schedule-view-canvas.js';
 import { ensureSharedFolderLoaded, kindTypeLabel } from './shared-canvases-outline.js';
 
 
     // ---------- Messages Panel Controls ----------
+    // Messages shares the permanent rail's one shell/pinned-state now (see openRailView/
+    // wireRailIcon, panels-hamburger.js) — kept as named, exported functions (unlike Marketplace's
+    // fully-inlined wireRailIcon call) since openMessagesPanel/closeMessagesPanel have callers
+    // outside this file (friends-presence.js opens straight to a specific conversation from a
+    // notification action; live-presence.js closes it from elsewhere).
     // Also closes any open conversation (not just the panel around it) — otherwise it stays
     // "open" internally at whatever scroll position was left, and reopening the panel later
     // shows that same stale state instead of a fresh bottom-of-conversation view.
-    function closeMessagesPanel() { appState.messagesPanel.classList.remove('open'); appState.messagesBtn.classList.remove('active'); appState.panelPinned.messages = false; closeConvo(); }
-    function positionMessagesPanel() {
-        const rect = appState.messagesBtn.getBoundingClientRect();
-        appState.messagesPanel.style.bottom = 'auto';
-        appState.messagesPanel.style.top = (rect.bottom + 10) + 'px';
-        const panelWidth = 320;
-        const btnCenter = rect.left + rect.width / 2;
-        let leftPos = btnCenter - panelWidth / 2;
-        if (leftPos + panelWidth > window.innerWidth - 20) leftPos = window.innerWidth - panelWidth - 20;
-        if (leftPos < 20) leftPos = 20;
-        appState.messagesPanel.style.left = leftPos + 'px';
-        appState.messagesPanel.style.right = 'auto';
-    }
-    function openMessagesPanel(pin) {
-        closeAllPanels('messages');
-        clearSearch();
-        appState.messagesPanel.classList.add('open');
-        appState.messagesBtn.classList.add('active');
+    function closeMessagesPanel() { closeRailView(); closeConvo(); }
+    function refreshMessagesPanel() {
         closeConvo();
         appState.msgView = 'main'; // always land on the main list, never mid-Requests from last time
         appState.msgSearchInput.value = '';
         renderMsgList('');
-        positionMessagesPanel();
-        if (pin) { appState.msgSearchInput.focus(); appState.panelPinned.messages = true; }
     }
-    appState.messagesBtn.addEventListener('click', (e) => {
-        e.stopPropagation();
-        if (appState.panelPinned.messages) { closeMessagesPanel(); }
-        else { openMessagesPanel(true); }
-    });
-    appState.messagesBtn.addEventListener('mouseenter', () => { if (!appState.messagesPanel.classList.contains('open')) openMessagesPanel(false); });
-    appState.messagesBtn.addEventListener('mouseleave', () => scheduleHoverClose('messages', [appState.messagesBtn, appState.messagesPanel], closeMessagesPanel));
-    appState.messagesPanel.addEventListener('mouseleave', () => scheduleHoverClose('messages', [appState.messagesBtn, appState.messagesPanel], closeMessagesPanel));
-    pinOnInsideClick('messages', [appState.messagesPanel]);
+    function openMessagesPanel(pin) {
+        openRailView('messages', appState.messagesPanel, appState.messagesBtn, refreshMessagesPanel, pin);
+        if (pin) appState.msgSearchInput.focus();
+    }
+    wireRailIcon('messages', appState.messagesBtn, appState.messagesPanel, refreshMessagesPanel);
 
     // ---------- Schedule: data + shared date helpers ----------
     // Scheduling itself happens conversationally through Dotbot (see the "Dotbot Scheduling

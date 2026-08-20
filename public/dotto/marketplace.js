@@ -1,26 +1,12 @@
-import { clearSearch } from './ai-assistant-suggestions.js';
 import { appState, canvas, supabase } from './core-state.js';
 import { saveSnapshot } from './history-autosave.js';
 import { openItemDetail } from './library-publish.js';
 import { findItemById, importSharedCardsAtScreenPoint, sanitizeFlashcardSnapshot, snapshotItem } from './live-presence.js';
-import { closeAllPanels, pinOnInsideClick, scheduleHoverClose } from './panels-hamburger.js';
+import { wireRailIcon } from './panels-hamburger.js';
 import { render, renderSelectedOutlines } from './waypoints-render-loop.js';
 
 
     // ---------- Template Marketplace Features ----------
-    function closeCartPanel() { appState.cartPanel.classList.remove('open'); appState.btnCart.classList.remove('active'); appState.panelPinned.cart = false; }
-    function positionCartPanel() {
-        const rect = appState.btnCart.getBoundingClientRect();
-        appState.cartPanel.style.bottom = 'auto';
-        appState.cartPanel.style.top = (rect.bottom + 10) + 'px';
-        const panelWidth = 380;
-        const btnCenter = rect.left + rect.width / 2;
-        let leftPos = btnCenter - panelWidth / 2;
-        if (leftPos + panelWidth > window.innerWidth - 20) leftPos = window.innerWidth - panelWidth - 20;
-        if (leftPos < 20) leftPos = 20;
-        appState.cartPanel.style.left = leftPos + 'px';
-        appState.cartPanel.style.right = 'auto';
-    }
     // Restores whichever tab (discover/library) was last active, clearing any transient
     // detail/publish-flow view. Nothing is ever lost by calling this — drafts are persisted
     // to the database the moment they're created, so there's no "discard" state to worry about.
@@ -31,31 +17,19 @@ import { render, renderSelectedOutlines } from './waypoints-render-loop.js';
         document.getElementById('view-discover').classList.toggle('active', appState.activeCartTab === 'discover');
         document.getElementById('view-library').classList.toggle('active', appState.activeCartTab === 'library');
     }
-    async function openCartPanel(pin) {
-        closeAllPanels('cart');
-        clearSearch();
-        appState.cartPanel.classList.add('open');
-        appState.btnCart.classList.add('active');
-        // Positioned immediately (depends only on the button's rect, not on panel content), so
-        // it never flashes at its unpositioned default in the top-left corner while the first
-        // fetch of the session (the slow one — nothing's cached yet) is still in flight.
-        positionCartPanel();
+    // Marketplace shares the permanent rail's one shell/pinned-state now (see openRailView/
+    // wireRailIcon, panels-hamburger.js) — no more of its own positionCartPanel (the shell is
+    // already positioned beside the rail) or its own click/hover/pin wiring (wireRailIcon covers
+    // that generically). This onOpen callback fires every time the Marketplace icon is hovered or
+    // clicked, same as openCartPanel always did.
+    async function refreshCartPanel() {
         appState.selectedMarketItem = null;
         resetCartPanelToTabView();
         await Promise.all([refreshMarketplaceListings(), refreshMyLibrary()]);
         renderMarketplaceDiscover();
         renderLibrary();
-        if (pin) appState.panelPinned.cart = true;
     }
-    appState.btnCart.addEventListener('click', (e) => {
-        e.stopPropagation();
-        if (appState.panelPinned.cart) { closeCartPanel(); }
-        else { openCartPanel(true); }
-    });
-    appState.btnCart.addEventListener('mouseenter', () => { if (!appState.cartPanel.classList.contains('open')) openCartPanel(false); });
-    appState.btnCart.addEventListener('mouseleave', () => scheduleHoverClose('cart', [appState.btnCart, appState.cartPanel], closeCartPanel));
-    appState.cartPanel.addEventListener('mouseleave', () => scheduleHoverClose('cart', [appState.btnCart, appState.cartPanel], closeCartPanel));
-    pinOnInsideClick('cart', [appState.cartPanel]);
+    wireRailIcon('marketplace', appState.btnCart, appState.cartPanel, refreshCartPanel);
 
     // Listings are cached in trendingMarketplace / userLibrary.{purchased,drafts,published}
     // (same shape and variable names the render functions below already
@@ -412,7 +386,7 @@ import { render, renderSelectedOutlines } from './waypoints-render-loop.js';
         openItemDetail(newItem, 'drafts');
     }
 
-export { addItemToCustomFolderById, closeCartPanel, closeMarketDetail, deployPurchasedTemplate, handleLibrarySearch, handleMarketplaceSearch, openMarketDetail, packageSelectedAsTemplate, purchaseCurrentMarketItem, refreshMyLibrary, removeFromCustomFolder, renderLibrary, switchCartTab, switchLibraryFolder };
+export { addItemToCustomFolderById, closeMarketDetail, deployPurchasedTemplate, handleLibrarySearch, handleMarketplaceSearch, openMarketDetail, packageSelectedAsTemplate, purchaseCurrentMarketItem, refreshMyLibrary, removeFromCustomFolder, renderLibrary, switchCartTab, switchLibraryFolder };
 
 // React → vanilla bridges — used by MarketDiscoverPanel.jsx/LibraryPanel.jsx/ItemDetailFooter.jsx
 // (app/dotto/), which can't import this directly since public/dotto/*.js isn't reachable from

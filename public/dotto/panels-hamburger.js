@@ -1,11 +1,8 @@
-import { clearSearch } from './ai-assistant-suggestions.js';
+import { clearSearch, openSearchOverlay } from './ai-assistant-suggestions.js';
 import { closeAddMenu } from './copy-paste.js';
 import { appState } from './core-state.js';
 import { closeCollabPanel } from './friends-presence.js';
-import { clearListPanelSelection, renderChatsList, renderHubCollabList, renderWaypointsList } from './hamburger-collab.js';
-import { closeCartPanel } from './marketplace.js';
-import { closeMessagesPanel } from './messages-schedule.js';
-import { closeProfilePanel } from './profile-achievements-pricing.js';
+import { clearListPanelSelection, renderHubCollabList, renderWaypointsList } from './hamburger-collab.js';
 import { buildOutline } from './shared-canvases-outline.js';
 import { closeSourceAddMenu } from './source-buttons-cursor-mode.js';
 
@@ -36,97 +33,83 @@ import { closeSourceAddMenu } from './source-buttons-cursor-mode.js';
             el.addEventListener('click', () => { appState.panelPinned[name] = true; }, true);
         });
     }
+    // 'rail' covers every panel-style rail icon (see openRailView below) — Marketplace/Messages/
+    // Profile/the hamburger outline used to each have their own except-key here ('cart'/
+    // 'messages'/'profile'/'menu'); now that they all share one shell there's only one to skip.
     function closeAllPanels(except) {
-        if (except !== 'menu') closeHamburgerMenu();
-        if (except !== 'messages') closeMessagesPanel();
-        if (except !== 'cart') closeCartPanel();
-        if (except !== 'profile') closeProfilePanel();
+        if (except !== 'rail') closeRailView();
         if (except !== 'add') closeAddMenu();
         if (except !== 'collab') closeCollabPanel();
         if (except !== 'sourceAdd') closeSourceAddMenu();
     }
 
-    // ---------- Hamburger Menu Controls ----------
-    // Each of these is its own separate view of the same menu (see openWaypointsPanel /
-    // openHubCollabPanel below) — closing the hamburger by any existing path (outside click,
-    // Escape, re-clicking the button) needs to close whichever one is actually showing, so all are
-    // reset here alongside #account-menu/#outline-menu rather than needing their own separate
-    // close path. Named hub-collab (not just "collab") to avoid colliding with the pre-existing
-    // #collab-panel/collabPanel (the per-canvas "add a collaborator" flyout off the top bar) — a
-    // completely different feature that happens to share the English word.
-    // hmenu-full is what distinguishes the two shapes the panel can take (see #hamburger-stack's
-    // own comment, globals.css): a full-height sidebar pinned open by a click (square corners,
-    // one continuous shell, #btn-menu's icon swaps) vs. a short hover preview that leaves the top
-    // bar completely alone. Applied to both the panel and the button together since each one's
-    // CSS keys off it independently — the panel's own shape, and the button's icon swap.
-    function closeHamburgerMenu() {
-        appState.outlineMenu.classList.remove('open');
-        appState.accountMenu.classList.remove('open');
-        appState.hubSubpanels.forEach(p => p.classList.remove('open'));
-        appState.hamburgerBtn.classList.remove('active');
-        appState.hamburgerStack.classList.remove('open', 'hmenu-full');
-        appState.hamburgerBtn.classList.remove('hmenu-full');
-        appState.panelPinned.menu = false;
+    // ---------- Permanent rail: one shared sliding shell, many trigger icons ----------
+    // Every panel-style rail icon (outline, Waypoints, Collaborations — Marketplace/Messages/
+    // Profile/AI search join this same system in later stages) shares ONE #hamburger-stack shell
+    // and ONE pinned state (appState.panelPinned.rail) — opening any of them closes whichever
+    // other one was showing, for free, just by hiding every other railViewEls sibling and
+    // un-.active-ing every other railIconBtns entry. hmenu-full is what distinguishes the two
+    // shapes the shell can take (see #hamburger-stack's own comment, globals.css): a full-height
+    // sidebar pinned open by a click vs. a short hover preview. `onOpen` is that view's own
+    // refresh call (renderWaypointsList, buildOutline, etc.) — called every time, even on a hover
+    // preview, so content is never stale. clearSearch() stays defensive here (same as the old
+    // openHamburgerMenu always did) until the AI search view itself joins this same shell — until
+    // then, opening any OTHER rail view still needs to close the (still separate) search overlay.
+    function openRailView(key, viewEl, btn, onOpen, pin) {
         clearListPanelSelection();
-    }
-    function openHamburgerMenu(pin) {
-        closeAllPanels('menu');
         clearSearch();
-        appState.outlineMenu.classList.add('open');
-        appState.accountMenu.classList.add('open');
-        appState.hamburgerBtn.classList.add('active');
+        appState.railViewEls.forEach(el => { if (el && el !== viewEl) el.classList.remove('open'); });
+        appState.railIconBtns.forEach(b => { if (b && b !== btn) b.classList.remove('active'); });
+        viewEl.classList.add('open');
+        btn.classList.add('active');
         appState.hamburgerStack.classList.add('open');
-        buildOutline();
+        appState.activeRailView = key;
+        if (onOpen) onOpen();
         if (pin) {
-            appState.panelPinned.menu = true;
+            appState.panelPinned.rail = true;
             appState.hamburgerStack.classList.add('hmenu-full');
-            appState.hamburgerBtn.classList.add('hmenu-full');
+            btn.classList.add('hmenu-full');
         }
     }
-    appState.hamburgerBtn.addEventListener('click', (e) => {
-        e.stopPropagation();
-        if (appState.panelPinned.menu) { closeHamburgerMenu(); }
-        else { openHamburgerMenu(true); }
-    });
-    appState.hamburgerBtn.addEventListener('mouseenter', () => { if (!appState.outlineMenu.classList.contains('open') && !appState.hubSubpanels.some(p => p.classList.contains('open'))) openHamburgerMenu(false); });
-    appState.hamburgerBtn.addEventListener('mouseleave', () => scheduleHoverClose('menu', appState.hamburgerHoverEls, closeHamburgerMenu));
-    appState.outlineMenu.addEventListener('mouseleave', () => scheduleHoverClose('menu', appState.hamburgerHoverEls, closeHamburgerMenu));
-    appState.accountMenu.addEventListener('mouseleave', () => scheduleHoverClose('menu', appState.hamburgerHoverEls, closeHamburgerMenu));
-    appState.hubSubpanels.forEach(p => p.addEventListener('mouseleave', () => scheduleHoverClose('menu', appState.hamburgerHoverEls, closeHamburgerMenu)));
-    pinOnInsideClick('menu', [appState.outlineMenu, appState.accountMenu, ...appState.hubSubpanels]);
-    document.getElementById('hamburger-stack').addEventListener('click', (e) => e.stopPropagation());
-    // No more "Notion-style edge peek" pointermove hack here — #btn-menu is now a permanent,
-    // always-visible full-height rail (see its own comment, globals.css), a real element that
-    // already receives genuine mouseenter/mouseleave events (wired above) covering everything the
-    // hack used to simulate. The hack existed only because a real hit-target the same width would
-    // have blocked canvas clicks/drags underneath it — the rail now reserves its own screen space
-    // instead of floating over the canvas, so that concern no longer applies.
-    // Shared by the three open*Panel functions below — swaps #account-menu/#outline-menu out for
-    // just the one requested panel. Always pins (a sub-panel is only ever reached by clicking an
-    // #account-menu row, which requires the sidebar to already be open) — see openWaypointsPanel/
-    // openHubCollabPanel below.
-    // searchInputEl is optional — chats-panel (below) has no search box of its own (v1: a saved-
-    // chat list is likely short enough not to need one yet).
-    function openHubSubpanel(panel, searchInputEl, renderFn) {
+    function closeRailView() {
+        appState.railViewEls.forEach(el => el && el.classList.remove('open'));
+        appState.railIconBtns.forEach(b => b && b.classList.remove('active', 'hmenu-full'));
+        appState.hamburgerStack.classList.remove('open', 'hmenu-full');
+        appState.activeRailView = null;
+        appState.panelPinned.rail = false;
         clearListPanelSelection();
-        appState.outlineMenu.classList.remove('open');
-        appState.accountMenu.classList.remove('open');
-        appState.hubSubpanels.forEach(p => { if (p !== panel) p.classList.remove('open'); });
-        panel.classList.add('open');
-        appState.hamburgerBtn.classList.add('active');
-        appState.hamburgerStack.classList.add('open', 'hmenu-full');
-        appState.hamburgerBtn.classList.add('hmenu-full');
-        appState.panelPinned.menu = true;
-        if (searchInputEl) searchInputEl.value = '';
-        renderFn('');
     }
-    function openWaypointsPanel() { openHubSubpanel(appState.waypointsPanel, appState.waypointsSearchInput, renderWaypointsList); }
-    function openHubCollabPanel() {
-        appState.hubCollabView = 'main'; // always land on the main list, never mid-Requests from last time
-        openHubSubpanel(appState.hubCollabPanel, appState.hubCollabSearchInput, renderHubCollabList);
+    // Wires one rail icon's hover-preview/click-pin behavior — the same three listeners every
+    // trigger button in the app already used individually before this (compare the old per-panel
+    // wiring still in marketplace.js/messages-schedule.js/profile-achievements-pricing.js, being
+    // migrated onto this shared helper in later stages), now written once instead of duplicated
+    // per file.
+    function wireRailIcon(key, btn, viewEl, onOpen) {
+        btn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            if (appState.panelPinned.rail && appState.activeRailView === key) { closeRailView(); }
+            else { openRailView(key, viewEl, btn, onOpen, true); }
+        });
+        btn.addEventListener('mouseenter', () => { if (appState.activeRailView !== key) openRailView(key, viewEl, btn, onOpen, false); });
+        btn.addEventListener('mouseleave', () => scheduleHoverClose('rail', appState.railHoverEls, closeRailView));
     }
-    function openChatsPanel() { openHubSubpanel(appState.chatsPanel, null, renderChatsList); }
+    appState.railViewEls.forEach(el => { if (el) el.addEventListener('mouseleave', () => scheduleHoverClose('rail', appState.railHoverEls, closeRailView)); });
+    pinOnInsideClick('rail', appState.railViewEls);
+    appState.hamburgerStack.addEventListener('click', (e) => e.stopPropagation());
+    // No more "Notion-style edge peek" pointermove hack here — every rail icon is a permanent,
+    // always-visible element (see #dotto-rail's own comment, globals.css) that already receives
+    // genuine mouseenter/mouseleave events, covering everything the old hack simulated.
+
+    wireRailIcon('outline', appState.hamburgerBtn, appState.outlineMenu, buildOutline);
+    wireRailIcon('waypoints', appState.railBtnWaypoints, appState.waypointsPanel, () => renderWaypointsList(''));
+    wireRailIcon('collab', appState.railBtnCollab, appState.hubCollabPanel, () => { appState.hubCollabView = 'main'; renderHubCollabList(''); });
+    // Temporary passthrough — the AI search view still lives in its own separate modal overlay at
+    // this stage (see openSearchOverlay, ai-assistant-suggestions.js), not yet migrated into
+    // #hamburger-stack. This wiring is replaced with a real wireRailIcon('ai', ...) call once that
+    // migration lands.
+    appState.railBtnAi.addEventListener('click', (e) => { e.stopPropagation(); openSearchOverlay(); });
+
     function handleWaypointsSearch(v) { renderWaypointsList(v); }
     function handleHubCollabSearch(v) { renderHubCollabList(v); }
 
-export { closeAllPanels, closeHamburgerMenu, handleHubCollabSearch, handleWaypointsSearch, openChatsPanel, openHubCollabPanel, openWaypointsPanel, pinOnInsideClick, scheduleHoverClose };
+export { closeAllPanels, closeRailView, handleHubCollabSearch, handleWaypointsSearch, openRailView, pinOnInsideClick, scheduleHoverClose, wireRailIcon };

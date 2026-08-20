@@ -1,33 +1,47 @@
+<!-- The permanent rail (#dotto-rail) replaces the old single #btn-menu button — a full-height
+     strip of icons, each opening its own view inside #hamburger-stack (see openRailView,
+     panels-hamburger.js) via the same hover-preview/click-pin mechanics #btn-menu already had.
+     Back/forward/undo/redo are plain instant-action buttons, not view triggers — no panel opens
+     for them. Undo/redo have no dedicated icon assets yet (none exist in assets/icons/) — same
+     plain-glyph fallback convention already used for the hamburger's own close icon. -->
+<div id="dotto-rail">
+    <button id="rail-btn-ai" class="rail-btn" title="Ask Dotbot">
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" aria-hidden="true"><circle cx="7" cy="7" r="5"></circle><path d="M11 11L14.5 14.5"></path></svg>
+    </button>
+    <button id="btn-menu" class="rail-btn" title="Outline"><img src="/assets/icons/menu-btn.png" alt=""><span class="btn-menu-close-icon">✕</span></button>
+    <button id="btn-back" class="rail-btn" title="Back">←</button>
+    <button id="btn-forward" class="rail-btn" title="Forward">→</button>
+    <button id="rail-btn-waypoints" class="rail-btn" title="Waypoints"><img src="/assets/icons/waypoint.png" alt=""></button>
+    <button id="rail-btn-collab" class="rail-btn" title="Collaborations"><img src="/assets/icons/collaboration.png" alt=""></button>
+    <button id="btn-cart" class="rail-btn" title="Template Marketplace"><img src="/assets/icons/market-button.png" alt=""></button>
+    <button id="btn-messages" class="rail-btn" title="Messages"><img src="/assets/icons/chats-btn.png" alt=""></button>
+    <button id="btn-profile" class="rail-btn" title="Profile">
+        <!-- Content is React-owned now (see app/dotto/ProfileAvatarSm.jsx) — "YO" was a
+             pre-JS placeholder, removed so the portaled avatar doesn't render alongside it. -->
+        <div class="profile-avatar-sm" id="profile-avatar-sm"></div>
+        <!-- Shown instead of the avatar above on hover/while the profile panel is open (see
+             #btn-profile:hover/.active in globals.css) — clicking in that state logs out instead
+             of opening the panel (see the profileBtn click handler). -->
+        <svg id="btn-profile-power-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M12 2v10"></path>
+            <path d="M18.36 6.64a9 9 0 1 1-12.73 0"></path>
+        </svg>
+    </button>
+    <div id="rail-bottom-group">
+        <button id="rail-btn-undo" class="rail-btn" title="Undo">↶</button>
+        <button id="rail-btn-redo" class="rail-btn" title="Redo">↷</button>
+    </div>
+</div>
 <div id="top-bar">
     <div id="top-bar-left">
-        <button id="btn-menu" class="btn" title="Menu"><img src="/assets/icons/menu-btn.png" alt=""><span class="btn-menu-close-icon">✕</span></button>
-        <div class="bubble" style="flex:0 0 auto;">
-            <button id="btn-back" class="btn">←</button>
-            <button id="btn-forward" class="btn">→</button>
-        </div>
         <!-- Compact "…/parent/current" breadcrumb (see app/dotto/BreadcrumbPill.jsx,
-             breadcrumbMapStore) — replaces the old always-visible full ancestor list that used to
-             live inside the hamburger sidebar (#breadcrumb-menu, now removed). -->
+             breadcrumbMapStore) — stays here as a persistent location indicator even though the
+             back/forward arrows it used to sit beside moved into the rail above; "where am I" is
+             more useful pinned at the top than tucked into the icon column. -->
         <div class="bubble" id="breadcrumb-pill"></div>
         <div class="bubble" id="collab-bubble">
             <div id="collab-content"></div>
             <div class="collab-tooltip" id="collab-tooltip"></div>
         </div>
-    </div>
-    <div id="top-bar-right">
-        <button id="btn-cart" class="btn" title="Template Marketplace"><img src="/assets/icons/market-button.png" alt=""></button>
-        <button id="btn-messages" class="btn" title="Messages"><img src="/assets/icons/chats-btn.png" alt=""></button>
-        <button id="btn-profile" title="Profile">
-            <!-- Content is React-owned now (see app/dotto/ProfileAvatarSm.jsx) — "YO" was a
-                 pre-JS placeholder, removed so the portaled avatar doesn't render alongside it. -->
-            <div class="profile-avatar-sm" id="profile-avatar-sm"></div>
-            <!-- Shown instead of the avatar above on hover/while the profile panel is open (see
-                 #btn-profile:hover/.active in globals.css) — clicking in that state logs out instead
-                 of opening the panel (see the profileBtn click handler). -->
-            <svg id="btn-profile-power-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                <path d="M12 2v10"></path>
-                <path d="M18.36 6.64a9 9 0 1 1-12.73 0"></path>
-            </svg>
-        </button>
     </div>
 </div>

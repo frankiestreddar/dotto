@@ -1,6 +1,6 @@
 import { appState, supabase } from './core-state.js';
 import { hmenuAction } from './hamburger-collab.js';
-import { closeAllPanels, pinOnInsideClick, scheduleHoverClose } from './panels-hamburger.js';
+import { closeAllPanels, closeRailView, openRailView, scheduleHoverClose } from './panels-hamburger.js';
 import { pushNotification } from './stopwatch-search-notifications.js';
 
 
@@ -145,37 +145,22 @@ import { pushNotification } from './stopwatch-search-notifications.js';
         if (document.visibilityState === 'visible') bumpAchievementStat('day_in_platform', 60);
     }, 60000);
     renderSpriteGrid();
-    function closeProfilePanel() { appState.profilePanel.classList.remove('open'); appState.profileBtn.classList.remove('active'); appState.panelPinned.profile = false; }
-    // Panel height is set explicitly (not just left to CSS) so #profile-spritebook-block's
-    // flex:1 has an actual constrained container to grow into and scroll within, filling from
-    // the button down to a fixed margin above the bottom of the viewport — same margin
-    // convention as #hamburger-stack.
-    function positionProfilePanel() {
-        const rect = appState.profileBtn.getBoundingClientRect();
-        const top = rect.bottom + 10;
-        appState.profilePanel.style.top = top + 'px';
-        const panelWidth = 240;
-        let leftPos = rect.right - panelWidth;
-        if (leftPos < 20) leftPos = 20;
-        appState.profilePanel.style.left = leftPos + 'px';
-        appState.profilePanel.style.right = 'auto';
-        appState.profilePanel.style.height = (window.innerHeight - top - 20) + 'px';
-    }
-    // Keeps the panel's explicit height (see positionProfilePanel) matching the viewport if the
-    // window is resized while it's open — otherwise it'd be stuck at whatever height was current
-    // at open time.
-    window.addEventListener('resize', () => { if (appState.profilePanel.classList.contains('open')) positionProfilePanel(); });
-    function openProfilePanel(pin) {
-        closeAllPanels('profile');
-        appState.profilePanel.classList.add('open');
-        appState.profileBtn.classList.add('active');
-        positionProfilePanel();
+    // Profile shares the permanent rail's one shell/pinned-state now (see openRailView,
+    // panels-hamburger.js) — no more of its own positionProfilePanel/resize listener (the shell is
+    // already positioned beside the rail, full-height, no per-panel height to keep in sync). Kept
+    // as named functions (not a plain wireRailIcon call, unlike Marketplace) since #btn-profile's
+    // own click handler below has special hover-to-logout behavior wireRailIcon's generic
+    // click-to-toggle wiring doesn't support.
+    function closeProfilePanel() { closeRailView(); }
+    function refreshProfilePanel() {
         refreshDotbotUsage();
         // Always start at the top of the sprite grid, not wherever it happened to be scrolled to
         // last time the panel was open.
         const sbScroll = document.getElementById('profile-spritebook-scroll');
         if (sbScroll) sbScroll.scrollTop = 0;
-        if (pin) appState.panelPinned.profile = true;
+    }
+    function openProfilePanel(pin) {
+        openRailView('profile', appState.profilePanel, appState.profileBtn, refreshProfilePanel, pin);
     }
 
     function ordinalSuffix(n) {
@@ -294,6 +279,13 @@ import { pushNotification } from './stopwatch-search-notifications.js';
     function closePricingOverlay() {
         window.__setPricingOverlayOpen(false);
     }
+    // Not wireRailIcon('profile', ...) — the click behavior here is genuinely different from
+    // every other rail icon (open-only, never toggle-closes on a second click) because of the
+    // hover-to-logout swap below, so the click listener stays hand-written; mouseenter/mouseleave
+    // still match every other rail icon's own convention exactly ('rail' name, railHoverEls set).
+    // The panel's own mouseleave and click-to-pin are already covered generically (see
+    // panels-hamburger.js's railViewEls-wide wiring) — appState.profilePanel is one of them, so no
+    // separate registration is needed here.
     appState.profileBtn.addEventListener('click', (e) => {
         e.stopPropagation();
         // Once the button is showing the power icon (:hover only — see the CSS swap, which is
@@ -305,10 +297,8 @@ import { pushNotification } from './stopwatch-search-notifications.js';
         if (appState.profileBtn.matches(':hover')) { hmenuAction('logout'); }
         else { openProfilePanel(true); }
     });
-    appState.profileBtn.addEventListener('mouseenter', () => { if (!appState.profilePanel.classList.contains('open')) openProfilePanel(false); });
-    appState.profileBtn.addEventListener('mouseleave', () => scheduleHoverClose('profile', [appState.profileBtn, appState.profilePanel], closeProfilePanel));
-    appState.profilePanel.addEventListener('mouseleave', () => scheduleHoverClose('profile', [appState.profileBtn, appState.profilePanel], closeProfilePanel));
-    pinOnInsideClick('profile', [appState.profilePanel]);
+    appState.profileBtn.addEventListener('mouseenter', () => { if (appState.activeRailView !== 'profile') openProfilePanel(false); });
+    appState.profileBtn.addEventListener('mouseleave', () => scheduleHoverClose('rail', appState.railHoverEls, closeRailView));
 
 export { awardUserPoints, bumpAchievementStat, closeDotbotUpgradeModal, closePricingOverlay, closeProfilePanel, openDotbotUpgradeModal, openPricingOverlay, refreshDotbotUsage, renderAvatarInto };
 

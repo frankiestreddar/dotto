@@ -1,20 +1,11 @@
-<!-- Hamburger Panels (stacked) -->
+<!-- Hamburger Panels (stacked) — each is now its own rail icon's view (see #dotto-rail, top-bar.html,
+     and openRailView/wireRailIcon, panels-hamburger.js), not reached via an account-menu row
+     anymore. Waypoints/Collaborations/Marketplace/Messages/Profile/AI-search all share this one
+     shell, swapping which section is .open. -->
 <div id="hamburger-stack">
-    <div id="account-menu" class="hmenu-panel">
-        <div class="hmenu-item hmenu-simple" onclick="openWaypointsPanel()"><span class="hmenu-item-icon icon-mask" style="mask-image:url(/assets/icons/waypoint.png);-webkit-mask-image:url(/assets/icons/waypoint.png)"></span><span>Waypoints</span></div>
-        <div class="hmenu-item hmenu-simple" onclick="openHubCollabPanel()"><span class="hmenu-item-icon icon-mask" style="mask-image:url(/assets/icons/collaboration.png);-webkit-mask-image:url(/assets/icons/collaboration.png)"></span><span>Collaborations</span></div>
-        <!-- No dotbot-chat.png icon asset exists yet — same "missing icon files degrade
-             gracefully" precedent already established elsewhere (e.g. search.png) — referenced
-             anyway rather than reusing chats-btn.png (top-bar.html's Messages/friend-DM button),
-             which would read as the same feature when it isn't. -->
-        <div class="hmenu-item hmenu-simple" onclick="openChatsPanel()"><span class="hmenu-item-icon icon-mask" style="mask-image:url(/assets/icons/dotbot-chat.png);-webkit-mask-image:url(/assets/icons/dotbot-chat.png)"></span><span>Chats</span></div>
-    </div>
     <div id="outline-menu" class="hmenu-panel">
         <div id="hmenu-outline-container"></div>
     </div>
-    <!-- Each of these two replaces #account-menu + #outline-menu while open (see
-         openWaypointsPanel/openHubCollabPanel) — one per hamburger row above, each its own
-         independent panel rather than a shared view. -->
     <div id="hub-collab-panel" class="hmenu-panel hub-subpanel" onclick="event.stopPropagation()">
         <div class="hub-subpanel-search-wrap">
             <input id="hub-collab-search" class="hub-subpanel-search" type="text" placeholder="Search..." oninput="handleHubCollabSearch(this.value)">
@@ -28,11 +19,172 @@
         <div id="waypoints-list" class="hub-subpanel-list"></div>
     </div>
     <!-- No search box for v1 (unlike waypoints-panel/hub-collab-panel above) — a saved-chat list
-         is likely short enough not to need one yet; easy to add later with the same pattern. -->
+         is likely short enough not to need one yet; easy to add later with the same pattern.
+         Not a top-level rail view of its own — reached from inside the AI search view (below) via
+         its own in-panel back button, not a dedicated rail icon. -->
     <div id="chats-panel" class="hmenu-panel hub-subpanel" onclick="event.stopPropagation()">
         <div id="chats-list" class="hub-subpanel-list"></div>
         <div class="hub-subpanel-footer">
             <button class="hub-subpanel-clear-all" onclick="clearAllChats()">Clear all</button>
+        </div>
+    </div>
+    <!-- Marketplace — moved here from its own standalone floating card (content/fragments/
+         cart-panel.html, now empty/unused) now that it shares this permanent rail shell (see
+         refreshCartPanel/wireRailIcon, marketplace.js). Internal Discover/Library tab-switching
+         and the detail/publish-flow drill-down views are all unchanged from before. -->
+    <div id="cart-panel" class="hmenu-panel hub-subpanel" onclick="event.stopPropagation()">
+        <div id="cart-tabs">
+            <div class="cart-tab-btn active" id="tab-discover-btn" onclick="switchCartTab('discover')">Discover</div>
+            <div class="cart-tab-btn" id="tab-library-btn" onclick="switchCartTab('library')">Library</div>
+        </div>
+
+        <!-- Dynamic Drop Box Overlays on Active Template Building Drag... -->
+        <div id="cart-dropzone-overlay">
+            <div class="dropzone-box">
+                <div class="dropzone-title">Drop cards here to create new draft</div>
+                <div class="dropzone-sub">All selected nodes will be packaged beautifully as a reusable workflow snapshot template.</div>
+            </div>
+        </div>
+
+        <!-- Discover View -->
+        <div class="cart-view active" id="view-discover">
+            <div class="marketplace-search-wrap">
+                <input class="marketplace-search" id="market-search" type="text" placeholder="Search marketplace..." oninput="handleMarketplaceSearch(this.value)">
+            </div>
+            <div class="market-list" id="market-list-container"></div>
+        </div>
+
+        <!-- Discover Details View -->
+        <div id="market-detail-view">
+            <div class="p-3 border-b border-neutral-800 bg-neutral-900/40 flex items-center gap-2">
+                <button onclick="closeMarketDetail()" class="text-neutral-400 hover:text-white text-xs">← Back to Discover</button>
+            </div>
+            <div class="detail-scroll-area" id="market-detail-content"></div>
+            <div class="detail-buy-footer">
+                <button class="btn-buy" id="btn-buy-action" onclick="purchaseCurrentMarketItem()">Buy Template Blueprint</button>
+            </div>
+        </div>
+
+        <!-- Item Detail View: shown after dropping cards into the marketplace (an already-saved
+             draft, ready to edit) and whenever a drafts/published/purchased library item is
+             clicked into, to view its description + inline-canvas preview. -->
+        <div id="item-detail-view">
+            <div id="item-detail-header">
+                <div id="item-detail-title" contenteditable="true" data-placeholder="Untitled Draft" oninput="onItemDetailFieldChange()" onblur="commitItemDetailTitle()"></div>
+                <input type="text" id="item-detail-price" placeholder="$4.99" oninput="onItemDetailFieldChange()">
+            </div>
+            <div class="detail-scroll-area" id="item-detail-scroll">
+                <div id="item-detail-canvas-wrap"></div>
+                <textarea id="item-detail-desc" placeholder="Add a description..." oninput="onItemDetailFieldChange()"></textarea>
+            </div>
+            <div class="detail-buy-footer" id="item-detail-footer"></div>
+        </div>
+
+        <!-- Publish Flow View: reached via the Publish button on a draft's detail view. No native
+             alert()/prompt() popups — this page collects the price + a short marketplace-card
+             tagline before actually publishing. -->
+        <div id="publish-flow-view">
+            <div id="publish-flow-header">
+                <div id="publish-flow-name" contenteditable="true" onmousedown="event.preventDefault(); focusPublishFlowName()" onblur="blurPublishFlowName()"></div>
+                <input type="text" id="publish-flow-price" placeholder="$4.99">
+            </div>
+            <div class="detail-scroll-area" id="publish-flow-scroll">
+                <input type="text" id="publish-flow-tagline" placeholder="Short tagline shown on marketplace cards...">
+                <div id="publish-flow-canvas-wrap"></div>
+                <textarea id="publish-flow-desc" placeholder="Full description..."></textarea>
+            </div>
+            <div class="detail-buy-footer">
+                <button class="btn-buy" onclick="confirmPublishFlow()">Publish</button>
+            </div>
+        </div>
+
+        <!-- Library View -->
+        <div class="cart-view" id="view-library">
+            <div class="library-search-wrap">
+                <input class="marketplace-search" id="library-search" type="text" placeholder="Search your library..." oninput="handleLibrarySearch(this.value)">
+            </div>
+            <div class="library-back-row" id="library-back-row" onclick="switchLibraryFolder(null)">
+                <span>←</span><span id="library-back-label">Back to folders</span>
+            </div>
+            <div class="library-list" id="library-list-container"></div>
+        </div>
+    </div>
+    <!-- Messages — moved here from its own standalone floating card (content/fragments/
+         messages-panel.html, now empty/unused) now that it shares this permanent rail shell (see
+         refreshMessagesPanel/wireRailIcon, messages-schedule.js). Internal conversation-list vs.
+         open-conversation view-toggling is all unchanged from before. -->
+    <div id="messages-panel" class="hmenu-panel hub-subpanel" onclick="event.stopPropagation()">
+        <div id="msg-search-wrap">
+            <input id="msg-search" type="text" placeholder="Search chats or find a username..." oninput="handleMsgSearch(this.value)">
+        </div>
+        <div id="msg-list"></div>
+        <div id="msg-convo">
+            <div id="msg-convo-header">
+                <button id="msg-convo-back" onclick="closeConvo()">←</button>
+                <div class="msg-avatar" id="msg-convo-avatar"></div>
+                <div id="msg-convo-title"></div>
+            </div>
+            <div id="msg-convo-body"></div>
+            <div id="msg-convo-input-wrap">
+                <input id="msg-convo-input" type="text" placeholder="Message..." onkeydown="if(event.key==='Enter')sendMsg();">
+                <button id="msg-convo-send" onclick="sendMsg()">➤</button>
+            </div>
+        </div>
+    </div>
+    <!-- Profile — moved here from its own standalone floating card (content/fragments/
+         profile-panel.html, now empty/unused) now that it shares this permanent rail shell (see
+         refreshProfilePanel/openRailView, profile-achievements-pricing.js). -->
+    <div id="profile-panel" class="hmenu-panel hub-subpanel" onclick="event.stopPropagation()">
+        <div class="profile-block" id="profile-identity-block">
+            <div class="profile-avatar-lg" id="profile-avatar"></div>
+            <div class="profile-identity-text">
+                <div id="profile-username"></div>
+                <div class="profile-level-streak-row">
+                    <!-- Text content + background color are React-owned now (see
+                         app/dotto/ProfileLevelPill.jsx) — the inner .profile-level-pill-text span used
+                         to be static markup here; removed so the portaled one doesn't duplicate it. -->
+                    <span id="profile-level-pill" class="profile-level-pill"></span>
+                    <span class="profile-streak">
+                        <span class="profile-streak-icon icon-mask" style="mask-image:url(/assets/icons/flame.png);-webkit-mask-image:url(/assets/icons/flame.png)"></span>
+                        <span id="profile-streak-count"></span>
+                    </span>
+                </div>
+            </div>
+        </div>
+        <div class="profile-block" id="profile-upgrade-block">
+            <button id="profile-upgrade-btn" type="button" onclick="event.stopPropagation(); hmenuAction('upgrade');">
+                <span>Try Dotto Pro</span>
+                <span class="profile-upgrade-crown icon-mask" style="mask-image:url(/assets/icons/crown.png);-webkit-mask-image:url(/assets/icons/crown.png)"></span>
+            </button>
+        </div>
+        <div class="profile-block" id="profile-usage-block">
+            <div class="profile-block-content">
+                <div class="profile-usage-row">
+                    <div class="profile-usage-label">Block usage</div>
+                    <div class="profile-usage-track"><div class="profile-usage-fill" id="profile-usage-blocks-fill"></div></div>
+                    <div class="profile-usage-tooltip" id="profile-usage-blocks-tooltip"></div>
+                </div>
+                <div class="profile-usage-row">
+                    <div class="profile-usage-label">Search usage</div>
+                    <div class="profile-usage-track"><div class="profile-usage-fill" id="profile-usage-search-fill"></div></div>
+                    <div class="profile-usage-tooltip" id="profile-usage-search-tooltip"></div>
+                </div>
+                <div class="profile-usage-row">
+                    <div class="profile-usage-label">Generation usage</div>
+                    <div class="profile-usage-track"><div class="profile-usage-fill" id="profile-usage-generation-fill"></div></div>
+                    <div class="profile-usage-tooltip" id="profile-usage-generation-tooltip"></div>
+                </div>
+            </div>
+            <div id="profile-usage-upgrade-hint" onclick="event.stopPropagation(); openPricingOverlay();">Upgrade for more</div>
+        </div>
+        <!-- Always shows the full sprite set (no compact/expand toggle) and just scrolls — fills
+             whatever viewport height remains below the blocks above (see #profile-spritebook-block
+             in globals.css). Scroll position resets to top every time the panel opens (see
+             refreshProfilePanel). -->
+        <div class="profile-block" id="profile-spritebook-block">
+            <div id="profile-spritebook-scroll">
+                <div id="profile-sprite-grid"></div>
+            </div>
         </div>
     </div>
 </div>

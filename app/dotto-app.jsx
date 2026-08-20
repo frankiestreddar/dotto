@@ -77,11 +77,8 @@ import WaypointsListPanel from "./dotto/WaypointsListPanel";
 
 import TopBar from "./dotto/sections/TopBar";
 import SearchOverlay from "./dotto/sections/SearchOverlay";
-import ProfilePanel from "./dotto/sections/ProfilePanel";
-import MessagesPanel from "./dotto/sections/MessagesPanel";
 import CollaboratorsPanel from "./dotto/sections/CollaboratorsPanel";
 import SharedCanvasModal from "./dotto/sections/SharedCanvasModal";
-import MarketplacePanel from "./dotto/sections/MarketplacePanel";
 import HamburgerMenu from "./dotto/sections/HamburgerMenu";
 import CanvasArea from "./dotto/sections/CanvasArea";
 import BottomToolbars from "./dotto/sections/BottomToolbars";
@@ -301,11 +298,11 @@ export default function DottoApp({ sections, currentUser }) {
       <div id="dotto-root">
         <ErrorBoundary name="TopBar"><TopBar html={sections["top-bar"]} /></ErrorBoundary>
         <ErrorBoundary name="SearchOverlay"><SearchOverlay html={sections["search-overlay"]} /></ErrorBoundary>
-        <ErrorBoundary name="ProfilePanel"><ProfilePanel html={sections["profile-panel"]} /></ErrorBoundary>
-        <ErrorBoundary name="MessagesPanel"><MessagesPanel html={sections["messages-panel"]} /></ErrorBoundary>
         <ErrorBoundary name="CollaboratorsPanel"><CollaboratorsPanel html={sections["collab-panel"]} /></ErrorBoundary>
         <ErrorBoundary name="SharedCanvasModal"><SharedCanvasModal html={sections["canvas-modal"]} /></ErrorBoundary>
-        <ErrorBoundary name="MarketplacePanel"><MarketplacePanel html={sections["cart-panel"]} /></ErrorBoundary>
+        {/* Profile/Messages/Marketplace all moved into #hamburger-stack (see hamburger-stack.html)
+            now that they share the permanent rail's one shell — no more separate top-level
+            sections/markup of their own. */}
         <ErrorBoundary name="HamburgerMenu"><HamburgerMenu html={sections["hamburger-stack"]} /></ErrorBoundary>
         <ErrorBoundary name="CanvasArea"><CanvasArea html={sections["canvas-area"]} /></ErrorBoundary>
         <ErrorBoundary name="BottomToolbars"><BottomToolbars html={sections["bottom-toolbars"]} /></ErrorBoundary>

@@ -6,10 +6,7 @@ import { closeCollabPanel } from './friends-presence.js';
 import { dispatchListPanelDelete } from './hamburger-collab.js';
 import { hideCanvasContextMenu } from './history-autosave.js';
 import { findItemById } from './live-presence.js';
-import { closeCartPanel } from './marketplace.js';
-import { closeMessagesPanel } from './messages-schedule.js';
-import { closeAllPanels, closeHamburgerMenu } from './panels-hamburger.js';
-import { closeProfilePanel } from './profile-achievements-pricing.js';
+import { closeAllPanels, closeRailView } from './panels-hamburger.js';
 import { deleteSelectedCards } from './resize-shortcuts-init.js';
 import { layoutSourceTableColumns } from './source-table.js';
 import { closeCellTagPicker } from './source-tags-ai.js';
@@ -141,10 +138,11 @@ import { clearDataLinkPending } from './srs-connections-core.js';
         contextMenu.style.display = 'none';
         appState.contextMenuItemId = null;
         hideCanvasContextMenu();
-        closeHamburgerMenu();
-        closeMessagesPanel();
-        closeCartPanel();
-        closeProfilePanel();
+        // Outline/Waypoints/Collaborations/Marketplace/Messages/Profile all share one rail shell
+        // now (see openRailView/closeRailView, panels-hamburger.js) — one call closes whichever of
+        // them happens to be open, replacing the old closeHamburgerMenu/closeMessagesPanel/
+        // closeCartPanel/closeProfilePanel quartet.
+        closeRailView();
         closeCollabPanel();
         clearSearch();
         appState.modeToolbar.classList.remove('expanded');
