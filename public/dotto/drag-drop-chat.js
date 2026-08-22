@@ -291,9 +291,8 @@ import { performMerge, render, renderSelectedOutlines } from './waypoints-render
                 }
 
                 // 3. Drop into the search box as AI card context
-                if (!droppedOnTarget) {
-                    const searchBarEl = document.getElementById('search-bar');
-                    const rect = searchBarEl.getBoundingClientRect();
+                if (!droppedOnTarget && appState.aiPanel.classList.contains('open')) {
+                    const rect = appState.aiPanel.getBoundingClientRect();
                     if (mX >= rect.left && mX <= rect.right && mY >= rect.top && mY <= rect.bottom) {
                         addCardsToSearchContext(gestureIds);
                         droppedOnTarget = true;
