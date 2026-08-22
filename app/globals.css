@@ -655,14 +655,17 @@
        edge-peek gesture). Rail icons are click-only (see wireRailIcon, panels-hamburger.js), so
        there's no separate hover-preview shape to account for — `left` is the ONLY property that
        ever animates; opening/closing is purely a horizontal slide, never a resize. #dotto-rail
-       itself intentionally never moves — padding-top on the shell (matching the top bar's own
-       60px band) keeps every actual panel's content starting below it, never underneath/
-       overlapped by it, satisfying "the icons sit at the top, panels under" without needing a
-       second close control duplicated inside the sidebar. z-index (900) sits below #dotto-rail/
-       #top-bar-center (1000, see #dotto-rail's own comment) so the rail icons stay visually on top
-       and clickable; above #world (1) so it fully overlays canvas content. pointer-events stay off
-       until .open so the always-in-the-DOM container never blocks clicks over the canvas while
-       closed. */
+       itself intentionally never moves — padding-top on the shell just matches #dotto-rail's own
+       top inset (20px, see its own padding) so the first line of a panel's content roughly lines
+       up with the rail's own first icon, rather than either edge picking an arbitrary number of
+       its own (there's no top bar for this to clear anymore — the rail spans the full viewport
+       height now, icons distributed through all of it, not just a band across the top; a much
+       bigger 60px value here was a leftover from when that used to be true and left every panel
+       with a large, pointless empty gap above its actual content). z-index (900) sits below
+       #dotto-rail/#top-bar-center (1000, see #dotto-rail's own comment) so the rail icons stay
+       visually on top and clickable; above #world (1) so it fully overlays canvas content.
+       pointer-events stay off until .open so the always-in-the-DOM container never blocks clicks
+       over the canvas while closed. */
     /* Both left values shifted by +var(--rail-width) so the shell sits beside the permanent rail
        rather than the true left edge: closed lands at rail-width - hmenu-width (=-336px at the
        default 64px/400px), so the shell's right edge sits at exactly -336+400=64px — flush with
@@ -673,7 +676,7 @@
        Marketplace's own content (its widest existing view, previously a standalone 380px-wide
        floating card), now that Marketplace/Messages/Profile share this same shell/width instead of
        each picking their own. */
-    #hamburger-stack{position:fixed;left:calc(var(--rail-width) - var(--hmenu-width));width:var(--hmenu-width);z-index:900;display:flex;flex-direction:column;gap:0;pointer-events:none;top:0;height:100vh;padding-top:60px;background:var(--bar);border-right:1px solid var(--card-border);transition:left .3s ease;}
+    #hamburger-stack{position:fixed;left:calc(var(--rail-width) - var(--hmenu-width));width:var(--hmenu-width);z-index:900;display:flex;flex-direction:column;gap:0;pointer-events:none;top:0;height:100vh;padding-top:20px;background:var(--bar);border-right:1px solid var(--card-border);transition:left .3s ease;}
     #hamburger-stack.open{left:var(--rail-width);pointer-events:auto;}
     /* No card chrome of their own (background/border/radius/shadow) — the shell above already
        supplies the background/edge; each panel is just a section of that one continuous surface. */
