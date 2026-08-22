@@ -104,10 +104,21 @@ import { cascadeDeleteFolderContents, centerOnContent, deleteWaypointFromDb, ren
     // size — <col style="width:X%"> and distributeTableSizing (source-table.js, which now reads
     // it.rowHeights when present) both already recompute off the CURRENT table size every time,
     // so no separate rescaling logic is needed here for that case.
-    // A hair under what 24px works out to at a typical table width — good enough as a floor
-    // without needing to convert an actual pixel minimum through the current per-column/row
-    // percentage math on every drag tick.
-    const TABLE_GRID_MIN_PCT = 6;
+    // Real pixel floors, not a flat percentage — a fixed % of the table's own width/height
+    // doesn't correspond to any one pixel size across different table sizes, and specifically
+    // didn't match .item-table td's own real min-width:40px (globals.css): at a small enough
+    // table, 40px was already MORE than the flat percentage allowed, so the browser's own
+    // min-width silently floored the actual column before the drag's own percentage clamp ever
+    // did — the divider (driven by the now-further-than-reality percentage) kept sliding past
+    // where the column had already visually stopped shrinking, decoupling the purple highlight
+    // from the real boundary line. Converting a real pixel floor to a percentage of the table's
+    // CURRENT it.w/it.h (fixed for the duration of one divider drag — only the corner handle,
+    // a separate gesture, ever changes those) keeps the two in agreement at every table size.
+    // TABLE_ROW_MIN_PX has no CSS counterpart to match (row height is entirely JS-driven, see
+    // distributeTableSizing) — 28px is just a sane "about one line of cell content" floor, same
+    // 28px grid unit already used elsewhere in this file's own move handler.
+    const TABLE_COL_MIN_PX = 40;
+    const TABLE_ROW_MIN_PX = 28;
     function setupTableGridResizing(el, it) {
         el.querySelectorAll('.table-col-resize-handle').forEach((handle, i) => {
             handle.__resizeListenerAbort?.abort();
@@ -122,7 +133,10 @@ import { cascadeDeleteFolderContents, centerOnContent, deleteWaypointFromDb, ren
     }
     // Dragging the divider between column `i` and `i+1` only ever moves width between those two
     // — every other column's width is untouched, and the pair's own combined width stays
-    // constant, clamped so neither column can be dragged below TABLE_GRID_MIN_PCT.
+    // constant, clamped so neither column can be dragged below TABLE_COL_MIN_PX (converted to a
+    // percentage of it.w). minPct is additionally capped at half the pair's own combined width,
+    // so a pair too narrow to give both columns the full pixel floor still splits evenly instead
+    // of producing an inverted (min > max) clamp range.
     function startTableColResize(e, it, i) {
         e.stopPropagation();
         e.preventDefault();
@@ -130,11 +144,12 @@ import { cascadeDeleteFolderContents, centerOnContent, deleteWaypointFromDb, ren
         const numCols = it.tableData[0].length;
         const widths = (Array.isArray(it.colWidths) && it.colWidths.length === numCols) ? it.colWidths.slice() : new Array(numCols).fill(100 / numCols);
         const pairTotal = widths[i] + widths[i + 1];
+        const minPct = Math.min((TABLE_COL_MIN_PX / it.w) * 100, pairTotal / 2);
         const startA = widths[i];
         const sx = e.clientX;
         const move = (me) => {
             const dxPct = ((me.clientX - sx) / appState.scale / it.w) * 100;
-            const a = Math.max(TABLE_GRID_MIN_PCT, Math.min(pairTotal - TABLE_GRID_MIN_PCT, startA + dxPct));
+            const a = Math.max(minPct, Math.min(pairTotal - minPct, startA + dxPct));
             widths[i] = a; widths[i + 1] = pairTotal - a;
             it.colWidths = widths;
             const el2 = document.getElementById('item-' + it.id);
@@ -162,11 +177,12 @@ import { cascadeDeleteFolderContents, centerOnContent, deleteWaypointFromDb, ren
         const numRows = it.tableData.length;
         const heights = (Array.isArray(it.rowHeights) && it.rowHeights.length === numRows) ? it.rowHeights.slice() : new Array(numRows).fill(100 / numRows);
         const pairTotal = heights[i] + heights[i + 1];
+        const minPct = Math.min((TABLE_ROW_MIN_PX / it.h) * 100, pairTotal / 2);
         const startA = heights[i];
         const sy = e.clientY;
         const move = (me) => {
             const dyPct = ((me.clientY - sy) / appState.scale / it.h) * 100;
-            const a = Math.max(TABLE_GRID_MIN_PCT, Math.min(pairTotal - TABLE_GRID_MIN_PCT, startA + dyPct));
+            const a = Math.max(minPct, Math.min(pairTotal - minPct, startA + dyPct));
             heights[i] = a; heights[i + 1] = pairTotal - a;
             it.rowHeights = heights;
             const el2 = document.getElementById('item-' + it.id);
