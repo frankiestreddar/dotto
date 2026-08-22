@@ -55,9 +55,9 @@ export const canvasItemsStore = createStore([]);
 export const notificationStore = createStore(null);
 
 // Search-dropdown result panels (public/dotto/mnemonic-search-matching.js) — each a single-owner
-// static container (#search-translation/#search-dictionary/etc.), unlike canvasResultsStore/
-// searchSuggestionsStore below, which are shared by multiple producers and need their own
-// discriminated-union design. null means "nothing to show" (matches each panel's own
+// static container (#search-translation/#search-dictionary/etc.), unlike searchSuggestionsStore
+// below, which is shared by multiple producers and needs its own discriminated-union design.
+// null means "nothing to show" (matches each panel's own
 // display:none default) — the actual card content
 // still comes from a vanilla builder (buildTranslationCard/buildDictionaryCard/etc., several of
 // them small self-contained widgets with their own internal cycling/drag state), mounted by a
@@ -97,31 +97,26 @@ export const imageResultStore = createStore(null);
 // is true only for a turn just appended from a LIVE response (drives ChatTurn's one-time
 // typewriter reveal + drag-to-canvas wiring on mount); turns restored from history (reopening a
 // saved chat, see the reopen-flow bridge) render with `fresh` false/omitted so they show fully
-// settled immediately, never re-typewriter. Like canvasResultsStore below, __setChatThread/
+// settled immediately, never re-typewriter. Like commandPaletteStore below, __setChatThread/
 // __appendChatTurn (app/dotto-app.jsx) are flushSync'd — the new independent chat-thread
 // height-transition function (ai-assistant-suggestions.js) reads #search-chat-thread's real
 // scrollHeight synchronously right after appending a turn, same reasoning as
 // updateSearchDropdown's own flushSync dependency.
 export const chatThreadStore = createStore([]);
 
-// #search-results (public/dotto/mnemonic-search-matching.js's renderCanvasResultsPanel) —
-// { matches, isSourceFolder } | null. Genuine JSX rows (see CanvasResultsPanel.jsx), portaled via
-// createPortal unlike the single-owner panels above, since there IS real list identity here.
+// #search-command-palette (public/dotto/command-palette.js's updateCommandPalette) —
+// { rows: [...] } | null, the slash-command live suggestions list. Genuine JSX rows, portaled via
+// createPortal unlike the single-owner panels above, since there IS real list identity here (real
+// list identity, clicked rows need their own onClick) — see CommandPalette.jsx.
 // IMPORTANT: because this is a real portal (React tracks its children), nothing outside
-// CanvasResultsPanel.jsx may touch #search-results' innerHTML/children directly — always go
-// through window.__setCanvasResults(null) to clear it, never a raw DOM write (that would desync
+// CommandPalette.jsx may touch #search-command-palette's innerHTML/children directly — always go
+// through window.__setCommandPalette(null) to clear it, never a raw DOM write (that would desync
 // React's fiber tree from the actual DOM and risk a crash on the next update). Plain attribute
 // reads/writes on the node itself (style.display, querySelectorAll for the existing keyboard-nav
 // code) are fine — React's portal only owns the CHILDREN, never the target node's own attributes.
-export const canvasResultsStore = createStore(null);
-
-// #search-command-palette (public/dotto/command-palette.js's updateCommandPalette) —
-// { rows: [...] } | null, the slash-command live suggestions list. Same "genuine JSX rows via
-// createPortal" reasoning as canvasResultsStore right above (real list identity, clicked rows
-// need their own onClick) — see CommandPalette.jsx. Row selection (click, or Enter on an
-// arrow-selected row) always calls back into vanilla via window.__selectCommandRow
-// (command-palette.js) rather than executing anything in the component itself, same "React
-// renders, vanilla owns the app-state mutation" split as every other bridge here.
+// Row selection (click, or Enter on an arrow-selected row) always calls back into vanilla via
+// window.__selectCommandRow (command-palette.js) rather than executing anything in the component
+// itself, same "React renders, vanilla owns the app-state mutation" split as every other bridge here.
 export const commandPaletteStore = createStore(null);
 
 // #search-suggestions — shared by 5 different producers across 3 files (live AI suggestions, the
@@ -130,11 +125,11 @@ export const commandPaletteStore = createStore(null);
 // only ONE of them is ever shown at a time, same "replaces this one slot" idea as
 // notificationStore. See renderMnemonicResultCard's own comment in mnemonic-search-matching.js
 // for the full producer list, and SearchSuggestionsPanel.jsx for how each kind is built. Unlike
-// canvasResultsStore above, this one is NOT a portal (every kind's content stays 100%
+// commandPaletteStore above, this one is NOT a portal (every kind's content stays 100%
 // vanilla-built, mounted the same "return null, mutate in an effect" way as
 // TranslationPanel.jsx/DictionaryPanel.jsx/etc.) — so, same as those, direct DOM clears from
 // elsewhere are harmless as long as they only ever touch this SPECIFIC node's children (never
-// true for #search-results, see above).
+// true for #search-command-palette, see above).
 export const searchSuggestionsStore = createStore(null);
 
 // Add-to-source popup (public/dotto/search-orchestration-selection.js) — {isOpen, left, top},
@@ -151,7 +146,7 @@ export const addToSourcePopupStore = createStore({ isOpen: false, left: 0, top: 
 
 // Hamburger menu's Waypoints panel (public/dotto/hamburger-collab.js's renderWaypointsList) —
 // { rows: [{owner_id, folder_id, item_id, name}], query } — genuine JSX rows (see
-// WaypointsListPanel.jsx), same reasoning as canvasResultsStore: simple icon+label+onclick rows,
+// WaypointsListPanel.jsx), same reasoning as commandPaletteStore: simple icon+label+onclick rows,
 // no per-row widget state worth keeping vanilla. `query` rides along just to pick the right empty-
 // state message ("No waypoints yet." vs "No matching waypoints."), matching the original.
 export const waypointsListStore = createStore({ rows: [], query: "" });
@@ -190,7 +185,7 @@ export const profileLevelStore = createStore({ displayName: "", tierColor: "" })
 // Profile panel's achievement spritebook (renderSpriteGrid) — just the array of unlocked
 // achievement ids; window.__ACHIEVEMENTS/__SPRITE_TOTAL_COUNT (bridged as plain constants, not
 // through a store, since they never change) supply everything else AchievementsGrid.jsx needs to
-// render every cell. Genuine JSX, same reasoning as canvasResultsStore/waypointsListStore.
+// render every cell. Genuine JSX, same reasoning as commandPaletteStore/waypointsListStore.
 export const achievementsStore = createStore([]);
 
 // Messages panel's chat/friend list (public/dotto/friends-presence.js's renderMsgList/

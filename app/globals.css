@@ -1137,7 +1137,7 @@
        padding on top is exactly what made row hover states look inset/cut off instead of reaching
        the shared card's edges (#search-bar's own padding now provides that inset, uniformly, for
        both the input row and every result row). Each row/panel keeps its own internal padding (see
-       e.g. .search-result-item/.command-palette-row below) to keep text off its own rounded edges;
+       e.g. .command-palette-row below) to keep text off its own rounded edges;
        this element itself stays edge-to-edge.
        display stays flex always now (never display:none) — height:0 is what hides it at rest, and
        updateSearchDropdown (ai-assistant-suggestions.js) animates height (plus opacity) from 0 up
@@ -1249,31 +1249,13 @@
     .align-hl-3{background:rgba(236,72,153,0.3);}
     .align-hl-4{background:rgba(59,130,246,0.3);}
     .align-hl-5{background:rgba(168,85,247,0.3);}
-    /* Never visible at the same time as #search-results (see handleSearchInput's command-mode
-       branch, ai-assistant-suggestions.js) — rows use the same .active hover/keyboard-selection
-       convention too, see command-palette.js's setCommandActive. */
+    /* Rows use the .active hover/keyboard-selection convention shared across this dropdown's other
+       row lists, see command-palette.js's setCommandActive. */
     #search-command-palette{display:none;max-height:300px;overflow-y:auto;}
     .command-palette-row{padding:12px 14px;border-radius:8px;font-size:13px;color:var(--ink);cursor:pointer;display:flex;align-items:center;justify-content:space-between;gap:8px;}
     .command-palette-row:hover, .command-palette-row.active{background:#1e1e1e;}
     .command-palette-row-label{flex:0 0 auto;font-family:monospace;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
     .command-palette-row-sublabel{flex:1 1 auto;min-width:0;text-align:right;color:var(--ink-soft);font-size:11px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
-    #search-results{display:none;max-height:300px;overflow-y:auto;}
-    .search-result-item{padding:12px 14px;border-radius:8px;font-size:13px;color:var(--ink);cursor:pointer;display:flex;align-items:center;gap:8px;}
-    .search-result-item:hover, .search-result-item.active{background:#1e1e1e;}
-    /* Ellipsis lives here (not on .search-result-item itself) — flex:1 so it fills whatever space
-       the icon/badge and the index pill don't use, pushing the pill to the row's far right edge. */
-    .search-result-text{flex:1 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
-    /* Text badge — only the "Row N" table-match case still uses this (renderMatchRow); a match
-       against a table row has no card kind, so there's no icon file for it. */
-    .search-result-kind{flex:0 0 auto;color:var(--ink-soft);font-weight:600;}
-    /* A per-kind icon (see kindIconFile/renderMatchRow) for every other match. Heading level is
-       already encoded in which file this is (heading-1/2/3.png), so unlike the old text badge
-       this needs no separate h1/h2/h3 size/weight variants. */
-    .search-result-kind-icon{flex:0 0 auto;width:18px;height:18px;color:var(--ink-soft);}
-    /* A small filled-pill badge — 1-4, matching this row's position in the (always max-4) results
-       list. Pressing that digit key while the dropdown is open clicks the row, same as Enter does
-       for the arrow-selected one (see the keydown handler). */
-    .search-result-index-pill{flex:0 0 auto;min-width:18px;height:18px;padding:0 5px;border-radius:6px;background:#3a3a3a;color:var(--ink-soft);font-size:10px;font-weight:700;display:flex;align-items:center;justify-content:center;}
 
     #search-translation, #search-dictionary, #search-examples, #search-image-result{display:none;}
     /* Its own dedicated panel (not shared with #search-suggestions, where the mnemonic story

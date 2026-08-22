@@ -116,11 +116,8 @@
         dotbotUpgradePromptedForFullness: false,
         activeConvoId: null,
         msgView: 'main',
-        searchActiveIndex: -1,
-        // Same idea as searchActiveIndex right above, for #search-command-palette's own row list
-        // (see command-palette.js) — a separate tracker since the two panels are never both
-        // meaningfully arrow-navigable at once (command mode replaces the normal search flow
-        // entirely, see handleSearchInput's new branch).
+        // Tracks the arrow-selected row in #search-command-palette's row list (see
+        // command-palette.js's setCommandActive).
         commandActiveIndex: -1,
         dotbotAlignedRegistry: [],
         dotbotSearchGeneration: 0,
@@ -312,7 +309,6 @@
         CLOZE_RE: /\[([^\[\]]+)\]/g,
         shelfRowClickTimer: null,
         searchInput: document.getElementById('search-input'),
-        searchResults: document.getElementById('search-results'),
         searchCommandPalette: document.getElementById('search-command-palette'),
         searchDotbotAnswer: document.getElementById('search-dotbot-answer'),
         searchTranslation: document.getElementById('search-translation'),
@@ -363,13 +359,6 @@
         dotbotAlignHighlightOn: true,
         dotbotSuggestDebounceTimer: null,
         dotbotSuggestAbortController: null,
-        // Same idea as dotbotSuggestDebounceTimer, for canvas-item matches (scheduleCanvasResults,
-        // ai-assistant-suggestions.js) — computeCanvasMatches/computeSourceMatches themselves are
-        // synchronous with no fetch involved, but resizing #search-dropdown on every single
-        // keystroke as matches flicker in and out while typing looked distracting/jumpy even once
-        // the underlying animation bugs were fixed, so this is debounced purely for a calmer feel,
-        // not for performance.
-        canvasResultsDebounceTimer: null,
         // Same idea as dotbotSuggestDebounceTimer above, for the slash-command palette's nested
         // shared-tree name search (search_accessible_by_name RPC) — see
         // scheduleSharedCommandSuggestions, command-palette.js.

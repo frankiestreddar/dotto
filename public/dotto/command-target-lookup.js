@@ -11,8 +11,9 @@ const GLOBAL_ID_SHAPE = new RegExp(`^[${GLOBAL_ID_ALPHABET}]{${GLOBAL_ID_LENGTH}
 // Recursively walks the caller's OWN folder tree (already loaded locally — appState.folders' own,
 // un-namespaced keys only; shared:/public: entries belong to someone else and are never searched
 // here) for folders/sources whose title contains the query, filtered by kind. Depth-first,
-// capped at `limit` (same 4-row cap CanvasResultsPanel already uses elsewhere) — good enough for
-// a live-typing suggestions list; not meant to be an exhaustive/ranked search.
+// capped at `limit` (a small cap, same convention as every other live-typing suggestions list in
+// this app) — good enough for a live-typing suggestions list; not meant to be an exhaustive/
+// ranked search.
 function searchOwnTreeByNameAll(query, kind, limit = 4) {
     const q = query.trim().toLowerCase();
     if (!q) return [];

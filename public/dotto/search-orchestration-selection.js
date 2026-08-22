@@ -1,10 +1,10 @@
-import { clearSearch, escapeHtml, handleSearchFocus, scrollChatThreadToBottom, setSearchActive, stripHtml, updateChatThread, updateSearchDropdown } from './ai-assistant-suggestions.js';
+import { clearSearch, escapeHtml, handleSearchFocus, scrollChatThreadToBottom, stripHtml, updateChatThread, updateSearchDropdown } from './ai-assistant-suggestions.js';
 import { executeCurrentCommand, setCommandActive } from './command-palette.js';
 import { appState } from './core-state.js';
 import { ensureConnections } from './drawing-connections.js';
 import { saveSnapshot, scheduleWorkspaceSave } from './history-autosave.js';
 import { miniLabelForItem } from './live-presence.js';
-import { commenceSearchOrMnemonic, computeCanvasMatches, computeSourceMatches, renderCanvasResultsPanel } from './mnemonic-search-matching.js';
+import { commenceSearchOrMnemonic } from './mnemonic-search-matching.js';
 import { bumpAchievementStat, openDotbotUpgradeModal, refreshDotbotUsage } from './profile-achievements-pricing.js';
 import { colgroupHTML } from './source-table.js';
 import { applyAiAddRowsToSource, createSourceFromAI } from './source-tags-ai.js';
@@ -75,24 +75,6 @@ import { render } from './waypoints-render-loop.js';
         bumpAchievementStat('twenty_searches');
         const folderObj = appState.folders[appState.currentFolderId];
         if (!folderObj) return;
-        // A canvas-results debounce may still be pending from recent typing (scheduleCanvasResults,
-        // ai-assistant-suggestions.js) — this computes and renders the same thing synchronously
-        // right below, so let the pending one go stale rather than have it redundantly re-fire
-        // ~500ms into this search.
-        clearTimeout(appState.canvasResultsDebounceTimer);
-        const matches = folderObj.isSource ? computeSourceMatches(query) : computeCanvasMatches(query);
-        renderCanvasResultsPanel(matches, folderObj.isSource); // instant, sync — visible before the spinner even shows
-        // The comment above predates #search-dropdown's height-animation system (it used to be a
-        // simple display:block/none toggle, so a panel's own style.display was enough to reveal
-        // it) — now #search-dropdown itself needs a matching updateSearchDropdown() call to grow
-        // into showing it, or it just sits clipped behind height:0/overflow:hidden. Without this,
-        // canvas results were fully ready and "visible" (their own style.display was already
-        // 'block') but invisible the entire ~1s+ the orchestrate fetch below was in flight, since
-        // nothing called updateSearchDropdown() until renderOrchestrateResult at the very end —
-        // reading as "canvas results take a second to load" when they were actually ready
-        // instantly, just hidden behind a dropdown that hadn't been told to grow yet, then all of
-        // it (canvas results + whatever the orchestrate response adds) jumping into view at once.
-        updateSearchDropdown();
         appState.searchDotbotAnswer.innerHTML = ''; appState.searchDotbotAnswer.style.display = 'none';
         appState.searchDictionary.innerHTML = ''; appState.searchDictionary.style.display = 'none';
         appState.searchExamples.innerHTML = ''; appState.searchExamples.style.display = 'none';
@@ -115,9 +97,6 @@ import { render } from './waypoints-render-loop.js';
                     // explicitly reopened from the sidebar, see the reopen-flow bridge — continues
                     // that same thread instead of starting over each time.
                     conversationId: appState.currentConversationId || undefined,
-                    canvasMatches: matches.map(m => folderObj.isSource
-                        ? { id: m.ri, kind: 'row', label: m.text.slice(0, 60) }
-                        : { id: m.it.id, kind: m.it.kind, label: (m.text || '').slice(0, 60) }),
                     isSourceFolder: folderObj.isSource,
                     cardContext: appState.searchCardContext.length ? appState.searchCardContext.map(c => describeCardForAI(c.snapshot)) : undefined,
                     cardConnections: appState.searchCardConnections.length ? appState.searchCardConnections.map(c => {
@@ -468,12 +447,10 @@ import { render } from './waypoints-render-loop.js';
         appState.searchInput.addEventListener('keydown', (e) => {
             if (e.key === 'Escape') { clearSearch(); return; }
             // Slash-command mode (see command-palette.js) — Arrow/Enter get their own meaning
-            // here (navigate/execute a command) instead of falling through to the
-            // #search-results-specific logic below, which stays harmlessly inert anyway (that
-            // panel is always hidden while a command is being typed — see handleSearchInput's own
-            // command branch) but this is clearer than relying on that. Every other key (typing,
-            // Backspace, Tab, ...) intentionally falls through to the textarea's normal behavior —
-            // nothing here should ever swallow an edit keystroke.
+            // here (navigate/execute a command) instead of falling through to the general
+            // Enter-submits-search handler below. Every other key (typing, Backspace, Tab, ...)
+            // intentionally falls through to the textarea's normal behavior — nothing here should
+            // ever swallow an edit keystroke.
             if (appState.searchInput.value.startsWith('/')) {
                 if (e.key === 'ArrowDown' && appState.searchCommandPalette.style.display === 'block') { e.preventDefault(); setCommandActive(appState.commandActiveIndex + 1); return; }
                 if (e.key === 'ArrowUp' && appState.searchCommandPalette.style.display === 'block') { e.preventDefault(); setCommandActive(appState.commandActiveIndex - 1); return; }
@@ -494,30 +471,12 @@ import { render } from './waypoints-render-loop.js';
             // search bar open/closed depending on which state it's already in. Checked before the
             // general Enter-submits-search handler below, so a non-empty box still submits as usual.
             if (e.key === 'Enter' && appState.searchInput.value.trim() === '') { e.preventDefault(); clearSearch(); appState.searchInput.blur(); return; }
-            if (e.key === 'ArrowDown' && appState.searchResults.style.display === 'block') { e.preventDefault(); setSearchActive(appState.searchActiveIndex + 1); return; }
-            if (e.key === 'ArrowUp' && appState.searchResults.style.display === 'block') { e.preventDefault(); setSearchActive(appState.searchActiveIndex - 1); return; }
-            // 1-4 pick a visible result directly (see the pill on each row — always max 4 shown,
-            // see the .slice(0, 4) in matchesFor), the same one-key jump ArrowDown+Enter would
-            // take several presses to reach. Only hijacks the digit when there's actually a
-            // matching row to jump to — e.g. pressing "3" with only 2 results showing still types
-            // a normal "3" into the query, same as it would with the dropdown closed entirely.
-            if (['1', '2', '3', '4'].includes(e.key) && appState.searchResults.style.display === 'block') {
-                const items = Array.from(appState.searchResults.querySelectorAll('.search-result-item'));
-                const target = items[Number(e.key) - 1];
-                if (target) { e.preventDefault(); target.click(); return; }
-            }
             if (e.key === 'Enter') {
                 e.preventDefault();
-                // Arrowed down to a specific canvas match — Enter jumps to that, same as clicking it.
-                if (appState.searchResults.style.display === 'block' && appState.searchActiveIndex >= 0) {
-                    const items = Array.from(appState.searchResults.querySelectorAll('.search-result-item'));
-                    const target = items[appState.searchActiveIndex];
-                    if (target) { target.click(); return; }
-                }
-                // Otherwise, Enter on whatever's typed commences a Dotbot search — or, for a
-                // mnemonic-shaped query ("generate a mnemonic for X" / "my mnemonic for X is
-                // Y"), routes straight into story+image generation instead (see
-                // commenceSearchOrMnemonic/parseMnemonicIntent).
+                // Enter on whatever's typed commences a Dotbot search — or, for a mnemonic-shaped
+                // query ("generate a mnemonic for X" / "my mnemonic for X is Y"), routes straight
+                // into story+image generation instead (see commenceSearchOrMnemonic/
+                // parseMnemonicIntent).
                 const value = appState.searchInput.value.trim();
                 if (value) commenceSearchOrMnemonic(value);
             }

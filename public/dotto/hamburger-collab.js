@@ -156,8 +156,8 @@ import { deleteCanvasCollabsForFolder, deleteWaypointCardEverywhere, expandWaypo
     // be jumpable-to from here, platform-wide. RLS on that table already restricts this to
     // waypoints THIS user created, so there's no need to filter by creator client-side too.
     // Real React state now (see app/dotto/WaypointsListPanel.jsx, waypointsListStore) — genuine
-    // JSX rows, same as CanvasResultsPanel, since there's no complex per-row widget state (just an
-    // icon, a label, an onclick). No flushSync needed on the bridge (unlike the search panels):
+    // JSX rows, since there's no complex per-row widget state (just an icon, a label, an onclick).
+    // No flushSync needed on the bridge (unlike the search panels):
     // this is async (a real network round-trip), so there's no synchronous-read race to guard
     // against — by the time the store updates, we're already in a later task entirely.
     async function renderWaypointsList(query) {

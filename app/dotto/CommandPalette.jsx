@@ -7,9 +7,8 @@ import usePortalNode from "./usePortalNode";
 
 // One suggestion row — kind autocomplete ("/source", "/canvas"), an id lookup, or an own-tree
 // name match (see command-palette.js's buildCommandRows for the three row shapes). data-index
-// mirrors CanvasResultsPanel's ResultRow so the existing keyboard-nav technique (querySelectorAll
-// + classList, search-orchestration-selection.js) works the same way here without needing its
-// own parallel implementation.
+// drives the existing keyboard-nav technique (querySelectorAll + classList,
+// search-orchestration-selection.js's setCommandActive).
 function CommandRow({ row, index }) {
   return (
     <div

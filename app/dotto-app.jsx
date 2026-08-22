@@ -8,7 +8,6 @@ import {
   addToSourcePopupStore,
   breadcrumbMapStore,
   canvasItemsStore,
-  canvasResultsStore,
   cellTagPickerListStore,
   chatsListStore,
   chatThreadStore,
@@ -41,7 +40,6 @@ import AchievementsGrid from "./dotto/AchievementsGrid";
 import AddToSourcePopup from "./dotto/AddToSourcePopup";
 import BreadcrumbPill from "./dotto/BreadcrumbPill";
 import CanvasItemsLayer from "./dotto/CanvasItemsLayer";
-import CanvasResultsPanel from "./dotto/CanvasResultsPanel";
 import CellTagPickerList from "./dotto/CellTagPickerList";
 import ChatsListPanel from "./dotto/ChatsListPanel";
 import ChatThread from "./dotto/ChatThread";
@@ -183,15 +181,9 @@ if (typeof window !== "undefined") {
   // scrollHeight synchronously right after a turn is appended/restored.
   window.__setChatThread = (turns) => flushSync(() => chatThreadStore.set(turns));
   window.__appendChatTurn = (turn) => flushSync(() => chatThreadStore.set([...chatThreadStore.getSnapshot(), turn]));
-  // #search-results/#search-suggestions (see app/dotto/CanvasResultsPanel.jsx/
-  // SearchSuggestionsPanel.jsx) — same flushSync reasoning as the six above. __setCanvasResults
-  // specifically also needs it for a second reason: it's a real portal (see canvasResultsStore's
-  // own comment in bridges.js), and the existing keyboard-nav code
-  // (search-orchestration-selection.js) reads its rows via querySelectorAll synchronously on
-  // every arrow/digit/Enter keypress.
-  window.__setCanvasResults = (state) => flushSync(() => canvasResultsStore.set(state));
   // #search-command-palette (see app/dotto/CommandPalette.jsx, command-palette.js's
-  // updateCommandPalette) — same two reasons as __setCanvasResults right above: a real portal,
+  // updateCommandPalette) — same flushSync reasoning as the six above. Specifically also needs it
+  // for a second reason: it's a real portal (see commandPaletteStore's own comment in bridges.js),
   // and search-orchestration-selection.js's command-mode keydown branches read its rows via
   // querySelectorAll synchronously right after this is called.
   window.__setCommandPalette = (state) => flushSync(() => commandPaletteStore.set(state));
@@ -308,7 +300,6 @@ export default function DottoApp({ sections, currentUser }) {
       <ErrorBoundary name="RecommendedSearchesPanel"><RecommendedSearchesPanel /></ErrorBoundary>
       <ErrorBoundary name="DotbotAnswerPanel"><DotbotAnswerPanel /></ErrorBoundary>
       <ErrorBoundary name="ImageResultPanel"><ImageResultPanel /></ErrorBoundary>
-      <ErrorBoundary name="CanvasResultsPanel"><CanvasResultsPanel /></ErrorBoundary>
       <ErrorBoundary name="CommandPalette"><CommandPalette /></ErrorBoundary>
       <ErrorBoundary name="SearchSuggestionsPanel"><SearchSuggestionsPanel /></ErrorBoundary>
       <ErrorBoundary name="ChatThread"><ChatThread /></ErrorBoundary>

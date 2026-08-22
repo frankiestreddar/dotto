@@ -473,7 +473,7 @@ import { centerOnContent, render } from './waypoints-render-loop.js';
         broadcastCursorPositionThrottled();
     }
     // Eases the camera to a new pan/zoom instead of snapping — used by every "jump to X"
-    // navigation (goToCanvasItem, goToOutlineItem, goToWaypointCard) so the canvas visibly pans
+    // navigation (goToOutlineItem, goToWaypointCard) so the canvas visibly pans
     // there rather than teleporting. Sets an inline `transition` on #world/#dot-layer just long
     // enough to cover one ease, then clears it back to '' — never left on permanently, since
     // normal real-time dragging/pinch-zooming needs tx/ty/scale to apply instantly, not ease.

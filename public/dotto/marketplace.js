@@ -113,8 +113,8 @@ import { render, renderSelectedOutlines } from './waypoints-render-loop.js';
     }
 
     // Real React state now (see app/dotto/MarketDiscoverPanel.jsx, marketDiscoverStore) —
-    // genuine JSX rows, same reasoning as CanvasResultsPanel/WaypointsListPanel (simple title/
-    // price/desc/meta, no per-row widget state). openMarketDetail/the rest of the marketplace/
+    // genuine JSX rows, same reasoning as WaypointsListPanel (simple title/price/desc/meta, no
+    // per-row widget state). openMarketDetail/the rest of the marketplace/
     // library cluster stay vanilla for now — this is one self-contained slice of a much bigger
     // file, converted incrementally rather than all at once.
     function renderMarketplaceDiscover() {

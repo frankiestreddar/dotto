@@ -12,7 +12,7 @@ const EMPTY_LEVEL = { displayName: "", tierColor: "" };
 // inner .profile-level-pill-text span was removed from the static markup so this doesn't
 // duplicate it). The pill's background/color are set via a plain effect on the portal target
 // itself, not JSX props — createPortal only ever owns the target's CHILDREN, never its own
-// attributes, same as CanvasResultsPanel's #search-results style.display handling.
+// attributes, same as CommandPalette.jsx's #search-command-palette style.display handling.
 export default function ProfileLevelPill() {
   const level = useSyncExternalStore(profileLevelStore.subscribe, profileLevelStore.getSnapshot, () => EMPTY_LEVEL);
   const portalNode = usePortalNode("profile-level-pill");

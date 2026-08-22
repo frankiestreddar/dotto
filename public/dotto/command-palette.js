@@ -57,8 +57,8 @@ function scheduleSharedCommandSuggestions(parsed) {
     }, 250);
 }
 
-// Same pattern as setSearchActive (ai-assistant-suggestions.js), for #search-command-palette's
-// own row list instead of #search-results — see appState.commandActiveIndex's own comment.
+// Arrow-key row selection for #search-command-palette's own row list — see
+// appState.commandActiveIndex's own comment.
 function setCommandActive(idx) {
     const items = Array.from(appState.searchCommandPalette.querySelectorAll('.command-palette-row'));
     if (!items.length) return;

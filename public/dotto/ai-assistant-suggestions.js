@@ -3,7 +3,7 @@ import { appState, canvas } from './core-state.js';
 import { renderChatsList } from './hamburger-collab.js';
 import { saveSnapshot, scheduleWorkspaceSave } from './history-autosave.js';
 import { findItemById } from './live-presence.js';
-import { commenceSearchOrMnemonic, computeCanvasMatches, computeSourceMatches, renderCanvasResultsPanel } from './mnemonic-search-matching.js';
+import { commenceSearchOrMnemonic } from './mnemonic-search-matching.js';
 import { closeAllPanels, closeRailView, openRailView } from './panels-hamburger.js';
 import { autoGrowSearchInput } from './stopwatch-search-notifications.js';
 import { render } from './waypoints-render-loop.js';
@@ -44,15 +44,6 @@ import { render } from './waypoints-render-loop.js';
         tick();
     })();
 
-    function setSearchActive(idx) {
-        const items = Array.from(appState.searchResults.querySelectorAll('.search-result-item'));
-        if (!items.length) return;
-        idx = ((idx % items.length) + items.length) % items.length;
-        items.forEach(el => el.classList.remove('active'));
-        appState.searchActiveIndex = idx;
-        items[idx].classList.add('active');
-        items[idx].scrollIntoView({ block: 'nearest' });
-    }
     function stripHtml(html) {
         const div = document.createElement('div');
         div.innerHTML = html || '';
@@ -79,14 +70,6 @@ import { render } from './waypoints-render-loop.js';
             if ((f.items || []).some(it => (it.kind === 'folder' || it.kind === 'source') && it.folderId === folderId)) return fid;
         }
         return null;
-    }
-    function getItemSearchText(it) {
-        if (it.kind === 'folder' || it.kind === 'source') return appState.folders[it.folderId] ? appState.folders[it.folderId].title : '';
-        if (it.kind === 'waypoint') return it.name || '';
-        if (it.kind === 'table') return it.tableData.map(row => row.map(c => stripHtml(c)).join(' ')).join(' ');
-        if (it.kind === 'checklist') return (it.tasks || []).map(t => t.text).join(' ');
-        if (it.kind === 'embed') return it.embedUrl || '';
-        return stripHtml(it.html);
     }
     function escapeHtml(s) {
         return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
@@ -213,7 +196,6 @@ import { render } from './waypoints-render-loop.js';
     // trigger this reset, and clearSearch needs to trigger closeRailView, so the reset logic itself
     // can't live inside clearSearch (that direction would loop).
     function resetAiSearchState() {
-        clearTimeout(appState.canvasResultsDebounceTimer);
         // Ends the current thread for continuation purposes — the next message (whenever the AI
         // view next opens) starts a fresh conversation server-side. openSavedChat (the sidebar
         // reopen flow) sets this directly AFTER calling openSearchOverlay, which itself never
@@ -222,12 +204,11 @@ import { render } from './waypoints-render-loop.js';
         appState.searchInput.value = '';
         autoGrowSearchInput();
         appState.searchDotbotAnswer.innerHTML = ''; appState.searchDotbotAnswer.style.display = 'none';
-        // #search-results (CanvasResultsPanel.jsx) is portaled — React tracks real children there,
-        // so a direct innerHTML write would desync its fiber tree from the actual DOM and risk a
-        // crash on the next update. Every other panel here renders no JSX children of its own
-        // (returns null, only ever touches its node from its own effect), so a direct clear is
+        // #search-command-palette (CommandPalette.jsx) is portaled — React tracks real children
+        // there, so a direct innerHTML write would desync its fiber tree from the actual DOM and
+        // risk a crash on the next update. Every other panel here renders no JSX children of its
+        // own (returns null, only ever touches its node from its own effect), so a direct clear is
         // harmless for those — see hideDotbotResultPanels' own comment for the full reasoning.
-        window.__setCanvasResults(null);
         window.__setCommandPalette(null);
         if (appState.searchTranslation) { appState.searchTranslation.innerHTML = ''; appState.searchTranslation.style.display = 'none'; }
         appState.searchDictionary.innerHTML = ''; appState.searchDictionary.style.display = 'none';
@@ -490,7 +471,7 @@ import { render } from './waypoints-render-loop.js';
     const dropdownAnimator = createHeightTransitionController(() => appState.searchDropdown);
     function updateSearchDropdown() {
         if (!appState.searchDropdown) return;
-        const panels = [appState.searchCommandPalette, appState.searchDotbotAnswer, appState.searchResults, appState.searchTranslation, appState.searchDictionary, appState.searchExamples, appState.searchImageResult, appState.searchSuggestions, appState.searchRecommended].filter(Boolean);
+        const panels = [appState.searchCommandPalette, appState.searchDotbotAnswer, appState.searchTranslation, appState.searchDictionary, appState.searchExamples, appState.searchImageResult, appState.searchSuggestions, appState.searchRecommended].filter(Boolean);
         const visible = panels.some(el => el.style.display !== 'none');
         // #search-dropdown is deliberately non-clipping at rest (restOverflow defaults to
         // 'visible') so the dictionary/examples panels' hover-out nav arrows can slide outside
@@ -546,12 +527,10 @@ import { render } from './waypoints-render-loop.js';
     function handleSearchInput(value) {
         autoGrowSearchInput();
         // Slash commands (see command-palette.js) take over the box entirely — none of the normal
-        // canvas-match/live-suggestion machinery below applies, and any of its panels left over
-        // from before "/" was typed need clearing so they don't linger behind the command palette.
+        // live-suggestion machinery below applies, and any of its panels left over from before "/"
+        // was typed need clearing so they don't linger behind the command palette.
         if (value.startsWith('/')) {
-            clearTimeout(appState.canvasResultsDebounceTimer);
             hideDotbotResultPanels();
-            window.__setCanvasResults(null);
             window.__setSearchSuggestions(null);
             updateCommandPalette(value);
             updateSearchDropdown();
@@ -562,12 +541,9 @@ import { render } from './waypoints-render-loop.js';
         if (!folderObj) return;
         hideDotbotResultPanels();
         if (value.trim() === "") {
-            clearTimeout(appState.canvasResultsDebounceTimer);
-            window.__setCanvasResults(null);
             handleSearchFocus();
             return;
         }
-        scheduleCanvasResults(value, folderObj.isSource);
         // Live AI suggestions are for a fresh, standalone query — mid-conversation (a follow-up in
         // an existing chat thread, appState.currentConversationId set — see Stage 3, commit 5d1dd81)
         // they'd suggest generic starting points unrelated to what's actually being continued, so
@@ -583,25 +559,6 @@ import { render } from './waypoints-render-loop.js';
             scheduleLiveSuggestions(value, folderObj.isSource);
         }
         updateSearchDropdown();
-    }
-
-    // Debounced canvas-item matching — computeCanvasMatches/computeSourceMatches are themselves
-    // synchronous (no fetch, no artificial delay), so this exists purely to avoid resizing
-    // #search-dropdown on every single keystroke as matches flicker in and out while typing, not
-    // for performance. 350ms of no typing before the results panel updates, mirroring the existing
-    // debounce pattern already used for live AI suggestions (scheduleLiveSuggestions) just below.
-    // Re-checks the input's CURRENT value against what was scheduled before applying anything —
-    // if the user kept typing (or cleared the box, or switched to a "/" command) since this was
-    // scheduled, this timer's own stale result is simply discarded rather than clobbering whatever
-    // state the box has actually moved on to.
-    function scheduleCanvasResults(value, isSourceFolder) {
-        clearTimeout(appState.canvasResultsDebounceTimer);
-        appState.canvasResultsDebounceTimer = setTimeout(() => {
-            if (appState.searchInput.value !== value) return; // stale — superseded by later typing
-            const matches = isSourceFolder ? computeSourceMatches(value) : computeCanvasMatches(value);
-            renderCanvasResultsPanel(matches, isSourceFolder);
-            updateSearchDropdown();
-        }, 350);
     }
 
     // Focusing the box no longer drops a static suggestion list on you — instead the border
@@ -620,7 +577,6 @@ import { render } from './waypoints-render-loop.js';
         const v = appState.searchInput.value.trim();
         if (v !== "") return;
         window.__setSearchSuggestions(null);
-        window.__setCanvasResults(null);
         updateSearchDropdown();
     }
 
@@ -865,7 +821,7 @@ import { render } from './waypoints-render-loop.js';
         clearSearch();
     }
 
-export { applyAlignHighlightToggle, buildAlignedSentenceEls, buildLiveSuggestionsRows, clearSearch, countSourceEntries, dotbotErrorMessage, escapeHtml, findParentFolderId, getItemSearchText, handleSearchFocus, handleSearchInput, isLatinScriptText, openSearchOverlay, refreshAiPanel, resetAiSearchState, scrollChatThreadToBottom, setSearchActive, setupDotbotResultDrag, showAiChatView, showAiHistoryView, speakerIconHTML, startNewAiChat, stripHtml, truncateCenter, typewriterReveal, typewriterRevealSegments, updateChatThread, updateSearchDropdown };
+export { applyAlignHighlightToggle, buildAlignedSentenceEls, buildLiveSuggestionsRows, clearSearch, countSourceEntries, dotbotErrorMessage, escapeHtml, findParentFolderId, handleSearchFocus, handleSearchInput, isLatinScriptText, openSearchOverlay, refreshAiPanel, resetAiSearchState, scrollChatThreadToBottom, setupDotbotResultDrag, showAiChatView, showAiHistoryView, speakerIconHTML, startNewAiChat, stripHtml, truncateCenter, typewriterReveal, typewriterRevealSegments, updateChatThread, updateSearchDropdown };
 
 window.__countSourceEntries = countSourceEntries;
 window.__buildLiveSuggestionsRows = buildLiveSuggestionsRows;

@@ -3,13 +3,12 @@
 // if/else chains in two different files, keyed by the same `kind` string but never sharing a
 // data source — into one lookup. `label` here is ONLY kindLabel's own 2 genuine hardcoded
 // specials (sentence, checklist); every OTHER function that produces a kind-dependent label
-// (searchTypeLabel, searchKindLabel, miniLabelForItem) has its own real, function-specific
-// special-casing that does NOT safely collapse into a shared field — confirmed by checking
-// ADD_MENU_DATA's actual content before writing this: kindLabel('flashcard') returns "Flashcard"
-// (singular, from ADD_MENU_DATA), while searchTypeLabel/miniLabelForItem need "Flashcards"
-// (plural) for unrelated reasons of their own (see their own comments) — genuinely different
-// values for the same kind, not duplicated data. Those three functions are deliberately left
-// untouched rather than forced into this registry.
+// (searchKindLabel, miniLabelForItem) has its own real, function-specific special-casing that
+// does NOT safely collapse into a shared field — confirmed by checking ADD_MENU_DATA's actual
+// content before writing this: kindLabel('flashcard') returns "Flashcard" (singular, from
+// ADD_MENU_DATA), while miniLabelForItem needs "Flashcards" (plural) for unrelated reasons of its
+// own (see its own comment) — genuinely different values for the same kind, not duplicated data.
+// Those functions are deliberately left untouched rather than forced into this registry.
 //
 // Deliberately does NOT yet include a `Component:` slot for React-owned rendering. render()
 // (waypoints-render-loop.js) does a full, unconditional teardown-and-rebuild of every card's DOM

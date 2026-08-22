@@ -20,24 +20,13 @@ import { toggleDrawFromMenu } from './srs-connections-core.js';
         // keep working — this keeps their label correct everywhere kindLabel is used, rather than
         // falling through to the raw kind string below. See card-kinds.js for why only these two
         // specials live in the shared registry and not e.g. flashcard's label (a different, and
-        // differently-valued, special case belongs to searchTypeLabel/miniLabelForItem instead).
+        // differently-valued, special case belongs to miniLabelForItem instead).
         if (CARD_KINDS[kind]?.label) return CARD_KINDS[kind].label;
         for (const tab of Object.values(appState.ADD_MENU_DATA)) {
             const found = tab.items.find(i => i.kind === kind);
             if (found) return found.label;
         }
         return kind;
-    }
-    // The word typed to search for a block TYPE in canvas search (computeCanvasMatches) — distinct
-    // from kindLabel (used for the add-menu/outline, where the singular reads more naturally,
-    // e.g. "Add a Flashcard"). A prefix check requires the label be at least as long as whatever's
-    // typed, so a kind whose natural spoken/typed form is plural (typing the full word "flashcards"
-    // is exactly as likely as "flashcard") needs its OWN plural label here — otherwise typing the
-    // trailing "s" would make it one character longer than the singular kindLabel and stop
-    // matching entirely, even though every shorter prefix ("f", "flash", "flashcard") still would.
-    function searchTypeLabel(kind) {
-        if (kind === 'flashcard') return 'Flashcards';
-        return kindLabel(kind);
     }
     function searchKindLabel(it) {
         if (it.kind === 'title') return 'H' + (it.level || 1);
@@ -120,4 +109,4 @@ import { toggleDrawFromMenu } from './srs-connections-core.js';
         prepareAdd('source');
     }
 
-export { handleAddMenuSearchInput, kindLabel, kindSize, newSourceClicked, searchKindLabel, searchTypeLabel, switchAddTab, toggleAddMenuSearch };
+export { handleAddMenuSearchInput, kindLabel, kindSize, newSourceClicked, searchKindLabel, switchAddTab, toggleAddMenuSearch };

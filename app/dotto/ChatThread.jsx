@@ -112,8 +112,8 @@ function ChatTurn({ turn }) {
 
 // Portals into #search-chat-thread (content/fragments/search-overlay.html) — see chatThreadStore's
 // own comment in app/dotto/bridges.js for the full architecture. A genuine JSX list (real turn
-// identity, keyed by turn.id) like CanvasResultsPanel.jsx/CommandPalette.jsx, not a single-owner
-// side-effect component like DotbotAnswerPanel.jsx and friends, which this retires for AI content.
+// identity, keyed by turn.id) like CommandPalette.jsx, not a single-owner side-effect component
+// like DotbotAnswerPanel.jsx and friends, which this retires for AI content.
 export default function ChatThread() {
   const turns = useSyncExternalStore(chatThreadStore.subscribe, chatThreadStore.getSnapshot, () => EMPTY_TURNS);
   const portalNode = usePortalNode("search-chat-thread");

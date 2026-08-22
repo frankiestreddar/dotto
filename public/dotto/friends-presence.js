@@ -124,8 +124,8 @@ import { pushNotification } from './stopwatch-search-notifications.js';
     }
 
     // Real React state now (see app/dotto/CollabListPanel.jsx, collabListStore) — genuine JSX
-    // rows, same reasoning as CanvasResultsPanel/WaypointsListPanel (no complex per-row widget
-    // state — an avatar, a name, a live-presence dot, an Add/Remove/Requested button). Unlike the
+    // rows, same reasoning as WaypointsListPanel (no complex per-row widget state — an avatar, a
+    // name, a live-presence dot, an Add/Remove/Requested button). Unlike the
     // Hub Collab/Messages panels, this one has no Requests drill-down of its own — adding someone
     // doesn't grant access immediately, it sends a request (like a friend request) that shows as
     // "Requested" here until they accept it from THEIR OWN hamburger Collaborations panel (see

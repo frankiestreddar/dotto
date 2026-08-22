@@ -321,9 +321,9 @@ import { applyFolderView, centerOnContent, expandWaypointCard, openFolder, rende
         list.forEach(c => { const d = Math.hypot(c.x - ref.x, c.y - ref.y); if (d < bd) { bd = d; best = c; } });
         return best;
     }
-    // Maps a card kind (+ heading level, for 'title') to its /assets/icons/*.png filename —
-    // shared by the canvas outline tree (outlineIcon, below) and the search-results type
-    // indicator (renderMatchRow), since both display the same kind taxonomy as a small icon.
+    // Maps a card kind (+ heading level, for 'title') to its /assets/icons/*.png filename — used
+    // by the canvas outline tree (outlineIcon, below) and every other place that displays this
+    // same kind taxonomy as a small icon (Waypoints/Collaborations/Source/Waypoint cards).
     function kindIconFile(kind, level) {
         if (kind === 'title') return `heading-${level || 1}.png`;
         const files = {

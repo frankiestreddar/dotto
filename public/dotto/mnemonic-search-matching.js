@@ -1,11 +1,9 @@
-import { searchTypeLabel } from './add-menu.js';
-import { applyAlignHighlightToggle, buildAlignedSentenceEls, clearSearch, dotbotErrorMessage, getItemSearchText, isLatinScriptText, setupDotbotResultDrag, speakerIconHTML, stripHtml, typewriterReveal, typewriterRevealSegments, updateSearchDropdown } from './ai-assistant-suggestions.js';
-import { appState, canvas, canvasViewportCenterX } from './core-state.js';
-import { saveSnapshot, smoothPanTo } from './history-autosave.js';
-import { findItemById } from './live-presence.js';
+import { applyAlignHighlightToggle, buildAlignedSentenceEls, clearSearch, dotbotErrorMessage, isLatinScriptText, setupDotbotResultDrag, speakerIconHTML, typewriterReveal, typewriterRevealSegments, updateSearchDropdown } from './ai-assistant-suggestions.js';
+import { appState, canvas } from './core-state.js';
+import { saveSnapshot } from './history-autosave.js';
 import { openDotbotUpgradeModal, refreshDotbotUsage } from './profile-achievements-pricing.js';
 import { commenceDotbotSearch } from './search-orchestration-selection.js';
-import { expandWaypointCard, render } from './waypoints-render-loop.js';
+import { render } from './waypoints-render-loop.js';
 
 
     // ---------- Mnemonic story / image (explicit, separate actions — not part of the
@@ -273,107 +271,13 @@ import { expandWaypointCard, render } from './waypoints-render-loop.js';
         commenceDotbotSearch(query);
     }
 
-    // ---------- Canvas / source-row local matching (instant, no AI) ----------
-    // Scored so the results panel (capped to 4 — see renderCanvasResultsPanel) shows the most
-    // relevant and/or recent matches: exact match > starts-with > plain substring, tie-broken by
-    // item id (idCounter only ever increases, so a higher id is a more recently created item).
-    // Word-prefix matching, not substring — a query only matches if it's a prefix of the item's
-    // whole text OR a prefix of one of its individual words, never merely contained partway
-    // through one (e.g. "a" matches a note reading "and", but "n" no longer does just because
-    // "and" happens to contain an "n"). Also matches by block TYPE: typing any PREFIX of a kind's
-    // name (e.g. "n"/"no"/"not"/"note", not just the full word) surfaces every item of that kind,
-    // regardless of its content — the highest-priority tier below, since asking for a whole
-    // category is a stronger signal than any partial text match.
-    function computeCanvasMatches(query) {
-        const q = query.trim().toLowerCase();
-        if (!q) return [];
-        const folderObj = appState.folders[appState.currentFolderId];
-        const matches = [];
-        (folderObj.items || []).forEach(it => {
-            const text = getItemSearchText(it);
-            const lower = text ? text.toLowerCase() : '';
-            let score = 0;
-            if (searchTypeLabel(it.kind).toLowerCase().startsWith(q)) score = 4;
-            else if (lower === q) score = 3;
-            else if (lower && lower.startsWith(q)) score = 2;
-            else if (lower && lower.split(/[^\p{L}\p{N}]+/u).some(w => w && w.startsWith(q))) score = 1;
-            if (!score) return;
-            matches.push({ it, text, score });
-        });
-        matches.sort((a, b) => b.score - a.score || b.it.id - a.it.id);
-        return matches.slice(0, 4);
-    }
-    function computeSourceMatches(query) {
-        const q = query.trim().toLowerCase();
-        if (!q) return [];
-        const folderObj = appState.folders[appState.currentFolderId];
-        const tableItem = (folderObj.items || []).find(i => i.kind === 'table');
-        if (!tableItem) return [];
-        const matches = [];
-        tableItem.tableData.forEach((row, ri) => {
-            row.forEach((cell) => {
-                const text = stripHtml(cell);
-                if (!text) return;
-                const lower = text.toLowerCase();
-                const idx = lower.indexOf(q);
-                if (idx === -1) return;
-                matches.push({ ri, text, score: lower === q ? 3 : idx === 0 ? 2 : 1, tableId: tableItem.id });
-            });
-        });
-        const seenRows = new Set();
-        return matches
-            .sort((a, b) => b.score - a.score)
-            .filter(m => { if (seenRows.has(m.ri)) return false; seenRows.add(m.ri); return true; })
-            .sort((a, b) => a.ri - b.ri)
-            .slice(0, 4);
-    }
-    // Whichever ranked+capped match list this is given is real React state now (see
-    // app/dotto/CanvasResultsPanel.jsx, canvasResultsStore) — genuine JSX rows, not a vanilla
-    // builder like the other converted panels, since there's no complex per-row widget state here
-    // (just an icon, some text, an onclick — setSearchActive's keyboard-nav code below still finds
-    // these rows fine via querySelectorAll('.search-result-item'), since that's a plain DOM query
-    // that doesn't care who created the elements). `index` is each row's position (0-based) in the
-    // capped max-4 list — shown as a 1-4 pill on the right, and pressing that digit key while the
-    // dropdown is open clicks the row exactly like a mouse click would (see the keydown handler
-    // near ArrowDown/ArrowUp/Enter further down, in search-orchestration-selection.js).
-    function renderCanvasResultsPanel(matches, isSourceFolder) {
-        appState.searchActiveIndex = -1;
-        window.__setCanvasResults(matches.length ? { matches, isSourceFolder } : null);
-    }
-    function goToCanvasItem(id) {
-        const it = findItemById(id);
-        if (!it) return;
-        const el = document.getElementById('item-' + id);
-        const w = (it.kind === 'title' ? (el ? el.offsetWidth : 100) : it.w) || 0;
-        const h = (it.kind === 'title' ? (el ? el.offsetHeight : 50) : it.h) || 0;
-        const cx = it.x + w / 2, cy = it.y + h / 2;
-        const targetScale = Math.max(appState.scale, 1);
-        smoothPanTo(canvasViewportCenterX() - cx * targetScale, window.innerHeight / 2 - cy * targetScale, targetScale);
-        clearSearch();
-        if (el) {
-            if (it.kind === 'waypoint') expandWaypointCard(el, it, { editable: false });
-            flashCanvasElement(el);
-        }
-    }
-    // Same brief highlight every "jump to this item" action lands on it with — search results
-    // (above), the hamburger menu's Waypoints panel (peekWaypointCard), and its Outline panel
-    // (goToOutlineItem) all share this one flash instead of each re-implementing it.
+    // Same brief highlight every "jump to this item" action lands on it with — the hamburger
+    // menu's Waypoints panel (peekWaypointCard) and its Outline panel (goToOutlineItem) share this
+    // one flash instead of each re-implementing it.
     function flashCanvasElement(el) {
         if (!el) return;
         el.classList.add('search-flash');
         setTimeout(() => el.classList.remove('search-flash'), 1000);
-    }
-    function goToSourceRow(tableId, rowIndex) {
-        clearSearch();
-        // Row 0 (column names) now lives in its own header-pill row entirely separate from
-        // the table, so it needs its own lookup rather than a single tr:nth-child across both.
-        const target = rowIndex === 0
-            ? document.querySelector(`#item-${tableId} .static-table-header-track`)
-            : document.querySelector(`#item-${tableId} .item-table tbody tr:nth-child(${rowIndex})`);
-        if (!target) return;
-        target.scrollIntoView({ block: 'center', behavior: 'smooth' });
-        target.classList.add('row-flash');
-        setTimeout(() => target.classList.remove('row-flash'), 1000);
     }
 
     // ---------- Dictionary / examples panel builders — draggable onto the canvas like any
@@ -938,11 +842,11 @@ import { expandWaypointCard, render } from './waypoints-render-loop.js';
         }))));
     }
 
-export { buildAnswerBlocksWrap, buildDictionaryCard, buildDotbotAnswerTextEl, buildExamplesCard, buildImageResultCard, buildImageResultError, buildImageResultLoading, buildMnemonicErrorEl, buildMnemonicLoadingEl, buildMnemonicResultCard, buildRecommendedSearchesRows, buildTranslationCard, commenceSearchOrMnemonic, computeCanvasMatches, computeSourceMatches, flashCanvasElement, goToCanvasItem, goToSourceRow, renderCanvasResultsPanel, renderDictionaryPanel, renderDotbotAnswerPanel, renderExamplesPanel, renderRecommendedSearchesPanel, renderTranslationPanel, startDotbotAnswerReveal, startMnemonicResultReveal };
+export { buildAnswerBlocksWrap, buildDictionaryCard, buildDotbotAnswerTextEl, buildExamplesCard, buildImageResultCard, buildImageResultError, buildImageResultLoading, buildMnemonicErrorEl, buildMnemonicLoadingEl, buildMnemonicResultCard, buildRecommendedSearchesRows, buildTranslationCard, commenceSearchOrMnemonic, flashCanvasElement, renderDictionaryPanel, renderDotbotAnswerPanel, renderExamplesPanel, renderRecommendedSearchesPanel, renderTranslationPanel, startDotbotAnswerReveal, startMnemonicResultReveal };
 
 // React → vanilla bridge (see the identical pattern/comment in other converted-panel files) —
 // used by TranslationPanel.jsx/DictionaryPanel.jsx/ExamplesPanel.jsx/RecommendedSearchesPanel.jsx/
-// DotbotAnswerPanel.jsx/ImageResultPanel.jsx/SearchSuggestionsPanel.jsx/CanvasResultsPanel.jsx
+// DotbotAnswerPanel.jsx/ImageResultPanel.jsx/SearchSuggestionsPanel.jsx
 // (app/dotto/), which can't import these directly since public/dotto/*.js isn't reachable from
 // app/dotto/.
 window.__buildTranslationCard = buildTranslationCard;
@@ -961,5 +865,3 @@ window.__buildMnemonicResultCard = buildMnemonicResultCard;
 window.__startMnemonicResultReveal = startMnemonicResultReveal;
 window.__buildMnemonicLoadingEl = buildMnemonicLoadingEl;
 window.__buildMnemonicErrorEl = buildMnemonicErrorEl;
-window.__goToCanvasItem = goToCanvasItem;
-window.__goToSourceRow = goToSourceRow;
