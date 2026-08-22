@@ -612,7 +612,11 @@ import { render } from './waypoints-render-loop.js';
     // ring the moment a search actually commences (see commenceSearchOrMnemonic/
     // commenceDotbotSearch, which remove this class right before they run).
     function handleSearchFocus() {
-        closeAllPanels(null);
+        // 'rail' — the AI panel IS the currently-open rail view when this fires (focusing the box
+        // only happens while it's visible), so closing the rail here would close the box's own
+        // panel out from under itself. Still closes unrelated overlays (add-menu/collab/source-add)
+        // that might be open at the same time.
+        closeAllPanels('rail');
         if (appState.dotbotScheduleConversation) return; // keep Dotbot's prompt showing, not generic suggestions
         hideDotbotResultPanels();
         appState.searchInputWrap.classList.add('idle-pulsing');
