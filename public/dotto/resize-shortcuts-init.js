@@ -3,6 +3,7 @@ import { refreshCanvasCollabForCurrentFolder, refreshFriendsData, renderCollabPi
 import { fcFlip, fcRate, trNext } from './games-flashcard-typeright.js';
 import { applyTransform, loadWorkspace, saveSnapshot, scheduleWorkspaceSave } from './history-autosave.js';
 import { broadcastItemResize, findItemById } from './live-presence.js';
+import { isAnyUiPanelOpen } from './panels-hamburger.js';
 import { refreshDotbotUsage } from './profile-achievements-pricing.js';
 import { announceEnteredCollaboration, jumpToHistoryIndex } from './shared-canvases-outline.js';
 import { applyCursorMode } from './source-buttons-cursor-mode.js';
@@ -155,19 +156,6 @@ import { cascadeDeleteFolderContents, centerOnContent, deleteWaypointFromDb, ren
         if (!el) return null;
         const it = findItemById(Number(el.id.replace('item-', '')));
         return it && (it.kind === 'flashcard' || it.kind === 'typeright') ? it : null;
-    }
-    // Any panel that owns its own keyboard input while open — same set closeAllPanels() knows
-    // about, plus the search dropdown — wins over a hovered card's shortcuts even if the cursor
-    // happens to still be sitting over that card underneath it. Outline/Waypoints/Collaborations/
-    // Marketplace/Messages/Add/Profile all share one rail shell now (see appState.railViewEls,
-    // core-state.js) — checking the whole list covers all of them in one go instead of naming each
-    // one individually.
-    function isAnyUiPanelOpen() {
-        return appState.railViewEls.some(el => el && el.classList.contains('open'))
-            || appState.collabPanel.classList.contains('open')
-            || appState.sourceAddMenu.style.display === 'flex'
-            || (appState.searchDropdown && appState.searchDropdown.classList.contains('visible'))
-            || (appState.searchChatThread && appState.searchChatThread.classList.contains('visible'));
     }
     document.addEventListener('keydown', (e) => {
         if (e.metaKey || e.ctrlKey || e.altKey) return;

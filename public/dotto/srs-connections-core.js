@@ -7,6 +7,7 @@ import { defaultFlashcardDeck } from './games-flashcard-typeright.js';
 import { generateGlobalId } from './global-ids.js';
 import { applyTransform, saveSnapshot, scheduleApplyTransform } from './history-autosave.js';
 import { broadcastEditingState } from './live-presence.js';
+import { isAnyUiPanelOpen } from './panels-hamburger.js';
 import { awardUserPoints, bumpAchievementStat } from './profile-achievements-pricing.js';
 import { setOutlineActive, toggleHamburgerMenu } from './shared-canvases-outline.js';
 import { pushNotification } from './stopwatch-search-notifications.js';
@@ -560,17 +561,26 @@ import { render, renderSelectedOutlines, startBoxSelection, syncWaypointToDb } f
             }
         }
 
+        // Every single-key shortcut below is only meant to fire when nothing else is going on —
+        // not just "no input is focused" (isEditingText), but also "no side panel is currently
+        // open" (isAnyUiPanelOpen). Without that second check, typing a normal sentence while e.g.
+        // the Waypoints panel is open (cursor resting on the panel, no input actually clicked into
+        // yet) did nothing for most letters, then hijacked focus to the AI search box the instant
+        // a space or "/" was typed — reading as "if you start typing, it starts inputting in the
+        // text box." Once some other panel is already open, reaching a DIFFERENT one now always
+        // means clicking its rail icon rather than one of these letter shortcuts still firing.
+        const anyPanelOpen = isAnyUiPanelOpen();
         // Space opens the AI panel (part of #hamburger-stack, see openRailView/openSearchOverlay)
         // empty. openSearchOverlay shows the panel THEN focuses the input — focusing an element
         // inside a still-hidden (display:none) subtree is a silent no-op, so that order is
         // load-bearing, not stylistic.
-        if (!isEditingText && e.key === ' ') { e.preventDefault(); openSearchOverlay(); return; }
+        if (!isEditingText && !anyPanelOpen && e.key === ' ') { e.preventDefault(); openSearchOverlay(); return; }
         // Same idea as Space above, but also types the "/" rather than opening empty, since that's
         // meant to start a slash command (see command-parser.js) — preventDefault + writing
         // .value ourselves (rather than letting the keystroke's own default action insert it
         // after we focus) sidesteps any browser's own default behavior for "/" outside a text
         // field (e.g. Firefox's quick-find-on-slash).
-        if (!isEditingText && e.key === '/') {
+        if (!isEditingText && !anyPanelOpen && e.key === '/') {
             e.preventDefault();
             openSearchOverlay();
             if (appState.searchInput) {
@@ -590,10 +600,10 @@ import { render, renderSelectedOutlines, startBoxSelection, syncWaypointToDb } f
             }
             return;
         }
-        if (!isEditingText && (e.key === 'm' || e.key === 'M')) { e.preventDefault(); toggleHamburgerMenu(); return; }
+        if (!isEditingText && !anyPanelOpen && (e.key === 'm' || e.key === 'M')) { e.preventDefault(); toggleHamburgerMenu(); return; }
         // Debug shortcut for tweaking the notification entrance/exit animation — fires a plain
         // notification with no buttons on every press. Remove once done tweaking.
-        if (!isEditingText && (e.key === 'n' || e.key === 'N')) { e.preventDefault(); pushNotification({ type: 'debug', message: 'this is an example notification' }); return; }
+        if (!isEditingText && !anyPanelOpen && (e.key === 'n' || e.key === 'N')) { e.preventDefault(); pushNotification({ type: 'debug', message: 'this is an example notification' }); return; }
     });
 
     drawColorInput.oninput = (e) => { appState.drawColor = e.target.value; };

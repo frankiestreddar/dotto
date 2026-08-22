@@ -40,6 +40,24 @@ import { closeSourceAddMenu } from './source-buttons-cursor-mode.js';
         if (except !== 'collab') closeCollabPanel();
         if (except !== 'sourceAdd') closeSourceAddMenu();
     }
+    // Any panel that owns its own keyboard input while open — same set closeAllPanels() knows
+    // about, plus the search dropdown — should win over any OTHER global single-key shortcut
+    // (game-card shortcuts in resize-shortcuts-init.js, the Space/"/"/m/n shortcuts in
+    // srs-connections-core.js) even when nothing inside that panel happens to be focused yet.
+    // Without this, typing a normal sentence while e.g. the Waypoints panel is open (cursor
+    // resting on the panel, no input actually clicked into) would silently do nothing for most
+    // letters, then hijack focus to the AI search box the instant a space or "/" was typed —
+    // reading as "if you start typing, it starts inputting in the text box." Outline/Waypoints/
+    // Collaborations/Marketplace/Messages/Add/Profile all share one rail shell now (see
+    // appState.railViewEls, core-state.js) — checking the whole list covers all of them in one go
+    // instead of naming each one individually.
+    function isAnyUiPanelOpen() {
+        return appState.railViewEls.some(el => el && el.classList.contains('open'))
+            || appState.collabPanel.classList.contains('open')
+            || appState.sourceAddMenu.style.display === 'flex'
+            || (appState.searchDropdown && appState.searchDropdown.classList.contains('visible'))
+            || (appState.searchChatThread && appState.searchChatThread.classList.contains('visible'));
+    }
 
     // ---------- Permanent rail: one shared sliding shell, many trigger icons ----------
     // Every panel-style rail icon (outline, Waypoints, Collaborations, Marketplace, Messages,
@@ -124,4 +142,4 @@ import { closeSourceAddMenu } from './source-buttons-cursor-mode.js';
     function handleWaypointsSearch(v) { renderWaypointsList(v); }
     function handleHubCollabSearch(v) { renderHubCollabList(v); }
 
-export { closeAllPanels, closeRailView, handleHubCollabSearch, handleWaypointsSearch, openRailView, pinOnInsideClick, scheduleHoverClose, wireRailIcon };
+export { closeAllPanels, closeRailView, handleHubCollabSearch, handleWaypointsSearch, isAnyUiPanelOpen, openRailView, pinOnInsideClick, scheduleHoverClose, wireRailIcon };
