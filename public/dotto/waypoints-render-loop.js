@@ -450,7 +450,23 @@ import { applyConnections, renderConnectionsLayer } from './srs-connections-core
             broadcastEditingState(false);
             titleEl.classList.remove('crumb-placeholder');
             const newTitle = titleEl.textContent.trim();
-            if (newTitle) { appState.folders[folderId].title = newTitle; syncCanvasCollabTitle(folderId, newTitle); }
+            if (newTitle) {
+                appState.folders[folderId].title = newTitle;
+                syncCanvasCollabTitle(folderId, newTitle);
+            } else {
+                // Aborted edit (blurred without typing anything, or deleted everything back to
+                // empty) — appState.folders[folderId].title is deliberately left unchanged above,
+                // but titleEl's own live textContent may still be empty (cleared to show the
+                // placeholder hint while editing a still-default title, or emptied by deleting real
+                // text) and can't be counted on to get fixed up by the render()/React re-render
+                // just below: this element's title-card/breadcrumb counterpart may see the exact
+                // same string it already believed was there (fullTitle, unchanged either way) and
+                // skip touching its own DOM text node as a result, leaving it visibly stuck blank
+                // instead of back to normal. Restoring it directly here removes any dependency on
+                // that happening — the visible text is correct the instant editing ends, regardless
+                // of what render() does or doesn't decide to repaint afterward.
+                titleEl.textContent = fullTitle;
+            }
             render();
         };
         titleEl.oninput = () => {
