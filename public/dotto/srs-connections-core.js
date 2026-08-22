@@ -592,11 +592,6 @@ import { render, renderSelectedOutlines, startBoxSelection, syncWaypointToDb } f
         if (!isEditingText && (e.key === 'n' || e.key === 'N')) { e.preventDefault(); pushNotification({ type: 'debug', message: 'this is an example notification' }); return; }
     });
 
-    // Bottom-toolbar entry point for the search overlay (bottom-toolbars.html), alongside the
-    // cursor-mode/Add/Schedule buttons — same open path as the Space shortcut above (opens empty,
-    // never seeds a "/" the way the slash shortcut does).
-    if (appState.searchBtn) appState.searchBtn.addEventListener('click', (e) => { e.stopPropagation(); openSearchOverlay(); });
-
     function toggleDrawFromMenu() { addMenu.style.display = 'none'; setDrawMode(!appState.drawMode); }
     drawColorInput.oninput = (e) => { appState.drawColor = e.target.value; };
     drawSizeInput.oninput = (e) => { appState.drawSize = parseInt(e.target.value); };

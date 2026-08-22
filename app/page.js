@@ -21,7 +21,6 @@ const FRAGMENT_NAMES = [
   "canvas-modal",
   "hamburger-stack",
   "canvas-area",
-  "bottom-toolbars",
   "zoom-control",
   "add-menu",
   "source-add-menu",
@@ -30,7 +29,6 @@ const FRAGMENT_NAMES = [
   "draw-settings",
   "context-menu",
   "canvas-context-menu",
-  "footer",
 ];
 
 export default async function Home() {

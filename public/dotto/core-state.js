@@ -381,7 +381,6 @@
         aiPanel: document.getElementById('ai-panel'),
         aiChatView: document.getElementById('ai-chat-view'),
         aiHistoryView: document.getElementById('ai-history-view'),
-        searchBtn: document.getElementById('btn-search'),
         NOTIFICATION_DEFAULT_DURATION_MS: 5000,
         NOTIF_FLASH_MS: 400,
         NOTIF_SLIDE_MS: 300,

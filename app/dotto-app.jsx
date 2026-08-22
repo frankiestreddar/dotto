@@ -80,7 +80,6 @@ import CollaboratorsPanel from "./dotto/sections/CollaboratorsPanel";
 import SharedCanvasModal from "./dotto/sections/SharedCanvasModal";
 import HamburgerMenu from "./dotto/sections/HamburgerMenu";
 import CanvasArea from "./dotto/sections/CanvasArea";
-import BottomToolbars from "./dotto/sections/BottomToolbars";
 import ZoomControl from "./dotto/sections/ZoomControl";
 import AddMenu from "./dotto/sections/AddMenu";
 import SourceAddMenu from "./dotto/sections/SourceAddMenu";
@@ -89,7 +88,6 @@ import AudioRecordIndicator from "./dotto/sections/AudioRecordIndicator";
 import DrawSettingsBar from "./dotto/sections/DrawSettingsBar";
 import ItemContextMenu from "./dotto/sections/ItemContextMenu";
 import CanvasContextMenu from "./dotto/sections/CanvasContextMenu";
-import Footer from "./dotto/sections/Footer";
 
 // Phase 1 "lift and shim" + Phase 2 increment 1 ("shell componentization") + Phase 1 (the
 // dotto-script.js restructuring one, see PHASE2_ROADMAP.md — the numbering collides with the
@@ -304,7 +302,6 @@ export default function DottoApp({ sections, currentUser }) {
             for AI search specifically. */}
         <ErrorBoundary name="HamburgerMenu"><HamburgerMenu html={sections["hamburger-stack"]} /></ErrorBoundary>
         <ErrorBoundary name="CanvasArea"><CanvasArea html={sections["canvas-area"]} /></ErrorBoundary>
-        <ErrorBoundary name="BottomToolbars"><BottomToolbars html={sections["bottom-toolbars"]} /></ErrorBoundary>
         <ErrorBoundary name="ZoomControl"><ZoomControl html={sections["zoom-control"]} /></ErrorBoundary>
         <ErrorBoundary name="AddMenu"><AddMenu html={sections["add-menu"]} /></ErrorBoundary>
         <ErrorBoundary name="SourceAddMenu"><SourceAddMenu html={sections["source-add-menu"]} /></ErrorBoundary>
@@ -313,7 +310,6 @@ export default function DottoApp({ sections, currentUser }) {
         <ErrorBoundary name="DrawSettingsBar"><DrawSettingsBar html={sections["draw-settings"]} /></ErrorBoundary>
         <ErrorBoundary name="ItemContextMenu"><ItemContextMenu html={sections["context-menu"]} /></ErrorBoundary>
         <ErrorBoundary name="CanvasContextMenu"><CanvasContextMenu html={sections["canvas-context-menu"]} /></ErrorBoundary>
-        <ErrorBoundary name="Footer"><Footer html={sections["footer"]} /></ErrorBoundary>
       </div>
       <ErrorBoundary name="PricingOverlay"><PricingOverlay /></ErrorBoundary>
       <ErrorBoundary name="SelectionToolbar"><SelectionToolbar /></ErrorBoundary>

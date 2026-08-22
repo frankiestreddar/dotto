@@ -249,10 +249,6 @@
     /* Pushes Undo/Redo to the bottom of the rail without needing a fixed pixel gap — the column
        above them can hold anywhere from a handful to many icons depending on future additions. */
     #rail-bottom-group{margin-top:auto;display:flex;flex-direction:column;align-items:center;gap:4px;}
-    /* Highlighted while dragging a card (or the current multi-selection) over it — the drop
-       target that starts the schedule conversation (see the drag `up` handler in
-       setupDraggingAndClicking) now that the old right-click "Schedule" menu item is gone. */
-    #btn-schedule.drag-hover{background:var(--brand);border-color:var(--brand);color:#fff;}
 
     #collab-bubble{display:none;position:relative;padding:0 10px;cursor:pointer;flex:0 0 auto;}
     #collab-bubble.show{display:flex;align-items:center;}
@@ -368,19 +364,18 @@
     .collab-add-btn.added:hover{background:#3a1e1e;}
     .collab-empty{padding:16px;text-align:center;color:var(--ink-soft);font-size:12px;}
     
-    .toolbar{position:fixed;bottom:20px;left:50%;display:flex;align-items:center;gap:4px;background:var(--bar);border:1px solid var(--card-border);border-radius:14px;padding:6px;box-shadow:0 4px 16px rgba(0,0,0,0.4);z-index:1000;}
-    .toolbar:not(#add-toolbar){transform:translateX(calc(-100% - 5px));}
-    #add-toolbar{transform:translateX(5px);}
-
-    #bottom-toolbars{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);display:flex;align-items:flex-end;gap:10px;z-index:1000;}
-    #bottom-toolbars .toolbar{position:static;bottom:auto;left:auto;transform:none;}
-
-    #mode-toolbar{flex-direction:row;align-self:flex-end;}
-    #mode-toolbar.expanded{flex-direction:column;}
+    /* Add button + cursor-mode selector now live in #rail-bottom-group (#dotto-rail, top-bar.html)
+       alongside Undo/Redo, not a separate floating bottom-center toolbar — both are plain flex
+       wrappers now, no box chrome of their own (background/border/shadow/padding), since the rail
+       itself already supplies that as one continuous surface, same as every other rail grouping. */
+    #add-toolbar{display:flex;}
+    /* Always column — collapsed only ever shows ONE .mode-visible button anyway, so there's no
+       "row" state left worth keeping distinct; expanding just reveals the other two stacked
+       beneath it, pushing whatever's below in the rail down for as long as it's hovered. */
+    #mode-toolbar{display:flex;flex-direction:column;align-items:center;gap:4px;}
     #mode-toolbar .mode-btn{display:none;}
     #mode-toolbar .mode-btn.mode-visible{display:flex;}
     #mode-toolbar.expanded .mode-btn{display:flex;}
-    #mode-toolbar.expanded .mode-btn.active{background:#2E2E2E;color:var(--ink);}
     #mode-toolbar .mode-btn svg{width:16px;height:16px;pointer-events:none;}
 
     #canvas.mode-data{cursor:crosshair;}
@@ -404,12 +399,11 @@
 
     .toolbar-divider{width:1px;height:20px;background:var(--card-border);margin:0 2px;}
     
-    /* Single wide column: category tabs on top, a scrollable item list below — the panel itself
-       is exactly these two, so it stays truly centered (left:50%/translateX(-50%)) regardless of
-       the action buttons beside it. bottom is deliberately more than the 70px other bottom-
-       anchored popovers (#audio-record-indicator/#draw-settings) use, for a bit more breathing
-       room above the add button specifically. */
-    #add-menu{display:none;position:absolute;bottom:76px;left:50%;transform:translateX(-50%);z-index:2000;width:360px;flex-direction:column;gap:8px;}
+    /* Single wide column: category tabs on top, a scrollable item list below. Opens beside the
+       rail now (position:fixed, left:calc(--rail-width + 12px)) rather than centered at the
+       bottom of the screen — the add button it belongs to lives in #rail-bottom-group
+       (#dotto-rail, top-bar.html) now, not a separate floating bottom-center toolbar. */
+    #add-menu{display:none;position:fixed;left:calc(var(--rail-width) + 12px);bottom:20px;z-index:2000;width:360px;flex-direction:column;gap:8px;}
     /* New Canvas/New Source sit OUTSIDE the centered panel, off to its right — position:absolute
        (anchored off #add-menu, which is already itself position:absolute so it's a valid
        containing block) takes them out of #add-menu's own flex flow entirely, so they can't
@@ -511,15 +505,6 @@
     #zoom-thumb{position:absolute;left:50%;bottom:0;width:12px;height:12px;border-radius:50%;background:var(--ink);box-shadow:0 1px 4px rgba(0,0,0,0.4);transform:translate(-50%,50%);transition:transform .12s ease;pointer-events:none;}
     #zoom-track:hover #zoom-thumb, #zoom-track.dragging #zoom-thumb{transform:translate(-50%,50%) scale(1.25);}
     #zoom-track:hover{background:#454545;}
-
-    /* Bottom-left is otherwise unused by any fixed-position chrome (#top-bar-center sits dead
-       centre, zoom-control/bottom-toolbars sit bottom-right/bottom-center) — matches zoom-control's
-       20px inset and z-index:1000 tier so it reads as the same "persistent chrome" layer. */
-    /* left leaves room for the permanent hamburger rail (--rail-width) — otherwise this would sit
-       directly inside the rail's own column and get covered by it. */
-    #dotto-footer{position:fixed;bottom:20px;left:calc(var(--rail-width) + 20px);z-index:1000;font-size:11px;color:var(--ink-soft);pointer-events:none;}
-    #dotto-footer-link{color:var(--ink-soft);text-decoration:none;pointer-events:auto;}
-    #dotto-footer-link:hover{color:var(--ink);text-decoration:underline;}
 
     /* .rail-btn.active (see #dotto-rail's own comment) already highlights whenever this icon's
        panel is open. No close.png asset exists yet, so this borrows the app's existing

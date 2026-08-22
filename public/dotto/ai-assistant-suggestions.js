@@ -321,9 +321,9 @@ import { render } from './waypoints-render-loop.js';
         showAiChatView();
         if (pin) appState.searchInput.focus();
     }
-    // Opens the AI panel — called from the global Space/"/" keydown shortcuts and #btn-search's
-    // click handler (srs-connections-core.js), and from openSavedChat (hamburger-collab.js) when
-    // reopening a saved conversation from the Chats history list.
+    // Opens the AI panel — called from the global Space/"/" keydown shortcuts
+    // (srs-connections-core.js), and from openSavedChat (hamburger-collab.js) when reopening a
+    // saved conversation from the Chats history list.
     function openSearchOverlay() {
         if (!appState.aiPanel || !appState.searchInput) return;
         openRailView('ai', appState.aiPanel, appState.railBtnAi, refreshAiPanel, true);
