@@ -1,4 +1,4 @@
-import { clearSearch, openSearchOverlay } from './ai-assistant-suggestions.js';
+import { refreshAiPanel, resetAiSearchState } from './ai-assistant-suggestions.js';
 import { closeAddMenu } from './copy-paste.js';
 import { appState } from './core-state.js';
 import { closeCollabPanel } from './friends-presence.js';
@@ -44,34 +44,41 @@ import { closeSourceAddMenu } from './source-buttons-cursor-mode.js';
     }
 
     // ---------- Permanent rail: one shared sliding shell, many trigger icons ----------
-    // Every panel-style rail icon (outline, Waypoints, Collaborations — Marketplace/Messages/
-    // Profile/AI search join this same system in later stages) shares ONE #hamburger-stack shell
-    // and ONE pinned state (appState.panelPinned.rail) — opening any of them closes whichever
-    // other one was showing, for free, just by hiding every other railViewEls sibling and
-    // un-.active-ing every other railIconBtns entry. hmenu-full is what distinguishes the two
-    // shapes the shell can take (see #hamburger-stack's own comment, globals.css): a full-height
-    // sidebar pinned open by a click vs. a short hover preview. `onOpen` is that view's own
-    // refresh call (renderWaypointsList, buildOutline, etc.) — called every time, even on a hover
-    // preview, so content is never stale. clearSearch() stays defensive here (same as the old
-    // openHamburgerMenu always did) until the AI search view itself joins this same shell — until
-    // then, opening any OTHER rail view still needs to close the (still separate) search overlay.
+    // Every panel-style rail icon (outline, Waypoints, Collaborations, Marketplace, Messages,
+    // Profile, AI search) shares ONE #hamburger-stack shell and ONE pinned state
+    // (appState.panelPinned.rail) — opening any of them closes whichever other one was showing,
+    // for free, just by hiding every other railViewEls sibling and un-.active-ing every other
+    // railIconBtns entry. hmenu-full is what distinguishes the two shapes the shell can take (see
+    // #hamburger-stack's own comment, globals.css): a full-height sidebar pinned open by a click
+    // vs. a short hover preview. `onOpen` is that view's own refresh call (renderWaypointsList,
+    // buildOutline, refreshAiPanel, etc.), passed the same `pin` this call itself received —
+    // called every time, even on a hover preview, so content is never stale.
+    // resetAiSearchState (ai-assistant-suggestions.js) is called here specifically when the AI
+    // view is the one being navigated AWAY from (activeRailView was 'ai', the new key isn't) —
+    // opening AI itself, or re-hovering/re-clicking it while it's already active, must never reset
+    // an in-progress conversation. Checked BEFORE activeRailView is reassigned below, since the
+    // check needs the OLD value.
     function openRailView(key, viewEl, btn, onOpen, pin) {
         clearListPanelSelection();
-        clearSearch();
+        if (appState.activeRailView === 'ai' && key !== 'ai') resetAiSearchState();
         appState.railViewEls.forEach(el => { if (el && el !== viewEl) el.classList.remove('open'); });
         appState.railIconBtns.forEach(b => { if (b && b !== btn) b.classList.remove('active'); });
         viewEl.classList.add('open');
         btn.classList.add('active');
         appState.hamburgerStack.classList.add('open');
         appState.activeRailView = key;
-        if (onOpen) onOpen();
+        if (onOpen) onOpen(pin);
         if (pin) {
             appState.panelPinned.rail = true;
             appState.hamburgerStack.classList.add('hmenu-full');
             btn.classList.add('hmenu-full');
         }
     }
+    // Same resetAiSearchState reasoning as openRailView above, for the "close the rail entirely"
+    // direction (Escape, clicking outside, etc.) — if AI was the view showing, reset it; checked
+    // before activeRailView is cleared below.
     function closeRailView() {
+        if (appState.activeRailView === 'ai') resetAiSearchState();
         appState.railViewEls.forEach(el => el && el.classList.remove('open'));
         appState.railIconBtns.forEach(b => b && b.classList.remove('active', 'hmenu-full'));
         appState.hamburgerStack.classList.remove('open', 'hmenu-full');
@@ -81,9 +88,8 @@ import { closeSourceAddMenu } from './source-buttons-cursor-mode.js';
     }
     // Wires one rail icon's hover-preview/click-pin behavior — the same three listeners every
     // trigger button in the app already used individually before this (compare the old per-panel
-    // wiring still in marketplace.js/messages-schedule.js/profile-achievements-pricing.js, being
-    // migrated onto this shared helper in later stages), now written once instead of duplicated
-    // per file.
+    // wiring that used to live in marketplace.js/messages-schedule.js/profile-achievements-
+    // pricing.js), now written once instead of duplicated per file.
     function wireRailIcon(key, btn, viewEl, onOpen) {
         btn.addEventListener('click', (e) => {
             e.stopPropagation();
@@ -100,14 +106,15 @@ import { closeSourceAddMenu } from './source-buttons-cursor-mode.js';
     // always-visible element (see #dotto-rail's own comment, globals.css) that already receives
     // genuine mouseenter/mouseleave events, covering everything the old hack simulated.
 
+    // refreshAiPanel is a plain function reference (ai-assistant-suggestions.js) — wired here,
+    // alongside every other rail icon, rather than that file calling wireRailIcon on itself at its
+    // own module top level, which would risk a circular-import timing issue (panels-hamburger.js
+    // also imports from that file). A function reference used only inside a later event-listener
+    // callback carries no such risk.
+    wireRailIcon('ai', appState.railBtnAi, appState.aiPanel, refreshAiPanel);
     wireRailIcon('outline', appState.hamburgerBtn, appState.outlineMenu, buildOutline);
     wireRailIcon('waypoints', appState.railBtnWaypoints, appState.waypointsPanel, () => renderWaypointsList(''));
     wireRailIcon('collab', appState.railBtnCollab, appState.hubCollabPanel, () => { appState.hubCollabView = 'main'; renderHubCollabList(''); });
-    // Temporary passthrough — the AI search view still lives in its own separate modal overlay at
-    // this stage (see openSearchOverlay, ai-assistant-suggestions.js), not yet migrated into
-    // #hamburger-stack. This wiring is replaced with a real wireRailIcon('ai', ...) call once that
-    // migration lands.
-    appState.railBtnAi.addEventListener('click', (e) => { e.stopPropagation(); openSearchOverlay(); });
 
     function handleWaypointsSearch(v) { renderWaypointsList(v); }
     function handleHubCollabSearch(v) { renderHubCollabList(v); }

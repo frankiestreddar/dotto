@@ -250,14 +250,17 @@ import { deleteCanvasCollabsForFolder, deleteWaypointCardEverywhere, expandWaypo
         const it = appState.folders[appState.currentFolderId] && appState.folders[appState.currentFolderId].items.find(i => String(i.id) === String(itemId));
         if (it) peekWaypointCard(appState.currentFolderId, it);
     }
-    // Reopens a saved conversation (see ChatsListPanel.jsx's row onClick) in the search palette,
-    // fully restoring its history — no live AI call, just Stage 2's read path (dotbot_messages,
-    // RLS-scoped) replayed into the same turn-rendering ChatThread.jsx uses for live results.
-    // openSearchOverlay doesn't call clearSearch (confirmed directly — see clearSearch's own
-    // comment on this), so setting currentConversationId/chatThreadStore right after it here is
-    // never immediately wiped out by that reset.
+    // Reopens a saved conversation (clicked from the AI panel's own chat-history view, see
+    // ChatsListPanel.jsx's row onClick), fully restoring its history — no live AI call, just
+    // Stage 2's read path (dotbot_messages, RLS-scoped) replayed into the same turn-rendering
+    // ChatThread.jsx uses for live results. openSearchOverlay alone (no separate closeRailView
+    // first) is enough — opening the AI view already closes/hides whatever else might be open, and
+    // since it's already the active view here (that's how the history list itself is visible),
+    // calling closeRailView first would trigger resetAiSearchState (see panels-hamburger.js) and
+    // reset currentConversationId/chatThreadStore right before this function sets them again —
+    // harmless in the end (this function's own assignments below run after and win), but
+    // pointless churn to avoid.
     async function openSavedChat(conversationId) {
-        closeRailView();
         openSearchOverlay();
         if (!supabase || !appState.currentUser.id) return;
         const { data, error } = await supabase.from('dotbot_messages')

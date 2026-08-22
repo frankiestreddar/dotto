@@ -17,7 +17,7 @@
 // rather than being called by name from an inline onclick attribute, so they no longer belong here.)
 
 import { handleAddMenuSearchInput, newSourceClicked, switchAddTab, toggleAddMenuSearch } from './add-menu.js';
-import { handleSearchFocus, handleSearchInput } from './ai-assistant-suggestions.js';
+import { handleSearchFocus, handleSearchInput, showAiChatView, showAiHistoryView, startNewAiChat } from './ai-assistant-suggestions.js';
 import { addTask, editEmbed, removeTask, toggleTask, updateTaskDeadline, updateTaskText } from './cards-misc.js';
 import { prepareAdd } from './copy-paste.js';
 import { handleCollabSearch, handleMsgSearch, openCollabPanel } from './friends-presence.js';
@@ -113,7 +113,10 @@ window.setMediaFromLink = setMediaFromLink;
 window.setTableAlign = setTableAlign;
 window.setTitleLevel = setTitleLevel;
 window.shelfSelectSession = shelfSelectSession;
+window.showAiChatView = showAiChatView;
+window.showAiHistoryView = showAiHistoryView;
 window.startCellAudioRecording = startCellAudioRecording;
+window.startNewAiChat = startNewAiChat;
 window.startPublishFlow = startPublishFlow;
 window.startRenameActiveTag = startRenameActiveTag;
 window.startRenameShelfName = startRenameShelfName;

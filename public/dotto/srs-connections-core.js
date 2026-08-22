@@ -556,9 +556,10 @@ import { render, renderSelectedOutlines, startBoxSelection, syncWaypointToDb } f
             }
         }
 
-        // Space opens the command-palette overlay (search-overlay.html) empty. openSearchOverlay
-        // shows the overlay THEN focuses the input — focusing an element inside a still-hidden
-        // (display:none) subtree is a silent no-op, so that order is load-bearing, not stylistic.
+        // Space opens the AI panel (part of #hamburger-stack, see openRailView/openSearchOverlay)
+        // empty. openSearchOverlay shows the panel THEN focuses the input — focusing an element
+        // inside a still-hidden (display:none) subtree is a silent no-op, so that order is
+        // load-bearing, not stylistic.
         if (!isEditingText && e.key === ' ') { e.preventDefault(); openSearchOverlay(); return; }
         // Same idea as Space above, but also types the "/" rather than opening empty, since that's
         // meant to start a slash command (see command-parser.js) — preventDefault + writing

@@ -173,44 +173,41 @@
        matches. Shared by every click-to-edit title in the app (folder/source cards, and now the
        sidebar breadcrumb's current row) via startRenameFolderCardTitle. */
     .crumb-placeholder:empty::before{content:attr(data-placeholder);color:var(--ink-soft);pointer-events:none;}
-    /* Blur-only layer for the command-palette overlay (search-overlay.html) — flex-centers
-       #search-bar as its one child on BOTH axes (align-items:center, not the old flex-start +
-       fixed padding-top:15vh). That fixed-offset approach anchored the panel's TOP edge, so as
-       #search-bar grew taller (more result panels appearing), it only ever grew further downward,
-       away from center — true centering has to be recomputed off the panel's actual current
-       height, not a constant offset from the viewport's top edge. align-items:center does exactly
-       that, automatically, on every layout pass: whatever #search-bar's height happens to be right
-       now, the backdrop repositions it dead-center immediately, so it stays centered continuously
-       as content is added or removed rather than drifting off-center while it grows. Closing on a
-       direct click here is what "click outside to dismiss" means — #search-bar's own onclick stops
-       that click from ever reaching this element when it originates inside the palette. No
-       background dimming (deliberately no `background` here at all) — blurring the canvas behind
-       it is enough on its own to read as "the app is paused behind a modal" without also darkening
-       it. -webkit- prefix is still needed for Safari's backdrop-filter support. */
-    #search-overlay-backdrop{display:none;position:fixed;inset:0;z-index:1500;-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);align-items:center;justify-content:center;}
-    #search-overlay-backdrop.open{display:flex;}
-    /* The ONE card for the whole palette — input row and results both live inside it now (see
-       #search-input-wrap/#search-dropdown's own comments for why each of THEM had to give up
-       their own separate background/border/radius/shadow to make that true, rather than just
-       stacking two cards with a gap). Width is a first-pass guess at the Supabase reference's
-       proportions, now that this is a free-floating palette instead of a grid cell competing for
-       top-bar space. Deliberately NOT overflow:hidden, even though that would guarantee content
-       never pokes past these rounded corners — the dictionary/examples panels' hover-out nav
-       arrows intentionally slide outside their own panel's edge, and clipping would break that;
-       a hover highlight on the very last row very slightly overrunning a rounded bottom corner is
-       an accepted, minor trade-off for keeping that working. padding is on THIS element (not
-       #search-input-wrap or #search-dropdown individually) so the input row and every result row
-       inset from the card's edges by the same amount, uniformly, without reintroducing the old
-       "hover highlight looks cut off" bug — #search-dropdown itself still has no side padding of
-       its own, so a row's hover background still stretches edge-to-edge within the space this
-       padding leaves it, rather than leaving a second, inconsistent gap around the highlight. */
-    /* No :hover/:focus-within border brightening (unlike a plain input box) — the whole palette is
-       one hoverable card now, and its own input is essentially always focused while it's open, so
-       either rule would be active almost the entire time the palette is visible, permanently
-       overriding the resting border below regardless of how subtle THAT was made. That's exactly
-       why previous passes at darkening this border kept reading as "still very light" — the base
-       color was never actually what was showing. Border stays fixed at #202020 in every state. */
-    #search-bar{position:relative;width:560px;max-width:calc(100vw - 40px);display:flex;flex-direction:column;align-items:stretch;background:var(--bar);border:1px solid #202020;border-radius:16px;box-shadow:0 20px 60px rgba(0,0,0,0.5);padding:8px;}
+    /* AI search is a rail view now (see openRailView('ai', ...), ai-assistant-suggestions.js) —
+       #ai-panel gets its background/border/radius/shadow/width from the shared .hmenu-panel/
+       .hub-subpanel rules like every other rail view, no more dimming backdrop or free-floating
+       centered card of its own. overflow is explicitly set back to visible here, overriding
+       .hub-subpanel's own overflow:hidden — the dictionary/examples panels' hover-out nav arrows
+       intentionally slide outside their own panel's edge, which .hub-subpanel's default clipping
+       (fine for every other, simpler list-style rail view) would otherwise cut off. padding stays
+       on this element (not #search-input-wrap or #search-dropdown individually) so the input row
+       and every result row inset from the card's edges by the same amount, uniformly — #search-
+       dropdown itself still has no side padding of its own, so a row's hover background still
+       stretches edge-to-edge within the space this padding leaves it, rather than leaving a
+       second, inconsistent gap around the highlight. */
+    #ai-panel{position:relative;overflow:visible;padding:8px;}
+    /* The chat view's own small header — just the history toggle, left-aligned, no title text (the
+       rail icon itself already reads as "this is the AI panel", no need to repeat it). Same visual
+       language as #msg-convo-header/#msg-convo-back (a borderless icon-style button, muted ink-soft
+       color) rather than inventing a new one. */
+    #ai-chat-header{flex:0 0 auto;display:flex;align-items:center;padding:2px 4px 6px;}
+    #ai-history-btn, #ai-history-back-btn{background:none;border:none;color:var(--ink-soft);cursor:pointer;font-size:15px;padding:4px;border-radius:6px;}
+    #ai-history-btn:hover, #ai-history-back-btn:hover{background:#242424;color:var(--ink);}
+    /* Not a top-level rail view (unlike #waypoints-panel/#hub-collab-panel) — an internal sub-view
+       of #ai-panel, toggled by showAiHistoryView/showAiChatView (ai-assistant-suggestions.js)
+       independent of the outer rail's own open/close/pin state. Same display:none/flex + .open
+       toggle convention as .hub-subpanel, just scoped to this one element instead of shared. */
+    #ai-history-view{display:none;flex-direction:column;flex:1 1 auto;min-height:0;}
+    #ai-history-view.open{display:flex;}
+    #ai-chat-view{display:none;flex-direction:column;flex:1 1 auto;min-height:0;}
+    #ai-chat-view.open{display:flex;}
+    #ai-history-header{flex:0 0 auto;display:flex;align-items:center;justify-content:space-between;padding:2px 4px 6px;}
+    /* Pinned above the chat-history list, not just another row in it — "New chat" is a distinct
+       action, not a saved conversation. Reuses .hub-subpanel-clear-all's own pill-button look
+       (border/radius/hover treatment) for visual consistency with "Clear all" below the list,
+       rather than a plain text link. */
+    #ai-new-chat-btn{background:transparent;border:1px solid var(--card-border);color:var(--ink-soft);font-size:12px;height:28px;padding:0 12px;border-radius:8px;cursor:pointer;transition:background .15s,color .15s,border-color .15s;}
+    #ai-new-chat-btn:hover{background:#2a2a2a;color:var(--ink);border-color:var(--ink-soft);}
     /* Compact "…/parent/current" breadcrumb (see app/dotto/BreadcrumbPill.jsx, breadcrumbMapStore)
        — a bubble next to #btn-back/#btn-forward, top-bar.html, replacing the old always-visible
        full ancestor list that used to live inside the hamburger sidebar. Reuses .bubble's own

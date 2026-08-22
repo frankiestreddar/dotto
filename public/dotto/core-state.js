@@ -230,7 +230,6 @@
         waypointsSearchInput: document.getElementById('waypoints-search'),
         hubCollabPanel: document.getElementById('hub-collab-panel'),
         hubCollabSearchInput: document.getElementById('hub-collab-search'),
-        chatsPanel: document.getElementById('chats-panel'),
         incomingCanvasRequests: [],
         acceptedCanvasCollaborations: [],
         ownedCanvasCollaborations: [],
@@ -369,8 +368,14 @@
         searchInputWrap: document.getElementById('search-input-wrap'),
         searchCardPill: document.getElementById('search-card-pill'),
         searchCardPillLabel: document.getElementById('search-card-pill-label'),
-        searchOverlayBackdrop: document.getElementById('search-overlay-backdrop'),
-        searchBar: document.getElementById('search-bar'),
+        // AI search shares the permanent rail's one shell now (see openRailView, panels-
+        // hamburger.js) — no more #search-overlay-backdrop modal, so no lookup for it. aiPanel is
+        // the whole rail view (railViewEls member); aiChatView/aiHistoryView are its two internal
+        // sub-views, toggled independently of the outer rail's own open/close state (see
+        // showAiHistoryView/showAiChatView, ai-assistant-suggestions.js).
+        aiPanel: document.getElementById('ai-panel'),
+        aiChatView: document.getElementById('ai-chat-view'),
+        aiHistoryView: document.getElementById('ai-history-view'),
         searchBtn: document.getElementById('btn-search'),
         NOTIFICATION_DEFAULT_DURATION_MS: 5000,
         NOTIF_FLASH_MS: 400,
@@ -439,7 +444,7 @@
     // exact same "one shell, swap which section is .open" mechanism. #chats-panel is deliberately
     // NOT here — Chats is a sub-view reached from inside the AI view (searchBar), not a top-level
     // rail destination of its own.
-    appState.railViewEls = [appState.searchBar, appState.outlineMenu, appState.waypointsPanel, appState.hubCollabPanel, appState.cartPanel, appState.messagesPanel, appState.profilePanel];
+    appState.railViewEls = [appState.aiPanel, appState.outlineMenu, appState.waypointsPanel, appState.hubCollabPanel, appState.cartPanel, appState.messagesPanel, appState.profilePanel];
     appState.railIconBtns = [appState.railBtnAi, appState.hamburgerBtn, appState.railBtnWaypoints, appState.railBtnCollab, appState.btnCart, appState.messagesBtn, appState.profileBtn];
     appState.railHoverEls = [appState.dottoRail, ...appState.railViewEls];
     appState.TOTAL_SUB_LEVELS = appState.LEVEL_NAMES.length * appState.SUB_RANKS_PER_TIER;

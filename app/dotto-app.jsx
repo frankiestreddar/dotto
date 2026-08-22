@@ -76,7 +76,6 @@ import TranslationPanel from "./dotto/TranslationPanel";
 import WaypointsListPanel from "./dotto/WaypointsListPanel";
 
 import TopBar from "./dotto/sections/TopBar";
-import SearchOverlay from "./dotto/sections/SearchOverlay";
 import CollaboratorsPanel from "./dotto/sections/CollaboratorsPanel";
 import SharedCanvasModal from "./dotto/sections/SharedCanvasModal";
 import HamburgerMenu from "./dotto/sections/HamburgerMenu";
@@ -297,12 +296,12 @@ export default function DottoApp({ sections, currentUser }) {
     <>
       <div id="dotto-root">
         <ErrorBoundary name="TopBar"><TopBar html={sections["top-bar"]} /></ErrorBoundary>
-        <ErrorBoundary name="SearchOverlay"><SearchOverlay html={sections["search-overlay"]} /></ErrorBoundary>
         <ErrorBoundary name="CollaboratorsPanel"><CollaboratorsPanel html={sections["collab-panel"]} /></ErrorBoundary>
         <ErrorBoundary name="SharedCanvasModal"><SharedCanvasModal html={sections["canvas-modal"]} /></ErrorBoundary>
-        {/* Profile/Messages/Marketplace all moved into #hamburger-stack (see hamburger-stack.html)
-            now that they share the permanent rail's one shell — no more separate top-level
-            sections/markup of their own. */}
+        {/* Profile/Messages/Marketplace/AI search all moved into #hamburger-stack (see
+            hamburger-stack.html) now that they share the permanent rail's one shell — no more
+            separate top-level sections/markup of their own, and no more dimming modal backdrop
+            for AI search specifically. */}
         <ErrorBoundary name="HamburgerMenu"><HamburgerMenu html={sections["hamburger-stack"]} /></ErrorBoundary>
         <ErrorBoundary name="CanvasArea"><CanvasArea html={sections["canvas-area"]} /></ErrorBoundary>
         <ErrorBoundary name="BottomToolbars"><BottomToolbars html={sections["bottom-toolbars"]} /></ErrorBoundary>

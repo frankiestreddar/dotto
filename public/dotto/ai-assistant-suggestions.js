@@ -1,9 +1,10 @@
 import { updateCommandPalette } from './command-palette.js';
 import { appState, canvas } from './core-state.js';
+import { renderChatsList } from './hamburger-collab.js';
 import { saveSnapshot, scheduleWorkspaceSave } from './history-autosave.js';
 import { findItemById } from './live-presence.js';
 import { commenceSearchOrMnemonic, computeCanvasMatches, computeSourceMatches, renderCanvasResultsPanel } from './mnemonic-search-matching.js';
-import { closeAllPanels } from './panels-hamburger.js';
+import { closeAllPanels, closeRailView, openRailView } from './panels-hamburger.js';
 import { autoGrowSearchInput } from './stopwatch-search-notifications.js';
 import { render } from './waypoints-render-loop.js';
 
@@ -205,34 +206,18 @@ import { render } from './waypoints-render-loop.js';
     // right as/after Enter is pressed (too late for the abort() below to actually cancel it) —
     // otherwise it would clobber the "thinking..." loading state with a stale suggestions list.
 
-    // The single "make the search UI go away" function — called from ~15 places across the
-    // codebase any time something else takes over (opening the hamburger menu, messages panel,
-    // marketplace, etc. all defensively call this on their own way open), plus Escape and
-    // clicking the overlay backdrop. Since every one of those call sites' actual intent is "the
-    // search overlay (search-overlay.html) should not be showing anymore," closing it and
-    // blurring the input live here too — rather than a separate close function every call site
-    // would need switching over to — makes all of them correctly close the overlay for free.
-    function clearSearch() {
-        if (!appState.searchInput) return;
-        // Genuinely a no-op when the overlay isn't showing — which matters because this is called
-        // defensively from many places that have nothing to do with the user closing anything:
-        // render() (waypoints-render-loop.js) calls this on every canvas render, including from a
-        // running stopwatch's once-a-second tick (history-autosave.js) and from a collaborator's
-        // realtime sync broadcast landing (live-presence.js) — neither of which means "the user
-        // wants their open AI conversation ended." Without this guard, currentConversationId got
-        // reset and the visible chat thread wiped by any of those unrelated background events,
-        // which silently started a brand-new server-side conversation (empty history) on the very
-        // next message — reading exactly like "the AI only remembers the last message" even though
-        // the actual history-loading code was always correct. Every real close (Escape, backdrop
-        // click, opening a different panel) still goes through this exactly as before, since the
-        // overlay is actually open in those cases.
-        if (!appState.searchOverlayBackdrop || !appState.searchOverlayBackdrop.classList.contains('open')) return;
+    // AI search's own state reset — called from closeRailView/openRailView (panels-hamburger.js)
+    // whenever the AI view is the one actually being closed or navigated away from, never called
+    // directly by anything outside this file. Kept as a separate function from clearSearch()
+    // below specifically to avoid a clearSearch<->closeRailView call cycle: closeRailView needs to
+    // trigger this reset, and clearSearch needs to trigger closeRailView, so the reset logic itself
+    // can't live inside clearSearch (that direction would loop).
+    function resetAiSearchState() {
         clearTimeout(appState.canvasResultsDebounceTimer);
-        // Closing the overlay ends the current thread for continuation purposes — the next
-        // message (whenever the overlay next opens) starts a fresh conversation server-side.
-        // openSavedChat (the sidebar reopen flow) sets this directly AFTER calling
-        // openSearchOverlay, which itself doesn't call clearSearch, so this reset never fights
-        // with reopening a saved chat.
+        // Ends the current thread for continuation purposes — the next message (whenever the AI
+        // view next opens) starts a fresh conversation server-side. openSavedChat (the sidebar
+        // reopen flow) sets this directly AFTER calling openSearchOverlay, which itself never
+        // triggers this reset when simply opening, so it never fights with reopening a saved chat.
         appState.currentConversationId = null;
         appState.searchInput.value = '';
         autoGrowSearchInput();
@@ -252,8 +237,8 @@ import { render } from './waypoints-render-loop.js';
         if (appState.searchRecommended) { appState.searchRecommended.innerHTML = ''; appState.searchRecommended.style.display = 'none'; }
         updateSearchDropdown();
         // updateSearchDropdown() just started (or was already mid-) a collapse transition on
-        // #search-dropdown — but the very next line hides the WHOLE overlay backdrop
-        // (display:none), which silently cancels that transition without ever firing
+        // #search-dropdown — but closeRailView (which called this) is about to hide the whole AI
+        // panel right after, which would silently cancel that transition without ever firing
         // 'transitionend' (browsers don't dispatch it for a transition interrupted by an ancestor
         // going display:none). That means the handler which normally hands height back to 'auto'
         // once a collapse finishes never runs here, leaving #search-dropdown's height stuck at
@@ -262,21 +247,21 @@ import { render } from './waypoints-render-loop.js';
         // every future reveal, reusing whatever transition happened to be live at THIS moment
         // instead of the correct one. Force it back to a clean rest state directly instead — there's
         // no point letting a collapse animate toward something the user is about to not see anyway,
-        // since the backdrop is disappearing regardless.
+        // since the whole panel is disappearing regardless.
         if (appState.searchDropdown) {
             appState.searchDropdown.style.transition = '';
             appState.searchDropdown.style.height = 'auto';
             appState.searchDropdown.style.opacity = '1';
             appState.searchDropdown.style.overflow = 'visible';
         }
-        // Same fix, same reasoning, for the new #search-chat-thread — restOverflow is 'auto' here
-        // (not 'visible' like #search-dropdown above) to match its own rest-state convention (a
-        // real max-height cap that needs to actually clip/scroll, not stay non-clipping).
+        // Same fix, same reasoning, for #search-chat-thread — restOverflow is 'auto' here (not
+        // 'visible' like #search-dropdown above) to match its own rest-state convention (a real
+        // max-height cap that needs to actually clip/scroll, not stay non-clipping).
         // currentConversationId already reset to null above ends the THREAD for continuation
-        // purposes; clearing chatThreadStore here ends it visually too, so reopening the overlay
-        // (without explicitly restoring a saved chat) starts on a genuinely blank palette instead
-        // of showing a now-orphaned prior conversation's turns above a box that's about to start a
-        // brand new one.
+        // purposes; clearing chatThreadStore here ends it visually too, so the next open (without
+        // explicitly restoring a saved chat) starts on a genuinely blank palette instead of showing
+        // a now-orphaned prior conversation's turns above a box that's about to start a brand new
+        // one.
         if (appState.searchChatThread) {
             appState.searchChatThread.style.transition = '';
             appState.searchChatThread.style.height = 'auto';
@@ -284,17 +269,65 @@ import { render } from './waypoints-render-loop.js';
             appState.searchChatThread.style.overflow = 'auto';
         }
         window.__setChatThread([]);
-        if (appState.searchOverlayBackdrop) appState.searchOverlayBackdrop.classList.remove('open');
+        showAiChatView(); // always land back on the chat view (not mid-history-browse) next open
         appState.searchInput.blur();
     }
-    // Opens the command-palette overlay (search-overlay.html) — called from the global Space/"/"
-    // keydown shortcuts and #btn-search's click handler (srs-connections-core.js). Showing the
-    // backdrop BEFORE focusing is load-bearing: focusing an element inside a still-display:none
-    // subtree is a silent no-op in every browser, so the overlay has to actually be visible first.
-    function openSearchOverlay() {
-        if (!appState.searchOverlayBackdrop || !appState.searchInput) return;
-        appState.searchOverlayBackdrop.classList.add('open');
+    // Thin guarded wrapper kept for the ~15 external call sites (Escape, window.onclick, etc.)
+    // that already call this by name expecting "end the AI conversation, if one's open" — genuinely
+    // a no-op unless the AI view is actually the one currently open, which matters because several
+    // of those call sites fire from unrelated background events (render()'s per-tick calls,
+    // realtime sync broadcasts) that have nothing to do with the user actually closing anything —
+    // see resetAiSearchState's own comment for the "AI forgets everything" bug this guard exists
+    // to prevent. Delegates to closeRailView() for the actual hide/state-reset (see its own
+    // comment in panels-hamburger.js), rather than duplicating that logic here.
+    function clearSearch() {
+        if (appState.activeRailView !== 'ai') return;
+        closeRailView();
+    }
+    // Toggles between the AI panel's two internal views — the active chat (default) and a
+    // chat-history list — independent of the outer rail's own open/close/pin state (openRailView/
+    // closeRailView, panels-hamburger.js), so switching between them never disturbs whether the AI
+    // panel itself is open or pinned.
+    function showAiHistoryView() {
+        appState.aiChatView.classList.remove('open');
+        appState.aiHistoryView.classList.add('open');
+        renderChatsList();
+    }
+    function showAiChatView() {
+        appState.aiHistoryView.classList.remove('open');
+        appState.aiChatView.classList.add('open');
+    }
+    // "New chat" — same conversationId/chatThreadStore reset resetAiSearchState does, without
+    // actually closing the AI panel (unlike clearSearch, which is for leaving the AI view
+    // entirely) — this is reached FROM the history view, so it also has to bring the chat view
+    // back itself.
+    function startNewAiChat() {
+        appState.currentConversationId = null;
+        window.__setChatThread([]);
+        appState.searchInput.value = '';
+        autoGrowSearchInput();
+        showAiChatView();
         appState.searchInput.focus();
+    }
+    // AI search's own onOpen callback — passed to panels-hamburger.js's wireRailIcon('ai', ...)
+    // call (kept there, not here, alongside every other rail icon's own wireRailIcon call, to
+    // avoid calling wireRailIcon itself at this module's own top level — a circular-import timing
+    // risk, since panels-hamburger.js also imports from this file; a plain function reference like
+    // this one has no such risk, it's only ever invoked later, on real hover/click). Always lands
+    // back on the chat view (not mid-history-browse from a previous session), and focuses the
+    // input only for a real pinned open (click, or the Space/"/"/#btn-search triggers below), never
+    // on a mere hover-preview — stealing keyboard focus just because the cursor passed over the
+    // icon would be jarring.
+    function refreshAiPanel(pin) {
+        showAiChatView();
+        if (pin) appState.searchInput.focus();
+    }
+    // Opens the AI panel — called from the global Space/"/" keydown shortcuts and #btn-search's
+    // click handler (srs-connections-core.js), and from openSavedChat (hamburger-collab.js) when
+    // reopening a saved conversation from the Chats history list.
+    function openSearchOverlay() {
+        if (!appState.aiPanel || !appState.searchInput) return;
+        openRailView('ai', appState.aiPanel, appState.railBtnAi, refreshAiPanel, true);
     }
     // Factory for the hardened open/close/resize height-transition system originally built (across
     // many rounds of real bugs) for #search-dropdown alone — factored out once #search-chat-thread
@@ -831,7 +864,7 @@ import { render } from './waypoints-render-loop.js';
         clearSearch();
     }
 
-export { applyAlignHighlightToggle, buildAlignedSentenceEls, buildLiveSuggestionsRows, clearSearch, countSourceEntries, dotbotErrorMessage, escapeHtml, findParentFolderId, getItemSearchText, handleSearchFocus, handleSearchInput, isLatinScriptText, openSearchOverlay, scrollChatThreadToBottom, setSearchActive, setupDotbotResultDrag, speakerIconHTML, stripHtml, truncateCenter, typewriterReveal, typewriterRevealSegments, updateChatThread, updateSearchDropdown };
+export { applyAlignHighlightToggle, buildAlignedSentenceEls, buildLiveSuggestionsRows, clearSearch, countSourceEntries, dotbotErrorMessage, escapeHtml, findParentFolderId, getItemSearchText, handleSearchFocus, handleSearchInput, isLatinScriptText, openSearchOverlay, refreshAiPanel, resetAiSearchState, scrollChatThreadToBottom, setSearchActive, setupDotbotResultDrag, showAiChatView, showAiHistoryView, speakerIconHTML, startNewAiChat, stripHtml, truncateCenter, typewriterReveal, typewriterRevealSegments, updateChatThread, updateSearchDropdown };
 
 window.__countSourceEntries = countSourceEntries;
 window.__buildLiveSuggestionsRows = buildLiveSuggestionsRows;
