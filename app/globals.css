@@ -1047,16 +1047,9 @@
     /* min/max-height are pure content+padding (20px padding + a 20px text line = 40px, or 4 lines
        = 100px) — no border term, since the textarea itself is borderless now (the wrap owns the
        1px+1px border and adds it on top). */
-    /* Left padding only (40px, was 14px) makes room for #search-input-icon below. */
-    #search-input{display:block;width:100%;min-height:40px;max-height:100px;background:transparent;border:none;color:var(--ink);padding:10px 32px 10px 40px;font-size:14px;line-height:20px;font-family:inherit;outline:none;resize:none;overflow-y:hidden;transition:height 0.15s ease, padding-bottom 0.15s ease;}
+    #search-input{display:block;width:100%;min-height:40px;max-height:100px;background:transparent;border:none;color:var(--ink);padding:10px 32px 10px 14px;font-size:14px;line-height:20px;font-family:inherit;outline:none;resize:none;overflow-y:hidden;transition:height 0.15s ease, padding-bottom 0.15s ease;}
     #search-input.has-pill{padding-bottom:30px;}
     #search-input::placeholder{color:var(--ink-soft);}
-    /* Static (no transitions/animations of its own to conflict with the loading-ring/idle-pulse
-       system right below) — just a plain left-aligned glyph, vertically centered against the
-       input's OWN first-line height (20px line-height + 10px top padding), not the wrap's,
-       since the wrap can grow taller than one line and the icon should stay pinned to the first
-       line like a real search-box icon, not drift to the vertical center of a multi-line box. */
-    #search-input-icon{position:absolute;left:14px;top:13px;width:16px;height:16px;color:var(--ink-soft);pointer-events:none;}
     /* Loading indicator while a Dotbot response is in flight (see commenceDotbotSearch, which
        toggles .loading here alongside #search-spinner) — the border itself sits at its plain
        unfocused color (.search-loading-ring-base, always the full perimeter) while a short pure-
