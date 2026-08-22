@@ -13,9 +13,9 @@ import { useLayoutEffect } from "react";
 // it.tableData[r][c] directly and never calls render(), so there's nothing for a later render to
 // fight even mid-edit.
 //
-// userSized's wrapper class + distributeTableSizing, and setupResizing, both need the wrapper
-// element this component doesn't itself own — reached via document.getElementById('item-'+it.id)
-// each render, same technique TitleCard/NoteCard use.
+// userSized's wrapper class + distributeTableSizing, and setupResizing/setupTableGridResizing,
+// all need the wrapper element this component doesn't itself own — reached via
+// document.getElementById('item-'+it.id) each render, same technique TitleCard/NoteCard use.
 export default function TableCard({ it }) {
   useLayoutEffect(() => {
     const el = document.getElementById("item-" + it.id);
@@ -25,10 +25,27 @@ export default function TableCard({ it }) {
       requestAnimationFrame(() => window.__distributeTableSizing(it, el));
     }
     window.__setupResizing(el, it);
+    window.__setupTableGridResizing(el, it);
   });
 
   const numCols = it.tableData[0].length;
-  const colWidthPct = numCols ? (100 / numCols).toFixed(4) : 0;
+  const numRows = it.tableData.length;
+  // Falls back to an even split whenever there's no real per-column customization yet, or the
+  // column count has since changed (adding/removing a column just resets the split rather than
+  // trying to preserve old customization across it) — same fallback shape distributeTableSizing
+  // (source-table.js) already uses for rows. Only ever WRITTEN to it.colWidths/it.rowHeights by
+  // actually dragging a divider (see startTableColResize/startTableRowResize,
+  // resize-shortcuts-init.js); this fallback is purely a render-time computation, nothing here
+  // persists it.
+  const colWidths = Array.isArray(it.colWidths) && it.colWidths.length === numCols ? it.colWidths : new Array(numCols).fill(100 / numCols);
+  const rowHeights = Array.isArray(it.rowHeights) && it.rowHeights.length === numRows ? it.rowHeights : new Array(numRows).fill(100 / numRows);
+  // Cumulative offsets — the left/top position (as a % of the table's own box) of each internal
+  // divider, one fewer than the column/row count since the very last column/row has no divider
+  // of its own past its trailing edge.
+  let colAcc = 0;
+  const colDividerLefts = colWidths.slice(0, -1).map((w) => (colAcc += w));
+  let rowAcc = 0;
+  const rowDividerTops = rowHeights.slice(0, -1).map((h) => (rowAcc += h));
 
   return (
     <>
@@ -39,7 +56,7 @@ export default function TableCard({ it }) {
               {it.userSized && (
                 <colgroup>
                   {it.tableData[0].map((_, ci) => (
-                    <col key={ci} style={{ width: colWidthPct + "%" }} />
+                    <col key={ci} style={{ width: colWidths[ci] + "%" }} />
                   ))}
                 </colgroup>
               )}
@@ -64,6 +81,13 @@ export default function TableCard({ it }) {
                 ))}
               </tbody>
             </table>
+            {/* Per-column/row divider drags — separate from the corner .resize handle below,
+                which still resizes the WHOLE table. Wired up in the effect above
+                (setupTableGridResizing), not inline here, same split as .resize itself. */}
+            {it.userSized &&
+              colDividerLefts.map((leftPct, i) => <div key={"cd" + i} className="table-col-resize-handle" style={{ left: leftPct + "%" }} />)}
+            {it.userSized &&
+              rowDividerTops.map((topPct, i) => <div key={"rd" + i} className="table-row-resize-handle" style={{ top: topPct + "%" }} />)}
           </div>
         </div>
       </div>

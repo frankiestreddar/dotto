@@ -225,14 +225,22 @@ import { render } from './waypoints-render-loop.js';
             e.preventDefault(); focusTableCell(id, 0, colIndex - 1);
         }
     }
+    // Even split by default — unless it.rowHeights (set by dragging an individual row divider,
+    // see startTableRowResize/resize-shortcuts-init.js) holds one real percentage per row, in
+    // which case each row gets that percentage of the table's current rendered height instead.
+    // Recomputing this off the CURRENT wrap.clientHeight every call (rather than caching pixel
+    // heights) is what lets a custom row split scale for free whenever the corner handle later
+    // changes the table's overall size — no separate rescaling logic needed there.
     function distributeTableSizing(it, el) {
         const wrap = el.querySelector('.static-table-wrap');
         const table = el.querySelector('.item-table');
         if (!wrap || !table) return;
         const rows = table.querySelectorAll('tr');
         if (!rows.length) return;
-        const rowH = wrap.clientHeight / rows.length;
-        rows.forEach(tr => { tr.style.height = rowH + 'px'; });
+        const numRows = rows.length;
+        const heights = (Array.isArray(it.rowHeights) && it.rowHeights.length === numRows) ? it.rowHeights : new Array(numRows).fill(100 / numRows);
+        const totalHeight = wrap.clientHeight;
+        rows.forEach((tr, i) => { tr.style.height = (heights[i] / 100 * totalHeight) + 'px'; });
     }
     function attachStaticTableHoverZones(container, tableItem) {
         const wrap = container.querySelector('.static-table-wrap');

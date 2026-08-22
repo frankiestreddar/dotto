@@ -94,6 +94,94 @@ import { cascadeDeleteFolderContents, centerOnContent, deleteWaypointFromDb, ren
         }, { signal });
     }
 
+    // ---------- Table grid resizing (drag an internal column/row divider) ----------
+    // Separate from setupResizing's corner handle just above (which still resizes the WHOLE
+    // table) — these resize one column or row at a time, redistributing the dragged distance
+    // to/from its immediate neighbor only, so the table's own overall width/height (it.w/it.h)
+    // never changes from dragging an internal divider, only from the corner handle. Percentage-
+    // based (it.colWidths/it.rowHeights, each summing to 100) rather than pixel-based, so they
+    // scale automatically for free whenever the corner handle later changes the table's overall
+    // size — <col style="width:X%"> and distributeTableSizing (source-table.js, which now reads
+    // it.rowHeights when present) both already recompute off the CURRENT table size every time,
+    // so no separate rescaling logic is needed here for that case.
+    // A hair under what 24px works out to at a typical table width — good enough as a floor
+    // without needing to convert an actual pixel minimum through the current per-column/row
+    // percentage math on every drag tick.
+    const TABLE_GRID_MIN_PCT = 6;
+    function setupTableGridResizing(el, it) {
+        el.querySelectorAll('.table-col-resize-handle').forEach((handle, i) => {
+            handle.__resizeListenerAbort?.abort();
+            const { signal } = (handle.__resizeListenerAbort = new AbortController());
+            handle.addEventListener('pointerdown', (e) => startTableColResize(e, it, i), { signal });
+        });
+        el.querySelectorAll('.table-row-resize-handle').forEach((handle, i) => {
+            handle.__resizeListenerAbort?.abort();
+            const { signal } = (handle.__resizeListenerAbort = new AbortController());
+            handle.addEventListener('pointerdown', (e) => startTableRowResize(e, it, i), { signal });
+        });
+    }
+    // Dragging the divider between column `i` and `i+1` only ever moves width between those two
+    // — every other column's width is untouched, and the pair's own combined width stays
+    // constant, clamped so neither column can be dragged below TABLE_GRID_MIN_PCT.
+    function startTableColResize(e, it, i) {
+        e.stopPropagation();
+        e.preventDefault();
+        saveSnapshot();
+        const numCols = it.tableData[0].length;
+        const widths = (Array.isArray(it.colWidths) && it.colWidths.length === numCols) ? it.colWidths.slice() : new Array(numCols).fill(100 / numCols);
+        const pairTotal = widths[i] + widths[i + 1];
+        const startA = widths[i];
+        const sx = e.clientX;
+        const move = (me) => {
+            const dxPct = ((me.clientX - sx) / appState.scale / it.w) * 100;
+            const a = Math.max(TABLE_GRID_MIN_PCT, Math.min(pairTotal - TABLE_GRID_MIN_PCT, startA + dxPct));
+            widths[i] = a; widths[i + 1] = pairTotal - a;
+            it.colWidths = widths;
+            const el2 = document.getElementById('item-' + it.id);
+            if (!el2) return;
+            const cols = el2.querySelectorAll('.item-table > colgroup > col');
+            if (cols[i]) cols[i].style.width = widths[i] + '%';
+            if (cols[i + 1]) cols[i + 1].style.width = widths[i + 1] + '%';
+            const handles = el2.querySelectorAll('.table-col-resize-handle');
+            let acc = 0;
+            for (let k = 0; k <= i; k++) acc += widths[k];
+            if (handles[i]) handles[i].style.left = acc + '%';
+        };
+        const up = () => { window.removeEventListener('pointermove', move); window.removeEventListener('pointerup', up); scheduleWorkspaceSave(); };
+        window.addEventListener('pointermove', move);
+        window.addEventListener('pointerup', up);
+    }
+    // Same idea as startTableColResize, vertically — dragging the divider between row `i` and
+    // `i+1` moves height between just that pair, applied live via distributeTableSizing (which
+    // converts it.rowHeights' percentages to real pixel heights off the table's current rendered
+    // height, same as it already does on every corner-resize tick).
+    function startTableRowResize(e, it, i) {
+        e.stopPropagation();
+        e.preventDefault();
+        saveSnapshot();
+        const numRows = it.tableData.length;
+        const heights = (Array.isArray(it.rowHeights) && it.rowHeights.length === numRows) ? it.rowHeights.slice() : new Array(numRows).fill(100 / numRows);
+        const pairTotal = heights[i] + heights[i + 1];
+        const startA = heights[i];
+        const sy = e.clientY;
+        const move = (me) => {
+            const dyPct = ((me.clientY - sy) / appState.scale / it.h) * 100;
+            const a = Math.max(TABLE_GRID_MIN_PCT, Math.min(pairTotal - TABLE_GRID_MIN_PCT, startA + dyPct));
+            heights[i] = a; heights[i + 1] = pairTotal - a;
+            it.rowHeights = heights;
+            const el2 = document.getElementById('item-' + it.id);
+            if (!el2) return;
+            distributeTableSizing(it, el2);
+            const handles = el2.querySelectorAll('.table-row-resize-handle');
+            let acc = 0;
+            for (let k = 0; k <= i; k++) acc += heights[k];
+            if (handles[i]) handles[i].style.top = acc + '%';
+        };
+        const up = () => { window.removeEventListener('pointermove', move); window.removeEventListener('pointerup', up); scheduleWorkspaceSave(); };
+        window.addEventListener('pointermove', move);
+        window.addEventListener('pointerup', up);
+    }
+
     function findNextFreeSlot(folderId) {
         const items = appState.folders[folderId].items;
         let x = 28;
@@ -213,10 +301,11 @@ import { cascadeDeleteFolderContents, centerOnContent, deleteWaypointFromDb, ren
 
 
 
-export { deleteSelectedCards, findNextFreeSlot, setTableAlign, setupResizing };
+export { deleteSelectedCards, findNextFreeSlot, setTableAlign, setupResizing, setupTableGridResizing };
 
 // React → vanilla bridge (see the identical pattern/comment in cards-misc.js) — used by
 // FlashcardCard.jsx directly (a converted kind's own layout effect, same as
 // attachWatermarkBody/attachUniversalItemBehavior), not just from renderLegacyCardBody's own
 // still-legacy table/media/typeright/note branches.
 window.__setupResizing = setupResizing;
+window.__setupTableGridResizing = setupTableGridResizing;
