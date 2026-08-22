@@ -1030,17 +1030,18 @@
        Notifications used to live inside this box (slide-swapped with #search-input) — they're a
        top-bar pill now (see #notification-pill, further down) with no coupling to this element at
        all anymore. */
-    /* order:1 by default — right after #ai-chat-header, i.e. visually at the TOP of the panel, for
-       the "first page" (nothing searched yet this session, #search-chat-thread still empty) and
-       while typing (live suggestions land in #search-dropdown, below). Once thread has a real
-       response (.visible), the sibling rule below pushes this to order:4 — the very end, i.e. the
-       BOTTOM — pinned there by its own margin-top:auto in that state (see #search-chat-thread's
-       own comment for why the auto margin lives on thread, not here, even though this is the one
-       that ends up at the bottom). Both rules key off thread's .visible class alone — no separate
-       JS-driven layout-mode class needed, see #ai-history-btn's own comment just above for the
-       same pattern applied to the back button. */
-    #search-input-wrap{order:1;position:relative;width:100%;border:1px solid transparent;border-radius:16px;}
-    #search-chat-thread.visible ~ #search-input-wrap{order:4;}
+    /* Plain document order — header, thread, dropdown, input, always (see hamburger-stack.html) —
+       no CSS `order`/margin-top:auto trying to pin this to the bottom of the panel. That was tried
+       (pushing thread+dropdown+input down together as a group once thread had a real response) and
+       caused real breakage: a long/tall thread's own max-height:60vh cap doesn't know how much
+       room the auto-margin left it, so the two could disagree about how much space was actually
+       available, reading as content clipped partway up and a large gap between the header and the
+       conversation. Simple, predictable flow avoids all of that: on the first page (thread/
+       dropdown both empty, height:0) this naturally sits right after the header anyway, and once a
+       conversation exists it just follows thread/dropdown in normal flow, which lands it
+       reasonably close to the bottom for anything beyond a trivially short exchange without any of
+       the layout gymnastics. */
+    #search-input-wrap{position:relative;width:100%;border:1px solid transparent;border-radius:16px;}
     /* Never scrollable, even past the 4-line cap - overflow is hidden, not auto. The caret still
        auto-scrolls into view internally as you type (native textarea behavior, independent of
        this property), it just never shows/permits an interactive scrollbar. */
@@ -1168,17 +1169,11 @@
        work normally the entire time the palette is actually open and settled. Individual panels
        that need their own internal scroll cap (the answer/command-palette/results panels) still
        have their own max-height+overflow-y, unchanged. */
-    /* order:3 by default (after input's order:1 — see #search-input-wrap's own comment — so live
-       typing suggestions land BELOW the input, at the top of the panel) — flips to order:2 once
-       #search-chat-thread has a real response (.visible, just below), landing it between thread
-       and input instead (a follow-up query's live matches showing just above the box you're
-       typing in, below the existing conversation).
-       margin-bottom is unconditional (not gated by .visible) — #search-dropdown ends up as input's
-       immediate previous sibling in BOTH layout modes (order 3-then-4 by default, 2-then-4 once
-       thread is visible), so this is the one place that needs to unconditionally guarantee the gap
-       before the input box, including while everything is fully collapsed on the first page. */
-    #search-dropdown{order:3;display:flex;flex-direction:column;gap:5px;height:0;overflow:hidden;margin-top:0;margin-bottom:8px;}
-    #search-chat-thread.visible ~ #search-dropdown{order:2;}
+    /* Plain document order (see #search-input-wrap's own comment) — always between thread and
+       input. margin-bottom guarantees the gap before the input box unconditionally (not gated by
+       .visible), since #search-dropdown is always input's immediate previous sibling regardless of
+       whether it or #search-chat-thread above it currently have any content. */
+    #search-dropdown{display:flex;flex-direction:column;gap:5px;height:0;overflow:hidden;margin-top:0;margin-bottom:8px;}
     /* No padding-bottom (there used to be a 2px one) — #search-bar's own 8px padding is already
        the bottom gap below the last row; adding padding-bottom here on top of that stacked to 10px
        at the bottom of the card versus 8px on every other side, most noticeable with a sparse
@@ -1206,18 +1201,12 @@
        element a margin-bottom TOO would double up into a 16px gap whenever both are visible at
        once (their margins don't collapse against each other — flex item margins never do), instead
        of the intended flat 8px.
-       order:2 by default (empty, irrelevant, but keeps DOM/visual order matching on the first
-       page) — flips to order:1 (right after the header) AND picks up margin-top:auto the instant
-       there's a real response (.visible): pushing thread itself down to the bottom of #ai-chat-
-       view (a flex column) carries dropdown and input down flush behind it (both now ordered
-       after it), all three touching with no gap between them, collecting any leftover slack space
-       ABOVE the conversation instead — the reverse of putting the auto margin on input-wrap
-       itself, which would leave that slack sitting between the end of the actual content and the
-       input box, backwards from a normal chat layout. Neither the order flip nor this margin ever
-       apply on the first page — #search-input-wrap stays exactly where normal flow already puts it
-       (order:1, right after the header), nothing needs pinning to the bottom of an empty panel. */
-    #search-chat-thread{order:2;display:flex;flex-direction:column;gap:16px;height:0;overflow:hidden;max-height:60vh;}
-    #search-chat-thread.visible{order:1;margin-top:auto;}
+       Plain document order (no CSS `order`, no margin-top:auto) — see #search-input-wrap's own
+       comment for why an earlier attempt at pinning this + dropdown + input to the bottom as a
+       group was reverted: max-height:60vh here has no way to know how much room an auto margin
+       elsewhere left it, and the two disagreeing is exactly what read as content clipped partway up
+       with a large gap above it. */
+    #search-chat-thread{display:flex;flex-direction:column;gap:16px;height:0;overflow:hidden;max-height:60vh;}
     .dotbot-turn{display:flex;flex-direction:column;gap:8px;}
     /* Right-aligned pill, same --brand indigo used elsewhere for accents — the one thing this
        whole search surface never rendered before now: the user's OWN query, as an actual message
