@@ -1,4 +1,3 @@
-import { switchAddTab } from './add-menu.js';
 import { appState, btnBack, btnForward, contextMenu } from './core-state.js';
 import { refreshCanvasCollabForCurrentFolder, refreshFriendsData, renderCollabPill } from './friends-presence.js';
 import { fcFlip, fcRate, trNext } from './games-flashcard-typeright.js';
@@ -200,7 +199,6 @@ import { cascadeDeleteFolderContents, centerOnContent, deleteWaypointFromDb, ren
     btnForward.onclick = () => { if(appState.historyIndex < appState.historyStack.length - 1) jumpToHistoryIndex(appState.historyIndex + 1); };
 
     updateDrawLayerBtns();
-    switchAddTab('notes');
     applyCursorMode();
     // Waits for any saved workspace before the first render, so a returning
     // user's real content shows immediately instead of flashing the built-in
