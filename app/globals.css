@@ -997,12 +997,7 @@
        the notif-flash/notif-pulse-slow keyframes below — which set a real border-color on THIS
        element — round off consistently with the outer card instead of flashing square corners
        inside it. */
-    /* margin-top:auto pins this to the bottom of #ai-chat-view (a flex column) — it's the LAST
-       child now (see hamburger-stack.html), so any leftover vertical space above it (an empty or
-       short conversation/dropdown) collects above the box instead of below it, keeping the input
-       at the bottom of the panel like a normal chat input rather than parked near the top with
-       empty space trailing beneath it. */
-    #search-input-wrap{position:relative;width:100%;border:1px solid transparent;border-radius:16px;margin-top:auto;}
+    #search-input-wrap{position:relative;width:100%;border:1px solid transparent;border-radius:16px;}
     /* Never scrollable, even past the 4-line cap - overflow is hidden, not auto. The caret still
        auto-scrolls into view internally as you type (native textarea behavior, independent of
        this property), it just never shows/permits an interactive scrollbar. */
@@ -1258,8 +1253,15 @@
        bottom above already provides the one guaranteed gap before the input box; giving this
        element a margin-bottom TOO would double up into a 16px gap whenever both are visible at
        once (their margins don't collapse against each other — flex item margins never do), instead
-       of the intended flat 8px. */
-    #search-chat-thread{display:flex;flex-direction:column;gap:16px;height:0;overflow:hidden;max-height:60vh;}
+       of the intended flat 8px.
+       margin-top:auto lives HERE now, not on #search-input-wrap — it's the FIRST element in the
+       thread→dropdown→input sequence, so pushing IT down to the bottom of #ai-chat-view (a flex
+       column) carries dropdown and input down flush behind it, all three touching with no gap
+       between them. Putting the auto margin on input-wrap instead (the old approach) only pushed
+       THAT one element down, leaving whatever slack space existed sitting between the end of the
+       actual content and the input box — exactly backwards from a normal chat layout, where any
+       empty space belongs above a short conversation, not between it and the box you type into. */
+    #search-chat-thread{display:flex;flex-direction:column;gap:16px;height:0;overflow:hidden;max-height:60vh;margin-top:auto;}
     .dotbot-turn{display:flex;flex-direction:column;gap:8px;}
     /* Right-aligned pill, same --brand indigo used elsewhere for accents — the one thing this
        whole search surface never rendered before now: the user's OWN query, as an actual message
