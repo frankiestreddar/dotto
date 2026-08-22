@@ -53,10 +53,13 @@
                 <div id="search-suggestions"></div>
                 <div id="search-image-result"></div>
             </div>
-            <!-- Last child, not third — pinned to the panel's bottom edge (margin-top:auto, see
-                 globals.css) so the box sits at the bottom like a normal chat input, with the
-                 thread/dropdown above filling upward instead of leaving empty space below an
-                 input parked near the top. -->
+            <!-- Last in DOM order (not visual order — see the CSS `order` rules on this,
+                 #search-chat-thread, and #search-dropdown, globals.css) purely so a plain CSS
+                 sibling selector off #search-chat-thread's own .visible class can flip this
+                 between two layout modes with no separate JS-driven class needed: right after the
+                 header (visually at the TOP) on the "first page" before anything's been searched,
+                 or pinned to the panel's bottom edge (visually LAST, margin-top:auto lives on
+                 thread) once a real response exists, response above it like a normal chat input. -->
             <div id="search-input-wrap">
                 <svg id="search-input-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" aria-hidden="true"><circle cx="7" cy="7" r="5"></circle><path d="M11 11L14.5 14.5"></path></svg>
                 <textarea id="search-input" rows="1" placeholder="" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" oninput="handleSearchInput(this.value)" onfocus="handleSearchFocus()"></textarea>
