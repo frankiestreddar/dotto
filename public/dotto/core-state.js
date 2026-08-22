@@ -13,10 +13,9 @@
         canvasContextMenu = document.getElementById('canvas-context-menu');
     
     const supabase = window.__dottoSupabase || null;
-    // Shared with appState.currentUser just below AND the built-in root canvas's default title —
-    // captured once here rather than reading window.__DOTTO_USER__ twice, since the object literal
-    // itself can't reference appState.currentUser (appState doesn't exist until the literal
-    // finishes constructing).
+    // Shared with appState.currentUser just below — captured once here rather than reading
+    // window.__DOTTO_USER__ twice, since the object literal itself can't reference
+    // appState.currentUser (appState doesn't exist until the literal finishes constructing).
     const initialUser = window.__DOTTO_USER__ || { id: null, username: 'guest', displayName: 'You' };
 
     // Every piece of shared, cross-function mutable app state, consolidated into one owned
@@ -45,7 +44,7 @@
         folders: {
             'root': {
                 id: 'root',
-                title: `@${initialUser.username}'s Canvas`,
+                title: 'My First Canvas',
                 items: [
                     { id: 1, x: 100, y: 150, w: 308, h: 140, kind: 'note', html: 'Welcome to Dotter!<br>Explore the app, report any bugs, and learn some languages!' },
                 ],
