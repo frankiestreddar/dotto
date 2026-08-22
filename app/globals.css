@@ -235,19 +235,30 @@
        the skinnier --rail-width (was 40x40/64px). #btn-profile overrides this to a circle below,
        matching its own pre-existing shape. */
     .rail-btn{background:none;border:none;border-radius:9px;height:36px;width:36px;flex:0 0 auto;display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--ink-soft);transition:color .15s ease,background .15s ease;}
-    .rail-btn:hover{background:#242424;color:var(--ink);}
+    /* Hover is icon-only (color/opacity, via .rail-icon-img below) — no background highlight, so
+       the row stays visually quiet until a panel is actually pinned open. .active (this icon's
+       panel IS open) keeps its own background — a persistent "you're here" indicator, not a hover
+       effect, so it's deliberately untouched by this. */
+    .rail-btn:hover{color:var(--ink);}
     .rail-btn.active{background:#2E2E2E;color:var(--ink);}
+    /* Every rail icon renders at the same 18x18 footprint regardless of source (inline svg or img)
+       — svg icons size via this shared rule (viewBox alone doesn't set a render size, so without
+       it each would fall back to the browser's default replaced-element size); img icons size via
+       .rail-icon-img below. Both share the same 18px number so nothing in the column reads bigger
+       or smaller than anything else. pointer-events:none keeps clicks landing on the button itself,
+       never the icon glyph inside it. */
+    .rail-btn svg{width:18px;height:18px;pointer-events:none;}
     /* Grey-tinted by default, full white on hover/active — covers the inline-svg and plain-glyph
-       icons (AI search, back/forward, undo/redo) for free via `color`/currentColor above. The
-       img-based icons (menu-btn.png, waypoint.png, collaboration.png, market-button.png,
-       chats-btn.png — marked with this class in the markup) can't follow `color`, so they get the
-       same grey→white read via a solid-white filter (flattens whatever colours the source PNG has)
-       dimmed with opacity instead. #btn-profile's own avatar photo is deliberately NOT part of
-       this — it's the user's picture, not a generic icon, so it keeps its native colour always. */
-    .rail-icon-img{filter:brightness(0) invert(1);opacity:0.55;transition:opacity .15s ease;}
+       icons (AI search) for free via `color`/currentColor above. The img-based icons (menu-btn.png,
+       waypoint.png, collaboration.png, market-button.png, chats-btn.png, add-btn.png — marked with
+       this class in the markup) can't follow `color`, so they get the same grey→white read via a
+       solid-white filter (flattens whatever colours the source PNG has) dimmed with opacity
+       instead. #btn-profile's own avatar photo is deliberately NOT part of this — it's the user's
+       picture, not a generic icon, so it keeps its native colour always. */
+    .rail-icon-img{width:18px;height:18px;filter:brightness(0) invert(1);opacity:0.55;transition:opacity .15s ease;}
     .rail-btn:hover .rail-icon-img,.rail-btn.active .rail-icon-img{opacity:1;}
-    /* Pushes Undo/Redo to the bottom of the rail without needing a fixed pixel gap — the column
-       above them can hold anywhere from a handful to many icons depending on future additions. */
+    /* Pushes the mode/add tools to the bottom of the rail without needing a fixed pixel gap — the
+       column above can hold anywhere from a handful to many icons depending on future additions. */
     #rail-bottom-group{margin-top:auto;display:flex;flex-direction:column;align-items:center;gap:4px;}
 
     #collab-bubble{display:none;position:relative;padding:0 10px;cursor:pointer;flex:0 0 auto;}
@@ -376,7 +387,6 @@
     #mode-toolbar .mode-btn{display:none;}
     #mode-toolbar .mode-btn.mode-visible{display:flex;}
     #mode-toolbar.expanded .mode-btn{display:flex;}
-    #mode-toolbar .mode-btn svg{width:16px;height:16px;pointer-events:none;}
 
     #canvas.mode-data{cursor:crosshair;}
     #canvas.mode-data .item, #canvas.mode-data .item *{cursor:crosshair !important;}

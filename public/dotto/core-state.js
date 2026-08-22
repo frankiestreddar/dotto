@@ -224,8 +224,6 @@
         railBtnAi: document.getElementById('rail-btn-ai'),
         railBtnWaypoints: document.getElementById('rail-btn-waypoints'),
         railBtnCollab: document.getElementById('rail-btn-collab'),
-        railBtnUndo: document.getElementById('rail-btn-undo'),
-        railBtnRedo: document.getElementById('rail-btn-redo'),
         hamburgerBtn: document.getElementById('btn-menu'),
         outlineMenu: document.getElementById('outline-menu'),
         hamburgerStack: document.getElementById('hamburger-stack'),

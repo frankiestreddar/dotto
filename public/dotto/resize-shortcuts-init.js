@@ -2,7 +2,7 @@ import { switchAddTab } from './add-menu.js';
 import { addMenu, appState, btnBack, btnForward, contextMenu } from './core-state.js';
 import { refreshCanvasCollabForCurrentFolder, refreshFriendsData, renderCollabPill } from './friends-presence.js';
 import { fcFlip, fcRate, trNext } from './games-flashcard-typeright.js';
-import { applyTransform, loadWorkspace, redo, saveSnapshot, scheduleWorkspaceSave, undo } from './history-autosave.js';
+import { applyTransform, loadWorkspace, saveSnapshot, scheduleWorkspaceSave } from './history-autosave.js';
 import { broadcastItemResize, findItemById } from './live-presence.js';
 import { refreshDotbotUsage } from './profile-achievements-pricing.js';
 import { announceEnteredCollaboration, jumpToHistoryIndex } from './shared-canvases-outline.js';
@@ -189,11 +189,6 @@ import { cascadeDeleteFolderContents, centerOnContent, deleteWaypointFromDb, ren
 
     btnBack.onclick = () => { if(appState.historyIndex > 0) jumpToHistoryIndex(appState.historyIndex - 1); };
     btnForward.onclick = () => { if(appState.historyIndex < appState.historyStack.length - 1) jumpToHistoryIndex(appState.historyIndex + 1); };
-    // Plain instant-action rail icons (see content/fragments/top-bar.html) — no panel, no
-    // hover-preview/pin state, just a direct call same as the existing Cmd+Z/Cmd+Shift+Z keyboard
-    // shortcuts already wired elsewhere to these exact same functions.
-    appState.railBtnUndo.onclick = undo;
-    appState.railBtnRedo.onclick = redo;
 
     updateDrawLayerBtns();
     switchAddTab('notes');
