@@ -13,6 +13,11 @@
         canvasContextMenu = document.getElementById('canvas-context-menu');
     
     const supabase = window.__dottoSupabase || null;
+    // Shared with appState.currentUser just below AND the built-in root canvas's default title —
+    // captured once here rather than reading window.__DOTTO_USER__ twice, since the object literal
+    // itself can't reference appState.currentUser (appState doesn't exist until the literal
+    // finishes constructing).
+    const initialUser = window.__DOTTO_USER__ || { id: null, username: 'guest', displayName: 'You' };
 
     // Every piece of shared, cross-function mutable app state, consolidated into one owned
     // object rather than scattered top-level `let`s — see PHASE2_ROADMAP.md Phase 1. This is
@@ -24,7 +29,7 @@
     const appState = {
         // Set by dotto-app.jsx before this script runs (see app/dotto-app.jsx). Declared first
         // since profile-panel setup further down reads currentUser immediately.
-        currentUser: window.__DOTTO_USER__ || { id: null, username: 'guest', displayName: 'You' },
+        currentUser: initialUser,
         tx: 0, ty: 0, scale: 1, idCounter: 10, currentEditingEl: null,
         contextMenuItemId: null,
         // Source-page table state: which data cell last had focus (so the bottom-bar Add menu
@@ -40,7 +45,7 @@
         folders: {
             'root': {
                 id: 'root',
-                title: 'Home',
+                title: `@${initialUser.username}'s Canvas`,
                 items: [
                     { id: 1, x: 100, y: 150, w: 308, h: 140, kind: 'note', html: 'Welcome to Dotter!<br>Explore the app, report any bugs, and learn some languages!' },
                 ],
