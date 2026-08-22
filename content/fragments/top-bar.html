@@ -12,18 +12,6 @@
     <button id="rail-btn-collab" class="rail-btn" title="Collaborations"><img class="rail-icon-img" src="/assets/icons/collaboration.png" alt=""></button>
     <button id="btn-cart" class="rail-btn" title="Template Marketplace"><img class="rail-icon-img" src="/assets/icons/market-button.png" alt=""></button>
     <button id="btn-messages" class="rail-btn" title="Messages"><img class="rail-icon-img" src="/assets/icons/chats-btn.png" alt=""></button>
-    <button id="btn-profile" class="rail-btn" title="Profile">
-        <!-- Content is React-owned now (see app/dotto/ProfileAvatarSm.jsx) — "YO" was a
-             pre-JS placeholder, removed so the portaled avatar doesn't render alongside it. -->
-        <div class="profile-avatar-sm" id="profile-avatar-sm"></div>
-        <!-- Shown instead of the avatar above on hover/while the profile panel is open (see
-             #btn-profile:hover/.active in globals.css) — clicking in that state logs out instead
-             of opening the panel (see the profileBtn click handler). -->
-        <svg id="btn-profile-power-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-            <path d="M12 2v10"></path>
-            <path d="M18.36 6.64a9 9 0 1 1-12.73 0"></path>
-        </svg>
-    </button>
     <div id="rail-bottom-group">
         <!-- Cursor-mode selector — collapsed shows only the currently active mode; hovering expands
              it (see #mode-toolbar.expanded, globals.css) to reveal all three stacked, same
@@ -43,6 +31,20 @@
         <div id="add-toolbar">
             <button id="btn-add" class="rail-btn" title="Add"><img class="rail-icon-img" src="/assets/icons/add-btn.png" alt=""></button>
         </div>
+        <!-- Very bottom of the rail, below the mode/add tools — the one icon that isn't a
+             navigation/panel trigger like everything above it. -->
+        <button id="btn-profile" class="rail-btn" title="Profile">
+            <!-- Content is React-owned now (see app/dotto/ProfileAvatarSm.jsx) — "YO" was a
+                 pre-JS placeholder, removed so the portaled avatar doesn't render alongside it. -->
+            <div class="profile-avatar-sm" id="profile-avatar-sm"></div>
+            <!-- Shown instead of the avatar above on hover/while the profile panel is open (see
+                 #btn-profile:hover/.active in globals.css) — clicking in that state logs out instead
+                 of opening the panel (see the profileBtn click handler). -->
+            <svg id="btn-profile-power-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M12 2v10"></path>
+                <path d="M18.36 6.64a9 9 0 1 1-12.73 0"></path>
+            </svg>
+        </button>
     </div>
 </div>
 <!-- Dead centre of the viewport (position:fixed, left:50% + translateX(-50%), see globals.css) —
