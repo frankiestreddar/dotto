@@ -534,8 +534,8 @@
        plain-glyph close-button convention (canvas-modal-close, search-cards-modal-close) rather
        than an image — swap in a real icon later if one gets added. */
     #btn-menu .btn-menu-close-icon{display:none;font-size:16px;}
-    #btn-menu.hmenu-full img{display:none;}
-    #btn-menu.hmenu-full .btn-menu-close-icon{display:block;}
+    #btn-menu.active img{display:none;}
+    #btn-menu.active .btn-menu-close-icon{display:block;}
     /* align-items:flex-end: the (deliberately oversized) avatar is anchored to the bottom of the
        circle. No overflow:hidden here — clipping is handled entirely by .profile-avatar-sm's own
        clip-path below, which only follows the button's circular boundary in the bottom 25%; the
@@ -650,29 +650,24 @@
     #profile-upgrade-btn{width:100%;display:flex;align-items:center;justify-content:space-between;gap:8px;padding:14px;background:transparent;border:none;border-radius:12px;color:var(--ink);font-size:13px;font-weight:700;font-family:inherit;cursor:pointer;}
     #profile-upgrade-btn:hover{background:#2a2a2a;}
     .profile-upgrade-crown{width:16px;height:16px;flex:0 0 auto;color:#ffca28;}
-    /* #outline-menu flexes to fill whatever height the panel actually has (full viewport when
-       pinned open as a sidebar, capped at 60vh when just previewed on hover), its tree list
-       scrolling internally. No breadcrumb - the rolling window is always anchored to the live
-       canvas position, not a separate menu-only state. */
-    /* Two very different shapes for the same shell, both sliding out from behind the permanent
-       rail (#dotto-rail — a real full-height strip, always visible, not a hidden edge-peek
-       gesture): hovering a rail icon previews its view — a small floating, rounded, vertically-
-       centered card capped at 60vh, never touching or shifting the top bar. Clicking one instead
-       pins it open as a real full-height sidebar (.hmenu-full): edge to edge, square corners, one
-       continuous shell rather than a floating card — every .hmenu-panel section loses its own
-       independent card chrome in that state and reads as a section inside it instead. #dotto-rail
-       itself intentionally never moves — padding-top on the full-height shell (matching the top
-       bar's own 60px band) keeps every actual panel's content starting below it, never underneath/
+    /* #outline-menu flexes to fill the sidebar's full height, its tree list scrolling internally.
+       No breadcrumb - the rolling window is always anchored to the live canvas position, not a
+       separate menu-only state. */
+    /* The shell is a permanent full-height sidebar shape at ALL times — top:0, full viewport
+       height, square corners, one continuous surface (every .hmenu-panel section has no card
+       chrome of its own, just reads as a section inside it) — sliding out from behind the
+       permanent rail (#dotto-rail — a real full-height strip, always visible, not a hidden
+       edge-peek gesture). Rail icons are click-only (see wireRailIcon, panels-hamburger.js), so
+       there's no separate hover-preview shape to account for — `left` is the ONLY property that
+       ever animates; opening/closing is purely a horizontal slide, never a resize. #dotto-rail
+       itself intentionally never moves — padding-top on the shell (matching the top bar's own
+       60px band) keeps every actual panel's content starting below it, never underneath/
        overlapped by it, satisfying "the icons sit at the top, panels under" without needing a
        second close control duplicated inside the sidebar. z-index (900) sits below #dotto-rail/
        #top-bar (1000, see #dotto-rail's own comment) so the rail icons stay visually on top and
-       clickable; above #world (1) so it fully overlays canvas content. Only `left` ever animates —
-       top/max-height/padding-top/transform apply instantly the moment .hmenu-full is toggled, so
-       the full sidebar is already its final full-height shape before it starts sliding in, rather
-       than visibly growing into that shape as it slides (the preview shape isn't affected either
-       way, since its own top/max-height/transform values are already the closed-state defaults —
-       nothing to snap). pointer-events stay off until .open so the always-in-the-DOM container
-       never blocks clicks over the canvas while closed. */
+       clickable; above #world (1) so it fully overlays canvas content. pointer-events stay off
+       until .open so the always-in-the-DOM container never blocks clicks over the canvas while
+       closed. */
     /* Both left values shifted by +var(--rail-width) so the shell sits beside the permanent rail
        rather than the true left edge: closed lands at rail-width - hmenu-width (=-336px at the
        default 64px/400px), so the shell's right edge sits at exactly -336+400=64px — flush with
@@ -683,16 +678,13 @@
        Marketplace's own content (its widest existing view, previously a standalone 380px-wide
        floating card), now that Marketplace/Messages/Profile share this same shell/width instead of
        each picking their own. */
-    #hamburger-stack{position:fixed;left:calc(var(--rail-width) - var(--hmenu-width));width:var(--hmenu-width);z-index:900;display:flex;flex-direction:column;gap:5px;pointer-events:none;top:50%;max-height:60vh;padding-top:0;transform:translateY(-50%);transition:left .3s ease;}
+    #hamburger-stack{position:fixed;left:calc(var(--rail-width) - var(--hmenu-width));width:var(--hmenu-width);z-index:900;display:flex;flex-direction:column;gap:0;pointer-events:none;top:0;height:100vh;padding-top:60px;background:var(--bar);border-right:1px solid var(--card-border);transition:left .3s ease;}
     #hamburger-stack.open{left:var(--rail-width);pointer-events:auto;}
-    #hamburger-stack.hmenu-full{top:0;max-height:none;height:100vh;padding-top:60px;gap:0;transform:none;background:var(--bar);border-right:1px solid var(--card-border);}
-    .hmenu-panel{width:100%;background:var(--bar);border:1px solid var(--card-border);border-radius:12px;box-shadow:0 4px 16px rgba(0,0,0,0.5);pointer-events:auto;}
+    /* No card chrome of their own (background/border/radius/shadow) — the shell above already
+       supplies the background/edge; each panel is just a section of that one continuous surface. */
+    .hmenu-panel{width:100%;pointer-events:auto;}
     .hmenu-panel{display:none;}
     .hmenu-panel.open{display:block;}
-    /* Inside the full sidebar shell, panels are sections of one continuous surface, not
-       independently-carded floating panels — the shell above already supplies the
-       background/edge. */
-    #hamburger-stack.hmenu-full .hmenu-panel{background:transparent;border:none;border-radius:0;box-shadow:none;}
     #outline-menu{flex:1 1 auto;min-height:0;overflow:hidden;}
     #outline-menu.open{display:flex;flex-direction:column;}
     /* scrollbar-width:none + the ::-webkit-scrollbar rule below hide the scrollbar chrome without

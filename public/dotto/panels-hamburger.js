@@ -73,11 +73,7 @@ import { closeSourceAddMenu } from './source-buttons-cursor-mode.js';
         appState.hamburgerStack.classList.add('open');
         appState.activeRailView = key;
         if (onOpen) onOpen(pin);
-        if (pin) {
-            appState.panelPinned.rail = true;
-            appState.hamburgerStack.classList.add('hmenu-full');
-            btn.classList.add('hmenu-full');
-        }
+        if (pin) appState.panelPinned.rail = true;
     }
     // Same resetAiSearchState reasoning as openRailView above, for the "close the rail entirely"
     // direction (Escape, clicking outside, etc.) — if AI was the view showing, reset it; checked
@@ -94,8 +90,8 @@ import { closeSourceAddMenu } from './source-buttons-cursor-mode.js';
         clearTimeout(railCloseTimeoutId);
         const closingEls = appState.railViewEls.filter(el => el && el.classList.contains('open'));
         closingEls.forEach(el => el.classList.add('closing'));
-        appState.railIconBtns.forEach(b => b && b.classList.remove('active', 'hmenu-full'));
-        appState.hamburgerStack.classList.remove('open', 'hmenu-full');
+        appState.railIconBtns.forEach(b => b && b.classList.remove('active'));
+        appState.hamburgerStack.classList.remove('open');
         appState.activeRailView = null;
         appState.panelPinned.rail = false;
         clearListPanelSelection();
