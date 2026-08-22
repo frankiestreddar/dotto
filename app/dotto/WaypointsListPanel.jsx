@@ -43,9 +43,9 @@ function WaypointRow({ r, selected }) {
 }
 
 // Portals into #waypoints-list (content/fragments/hamburger-stack.html) — a plain flex-item
-// container, safe to portal into directly (no wrapper needed) same as #schedule-view-hours/stack.
-// Visibility of the panel ITSELF (vs. the outline/hub-collab panels) stays a vanilla classList
-// toggle, unrelated to this — this component only owns the row list.
+// container, safe to portal into directly, no wrapper needed. Visibility of the panel ITSELF (vs.
+// the outline/hub-collab panels) stays a vanilla classList toggle, unrelated to this — this
+// component only owns the row list.
 export default function WaypointsListPanel() {
   const state = useSyncExternalStore(waypointsListStore.subscribe, waypointsListStore.getSnapshot, () => EMPTY_STATE);
   const selection = useSyncExternalStore(listPanelSelectionStore.subscribe, listPanelSelectionStore.getSnapshot, () => EMPTY_SELECTION);

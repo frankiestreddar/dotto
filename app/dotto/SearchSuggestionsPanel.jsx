@@ -4,7 +4,7 @@ import { useLayoutEffect } from "react";
 import { useSyncExternalStore } from "react";
 import { searchSuggestionsStore } from "./bridges";
 
-// Mounts whichever of #search-suggestions' 6 producers is currently active — see
+// Mounts whichever of #search-suggestions' 5 producers is currently active — see
 // searchSuggestionsStore's own comment in bridges.js for the full producer list and why this is a
 // discriminated union. Every kind's content stays vanilla-built (typewriter reveals, drag-to-
 // canvas wiring), same "return null, mutate in an effect" pattern as TranslationPanel.jsx and
@@ -42,13 +42,6 @@ export default function SearchSuggestionsPanel() {
       case "dotbot-error":
         el.appendChild(window.__buildMnemonicErrorEl(state.reason));
         break;
-      case "dotbot-prompt": {
-        if (state.previewEl) el.appendChild(state.previewEl);
-        const msg = window.__buildDotbotPromptMsgEl();
-        el.appendChild(msg);
-        window.__startDotbotPromptReveal(msg, state.text);
-        break;
-      }
       default:
         break;
     }

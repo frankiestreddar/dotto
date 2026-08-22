@@ -545,7 +545,6 @@ import { render } from './waypoints-render-loop.js';
 
     function handleSearchInput(value) {
         autoGrowSearchInput();
-        if (appState.dotbotScheduleConversation) return; // typing the "when" reply — not a search query
         // Slash commands (see command-palette.js) take over the box entirely — none of the normal
         // canvas-match/live-suggestion machinery below applies, and any of its panels left over
         // from before "/" was typed need clearing so they don't linger behind the command palette.
@@ -616,7 +615,6 @@ import { render } from './waypoints-render-loop.js';
         // panel out from under itself. Still closes unrelated overlays (add-menu/collab/source-add)
         // that might be open at the same time.
         closeAllPanels('rail');
-        if (appState.dotbotScheduleConversation) return; // keep Dotbot's prompt showing, not generic suggestions
         hideDotbotResultPanels();
         appState.searchInputWrap.classList.add('idle-pulsing');
         const v = appState.searchInput.value.trim();

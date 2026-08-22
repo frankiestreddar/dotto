@@ -54,15 +54,6 @@ export const canvasItemsStore = createStore([]);
 // (harmless: the notification bar is hidden via CSS once #search-input-wrap loses .notifying).
 export const notificationStore = createStore(null);
 
-// Schedule View Mode's agenda (public/dotto/messages-schedule.js's renderScheduleAgenda) — an
-// { hours: [{hour, top}], events: [{it, ev, top, w, h}] } snapshot computed fresh on every entry/
-// date-shift, same "compute data, hand it to React" split as canvasItemsStore, just for a single
-// read-mostly view instead of a persistent list. Each event's own preview DOM (it can be any card
-// kind) still gets built by the vanilla renderRealCardPreview — a whole live node, same "vanilla
-// function builds live DOM, React just mounts it" reasoning as CanvasCard's
-// buildFolderInlineCanvas — see ScheduleAgenda.jsx.
-export const scheduleAgendaStore = createStore({ hours: [], events: [] });
-
 // Search-dropdown result panels (public/dotto/mnemonic-search-matching.js) — each a single-owner
 // static container (#search-translation/#search-dictionary/etc.), unlike canvasResultsStore/
 // searchSuggestionsStore below, which are shared by multiple producers and need their own
@@ -75,7 +66,7 @@ export const scheduleAgendaStore = createStore({ hours: [], events: [] });
 // same as before, just triggered by React state instead of a direct DOM write.
 //
 // All six __set* bridges for these (app/dotto-app.jsx) wrap their store.set in flushSync, unlike
-// notificationStore/scheduleAgendaStore above — updateSearchDropdown (ai-assistant-suggestions.js)
+// notificationStore above — updateSearchDropdown (ai-assistant-suggestions.js)
 // reads each panel's real DOM node's style.display SYNCHRONOUSLY right after calling its
 // render*Panel function (see renderOrchestrateResult in search-orchestration-selection.js, which
 // calls several of these back-to-back and then updateSearchDropdown once at the end) — without
@@ -133,9 +124,9 @@ export const canvasResultsStore = createStore(null);
 // renders, vanilla owns the app-state mutation" split as every other bridge here.
 export const commandPaletteStore = createStore(null);
 
-// #search-suggestions — shared by 6 different producers across 4 files (live AI suggestions, the
-// mnemonic story/loading/error trio, a Dotbot scheduling-conversation prompt, and an orchestrate
-// error), so this holds a small discriminated union ({kind, ...}) rather than one plain value —
+// #search-suggestions — shared by 5 different producers across 3 files (live AI suggestions, the
+// mnemonic story/loading/error trio, and an orchestrate error), so this holds a small discriminated
+// union ({kind, ...}) rather than one plain value —
 // only ONE of them is ever shown at a time, same "replaces this one slot" idea as
 // notificationStore. See renderMnemonicResultCard's own comment in mnemonic-search-matching.js
 // for the full producer list, and SearchSuggestionsPanel.jsx for how each kind is built. Unlike
@@ -306,19 +297,3 @@ export const sharedCanvasModalStore = createStore(null);
 // canvas-core-tier risk as item 12, not this migration's usual mechanical conversion. Cell image/
 // audio upload, AI-generated source content, and SM-2 are all pure logic with no DOM of their own.
 export const cellTagPickerListStore = createStore({ rows: [], id: null, r: null });
-
-// Single-canvas Schedule Mode's in-place canvas transform (public/dotto/schedule-view-canvas.js) —
-// { active, itemsById: Map<itemId, {time, name, kindLabel}> }. Read by CanvasItem
-// (CanvasItemsLayer.jsx): when active and an item's id is a key in itemsById, it renders
-// ScheduleModeCardBody instead of its real CARD_KIND_COMPONENTS entry — the wrapper <div
-// id="item-X"> stays the same DOM node either way, which is what lets a card's entrance animation
-// (a CSS keyframe, alternating left/right by row — see applyScheduleModeWrapperAttrs/globals.css,
-// deliberately NOT sourced from the item's real canvas position) swap it in without ever
-// unmounting anything. Every OTHER item (not a key in itemsById) keeps rendering its real
-// Component — it stays exactly where it is and just fades via CSS opacity (see the
-// .schedule-hidden class), so it needs no entry in this store at all. Deliberately not the same
-// store as scheduleAgendaStore (the SCHEDULE_ALL cross-canvas overlay's hour-timeline data) — the
-// two views are mutually exclusive and have very different shapes; sharing one store would mean
-// most fields are meaningless in either mode.
-export const SCHEDULE_MODE_OFF = { active: false, itemsById: new Map() };
-export const scheduleModeStore = createStore(SCHEDULE_MODE_OFF);

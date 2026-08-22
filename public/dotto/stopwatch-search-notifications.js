@@ -306,8 +306,7 @@ import { openFolder, render } from './waypoints-render-loop.js';
     // placeholder-content pricing page rather than a real subscription system — is wired to a
     // real trigger (see the pushNotification call sites in refreshCanvasCollabData/
     // refreshFriendsData/subscribeToAllFriendMessages/handleFriendPresenceSync/awardUserPoints/
-    // refreshDotbotUsage/checkDueScheduledEvents/the day-change interval/the ad timer/
-    // bumpAchievementStat below).
+    // refreshDotbotUsage/the day-change interval/the ad timer/bumpAchievementStat below).
     // Entrance/exit choreography timing — see the CSS block above #search-notification in
     // globals.css for the actual animations these durations drive (must stay in sync: the fast
     // flash is 2 iterations of a 0.2s keyframe, the slide is a 0.3s transition).

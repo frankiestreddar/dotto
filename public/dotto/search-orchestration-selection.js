@@ -1,7 +1,6 @@
 import { clearSearch, escapeHtml, handleSearchFocus, scrollChatThreadToBottom, setSearchActive, stripHtml, updateChatThread, updateSearchDropdown } from './ai-assistant-suggestions.js';
 import { executeCurrentCommand, setCommandActive } from './command-palette.js';
 import { appState } from './core-state.js';
-import { cancelDotbotScheduleConversation, submitDotbotScheduleAnswer } from './dotbot-schedule-notifications.js';
 import { ensureConnections } from './drawing-connections.js';
 import { saveSnapshot, scheduleWorkspaceSave } from './history-autosave.js';
 import { miniLabelForItem } from './live-presence.js';
@@ -70,7 +69,7 @@ import { render } from './waypoints-render-loop.js';
 
     async function commenceDotbotSearch(query) {
         query = (query || '').trim();
-        if (!query || appState.dotbotScheduleConversation) return;
+        if (!query) return;
         appState.searchInputWrap.classList.remove('idle-pulsing'); // redundant when reached via commenceSearchOrMnemonic, needed for direct callers like selectionToolbarLookUp
         appState.dotbotSearchGeneration++; // same reasoning — redundant via commenceSearchOrMnemonic, needed for direct callers
         bumpAchievementStat('twenty_searches');
@@ -467,11 +466,6 @@ import { render } from './waypoints-render-loop.js';
         // Escape's own searchInput.blur() call elsewhere routes through this same listener too.
         appState.searchInput.addEventListener('blur', () => appState.searchInputWrap.classList.remove('idle-pulsing'));
         appState.searchInput.addEventListener('keydown', (e) => {
-            if (appState.dotbotScheduleConversation) {
-                if (e.key === 'Enter') { e.preventDefault(); submitDotbotScheduleAnswer(appState.searchInput.value); }
-                else if (e.key === 'Escape') { e.preventDefault(); cancelDotbotScheduleConversation(); }
-                return;
-            }
             if (e.key === 'Escape') { clearSearch(); return; }
             // Slash-command mode (see command-palette.js) — Arrow/Enter get their own meaning
             // here (navigate/execute a command) instead of falling through to the

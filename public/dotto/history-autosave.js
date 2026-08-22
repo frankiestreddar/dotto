@@ -1,12 +1,10 @@
 import { clearSearch } from './ai-assistant-suggestions.js';
 import { copySelectedCards, cutSelectedCards, pasteClipboardCards } from './copy-paste.js';
 import { appState, canvas, canvasContextMenu, contextMenu, dotLayer, recomputeTopCardZIndex, supabase, world, zoomFill, zoomThumb, zoomTrack } from './core-state.js';
-import { cancelDotbotScheduleConversation } from './dotbot-schedule-notifications.js';
 import { resolveTableForEdit } from './drawing-connections.js';
 import { generateGlobalId } from './global-ids.js';
 import { resolveSharedFolderChain } from './hamburger-collab.js';
 import { broadcastCursorPositionThrottled, closeSharedCanvasView, ensureCanvasPresenceChannel, findItemById, queueSyncDiff, repositionAllRemoteCursors } from './live-presence.js';
-import { exitScheduleViewMode } from './messages-schedule.js';
 import { closeAllPanels } from './panels-hamburger.js';
 import { closeDotbotUpgradeModal, closePricingOverlay } from './profile-achievements-pricing.js';
 import { stripSharedFolderIds } from './shared-canvases-outline.js';
@@ -128,7 +126,7 @@ import { centerOnContent, render } from './waypoints-render-loop.js';
             // for any other reason captures wherever the camera currently is, and pagehide/
             // visibilitychange below call this directly so a plain refresh or tab close always
             // gets one in first.
-            data: { folders: localFolders, idCounter: appState.idCounter, historyStack: resumeStack, historyIndex: resumeIndex, scheduledEvents: appState.scheduledEvents, tx: appState.tx, ty: appState.ty, scale: appState.scale, lastSharedView },
+            data: { folders: localFolders, idCounter: appState.idCounter, historyStack: resumeStack, historyIndex: resumeIndex, tx: appState.tx, ty: appState.ty, scale: appState.scale, lastSharedView },
             current_folder_id: resumeFolderId,
             updated_at: new Date().toISOString()
         });
@@ -188,7 +186,6 @@ import { centerOnContent, render } from './waypoints-render-loop.js';
         appState.folders = data.data.folders;
         appState.idCounter = data.data.idCounter;
         recomputeTopCardZIndex();
-        if (Array.isArray(data.data.scheduledEvents)) appState.scheduledEvents = data.data.scheduledEvents;
 
         const savedStack = data.data.historyStack;
         if (Array.isArray(savedStack) && savedStack.length && savedStack[0] === 'root' &&
@@ -382,11 +379,9 @@ import { centerOnContent, render } from './waypoints-render-loop.js';
             closeDotbotUpgradeModal();
             closePricingOverlay();
             closeCellTagPicker();
-            if (appState.dotbotScheduleConversation) cancelDotbotScheduleConversation();
             clearSearch(); // also closes the search overlay + blurs the input, see its own comment
             if (appState.drawMode) setDrawMode(false);
             if (appState.addingKind) cancelAddingKind();
-            if (appState.scheduleViewMode) exitScheduleViewMode();
             // Escape switching the cursor back to Normal mode (tap vs. hold, same as the
             // other mode keys) is handled by the dedicated keydown/keyup pair further below —
             // this listener only handles Escape's other, unrelated "close everything" duties.
@@ -545,7 +540,3 @@ import { centerOnContent, render } from './waypoints-render-loop.js';
     }
 
 export { applyTransform, deleteContextColumn, deleteContextRow, ensureSwTicking, hideCanvasContextMenu, highlightContextColumn, highlightContextRow, loadWorkspace, openTableCellContextMenu, redo, saveSnapshot, saveWorkspaceNow, scheduleApplyTransform, scheduleWorkspaceSave, smoothPanTo, undo, updateContextMenuPosition };
-
-// React → vanilla bridge — used by ScheduleAgenda.jsx (app/dotto/), which can't import this
-// directly since public/dotto/*.js isn't reachable from app/dotto/.
-window.__scheduleWorkspaceSave = scheduleWorkspaceSave;

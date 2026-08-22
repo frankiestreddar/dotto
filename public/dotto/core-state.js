@@ -115,7 +115,6 @@
         liveSvg: null, livePath: null, drawing: null,
         hubCollabView: 'main',
         dotbotUpgradePromptedForFullness: false,
-        scheduledEvents: [],
         activeConvoId: null,
         msgView: 'main',
         searchActiveIndex: -1,
@@ -208,7 +207,6 @@
         cellTagPicker: document.getElementById('cell-tag-picker'),
         audioRecordIndicator: document.getElementById('audio-record-indicator'),
         modeToolbar: document.getElementById('mode-toolbar'),
-        scheduleToolbar: document.getElementById('schedule-toolbar'),
         MODE_ORDER_WEIGHT: { normal: 0, data: 1, select: 2 },
         MODE_HOLD_THRESHOLD_MS: 180,
         modeKeyHoldStart: null,
@@ -252,7 +250,6 @@
         ACHIEVEMENTS: [
         { id: 'first_block',      statKey: 'blocks_placed',    threshold: 1,     name: 'Place your first block',        spriteIndex: 1 },
         { id: 'three_friends',    statKey: 'friends_added',    threshold: 3,     name: 'Add three friends',              spriteIndex: 2 },
-        { id: 'five_scheduled',   statKey: 'blocks_scheduled', threshold: 5,     name: 'Schedule five blocks',           spriteIndex: 3 },
         { id: 'twenty_searches',  statKey: 'ai_searches',      threshold: 20,    name: 'Make twenty AI searches',        spriteIndex: 4 },
         { id: 'fifty_links',      statKey: 'data_links',       threshold: 50,    name: 'Make fifty links in data mode',  spriteIndex: 5 },
         { id: 'hundred_flips',    statKey: 'flashcard_flips',  threshold: 100,   name: 'Flip one hundred cards',         spriteIndex: 6 },
@@ -271,45 +268,6 @@
         msgConvo: document.getElementById('msg-convo'),
         msgList: document.getElementById('msg-list'),
         msgSearchInput: document.getElementById('msg-search'),
-        scheduleViewDate: new Date(),
-        scheduleBtn: document.getElementById('btn-schedule'),
-        scheduleViewMode: false,
-        // 'all' (the cross-canvas aggregate — see schedule-view-canvas.js's SCHEDULE_ALL) or a
-        // folder id (a single canvas shown in-place, real cards hidden/rearranged) — the schedule
-        // button's default entry point targets appState.currentFolderId (see
-        // enterScheduleViewMode, messages-schedule.js); 'all' is reachable again once the
-        // canvas-switcher lands.
-        scheduleViewSelection: 'all',
-        scheduleViewSavedTransform: null,
-        // Timer handle for delaying the .schedule-view-mode class's REMOVAL on exit (same
-        // set-transition/wait/clear technique smoothPanTo itself uses, see history-autosave.js) —
-        // the class has to outlive appState.scheduleViewMode flipping back to false by exactly the
-        // fly-back animation's own duration, or items would snap back to their real position
-        // instead of animating there.
-        scheduleExitTransitionTimeout: null,
-        scheduleView: document.getElementById('schedule-view'),
-        // Sibling of #schedule-view now (see content/fragments/canvas-area.html), shown
-        // independently for both schedule sub-modes — its own .active toggle, not inherited from
-        // #schedule-view's.
-        scheduleViewHeader: document.getElementById('schedule-view-header'),
-        scheduleViewCanvasEl: document.getElementById('schedule-view-canvas'),
-        scheduleViewInner: document.getElementById('schedule-view-inner'),
-        scheduleViewHours: document.getElementById('schedule-view-hours'),
-        scheduleViewStack: document.getElementById('schedule-view-stack'),
-        scheduleScrollDragging: false,
-        scheduleScrollStartY: 0,
-        scheduleScrollStartTop: 0,
-        SCHEDULE_HOUR_ROW: 96,
-        // In-place single-canvas Schedule Mode's arranged list row size (world/screen px — the two
-        // are numerically identical here since this mode locks scale to 1, see
-        // schedule-view-canvas.js) — unused until that mode's real arrange algorithm lands.
-        SCHEDULE_LIST_ROW_HEIGHT: 76,
-        SCHEDULE_LIST_ROW_GAP: 10,
-        SCHEDULE_LIST_COLUMN_WIDTH: 340,
-        dotbotScheduleConversation: null,
-        notifiedScheduledEventIds: new Set(),
-        SCHEDULE_WEEKDAYS: ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'],
-        SCHEDULE_MONTHS: ['january', 'february', 'march', 'april', 'may', 'june', 'july', 'august', 'september', 'october', 'november', 'december'],
         collabBubble: document.getElementById('collab-bubble'),
         collabPanel: document.getElementById('collab-panel'),
         collabSearchInput: document.getElementById('collab-search'),

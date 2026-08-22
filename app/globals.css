@@ -8,8 +8,8 @@
 
 /* App typeface: Golos Text (loaded via the Google Fonts <link> in app/layout.js, variable weight
    400-900), replacing the old local 'Dotto Sans' otf files. Space Grotesk (same file) stays
-   reserved for headings and usernames — see .item.title, #schedule-view-date, and the username/
-   display-name classes below. */
+   reserved for headings and usernames — see .item.title and the username/display-name classes
+   below. */
 
 /* ===================================================================
    Original Dotto (Dotter v0.1.3) CSS, migrated verbatim from the
@@ -716,95 +716,6 @@
        `mask-image`/`-webkit-mask-image` inline (a per-instance URL) and size the element via
        width/height. */
     .icon-mask{display:inline-block;background-color:currentColor;-webkit-mask-repeat:no-repeat;mask-repeat:no-repeat;-webkit-mask-position:center;mask-position:center;-webkit-mask-size:contain;mask-size:contain;}
-    /* Schedule View Mode has two sub-modes sharing one #canvas.schedule-view-mode class:
-       - Single-canvas in-place transform (default — see enterCanvasScheduleMode/
-         renderCanvasScheduleAgenda in JS): the REAL canvas stays visible; real cards hide/
-         rearrange via applyScheduleModeWrapperAttrs (schedule-view-canvas.js) and a plain CSS
-         transition, below. #schedule-view (the old overlay body) stays inactive.
-       - Cross-canvas aggregate (.schedule-view-all — see enterScheduleModeAll/renderScheduleAgenda):
-         the original read-only hour-timeline overlay, unchanged, real canvas hidden underneath it.
-       The mode-toolbar/add-toolbar/zoom-control are hidden via inline style directly in JS, not a
-       CSS class here — render() already toggles those same three elements via inline style for
-       source pages, and an inline style always beats a stylesheet rule regardless of selector
-       specificity. */
-    #canvas.schedule-view-mode{cursor:default;}
-    #canvas.schedule-view-mode.schedule-view-all #dot-layer, #canvas.schedule-view-mode.schedule-view-all #world{visibility:hidden;}
-    #schedule-view{display:none;position:absolute;inset:0;z-index:5;background:var(--paper);overflow:hidden;}
-    #schedule-view.active{display:flex;}
-
-    /* Header (date + prev/next nav) is a SIBLING of #schedule-view now — content/fragments/
-       canvas-area.html — shown for BOTH sub-modes via its own .active toggle, independent of
-       #schedule-view's (which only activates for .schedule-view-all). position:absolute + a flex
-       row replicates the centering it used to get for free as #schedule-view's flex child.
-       padding-top clears the top bar (fixed, top:20px, height:40px, z-index:1000 — well above this
-       header's own z-index:5), same 68px convention other panels anchor to below it. Deliberately
-       NO background of its own by default — the real canvas's own #dot-layer (visible again in
-       the single-canvas sub-mode) shows through underneath it, already correctly phase-aligned
-       since it's the exact same dot layer the rest of the canvas uses (a separately-declared
-       background here would desync from it the instant the camera pans/zooms, the same seam bug
-       fixed for .schedule-view-all below). ONLY .schedule-view-all needs its own manual dot
-       background, matching #schedule-view-canvas's, since the real canvas is hidden in that mode —
-       background-attachment:fixed is what makes those two line up with each other (anchors the
-       tiling to the viewport's own origin rather than each element's own box; without it, two
-       separately-declared backgrounds each restart their 28px tiling from their own top-left
-       corner and visibly desync at the boundary between them). */
-    #schedule-view-header{display:none;position:absolute;top:0;left:0;right:0;z-index:5;align-items:center;justify-content:center;gap:24px;padding:68px 20px 18px;}
-    #schedule-view-header.active{display:flex;}
-    #canvas.schedule-view-all #schedule-view-header{background-image:radial-gradient(var(--dot) 1px, transparent 1px);background-size:28px 28px;background-attachment:fixed;}
-    .schedule-nav-card{display:flex;align-items:center;gap:2px;background:var(--card);border:1px solid var(--card-border);border-radius:10px;padding:4px;box-shadow:0 4px 12px rgba(0,0,0,0.3);}
-    .schedule-nav-card-btn{background:transparent;border:none;color:var(--ink-soft);border-radius:6px;width:30px;height:30px;cursor:pointer;font-size:13px;flex:0 0 auto;}
-    .schedule-nav-card-btn:hover{background:#2e2e2e;color:var(--ink);}
-    .schedule-heading-block{background:var(--card);border:1px solid var(--card-border);border-radius:10px;box-shadow:0 4px 12px rgba(0,0,0,0.3);padding:8px 20px;font-size:28px;font-weight:700;color:var(--ink);min-width:220px;text-align:center;font-family:'Space Grotesk', sans-serif;}
-
-    /* The old overlay's own scrollable "canvas" (.schedule-view-all only) — same dot grid as the
-       real one; background-attachment:fixed reasoning is on #schedule-view-header above. No
-       horizontal scroll, no free panning — only vertical scroll, and only once the timeline is
-       taller than the viewport. */
-    #schedule-view-canvas{position:relative;flex:1 1 auto;min-height:0;width:100%;overflow-y:auto;overflow-x:hidden;background-image:radial-gradient(var(--dot) 1px, transparent 1px);background-size:28px 28px;background-attachment:fixed;cursor:grab;}
-    #schedule-view-canvas:active{cursor:grabbing;}
-    /* One shared positioning root for both the hour markers and the cards, sized in JS
-       (renderScheduleAgenda) to exactly the day's first-to-last scheduled hour span — that
-       height is what makes #schedule-view-canvas's vertical scroll (and only vertical scroll)
-       actually engage once the timeline is taller than the viewport. */
-    #schedule-view-inner{position:relative;width:100%;min-height:100%;}
-    .schedule-view-hour{position:absolute;left:20px;font-size:18px;font-weight:700;color:var(--ink-soft);}
-    #schedule-view-empty{font-size:12px;color:var(--ink-soft);text-align:center;padding:60px 20px;position:absolute;top:40px;left:110px;right:20px;}
-    .schedule-view-card-wrap{position:absolute;left:110px;}
-    .schedule-view-card-wrap .item{position:relative !important;left:auto !important;top:auto !important;box-shadow:0 4px 12px rgba(0,0,0,0.3);}
-
-    /* Single-canvas in-place transform (schedule-view-canvas.js/ScheduleModeCardBody.jsx). A real
-       card that isn't scheduled for the active date keeps its own real x/y/w/h the whole time (see
-       applyScheduleModeWrapperAttrs' own comment for why) and just fades out/in via this plain
-       opacity transition — safe to leave on for the whole time the mode is active (unlike
-       smoothPanTo's timer-bounded approach for the camera) specifically because dragging is fully
-       disabled in this mode (attachUniversalItemBehavior's own guard, waypoints-render-loop.js).
-       Scoped to :not(.schedule-view-all) — the cross-canvas overlay never touches real canvas
-       items at all. */
-    #canvas.schedule-view-mode:not(.schedule-view-all) .item{transition:opacity .3s ease;}
-    .item.schedule-hidden{opacity:0;pointer-events:none;}
-    /* The simplified schedule-mode row (ScheduleModeCardBody.jsx) an item swaps to when it IS
-       scheduled for the active date — same base .item look (background/border/shadow/radius), a
-       horizontal icon+meta+time row instead of the real card's own content, positioned directly at
-       its arranged slot (no position transition — applyScheduleModeWrapperAttrs writes left/top
-       straight to the slot). The entrance itself is a keyframe animation, not a position tween:
-       every scheduled card slides + fades in from the same fixed offset, alternating left/right by
-       row (.schedule-card-from-right, applyScheduleModeWrapperAttrs) and staggered in order via
-       animation-delay (same file) — deliberately NOT sourced from the item's real canvas position,
-       which could be scattered arbitrarily far away and looked chaotic animating many cards in
-       from all over the screen at once. animation-fill-mode:both holds the settled state
-       afterward, so a later render() call re-applying the same class/delay doesn't visibly replay
-       it (browsers only restart a CSS animation when the animation-name actually changes). */
-    .item.schedule-mode-card{flex-direction:row;align-items:center;gap:10px;cursor:default;animation-name:schedule-card-slide-in-left;animation-duration:.4s;animation-timing-function:ease;animation-fill-mode:both;}
-    .item.schedule-mode-card.schedule-card-from-right{animation-name:schedule-card-slide-in-right;}
-    @keyframes schedule-card-slide-in-left{from{transform:translateX(-56px);opacity:0;}to{transform:translateX(0);opacity:1;}}
-    @keyframes schedule-card-slide-in-right{from{transform:translateX(56px);opacity:0;}to{transform:translateX(0);opacity:1;}}
-    .schedule-mode-card-icon{width:22px;height:22px;flex:0 0 auto;color:var(--ink-soft);}
-    .schedule-mode-card-meta{flex:1 1 auto;min-width:0;display:flex;flex-direction:column;gap:2px;}
-    .schedule-mode-card-name{font-size:14px;font-weight:600;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-    .schedule-mode-card-type{font-size:11px;color:var(--ink-soft);}
-    .schedule-mode-card-time{flex:0 0 auto;font-size:12px;font-weight:700;color:var(--ink-soft);font-family:'Space Grotesk', sans-serif;}
-
-    .dotbot-prompt-msg{cursor:default;}
     #msg-search-wrap{flex:0 0 auto;padding:10px;border-bottom:1px solid var(--card-border);}
     #msg-search{width:100%;height:34px;border-radius:9px;background:#2a2a2a;border:1px solid var(--card-border);color:var(--ink);padding:0 12px;font-size:13px;outline:none;}
     #msg-search::placeholder{color:var(--ink-soft);}
@@ -1494,9 +1405,6 @@
     .dotbot-translation-arrow{font-size:18px;color:var(--ink-soft);}
 
     #search-suggestions{display:none;overflow:hidden;}
-    /* The card(s) being scheduled, shown above Dotbot's "when would you like to schedule this
-       for?" prompt — the dropdown just grows to fit, nothing here caps its height. */
-    .dotbot-schedule-card-preview{padding:10px 14px 4px;display:flex;justify-content:center;}
     #search-suggestions .msg-inline-canvas-wrap{margin:8px auto 0;}
     .search-suggestion-item{padding:12px 14px;border-radius:8px;font-size:13px;color:var(--ink);cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
     .search-suggestion-item:hover{background:#1e1e1e;}
@@ -1557,9 +1465,8 @@
        juggles idle-focus defaults, live autosuggest, and generic error text. */
     #search-recommended{display:none;overflow:hidden;}
 
-    /* Dotbot's own messages (answers, mnemonic stories, schedule prompts/confirmations) wrap
-       within the panel instead of truncating/overflowing like the plain single-line suggestion
-       rows above. */
+    /* Dotbot's own messages (answers, mnemonic stories) wrap within the panel instead of
+       truncating/overflowing like the plain single-line suggestion rows above. */
     /* pre-wrap (not just normal) so a typed-out answer's own newlines render as real line
        breaks without needing to inject <br> markup mid-typewriter-animation. */
     .dotbot-result-card, .dotbot-prompt-msg{white-space:pre-wrap;overflow-wrap:break-word;word-break:break-word;cursor:default;}

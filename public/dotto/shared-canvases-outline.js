@@ -337,23 +337,6 @@ import { applyFolderView, centerOnContent, expandWaypointCard, openFolder, rende
         };
         return files[kind] || 'note.png';
     }
-    // Plain "what kind of block is this" text — deliberately separate from miniLabelForItem
-    // (live-presence.js), which mostly answers "what do I call this" instead (real content for
-    // note/title, only falling back to a type-ish word when a kind has no user-facing text of its
-    // own) and CARD_KINDS[kind].label (card-kinds.js), which only has real values for 2 of these
-    // 17 kinds by design (see that file's own comment) — neither fits "type" as its own field.
-    // Used by ScheduleModeCardBody.jsx (app/dotto/) alongside kindIconFile/miniLabelForItem.
-    function kindTypeLabel(kind, level) {
-        if (kind === 'title') return `Heading ${level || 1}`;
-        const labels = {
-            folder: 'Canvas', source: 'Source', table: 'Table', media: 'Media',
-            checklist: 'Checklist', watermark: 'Watermark', flashcard: 'Flashcards',
-            typeright: 'Typeright', note: 'Note', statcard: 'Stat', stopwatch: 'Stopwatch',
-            shelf: 'Stack', waypoint: 'Waypoint', filter: 'Filter', embed: 'Embed',
-            sentence: 'Sentence',
-        };
-        return labels[kind] || (kind ? kind[0].toUpperCase() + kind.slice(1) : 'Card');
-    }
     // Returns a ready-to-insert <span> using kindIconFile as a mask (see .icon-mask) — pass
     // whatever extra class sizes/positions it at the call site (e.g. "outline-icon").
     function kindIconHTML(kind, level, extraClass) {
@@ -601,10 +584,9 @@ import { applyFolderView, centerOnContent, expandWaypointCard, openFolder, rende
         else { openRailView('outline', appState.outlineMenu, appState.hamburgerBtn, () => { buildOutline(); setOutlineActive(0); }, true); }
     }
 
-export { announceEnteredCollaboration, breadcrumbMapRowClick, buildOutline, ensurePublicFolderLoaded, ensureSharedFolderLoaded, goToOutlineItem, jumpToHistoryIndex, kindIconFile, kindIconHTML, kindTypeLabel, namespacePublicFolderIds, namespaceSharedFolderIds, openPublicCanvas, openSharedCanvas, parsePublicFolderKey, parseSharedFolderKey, publicFolderKey, renderBreadcrumbMapPanel, resolveReferenceFolderKey, setOutlineActive, sharedFolderKey, stripSharedFolderIds, toggleHamburgerMenu };
+export { announceEnteredCollaboration, breadcrumbMapRowClick, buildOutline, ensurePublicFolderLoaded, ensureSharedFolderLoaded, goToOutlineItem, jumpToHistoryIndex, kindIconFile, kindIconHTML, namespacePublicFolderIds, namespaceSharedFolderIds, openPublicCanvas, openSharedCanvas, parsePublicFolderKey, parseSharedFolderKey, publicFolderKey, renderBreadcrumbMapPanel, resolveReferenceFolderKey, setOutlineActive, sharedFolderKey, stripSharedFolderIds, toggleHamburgerMenu };
 
 window.__kindIconFile = kindIconFile;
-window.__kindTypeLabel = kindTypeLabel;
 window.__openSharedCanvas = openSharedCanvas;
 
 // React → vanilla bridge — used by BreadcrumbPill.jsx (app/dotto/), which can't import this

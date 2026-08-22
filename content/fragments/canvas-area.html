@@ -13,30 +13,5 @@
          #items-layer) are fully wiped and rebuilt on every render() call and these need to survive
          that. -->
     <div id="cursor-overlay"></div>
-    <!-- Sibling of #schedule-view, not a child of it — shown independently for BOTH schedule
-         sub-modes (the in-place single-canvas transform and the cross-canvas SCHEDULE_ALL
-         overlay), whereas #schedule-view itself (the old hour-timeline overlay body) only shows
-         for SCHEDULE_ALL. See app/globals.css's #schedule-view-header rules. -->
-    <div id="schedule-view-header">
-        <div class="schedule-nav-card">
-            <button class="schedule-nav-card-btn" title="Back 1 month" onclick="scheduleAgendaShift('month', -1)">‹‹‹</button>
-            <button class="schedule-nav-card-btn" title="Back 1 week" onclick="scheduleAgendaShift('week', -1)">‹‹</button>
-            <button class="schedule-nav-card-btn" title="Back 1 day" onclick="scheduleAgendaShift('day', -1)">‹</button>
-        </div>
-        <div id="schedule-view-date" class="schedule-heading-block"></div>
-        <div class="schedule-nav-card">
-            <button class="schedule-nav-card-btn" title="Forward 1 day" onclick="scheduleAgendaShift('day', 1)">›</button>
-            <button class="schedule-nav-card-btn" title="Forward 1 week" onclick="scheduleAgendaShift('week', 1)">››</button>
-            <button class="schedule-nav-card-btn" title="Forward 1 month" onclick="scheduleAgendaShift('month', 1)">›››</button>
-        </div>
-    </div>
-    <div id="schedule-view">
-        <div id="schedule-view-canvas">
-            <div id="schedule-view-inner">
-                <div id="schedule-view-hours"></div>
-                <div id="schedule-view-stack"></div>
-            </div>
-        </div>
-    </div>
 </div>
 

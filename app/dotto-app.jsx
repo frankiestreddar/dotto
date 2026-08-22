@@ -31,8 +31,6 @@ import {
   pricingOverlayStore,
   profileLevelStore,
   recommendedSearchesStore,
-  scheduleAgendaStore,
-  scheduleModeStore,
   searchSuggestionsStore,
   selectionToolbarStore,
   sharedCanvasModalStore,
@@ -68,7 +66,6 @@ import ProfileAvatarSm from "./dotto/ProfileAvatarSm";
 import ProfileIdentity from "./dotto/ProfileIdentity";
 import ProfileLevelPill from "./dotto/ProfileLevelPill";
 import RecommendedSearchesPanel from "./dotto/RecommendedSearchesPanel";
-import ScheduleAgenda from "./dotto/ScheduleAgenda";
 import SearchSuggestionsPanel from "./dotto/SearchSuggestionsPanel";
 import SelectionToolbar from "./dotto/SelectionToolbar";
 import SharedCanvasModalBody from "./dotto/SharedCanvasModalBody";
@@ -164,19 +161,9 @@ if (typeof window !== "undefined") {
   // calling pushNotification (confirmed by grep — the only readers of notifTextEl/notifImageEl/
   // notifActionBtn were the notification functions themselves, now replaced by this).
   window.__setNotificationContent = notificationStore.set;
-  // Schedule View Mode's agenda (see app/dotto/ScheduleAgenda.jsx, public/dotto/messages-
-  // schedule.js's renderScheduleAgenda) — a plain store.set, same reasoning as
-  // __setNotificationContent: nothing reads #schedule-view-hours/#schedule-view-stack's DOM
-  // synchronously right after calling renderScheduleAgenda.
-  window.__setScheduleAgenda = scheduleAgendaStore.set;
-  // Single-canvas Schedule Mode's in-place transform (see app/dotto/ScheduleModeCardBody.jsx,
-  // CanvasItemsLayer.jsx's CanvasItem, public/dotto/messages-schedule.js's
-  // renderCanvasScheduleAgenda) — a plain store.set: nothing reads any item's DOM synchronously
-  // right after this call, only smoothPanTo's own unrelated #world/#dot-layer transform writes.
-  window.__setScheduleMode = scheduleModeStore.set;
   // Search-dropdown result panels (see app/dotto/TranslationPanel.jsx and friends,
-  // public/dotto/mnemonic-search-matching.js). Unlike __setNotificationContent/__setScheduleAgenda
-  // above, these DO need flushSync — updateSearchDropdown (ai-assistant-suggestions.js) reads
+  // public/dotto/mnemonic-search-matching.js). Unlike __setNotificationContent above, these DO
+  // need flushSync — updateSearchDropdown (ai-assistant-suggestions.js) reads
   // each panel's real DOM node's style.display synchronously right after calling its
   // render*Panel function (see renderOrchestrateResult, search-orchestration-selection.js, which
   // calls several of these back-to-back and then updateSearchDropdown once at the end) — without
@@ -315,7 +302,6 @@ export default function DottoApp({ sections, currentUser }) {
       <ErrorBoundary name="SelectionToolbar"><SelectionToolbar /></ErrorBoundary>
       <ErrorBoundary name="CanvasItemsLayer"><CanvasItemsLayer /></ErrorBoundary>
       <ErrorBoundary name="NotificationBar"><NotificationBar /></ErrorBoundary>
-      <ErrorBoundary name="ScheduleAgenda"><ScheduleAgenda /></ErrorBoundary>
       <ErrorBoundary name="TranslationPanel"><TranslationPanel /></ErrorBoundary>
       <ErrorBoundary name="DictionaryPanel"><DictionaryPanel /></ErrorBoundary>
       <ErrorBoundary name="ExamplesPanel"><ExamplesPanel /></ErrorBoundary>

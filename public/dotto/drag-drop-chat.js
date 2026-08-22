@@ -1,5 +1,4 @@
 import { appState, bringCardToFront, canvas, effectiveMode, supabase, world } from './core-state.js';
-import { startScheduleConversation } from './dotbot-schedule-notifications.js';
 import { renderMsgList } from './friends-presence.js';
 import { applyTransform, saveSnapshot } from './history-autosave.js';
 import { broadcastItemDragPositions, findItemById, renderConvoBody, sanitizeFlashcardSnapshot, snapshotItem } from './live-presence.js';
@@ -169,12 +168,6 @@ import { performMerge, render, renderSelectedOutlines } from './waypoints-render
                     document.getElementById('cart-dropzone-overlay').classList.toggle('active', overCart);
                 }
 
-                // Detect if cursor is over the schedule button (drag-to-schedule drop target —
-                // see the matching drop check in `up` below)
-                const scheduleRect = appState.scheduleBtn.getBoundingClientRect();
-                const overSchedule = (lastClientX >= scheduleRect.left && lastClientX <= scheduleRect.right && lastClientY >= scheduleRect.top && lastClientY <= scheduleRect.bottom);
-                appState.scheduleBtn.classList.toggle('drag-hover', overSchedule);
-
                 // Detect merging folder highlights
                 const r1 = targetEl.getBoundingClientRect();
                 let newH = null;
@@ -265,7 +258,6 @@ import { performMerge, render, renderSelectedOutlines } from './waypoints-render
 
                 // Hide dragover templates dropbox overlay
                 document.getElementById('cart-dropzone-overlay').classList.remove('active');
-                appState.scheduleBtn.classList.remove('drag-hover');
 
                 // Check Drop zones intersects
                 const mX = me.clientX;
@@ -295,17 +287,6 @@ import { performMerge, render, renderSelectedOutlines } from './waypoints-render
                     const rect = appState.aiPanel.getBoundingClientRect();
                     if (mX >= rect.left && mX <= rect.right && mY >= rect.top && mY <= rect.bottom) {
                         addCardsToSearchContext(gestureIds);
-                        droppedOnTarget = true;
-                    }
-                }
-
-                // 4. Drop onto the Schedule button — starts the schedule conversation for
-                // whichever card(s) were being dragged (replaces the old right-click "Schedule"
-                // context-menu option).
-                if (!droppedOnTarget) {
-                    const rect = appState.scheduleBtn.getBoundingClientRect();
-                    if (mX >= rect.left && mX <= rect.right && mY >= rect.top && mY <= rect.bottom) {
-                        startScheduleConversation(gestureIds);
                         droppedOnTarget = true;
                     }
                 }

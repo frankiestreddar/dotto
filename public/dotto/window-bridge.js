@@ -28,7 +28,6 @@ import { blurPublishFlowName, commitItemDetailDesc, commitItemDetailTitle, confi
 import { broadcastEditingState, closeConvo, closeSharedCanvasView, sendMsg, setTitleLevel } from './live-presence.js';
 import { addItemToCustomFolderById, closeMarketDetail, deployPurchasedTemplate, handleLibrarySearch, handleMarketplaceSearch, purchaseCurrentMarketItem, removeFromCustomFolder, switchCartTab, switchLibraryFolder } from './marketplace.js';
 import { clearMedia, setMediaFromLink, triggerMediaUpload } from './media-pdf-epub.js';
-import { scheduleAgendaShift } from './messages-schedule.js';
 import { handleHubCollabSearch, handleWaypointsSearch } from './panels-hamburger.js';
 import { closeDotbotUpgradeModal, closePricingOverlay, openPricingOverlay } from './profile-achievements-pricing.js';
 import { setTableAlign } from './resize-shortcuts-init.js';
@@ -104,7 +103,6 @@ window.removeGameColumnSlot = removeGameColumnSlot;
 window.removeTask = removeTask;
 window.renameTableColumn = renameTableColumn;
 window.runNotificationAction = runNotificationAction;
-window.scheduleAgendaShift = scheduleAgendaShift;
 window.sendMsg = sendMsg;
 window.setFilterMode = setFilterMode;
 window.setGameColumnSlot = setGameColumnSlot;
