@@ -32,18 +32,15 @@
             <button id="btn-add" class="rail-btn" title="Add"><img class="rail-icon-img" src="/assets/icons/add-btn.png" alt=""></button>
         </div>
         <!-- Very bottom of the rail, below the mode/add tools — the one icon that isn't a
-             navigation/panel trigger like everything above it. -->
+             navigation/panel trigger like everything above it. Click-only now, plain open/close
+             like every other rail icon (see wireRailIcon('profile', ...),
+             profile-achievements-pricing.js) — no more hover-to-logout swap; logout is a small
+             button inside the panel's own identity block instead (see profile-panel further down,
+             hamburger-stack.html). -->
         <button id="btn-profile" class="rail-btn" title="Profile">
             <!-- Content is React-owned now (see app/dotto/ProfileAvatarSm.jsx) — "YO" was a
                  pre-JS placeholder, removed so the portaled avatar doesn't render alongside it. -->
             <div class="profile-avatar-sm" id="profile-avatar-sm"></div>
-            <!-- Shown instead of the avatar above on hover/while the profile panel is open (see
-                 #btn-profile:hover/.active in globals.css) — clicking in that state logs out instead
-                 of opening the panel (see the profileBtn click handler). -->
-            <svg id="btn-profile-power-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                <path d="M12 2v10"></path>
-                <path d="M18.36 6.64a9 9 0 1 1-12.73 0"></path>
-            </svg>
         </button>
     </div>
 </div>

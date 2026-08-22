@@ -207,6 +207,16 @@
          refreshProfilePanel/openRailView, profile-achievements-pricing.js). -->
     <div id="profile-panel" class="hmenu-panel hub-subpanel" onclick="event.stopPropagation()">
         <div class="profile-block" id="profile-identity-block">
+            <!-- Was a hover-swap on the rail's own #btn-profile circle (avatar → this same power
+                 icon) — now a small, explicit button here instead, top-right of the identity block
+                 it belongs to, rather than a destructive action hiding behind a hover state on the
+                 permanent nav icon. -->
+            <button id="profile-logout-btn" type="button" title="Log out" onclick="event.stopPropagation(); hmenuAction('logout');">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <path d="M12 2v10"></path>
+                    <path d="M18.36 6.64a9 9 0 1 1-12.73 0"></path>
+                </svg>
+            </button>
             <div class="profile-avatar-lg" id="profile-avatar"></div>
             <div class="profile-identity-text">
                 <div id="profile-username"></div>

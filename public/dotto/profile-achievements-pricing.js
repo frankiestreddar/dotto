@@ -1,6 +1,5 @@
 import { appState, supabase } from './core-state.js';
-import { hmenuAction } from './hamburger-collab.js';
-import { closeAllPanels, closeRailView, openRailView } from './panels-hamburger.js';
+import { closeAllPanels, closeRailView, wireRailIcon } from './panels-hamburger.js';
 import { pushNotification } from './stopwatch-search-notifications.js';
 
 
@@ -147,10 +146,11 @@ import { pushNotification } from './stopwatch-search-notifications.js';
     renderSpriteGrid();
     // Profile shares the permanent rail's one shell/pinned-state now (see openRailView,
     // panels-hamburger.js) — no more of its own positionProfilePanel/resize listener (the shell is
-    // already positioned beside the rail, full-height, no per-panel height to keep in sync). Kept
-    // as named functions (not a plain wireRailIcon call, unlike Marketplace) since #btn-profile's
-    // own click handler below has special hover-to-logout behavior wireRailIcon's generic
-    // click-to-toggle wiring doesn't support.
+    // already positioned beside the rail, full-height, no per-panel height to keep in sync).
+    // closeProfilePanel stays a named export (hamburger-collab.js calls it directly); opening goes
+    // through the generic wireRailIcon('profile', ...) below now, same as every other rail icon —
+    // the hover-to-logout swap that used to need its own hand-written click handler here is gone
+    // (logout is a small button inside the panel's identity block now, see hamburger-stack.html).
     function closeProfilePanel() { closeRailView(); }
     function refreshProfilePanel() {
         refreshDotbotUsage();
@@ -158,9 +158,6 @@ import { pushNotification } from './stopwatch-search-notifications.js';
         // last time the panel was open.
         const sbScroll = document.getElementById('profile-spritebook-scroll');
         if (sbScroll) sbScroll.scrollTop = 0;
-    }
-    function openProfilePanel(pin) {
-        openRailView('profile', appState.profilePanel, appState.profileBtn, refreshProfilePanel, pin);
     }
 
     function ordinalSuffix(n) {
@@ -279,21 +276,7 @@ import { pushNotification } from './stopwatch-search-notifications.js';
     function closePricingOverlay() {
         window.__setPricingOverlayOpen(false);
     }
-    // Not wireRailIcon('profile', ...) — the click behavior here is genuinely different from
-    // every other rail icon (open-only, never toggle-closes on a second click) because of the
-    // hover-to-logout swap below, so the click listener stays hand-written. No mouseenter/
-    // mouseleave — like every other rail icon, hovering previews nothing; only a click opens it.
-    appState.profileBtn.addEventListener('click', (e) => {
-        e.stopPropagation();
-        // Once the button is showing the power icon (:hover only — see the CSS swap, which is
-        // deliberately not also tied to .active/panel-open), clicking it logs out instead of
-        // toggling the panel — that's the whole point of the swap. A genuine mouse click can
-        // only land while the cursor is over the button, so :hover is already true in normal
-        // use; the toggle-panel branch mainly exists so a keyboard-only "click" (Enter with no
-        // prior hover) opens the panel on its first activation rather than logging out blind.
-        if (appState.profileBtn.matches(':hover')) { hmenuAction('logout'); }
-        else { openProfilePanel(true); }
-    });
+    wireRailIcon('profile', appState.profileBtn, appState.profilePanel, refreshProfilePanel);
 
 export { awardUserPoints, bumpAchievementStat, closeDotbotUpgradeModal, closePricingOverlay, closeProfilePanel, openDotbotUpgradeModal, openPricingOverlay, refreshDotbotUsage, renderAvatarInto };
 
