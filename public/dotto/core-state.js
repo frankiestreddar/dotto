@@ -109,7 +109,6 @@
         librarySearchQuery: '',
         marketplaceSearchQuery: '',
         selectedMarketItem: null,
-        addMenuSearching: false,
         drawMode: false, drawColor: '#ffffff', drawLayer: 'front', drawTool: 'pen', drawSize: 3,
         liveSvg: null, livePath: null, drawing: null,
         hubCollabView: 'main',
@@ -198,7 +197,6 @@
         cardClipboard: [],
         clipboardPasteCount: 0,
         addToolbar: document.getElementById('add-toolbar'),
-        addMenuActions: document.getElementById('add-menu-actions'),
         sourceAddMenu: document.getElementById('source-add-menu'),
         cellTagPicker: document.getElementById('cell-tag-picker'),
         audioRecordIndicator: document.getElementById('audio-record-indicator'),
@@ -206,12 +204,12 @@
         MODE_ORDER_WEIGHT: { normal: 0, data: 1, select: 2 },
         MODE_HOLD_THRESHOLD_MS: 180,
         modeKeyHoldStart: null,
-        // "rail" replaces the old separate menu/messages/cart/profile flags — all four now share
-        // one #hamburger-stack shell (see openRailView, panels-hamburger.js), so there's only ever
-        // one pinned-or-not state to track, not four independent ones that happened to all mean
-        // "is #hamburger-stack pinned open." add/collab/sourceAdd are unrelated systems (add-menu,
-        // the per-canvas collab flyout, source-add-menu) and keep their own flags.
-        panelPinned: { rail: false, add: false, collab: false, sourceAdd: false },
+        // "rail" replaces the old separate menu/messages/cart/profile/add flags — all of them now
+        // share one #hamburger-stack shell (see openRailView, panels-hamburger.js), so there's only
+        // ever one pinned-or-not state to track, not several independent ones that happened to all
+        // mean "is #hamburger-stack pinned open." collab/sourceAdd are unrelated systems (the
+        // per-canvas collab flyout, source-add-menu) and keep their own flags.
+        panelPinned: { rail: false, collab: false, sourceAdd: false },
         // Which #hamburger-stack view is currently showing — null | 'ai' | 'outline' | 'waypoints'
         // | 'collab' | 'marketplace' | 'messages' | 'profile'. Set by openRailView, cleared by
         // closeRailView (panels-hamburger.js).
@@ -393,16 +391,15 @@
     };
     appState.dotLayerBaseX = -appState.DOT_LAYER_MARGIN / 2;
     appState.dotLayerBaseY = -appState.DOT_LAYER_MARGIN / 2;
-    appState.addMenuHoverEls = [appState.addToolbar, addMenu, appState.addMenuActions];
     appState.modeButtons = Array.from(appState.modeToolbar.querySelectorAll('.mode-btn'));
     // Every panel-style rail view, in the same order as their icons top-to-bottom in #dotto-rail
     // (see openRailView/closeRailView, panels-hamburger.js) — replaces the old hubSubpanels (just
-    // Waypoints/Collaborations/Chats) now that Marketplace/Messages/Profile/AI search share the
+    // Waypoints/Collaborations/Chats) now that Marketplace/Messages/Add/Profile/AI search share the
     // exact same "one shell, swap which section is .open" mechanism. #chats-panel is deliberately
     // NOT here — Chats is a sub-view reached from inside the AI view (searchBar), not a top-level
     // rail destination of its own.
-    appState.railViewEls = [appState.aiPanel, appState.outlineMenu, appState.waypointsPanel, appState.hubCollabPanel, appState.cartPanel, appState.messagesPanel, appState.profilePanel];
-    appState.railIconBtns = [appState.railBtnAi, appState.hamburgerBtn, appState.railBtnWaypoints, appState.railBtnCollab, appState.btnCart, appState.messagesBtn, appState.profileBtn];
+    appState.railViewEls = [appState.aiPanel, appState.outlineMenu, appState.waypointsPanel, appState.hubCollabPanel, appState.cartPanel, appState.messagesPanel, addMenu, appState.profilePanel];
+    appState.railIconBtns = [appState.railBtnAi, appState.hamburgerBtn, appState.railBtnWaypoints, appState.railBtnCollab, appState.btnCart, appState.messagesBtn, btnAdd, appState.profileBtn];
     appState.TOTAL_SUB_LEVELS = appState.LEVEL_NAMES.length * appState.SUB_RANKS_PER_TIER;
     // Same reason as the block above: can't reference appState.currentUser from inside appState's
     // own object literal, since appState doesn't exist yet until that literal finishes constructing.

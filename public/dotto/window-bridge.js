@@ -16,7 +16,7 @@
 // icons now (#dotto-rail, top-bar.html), wired directly via addEventListener in panels-hamburger.js
 // rather than being called by name from an inline onclick attribute, so they no longer belong here.)
 
-import { handleAddMenuSearchInput, newSourceClicked, switchAddTab, toggleAddMenuSearch } from './add-menu.js';
+import { handleAddMenuSearchInput, newSourceClicked } from './add-menu.js';
 import { handleSearchFocus, handleSearchInput, showAiChatView, showAiHistoryView, startNewAiChat } from './ai-assistant-suggestions.js';
 import { addTask, editEmbed, removeTask, toggleTask, updateTaskDeadline, updateTaskText } from './cards-misc.js';
 import { prepareAdd } from './copy-paste.js';
@@ -124,10 +124,8 @@ window.startRenameShelfSourceRow = startRenameShelfSourceRow;
 window.stopCellAudioRecording = stopCellAudioRecording;
 window.swTogglePause = swTogglePause;
 window.swToggleRun = swToggleRun;
-window.switchAddTab = switchAddTab;
 window.switchCartTab = switchCartTab;
 window.switchLibraryFolder = switchLibraryFolder;
-window.toggleAddMenuSearch = toggleAddMenuSearch;
 window.toggleCellTag = toggleCellTag;
 window.toggleFilterTag = toggleFilterTag;
 window.toggleTask = toggleTask;

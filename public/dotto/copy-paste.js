@@ -1,8 +1,8 @@
-import { kindSize, switchAddTab } from './add-menu.js';
-import { addMenu, appState, canvas, world } from './core-state.js';
+import { kindSize } from './add-menu.js';
+import { appState, canvas, world } from './core-state.js';
 import { saveSnapshot } from './history-autosave.js';
 import { findItemById } from './live-presence.js';
-import { closeAllPanels, scheduleHoverClose } from './panels-hamburger.js';
+import { closeRailView } from './panels-hamburger.js';
 import { deleteSelectedCards } from './resize-shortcuts-init.js';
 import { setDrawMode } from './srs-connections-core.js';
 import { render, renderSelectedOutlines } from './waypoints-render-loop.js';
@@ -112,36 +112,8 @@ import { render, renderSelectedOutlines } from './waypoints-render-loop.js';
         appState.placementGhost.style.top = y + 'px';
     });
 
-    function prepareAdd(kind, statKind) { appState.addingKind = kind; appState.addingStatKind = statKind || null; addMenu.style.display = 'none'; appState.panelPinned.add = false; canvas.classList.add('crosshair'); setDrawMode(false); showPlacementGhost(kind); }
-    function closeAddMenu() { addMenu.style.display = 'none'; appState.panelPinned.add = false; }
-    function openAddMenu(pin) {
-        if (appState.drawMode) setDrawMode(false);
-        closeAllPanels('add');
-        addMenu.style.display = 'flex';
-        // Always reopens showing tabs, never mid-search from a previous visit.
-        if (appState.addMenuSearching) {
-            appState.addMenuSearching = false;
-            document.getElementById('add-menu-tabs').classList.remove('searching');
-            document.getElementById('add-menu-search-btn').classList.remove('active');
-        }
-        switchAddTab(appState.currentAddTab);
-        if (pin) appState.panelPinned.add = true;
-    }
-    // addMenuActions (New Canvas/New Source) sits visually beside #add-menu, not inside it (see
-    // globals.css), with real dead space in between both it and the panel, and between the panel
-    // and addToolbar — scheduleHoverClose's 80ms grace period already tolerates a brief gap
-    // between listed hoverEls, but only if EVERY zone the pointer might legitimately be heading
-    // towards is actually in that list. Leaving addMenuActions out of it meant reaching those
-    // buttons (or just crossing the gap towards them) wasn't recognized as "still relevant
-    // hovering" at all, so the panel could close out from under the pointer on the way there.
-    appState.addToolbar.addEventListener('click', (e) => {
-        e.stopPropagation();
-        if (appState.panelPinned.add) { closeAddMenu(); }
-        else { openAddMenu(true); }
-    });
-    appState.addToolbar.addEventListener('mouseenter', () => { if (addMenu.style.display !== 'flex') openAddMenu(false); });
-    appState.addToolbar.addEventListener('mouseleave', () => scheduleHoverClose('add', appState.addMenuHoverEls, closeAddMenu));
-    addMenu.addEventListener('mouseleave', () => scheduleHoverClose('add', appState.addMenuHoverEls, closeAddMenu));
-    appState.addMenuActions.addEventListener('mouseleave', () => scheduleHoverClose('add', appState.addMenuHoverEls, closeAddMenu));
+    // Both callers (handleAddItemClick/newSourceClicked, add-menu.js) are only ever reached while
+    // the add panel itself is the open rail view, so closeRailView here always closes that panel.
+    function prepareAdd(kind, statKind) { appState.addingKind = kind; appState.addingStatKind = statKind || null; closeRailView(); canvas.classList.add('crosshair'); setDrawMode(false); showPlacementGhost(kind); }
 
-export { closeAddMenu, copySelectedCards, cutSelectedCards, pasteClipboardCards, prepareAdd, removePlacementGhost };
+export { copySelectedCards, cutSelectedCards, pasteClipboardCards, prepareAdd, removePlacementGhost };

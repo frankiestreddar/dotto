@@ -1,5 +1,4 @@
 import { refreshAiPanel, resetAiSearchState } from './ai-assistant-suggestions.js';
-import { closeAddMenu } from './copy-paste.js';
 import { appState } from './core-state.js';
 import { closeCollabPanel } from './friends-presence.js';
 import { clearListPanelSelection, renderHubCollabList, renderWaypointsList } from './hamburger-collab.js';
@@ -34,11 +33,10 @@ import { closeSourceAddMenu } from './source-buttons-cursor-mode.js';
         });
     }
     // 'rail' covers every panel-style rail icon (see openRailView below) — Marketplace/Messages/
-    // Profile/the hamburger outline used to each have their own except-key here ('cart'/
-    // 'messages'/'profile'/'menu'); now that they all share one shell there's only one to skip.
+    // Add/Profile/the hamburger outline used to each have their own except-key here ('cart'/
+    // 'messages'/'add'/'profile'/'menu'); now that they all share one shell there's only one to skip.
     function closeAllPanels(except) {
         if (except !== 'rail') closeRailView();
-        if (except !== 'add') closeAddMenu();
         if (except !== 'collab') closeCollabPanel();
         if (except !== 'sourceAdd') closeSourceAddMenu();
     }

@@ -1,5 +1,5 @@
 import { switchAddTab } from './add-menu.js';
-import { addMenu, appState, btnBack, btnForward, contextMenu } from './core-state.js';
+import { appState, btnBack, btnForward, contextMenu } from './core-state.js';
 import { refreshCanvasCollabForCurrentFolder, refreshFriendsData, renderCollabPill } from './friends-presence.js';
 import { fcFlip, fcRate, trNext } from './games-flashcard-typeright.js';
 import { applyTransform, loadWorkspace, saveSnapshot, scheduleWorkspaceSave } from './history-autosave.js';
@@ -160,13 +160,12 @@ import { cascadeDeleteFolderContents, centerOnContent, deleteWaypointFromDb, ren
     // Any panel that owns its own keyboard input while open — same set closeAllPanels() knows
     // about, plus the search dropdown — wins over a hovered card's shortcuts even if the cursor
     // happens to still be sitting over that card underneath it. Outline/Waypoints/Collaborations/
-    // Marketplace/Messages/Profile all share one rail shell now (see appState.railViewEls,
+    // Marketplace/Messages/Add/Profile all share one rail shell now (see appState.railViewEls,
     // core-state.js) — checking the whole list covers all of them in one go instead of naming each
     // one individually.
     function isAnyUiPanelOpen() {
         return appState.railViewEls.some(el => el && el.classList.contains('open'))
             || appState.collabPanel.classList.contains('open')
-            || addMenu.style.display === 'flex'
             || appState.sourceAddMenu.style.display === 'flex'
             || (appState.searchDropdown && appState.searchDropdown.classList.contains('visible'))
             || (appState.searchChatThread && appState.searchChatThread.classList.contains('visible'));

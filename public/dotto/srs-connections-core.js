@@ -1,7 +1,7 @@
 import { kindLabel, kindSize } from './add-menu.js';
 import { handleSearchInput, openSearchOverlay, stripHtml } from './ai-assistant-suggestions.js';
 import { removePlacementGhost } from './copy-paste.js';
-import { addMenu, appState, btnAdd, canvas, canvasViewportCenterX, drawBackBtn, drawColorInput, drawEraserBtn, drawFrontBtn, drawPenBtn, drawSettings, drawSizeInput, effectiveMode, world, zoomTrack } from './core-state.js';
+import { appState, btnAdd, canvas, canvasViewportCenterX, drawBackBtn, drawColorInput, drawEraserBtn, drawFrontBtn, drawPenBtn, drawSettings, drawSizeInput, effectiveMode, world, zoomTrack } from './core-state.js';
 import { computeConnectorPoints, createConnection, ensureConnections, ensureDrawings, findLinkedTable, findTableById, itemRect, makeLayerSVG, pathNearPoint, pointsToLinePath, pointsToPath } from './drawing-connections.js';
 import { defaultFlashcardDeck } from './games-flashcard-typeright.js';
 import { generateGlobalId } from './global-ids.js';
@@ -526,12 +526,17 @@ import { render, renderSelectedOutlines, startBoxSelection, syncWaypointToDb } f
     }
 
 
+    // btnAdd's own .active toggle here doubles as "the add panel is open" (see wireRailIcon('add',
+    // ...), add-menu.js) and "draw mode is on" — never both at once in practice, since draw mode is
+    // only ever turned on via handleAddItemClick, which closes the add panel (closeRailView) right
+    // before calling this, so by the time this runs the panel-open .active has already been
+    // stripped and this is the only thing setting it again.
     function setDrawMode(on) {
         appState.drawMode = on;
         btnAdd.classList.toggle('active', appState.drawMode);
         canvas.classList.toggle('crosshair', appState.drawMode || !!appState.addingKind);
         drawSettings.style.display = appState.drawMode ? 'flex' : 'none';
-        if (appState.drawMode) { appState.addingKind = null; appState.addingStatKind = null; addMenu.style.display = 'none'; removePlacementGhost(); }
+        if (appState.drawMode) { appState.addingKind = null; appState.addingStatKind = null; removePlacementGhost(); }
     }
     function cancelAddingKind() {
         appState.addingKind = null;
@@ -591,7 +596,6 @@ import { render, renderSelectedOutlines, startBoxSelection, syncWaypointToDb } f
         if (!isEditingText && (e.key === 'n' || e.key === 'N')) { e.preventDefault(); pushNotification({ type: 'debug', message: 'this is an example notification' }); return; }
     });
 
-    function toggleDrawFromMenu() { addMenu.style.display = 'none'; setDrawMode(!appState.drawMode); }
     drawColorInput.oninput = (e) => { appState.drawColor = e.target.value; };
     drawSizeInput.oninput = (e) => { appState.drawSize = parseInt(e.target.value); };
     function updateDrawToolBtns() {
@@ -1089,7 +1093,7 @@ import { render, renderSelectedOutlines, startBoxSelection, syncWaypointToDb } f
         },
     };
 
-export { add, applyConnections, applyFilterToRows, calculateSM2, cancelAddingKind, clearDataLinkPending, collectAvailableFilterTags, deepCloneItem, defaultSrsState, deleteClonedItemFolders, diffRatings, isValidConnection, renderConnectionsLayer, setDrawMode, startConnectionDrag, startDrawStroke, toggleDrawFromMenu, updateDrawLayerBtns, viewportCenterWorldPoint };
+export { add, applyConnections, applyFilterToRows, calculateSM2, cancelAddingKind, clearDataLinkPending, collectAvailableFilterTags, deepCloneItem, defaultSrsState, deleteClonedItemFolders, diffRatings, isValidConnection, renderConnectionsLayer, setDrawMode, startConnectionDrag, startDrawStroke, updateDrawLayerBtns, viewportCenterWorldPoint };
 
 // React → vanilla bridge (see the identical pattern/comment in cards-misc.js) — used by
 // FilterCard.jsx (app/dotto/), which can't import these directly since public/dotto/*.js isn't

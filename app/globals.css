@@ -451,67 +451,44 @@
 
     .toolbar-divider{width:1px;height:20px;background:var(--card-border);margin:0 2px;}
     
-    /* Single wide column: category tabs on top, a scrollable item list below. Opens beside the
-       rail now (position:fixed, left:calc(--rail-width + 12px)) rather than centered at the
-       bottom of the screen — the add button it belongs to lives in #rail-bottom-group
-       (#dotto-rail, top-bar.html) now, not a separate floating bottom-center toolbar. */
-    #add-menu{display:none;position:fixed;left:calc(var(--rail-width) + 12px);bottom:20px;z-index:2000;width:360px;flex-direction:column;gap:8px;}
-    /* New Canvas/New Source sit OUTSIDE the centered panel, off to its right — position:absolute
-       (anchored off #add-menu, which is already itself position:absolute so it's a valid
-       containing block) takes them out of #add-menu's own flex flow entirely, so they can't
-       affect its width/height/centering the way an in-flow flex child would. Stacked vertically
-       and centered against #add-menu-list specifically (NOT the whole panel — tabs are excluded):
-       top is a fixed pixel offset, not 50%, since 50% of the whole #add-menu box would center
-       against tabs+list together and skew it upward. 34px tab row height + 8px #add-menu gap +
-       half of #add-menu-list's own 200px = 142px from #add-menu's own top edge to the list's
-       vertical center. */
-    /* padding-left (not margin-left) for the visual gap to the panel — a margin would leave truly
-       empty space between #add-menu's own box and this one, and moving the pointer across that
-       empty stretch hit-tests to whatever's underneath (the canvas), which ISN'T part of
-       #add-menu's/this element's subtree, so mouseleave fires and the panel can close before the
-       pointer actually arrives. Padding keeps that same visual spacing INSIDE this element's own
-       hoverable box instead, so crossing it never leaves the subtree at all — no dead zone,
-       independent of scheduleHoverClose's timing. */
-    #add-menu-actions{position:absolute;left:100%;top:142px;transform:translateY(-50%);padding-left:8px;display:flex;flex-direction:column;gap:10px;}
-    .add-menu-action-btn{width:40px;height:40px;padding:0;border-radius:50%;display:flex;align-items:center;justify-content:center;}
-    .add-menu-action-btn img{width:20px;height:20px;object-fit:contain;}
-    .add-tab{cursor:pointer;color:var(--ink-soft);border-radius:10px;font-size:13px;font-weight:500;background:var(--bar);border:1px solid var(--card-border);box-shadow:0 6px 20px rgba(0,0,0,0.45);}
-    .add-tab:hover{color:var(--ink);}
-    .add-tab.active{background:#2E2E2E;color:var(--ink);}
-    /* Always exactly 5 rows tall (40px each) — no tab currently has more than 5 items, and this
-       never scrolls even if one someday does; extra items past the 5th would just be clipped. */
-    #add-menu-list{flex:0 0 auto;height:200px;overflow:hidden;background:var(--bar);border:1px solid var(--card-border);border-radius:12px;box-shadow:0 10px 40px rgba(0,0,0,0.6);}
-    /* Icon + name only, one line — no description (see buildAddMenuRow). */
+    /* #add-menu gets its background/border/radius/shadow/width from the shared .hmenu-panel/
+       .hub-subpanel rules like every other rail view (see #hamburger-stack's own comment) — no
+       more free-floating position:fixed popover beside the rail, no more New Canvas/New Source
+       circles positioned outside its own box. */
+    /* Icon + name only, one line — no description (see buildAddMenuRow). Shared by the quick
+       actions row, the accordion's own item rows, and the flat search-results list — all three
+       are just "a list of icon+label rows", differing only in what feeds them. */
     .add-menu-row{display:flex;align-items:center;gap:10px;height:40px;box-sizing:border-box;padding:8px 14px;cursor:pointer;}
     .add-menu-row:hover{background:#2a2a2a;}
     .add-menu-row-icon{width:22px;height:22px;flex:0 0 auto;object-fit:contain;}
     .add-menu-row-name{flex:1 1 auto;min-width:0;font-size:14px;font-weight:400;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-    /* Each category tab is its own separate pill now (just the base .add-tab look, unmodified) —
-       previously this container supplied one shared background/border/radius and the tabs
-       flattened themselves out (border-radius:0 etc.) to fuse into a single joined bar.
-       align-items:center (overriding flex's default stretch) so the round, fixed-34px search
-       button and the text tabs (which size to their own natural ~32px content height, not
-       stretched to match the button) all sit centered on the same row, rather than the text tabs
-       stretching to 34px and their own text landing slightly off-center inside that taller box. */
-    #add-menu-tabs{display:flex;flex:0 0 auto;align-items:center;gap:6px;}
-    /* [data-tab] scopes this to the 5 real category tabs only — #add-menu-search-btn also has
-       class .add-tab (reusing the same base pill look) but no data-tab attribute, and needs its
-       OWN flex:0 0 auto/fixed width+height to stay a circle rather than flex-growing like a tab
-       and losing its shape. Without this scoping, this rule's higher specificity (1 id + 1 class
-       vs. #add-menu-search-btn's 1 id alone) silently overrode its flex/padding, stretching it
-       into an oval instead of a true circle. */
-    #add-menu-tabs .add-tab[data-tab]{flex:1 1 0;text-align:center;padding:8px 4px;font-size:13px;}
-    /* Search toggles the 5 category pills for a text input filtering block types BY NAME across
-       every tab at once (see handleAddMenuSearchInput) — the round button itself stays put either
-       way and just flips to .active, so it's always there to toggle back out of search. Only the
-       5 real tabs (identified by data-tab, which the search button itself deliberately lacks) are
-       hidden — not the search button, which shares the same base .add-tab class. */
-    #add-menu-tabs.searching .add-tab[data-tab]{display:none;}
-    #add-menu-search-input{display:none;flex:1 1 auto;min-width:0;border-radius:10px;background:var(--bar);border:1px solid var(--card-border);box-shadow:0 6px 20px rgba(0,0,0,0.45);color:var(--ink);font-size:13px;font-family:inherit;outline:none;padding:8px 12px;}
-    #add-menu-tabs.searching #add-menu-search-input{display:block;}
-    #add-menu-search-input::placeholder{color:var(--ink-soft);}
-    #add-menu-search-btn{flex:0 0 auto;width:34px;height:34px;padding:0;border-radius:50%;display:flex;align-items:center;justify-content:center;}
-    #add-menu-search-btn svg{width:16px;height:16px;}
+    /* New Canvas/New Source — always visible, regardless of search or which accordion section is
+       expanded (they're not block types the search/accordion below deal in at all). */
+    #add-menu-quick-actions{flex:0 0 auto;padding:6px 4px;border-bottom:1px solid var(--card-border);}
+    /* Flat cross-tab matches (see handleAddMenuSearchInput) — replaces the accordion for as long
+       as there's a query, same "search overrides the normal view" convention as every other rail
+       panel's own search box (Waypoints/Collaborations/Marketplace/Library). */
+    #add-menu-search-results{display:none;}
+    #add-menu.searching #add-menu-search-results{display:block;}
+    #add-menu.searching #add-menu-accordion{display:none;}
+    /* Vertically stacked accordion — one section per ADD_MENU_DATA category (see initAddAccordion,
+       add-menu.js), each a header immediately followed by its own item list, in place of the old
+       horizontal pill row + single swapped-out list. Scrolls internally if every section's headers
+       plus the one expanded section's items exceed the panel's height. */
+    #add-menu-accordion{flex:1 1 auto;overflow-y:auto;min-height:0;scrollbar-width:none;}
+    #add-menu-accordion::-webkit-scrollbar{display:none;}
+    .add-accordion-section{border-bottom:1px solid var(--card-border);}
+    .add-accordion-section:last-child{border-bottom:none;}
+    .add-accordion-header{width:100%;display:flex;align-items:center;justify-content:space-between;gap:8px;padding:12px 14px;background:none;border:none;color:var(--ink-soft);font-size:13px;font-weight:600;font-family:inherit;text-align:left;cursor:pointer;transition:color .15s ease;}
+    .add-accordion-header:hover{color:var(--ink);}
+    .add-accordion-section.expanded .add-accordion-header{color:var(--ink);}
+    .add-accordion-chevron{width:12px;height:12px;flex:0 0 auto;transition:transform .2s ease;}
+    .add-accordion-section.expanded .add-accordion-chevron{transform:rotate(180deg);}
+    /* Only one section's content is ever visible at a time (switchAddTab always toggles exactly
+       one .expanded on, every other off) — plain display toggle, no height animation, same
+       convention as #mode-toolbar.expanded elsewhere in this file. */
+    .add-accordion-content{display:none;padding-bottom:4px;}
+    .add-accordion-section.expanded .add-accordion-content{display:block;}
 
     /* ---- Source page: per-cell Add / Upload / Tags buttons (hover-only, positioned via JS) ---- */
     #source-add-menu, #cell-tag-picker{display:none;position:fixed;flex-direction:column;background:var(--bar);border:1px solid var(--card-border);border-radius:12px;box-shadow:0 10px 30px rgba(0,0,0,0.55);z-index:2000;padding:8px;gap:2px;}
@@ -1905,7 +1882,7 @@
     .item.editing .format-bar{display:flex;}
     .format-btn{width:28px;height:28px;border-radius:4px;border:none;background:none;color:var(--ink-soft);cursor:pointer;display:flex;align-items:center;justify-content:center;font-weight:bold;font-size:14px;}
     .format-btn:hover{background:#333;color:white;}
-    /* Same active-state convention as .btn.active/.add-tab.active elsewhere in this file — reflects
+    /* Same active-state convention as .btn.active elsewhere in this file — reflects
        bold/italic/underline/strikethrough currently being ON at the caret (see
        syncNoteFormatButtons, waypoints-render-loop.js). */
     .format-btn.active{background:#2E2E2E;color:var(--ink);}

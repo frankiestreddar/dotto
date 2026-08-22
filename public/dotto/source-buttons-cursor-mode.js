@@ -1,5 +1,4 @@
 import { clearSearch } from './ai-assistant-suggestions.js';
-import { closeAddMenu } from './copy-paste.js';
 import { appState, canvas, contextMenu, effectiveMode } from './core-state.js';
 import { linkSelectedCards } from './drawing-connections.js';
 import { closeCollabPanel } from './friends-presence.js';
@@ -132,16 +131,15 @@ import { clearDataLinkPending } from './srs-connections-core.js';
     });
     
     window.onclick = () => {
-        closeAddMenu();
         closeSourceAddMenu();
         closeCellTagPicker();
         contextMenu.style.display = 'none';
         appState.contextMenuItemId = null;
         hideCanvasContextMenu();
-        // Outline/Waypoints/Collaborations/Marketplace/Messages/Profile all share one rail shell
-        // now (see openRailView/closeRailView, panels-hamburger.js) — one call closes whichever of
-        // them happens to be open, replacing the old closeHamburgerMenu/closeMessagesPanel/
-        // closeCartPanel/closeProfilePanel quartet.
+        // Outline/Waypoints/Collaborations/Marketplace/Messages/Add/Profile all share one rail
+        // shell now (see openRailView/closeRailView, panels-hamburger.js) — one call closes
+        // whichever of them happens to be open, replacing the old closeHamburgerMenu/
+        // closeMessagesPanel/closeCartPanel/closeAddMenu/closeProfilePanel quintet.
         closeRailView();
         closeCollabPanel();
         clearSearch();

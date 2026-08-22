@@ -76,7 +76,6 @@ import SharedCanvasModal from "./dotto/sections/SharedCanvasModal";
 import HamburgerMenu from "./dotto/sections/HamburgerMenu";
 import CanvasArea from "./dotto/sections/CanvasArea";
 import ZoomControl from "./dotto/sections/ZoomControl";
-import AddMenu from "./dotto/sections/AddMenu";
 import SourceAddMenu from "./dotto/sections/SourceAddMenu";
 import CellTagPicker from "./dotto/sections/CellTagPicker";
 import AudioRecordIndicator from "./dotto/sections/AudioRecordIndicator";
@@ -275,14 +274,13 @@ export default function DottoApp({ sections, currentUser }) {
         <ErrorBoundary name="TopBar"><TopBar html={sections["top-bar"]} /></ErrorBoundary>
         <ErrorBoundary name="CollaboratorsPanel"><CollaboratorsPanel html={sections["collab-panel"]} /></ErrorBoundary>
         <ErrorBoundary name="SharedCanvasModal"><SharedCanvasModal html={sections["canvas-modal"]} /></ErrorBoundary>
-        {/* Profile/Messages/Marketplace/AI search all moved into #hamburger-stack (see
+        {/* Profile/Messages/Marketplace/Add/AI search all moved into #hamburger-stack (see
             hamburger-stack.html) now that they share the permanent rail's one shell — no more
             separate top-level sections/markup of their own, and no more dimming modal backdrop
             for AI search specifically. */}
         <ErrorBoundary name="HamburgerMenu"><HamburgerMenu html={sections["hamburger-stack"]} /></ErrorBoundary>
         <ErrorBoundary name="CanvasArea"><CanvasArea html={sections["canvas-area"]} /></ErrorBoundary>
         <ErrorBoundary name="ZoomControl"><ZoomControl html={sections["zoom-control"]} /></ErrorBoundary>
-        <ErrorBoundary name="AddMenu"><AddMenu html={sections["add-menu"]} /></ErrorBoundary>
         <ErrorBoundary name="SourceAddMenu"><SourceAddMenu html={sections["source-add-menu"]} /></ErrorBoundary>
         <ErrorBoundary name="CellTagPicker"><CellTagPicker html={sections["cell-tag-picker"]} /></ErrorBoundary>
         <ErrorBoundary name="AudioRecordIndicator"><AudioRecordIndicator html={sections["audio-record-indicator"]} /></ErrorBoundary>

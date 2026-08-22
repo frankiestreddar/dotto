@@ -1,5 +1,5 @@
 import { openSearchOverlay, scrollChatThreadToBottom, updateChatThread } from './ai-assistant-suggestions.js';
-import { addMenu, appState, canvasViewportCenterX, drawSettings, supabase } from './core-state.js';
+import { appState, canvasViewportCenterX, drawSettings, supabase } from './core-state.js';
 import { openCollabPanel, renderCollabPill } from './friends-presence.js';
 import { saveWorkspaceNow, smoothPanTo } from './history-autosave.js';
 import { flashCanvasElement } from './mnemonic-search-matching.js';
@@ -383,7 +383,6 @@ import { deleteCanvasCollabsForFolder, deleteWaypointCardEverywhere, expandWaypo
         }
     }
     drawSettings.addEventListener('click', (e) => e.stopPropagation());
-    addMenu.addEventListener('click', (e) => e.stopPropagation());
 
 export { backToHubCollabMain, clearAllChats, clearListPanelSelection, dispatchListPanelDelete, goToWaypointCard, handleOwnedHubCollabRowClick, hmenuAction, openHubCollabRequestsView, openSavedChat, renderChatsList, renderHubCollabList, renderWaypointsList, resolveSharedFolderChain, respondToHubCollabRequest };
 

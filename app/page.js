@@ -22,7 +22,6 @@ const FRAGMENT_NAMES = [
   "hamburger-stack",
   "canvas-area",
   "zoom-control",
-  "add-menu",
   "source-add-menu",
   "cell-tag-picker",
   "audio-record-indicator",

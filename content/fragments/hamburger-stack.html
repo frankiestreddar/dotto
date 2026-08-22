@@ -1,6 +1,6 @@
 <!-- Hamburger Panels (stacked) — each is now its own rail icon's view (see #dotto-rail, top-bar.html,
      and openRailView/wireRailIcon, panels-hamburger.js), not reached via an account-menu row
-     anymore. Waypoints/Collaborations/Marketplace/Messages/Profile/AI-search all share this one
+     anymore. Waypoints/Collaborations/Marketplace/Messages/Add/Profile/AI-search all share this one
      shell, swapping which section is .open. -->
 <div id="hamburger-stack">
     <div id="outline-menu" class="hmenu-panel">
@@ -200,6 +200,34 @@
                 <button id="msg-convo-send" onclick="sendMsg()">➤</button>
             </div>
         </div>
+    </div>
+    <!-- Add — moved here from its own free-floating popover beside the rail (content/fragments/
+         add-menu.html, now deleted) now that it shares this permanent rail shell (see
+         wireRailIcon('add', ...), add-menu.js). Tabs are a vertical accordion (see
+         .add-accordion-section) rather than the old horizontal pill row + one swapped-out list —
+         exactly one section is expanded at a time (appState.currentAddTab/switchAddTab), never
+         zero. New Canvas/New Source (formerly two circular buttons floating outside the panel) are
+         now plain rows pinned above the accordion, always visible regardless of search/tab state. -->
+    <div id="add-menu" class="hmenu-panel hub-subpanel" onclick="event.stopPropagation()">
+        <div class="hub-subpanel-search-wrap">
+            <input id="add-menu-search-input" class="hub-subpanel-search" type="text" placeholder="Search blocks..." oninput="handleAddMenuSearchInput(this.value)">
+        </div>
+        <div id="add-menu-quick-actions">
+            <div class="add-menu-row" onclick="prepareAdd('folder')">
+                <img class="add-menu-row-icon" src="/assets/icons/canvas.png" alt="">
+                <div class="add-menu-row-name">New Canvas</div>
+            </div>
+            <div class="add-menu-row" onclick="newSourceClicked()">
+                <img class="add-menu-row-icon" src="/assets/icons/source.png" alt="">
+                <div class="add-menu-row-name">New Source</div>
+            </div>
+        </div>
+        <!-- Flat cross-tab matches while #add-menu has .searching (see handleAddMenuSearchInput) —
+             hidden and empty otherwise. -->
+        <div id="add-menu-search-results" class="hub-subpanel-list"></div>
+        <!-- Built once from appState.ADD_MENU_DATA (see initAddAccordion, add-menu.js) — hidden
+             while #add-menu has .searching, shown otherwise. -->
+        <div id="add-menu-accordion"></div>
     </div>
     <!-- Profile — moved here from its own standalone floating card (content/fragments/
          profile-panel.html, now empty/unused) now that it shares this permanent rail shell (see
