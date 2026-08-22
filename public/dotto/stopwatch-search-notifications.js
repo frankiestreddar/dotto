@@ -272,13 +272,13 @@ import { openFolder, render } from './waypoints-render-loop.js';
     // ---------- Search & AI Gen ----------
 
     // ---------- Notifications ----------
-    // Generic engine — notifications queue up and are shown one at a time IN the search bar
-    // itself (see #search-notification, which takes #search-input's place while one's showing),
-    // optionally growing the bar taller (e.g. to fit an image), with an optional action button
-    // triggerable by click OR Enter. Non-sticky ones auto-dismiss after `durationMs`; sticky ones
-    // need an explicit dismiss (Escape, or the action button itself). Deferred while the user is
-    // actively typing in the search box — retried on blur — so a notification never interrupts
-    // something they're mid-typing.
+    // Generic engine — notifications queue up and are shown one at a time as a pill sliding down
+    // into the top bar's own slot (top:20px, centered), while #top-bar-center (breadcrumb/back-
+    // forward/collaborators) slides up and out of view to make room for it — the two swap places
+    // via one shared .notif-active class (see #notification-pill/#top-bar-center.notif-active,
+    // globals.css). Optional action button triggerable by click OR Enter. Non-sticky ones
+    // auto-dismiss after `durationMs`; sticky ones need an explicit dismiss (Escape, or the action
+    // button itself).
     //
     // No notification has a visible dismiss button — Escape always dismisses whatever's showing
     // (see the notification keydown handler below), so even a sticky one always has a way out
@@ -294,9 +294,9 @@ import { openFolder, render } from './waypoints-render-loop.js';
     //   onAction,         // called when the primary button is activated
     //   sticky,           // default false — no auto-dismiss timer at all; needs actionLabel or
     //                     // Escape to ever go away
-    //   durationMs,       // default 5000 (5 seconds) — auto-dismiss delay when not sticky
-    //   grows,            // default false — let the bar grow taller than its normal single-line
-    //                     // height for this one (see .notification-grows), instead of staying compact
+    //   durationMs,       // default 5000 (5 seconds) — how long the pill stays fully visible
+    //                     // before it starts sliding away (the slide itself, NOTIF_SLIDE_MS, comes
+    //                     // on top of this, not carved out of it)
     // })
     //
     // The only notification type from the original list with nothing behind it now is platform
@@ -307,29 +307,12 @@ import { openFolder, render } from './waypoints-render-loop.js';
     // real trigger (see the pushNotification call sites in refreshCanvasCollabData/
     // refreshFriendsData/subscribeToAllFriendMessages/handleFriendPresenceSync/awardUserPoints/
     // refreshDotbotUsage/the day-change interval/the ad timer/bumpAchievementStat below).
-    // Entrance/exit choreography timing — see the CSS block above #search-notification in
-    // globals.css for the actual animations these durations drive (must stay in sync: the fast
-    // flash is 2 iterations of a 0.2s keyframe, the slide is a 0.3s transition).
-    // Bumped at the start of every enter/exit sequence — a pending setTimeout from an older
-    // sequence checks this before acting, so it can't step on a newer sequence's state (e.g. the
-    // user dismisses a notification mid-entrance, or the queue advances to the next one before a
-    // stale timeout fires).
-
-    // Time from when a notification settles (fully slid in) until its exit sequence STARTS, given
-    // its configured `durationMs` — reserves NOTIF_FLASH_MS+NOTIF_SLIDE_MS at the end for the
-    // pre-exit flash + slide-away so the notification's TOTAL time on screen still roughly
-    // matches durationMs, rather than durationMs being purely the settled dwell time on top of
-    // the exit animation. Clamped so a very short durationMs still gets at least as long to settle
-    // as its own entrance took.
-    function computeNotificationDismissDelay(durationMs) {
-        const exitReserve = appState.NOTIF_FLASH_MS + appState.NOTIF_SLIDE_MS;
-        return Math.max(durationMs - exitReserve, exitReserve);
-    }
-
-    // Minimum idle time between one notification fully closing and the next one opening, so a
-    // backlog of queued notifications doesn't read as one continuous flicker. 0 means "no
-    // notification has ever closed yet" — the very first one of the session shows with no
-    // artificial gap. Set right when a notification finishes closing (see dismissCurrentNotification).
+    // No per-call sequence guard needed here (unlike the old search-box version of this) —
+    // tryShowNextNotification's own currentNotification check already makes showNotification
+    // uncallable while one's already displaying, and dismissCurrentNotification nulls
+    // currentNotification synchronously as its very first act, so a second concurrent call (e.g.
+    // Escape landing the same tick the auto-dismiss timer fires) is already a clean no-op via that
+    // same guard.
 
     function pushNotification(config) {
         appState.notificationQueue.push(config);
@@ -342,46 +325,30 @@ import { openFolder, render } from './waypoints-render-loop.js';
         // again, so queued notifications come through one at a time from there rather than
         // firing unseen while away.
         if (document.visibilityState !== 'visible') return;
-        if (document.activeElement === appState.searchInput) return; // don't interrupt active typing — searchInput's blur listener retries this
         if (appState.lastNotificationCloseTime) {
             const elapsed = Date.now() - appState.lastNotificationCloseTime;
             if (elapsed < appState.NOTIFICATION_QUEUE_GAP_MS) {
-                // Re-checks everything above (visibility, focus, remaining gap) once it fires,
-                // rather than assuming this is still the right moment — self-correcting if the tab
-                // gets backgrounded or the gap gets pushed out again in the meantime.
+                // Re-checks everything above (visibility, remaining gap) once it fires, rather
+                // than assuming this is still the right moment — self-correcting if the tab gets
+                // backgrounded or the gap gets pushed out again in the meantime.
                 setTimeout(tryShowNextNotification, appState.NOTIFICATION_QUEUE_GAP_MS - elapsed);
                 return;
             }
         }
         showNotification(appState.notificationQueue.shift());
     }
-    // Entrance: (1) the border flashes 2 quick pulses while the bar still looks completely
-    // normal, (2) #search-input slides up and out while #search-notification slides up into view
-    // (both driven by the same .notifying toggle — see globals.css), (3) once settled, a slow
-    // continuous pulse plays until the exit sequence begins.
     function showNotification(config) {
         appState.currentNotification = config;
-        const seq = ++appState.notificationSeq;
-        appState.searchInputWrap.classList.toggle('notification-grows', !!config.grows);
-
         // Content itself is real React state now (see app/dotto/NotificationBar.jsx) — the
         // enter-arrow suffix on a configured action label is built there, not here.
         window.__setNotificationContent(config);
-
-        appState.searchInputWrap.classList.add('notif-flash');
-        setTimeout(() => {
-            if (seq !== appState.notificationSeq) return; // superseded mid-flash (e.g. dismissed already)
-            appState.searchInputWrap.classList.remove('notif-flash');
-            appState.searchInputWrap.classList.add('notifying', 'notif-clipping');
-            setTimeout(() => {
-                if (seq !== appState.notificationSeq) return;
-                appState.searchInputWrap.classList.add('notif-pulse-slow');
-            }, appState.NOTIF_SLIDE_MS);
-        }, appState.NOTIF_FLASH_MS);
-
+        appState.topBarCenter.classList.add('notif-active');
+        appState.notificationPill.classList.add('notif-active');
         clearTimeout(appState.notificationTimer);
-        const durationMs = config.durationMs || appState.NOTIFICATION_DEFAULT_DURATION_MS;
-        if (!config.sticky) appState.notificationTimer = setTimeout(dismissCurrentNotification, computeNotificationDismissDelay(durationMs));
+        if (!config.sticky) {
+            const durationMs = config.durationMs || appState.NOTIFICATION_DEFAULT_DURATION_MS;
+            appState.notificationTimer = setTimeout(dismissCurrentNotification, durationMs);
+        }
     }
     // Click OR Enter (see the keydown handler below) — a no-op if this notification has no
     // action configured, so a stray Enter press can't dismiss a sticky plain notification.
@@ -391,34 +358,21 @@ import { openFolder, render } from './waypoints-render-loop.js';
         dismissCurrentNotification();
         if (cb) cb();
     }
-    // Exit: (1) the border flashes 2 quick pulses again while the notification is still fully on
-    // screen, (2) it slides back down and away while #search-input slides back into place (the
-    // exact reverse of showNotification's entrance) — only once that settles is the queue allowed
-    // to advance to the next notification, so a back-to-back pair never overlaps or snaps between
-    // each other mid-animation.
+    // Reverse of showNotification — #top-bar-center slides back down into view while
+    // #notification-pill slides back up and away. Only once that settles (NOTIF_SLIDE_MS later) is
+    // the queue allowed to advance to the next notification, so a back-to-back pair never overlaps
+    // or snaps between each other mid-animation.
     function dismissCurrentNotification() {
         if (!appState.currentNotification) return;
         clearTimeout(appState.notificationTimer);
         appState.currentNotification = null;
-        const seq = ++appState.notificationSeq; // supersedes any pending entrance-sequence timeouts
-        appState.searchInputWrap.classList.remove('notif-pulse-slow');
-        appState.searchInputWrap.classList.add('notif-flash');
+        appState.topBarCenter.classList.remove('notif-active');
+        appState.notificationPill.classList.remove('notif-active');
         setTimeout(() => {
-            if (seq !== appState.notificationSeq) return;
-            // 'notifying' comes off now, flipping the reverse slide's target transform (see
-            // .notif-clipping's own comment in globals.css) — but 'notif-clipping' deliberately
-            // stays on through that whole slide so the content stays clipped to the box the entire
-            // time, instead of spending its last 0.3s visible outside the border.
-            appState.searchInputWrap.classList.remove('notif-flash', 'notifying');
-            setTimeout(() => {
-                if (seq !== appState.notificationSeq) return;
-                appState.searchInputWrap.classList.remove('notification-grows', 'notif-clipping');
-                appState.lastNotificationCloseTime = Date.now();
-                tryShowNextNotification();
-            }, appState.NOTIF_SLIDE_MS);
-        }, appState.NOTIF_FLASH_MS);
+            appState.lastNotificationCloseTime = Date.now();
+            tryShowNextNotification();
+        }, appState.NOTIF_SLIDE_MS);
     }
-    appState.searchInput.addEventListener('blur', tryShowNextNotification);
     document.addEventListener('keydown', (e) => {
         if (!appState.currentNotification) return;
         const active = document.activeElement;
@@ -445,7 +399,7 @@ import { openFolder, render } from './waypoints-render-loop.js';
             if (appState.currentNotification && !appState.currentNotification.sticky) {
                 const durationMs = appState.currentNotification.durationMs || appState.NOTIFICATION_DEFAULT_DURATION_MS;
                 clearTimeout(appState.notificationTimer);
-                appState.notificationTimer = setTimeout(dismissCurrentNotification, computeNotificationDismissDelay(durationMs));
+                appState.notificationTimer = setTimeout(dismissCurrentNotification, durationMs);
             }
             tryShowNextNotification();
         } else {

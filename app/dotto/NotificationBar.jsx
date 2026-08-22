@@ -5,28 +5,26 @@ import { createPortal } from "react-dom";
 import { notificationStore } from "./bridges";
 import usePortalNode from "./usePortalNode";
 
-// Renders the search-bar notification's content (image/message/action button) — the queue engine
-// and the staged CSS-class choreography that shows/hides this bar both stay fully vanilla (see
-// notificationStore's own comment in bridges.js for why). Portals into #search-notification-root
-// (content/fragments/top-bar.html) rather than rendering independently the way PricingOverlay/
-// SelectionToolbar do, since this piece is structurally coupled to sit exactly inside
-// #search-input-wrap (it replaces #search-input's visible content in place while showing) — same
-// "React needs a portal into a fixed slot inside otherwise-static markup" reasoning as
-// CanvasItemsLayer's #items-layer. #search-notification itself stays position:absolute against
-// #search-input-wrap regardless of the portal-root div sitting between them (an unstyled static
-// wrapper doesn't create a new containing block), so no extra layout handling is needed here.
+// Renders a notification's content (image/message/action button) — the queue engine and the
+// slide-in/slide-out choreography that shows/hides the pill around this both stay fully vanilla
+// (see notificationStore's own comment in bridges.js for why). Portals into #notification-root
+// (content/fragments/top-bar.html), an empty marker nested inside #notification-pill — the pill
+// itself is static markup, not React-rendered, since the vanilla engine (showNotification/
+// dismissCurrentNotification, stopwatch-search-notifications.js) needs a stable, always-present
+// node to toggle its .notif-active class on directly, the same "React needs a portal into a fixed
+// slot inside otherwise-static markup" reasoning as CanvasItemsLayer's #items-layer.
 export default function NotificationBar() {
   const config = useSyncExternalStore(notificationStore.subscribe, notificationStore.getSnapshot, () => null);
-  const portalNode = usePortalNode("search-notification-root");
+  const portalNode = usePortalNode("notification-root");
 
   if (!portalNode) return null;
 
   return createPortal(
-    <div id="search-notification" onClick={(e) => e.stopPropagation()}>
-      <img id="search-notification-image" alt="" src={config?.imageUrl || undefined} />
-      <div id="search-notification-text">{config?.message || ""}</div>
+    <div id="notification-content" onClick={(e) => e.stopPropagation()}>
+      <img id="notification-image" alt="" src={config?.imageUrl || undefined} />
+      <div id="notification-text">{config?.message || ""}</div>
       <button
-        id="search-notification-action"
+        id="notification-action"
         type="button"
         className={config?.actionLabel ? "visible" : ""}
         onClick={() => window.runNotificationAction()}

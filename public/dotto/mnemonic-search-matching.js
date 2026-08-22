@@ -43,9 +43,9 @@ import { expandWaypointCard, render } from './waypoints-render-loop.js';
     // searchSuggestionsStore) — it's shared by 5 different producers across 3 files (live AI
     // suggestions, this mnemonic story/loading/error trio, and the orchestrate error in search-
     // orchestration-selection.js), so the store holds a small discriminated union ({kind, ...})
-    // rather than one plain value — the panel only ever shows ONE of them at a time, same as
-    // #search-notification "replacing" #search-input's content. Each variant's own build stays
-    // vanilla (typewriter reveal, drag-to-canvas wiring); render just decides which one to show.
+    // rather than one plain value — the panel only ever shows ONE of them at a time. Each variant's
+    // own build stays vanilla (typewriter reveal, drag-to-canvas wiring); render just decides
+    // which one to show.
     // buildMnemonicResultCard/startMnemonicResultReveal split the same way
     // buildDotbotAnswerTextEl/startDotbotAnswerReveal do, for the same reason (typewriterReveal
     // needs the element already connected to the DOM).

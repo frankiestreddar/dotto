@@ -42,16 +42,16 @@ export const selectionToolbarStore = createStore({ isOpen: false, left: 0, top: 
 // items are left alone instead of being torn down and recreated on every canvas interaction.
 export const canvasItemsStore = createStore([]);
 
-// Search-bar notification content (message/imageUrl/actionLabel) — the queue/sequencing engine
-// and the staged CSS-class choreography that shows/hides it both stay fully vanilla (see
+// Top-bar notification pill content (message/imageUrl/actionLabel) — the queue/sequencing engine
+// and the CSS slide choreography that shows/hides it both stay fully vanilla (see
 // public/dotto/stopwatch-search-notifications.js's showNotification/dismissCurrentNotification —
 // neither is list-diffing or list-rebuilding, so there's no analogous bug to the canvas-items-
 // react one to fix; only the notification's own rendering surface moves to React, via
-// NotificationBar.jsx portaling into #search-notification-root, see content/fragments/top-bar.html).
+// NotificationBar.jsx portaling into #notification-root, content/fragments/top-bar.html).
 // null means nothing has ever been shown yet (matches the original static markup's empty
 // image/text/button on load) — showNotification sets this once per notification and dismissal
 // deliberately leaves the last content in place rather than clearing it, same as the original
-// (harmless: the notification bar is hidden via CSS once #search-input-wrap loses .notifying).
+// (harmless: the pill is hidden via CSS once #notification-pill loses .notif-active).
 export const notificationStore = createStore(null);
 
 // Search-dropdown result panels (public/dotto/mnemonic-search-matching.js) — each a single-owner

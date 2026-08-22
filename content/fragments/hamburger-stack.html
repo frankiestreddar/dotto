@@ -81,11 +81,6 @@
                     <span id="search-card-pill-label" onclick="event.stopPropagation(); openSearchCardsModal();"></span>
                     <button id="search-card-pill-clear" type="button" title="Clear attached cards" onclick="event.stopPropagation(); clearSearchCardContext();">✕</button>
                 </div>
-                <!-- Replaces #search-input's visible content (not its value) while a notification is
-                     showing — see pushNotification/showNotification. Portal target for
-                     app/dotto/NotificationBar.jsx, a real Component now — must stay an empty, unstyled
-                     node so it doesn't affect #search-input-wrap's layout on its own. -->
-                <div id="search-notification-root"></div>
             </div>
         </div>
         <!-- No search box for v1 (unlike waypoints-panel/hub-collab-panel above) — a saved-chat

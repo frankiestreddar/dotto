@@ -336,13 +336,16 @@
         aiPanel: document.getElementById('ai-panel'),
         aiChatView: document.getElementById('ai-chat-view'),
         aiHistoryView: document.getElementById('ai-history-view'),
+        // Notifications live in the top bar now, not the search box (see showNotification/
+        // dismissCurrentNotification, stopwatch-search-notifications.js) — #top-bar-center slides
+        // up and out while #notification-pill slides down into its slot, and back on dismiss.
+        topBarCenter: document.getElementById('top-bar-center'),
+        notificationPill: document.getElementById('notification-pill'),
         NOTIFICATION_DEFAULT_DURATION_MS: 5000,
-        NOTIF_FLASH_MS: 400,
         NOTIF_SLIDE_MS: 300,
         notificationQueue: [],
         currentNotification: null,
         notificationTimer: null,
-        notificationSeq: 0,
         // notifImageEl/notifTextEl/notifActionBtn removed — React owns the notification bar's
         // content now (Phase 2, see app/dotto/NotificationBar.jsx).
         NOTIFICATION_QUEUE_GAP_MS: 5000,

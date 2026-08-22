@@ -161,7 +161,38 @@
        it doesn't need to leave room for it. Houses the breadcrumb and the per-canvas "add a
        collaborator" flyout side by side (#breadcrumb-pill, #collab-bubble — see top-bar.html), so
        the whole cluster centres and grows together instead of each bubble picking its own spot. */
-    #top-bar-center{position:fixed;top:20px;left:50%;transform:translateX(-50%);z-index:1000;display:flex;align-items:center;gap:10px;height:40px;}
+    #top-bar-center{position:fixed;top:20px;left:50%;transform:translateX(-50%);z-index:1000;display:flex;align-items:center;gap:10px;height:40px;transition:transform .3s ease, opacity .3s ease;}
+    /* Slides up and fades out while a notification is showing (see showNotification/
+       dismissCurrentNotification, stopwatch-search-notifications.js, which toggle this same class
+       on #top-bar-center and #notification-pill together) — translateY stacks onto the existing
+       translateX(-50%) centering rather than replacing it, so horizontal position never moves. */
+    #top-bar-center.notif-active{transform:translateX(-50%) translateY(-60px);opacity:0;pointer-events:none;}
+    /* Sits in the exact same fixed top:20px/centred slot as #top-bar-center, off-screen (slid up,
+       faded out) at rest — see its own markup comment, top-bar.html, for why it's static rather
+       than fully React-rendered. Sized like a .bubble (same background/border/radius/shadow/
+       height) without actually using that class, since its own slide transform needs to compose
+       with translateX(-50%) the same way #top-bar-center's does above, and .bubble doesn't define
+       position/transform at all. max-width caps a long message rather than letting the pill
+       stretch arbitrarily wide — #notification-text below ellipsis-truncates within it. */
+    #notification-pill{position:fixed;top:20px;left:50%;z-index:1000;display:flex;align-items:center;height:40px;max-width:420px;box-sizing:border-box;padding:0 12px;background:var(--bar);border:1px solid var(--card-border);border-radius:12px;box-shadow:0 4px 12px rgba(0,0,0,0.3);transform:translateX(-50%) translateY(-60px);opacity:0;pointer-events:none;transition:transform .3s ease, opacity .3s ease;}
+    #notification-pill.notif-active{transform:translateX(-50%) translateY(0);opacity:1;pointer-events:auto;}
+    /* #notification-root (the portal target React mounts #notification-content into, see
+       NotificationBar.jsx) is a plain flex child of the pill; #notification-content is the actual
+       row layout, kept as a separate element so it can carry its own onClick:stopPropagation
+       (portal targets are static markup, not JSX — see NotificationBar.jsx's own comment) without
+       needing #notification-root itself to be anything other than an empty marker. */
+    #notification-root{display:flex;flex:1 1 auto;min-width:0;}
+    #notification-content{display:flex;align-items:center;gap:10px;width:100%;min-width:0;}
+    #notification-image{display:none;width:28px;height:28px;flex:0 0 auto;border-radius:6px;object-fit:cover;}
+    #notification-image[src]{display:block;}
+    #notification-text{flex:1 1 auto;min-width:0;font-size:13px;color:var(--ink);line-height:1.4;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+    /* No dismiss/secondary button — every notification just auto-dismisses (or Escape dismisses it
+       early, see the notification keydown handler, stopwatch-search-notifications.js); the only
+       button is the primary action, whose label already ends in an enter-arrow glyph (see
+       showNotification) reinforcing that Enter activates it. */
+    #notification-action{display:none;flex:0 0 auto;height:20px;padding:0 8px;border-radius:6px;background:#2a2a2a;color:var(--ink-soft);font-size:10px;font-weight:700;border:none;cursor:pointer;font-family:inherit;align-items:center;white-space:nowrap;}
+    #notification-action:hover{background:#3a3a3a;color:var(--ink);}
+    #notification-action.visible{display:flex;}
     /* Shown only while a title being edited is empty (its still-default text, being renamed for
        the first time) — disappears the instant real text exists, since :empty then no longer
        matches. Shared by every click-to-edit title in the app (folder/source cards, and now the
@@ -992,21 +1023,15 @@
     /* #search-input-wrap used to BE the visible search box on its own; now #search-bar is the one
        shared card for the whole palette (input row + results, see #search-bar's own comment) and
        this wrap's background/border/shadow are gone — except the border ITSELF stays, just made
-       transparent, rather than removed outright. Its WIDTH is load-bearing for the height-precision
-       system described below (.notif-clipping's hard-coded 42px accounts for this 1px+1px border),
-       so deleting the border property entirely would shrink the wrap by 2px and reintroduce the
-       exact "visible height jump" bug that system was built to avoid. It never gets a transform
-       anywhere in this file, so the box itself never moves; #search-input and #search-notification
-       are just transparent content layers stacked inside it that slide/fade past each other during
-       a notification (see the choreography comment below) while the box around them stays
-       completely still. The spinner/pill/rings are absolutely positioned relative to this same
-       wrap. The search bar's horizontal position never moves either — only the wrap's height, as
-       #search-input (a textarea) grows line by line up to 4 lines (see autoGrowSearchInput), or as
-       forced to 42/76px while a notification is showing (see .notifying below). border-radius is
-       kept (matching #search-bar's own, even though this border is invisible at rest) purely so
-       the notif-flash/notif-pulse-slow keyframes below — which set a real border-color on THIS
-       element — round off consistently with the outer card instead of flashing square corners
-       inside it. */
+       transparent, rather than removed outright, purely so border-radius (matching #search-bar's
+       own) rounds off consistently with the outer card should anything ever need to draw a real
+       border-color on this element again. It never gets a transform anywhere in this file, so the
+       box itself never moves. The spinner/pill/rings are absolutely positioned relative to this
+       same wrap. The search bar's horizontal position never moves either — only the wrap's height,
+       as #search-input (a textarea) grows line by line up to 4 lines (see autoGrowSearchInput).
+       Notifications used to live inside this box (slide-swapped with #search-input) — they're a
+       top-bar pill now (see #notification-pill, further down) with no coupling to this element at
+       all anymore. */
     /* order:1 by default — right after #ai-chat-header, i.e. visually at the TOP of the panel, for
        the "first page" (nothing searched yet this session, #search-chat-thread still empty) and
        while typing (live suggestions land in #search-dropdown, below). Once thread has a real
@@ -1023,14 +1048,8 @@
        this property), it just never shows/permits an interactive scrollbar. */
     /* min/max-height are pure content+padding (20px padding + a 20px text line = 40px, or 4 lines
        = 100px) — no border term, since the textarea itself is borderless now (the wrap owns the
-       1px+1px border and adds it on top). Getting this wrong by re-adding the old 2px-of-border
-       fudge here (left over from before the border lived on #search-input itself) is exactly what
-       made the wrap render 2px taller at rest than its own hard-coded 42px .notif-clipping height,
-       producing a visible height jump right when a notification opened/closed. */
-    /* Left padding only (40px, was 14px) makes room for #search-input-icon below — every other
-       value here is untouched on purpose, see the height-precision comment right above: changing
-       min-height/line-height/vertical padding would shift the wrap's natural resting height away
-       from .notif-clipping's hard-coded 42px, reintroducing the exact jump that comment warns about. */
+       1px+1px border and adds it on top). */
+    /* Left padding only (40px, was 14px) makes room for #search-input-icon below. */
     #search-input{display:block;width:100%;min-height:40px;max-height:100px;background:transparent;border:none;color:var(--ink);padding:10px 32px 10px 40px;font-size:14px;line-height:20px;font-family:inherit;outline:none;resize:none;overflow-y:hidden;transition:height 0.15s ease, padding-bottom 0.15s ease;}
     #search-input.has-pill{padding-bottom:30px;}
     #search-input::placeholder{color:var(--ink-soft);}
@@ -1113,87 +1132,8 @@
     #search-card-pill:hover #search-card-pill-clear{width:18px;opacity:1;margin-right:6px;}
     #search-card-pill-clear:hover{background:#e5484d;}
 
-    /* ---------- Notifications (see pushNotification) ---------- */
-    /* Full entrance/exit choreography (see showNotification/dismissCurrentNotification). The box
-       itself (#search-input-wrap's own border/background/shadow, set above) never moves or
-       animates its position — only the content layered inside it does:
-       1. The box's border flashes 2 quick pulses in place while its contents still look completely
-          normal (.notif-flash — see notif-flash-pulse below, now targeting the wrap directly).
-       2. #search-input (holding the animated placeholder) slides up and out through the top edge,
-          while #search-notification slides up into view from the bottom, simultaneously
-          (.notifying toggling is what drives both — see the transitions below). Both are
-          transparent content layers, absolutely positioned inside the same fixed-height box,
-          clipped by the wrap's own overflow:hidden while this is happening, rather than the wrap
-          changing height (or position) out from under them.
-       3. Once settled, a slow continuous "breathing" pulse plays on the box's border
-          (.notif-pulse-slow — see notif-pulse-slow below) for the remainder of its display time.
-       4. Right before it goes away, the fast double-pulse plays again, then the notification
-          content slides back down and away while #search-input slides back down into place —
-          the exact reverse of steps 1-2. */
-    #search-input{transition:transform .3s ease, opacity .3s ease;}
-    /* #search-notification is always absolutely positioned (never contributes to the wrap's
-       natural height, which #search-input alone drives while idle) — its resting (non-notifying)
-       state sits translated fully out of view below the box. #search-input only switches to
-       absolute positioning WHILE .notifying, at which point the wrap's height is pinned
-       explicitly (see below) so the two overlapping content layers share a stable box to slide
-       within; at 0/0/0 (top/left/right) it lands in exactly the same spot it occupied in normal
-       flow, so the position:relative -> absolute switch itself causes no visible jump. */
-    /* .notif-clipping (not .notifying) is what actually owns the clip — a deliberately separate
-       class with its own, longer lifetime (see showNotification/dismissCurrentNotification in
-       dotto-script.js). .notifying itself gets removed at the START of the reverse slide, to
-       flip #search-input/#search-notification's target transform back to resting — if clipping
-       were tied to .notifying too, overflow would turn off at that exact instant, and the content
-       would spend its whole 0.3s slide-back animating fully visible OUTSIDE the box instead of
-       disappearing as it crosses the border. .notif-clipping instead stays on for that entire
-       reverse-slide duration and is only removed once it's actually finished. */
-    #search-input-wrap.notif-clipping{overflow:hidden;height:42px;}
-    #search-input-wrap.notif-clipping.notification-grows{height:76px;}
-    #search-input-wrap.notifying #search-input{position:absolute;top:0;left:0;right:0;transform:translateY(-135%);opacity:0;pointer-events:none;}
-    /* A transparent content layer, not a box of its own — the wrap behind it already supplies the
-       rounded pill/background/border/shadow, so this just needs its own layout (padding/flex) and
-       slide behavior. A hard `height` (not min-height) plus overflow:hidden guarantees it NEVER
-       grows past 42px on its own — long text is clamped to one line (see
-       #search-notification-text) rather than wrapping and pushing the box taller, which min-height
-       alone (a floor, not a ceiling) didn't prevent. .grows (set per-notification, see
-       showNotification) is the only thing allowed to make it taller, e.g. to fit an image. */
-    #search-notification{position:absolute;top:0;left:0;right:0;display:flex;align-items:center;gap:10px;width:100%;height:42px;box-sizing:border-box;padding:8px 12px;overflow:hidden;transform:translateY(135%);opacity:0;pointer-events:none;transition:height .2s ease, transform .3s ease, opacity .3s ease;}
-    #search-input-wrap.notifying #search-notification{transform:translateY(0);opacity:1;pointer-events:auto;}
-    #search-input-wrap.notification-grows #search-notification{height:76px;align-items:flex-start;}
-    #search-notification-image{display:none;width:44px;height:44px;flex:0 0 auto;border-radius:8px;object-fit:cover;}
-    #search-notification-image[src]{display:block;}
-    /* Single-line + ellipsis by default — a long message (a long display name, a long folder
-       title, ...) wrapping onto a second line would grow the box's actual rendered height past
-       min-height regardless of the .notification-grows class, since min-height is a floor, not a
-       ceiling. Only a notification that explicitly opts into .notification-grows gets to wrap. */
-    #search-notification-text{flex:1 1 auto;min-width:0;font-size:13px;color:var(--ink);line-height:1.4;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-    #search-input-wrap.notification-grows #search-notification-text{white-space:normal;overflow:visible;text-overflow:clip;}
-    /* No dismiss/secondary button — every notification just auto-dismisses (or Escape dismisses
-       it early, see the notification keydown handler below); the only button is the primary
-       action, whose label already ends in an enter-arrow glyph (see showNotification)
-       reinforcing that Enter activates it. */
-    #search-notification-action{display:none;flex:0 0 auto;height:20px;padding:0 8px;border-radius:6px;background:#2a2a2a;color:var(--ink-soft);font-size:10px;font-weight:700;border:none;cursor:pointer;font-family:inherit;align-items:center;white-space:nowrap;}
-    #search-notification-action:hover{background:#3a3a3a;color:var(--ink);}
-    #search-notification-action.visible{display:flex;}
-
-    /* Double-pulse border flash — plays on #search-input-wrap itself (the one box that never
-       moves), just before its contents slide. 2 iterations of a 0.2s keyframe = 0.4s total (see
-       NOTIF_FLASH_MS in dotto-script.js — keep the two in sync if this duration ever changes). */
-    /* Pulse color is a step up from --card-border (#2E2E2E), not white — a subtle brighten
-       rather than a flash to full contrast. */
-    @keyframes notif-flash-pulse{
-        0%,100%{box-shadow:0 4px 12px rgba(0,0,0,0.35);border-color:var(--card-border);}
-        50%{box-shadow:0 0 0 2px rgba(85,85,85,0.5), 0 4px 12px rgba(0,0,0,0.35);border-color:#555;}
-    }
-    #search-input-wrap.notif-flash{animation:notif-flash-pulse 0.2s ease-in-out 2;}
-    /* Slow continuous "breathing" pulse while the notification sits settled on screen, between
-       its entrance and the fast pre-exit flash above — again on the wrap itself, not its content.
-       Same peak border-color/box-shadow as notif-flash-pulse above, just eased over a slower
-       cycle, so the settled "breathing" reads as the same color as the entrance/exit flashes. */
-    @keyframes notif-pulse-slow{
-        0%,100%{box-shadow:0 4px 12px rgba(0,0,0,0.35);border-color:var(--card-border);}
-        50%{box-shadow:0 0 0 2px rgba(85,85,85,0.5), 0 4px 12px rgba(0,0,0,0.35);border-color:#555;}
-    }
-    #search-input-wrap.notif-pulse-slow{animation:notif-pulse-slow 2s ease-in-out infinite;}
+    /* Notifications (pushNotification) live in the top bar now, not here — see #notification-pill
+       and #top-bar-center.notif-active, near #top-bar-center's own rule. */
 
     /* Normal flex-flow child now, not absolutely positioned — #search-bar (a plain flex column) is
        the single shared card for the WHOLE palette, input row and results together, so this just
@@ -1480,8 +1420,8 @@
        Since every panel is already fully generated by the time this shows (no real streaming
        anywhere in this codebase — see app/api/dotbot/orchestrate/route.js), the pulse is a fixed
        pacing beat, not an actual loading state — kept quiet and narrow (background-color opacity
-       only, not border/shadow like notif-pulse-slow above) so it reads as a subtle placeholder
-       sitting inline in running text, not an alert. */
+       only, not a border/shadow flash) so it reads as a subtle placeholder sitting inline in
+       running text, not an alert. */
     @keyframes dotbot-inline-pulse{0%,100%{background-color:rgba(255,255,255,0.05);}50%{background-color:rgba(255,255,255,0.11);}}
     .dotbot-inline-placeholder{display:inline-block;min-width:60px;height:1em;border-radius:4px;vertical-align:-2px;animation:dotbot-inline-pulse 2s ease-in-out infinite;}
     /* Wraps an inline dictionary/example/translation widget sitting mid-answer — a subtle border

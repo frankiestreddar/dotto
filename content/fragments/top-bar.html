@@ -61,3 +61,12 @@
         <div class="collab-tooltip" id="collab-tooltip"></div>
     </div>
 </div>
+<!-- Sits in the exact same fixed top:20px/centred slot as #top-bar-center, off-screen (slid up,
+     faded out) at rest — the two swap places via one shared .notif-active class, both toggled
+     together by showNotification/dismissCurrentNotification (public/dotto/stopwatch-search-
+     notifications.js). Static here rather than fully React-rendered, unlike its own content
+     (#notification-root, portaled into by app/dotto/NotificationBar.jsx) — the vanilla engine
+     needs a stable, always-present node to toggle classes on directly. -->
+<div id="notification-pill">
+    <div id="notification-root"></div>
+</div>
