@@ -34,14 +34,14 @@
 </div>
 <div id="top-bar">
     <div id="top-bar-left">
-        <!-- Compact "…/parent/current" breadcrumb (see app/dotto/BreadcrumbPill.jsx,
-             breadcrumbMapStore) — stays here as a persistent location indicator even though the
-             back/forward arrows it used to sit beside moved into the rail above; "where am I" is
-             more useful pinned at the top than tucked into the icon column. -->
-        <div class="bubble" id="breadcrumb-pill"></div>
         <div class="bubble" id="collab-bubble">
             <div id="collab-content"></div>
             <div class="collab-tooltip" id="collab-tooltip"></div>
         </div>
     </div>
 </div>
+<!-- Compact "…/parent/current" breadcrumb (see app/dotto/BreadcrumbPill.jsx, breadcrumbMapStore) —
+     a standalone sibling of #top-bar now, not one of its left-aligned children, so it can sit dead
+     centre of the viewport (own fixed left:50%/translateX(-50%), see globals.css) regardless of
+     where the rail pushes #top-bar's own content over. -->
+<div class="bubble" id="breadcrumb-pill"></div>
