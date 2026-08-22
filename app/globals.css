@@ -24,7 +24,7 @@
         --card-border:#2E2E2E;
         --bar:#161616;
         --brand:#6366f1; /* Beautiful Indigo */
-        --hmenu-width:270px;
+        --hmenu-width:300px;
         --rail-width:56px;
     }
     *{box-sizing:border-box; touch-action: none; user-select:none; -webkit-user-select:none;}
