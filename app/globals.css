@@ -526,7 +526,6 @@
     /* left leaves room for the permanent hamburger rail (--rail-width) — same offset #top-bar
        uses, otherwise this would sit directly inside the rail's own column and get covered by it. */
     #dotto-footer{position:fixed;bottom:20px;left:calc(var(--rail-width) + 20px);z-index:1000;font-size:11px;color:var(--ink-soft);pointer-events:none;}
-    #dotto-footer-sep{opacity:0.5;}
     #dotto-footer-link{color:var(--ink-soft);text-decoration:none;pointer-events:auto;}
     #dotto-footer-link:hover{color:var(--ink);text-decoration:underline;}
 
@@ -1099,7 +1098,12 @@
        the notif-flash/notif-pulse-slow keyframes below — which set a real border-color on THIS
        element — round off consistently with the outer card instead of flashing square corners
        inside it. */
-    #search-input-wrap{position:relative;width:100%;border:1px solid transparent;border-radius:16px;}
+    /* margin-top:auto pins this to the bottom of #ai-chat-view (a flex column) — it's the LAST
+       child now (see hamburger-stack.html), so any leftover vertical space above it (an empty or
+       short conversation/dropdown) collects above the box instead of below it, keeping the input
+       at the bottom of the panel like a normal chat input rather than parked near the top with
+       empty space trailing beneath it. */
+    #search-input-wrap{position:relative;width:100%;border:1px solid transparent;border-radius:16px;margin-top:auto;}
     /* Never scrollable, even past the 4-line cap - overflow is hidden, not auto. The caret still
        auto-scrolls into view internally as you type (native textarea behavior, independent of
        this property), it just never shows/permits an interactive scrollbar. */
@@ -1319,16 +1323,23 @@
        work normally the entire time the palette is actually open and settled. Individual panels
        that need their own internal scroll cap (the answer/command-palette/results panels) still
        have their own max-height+overflow-y, unchanged. */
-    #search-dropdown{display:flex;flex-direction:column;gap:5px;height:0;overflow:hidden;margin-top:0;}
+    /* margin-bottom is unconditional (not gated by .visible, unlike margin-top just below) — with
+       #search-input-wrap now the LAST child (see the DOM order comment in hamburger-stack.html),
+       #search-dropdown is always input's immediate previous sibling regardless of whether it or
+       #search-chat-thread above it are currently showing anything, so this is the one place that
+       needs to unconditionally guarantee the gap before the input box — including while both are
+       fully collapsed, keeping the input pinned near the bottom (see #search-input-wrap's own
+       margin-top:auto) rather than jammed flush against whatever's above it. */
+    #search-dropdown{display:flex;flex-direction:column;gap:5px;height:0;overflow:hidden;margin-top:0;margin-bottom:8px;}
     /* No padding-bottom (there used to be a 2px one) — #search-bar's own 8px padding is already
        the bottom gap below the last row; adding padding-bottom here on top of that stacked to 10px
        at the bottom of the card versus 8px on every other side, most noticeable with a sparse
        panel open (e.g. one canvas-match row while a search is loading). */
     #search-dropdown.visible{margin-top:8px;}
 
-    /* Persisted multi-turn Dotbot chat, shown ABOVE #search-input-wrap (see the DOM order in
-       search-overlay.html) once the first AI answer of a session exists — entirely separate
-       surface from #search-dropdown above; canvas matches/"/"-commands/live suggestions keep
+    /* Persisted multi-turn Dotbot chat, shown ABOVE #search-dropdown (see the DOM order in
+       hamburger-stack.html) once the first AI answer of a session exists — entirely separate
+       surface from #search-dropdown below; canvas matches/"/"-commands/live suggestions keep
        rendering there completely unaffected, independent of whether this is open. Same
        height:0-until-grown technique and independent tracked state as #search-dropdown (see
        updateChatThread/createHeightTransitionController, ai-assistant-suggestions.js) — sharing
@@ -1343,9 +1354,13 @@
        clipping content mid-animation, same as #search-dropdown) — the JS hands it back to `auto`
        (not `visible`, unlike #search-dropdown, which is deliberately non-clipping for its nav-
        arrow-slide-outside panels) once settled, so the scrollbar/clipping the max-height cap needs
-       actually takes effect at rest. */
+       actually takes effect at rest. No margin-bottom of its own (unlike before this element and
+       #search-dropdown became direct neighbors) — #search-dropdown's own unconditional margin-
+       bottom above already provides the one guaranteed gap before the input box; giving this
+       element a margin-bottom TOO would double up into a 16px gap whenever both are visible at
+       once (their margins don't collapse against each other — flex item margins never do), instead
+       of the intended flat 8px. */
     #search-chat-thread{display:flex;flex-direction:column;gap:16px;height:0;overflow:hidden;max-height:60vh;}
-    #search-chat-thread.visible{margin-bottom:8px;}
     .dotbot-turn{display:flex;flex-direction:column;gap:8px;}
     /* Right-aligned pill, same --brand indigo used elsewhere for accents — the one thing this
        whole search surface never rendered before now: the user's OWN query, as an actual message
