@@ -32,16 +32,15 @@
         <button id="rail-btn-redo" class="rail-btn" title="Redo">↷</button>
     </div>
 </div>
-<div id="top-bar">
-    <div id="top-bar-left">
-        <div class="bubble" id="collab-bubble">
-            <div id="collab-content"></div>
-            <div class="collab-tooltip" id="collab-tooltip"></div>
-        </div>
+<!-- Dead centre of the viewport (position:fixed, left:50% + translateX(-50%), see globals.css) —
+     independent of the rail's own left offset. Compact "…/parent/current" breadcrumb (see
+     app/dotto/BreadcrumbPill.jsx, breadcrumbMapStore) with the per-canvas "add a collaborator"
+     flyout directly to its right, both riding in the same centred group rather than each picking
+     their own position. -->
+<div id="top-bar-center">
+    <div class="bubble" id="breadcrumb-pill"></div>
+    <div class="bubble" id="collab-bubble">
+        <div id="collab-content"></div>
+        <div class="collab-tooltip" id="collab-tooltip"></div>
     </div>
 </div>
-<!-- Compact "…/parent/current" breadcrumb (see app/dotto/BreadcrumbPill.jsx, breadcrumbMapStore) —
-     a standalone sibling of #top-bar now, not one of its left-aligned children, so it can sit dead
-     centre of the viewport (own fixed left:50%/translateX(-50%), see globals.css) regardless of
-     where the rail pushes #top-bar's own content over. -->
-<div class="bubble" id="breadcrumb-pill"></div>

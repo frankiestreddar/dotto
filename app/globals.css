@@ -156,18 +156,12 @@
     #world{position:absolute;top:0;left:0;transform-origin:0 0;will-change:transform;z-index:1;}
     .bubble{background:var(--bar);border:1px solid var(--card-border);border-radius:12px;padding:4px;box-shadow:0 4px 12px rgba(0,0,0,0.3);display:flex;align-items:center;gap:2px;height:40px;}
 
-    /* Just the two clusters now — the search bar used to be a third, center grid track here (see
-       git history for that centering math if it's ever needed again), but it's a standalone
-       overlay now (search-overlay.html, opened by Space/"/"/#btn-search rather than living inline)
-       so there's nothing left to center between these two. */
-    /* left leaves room for the permanent rail (--rail-width, #dotto-rail) — required, not
-       cosmetic: #dotto-rail is position:fixed (out of any shared flex flow), so without this
-       offset the top bar's own content would render starting underneath it. Only #top-bar-left
-       remains now that Marketplace/Messages/Profile moved into the rail (see #dotto-rail below) —
-       nothing left to push to the opposite edge, so justify-content is flex-start, not
-       space-between. */
-    #top-bar{position:fixed;top:20px;left:calc(var(--rail-width) + 20px);right:20px;z-index:1000;display:flex;align-items:center;justify-content:flex-start;gap:10px;height:40px;}
-    #top-bar-left{display:flex;align-items:center;gap:10px;min-width:0;}
+    /* Dead centre of the viewport (left:50% + translateX(-50%)) rather than offset by the rail like
+       the old #top-bar/#top-bar-left used to be — this group isn't anchored to the rail at all, so
+       it doesn't need to leave room for it. Houses the breadcrumb and the per-canvas "add a
+       collaborator" flyout side by side (#breadcrumb-pill, #collab-bubble — see top-bar.html), so
+       the whole cluster centres and grows together instead of each bubble picking its own spot. */
+    #top-bar-center{position:fixed;top:20px;left:50%;transform:translateX(-50%);z-index:1000;display:flex;align-items:center;gap:10px;height:40px;}
     /* Shown only while a title being edited is empty (its still-default text, being renamed for
        the first time) — disappears the instant real text exists, since :empty then no longer
        matches. Shared by every click-to-edit title in the app (folder/source cards, and now the
@@ -209,17 +203,15 @@
     #ai-new-chat-btn{background:transparent;border:1px solid var(--card-border);color:var(--ink-soft);font-size:12px;height:28px;padding:0 12px;border-radius:8px;cursor:pointer;transition:background .15s,color .15s,border-color .15s;}
     #ai-new-chat-btn:hover{background:#2a2a2a;color:var(--ink);border-color:var(--ink-soft);}
     /* Compact "…/parent/current" breadcrumb (see app/dotto/BreadcrumbPill.jsx, breadcrumbMapStore)
-       — a standalone .bubble, dead centre of the viewport (position:fixed, left:50% + translateX
-       (-50%) — independent of #top-bar's own rail-offset left edge, see top-bar.html's own
-       comment), replacing the old always-visible full ancestor list that used to live inside the
-       hamburger sidebar. Same top/height/z-index as #top-bar so it reads as part of the same
-       persistent-chrome layer. Space Grotesk (see the app-typeface comment at the top of this
-       file) and pure white throughout, INCLUDING the parent/ellipsis/separator segments that read
-       as var(--ink-soft) everywhere else in the app — a deliberate one-off, not the usual
-       grey-for-secondary-text convention. No bold anywhere in it, including the current segment
-       (font-weight:400 — was 600), which still doubles as a rename control (cursor:text hints at
-       that, matching a real text field). */
-    #breadcrumb-pill{position:fixed;top:20px;left:50%;transform:translateX(-50%);z-index:1000;padding:0 10px;gap:4px;max-width:280px;overflow:hidden;font-family:'Space Grotesk', sans-serif;}
+       — a .bubble inside #top-bar-center (own fixed/centring positioning lives there now, shared
+       with #collab-bubble beside it), replacing the old always-visible full ancestor list that
+       used to live inside the hamburger sidebar. Space Grotesk (see the app-typeface comment at
+       the top of this file) and pure white throughout, INCLUDING the parent/ellipsis/separator
+       segments that read as var(--ink-soft) everywhere else in the app — a deliberate one-off, not
+       the usual grey-for-secondary-text convention. No bold anywhere in it, including the current
+       segment (font-weight:400 — was 600), which still doubles as a rename control (cursor:text
+       hints at that, matching a real text field). */
+    #breadcrumb-pill{padding:0 10px;gap:4px;max-width:280px;overflow:hidden;font-family:'Space Grotesk', sans-serif;}
     #breadcrumb-pill .breadcrumb-pill-ellipsis,
     #breadcrumb-pill .breadcrumb-pill-parent{color:var(--ink);font-weight:400;font-size:13px;cursor:pointer;white-space:nowrap;flex:0 0 auto;}
     #breadcrumb-pill .breadcrumb-pill-ellipsis:hover,
@@ -231,13 +223,13 @@
        floating over the canvas (see #canvas's own comment on why: a full-height floating hit-target
        would otherwise permanently block canvas clicks/drags in that column, which is exactly what
        the removed "Notion-style edge peek" hack in panels-hamburger.js existed to avoid — reserving
-       real space sidesteps the problem entirely instead). A top-level sibling of #top-bar now (not
-       nested inside it — #btn-menu used to be, and relied on painting within #top-bar's own
-       stacking context for free; now that every rail icon lives in its own #dotto-rail container,
-       it needs its OWN z-index matching #top-bar's, so it likewise stays above #hamburger-stack
-       (900) and #world (1)). padding-top:20px on the container aligns the first icon with #top-bar's
-       own top:20px inset, so the row reads as part of the same top band rather than starting
-       mid-column. */
+       real space sidesteps the problem entirely instead). A top-level sibling of #top-bar-center
+       now (not nested inside it — #btn-menu used to be, and relied on painting within the top bar's
+       own stacking context for free; now that every rail icon lives in its own #dotto-rail
+       container, it needs its OWN z-index matching #top-bar-center's, so it likewise stays above
+       #hamburger-stack (900) and #world (1)). padding-top:20px on the container aligns the first
+       icon with #top-bar-center's own top:20px inset, so the row reads as part of the same top band
+       rather than starting mid-column. */
     #dotto-rail{position:fixed;left:0;top:0;width:var(--rail-width);height:100vh;background:var(--bar);border-right:1px solid var(--card-border);z-index:1000;display:flex;flex-direction:column;align-items:center;gap:4px;padding:20px 0 20px;box-sizing:border-box;}
     /* Shared sizing/shape for every icon in the rail — 36x36 rounded-square, scaled down to match
        the skinnier --rail-width (was 40x40/64px). #btn-profile overrides this to a circle below,
@@ -520,11 +512,11 @@
     #zoom-track:hover #zoom-thumb, #zoom-track.dragging #zoom-thumb{transform:translate(-50%,50%) scale(1.25);}
     #zoom-track:hover{background:#454545;}
 
-    /* Bottom-left is otherwise unused by any fixed-position chrome (top-bar spans the full top
-       edge, zoom-control/bottom-toolbars sit bottom-right/bottom-center) — matches zoom-control's
+    /* Bottom-left is otherwise unused by any fixed-position chrome (#top-bar-center sits dead
+       centre, zoom-control/bottom-toolbars sit bottom-right/bottom-center) — matches zoom-control's
        20px inset and z-index:1000 tier so it reads as the same "persistent chrome" layer. */
-    /* left leaves room for the permanent hamburger rail (--rail-width) — same offset #top-bar
-       uses, otherwise this would sit directly inside the rail's own column and get covered by it. */
+    /* left leaves room for the permanent hamburger rail (--rail-width) — otherwise this would sit
+       directly inside the rail's own column and get covered by it. */
     #dotto-footer{position:fixed;bottom:20px;left:calc(var(--rail-width) + 20px);z-index:1000;font-size:11px;color:var(--ink-soft);pointer-events:none;}
     #dotto-footer-link{color:var(--ink-soft);text-decoration:none;pointer-events:auto;}
     #dotto-footer-link:hover{color:var(--ink);text-decoration:underline;}
@@ -664,8 +656,8 @@
        60px band) keeps every actual panel's content starting below it, never underneath/
        overlapped by it, satisfying "the icons sit at the top, panels under" without needing a
        second close control duplicated inside the sidebar. z-index (900) sits below #dotto-rail/
-       #top-bar (1000, see #dotto-rail's own comment) so the rail icons stay visually on top and
-       clickable; above #world (1) so it fully overlays canvas content. pointer-events stay off
+       #top-bar-center (1000, see #dotto-rail's own comment) so the rail icons stay visually on top
+       and clickable; above #world (1) so it fully overlays canvas content. pointer-events stay off
        until .open so the always-in-the-DOM container never blocks clicks over the canvas while
        closed. */
     /* Both left values shifted by +var(--rail-width) so the shell sits beside the permanent rail
@@ -759,7 +751,7 @@
        canvas-area.html — shown for BOTH sub-modes via its own .active toggle, independent of
        #schedule-view's (which only activates for .schedule-view-all). position:absolute + a flex
        row replicates the centering it used to get for free as #schedule-view's flex child.
-       padding-top clears #top-bar (fixed, top:20px, height:40px, z-index:1000 — well above this
+       padding-top clears the top bar (fixed, top:20px, height:40px, z-index:1000 — well above this
        header's own z-index:5), same 68px convention other panels anchor to below it. Deliberately
        NO background of its own by default — the real canvas's own #dot-layer (visible again in
        the single-canvas sub-mode) shows through underneath it, already correctly phase-aligned

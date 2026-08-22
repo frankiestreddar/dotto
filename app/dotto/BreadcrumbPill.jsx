@@ -9,10 +9,10 @@ import usePortalNode from "./usePortalNode";
 // fresh object literal as the getServerSnapshot fallback trips React's "should be cached" warning.
 const EMPTY_BREADCRUMB = { hasMore: false, root: null, parent: null, current: null };
 
-// Portals into #breadcrumb-pill (content/fragments/top-bar.html), a standalone element dead centre
-// of the viewport (see its own comment, globals.css) — replaces the old always-visible full
-// ancestor list that used to live inside the hamburger sidebar (#breadcrumb-menu, removed) with a
-// compact "…/parent/current" trail. The current-folder
+// Portals into #breadcrumb-pill (content/fragments/top-bar.html), inside #top-bar-center — dead
+// centre of the viewport, beside the "add a collaborator" flyout (see its own comment, globals.css)
+// — replaces the old always-visible full ancestor list that used to live inside the hamburger
+// sidebar (#breadcrumb-menu, removed) with a compact "…/parent/current" trail. The current-folder
 // segment doubles as its rename control — same click-to-edit contentEditable flow every other
 // title in the app uses (window.__startRenameFolderCardTitle, shared with folder/source cards —
 // see its own comment in waypoints-render-loop.js), just handed this segment's own DOM node via a
