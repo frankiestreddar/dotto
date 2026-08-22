@@ -636,7 +636,17 @@ import { applyConnections, renderConnectionsLayer } from './srs-connections-core
         el.style.left = it.x + 'px'; el.style.top = it.y + 'px';
         if (it.zIndex) el.style.zIndex = it.zIndex;
         // Re-applied on every call (rather than left as a one-off class toggle) since el.className
-        // above already resets the base class list — see handleDataModeClick.
+        // above already resets the base class list — see handleDataModeClick. 'sized' needs the
+        // same treatment: TableCard.jsx's own layout effect also adds it once it.userSized is
+        // true, but that effect runs on the CHILD (TableCard), and React fires child layout
+        // effects before the parent's (CanvasItem, which calls this) — so TableCard's 'sized' was
+        // getting added, then immediately stripped right back off by this function's own
+        // el.className reset one effect later, on every render (including the one after a plain
+        // drag-move, not just a resize). The wrapper kept its correct inline width/height (set in
+        // the 'else' branch below) but the table itself fell back to CSS's width:auto/
+        // table-layout:auto default without 'sized' — reading as "resize looks right, but move it
+        // and the table shrinks back to tiny inside its still-correctly-sized background."
+        if (it.kind === 'table' && it.userSized) el.classList.add('sized');
         if (appState.dataLinkPendingId === it.id) el.classList.add('link-source-armed');
         if (it.optionsOpen) el.classList.add('options-open');
         if (it.kind !== 'title' && it.kind !== 'waypoint') {
