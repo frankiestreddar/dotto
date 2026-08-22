@@ -241,9 +241,18 @@
        their own background/border (the rail's own background already reads as one continuous
        surface) until hovered/active. #btn-profile overrides this to a circle below, matching its
        own pre-existing shape. */
-    .rail-btn{background:none;border:none;border-radius:10px;height:40px;width:40px;flex:0 0 auto;display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--ink-soft);}
+    .rail-btn{background:none;border:none;border-radius:10px;height:40px;width:40px;flex:0 0 auto;display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--ink-soft);transition:color .15s ease,background .15s ease;}
     .rail-btn:hover{background:#242424;color:var(--ink);}
     .rail-btn.active{background:#2E2E2E;color:var(--ink);}
+    /* Grey-tinted by default, full white on hover/active — covers the inline-svg and plain-glyph
+       icons (AI search, back/forward, undo/redo) for free via `color`/currentColor above. The
+       img-based icons (menu-btn.png, waypoint.png, collaboration.png, market-button.png,
+       chats-btn.png — marked with this class in the markup) can't follow `color`, so they get the
+       same grey→white read via a solid-white filter (flattens whatever colours the source PNG has)
+       dimmed with opacity instead. #btn-profile's own avatar photo is deliberately NOT part of
+       this — it's the user's picture, not a generic icon, so it keeps its native colour always. */
+    .rail-icon-img{filter:brightness(0) invert(1);opacity:0.55;transition:opacity .15s ease;}
+    .rail-btn:hover .rail-icon-img,.rail-btn.active .rail-icon-img{opacity:1;}
     /* Pushes Undo/Redo to the bottom of the rail without needing a fixed pixel gap — the column
        above them can hold anywhere from a handful to many icons depending on future additions. */
     #rail-bottom-group{margin-top:auto;display:flex;flex-direction:column;align-items:center;gap:4px;}
@@ -520,10 +529,8 @@
     #dotto-footer-link{color:var(--ink-soft);text-decoration:none;pointer-events:auto;}
     #dotto-footer-link:hover{color:var(--ink);text-decoration:underline;}
 
-    /* .rail-btn.active (see #dotto-rail's own comment) already highlights on hover-preview OR pin,
-       matching every other hover/pin button in the app — .hmenu-full below is a separate, narrower
-       class so the icon only swaps to a close affordance once the sidebar is genuinely pinned open
-       (not on a mere hover peek). No close.png asset exists yet, so this borrows the app's existing
+    /* .rail-btn.active (see #dotto-rail's own comment) already highlights whenever this icon's
+       panel is open. No close.png asset exists yet, so this borrows the app's existing
        plain-glyph close-button convention (canvas-modal-close, search-cards-modal-close) rather
        than an image — swap in a real icon later if one gets added. */
     #btn-menu .btn-menu-close-icon{display:none;font-size:16px;}
@@ -701,6 +708,13 @@
        shell, not a separate panel with its own pin/hover state. */
     .hub-subpanel{flex:1 1 auto;min-height:0;display:none;flex-direction:column;overflow:hidden;}
     .hub-subpanel.open{display:flex;}
+    /* Closing (see closeRailView, panels-hamburger.js): the shell (#hamburger-stack above) slides
+       away over its own .3s `left` transition, but display:none (the ordinary .open removal, just
+       above) would otherwise apply in that same instant, making the content vanish before the
+       slide even starts. 'closing' keeps 'open' in place a beat longer (still display:block/flex)
+       while fading opacity 1→0 over the SAME .3s, so the panel visibly fades out as it slides away
+       instead of just disappearing — then JS drops both classes once the fade finishes. */
+    .hmenu-panel.closing,.hub-subpanel.closing{opacity:0;pointer-events:none;transition:opacity .3s ease;}
     .hub-subpanel-search-wrap{flex:0 0 auto;padding:10px;border-bottom:1px solid var(--card-border);}
     .hub-subpanel-search{width:100%;height:34px;border-radius:9px;background:#2a2a2a;border:1px solid var(--card-border);color:var(--ink);padding:0 12px;font-size:13px;outline:none;box-sizing:border-box;}
     .hub-subpanel-search::placeholder{color:var(--ink-soft);}

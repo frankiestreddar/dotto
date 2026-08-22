@@ -313,11 +313,10 @@ import { render } from './waypoints-render-loop.js';
     // call (kept there, not here, alongside every other rail icon's own wireRailIcon call, to
     // avoid calling wireRailIcon itself at this module's own top level — a circular-import timing
     // risk, since panels-hamburger.js also imports from this file; a plain function reference like
-    // this one has no such risk, it's only ever invoked later, on real hover/click). Always lands
+    // this one has no such risk, it's only ever invoked later, on a real click). Always lands
     // back on the chat view (not mid-history-browse from a previous session), and focuses the
-    // input only for a real pinned open (click, or the Space/"/"/#btn-search triggers below), never
-    // on a mere hover-preview — stealing keyboard focus just because the cursor passed over the
-    // icon would be jarring.
+    // input (the rail is click-only now, so `pin` is always true here — kept as a parameter since
+    // openRailView always passes it through, same as every other view's own onOpen callback).
     function refreshAiPanel(pin) {
         showAiChatView();
         if (pin) appState.searchInput.focus();

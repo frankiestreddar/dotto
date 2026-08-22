@@ -446,7 +446,6 @@
     // rail destination of its own.
     appState.railViewEls = [appState.aiPanel, appState.outlineMenu, appState.waypointsPanel, appState.hubCollabPanel, appState.cartPanel, appState.messagesPanel, appState.profilePanel];
     appState.railIconBtns = [appState.railBtnAi, appState.hamburgerBtn, appState.railBtnWaypoints, appState.railBtnCollab, appState.btnCart, appState.messagesBtn, appState.profileBtn];
-    appState.railHoverEls = [appState.dottoRail, ...appState.railViewEls];
     appState.TOTAL_SUB_LEVELS = appState.LEVEL_NAMES.length * appState.SUB_RANKS_PER_TIER;
     // Same reason as the block above: can't reference appState.currentUser from inside appState's
     // own object literal, since appState doesn't exist yet until that literal finishes constructing.

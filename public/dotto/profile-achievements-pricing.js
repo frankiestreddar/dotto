@@ -1,6 +1,6 @@
 import { appState, supabase } from './core-state.js';
 import { hmenuAction } from './hamburger-collab.js';
-import { closeAllPanels, closeRailView, openRailView, scheduleHoverClose } from './panels-hamburger.js';
+import { closeAllPanels, closeRailView, openRailView } from './panels-hamburger.js';
 import { pushNotification } from './stopwatch-search-notifications.js';
 
 
@@ -281,11 +281,8 @@ import { pushNotification } from './stopwatch-search-notifications.js';
     }
     // Not wireRailIcon('profile', ...) — the click behavior here is genuinely different from
     // every other rail icon (open-only, never toggle-closes on a second click) because of the
-    // hover-to-logout swap below, so the click listener stays hand-written; mouseenter/mouseleave
-    // still match every other rail icon's own convention exactly ('rail' name, railHoverEls set).
-    // The panel's own mouseleave and click-to-pin are already covered generically (see
-    // panels-hamburger.js's railViewEls-wide wiring) — appState.profilePanel is one of them, so no
-    // separate registration is needed here.
+    // hover-to-logout swap below, so the click listener stays hand-written. No mouseenter/
+    // mouseleave — like every other rail icon, hovering previews nothing; only a click opens it.
     appState.profileBtn.addEventListener('click', (e) => {
         e.stopPropagation();
         // Once the button is showing the power icon (:hover only — see the CSS swap, which is
@@ -297,8 +294,6 @@ import { pushNotification } from './stopwatch-search-notifications.js';
         if (appState.profileBtn.matches(':hover')) { hmenuAction('logout'); }
         else { openProfilePanel(true); }
     });
-    appState.profileBtn.addEventListener('mouseenter', () => { if (appState.activeRailView !== 'profile') openProfilePanel(false); });
-    appState.profileBtn.addEventListener('mouseleave', () => scheduleHoverClose('rail', appState.railHoverEls, closeRailView));
 
 export { awardUserPoints, bumpAchievementStat, closeDotbotUpgradeModal, closePricingOverlay, closeProfilePanel, openDotbotUpgradeModal, openPricingOverlay, refreshDotbotUsage, renderAvatarInto };
 

@@ -8,11 +8,11 @@ import { closeSourceAddMenu } from './source-buttons-cursor-mode.js';
 
 
     // ---------- Hover/Pin Panel Helper ----------
-    // Panels can be opened two ways: hovering the trigger button opens them temporarily
-    // (closing again once the pointer leaves both the button and the panel), while
-    // clicking the trigger button "pins" the panel open until the user clicks elsewhere
-    // on the canvas. Only one panel is ever open at a time - opening any panel (via
-    // hover or click) swaps out whichever panel was previously open.
+    // Used by the add-menu and the per-canvas collaborator flyout ('add'/'collab' — see
+    // copy-paste.js/friends-presence.js): hovering the trigger opens them temporarily (closing
+    // again once the pointer leaves both the button and the panel), while clicking pins the panel
+    // open until the user clicks elsewhere. The permanent rail (below) no longer uses this at all
+    // — every rail icon is click-only now, so there's nothing for it to hover-close.
     function scheduleHoverClose(name, hoverEls, closeFn) {
         setTimeout(() => {
             if (appState.panelPinned[name]) return;
@@ -48,21 +48,26 @@ import { closeSourceAddMenu } from './source-buttons-cursor-mode.js';
     // Profile, AI search) shares ONE #hamburger-stack shell and ONE pinned state
     // (appState.panelPinned.rail) — opening any of them closes whichever other one was showing,
     // for free, just by hiding every other railViewEls sibling and un-.active-ing every other
-    // railIconBtns entry. hmenu-full is what distinguishes the two shapes the shell can take (see
-    // #hamburger-stack's own comment, globals.css): a full-height sidebar pinned open by a click
-    // vs. a short hover preview. `onOpen` is that view's own refresh call (renderWaypointsList,
-    // buildOutline, refreshAiPanel, etc.), passed the same `pin` this call itself received —
-    // called every time, even on a hover preview, so content is never stale.
+    // railIconBtns entry. Click-only — hovering a rail icon does nothing; only a real click opens,
+    // switches, or (clicking the already-active icon again) closes a panel. `onOpen` is that
+    // view's own refresh call (renderWaypointsList, buildOutline, refreshAiPanel, etc.), called
+    // every time so content is never stale.
     // resetAiSearchState (ai-assistant-suggestions.js) is called here specifically when the AI
     // view is the one being navigated AWAY from (activeRailView was 'ai', the new key isn't) —
-    // opening AI itself, or re-hovering/re-clicking it while it's already active, must never reset
-    // an in-progress conversation. Checked BEFORE activeRailView is reassigned below, since the
+    // opening AI itself, or re-clicking it while it's already active, must never reset an
+    // in-progress conversation. Checked BEFORE activeRailView is reassigned below, since the
     // check needs the OLD value.
+    let railCloseTimeoutId = null;
     function openRailView(key, viewEl, btn, onOpen, pin) {
         clearListPanelSelection();
+        clearTimeout(railCloseTimeoutId);
         if (appState.activeRailView === 'ai' && key !== 'ai') resetAiSearchState();
-        appState.railViewEls.forEach(el => { if (el && el !== viewEl) el.classList.remove('open'); });
+        // 'closing' is removed here too, not just 'open' — in case this same view was still
+        // mid fade-out (see closeRailView below) when it (or another icon) got clicked again;
+        // without this it would stay stuck at opacity:0 despite being freshly reopened.
+        appState.railViewEls.forEach(el => { if (el && el !== viewEl) el.classList.remove('open', 'closing'); });
         appState.railIconBtns.forEach(b => { if (b && b !== btn) b.classList.remove('active'); });
+        viewEl.classList.remove('closing');
         viewEl.classList.add('open');
         btn.classList.add('active');
         appState.hamburgerStack.classList.add('open');
@@ -77,34 +82,40 @@ import { closeSourceAddMenu } from './source-buttons-cursor-mode.js';
     // Same resetAiSearchState reasoning as openRailView above, for the "close the rail entirely"
     // direction (Escape, clicking outside, etc.) — if AI was the view showing, reset it; checked
     // before activeRailView is cleared below.
+    // The shell itself (#hamburger-stack) slides away over .3s (see its own `left` transition,
+    // globals.css) the instant 'open' is removed below — but the view el's OWN display:none (see
+    // .hmenu-panel/.hub-subpanel) would normally apply in that same synchronous tick, making the
+    // content vanish instantly instead of sliding away with the shell. 'closing' (opacity
+    // transition, same .3s duration — see globals.css) keeps it visible and fading for exactly as
+    // long as the slide takes, then 'open'/'closing' are both dropped together so display:none
+    // applies only once the fade has actually finished.
     function closeRailView() {
         if (appState.activeRailView === 'ai') resetAiSearchState();
-        appState.railViewEls.forEach(el => el && el.classList.remove('open'));
+        clearTimeout(railCloseTimeoutId);
+        const closingEls = appState.railViewEls.filter(el => el && el.classList.contains('open'));
+        closingEls.forEach(el => el.classList.add('closing'));
         appState.railIconBtns.forEach(b => b && b.classList.remove('active', 'hmenu-full'));
         appState.hamburgerStack.classList.remove('open', 'hmenu-full');
         appState.activeRailView = null;
         appState.panelPinned.rail = false;
         clearListPanelSelection();
+        railCloseTimeoutId = setTimeout(() => {
+            closingEls.forEach(el => el.classList.remove('open', 'closing'));
+        }, 300);
     }
-    // Wires one rail icon's hover-preview/click-pin behavior — the same three listeners every
-    // trigger button in the app already used individually before this (compare the old per-panel
-    // wiring that used to live in marketplace.js/messages-schedule.js/profile-achievements-
-    // pricing.js), now written once instead of duplicated per file.
+    // Wires one rail icon's click-only open/switch/close — the same listener every trigger button
+    // in the app already used individually before this (compare the old per-panel wiring that
+    // used to live in marketplace.js/messages-schedule.js/profile-achievements-pricing.js), now
+    // written once instead of duplicated per file. No mouseenter/mouseleave — hovering a rail icon
+    // previews nothing; only a click ever opens, switches, or closes a panel.
     function wireRailIcon(key, btn, viewEl, onOpen) {
         btn.addEventListener('click', (e) => {
             e.stopPropagation();
-            if (appState.panelPinned.rail && appState.activeRailView === key) { closeRailView(); }
+            if (appState.activeRailView === key) { closeRailView(); }
             else { openRailView(key, viewEl, btn, onOpen, true); }
         });
-        btn.addEventListener('mouseenter', () => { if (appState.activeRailView !== key) openRailView(key, viewEl, btn, onOpen, false); });
-        btn.addEventListener('mouseleave', () => scheduleHoverClose('rail', appState.railHoverEls, closeRailView));
     }
-    appState.railViewEls.forEach(el => { if (el) el.addEventListener('mouseleave', () => scheduleHoverClose('rail', appState.railHoverEls, closeRailView)); });
-    pinOnInsideClick('rail', appState.railViewEls);
     appState.hamburgerStack.addEventListener('click', (e) => e.stopPropagation());
-    // No more "Notion-style edge peek" pointermove hack here — every rail icon is a permanent,
-    // always-visible element (see #dotto-rail's own comment, globals.css) that already receives
-    // genuine mouseenter/mouseleave events, covering everything the old hack simulated.
 
     // refreshAiPanel is a plain function reference (ai-assistant-suggestions.js) — wired here,
     // alongside every other rail icon, rather than that file calling wireRailIcon on itself at its
