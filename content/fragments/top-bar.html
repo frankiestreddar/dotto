@@ -1,16 +1,16 @@
 <!-- The permanent rail (#dotto-rail) replaces the old single #btn-menu button — a full-height
      strip of icons, each opening its own view inside #hamburger-stack (see openRailView,
-     panels-hamburger.js) via click-only open/switch/close (no hover preview). Back/forward/undo/
-     redo are plain instant-action buttons, not view triggers — no panel opens for them. Undo/redo
-     have no dedicated icon assets yet (none exist in assets/icons/) — same plain-glyph fallback
-     convention already used for the hamburger's own close icon. -->
+     panels-hamburger.js) via click-only open/switch/close (no hover preview). Undo/redo are plain
+     instant-action buttons, not view triggers — no panel opens for them, and have no dedicated
+     icon assets yet (none exist in assets/icons/) — same plain-glyph fallback convention already
+     used for the hamburger's own close icon. Back/forward live in #top-bar-center instead (see
+     #nav-arrows-pill below) — they're page-navigation, not rail-icon-style view triggers, and read
+     better beside the breadcrumb they actually move. -->
 <div id="dotto-rail">
     <button id="rail-btn-ai" class="rail-btn" title="Ask Dotbot">
         <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" aria-hidden="true"><circle cx="7" cy="7" r="5"></circle><path d="M11 11L14.5 14.5"></path></svg>
     </button>
     <button id="btn-menu" class="rail-btn" title="Outline"><img class="rail-icon-img" src="/assets/icons/menu-btn.png" alt=""><span class="btn-menu-close-icon">✕</span></button>
-    <button id="btn-back" class="rail-btn" title="Back">←</button>
-    <button id="btn-forward" class="rail-btn" title="Forward">→</button>
     <button id="rail-btn-waypoints" class="rail-btn" title="Waypoints"><img class="rail-icon-img" src="/assets/icons/waypoint.png" alt=""></button>
     <button id="rail-btn-collab" class="rail-btn" title="Collaborations"><img class="rail-icon-img" src="/assets/icons/collaboration.png" alt=""></button>
     <button id="btn-cart" class="rail-btn" title="Template Marketplace"><img class="rail-icon-img" src="/assets/icons/market-button.png" alt=""></button>
@@ -51,11 +51,16 @@
     </div>
 </div>
 <!-- Dead centre of the viewport (position:fixed, left:50% + translateX(-50%), see globals.css) —
-     independent of the rail's own left offset. Compact "…/parent/current" breadcrumb (see
-     app/dotto/BreadcrumbPill.jsx, breadcrumbMapStore) with the per-canvas "add a collaborator"
-     flyout directly to its right, both riding in the same centred group rather than each picking
-     their own position. -->
+     independent of the rail's own left offset. Back/forward (history navigation, see
+     jumpToHistoryIndex, resize-shortcuts-init.js) sit in their own pill to the left of the
+     compact "…/parent/current" breadcrumb (see app/dotto/BreadcrumbPill.jsx, breadcrumbMapStore),
+     with the per-canvas "add a collaborator" flyout to the breadcrumb's right — all three riding
+     in the same centred group rather than each picking their own position. -->
 <div id="top-bar-center">
+    <div class="bubble" id="nav-arrows-pill">
+        <button id="btn-back" class="btn" title="Back">←</button>
+        <button id="btn-forward" class="btn" title="Forward">→</button>
+    </div>
     <div class="bubble" id="breadcrumb-pill"></div>
     <div class="bubble" id="collab-bubble">
         <div id="collab-content"></div>
