@@ -249,7 +249,7 @@
        the usual grey-for-secondary-text convention. No bold anywhere in it, including the current
        segment (font-weight:400 — was 600), which still doubles as a rename control (cursor:text
        hints at that, matching a real text field). */
-    #breadcrumb-pill{padding:0 10px;gap:4px;max-width:280px;overflow:hidden;font-family:'Space Grotesk', sans-serif;}
+    #breadcrumb-pill{padding:0 16px;gap:4px;max-width:280px;overflow:hidden;font-family:'Space Grotesk', sans-serif;}
     #breadcrumb-pill .breadcrumb-pill-ellipsis,
     #breadcrumb-pill .breadcrumb-pill-parent{color:var(--ink);font-weight:400;font-size:13px;cursor:pointer;white-space:nowrap;flex:0 0 auto;}
     #breadcrumb-pill .breadcrumb-pill-ellipsis:hover,
