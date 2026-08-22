@@ -537,6 +537,10 @@ import { applyFolderView, centerOnContent, expandWaypointCard, openFolder, rende
         container.innerHTML = '';
         container.scrollTop = 0; // buildOutline only ever runs when the menu is being opened — always start at the top
         appState.outlineRows = []; appState.outlineActiveIndex = -1;
+        // buildOutline always runs on open (see wireRailIcon('outline', ...), toggleHamburgerMenu)
+        // and always rebuilds the full, unfiltered tree — clear any search term left over from a
+        // previous visit so the input doesn't lie about what's actually showing.
+        if (appState.outlineSearchInput) appState.outlineSearchInput.value = '';
 
         const rootFolder = appState.folders[appState.currentFolderId];
         const any = rootFolder ? renderOutlineFolderContents(container, rootFolder, 0, new Set([rootFolder.id])) : false;
@@ -545,6 +549,35 @@ import { applyFolderView, centerOnContent, expandWaypointCard, openFolder, rende
             const empty = document.createElement('div');
             empty.className = 'outline-empty';
             empty.textContent = 'Nothing here yet.';
+            container.appendChild(empty);
+        }
+    }
+    // Plain post-render filter over the already-built tree (appState.outlineRows, populated by
+    // buildOutline/makeRow above) rather than a rebuild with the query baked in — the tree's own
+    // grouping/proximity-sort logic (headings, nested folders, rescue-distance grouping) is complex
+    // enough that re-deriving "does this subtree contain a match" through all of it isn't worth it
+    // for what's really just a flat text filter; a plain substring match against each row's own
+    // already-rendered label, shown/hidden independently, is the same simple approach
+    // renderWaypointsList's own search (hamburger-collab.js) already uses. "All your blocks" here
+    // means everything buildOutline itself already reaches — the current canvas and its nested
+    // folders/sources, up to OUTLINE_MAX_DEPTH — not a cross-canvas search.
+    function handleOutlineSearch(query) {
+        const q = (query || '').trim().toLowerCase();
+        const container = document.getElementById('hmenu-outline-container');
+        if (!container) return;
+        let anyVisible = false;
+        appState.outlineRows.forEach(({ el }) => {
+            const label = el.querySelector('.outline-label');
+            const match = !q || (label && label.textContent.toLowerCase().includes(q));
+            el.classList.toggle('outline-row-hidden', !match);
+            if (match) anyVisible = true;
+        });
+        const existingEmpty = container.querySelector('.outline-empty');
+        if (existingEmpty) existingEmpty.remove();
+        if (q && !anyVisible) {
+            const empty = document.createElement('div');
+            empty.className = 'outline-empty';
+            empty.textContent = 'No matching blocks.';
             container.appendChild(empty);
         }
     }
@@ -584,7 +617,7 @@ import { applyFolderView, centerOnContent, expandWaypointCard, openFolder, rende
         else { openRailView('outline', appState.outlineMenu, appState.hamburgerBtn, () => { buildOutline(); setOutlineActive(0); }, true); }
     }
 
-export { announceEnteredCollaboration, breadcrumbMapRowClick, buildOutline, ensurePublicFolderLoaded, ensureSharedFolderLoaded, goToOutlineItem, jumpToHistoryIndex, kindIconFile, kindIconHTML, namespacePublicFolderIds, namespaceSharedFolderIds, openPublicCanvas, openSharedCanvas, parsePublicFolderKey, parseSharedFolderKey, publicFolderKey, renderBreadcrumbMapPanel, resolveReferenceFolderKey, setOutlineActive, sharedFolderKey, stripSharedFolderIds, toggleHamburgerMenu };
+export { announceEnteredCollaboration, breadcrumbMapRowClick, buildOutline, ensurePublicFolderLoaded, ensureSharedFolderLoaded, goToOutlineItem, handleOutlineSearch, jumpToHistoryIndex, kindIconFile, kindIconHTML, namespacePublicFolderIds, namespaceSharedFolderIds, openPublicCanvas, openSharedCanvas, parsePublicFolderKey, parseSharedFolderKey, publicFolderKey, renderBreadcrumbMapPanel, resolveReferenceFolderKey, setOutlineActive, sharedFolderKey, stripSharedFolderIds, toggleHamburgerMenu };
 
 window.__kindIconFile = kindIconFile;
 window.__openSharedCanvas = openSharedCanvas;

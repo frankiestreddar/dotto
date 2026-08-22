@@ -225,6 +225,7 @@
         railBtnCollab: document.getElementById('rail-btn-collab'),
         hamburgerBtn: document.getElementById('btn-menu'),
         outlineMenu: document.getElementById('outline-menu'),
+        outlineSearchInput: document.getElementById('outline-search'),
         hamburgerStack: document.getElementById('hamburger-stack'),
         waypointsPanel: document.getElementById('waypoints-panel'),
         waypointsSearchInput: document.getElementById('waypoints-search'),

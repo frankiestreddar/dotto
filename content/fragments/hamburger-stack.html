@@ -4,6 +4,9 @@
      shell, swapping which section is .open. -->
 <div id="hamburger-stack">
     <div id="outline-menu" class="hmenu-panel">
+        <div class="hub-subpanel-search-wrap">
+            <input id="outline-search" class="hub-subpanel-search" type="text" placeholder="Search blocks..." oninput="handleOutlineSearch(this.value)">
+        </div>
         <div id="hmenu-outline-container"></div>
     </div>
     <div id="hub-collab-panel" class="hmenu-panel hub-subpanel" onclick="event.stopPropagation()">

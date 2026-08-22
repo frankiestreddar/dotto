@@ -1449,6 +1449,9 @@
        row elsewhere (.cell-tag-picker-row.selected), distinct from both the plain :hover (#333)
        and .active (#2E2E2E) states above so a multi-select doesn't read as "currently open." */
     .outline-item-selected, .outline-item-selected:hover{background:rgba(99,102,241,0.18);color:white;}
+    /* Toggled by handleOutlineSearch (shared-canvases-outline.js) — a plain post-render filter over
+       the already-built tree (see appState.outlineRows), not a rebuild with the query baked in. */
+    .outline-item.outline-row-hidden{display:none;}
     .outline-empty{padding:12px;color:var(--ink-soft);font-size:12px;text-align:center;}
     /* No explicit color — inherits currentColor from .outline-item (grey normally, white on
        hover/active per the rules above), so the icon-mask tints along with the row's own text
