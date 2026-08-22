@@ -343,9 +343,14 @@
         notificationPill: document.getElementById('notification-pill'),
         NOTIFICATION_DEFAULT_DURATION_MS: 5000,
         NOTIF_SLIDE_MS: 300,
+        // Small pause between one of #top-bar-center/#notification-pill fully finishing its slide
+        // away and the other starting to slide in — so they never cross paths mid-transition, one
+        // fully leaves before the other arrives (see showNotification/dismissCurrentNotification).
+        NOTIF_STAGGER_MS: 150,
         notificationQueue: [],
         currentNotification: null,
         notificationTimer: null,
+        notificationStageTimer: null,
         // notifImageEl/notifTextEl/notifActionBtn removed — React owns the notification bar's
         // content now (Phase 2, see app/dotto/NotificationBar.jsx).
         NOTIFICATION_QUEUE_GAP_MS: 5000,

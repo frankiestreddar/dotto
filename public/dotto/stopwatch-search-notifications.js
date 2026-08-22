@@ -337,16 +337,26 @@ import { openFolder, render } from './waypoints-render-loop.js';
         }
         showNotification(appState.notificationQueue.shift());
     }
+    // #top-bar-center starts sliding away immediately; #notification-pill doesn't start sliding in
+    // until it's fully gone PLUS a small pause (NOTIF_SLIDE_MS + NOTIF_STAGGER_MS) — the two never
+    // cross paths mid-transition, one fully leaves before the other arrives.
     function showNotification(config) {
         appState.currentNotification = config;
         // Content itself is real React state now (see app/dotto/NotificationBar.jsx) — the
         // enter-arrow suffix on a configured action label is built there, not here.
         window.__setNotificationContent(config);
-        appState.topBarCenter.classList.add('notif-active');
-        appState.notificationPill.classList.add('notif-active');
+        clearTimeout(appState.notificationStageTimer);
         clearTimeout(appState.notificationTimer);
+        appState.topBarCenter.classList.add('notif-active');
+        appState.notificationStageTimer = setTimeout(() => {
+            appState.notificationPill.classList.add('notif-active');
+        }, appState.NOTIF_SLIDE_MS + appState.NOTIF_STAGGER_MS);
         if (!config.sticky) {
             const durationMs = config.durationMs || appState.NOTIFICATION_DEFAULT_DURATION_MS;
+            // Counted from this call, not from whenever the pill actually finishes sliding in —
+            // durationMs is a budget for the whole show, same convention entrance/exit already
+            // used before the stagger existed; wide enough margin (default 5s vs. under 1s of
+            // total entrance animation) that the pill still reads as "on screen for durationMs".
             appState.notificationTimer = setTimeout(dismissCurrentNotification, durationMs);
         }
     }
@@ -358,20 +368,24 @@ import { openFolder, render } from './waypoints-render-loop.js';
         dismissCurrentNotification();
         if (cb) cb();
     }
-    // Reverse of showNotification — #top-bar-center slides back down into view while
-    // #notification-pill slides back up and away. Only once that settles (NOTIF_SLIDE_MS later) is
-    // the queue allowed to advance to the next notification, so a back-to-back pair never overlaps
-    // or snaps between each other mid-animation.
+    // Reverse of showNotification, same staggered swap: #notification-pill starts sliding away
+    // immediately, #top-bar-center doesn't start sliding back in until the pill's fully gone plus
+    // the same small pause. Only once #top-bar-center itself has finished settling (a further
+    // NOTIF_SLIDE_MS after that) is the queue allowed to advance, so a back-to-back pair never
+    // overlaps or snaps between each other mid-animation.
     function dismissCurrentNotification() {
         if (!appState.currentNotification) return;
         clearTimeout(appState.notificationTimer);
+        clearTimeout(appState.notificationStageTimer);
         appState.currentNotification = null;
-        appState.topBarCenter.classList.remove('notif-active');
         appState.notificationPill.classList.remove('notif-active');
+        appState.notificationStageTimer = setTimeout(() => {
+            appState.topBarCenter.classList.remove('notif-active');
+        }, appState.NOTIF_SLIDE_MS + appState.NOTIF_STAGGER_MS);
         setTimeout(() => {
             appState.lastNotificationCloseTime = Date.now();
             tryShowNextNotification();
-        }, appState.NOTIF_SLIDE_MS);
+        }, appState.NOTIF_SLIDE_MS * 2 + appState.NOTIF_STAGGER_MS);
     }
     document.addEventListener('keydown', (e) => {
         if (!appState.currentNotification) return;
