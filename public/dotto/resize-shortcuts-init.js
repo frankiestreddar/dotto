@@ -23,7 +23,6 @@ import { cascadeDeleteFolderContents, centerOnContent, deleteWaypointFromDb, ren
     function setupResizing(el, it) {
         const handle = el.querySelector('.resize');
         if(!handle) return;
-        const b = el.querySelector('.body'), moreBtn = el.querySelector('.more-btn');
         handle.__resizeListenerAbort?.abort();
         const { signal } = (handle.__resizeListenerAbort = new AbortController());
         handle.addEventListener('pointerdown', (e) => {
@@ -47,9 +46,10 @@ import { cascadeDeleteFolderContents, centerOnContent, deleteWaypointFromDb, ren
             let sx = e.clientX, sy = e.clientY, sw = it.w, sh = it.h;
             const minSize = it.kind === 'table' ? 56 : 112;
             // Media cards (image/video/PDF/EPUB) resize proportionally, preserving their content's
-            // real aspect ratio, instead of each axis independently the way table/note/flashcard
-            // do — locked to the PDF page's own true ratio if it's known yet (see renderPage's
-            // it.docAspectRatio), otherwise whatever ratio the card is currently at (correct
+            // real aspect ratio, instead of each axis independently the way table/flashcard do (or
+            // width-only the way note does, just below) — locked to the PDF page's own true ratio
+            // if it's known yet (see renderPage's it.docAspectRatio), otherwise whatever ratio the
+            // card is currently at (correct
             // already for images/video, since computeMediaCardSize set w/h from the media's own
             // natural dimensions; an arbitrary starting point for EPUB, which has no fixed "page"
             // shape to lock to, but still scales proportionally from wherever it starts).
@@ -64,16 +64,26 @@ import { cascadeDeleteFolderContents, centerOnContent, deleteWaypointFromDb, ren
                     else { newH = sh + dy; newW = newH * aspectRatio; }
                     it.w = Math.max(minSize, Math.round(newW / 28) * 28);
                     it.h = Math.max(minSize, Math.round(newH / 28) * 28);
+                    el.style.width = it.w + 'px'; el.style.height = it.h + 'px';
+                } else if (it.kind === 'note') {
+                    // Width only — dy is ignored entirely. Height is never set here (or anywhere
+                    // else for notes): it's always automatic, driven by plain CSS auto-sizing at
+                    // whatever width this drag lands on (see .item.note/.body, globals.css) —
+                    // the browser reflows the text and resizes the wrapper on its own, live, with
+                    // no JS measurement needed on every pointermove.
+                    it.w = Math.max(minSize, Math.round((sw + dx) / 28) * 28);
+                    el.style.width = it.w + 'px';
                 } else {
                     it.w = Math.max(minSize, Math.round((sw + dx) / 28) * 28);
                     it.h = Math.max(minSize, Math.round((sh + dy) / 28) * 28);
+                    el.style.width = it.w + 'px'; el.style.height = it.h + 'px';
                 }
-                el.style.width = it.w + 'px'; el.style.height = it.h + 'px';
                 if (it.kind === 'table') distributeTableSizing(it, el);
-                if (b && moreBtn) moreBtn.style.display = (it.expanded || b.scrollHeight > b.clientHeight || b.scrollWidth > b.clientWidth) ? 'block' : 'none';
                 // Live visual streaming while dragging — see handleRemoteItemResize/broadcastItemResize.
                 // Purely DOM-only on the receiving end, same as item-drag; the real w/h is only
-                // committed once scheduleWorkspaceSave below runs on release.
+                // committed once scheduleWorkspaceSave below runs on release. For notes, it.h at
+                // this point is whatever attachNoteBody's ResizeObserver last measured — close
+                // enough mid-drag, and it settles exactly once that observer's next callback fires.
                 broadcastItemResize(it.id, it.w, it.h);
             };
             // Previously never called scheduleWorkspaceSave() at all — a resize wasn't synced live

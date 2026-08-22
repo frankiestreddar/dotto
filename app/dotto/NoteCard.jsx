@@ -5,13 +5,14 @@ import { useLayoutEffect } from "react";
 // Ported from the old default/untyped branch in renderLegacyCardBody (public/dotto/waypoints-
 // render-loop.js) — the most common card kind on any canvas. Format-bar (bold/italic/underline/
 // strikethrough/color) is real JSX with direct handlers (document.execCommand is a plain browser
-// API, no bridge needed); the body's click-to-edit lifecycle plus the "More…" expand/collapse
-// height animation stay vanilla as attachNoteBody, called via document.getElementById('item-'+
-// it.id) each render — same technique TitleCard uses for its wrapper-level fontSize, needed here
-// because attachNoteBody itself needs the wrapper (for the expand/collapse animation, resize, and
-// the click-to-edit classList toggle), not just the body — see that function's own comment for the
-// full reasoning (coupled to appState.currentEditingEl/broadcastEditingState, and a height:auto
-// CSS transition needs real getBoundingClientRect measurements JS has to drive).
+// API, no bridge needed); the body's click-to-edit lifecycle stays vanilla as attachNoteBody,
+// called via document.getElementById('item-'+it.id) each render — same technique TitleCard uses
+// for its wrapper-level fontSize, needed here because attachNoteBody itself needs the wrapper (for
+// resize and the click-to-edit classList toggle), not just the body — see that function's own
+// comment for the full reasoning (coupled to appState.currentEditingEl/broadcastEditingState).
+// Height is always automatic now (no more "More…" expand/collapse toggle) — width is the only
+// thing you can drag (see the right-edge-only .resize handle below), and the card just grows/
+// shrinks to fit its content at whatever width it's currently at, live, via plain CSS.
 //
 // Each format button calls e.preventDefault() on mousedown — without it, the browser's own default
 // action (shifting focus to the button) still fires after execCommand runs, blurring the
@@ -62,12 +63,11 @@ export default function NoteCard({ it }) {
         <input type="color" className="text-color-swatch" onInput={(e) => document.execCommand("foreColor", false, e.target.value)} />
       </div>
       <div className="body" data-placeholder="Note..." dangerouslySetInnerHTML={{ __html: it.html || "" }} />
-      <div className="more-btn" style={{ display: "none" }}>
-        {it.expanded ? "Collapse" : "More…"}
-      </div>
+      {/* Width only — a vertical grip, not the diagonal corner arrow every other resizable kind
+          uses (see setupResizing's it.kind === 'note' branch, resize-shortcuts-init.js). */}
       <div className="resize">
         <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
-          <path d="M10 2L2 10M10 6L6 10M10 10L10 10" />
+          <path d="M4 2v8M8 2v8" />
         </svg>
       </div>
     </>

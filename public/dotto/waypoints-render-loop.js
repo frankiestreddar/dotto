@@ -1,5 +1,5 @@
 import { clearSearch } from './ai-assistant-suggestions.js';
-import { appState, bringCardToFront, btnBack, btnForward, canvas, canvasViewportCenterX, contextMenu, supabase, world, zoomControl } from './core-state.js';
+import { appState, btnBack, btnForward, canvas, canvasViewportCenterX, contextMenu, supabase, world, zoomControl } from './core-state.js';
 import { setupDraggingAndClicking } from './drag-drop-chat.js';
 import { ensureDrawings, makeLayerSVG } from './drawing-connections.js';
 import { refreshCanvasCollabForCurrentFolder, renderCollabPill, syncCanvasCollabTitle } from './friends-presence.js';
@@ -642,6 +642,13 @@ import { applyConnections, renderConnectionsLayer } from './srs-connections-core
         if (it.kind !== 'title' && it.kind !== 'waypoint') {
             if (it.kind === 'table' && !it.userSized) {
                 // Sizing handled automatically
+            } else if (it.kind === 'note') {
+                // Width only — height is always automatic (content + current width drive it via
+                // plain CSS auto-sizing, see .item.note/.body, globals.css), never pinned from
+                // it.h here. it.h still gets kept in sync (see attachNoteBody's ResizeObserver)
+                // purely for other systems that read a card's height (collision detection when
+                // placing new cards, connection-line anchor points) — nothing here applies it.
+                el.style.width = it.w + 'px';
             } else {
                 el.style.width = it.w + 'px'; el.style.height = it.h + 'px';
             }
@@ -649,109 +656,36 @@ import { applyConnections, renderConnectionsLayer } from './srs-connections-core
     }
 
     // Click-to-edit contentEditable lifecycle for the note card (the default/untyped kind), plus
-    // its expand/collapse "More…" height animation and format-bar wiring — mechanically lifted out
-    // of the old default branch in renderLegacyCardBody, now that note is a real Component (see
-    // NoteCard.jsx, app/dotto/CanvasItemsLayer.jsx's CARD_KIND_COMPONENTS). Stays vanilla rather
-    // than becoming React state for the same reason attachWatermarkBody/attachTitleBody do — it's
-    // coupled to appState.currentEditingEl/broadcastEditingState — plus the expand/collapse
-    // animation specifically needs to measure and drive real layout (getBoundingClientRect/
-    // offsetHeight) between two concrete pixel values, something CSS alone can't do for a
-    // height:auto transition; same technique expandWaypointCardWidth/collapseWaypointCardWidth use
-    // elsewhere in this file. Takes `el` (the wrapper) directly, not a body ref like
-    // attachWatermarkBody/attachTitleBody — NoteCard's own top-level content is a Fragment (format-
-    // bar/body/more-btn/resize are siblings, matching the original markup), so there's no single
-    // child ref that would reach `el` via closest() the way those two do.
+    // format-bar wiring — mechanically lifted out of the old default branch in
+    // renderLegacyCardBody, now that note is a real Component (see NoteCard.jsx, app/dotto/
+    // CanvasItemsLayer.jsx's CARD_KIND_COMPONENTS). Stays vanilla rather than becoming React state
+    // for the same reason attachWatermarkBody/attachTitleBody do — it's coupled to
+    // appState.currentEditingEl/broadcastEditingState. Takes `el` (the wrapper) directly, not a
+    // body ref like attachWatermarkBody/attachTitleBody — NoteCard's own top-level content is a
+    // Fragment (format-bar/body/resize are siblings, matching the original markup), so there's no
+    // single child ref that would reach `el` via closest() the way those two do.
+    // Height is never touched here (or anywhere else for notes) — always automatic, driven purely
+    // by plain CSS auto-sizing at whatever width the card currently is (see .item.note/.body,
+    // globals.css): the wrapper is a flex column with no explicit height and .body sizes to its own
+    // content, so typing and resizing the width both just reflow the text and the browser does the
+    // rest, with zero JS measurement needed. No more "More…"/expand-collapse clipping toggle — a
+    // note now always shows its full content.
     function attachNoteBody(el, it) {
         const b = el.querySelector('.body');
-        const moreBtn = el.querySelector('.more-btn');
-        const isClipped = () => b.scrollHeight > b.clientHeight || b.scrollWidth > b.clientWidth;
-        el.classList.toggle('expanded', !!it.expanded);
-        if (moreBtn) {
-            requestAnimationFrame(() => { moreBtn.style.display = (it.expanded || isClipped()) ? 'block' : 'none'; });
-            moreBtn.onclick = (e) => {
-                e.stopPropagation();
-                // Expanding makes the note taller, so it can newly overlap neighboring
-                // cards it didn't before — bring it to front the same way a direct click
-                // would, rather than leaving it to whatever z-index it last had (see the
-                // now-removed hardcoded z-index:50 on .item.note.expanded in globals.css,
-                // which broke as soon as any other card's real click-driven z-index
-                // caught up to/passed 50).
-                bringCardToFront(it, el);
-                clearTimeout(el.__noteHeightTimer);
-                const expanding = !it.expanded;
-                it.expanded = expanding;
-                moreBtn.textContent = expanding ? 'Collapse' : 'More…';
-                // No render() here — a full rebuild would replace `el` already in its
-                // final state, with nothing to actually transition from/to (the "sudden
-                // jump" this fixes). Instead this animates the live element directly,
-                // mirroring expandWaypointCardWidth/collapseWaypointCardWidth's technique
-                // elsewhere in this file: CSS can't smoothly transition to/from
-                // height:auto (browsers snap instantly), so it measures the real target
-                // height in pixels first and animates between two concrete values,
-                // handing back to the CSS class (.item.note.expanded's height:auto
-                // !important) only once the transition has actually settled.
-                // setProperty(..., 'important') is needed because render() unconditionally
-                // applies a plain inline it.h+'px' height to every card (so a collapsed
-                // note keeps its own resized height) — a plain inline style can't
-                // out-rank that, but an !important one briefly can.
-                const startH = el.getBoundingClientRect().height / appState.scale;
-                if (expanding) {
-                    el.classList.add('expanded');
-                    el.style.removeProperty('height'); // let height:auto take over just long enough to measure the natural target
-                    const targetH = el.getBoundingClientRect().height / appState.scale;
-                    // .item.note.expanded .body{overflow:visible} takes effect the instant
-                    // .expanded was added above — well before the card's own height has
-                    // caught up — so without this, the full text pops into view immediately
-                    // (nothing left to clip it) while just the card's border/background
-                    // animates open underneath, which is the "sudden switch" this fixes.
-                    // Pinning a plain (non-important — the class's own overflow rule isn't
-                    // !important, unlike its height rule) inline overflow:hidden here keeps
-                    // the body clipped to whatever height the card currently has at each
-                    // frame — .body has no explicit height of its own (flex:1 1 auto, and
-                    // it's the only normal-flow child left now that format-bar/more-btn/
-                    // resize are all position:absolute), so it already exactly tracks the
-                    // card's own animating height without needing a separate animation.
-                    b.style.overflow = 'hidden';
-                    el.style.setProperty('height', startH + 'px', 'important');
-                    void el.offsetHeight; // commit the start point before animating
-                    el.style.setProperty('height', targetH + 'px', 'important');
-                    el.__noteHeightTimer = setTimeout(() => {
-                        el.style.removeProperty('height');
-                        b.style.removeProperty('overflow'); // hand back to .expanded .body{overflow:visible} now that the card has caught up to full size
-                    }, 200); // matches .item.note's own .15s height transition + a small buffer
-                } else {
-                    // Same reasoning as the expand branch, in reverse: .expanded (and so
-                    // .body{overflow:visible}) is still in effect for the whole shrink
-                    // animation below, right up until the timeout removes it — without
-                    // clipping here too, the text would hang fully visible below the
-                    // shrinking card instead of being clipped away progressively.
-                    b.style.overflow = 'hidden';
-                    el.style.setProperty('height', startH + 'px', 'important');
-                    void el.offsetHeight;
-                    el.style.setProperty('height', (it.h || startH) + 'px', 'important');
-                    el.__noteHeightTimer = setTimeout(() => {
-                        el.classList.remove('expanded');
-                        // Unlike the expand branch, there's no CSS fallback for the resting
-                        // collapsed height (no class sets it — render() normally does, via
-                        // a plain, non-important inline it.h+'px') — so this re-applies that
-                        // same value at normal priority rather than just clearing it, or
-                        // the card would end up with no height at all until the next
-                        // unrelated render().
-                        el.style.removeProperty('height');
-                        el.style.height = (it.h || startH) + 'px';
-                        // .expanded is already gone by this point, so this now falls back
-                        // to .item.note .body{overflow-y:auto} (the normal collapsed rule),
-                        // not the expanded one.
-                        b.style.removeProperty('overflow');
-                        moreBtn.style.display = (it.expanded || isClipped()) ? 'block' : 'none';
-                    }, 200);
-                }
-                scheduleWorkspaceSave();
-            };
+        // Purely a read: keeps it.h in sync with the real rendered height for OTHER systems that
+        // still read a card's height (collision detection when placing new cards, connection-line
+        // anchor points) — nothing here drives layout from it. Created once per element (guarded by
+        // the marker, same reuse pattern as b.__noteListenerAbort below) since this function reruns
+        // on every render() call (no dependency array on NoteCard's own layout effect).
+        if (!el.__noteHeightObserver) {
+            el.__noteHeightObserver = new ResizeObserver(() => {
+                it.h = Math.round(el.getBoundingClientRect().height / appState.scale);
+            });
+            el.__noteHeightObserver.observe(el);
         }
         b.__noteListenerAbort?.abort();
         const { signal } = (b.__noteListenerAbort = new AbortController());
-        b.onblur = (e) => { if(e.relatedTarget && (e.relatedTarget.closest('.format-bar') || e.relatedTarget.closest('.resize') || e.relatedTarget.closest('.more-btn'))) return; el.classList.remove('editing'); it.html = b.innerHTML; appState.currentEditingEl = null; b.contentEditable = false; broadcastEditingState(false); b.scrollTop = 0; if (moreBtn) moreBtn.style.display = (it.expanded || isClipped()) ? 'block' : 'none'; scheduleWorkspaceSave(); };
+        b.onblur = (e) => { if(e.relatedTarget && (e.relatedTarget.closest('.format-bar') || e.relatedTarget.closest('.resize'))) return; el.classList.remove('editing'); it.html = b.innerHTML; appState.currentEditingEl = null; b.contentEditable = false; broadcastEditingState(false); b.scrollTop = 0; scheduleWorkspaceSave(); };
         // Live per-keystroke commit+sync — see the identical comment on the title body in
         // attachTitleBody.
         b.oninput = () => { it.html = b.innerHTML; scheduleWorkspaceSave(); };

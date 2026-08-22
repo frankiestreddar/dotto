@@ -1943,30 +1943,28 @@
     .body{width: auto; height: auto !important; display: block; outline: none; white-space: pre-wrap; padding: 4px; min-width: 50px;}
     .body:empty::before{content:attr(data-placeholder);color:#555;}
     
-    .item.note{transition:height 0.15s ease;}
-    /* No hardcoded z-index here on purpose — an expanded note still needs to stack against
-       other cards by actual click recency (see bringCardToFront/topCardZIndex in
-       dotto-script.js), which the "More…" toggle now participates in directly. A fixed value
-       here previously let an expanded note outrank a just-clicked card whenever the session's
-       running z-index counter (which restarts low on every page load) hadn't yet caught up. */
-    .item.note.expanded{height:auto !important;box-shadow:0 8px 24px rgba(0,0,0,0.5);}
-    .item.note.expanded .body{height:auto !important;overflow:visible;max-height:none;}
-    .item.note .body{flex:1 1 auto; min-height:0; overflow-y:auto; scrollbar-width:none; -ms-overflow-style:none;}
-    .item.note .body::-webkit-scrollbar{display:none;}
-    .more-btn{position:absolute;top:6px;right:6px;z-index:2;font-size:11px;color:var(--ink-soft);background:var(--bar);border:1px solid var(--card-border);border-radius:6px;padding:2px 6px;cursor:pointer;opacity:0;transition:opacity 0.15s ease;}
-    .item.note:hover .more-btn{opacity:1;}
-    .more-btn:hover{color:white;border-color:var(--ink-soft);}
+    /* Note height is always automatic (no more "More…" expand/collapse toggle) — no explicit
+       height is ever set on .item.note (see applyItemWrapperAttrs, waypoints-render-loop.js), so
+       the wrapper (a plain flex column) just sizes to fit .body's own content height, which the
+       shared .body rule above already gives it for free (height:auto !important, no overflow
+       clipping) — no note-specific override needed at all. Typing and resizing the width both
+       simply reflow the text and the browser handles the rest, live, with no JS-driven height
+       measurement or transition needed. */
 
     .resize{position:absolute;right:0;bottom:0;width:24px;height:24px;cursor:nwse-resize;display:none;z-index:2;align-items:flex-end;justify-content:flex-end;padding:3px;color:var(--ink-soft);opacity:0;transition:opacity 0.15s ease;}
     .resize svg{width:12px;height:12px;pointer-events:none;}
-    .item.note .resize{display:flex;}
+    /* Width-only — a full-height strip along the right edge (not the bottom-right corner every
+       other resizable kind uses), ew-resize cursor, no diagonal drag possible (see
+       setupResizing's it.kind === 'note' branch, resize-shortcuts-init.js, which only ever reads
+       horizontal pointer movement for this kind). */
+    .item.note .resize{display:flex;top:0;bottom:0;right:-1px;width:10px;height:auto;cursor:ew-resize;align-items:center;justify-content:center;padding:0;border-radius:0 9px 9px 0;}
     .item.note:hover .resize{opacity:1;}
     .item.flashcard .resize{display:flex;}
     .item.flashcard:hover .resize{opacity:1;}
     /* Covers all three media sub-kinds (plain image/video, PDF, EPUB) — see renderMediaHTML/
        buildPdfViewer/buildEpubViewer, all of which now include a .resize handle; setupResizing
-       locks their drag to the content's own aspect ratio instead of table/note/flashcard's free
-       independent width/height. */
+       locks their drag to the content's own aspect ratio instead of table/flashcard's free
+       independent width/height (or note's width-only drag, just above). */
     .item.media .resize{display:flex;background:rgba(0,0,0,0.35);border-radius:4px 0 0 0;}
     .item.media:hover .resize{opacity:1;}
     .resize:hover{color:var(--ink);}

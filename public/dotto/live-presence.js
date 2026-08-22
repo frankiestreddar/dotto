@@ -463,7 +463,11 @@ import { render } from './waypoints-render-loop.js';
         const el = document.getElementById('item-' + payload.id);
         if (!el) return;
         el.style.width = payload.w + 'px';
-        el.style.height = payload.h + 'px';
+        // Notes never get an explicit height, even here — it's always automatic (see
+        // applyItemWrapperAttrs, waypoints-render-loop.js) — pinning one on a remote
+        // collaborator's screen while the owner drags would fight that and either clip content or
+        // leave a gap until something else happened to clear it.
+        if (!el.classList.contains('note')) el.style.height = payload.h + 'px';
     }
     function broadcastItemResize(id, w, h) {
         if (!appState.canvasPresenceChannel || appState.itemResizeBroadcastThrottleId) return;
