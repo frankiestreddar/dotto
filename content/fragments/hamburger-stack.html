@@ -1,7 +1,7 @@
 <!-- Hamburger Panels (stacked) — each is now its own rail icon's view (see #dotto-rail, top-bar.html,
      and openRailView/wireRailIcon, panels-hamburger.js), not reached via an account-menu row
-     anymore. Waypoints/Collaborations/Marketplace/Messages/Add/Profile/AI-search all share this one
-     shell, swapping which section is .open. -->
+     anymore. Waypoints/Collaborations/Marketplace/Library/Messages/Add/Profile/AI-search all share
+     this one shell, swapping which section is .open. -->
 <div id="hamburger-stack">
     <div id="outline-menu" class="hmenu-panel">
         <div class="hub-subpanel-search-wrap">
@@ -98,24 +98,12 @@
             </div>
         </div>
     </div>
-    <!-- Marketplace — moved here from its own standalone floating card (content/fragments/
-         cart-panel.html, now empty/unused) now that it shares this permanent rail shell (see
-         refreshCartPanel/wireRailIcon, marketplace.js). Internal Discover/Library tab-switching
-         and the detail/publish-flow drill-down views are all unchanged from before. -->
+    <!-- Marketplace (Discover) — moved here from its own standalone floating card (content/
+         fragments/cart-panel.html, now empty/unused) now that it shares this permanent rail shell
+         (see refreshCartPanel/wireRailIcon, marketplace.js). Used to also contain a Library tab
+         (Discover/Library tab-switcher) — Library is a fully separate rail icon/panel now (see
+         #library-panel below), so this is Discover-browsing only. -->
     <div id="cart-panel" class="hmenu-panel hub-subpanel" onclick="event.stopPropagation()">
-        <div id="cart-tabs">
-            <div class="cart-tab-btn active" id="tab-discover-btn" onclick="switchCartTab('discover')">Discover</div>
-            <div class="cart-tab-btn" id="tab-library-btn" onclick="switchCartTab('library')">Library</div>
-        </div>
-
-        <!-- Dynamic Drop Box Overlays on Active Template Building Drag... -->
-        <div id="cart-dropzone-overlay">
-            <div class="dropzone-box">
-                <div class="dropzone-title">Drop cards here to create new draft</div>
-                <div class="dropzone-sub">All selected nodes will be packaged beautifully as a reusable workflow snapshot template.</div>
-            </div>
-        </div>
-
         <!-- Discover View -->
         <div class="cart-view active" id="view-discover">
             <div class="marketplace-search-wrap">
@@ -127,15 +115,41 @@
         <!-- Discover Details View -->
         <div id="market-detail-view">
             <div class="p-3 border-b border-neutral-800 bg-neutral-900/40 flex items-center gap-2">
-                <button onclick="closeMarketDetail()" class="text-neutral-400 hover:text-white text-xs">← Back to Discover</button>
+                <button onclick="closeMarketDetail()" class="text-neutral-400 hover:text-white text-xs">← Back to Marketplace</button>
             </div>
             <div class="detail-scroll-area" id="market-detail-content"></div>
             <div class="detail-buy-footer">
                 <button class="btn-buy" id="btn-buy-action" onclick="purchaseCurrentMarketItem()">Buy Template Blueprint</button>
             </div>
         </div>
+    </div>
+    <!-- Library — your own drafts/published/purchased items. Used to be a tab sharing #cart-panel
+         with Discover; now a fully separate rail icon/panel (see wireRailIcon('library', ...),
+         marketplace.js) since browsing your own items and browsing others' listings are different
+         enough tasks to warrant their own icon rather than a tab click to switch between them. -->
+    <div id="library-panel" class="hmenu-panel hub-subpanel" onclick="event.stopPropagation()">
+        <!-- Dynamic Drop Box Overlay on Active Template Building Drag — packaging cards you drag
+             onto this panel into a new draft (packageSelectedAsTemplate, marketplace.js) lands in
+             your own Library, so this lives here now rather than on Marketplace/Discover. -->
+        <div id="library-dropzone-overlay">
+            <div class="dropzone-box">
+                <div class="dropzone-title">Drop cards here to create new draft</div>
+                <div class="dropzone-sub">All selected nodes will be packaged beautifully as a reusable workflow snapshot template.</div>
+            </div>
+        </div>
 
-        <!-- Item Detail View: shown after dropping cards into the marketplace (an already-saved
+        <!-- Library View -->
+        <div class="cart-view active" id="view-library">
+            <div class="library-search-wrap">
+                <input class="marketplace-search" id="library-search" type="text" placeholder="Search your library..." oninput="handleLibrarySearch(this.value)">
+            </div>
+            <div class="library-back-row" id="library-back-row" onclick="switchLibraryFolder(null)">
+                <span>←</span><span id="library-back-label">Back to folders</span>
+            </div>
+            <div class="library-list" id="library-list-container"></div>
+        </div>
+
+        <!-- Item Detail View: shown after dropping cards into the library (an already-saved
              draft, ready to edit) and whenever a drafts/published/purchased library item is
              clicked into, to view its description + inline-canvas preview. -->
         <div id="item-detail-view">
@@ -166,17 +180,6 @@
             <div class="detail-buy-footer">
                 <button class="btn-buy" onclick="confirmPublishFlow()">Publish</button>
             </div>
-        </div>
-
-        <!-- Library View -->
-        <div class="cart-view" id="view-library">
-            <div class="library-search-wrap">
-                <input class="marketplace-search" id="library-search" type="text" placeholder="Search your library..." oninput="handleLibrarySearch(this.value)">
-            </div>
-            <div class="library-back-row" id="library-back-row" onclick="switchLibraryFolder(null)">
-                <span>←</span><span id="library-back-label">Back to folders</span>
-            </div>
-            <div class="library-list" id="library-list-container"></div>
         </div>
     </div>
     <!-- Messages — moved here from its own standalone floating card (content/fragments/

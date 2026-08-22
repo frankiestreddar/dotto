@@ -10,15 +10,16 @@ import { refreshMyLibrary, renderLibrary, switchLibraryFolder } from './marketpl
         appState.detailSourceFolder = sourceFolder;
         appState.detailOriginal = { title: item.title, description: item.description || '', price: item.price || '' };
 
-        // Keep the marketplace panel open (pinned) while the detail page is showing — Marketplace
-        // shares the one rail-wide pinned flag now (see appState.panelPinned.rail, core-state.js).
+        // Keep the Library panel open (pinned) while the detail page is showing — Library shares
+        // the one rail-wide pinned flag now (see appState.panelPinned.rail, core-state.js). Both
+        // callers (a library row click, or packageSelectedAsTemplate's drag-drop) only ever reach
+        // this while the Library panel is already the open rail view, so this is just making that
+        // state explicit rather than actually switching panels.
         appState.panelPinned.rail = true;
-        appState.cartPanel.classList.add('open');
-        appState.btnCart.classList.add('active');
+        appState.libraryPanel.classList.add('open');
+        appState.libraryBtn.classList.add('active');
 
-        document.getElementById('view-discover').classList.remove('active');
         document.getElementById('view-library').classList.remove('active');
-        document.getElementById('market-detail-view').classList.remove('active');
         document.getElementById('publish-flow-view').classList.remove('active');
         document.getElementById('item-detail-view').classList.add('active');
 

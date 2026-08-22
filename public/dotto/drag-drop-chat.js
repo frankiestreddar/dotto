@@ -160,12 +160,14 @@ import { performMerge, render, renderSelectedOutlines } from './waypoints-render
             };
 
             const checkDropTargets = () => {
-                // Detect if cursor is over cart panel dropzone
-                const cartPanelOpen = appState.cartPanel.classList.contains('open');
-                if (cartPanelOpen) {
-                    const cartRect = appState.cartPanel.getBoundingClientRect();
-                    const overCart = (lastClientX >= cartRect.left && lastClientX <= cartRect.right && lastClientY >= cartRect.top && lastClientY <= cartRect.bottom);
-                    document.getElementById('cart-dropzone-overlay').classList.toggle('active', overCart);
+                // Detect if cursor is over the Library panel's dropzone — packaging cards into a
+                // draft (packageSelectedAsTemplate) lands in your own Library, so this targets that
+                // panel now rather than Marketplace/Discover.
+                const libraryPanelOpen = appState.libraryPanel.classList.contains('open');
+                if (libraryPanelOpen) {
+                    const libraryRect = appState.libraryPanel.getBoundingClientRect();
+                    const overLibrary = (lastClientX >= libraryRect.left && lastClientX <= libraryRect.right && lastClientY >= libraryRect.top && lastClientY <= libraryRect.bottom);
+                    document.getElementById('library-dropzone-overlay').classList.toggle('active', overLibrary);
                 }
 
                 // Detect merging folder highlights
@@ -257,7 +259,7 @@ import { performMerge, render, renderSelectedOutlines } from './waypoints-render
                 }
 
                 // Hide dragover templates dropbox overlay
-                document.getElementById('cart-dropzone-overlay').classList.remove('active');
+                document.getElementById('library-dropzone-overlay').classList.remove('active');
 
                 // Check Drop zones intersects
                 const mX = me.clientX;
@@ -273,9 +275,9 @@ import { performMerge, render, renderSelectedOutlines } from './waypoints-render
                     }
                 }
 
-                // 2. Drop into Template Marketplace Dropbox
-                if (appState.cartPanel.classList.contains('open')) {
-                    const rect = appState.cartPanel.getBoundingClientRect();
+                // 2. Drop into Library Dropbox (packages the dragged card(s) as a new draft)
+                if (appState.libraryPanel.classList.contains('open')) {
+                    const rect = appState.libraryPanel.getBoundingClientRect();
                     if (mX >= rect.left && mX <= rect.right && mY >= rect.top && mY <= rect.bottom) {
                         packageSelectedAsTemplate(targetIt);
                         droppedOnTarget = true;

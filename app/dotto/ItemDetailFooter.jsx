@@ -5,10 +5,11 @@ import { createPortal } from "react-dom";
 import { itemDetailFooterStore } from "./bridges";
 import usePortalNode from "./usePortalNode";
 
-// Portals into #item-detail-footer (content/fragments/cart-panel.html) — a plain positioned div,
-// safe to portal into directly (only ever written by renderItemDetailFooter, see that function's
-// own comment). The rest of the Item Detail view (title/price/desc fields, canvas preview) and
-// the whole Publish Flow view stay vanilla — see itemDetailFooterStore's comment in bridges.js.
+// Portals into #item-detail-footer (content/fragments/hamburger-stack.html, #library-panel — Item
+// Detail is a Library view now, not Marketplace/Discover) — a plain positioned div, safe to portal
+// into directly (only ever written by renderItemDetailFooter, see that function's own comment).
+// The rest of the Item Detail view (title/price/desc fields, canvas preview) and the whole Publish
+// Flow view stay vanilla — see itemDetailFooterStore's comment in bridges.js.
 export default function ItemDetailFooter() {
   const state = useSyncExternalStore(itemDetailFooterStore.subscribe, itemDetailFooterStore.getSnapshot, () => null);
   const portalNode = usePortalNode("item-detail-footer");

@@ -897,9 +897,10 @@
        input) instead of staying the same dim grey whether the box is empty or full. */
     #msg-convo-send.has-text{background:var(--brand);border-color:var(--brand);color:#fff;}
 
-    #cart-tabs{display:flex;border-bottom:1px solid var(--card-border);background:#1a1a1a;}
-    .cart-tab-btn{flex:1;padding:10px;font-size:12px;color:var(--ink-soft);text-align:center;cursor:pointer;font-weight:600;}
-    .cart-tab-btn.active{color:var(--ink);background:var(--bar);border-bottom:1px solid var(--brand);}
+    /* Shared by #view-discover (Marketplace) and #view-library (Library) — each panel's own
+       "browse" view, one of a few toggled full-panel views within that panel (detail/publish-flow
+       drill-downs are the others). No more #cart-tabs/.cart-tab-btn tab-switcher — Discover and
+       Library are two separate rail panels now, not two tabs sharing one. */
     .cart-view{display:none;flex:1 1 auto;flex-direction:column;min-height:0;overflow:hidden;}
     .cart-view.active{display:flex;}
     
@@ -989,8 +990,8 @@
     .lib-remove-btn{flex:0 0 auto;font-size:11px;background:none;color:var(--ink-soft);border:none;cursor:pointer;padding:2px 4px;}
     .lib-remove-btn:hover{color:var(--ink);}
 
-    #cart-dropzone-overlay{display:none;position:absolute;inset:0;background:rgba(99, 102, 241, 0.95);z-index:100;align-items:center;justify-content:center;flex-direction:column;padding:24px;text-align:center;color:white;}
-    #cart-dropzone-overlay.active{display:flex;}
+    #library-dropzone-overlay{display:none;position:absolute;inset:0;background:rgba(99, 102, 241, 0.95);z-index:100;align-items:center;justify-content:center;flex-direction:column;padding:24px;text-align:center;color:white;}
+    #library-dropzone-overlay.active{display:flex;}
     .dropzone-box{border:2px dashed white;border-radius:12px;padding:24px;width:100%;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;}
     .dropzone-title{font-size:16px;font-weight:700;}
     .dropzone-sub{font-size:11px;opacity:0.8;line-height:1.4;}

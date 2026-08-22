@@ -22,8 +22,8 @@ function InlineCanvasPreview({ item }) {
   return <div ref={ref} />;
 }
 
-// Portals into #market-detail-content (content/fragments/cart-panel.html) — a plain scroll-area
-// container, safe to portal into directly, same as the other panels this wave.
+// Portals into #market-detail-content (content/fragments/hamburger-stack.html, #cart-panel) — a
+// plain scroll-area container, safe to portal into directly, same as the other panels this wave.
 export default function MarketDetailPanel() {
   const item = useSyncExternalStore(marketDetailStore.subscribe, marketDetailStore.getSnapshot, () => null);
   const portalNode = usePortalNode("market-detail-content");

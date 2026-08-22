@@ -48,7 +48,7 @@ import { closeSourceAddMenu } from './source-buttons-cursor-mode.js';
     // resting on the panel, no input actually clicked into) would silently do nothing for most
     // letters, then hijack focus to the AI search box the instant a space or "/" was typed —
     // reading as "if you start typing, it starts inputting in the text box." Outline/Waypoints/
-    // Collaborations/Marketplace/Messages/Add/Profile all share one rail shell now (see
+    // Collaborations/Marketplace/Library/Messages/Add/Profile all share one rail shell now (see
     // appState.railViewEls, core-state.js) — checking the whole list covers all of them in one go
     // instead of naming each one individually.
     function isAnyUiPanelOpen() {
@@ -60,8 +60,8 @@ import { closeSourceAddMenu } from './source-buttons-cursor-mode.js';
     }
 
     // ---------- Permanent rail: one shared sliding shell, many trigger icons ----------
-    // Every panel-style rail icon (outline, Waypoints, Collaborations, Marketplace, Messages,
-    // Profile, AI search) shares ONE #hamburger-stack shell and ONE pinned state
+    // Every panel-style rail icon (outline, Waypoints, Collaborations, Marketplace, Library,
+    // Messages, Profile, AI search) shares ONE #hamburger-stack shell and ONE pinned state
     // (appState.panelPinned.rail) — opening any of them closes whichever other one was showing,
     // for free, just by hiding every other railViewEls sibling and un-.active-ing every other
     // railIconBtns entry. Click-only — hovering a rail icon does nothing; only a real click opens,

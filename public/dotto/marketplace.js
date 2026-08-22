@@ -2,34 +2,56 @@ import { appState, canvas, supabase } from './core-state.js';
 import { saveSnapshot } from './history-autosave.js';
 import { openItemDetail } from './library-publish.js';
 import { findItemById, importSharedCardsAtScreenPoint, sanitizeFlashcardSnapshot, snapshotItem } from './live-presence.js';
-import { wireRailIcon } from './panels-hamburger.js';
+import { closeRailView, openRailView, wireRailIcon } from './panels-hamburger.js';
 import { render, renderSelectedOutlines } from './waypoints-render-loop.js';
 
 
-    // ---------- Template Marketplace Features ----------
-    // Restores whichever tab (discover/library) was last active, clearing any transient
-    // detail/publish-flow view. Nothing is ever lost by calling this — drafts are persisted
-    // to the database the moment they're created, so there's no "discard" state to worry about.
-    function resetCartPanelToTabView() {
+    // ---------- Template Marketplace (Discover) — browsing other creators' published templates.
+    // Library (your own drafts/published/purchased items) is a separate rail panel, below. ----------
+    // Restores the browse view, clearing any transient detail drill-down. Nothing is ever lost by
+    // calling this — a listing you're browsing is read-only until purchased/published elsewhere.
+    function resetMarketplacePanelView() {
         document.getElementById('market-detail-view').classList.remove('active');
-        document.getElementById('item-detail-view').classList.remove('active');
-        document.getElementById('publish-flow-view').classList.remove('active');
-        document.getElementById('view-discover').classList.toggle('active', appState.activeCartTab === 'discover');
-        document.getElementById('view-library').classList.toggle('active', appState.activeCartTab === 'library');
+        document.getElementById('view-discover').classList.add('active');
     }
     // Marketplace shares the permanent rail's one shell/pinned-state now (see openRailView/
     // wireRailIcon, panels-hamburger.js) — no more of its own positionCartPanel (the shell is
     // already positioned beside the rail) or its own click/hover/pin wiring (wireRailIcon covers
-    // that generically). This onOpen callback fires every time the Marketplace icon is hovered or
-    // clicked, same as openCartPanel always did.
+    // that generically). This onOpen callback fires every time the Marketplace icon is clicked.
     async function refreshCartPanel() {
         appState.selectedMarketItem = null;
-        resetCartPanelToTabView();
-        await Promise.all([refreshMarketplaceListings(), refreshMyLibrary()]);
+        resetMarketplacePanelView();
+        await refreshMarketplaceListings();
         renderMarketplaceDiscover();
-        renderLibrary();
     }
     wireRailIcon('marketplace', appState.btnCart, appState.cartPanel, refreshCartPanel);
+
+    // ---------- Library — your own drafts/published/purchased items. Used to be a tab sharing
+    // #cart-panel with Discover; now a fully separate rail icon/panel. ----------
+    // Restores the folder-picker view, clearing any transient item-detail/publish-flow drill-down.
+    function resetLibraryPanelView() {
+        document.getElementById('item-detail-view').classList.remove('active');
+        document.getElementById('publish-flow-view').classList.remove('active');
+        document.getElementById('view-library').classList.add('active');
+    }
+    async function refreshLibraryPanel() {
+        resetLibraryPanelView();
+        appState.activeLibraryFolder = null;
+        await refreshMyLibrary();
+        renderLibrary();
+    }
+    wireRailIcon('library', appState.libraryBtn, appState.libraryPanel, refreshLibraryPanel);
+    // Opens the Library panel straight to a specific folder — used after a purchase (jump to
+    // Purchased) or after packaging a draft via drag-and-drop (jump to Drafts) — rather than
+    // landing on the folder picker and making the user click into it themselves. Passes null as
+    // openRailView's own onOpen (skips refreshLibraryPanel's reset-to-folder-picker) since this
+    // does the equivalent sequence itself, ending on the requested folder instead.
+    async function openLibraryToFolder(folder) {
+        openRailView('library', appState.libraryPanel, appState.libraryBtn, null, true);
+        resetLibraryPanelView();
+        await refreshMyLibrary();
+        switchLibraryFolder(folder);
+    }
 
     // Listings are cached in trendingMarketplace / userLibrary.{purchased,drafts,published}
     // (same shape and variable names the render functions below already
@@ -84,21 +106,6 @@ import { render, renderSelectedOutlines } from './waypoints-render-loop.js';
         appState.userLibrary.purchased = (acquired || []).filter(r => r.listing).map(r => ({ ...marketplaceItemFromRow(r.listing), acquiredAt: r.acquired_at }));
     }
 
-    async function switchCartTab(tab) {
-        appState.activeCartTab = tab;
-        document.getElementById('tab-discover-btn').classList.toggle('active', tab === 'discover');
-        document.getElementById('tab-library-btn').classList.toggle('active', tab === 'library');
-
-        document.getElementById('view-discover').classList.toggle('active', tab === 'discover');
-        document.getElementById('view-library').classList.toggle('active', tab === 'library');
-        document.getElementById('market-detail-view').classList.remove('active');
-        document.getElementById('item-detail-view').classList.remove('active');
-        document.getElementById('publish-flow-view').classList.remove('active');
-
-        if (tab === 'discover') { await refreshMarketplaceListings(); renderMarketplaceDiscover(); }
-        else { appState.activeLibraryFolder = null; document.getElementById('library-back-row').classList.remove('show'); await refreshMyLibrary(); renderLibrary(); }
-    }
-
     function switchLibraryFolder(folder) {
         appState.activeLibraryFolder = folder;
         const backRow = document.getElementById('library-back-row');
@@ -131,8 +138,8 @@ import { render, renderSelectedOutlines } from './waypoints-render-loop.js';
     // "vanilla builds live DOM, React just mounts it" pattern as buildFolderInlineCanvas — the
     // preview needs a real live DOM tree of its own, pdf.js-style, not an HTML string). Which VIEW
     // is showing (#view-discover vs #market-detail-view) stays a vanilla classList toggle — that's
-    // shared machinery with switchCartTab/openItemDetail/startPublishFlow elsewhere in this
-    // cluster, not something to partially hand to React without converting all of them together.
+    // shared machinery with resetMarketplacePanelView/openItemDetail/startPublishFlow elsewhere in
+    // this cluster, not something to partially hand to React without converting all of them together.
     function openMarketDetail(item) {
         appState.selectedMarketItem = item;
         document.getElementById('view-discover').classList.remove('active');
@@ -154,7 +161,7 @@ import { render, renderSelectedOutlines } from './waypoints-render-loop.js';
         if (alreadyOwns) {
             alert("This template snapshot is already inside your Library!");
             closeMarketDetail();
-            switchCartTab('library');
+            openLibraryToFolder('purchased');
             return;
         }
 
@@ -165,8 +172,7 @@ import { render, renderSelectedOutlines } from './waypoints-render-loop.js';
 
         alert(`Successfully purchased "${appState.selectedMarketItem.title}" as a customizable template snapshot!`);
         closeMarketDetail();
-        switchCartTab('library');
-        switchLibraryFolder('purchased');
+        openLibraryToFolder('purchased');
     }
 
     // Real React state now (see app/dotto/LibraryPanel.jsx, libraryViewStore) — genuine JSX rows
@@ -303,14 +309,14 @@ import { render, renderSelectedOutlines } from './waypoints-render-loop.js';
                 window.removeEventListener('pointerup', up);
                 if (dragGhost) dragGhost.remove();
                 if (!dragStarted) { openItemDetail(item, 'drafts'); return; }
-                const panelRect = appState.cartPanel.getBoundingClientRect();
+                const panelRect = appState.libraryPanel.getBoundingClientRect();
                 const overPanel = ue.clientX >= panelRect.left && ue.clientX <= panelRect.right && ue.clientY >= panelRect.top && ue.clientY <= panelRect.bottom;
                 if (overPanel) return;
                 const canvasRect = canvas.getBoundingClientRect();
                 const overCanvas = ue.clientX >= canvasRect.left && ue.clientX <= canvasRect.right && ue.clientY >= canvasRect.top && ue.clientY <= canvasRect.bottom;
                 if (!overCanvas) return;
                 importSharedCardsAtScreenPoint(item.nodes, ue.clientX, ue.clientY);
-                closeCartPanel();
+                closeRailView();
             };
             window.addEventListener('pointermove', move);
             window.addEventListener('pointerup', up);
@@ -337,7 +343,7 @@ import { render, renderSelectedOutlines } from './waypoints-render-loop.js';
         });
 
         render();
-        closeCartPanel();
+        closeRailView();
     }
 
     function packageSelectedAsTemplate(targetIt) {
@@ -376,17 +382,15 @@ import { render, renderSelectedOutlines } from './waypoints-render-loop.js';
         const newItem = marketplaceItemFromRow(data);
         appState.userLibrary.drafts.unshift(newItem);
 
-        appState.activeCartTab = 'library';
-        appState.activeLibraryFolder = 'drafts';
-        document.getElementById('tab-discover-btn').classList.remove('active');
-        document.getElementById('tab-library-btn').classList.add('active');
-        document.getElementById('library-back-row').classList.add('show');
-        document.getElementById('library-back-label').textContent = 'Back to folders';
-
+        // packageSelectedAsTemplate (which called this) only ever fires while a card is dropped
+        // onto the Library panel, which is therefore already open — just switch its folder and
+        // open the new draft, no need to open the panel itself (unlike openLibraryToFolder, used
+        // for the purchase flow, which isn't reached from inside an already-open Library panel).
+        switchLibraryFolder('drafts');
         openItemDetail(newItem, 'drafts');
     }
 
-export { addItemToCustomFolderById, closeMarketDetail, deployPurchasedTemplate, handleLibrarySearch, handleMarketplaceSearch, openMarketDetail, packageSelectedAsTemplate, purchaseCurrentMarketItem, refreshMyLibrary, removeFromCustomFolder, renderLibrary, switchCartTab, switchLibraryFolder };
+export { addItemToCustomFolderById, closeMarketDetail, deployPurchasedTemplate, handleLibrarySearch, handleMarketplaceSearch, openMarketDetail, packageSelectedAsTemplate, purchaseCurrentMarketItem, refreshMyLibrary, removeFromCustomFolder, renderLibrary, switchLibraryFolder };
 
 // React → vanilla bridges — used by MarketDiscoverPanel.jsx/LibraryPanel.jsx/ItemDetailFooter.jsx
 // (app/dotto/), which can't import this directly since public/dotto/*.js isn't reachable from

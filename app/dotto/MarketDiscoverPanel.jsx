@@ -23,8 +23,8 @@ function MarketItemRow({ item }) {
   );
 }
 
-// Portals into #market-list-container (content/fragments/cart-panel.html) — a plain flex-item
-// container, safe to portal into directly, same as #waypoints-list and friends.
+// Portals into #market-list-container (content/fragments/hamburger-stack.html, #cart-panel) — a
+// plain flex-item container, safe to portal into directly, same as #waypoints-list and friends.
 export default function MarketDiscoverPanel() {
   const items = useSyncExternalStore(marketDiscoverStore.subscribe, marketDiscoverStore.getSnapshot, () => EMPTY_ITEMS);
   const portalNode = usePortalNode("market-list-container");

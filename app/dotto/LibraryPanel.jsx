@@ -118,8 +118,10 @@ function LibrarySearchResultRow({ r }) {
   );
 }
 
-// Portals into #library-list-container (content/fragments/cart-panel.html) — a plain flex-item
-// container, safe to portal into directly, same as #market-list-container and friends.
+// Portals into #library-list-container (content/fragments/hamburger-stack.html, #library-panel —
+// its own separate rail panel now, not a tab sharing #cart-panel with Marketplace/Discover) — a
+// plain flex-item container, safe to portal into directly, same as #market-list-container and
+// friends.
 export default function LibraryPanel() {
   const state = useSyncExternalStore(libraryViewStore.subscribe, libraryViewStore.getSnapshot, () => EMPTY_STATE);
   const portalNode = usePortalNode("library-list-container");

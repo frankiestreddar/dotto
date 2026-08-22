@@ -104,7 +104,6 @@
             { id: 'p4c', x: 250, y: 70, w: 220, h: 112, kind: 'note', html: 'Revenue Streams' }
           ] }
     ],
-        activeCartTab: 'discover',
         activeLibraryFolder: null,
         librarySearchQuery: '',
         marketplaceSearchQuery: '',
@@ -383,6 +382,8 @@
         OUTLINE_RESCUE_MAX_DIST: 10 * 28,
         btnCart: document.getElementById('btn-cart'),
         cartPanel: document.getElementById('cart-panel'),
+        libraryBtn: document.getElementById('btn-library'),
+        libraryPanel: document.getElementById('library-panel'),
         libraryFolderLabels: { purchased: 'Purchased', drafts: 'Drafts', published: 'Published' },
         detailItem: null,
         detailSourceFolder: null,
@@ -394,12 +395,14 @@
     appState.modeButtons = Array.from(appState.modeToolbar.querySelectorAll('.mode-btn'));
     // Every panel-style rail view, in the same order as their icons top-to-bottom in #dotto-rail
     // (see openRailView/closeRailView, panels-hamburger.js) — replaces the old hubSubpanels (just
-    // Waypoints/Collaborations/Chats) now that Marketplace/Messages/Add/Profile/AI search share the
-    // exact same "one shell, swap which section is .open" mechanism. #chats-panel is deliberately
-    // NOT here — Chats is a sub-view reached from inside the AI view (searchBar), not a top-level
-    // rail destination of its own.
-    appState.railViewEls = [appState.aiPanel, appState.outlineMenu, appState.waypointsPanel, appState.hubCollabPanel, appState.cartPanel, appState.messagesPanel, addMenu, appState.profilePanel];
-    appState.railIconBtns = [appState.railBtnAi, appState.hamburgerBtn, appState.railBtnWaypoints, appState.railBtnCollab, appState.btnCart, appState.messagesBtn, btnAdd, appState.profileBtn];
+    // Waypoints/Collaborations/Chats) now that Marketplace/Library/Messages/Add/Profile/AI search
+    // share the exact same "one shell, swap which section is .open" mechanism. Library is a
+    // separate rail view from Marketplace (own icon, own panel) — they used to be two tabs sharing
+    // one #cart-panel; #cart-panel is now Discover browsing only. #chats-panel is deliberately NOT
+    // here — Chats is a sub-view reached from inside the AI view (searchBar), not a top-level rail
+    // destination of its own.
+    appState.railViewEls = [appState.aiPanel, appState.outlineMenu, appState.waypointsPanel, appState.hubCollabPanel, appState.cartPanel, appState.libraryPanel, appState.messagesPanel, addMenu, appState.profilePanel];
+    appState.railIconBtns = [appState.railBtnAi, appState.hamburgerBtn, appState.railBtnWaypoints, appState.railBtnCollab, appState.btnCart, appState.libraryBtn, appState.messagesBtn, btnAdd, appState.profileBtn];
     appState.TOTAL_SUB_LEVELS = appState.LEVEL_NAMES.length * appState.SUB_RANKS_PER_TIER;
     // Same reason as the block above: can't reference appState.currentUser from inside appState's
     // own object literal, since appState doesn't exist yet until that literal finishes constructing.
