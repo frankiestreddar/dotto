@@ -1545,7 +1545,8 @@
     .item-table tr:last-child td:first-child{border-bottom-left-radius:10px;}
     .item-table tr:last-child td:last-child{border-bottom-right-radius:10px;}
     /* Purple focus indicator for whichever cell is currently being edited — recolors the cell's
-       OWN actual border directly, the same width, at the exact same position, since
+       OWN actual border directly, at the exact same position (double the normal 1px grid-line
+       width, so the focused cell reads clearly against the rest of the grid), since
        border-collapse:separate means this cell's border is fully its own (not shared/contested
        with a neighbor the way collapse mode's conflict resolution could drop it on some sides).
        :focus-within (not :focus) so one rule covers both table variants: the plain canvas
@@ -1559,8 +1560,8 @@
        silently lost to that rule and showed no highlight at all despite :focus-within matching
        correctly. A focus state should unconditionally win regardless of which table variant it's
        in, rather than this needing to keep re-winning a specificity race against every existing
-       (and future) per-variant border-color override. */
-    .item-table td:focus-within{border-color:var(--brand) !important;}
+       (and future) per-variant border-color/border-width override. */
+    .item-table td:focus-within{border-color:var(--brand) !important;border-width:2px !important;}
     /* The actual per-row "make room for the tag button" shift is handled in JS
        (attachStaticTableHoverZones toggling `.row-tag-shift` on just the hovered row's first
        cell's `.cell-inner` — see the rule near .static-table-row-tag-strip-wrap above) rather

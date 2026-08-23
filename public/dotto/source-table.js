@@ -2,7 +2,7 @@ import { escapeHtml, stripHtml } from './ai-assistant-suggestions.js';
 import { appState } from './core-state.js';
 import { resolveTableForEdit } from './drawing-connections.js';
 import { saveSnapshot, scheduleWorkspaceSave } from './history-autosave.js';
-import { findItemById } from './live-presence.js';
+import { findItemById, placeCaretEnd } from './live-presence.js';
 import { closeSourceAddMenu } from './source-buttons-cursor-mode.js';
 import { openRowTagPicker, tagPillsHTML } from './source-tags-ai.js';
 import { render } from './waypoints-render-loop.js';
@@ -56,12 +56,28 @@ import { render } from './waypoints-render-loop.js';
             </div>`;
         }).join('');
     }
+    // Mirrors the folder/waypoint title rename's own "the first click into an unfocused field
+    // always lands the caret at the end, not wherever you clicked" behavior
+    // (startRenameFolderCardTitle, waypoints-render-loop.js) — but .cell-text is always
+    // contentEditable here (never toggled on click the way a rename field is), so "was this the
+    // very first click into an unfocused cell" is detected via mousedown firing BEFORE the
+    // browser's own focus+click-to-caret handling, rather than a contentEditable-state check.
+    // document.activeElement !== el at that point means this cell wasn't already focused; the
+    // deferred call runs AFTER the native click has done its own (wrong, for this one case)
+    // caret placement, overriding it. Once the cell already has focus, mousedown fires the same
+    // way but the check is false, so nothing here overrides the perfectly normal
+    // click-to-position behavior a second click deserves.
+    function handleCellMouseDown(e) {
+        const el = e.currentTarget;
+        if (document.activeElement === el) return;
+        setTimeout(() => placeCaretEnd(el), 0);
+    }
     // Renders one plain-text source-table cell (cell-inner/cell-text/cell-tags-actions-wrap).
     function tableCellHTML(cell, r, c, opts) {
         const { originTableId, oninput, onkeydown = '', onfocus = '', onblur = '', oncontextmenu = '', tagsAndActionsHTML = '' } = opts;
         return `<td data-origin-table="${originTableId}" data-r="${r}" data-c="${c}"${oncontextmenu ? ` oncontextmenu="${oncontextmenu}"` : ''}>
                     <div class="cell-inner">
-                        <div class="cell-text" contenteditable="true" data-r="${r}" data-c="${c}" oninput="${oninput}"${onkeydown ? ` onkeydown="${onkeydown}"` : ''}${onfocus ? ` onfocus="${onfocus}"` : ''}${onblur ? ` onblur="${onblur}"` : ''}>${cell}</div>
+                        <div class="cell-text" contenteditable="true" data-r="${r}" data-c="${c}" onmousedown="handleCellMouseDown(event)" oninput="${oninput}"${onkeydown ? ` onkeydown="${onkeydown}"` : ''}${onfocus ? ` onfocus="${onfocus}"` : ''}${onblur ? ` onblur="${onblur}"` : ''}>${cell}</div>
                         ${tagsAndActionsHTML}
                     </div>
                 </td>`;
@@ -775,7 +791,7 @@ import { render } from './waypoints-render-loop.js';
         render();
     }
 
-export { addTableCol, addTableRow, attachStaticTableHoverZones, colgroupHTML, distributeTableSizing, handleColNameKeydown, handleTableKeydown, importDelimitedIntoSource, layoutSourceTableColumns, renameTableColumn, renderStaticTableHTML, renderTableHTML, setLastFocusedCell, startCellAudioRecording, stopCellAudioRecording, triggerCellAudioUpload, triggerCellImageUpload, updateTableCell };
+export { addTableCol, addTableRow, attachStaticTableHoverZones, colgroupHTML, distributeTableSizing, handleCellMouseDown, handleColNameKeydown, handleTableKeydown, importDelimitedIntoSource, layoutSourceTableColumns, renameTableColumn, renderStaticTableHTML, renderTableHTML, setLastFocusedCell, startCellAudioRecording, stopCellAudioRecording, triggerCellAudioUpload, triggerCellImageUpload, updateTableCell };
 
 // React → vanilla bridge (see the identical pattern/comment in cards-misc.js) — used by
 // TableCard.jsx (app/dotto/), which can't import this directly since public/dotto/*.js isn't

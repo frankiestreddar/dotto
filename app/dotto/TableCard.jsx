@@ -13,6 +13,22 @@ import { useLayoutEffect } from "react";
 // it.tableData[r][c] directly and never calls render(), so there's nothing for a later render to
 // fight even mid-edit.
 //
+// Mirrors the folder/waypoint title rename's own "the first click into an unfocused field always
+// lands the caret at the end, not wherever you clicked" behavior (startRenameFolderCardTitle,
+// waypoints-render-loop.js) — but a table <td> is always contentEditable here (never toggled on
+// click the way a rename field is), so "was this the very first click into an unfocused cell" is
+// detected via mousedown firing BEFORE the browser's own focus+click-to-caret handling, rather
+// than a contentEditable-state check. document.activeElement !== el at that point means this cell
+// wasn't already focused; the deferred call runs AFTER the native click has done its own (wrong,
+// for this one case) caret placement, overriding it. Once the cell already has focus, mousedown
+// fires the same way but the check is false, so nothing here overrides the perfectly normal
+// click-to-position behavior a second click deserves.
+function handleCellMouseDown(e) {
+  const el = e.currentTarget;
+  if (document.activeElement === el) return;
+  setTimeout(() => window.__placeCaretEnd(el), 0);
+}
+
 // userSized's wrapper class + distributeTableSizing, and setupResizing/setupTableGridResizing,
 // all need the wrapper element this component doesn't itself own — reached via
 // document.getElementById('item-'+it.id) each render, same technique TitleCard/NoteCard use.
@@ -70,6 +86,7 @@ export default function TableCard({ it }) {
                         suppressContentEditableWarning
                         data-r={ri}
                         data-c={ci}
+                        onMouseDown={handleCellMouseDown}
                         onInput={(e) => window.updateTableCell(it.id, ri, ci, e.currentTarget)}
                         onKeyDown={(e) => window.handleTableKeydown(e, it.id, ri, ci)}
                         onFocus={() => window.broadcastEditingState(true, `#item-${it.id} td[data-r="${ri}"][data-c="${ci}"]`)}

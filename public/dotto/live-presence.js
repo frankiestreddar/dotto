@@ -1463,3 +1463,4 @@ window.__renderInlineCanvas = renderInlineCanvas;
 window.__renderMsgSnapshotCard = renderMsgSnapshotCard;
 window.__openSharedCanvasView = openSharedCanvasView;
 window.__miniLabelForItem = miniLabelForItem;
+window.__placeCaretEnd = placeCaretEnd;
