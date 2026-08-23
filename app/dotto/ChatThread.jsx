@@ -120,8 +120,16 @@ export default function ChatThread() {
 
   if (!portalNode) return null;
 
+  // DOM order is newest-turn-first (reversed from chatThreadStore's chronological-ascending
+  // order) — paired with #search-chat-thread's flex-direction:column-reverse (globals.css),
+  // that's what pins the view to the bottom (newest turn) and pushes older ones upward as they
+  // arrive, same technique MsgConvo.jsx already uses for the Messages panel. Reversed here in
+  // render only — chatThreadStore itself, and every other reader of it (openSavedChat's
+  // turn-building, etc.), still keeps plain chronological order; keying by turn.id means
+  // reordering existing turns on screen moves their DOM nodes rather than remounting them, so an
+  // in-progress reveal on an older turn is unaffected by a new turn being appended above/below it.
   return createPortal(
-    turns.map((turn) => <ChatTurn key={turn.id} turn={turn} />),
+    turns.slice().reverse().map((turn) => <ChatTurn key={turn.id} turn={turn} />),
     portalNode,
   );
 }

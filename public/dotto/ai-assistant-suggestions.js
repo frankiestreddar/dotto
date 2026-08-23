@@ -558,9 +558,16 @@ import { render } from './waypoints-render-loop.js';
     // hiding overflow (mid-grow, before max-height/overflow:auto can actually take effect); harmless
     // since the eventual transitionend hand-back to overflow:auto leaves scrollTop wherever this
     // last set it, and by then scrollHeight hasn't changed further for that turn anyway.
+    // #search-chat-thread is flex-direction:column-reverse (globals.css), paired with ChatThread.jsx
+    // rendering turns newest-first — same technique #msg-convo-body/MsgConvo.jsx already uses for
+    // the Messages panel, for the same reason: newest content renders at the BOTTOM and pushes
+    // older turns upward as it arrives, matching how every real messaging UI behaves, rather than
+    // the list growing downward from the top. Under column-reverse the coordinate system flips —
+    // scrollTop:0 IS the bottom (newest) — so "scroll to the newest turn" is a plain reset to 0,
+    // not scrollHeight.
     function scrollChatThreadToBottom() {
         if (!appState.searchChatThread) return;
-        appState.searchChatThread.scrollTop = appState.searchChatThread.scrollHeight;
+        appState.searchChatThread.scrollTop = 0;
     }
 
     // Hides the panels that hold a *completed* search's result (Dotbot's answer, dictionary,
@@ -623,19 +630,26 @@ import { render } from './waypoints-render-loop.js';
         updateSearchDropdown();
     }
 
-    // Last-fetched recent-chats preview, shown instantly on refocus while a fresh copy loads in
-    // the background (see handleSearchFocus below) — without this, every single focus (not just
-    // the first) would briefly collapse the dropdown to empty and then re-grow it once the fetch
+    // Last-fetched recent-chats list, shown instantly on refocus while a fresh copy loads in the
+    // background (see handleSearchFocus below) — without this, every single focus (not just the
+    // first) would briefly collapse the dropdown to empty and then re-grow it once the fetch
     // resolves, a visible flash on top of what's usually the exact same list it already just
-    // showed a moment ago.
+    // showed a moment ago. null (not yet fetched this session) is distinct from [] (fetched,
+    // genuinely no chats) — only the former should skip rendering anything on cache-hit.
     let cachedRecentChats = null;
     // Focusing the box no longer drops a static suggestion list on you — instead the border
     // itself pulses (see .idle-pulsing / the search-idle-chase rects in globals.css) for as long
     // as the box is focused and nothing's been submitted yet, replaced by the existing loading
     // ring the moment a search actually commences (see commenceSearchOrMnemonic/
-    // commenceDotbotSearch, which remove this class right before they run). While it's empty,
-    // though, the dropdown below it now shows a short list of previous chats (reusing
-    // renderChatsList's own fetch, hamburger-collab.js — no duplicate query) — replaced the
+    // commenceDotbotSearch, which remove this class right before they run). While it's empty AND
+    // there's no conversation already going (appState.currentConversationId unset — same guard
+    // handleSearchInput's live-suggestions branch already uses, for the same reason: mid-chat,
+    // the box empties and refocuses itself after every response, and nothing should pop up under
+    // it at that point — follow-up suggestions are already given inline at the bottom of each
+    // message, and browsing chat history isn't something you do mid-conversation), the dropdown
+    // below it shows the SAME chat list the panel's own history view shows (reusing
+    // renderChatsList's own fetch, hamburger-collab.js, and buildRecentChatsRows' shared
+    // .outline-item/.outline-label row styling — not a separately-styled preview) — replaced the
     // instant real typing starts, either by live suggestions or nothing (see handleSearchInput).
     async function handleSearchFocus() {
         // 'rail' — the AI panel IS the currently-open rail view when this fires (focusing the box
@@ -647,15 +661,19 @@ import { render } from './waypoints-render-loop.js';
         appState.searchInputWrap.classList.add('idle-pulsing');
         const v = appState.searchInput.value.trim();
         if (v !== "") return;
-        window.__setSearchSuggestions(cachedRecentChats && cachedRecentChats.length ? { kind: 'recent-chats', chats: cachedRecentChats } : null);
-        updateSearchDropdown();
+        if (appState.currentConversationId) {
+            window.__setSearchSuggestions(null);
+            updateSearchDropdown();
+            return;
+        }
+        if (cachedRecentChats !== null) { window.__setSearchSuggestions({ kind: 'recent-chats', chats: cachedRecentChats }); updateSearchDropdown(); }
         const chats = await renderChatsList();
         cachedRecentChats = chats;
-        // Stale guard — real typing (or a submitted search) may have already taken over the
-        // dropdown by the time this network round trip resolves; never clobber that with a list
-        // that's no longer relevant to what's on screen.
-        if (appState.searchInput.value.trim() !== "") return;
-        window.__setSearchSuggestions(chats.length ? { kind: 'recent-chats', chats } : null);
+        // Stale guard — real typing, a submitted search, or a follow-up (currentConversationId
+        // now set) may have already taken over the dropdown by the time this network round trip
+        // resolves; never clobber that with a list that's no longer relevant to what's on screen.
+        if (appState.searchInput.value.trim() !== "" || appState.currentConversationId) return;
+        window.__setSearchSuggestions({ kind: 'recent-chats', chats });
         updateSearchDropdown();
     }
 
@@ -718,17 +736,28 @@ import { render } from './waypoints-render-loop.js';
         window.__setSearchSuggestions({ kind: 'live-suggestions', suggestions });
         updateSearchDropdown();
     }
-    // Same row look as buildLiveSuggestionsRows just above (reuses .search-suggestion-item) —
-    // they occupy the exact same slot in the dropdown, just at different moments (this one before
-    // any typing, that one once there's a query) — capped to 5, a preview rather than the full
-    // list, which stays reachable via the AI panel's own history button (showAiHistoryView).
-    // window.__openSavedChat is the same handler ChatsListPanel.jsx's own rows already use.
+    // The SAME chat list the panel's own history view shows (see #chats-list/ChatsListPanel.jsx's
+    // ChatRow) — same .outline-item/.outline-label row styling, same window.__openSavedChat click
+    // handler, same "No chats yet." empty state, full list rather than a truncated preview — not
+    // a separately-styled version of it. It occupies the dropdown's #search-suggestions slot
+    // (unlike ChatsListPanel.jsx's own #chats-list, a completely different node) purely because
+    // that's where this needs to show — the underlying data and row appearance are meant to read
+    // as literally the same list either way it's reached, not a distinct summarized view of it.
     function buildRecentChatsRows(chats) {
+        if (!chats.length) {
+            const empty = document.createElement('div');
+            empty.className = 'outline-empty';
+            empty.textContent = 'No chats yet.';
+            return empty;
+        }
         const frag = document.createDocumentFragment();
-        chats.slice(0, 5).forEach(c => {
+        chats.forEach(c => {
             const div = document.createElement('div');
-            div.className = 'search-suggestion-item';
-            div.textContent = c.title || 'New chat';
+            div.className = 'outline-item';
+            const label = document.createElement('span');
+            label.className = 'outline-label';
+            label.textContent = c.title || 'New chat';
+            div.appendChild(label);
             div.onclick = (e) => { e.stopPropagation(); window.__openSavedChat(c.id); };
             frag.appendChild(div);
         });

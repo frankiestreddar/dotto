@@ -1194,8 +1194,14 @@
        no way to know how much room the auto-margin actually left it, and the two disagreeing read
        as content clipped partway up with a large gap above it. flex-grow can't disagree with
        itself the same way — it's the single source of truth for how much space this element
-       actually gets. */
-    #search-chat-thread{display:flex;flex-direction:column;gap:16px;height:0;overflow:hidden;flex:0 0 auto;margin-bottom:8px;}
+       actually gets.
+       flex-direction:column-reverse, paired with ChatThread.jsx rendering turns newest-first —
+       same technique #msg-convo-body uses for the Messages panel (see its own comment above) —
+       so the newest turn renders at the bottom and pushes older ones upward as it arrives,
+       instead of the thread growing downward from the top. scrollChatThreadToBottom
+       (ai-assistant-suggestions.js) resets scrollTop to 0 rather than scrollHeight to match —
+       under column-reverse, 0 IS the bottom. */
+    #search-chat-thread{display:flex;flex-direction:column-reverse;gap:16px;height:0;overflow:hidden;flex:0 0 auto;margin-bottom:8px;}
     #search-chat-thread.thread-settled{flex:1 1 auto;}
     .dotbot-turn{display:flex;flex-direction:column;gap:8px;}
     /* Right-aligned pill, same --brand indigo used elsewhere for accents — the one thing this
@@ -1334,7 +1340,13 @@
     .dotbot-translation-pill{font-size:15px;font-weight:600;color:var(--ink);background:#2a2a2a;padding:6px 14px;border-radius:999px;}
     .dotbot-translation-arrow{font-size:18px;color:var(--ink-soft);}
 
-    #search-suggestions{display:none;overflow:hidden;}
+    /* max-height+overflow-y is a defensive cap (same convention as #search-command-palette/
+       #search-dotbot-answer just below) — normally moot (live-suggestions is capped to 4 rows,
+       the mnemonic story/loading/error cards are compact), but the recent-chats list shown here
+       before you've typed anything (buildRecentChatsRows, ai-assistant-suggestions.js) is the
+       SAME full, uncapped list the panel's own history view shows — for a user with a lot of
+       saved chats, that could otherwise grow the dropdown to cover most of the screen. */
+    #search-suggestions{display:none;max-height:300px;overflow-y:auto;}
     #search-suggestions .msg-inline-canvas-wrap{margin:8px auto 0;}
     .search-suggestion-item{padding:12px 14px;border-radius:8px;font-size:13px;color:var(--ink);cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
     .search-suggestion-item:hover{background:#1e1e1e;}
