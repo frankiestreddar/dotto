@@ -32,6 +32,15 @@ import { performMerge, render, renderSelectedOutlines } from './waypoints-render
             // already used for '.resize' just above.
             if (e.target.closest('.item-options')) return;
             if (e.target.classList.contains('resize') || (appState.currentEditingEl === el && e.target !== el)) return;
+            // Table cell-merge edges (see TableCard.jsx/mergeTableCells, source-table.js) — same
+            // exemption reasoning as '.resize'/'.item-options' above: the overlay's OWN React
+            // onPointerDown={stopPropagation} can't stop this listener, since it's attached
+            // natively on the card wrapper itself and fires during real DOM bubbling, before
+            // React's delegated synthetic handlers get a chance to run at all. Only ever the
+            // actual e.target while it's genuinely visible/interactive (CSS makes it
+            // display:none, and therefore un-hit-testable, whenever body.option-held isn't set),
+            // so this check is safe unconditionally.
+            if (e.target.closest('.table-merge-edge')) return;
             // The PDF viewer's own page/text-layer (see buildPdfViewer) — click-dragging there has
             // to be native text selection, never a card move. The rest of that card (the bottom
             // nav bar) is deliberately NOT exempted, so it's still draggable.

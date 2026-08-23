@@ -196,14 +196,15 @@ export default function TableCard({ it }) {
                 rowDividerTops) only actually lines up with the real rendered grid once the table
                 is in fixed table-layout with real percentage column widths; before that
                 (table-layout:auto, browser-determined widths) these percentages wouldn't match
-                anything on screen. onPointerDown stops propagation (not onMouseDown/onClick
-                alone) because the whole-card drag system (drag-drop-chat.js's
-                setupDraggingAndClicking) listens for pointerdown bubbling from the card wrapper —
-                without this, clicking a merge edge would also register as the start of a
-                card-drag/select gesture underneath it. */}
+                anything on screen. No onPointerDown/stopPropagation needed here — the whole-card
+                drag system (drag-drop-chat.js's setupDraggingAndClicking) is a native listener on
+                the card wrapper itself, which fires during real DOM bubbling before React's
+                delegated synthetic handlers ever run, so a React-level stopPropagation on this
+                element couldn't have stopped it anyway; it's exempted by class name inside that
+                listener directly instead (same pattern already used there for '.resize'). */}
             {it.userSized &&
               mergeEdges.map((edge) => (
-                <div key={edge.key} className={edge.className} style={edge.style} onClick={edge.onClick} onPointerDown={(e) => e.stopPropagation()} title="Delete border (merge cells)" />
+                <div key={edge.key} className={edge.className} style={edge.style} onClick={edge.onClick} title="Delete border (merge cells)" />
               ))}
             {/* Per-column/row divider drags — separate from the corner .resize handle below,
                 which still resizes the WHOLE table. Wired up in the effect above
