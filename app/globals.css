@@ -1481,11 +1481,16 @@
     /* No box-shadow border of its own anymore — it used to draw its own 1px inset line around
        the whole table to fake rounded corners, but that line sat directly against the outermost
        cells' own borders (same nominal color, but two separately-painted 1px lines at virtually
-       the same pixel read as a doubled/darker line instead of one clean one). The corner-radius
-       rules on .item-table td below give the real cell borders the same rounded-corner look
-       instead, so there's only ever ONE border-drawing mechanism for the whole table, corners
-       included — this overflow:hidden is now purely a backup pixel-level clip, not the thing
-       actually drawing the rounded edge. */
+       the same pixel read as a doubled/darker line instead of one clean one). This overflow:hidden
+       + border-radius alone now does the whole job of the rounded-corner look, clipping the
+       table's own (square-cornered) border where it'd otherwise poke past the curve — a real
+       border-radius directly on individual .item-table td corner cells was tried instead (so the
+       cell's own border line would curve smoothly into the corner rather than just getting cut
+       off), but border-radius on cells inside a border-collapse:collapse table is a genuinely
+       unreliable combination: browsers can blur-render OTHER, unrelated borders in the same table
+       as a side effect of it, not just the cell that actually has the radius. Plain clipping avoids
+       that entirely, at the small cost of the border line stopping just short of the true corner
+       point instead of curving all the way into it. */
     .table-rounded{border-radius:10px;overflow:hidden;}
     .item.table:not(.static-table) .table-rounded{position:relative;}
     /* Per-column/row divider drag handles (see TableCard.jsx/setupTableGridResizing,
@@ -1508,17 +1513,6 @@
     .item.table:not(.static-table) .item-table > tbody > tr:first-child > td{background:var(--card);font-weight:600;color:var(--ink);}
     .item-table td{border:1px solid var(--card-border);padding:6px 9px;min-width:40px;font-size:13px;outline:none;overflow:hidden;word-break:break-word;overflow-wrap:break-word;white-space:normal;text-align:var(--cell-align,left);vertical-align:middle;}
     .item.table:not(.static-table) .item-table td{border-color:rgba(255,255,255,0.1);}
-    /* Rounds whichever cell is truly in one of the table's 4 outer corners to match
-       .table-rounded's own 10px radius — the table's actual border (border-collapse'd .item-table
-       td borders) draws the rounded corner itself now, instead of a separate wrapper-level line
-       (see .table-rounded's own comment above for why that used to double up). Handles every
-       table shape correctly on its own: in a 1-row or 1-column table, a cell that's both the
-       first and last row/column picks up radius from more than one of these rules at once,
-       which is exactly correct — that cell really does own all 4 corners then. */
-    .item-table tr:first-child td:first-child{border-top-left-radius:10px;}
-    .item-table tr:first-child td:last-child{border-top-right-radius:10px;}
-    .item-table tr:last-child td:first-child{border-bottom-left-radius:10px;}
-    .item-table tr:last-child td:last-child{border-bottom-right-radius:10px;}
     /* Purple focus indicator for whichever cell is currently being edited — recolors the cell's
        own actual border line rather than drawing a second highlight on top of/inside it (an
        earlier version used an inset box-shadow, which read as a second, thicker line sitting
