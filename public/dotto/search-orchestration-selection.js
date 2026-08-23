@@ -1,4 +1,4 @@
-import { clearSearch, escapeHtml, handleSearchFocus, scrollChatThreadToBottom, stripHtml, updateChatThread, updateSearchDropdown } from './ai-assistant-suggestions.js';
+import { clearSearch, escapeHtml, handleSearchFocus, scrollChatThreadToBottom, showAiChatView, stripHtml, updateChatThread, updateSearchDropdown } from './ai-assistant-suggestions.js';
 import { executeCurrentCommand, setCommandActive } from './command-palette.js';
 import { appState } from './core-state.js';
 import { ensureConnections } from './drawing-connections.js';
@@ -177,6 +177,11 @@ import { render } from './waypoints-render-loop.js';
             else if (sourceActionPanel.action === 'add_rows') applyAiAddRowsToSource(sourceActionPanel.targetIndex, sourceActionPanel.columns, sourceActionPanel.rows);
         }
         window.__appendChatTurn({ id: 'turn_' + (appState.idCounter++), query, panels, fresh: true });
+        // A search can be submitted from either view now — the list view's own top box (starting a
+        // fresh conversation) or the chat view's bottom box (a follow-up, already showing) — this
+        // is what actually brings the conversation on screen for the former; a safe no-op for the
+        // latter, already there.
+        showAiChatView();
         updateChatThread();
         scrollChatThreadToBottom();
     }

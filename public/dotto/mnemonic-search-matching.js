@@ -38,10 +38,9 @@ import { render } from './waypoints-render-loop.js';
         clearSearch();
     }
     // #search-suggestions' content is real React state now (see app/dotto/SearchSuggestionsPanel.jsx,
-    // searchSuggestionsStore) — it's shared by 6 different producers across 3 files (live AI
-    // suggestions and a recent-chats preview, this mnemonic story/loading/error trio, and the
-    // orchestrate error in search-orchestration-selection.js), so the store holds a small
-    // discriminated union ({kind, ...})
+    // searchSuggestionsStore) — it's shared by 5 different producers across 3 files (live AI
+    // suggestions, this mnemonic story/loading/error trio, and the orchestrate error in search-
+    // orchestration-selection.js), so the store holds a small discriminated union ({kind, ...})
     // rather than one plain value — the panel only ever shows ONE of them at a time. Each variant's
     // own build stays vanilla (typewriter reveal, drag-to-canvas wiring); render just decides
     // which one to show.

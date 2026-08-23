@@ -211,35 +211,33 @@
        stretches edge-to-edge within the space this padding leaves it, rather than leaving a
        second, inconsistent gap around the highlight. */
     #ai-panel{position:relative;overflow:visible;padding:8px;}
-    /* The chat view's own small header — just the history toggle, left-aligned, no title text (the
-       rail icon itself already reads as "this is the AI panel", no need to repeat it). Same visual
-       language as #msg-convo-header/#msg-convo-back (a borderless icon-style button, muted ink-soft
-       color) rather than inventing a new one. */
+    /* The active-conversation view's own small header — just the "back to chats" toggle,
+       left-aligned, no title text (the rail icon itself already reads as "this is the AI panel",
+       no need to repeat it). Same visual language as #msg-convo-header/#msg-convo-back (a
+       borderless icon-style button, muted ink-soft color) rather than inventing a new one. Always
+       visible while this view is showing — #ai-chat-view only ever shows once a real conversation
+       exists now (see showAiChatView, ai-assistant-suggestions.js), never as an empty "nothing to
+       go back to yet" state, so there's no need to conditionally hide this the way an earlier
+       version (when this view doubled as the panel's empty landing page too) had to. */
     #ai-chat-header{flex:0 0 auto;display:flex;align-items:center;padding:2px 4px 6px;}
-    #ai-history-btn, #ai-history-back-btn{background:none;border:none;color:var(--ink-soft);cursor:pointer;font-size:15px;padding:4px;border-radius:6px;}
-    #ai-history-btn:hover, #ai-history-back-btn:hover{background:#242424;color:var(--ink);}
-    /* Hidden on the "first page" (nothing searched yet this session) — there's no history worth
-       jumping back to from a conversation that hasn't started. Shown once #search-chat-thread
-       actually has a response in it (.visible — see updateChatThread, ai-assistant-suggestions.js),
-       via :has() reaching forward to a later sibling (already used elsewhere in this file, see
-       body:has(#collab-panel.open) above) rather than a separate JS-driven class. */
-    #ai-history-btn{display:none;}
-    #ai-chat-header:has(~ #search-chat-thread.visible) #ai-history-btn{display:block;}
-    /* Not a top-level rail view (unlike #waypoints-panel/#hub-collab-panel) — an internal sub-view
-       of #ai-panel, toggled by showAiHistoryView/showAiChatView (ai-assistant-suggestions.js)
+    #ai-history-btn{background:none;border:none;color:var(--ink-soft);cursor:pointer;font-size:15px;padding:4px;border-radius:6px;}
+    #ai-history-btn:hover{background:#242424;color:var(--ink);}
+    /* Two internal sub-views of #ai-panel (not top-level rail views like #waypoints-panel/
+       #hub-collab-panel), toggled by showAiListView/showAiChatView (ai-assistant-suggestions.js)
        independent of the outer rail's own open/close/pin state. Same display:none/flex + .open
-       toggle convention as .hub-subpanel, just scoped to this one element instead of shared. */
-    #ai-history-view{display:none;flex-direction:column;flex:1 1 auto;min-height:0;}
-    #ai-history-view.open{display:flex;}
+       toggle convention as .hub-subpanel, just scoped to these two elements instead of shared.
+       #ai-list-view is the default (see showAiListView) — search box up top (#ai-list-header,
+       just below), every previous conversation listed below it (#chats-list, further down). */
+    #ai-list-view{display:none;flex-direction:column;flex:1 1 auto;min-height:0;}
+    #ai-list-view.open{display:flex;}
     #ai-chat-view{display:none;flex-direction:column;flex:1 1 auto;min-height:0;}
     #ai-chat-view.open{display:flex;}
-    #ai-history-header{flex:0 0 auto;display:flex;align-items:center;justify-content:space-between;padding:2px 4px 6px;}
-    /* Pinned above the chat-history list, not just another row in it — "New chat" is a distinct
-       action, not a saved conversation. Reuses .hub-subpanel-clear-all's own pill-button look
-       (border/radius/hover treatment) for visual consistency with "Clear all" below the list,
-       rather than a plain text link. */
-    #ai-new-chat-btn{background:transparent;border:1px solid var(--card-border);color:var(--ink-soft);font-size:12px;height:28px;padding:0 12px;border-radius:8px;cursor:pointer;transition:background .15s,color .15s,border-color .15s;}
-    #ai-new-chat-btn:hover{background:#2a2a2a;color:var(--ink);border-color:var(--ink-soft);}
+    /* Where #search-input-wrap/#search-dropdown live at rest (see #ai-panel's own comment,
+       hamburger-stack.html) — plain block flow is enough for its own two children (they already
+       stack vertically as ordinary block-level divs), flex:0 0 auto is what matters here, so this
+       element itself doesn't get squashed or stretched as a child of #ai-list-view's own flex
+       column above. */
+    #ai-list-header{flex:0 0 auto;}
     /* Compact "…/parent/current" breadcrumb (see app/dotto/BreadcrumbPill.jsx, breadcrumbMapStore)
        — a .bubble inside #top-bar-center (own fixed/centring positioning lives there now, shared
        with #collab-bubble beside it), replacing the old always-visible full ancestor list that
@@ -705,11 +703,6 @@
     .hub-subpanel-search::placeholder{color:var(--ink-soft);}
     .hub-subpanel-list{flex:1 1 auto;overflow-y:auto;min-height:0;padding:6px 4px;scrollbar-width:none;}
     .hub-subpanel-list::-webkit-scrollbar{display:none;}
-    /* Chats panel's "Clear all" — the one hub-subpanel with a footer action below its list (see
-       #chats-panel, content/fragments/hamburger-stack.html). */
-    .hub-subpanel-footer{flex:0 0 auto;padding:8px 10px;border-top:1px solid var(--card-border);}
-    .hub-subpanel-clear-all{width:100%;height:32px;border-radius:8px;background:transparent;border:1px solid var(--card-border);color:var(--ink-soft);font-size:12px;cursor:pointer;transition:background .15s,color .15s,border-color .15s;}
-    .hub-subpanel-clear-all:hover{background:#2a2a2a;color:var(--ink);border-color:var(--ink-soft);}
     .requests-row{justify-content:space-between;}
     .requests-count{flex:0 0 auto;min-width:16px;height:16px;padding:0 5px;border-radius:9px;background:var(--brand);color:#fff;font-size:10px;font-weight:700;display:flex;align-items:center;justify-content:center;}
     .requests-back-row{display:flex;align-items:center;gap:8px;padding:6px 10px;margin:2px 4px 6px;border-radius:6px;cursor:pointer;font-size:13px;font-weight:600;color:var(--ink-soft);}
@@ -1178,9 +1171,12 @@
        non-clipping for its nav-arrow-slide-outside panels) once settled, so the scrollbar/clipping
        an overflowing thread needs actually takes effect at rest.
        margin-bottom guarantees the gap before the input box unconditionally (not gated by
-       .visible, so it still applies while height:0 on the empty first page — a margin on a
-       zero-height element still takes up space) — #search-input-wrap is always this element's
-       immediate next sibling now, regardless of whether this one currently has any content.
+       .visible, so it still applies while height:0 — a margin on a zero-height element still
+       takes up space, covering the brief moment right as a conversation starts, before the first
+       turn has actually rendered into this element) — #search-input-wrap is always this
+       element's immediate next sibling whenever #ai-chat-view is showing at all (showAiChatView,
+       ai-assistant-suggestions.js, reparents it there as part of switching to this view in the
+       first place), regardless of whether this one currently has any content yet.
        flex:0 0 auto at rest, flex:1 1 auto once .thread-settled (added by
        createHeightTransitionController's opts.settledClass, ai-assistant-suggestions.js — NOT the
        same moment as .visible: settledClass is deliberately held off until the grow/shrink
@@ -1340,13 +1336,7 @@
     .dotbot-translation-pill{font-size:15px;font-weight:600;color:var(--ink);background:#2a2a2a;padding:6px 14px;border-radius:999px;}
     .dotbot-translation-arrow{font-size:18px;color:var(--ink-soft);}
 
-    /* max-height+overflow-y is a defensive cap (same convention as #search-command-palette/
-       #search-dotbot-answer just below) — normally moot (live-suggestions is capped to 4 rows,
-       the mnemonic story/loading/error cards are compact), but the recent-chats list shown here
-       before you've typed anything (buildRecentChatsRows, ai-assistant-suggestions.js) is the
-       SAME full, uncapped list the panel's own history view shows — for a user with a lot of
-       saved chats, that could otherwise grow the dropdown to cover most of the screen. */
-    #search-suggestions{display:none;max-height:300px;overflow-y:auto;}
+    #search-suggestions{display:none;overflow:hidden;}
     #search-suggestions .msg-inline-canvas-wrap{margin:8px auto 0;}
     .search-suggestion-item{padding:12px 14px;border-radius:8px;font-size:13px;color:var(--ink);cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
     .search-suggestion-item:hover{background:#1e1e1e;}

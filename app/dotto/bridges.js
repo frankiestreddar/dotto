@@ -119,9 +119,8 @@ export const chatThreadStore = createStore([]);
 // itself, same "React renders, vanilla owns the app-state mutation" split as every other bridge here.
 export const commandPaletteStore = createStore(null);
 
-// #search-suggestions — shared by 6 different producers across 3 files (live AI suggestions, a
-// recent-chats preview, the mnemonic story/loading/error trio, and an orchestrate error), so this
-// holds a small discriminated
+// #search-suggestions — shared by 5 different producers across 3 files (live AI suggestions, the
+// mnemonic story/loading/error trio, and an orchestrate error), so this holds a small discriminated
 // union ({kind, ...}) rather than one plain value —
 // only ONE of them is ever shown at a time, same "replaces this one slot" idea as
 // notificationStore. See renderMnemonicResultCard's own comment in mnemonic-search-matching.js

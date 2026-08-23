@@ -323,12 +323,16 @@
         searchCardPillLabel: document.getElementById('search-card-pill-label'),
         // AI search shares the permanent rail's one shell now (see openRailView, panels-
         // hamburger.js) — no more #search-overlay-backdrop modal, so no lookup for it. aiPanel is
-        // the whole rail view (railViewEls member); aiChatView/aiHistoryView are its two internal
+        // the whole rail view (railViewEls member); aiChatView/aiListView are its two internal
         // sub-views, toggled independently of the outer rail's own open/close state (see
-        // showAiHistoryView/showAiChatView, ai-assistant-suggestions.js).
+        // showAiListView/showAiChatView, ai-assistant-suggestions.js). aiListHeader is where
+        // #search-input-wrap/#search-dropdown live at rest (see the fragment's own comment on
+        // #ai-panel) — cached here since showAiChatView/showAiListView reparent those two
+        // elements into/out of it directly.
         aiPanel: document.getElementById('ai-panel'),
         aiChatView: document.getElementById('ai-chat-view'),
-        aiHistoryView: document.getElementById('ai-history-view'),
+        aiListView: document.getElementById('ai-list-view'),
+        aiListHeader: document.getElementById('ai-list-header'),
         // Notifications live in the top bar now, not the search box (see showNotification/
         // dismissCurrentNotification, stopwatch-search-notifications.js) — #top-bar-center slides
         // up and out while #notification-pill slides down into its slot, and back on dismiss.

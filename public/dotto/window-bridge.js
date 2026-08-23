@@ -8,21 +8,19 @@
 // (handleColNameKeydown/openTableCellContextMenu/renameTableColumn/setLastFocusedCell were found
 // missing from the original generation — the static-source table's cell-header wiring — and added
 // by hand here since no automated regeneration tooling exists in this environment; a real re-run
-// of the original grep would be the more thorough fix if that tooling is ever set up. clearAllChats
-// — the Chats panel's "Clear all" button onclick, content/fragments/hamburger-stack.html — added by
-// hand the same way, for the same reason: it's a new call site added after this file was last
-// generated. openChatsPanel/openHubCollabPanel/openWaypointsPanel were hand-added the same way but
-// later REMOVED again — Waypoints/Collaborations/the outline tree are dedicated permanent rail
-// icons now (#dotto-rail, top-bar.html), wired directly via addEventListener in panels-hamburger.js
-// rather than being called by name from an inline onclick attribute, so they no longer belong here.)
+// of the original grep would be the more thorough fix if that tooling is ever set up.
+// openChatsPanel/openHubCollabPanel/openWaypointsPanel were hand-added the same way but later
+// REMOVED again — Waypoints/Collaborations/the outline tree are dedicated permanent rail icons now
+// (#dotto-rail, top-bar.html), wired directly via addEventListener in panels-hamburger.js rather
+// than being called by name from an inline onclick attribute, so they no longer belong here.)
 
 import { handleAddMenuSearchInput, newSourceClicked } from './add-menu.js';
-import { handleSearchFocus, handleSearchInput, showAiChatView, showAiHistoryView, startNewAiChat } from './ai-assistant-suggestions.js';
+import { handleSearchFocus, handleSearchInput, showAiListView } from './ai-assistant-suggestions.js';
 import { addTask, editEmbed, removeTask, toggleTask, updateTaskDeadline, updateTaskText } from './cards-misc.js';
 import { prepareAdd } from './copy-paste.js';
 import { handleCollabSearch, handleMsgSearch, openCollabPanel } from './friends-presence.js';
 import { addGameColumnSlot, fcFlip, fcRate, fcToggleMode, removeGameColumnSlot, setGameColumnSlot, trCheck, trFocusInput, trNext, trToggleMode, trUpdateInput } from './games-flashcard-typeright.js';
-import { clearAllChats, hmenuAction } from './hamburger-collab.js';
+import { hmenuAction } from './hamburger-collab.js';
 import { deleteContextColumn, deleteContextRow, hideCanvasContextMenu, highlightContextColumn, highlightContextRow, openTableCellContextMenu, redo, undo } from './history-autosave.js';
 import { blurPublishFlowName, commitItemDetailDesc, commitItemDetailTitle, confirmPublishFlow, deleteDetailDraft, focusPublishFlowName, onItemDetailFieldChange, startPublishFlow, unpublishDetailItem, updateDetailItem } from './library-publish.js';
 import { broadcastEditingState, closeConvo, closeSharedCanvasView, sendMsg, setTitleLevel } from './live-presence.js';
@@ -44,7 +42,6 @@ window.addTableRow = addTableRow;
 window.addTask = addTask;
 window.blurPublishFlowName = blurPublishFlowName;
 window.broadcastEditingState = broadcastEditingState;
-window.clearAllChats = clearAllChats;
 window.clearMedia = clearMedia;
 window.clearSearchCardContext = clearSearchCardContext;
 window.closeCellTagPicker = closeCellTagPicker;
@@ -114,10 +111,8 @@ window.setMediaFromLink = setMediaFromLink;
 window.setTableAlign = setTableAlign;
 window.setTitleLevel = setTitleLevel;
 window.shelfSelectSession = shelfSelectSession;
-window.showAiChatView = showAiChatView;
-window.showAiHistoryView = showAiHistoryView;
+window.showAiListView = showAiListView;
 window.startCellAudioRecording = startCellAudioRecording;
-window.startNewAiChat = startNewAiChat;
 window.startPublishFlow = startPublishFlow;
 window.startRenameActiveTag = startRenameActiveTag;
 window.startRenameShelfName = startRenameShelfName;

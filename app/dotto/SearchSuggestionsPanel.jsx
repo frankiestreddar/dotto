@@ -4,17 +4,14 @@ import { useLayoutEffect } from "react";
 import { useSyncExternalStore } from "react";
 import { searchSuggestionsStore } from "./bridges";
 
-// Mounts whichever of #search-suggestions' 6 producers is currently active — see
+// Mounts whichever of #search-suggestions' 5 producers is currently active — see
 // searchSuggestionsStore's own comment in bridges.js for the full producer list and why this is a
 // discriminated union. Every kind's content stays vanilla-built (typewriter reveals, drag-to-
 // canvas wiring), same "return null, mutate in an effect" pattern as TranslationPanel.jsx and
 // friends — there's no list to key/diff here, just one blob of content wholesale-replaced each
 // time. 'mnemonic-error' and 'dotbot-error' intentionally share the same builder
 // (window.__buildMnemonicErrorEl) — see renderDotbotOrchestrateError's own comment in
-// search-orchestration-selection.js for why they're really the same shape. 'recent-chats' (see
-// handleSearchFocus, ai-assistant-suggestions.js) is what shows here before you've typed
-// anything — a short list of previous chats, replaced by 'live-suggestions' the instant real
-// typing starts.
+// search-orchestration-selection.js for why they're really the same shape.
 export default function SearchSuggestionsPanel() {
   const state = useSyncExternalStore(searchSuggestionsStore.subscribe, searchSuggestionsStore.getSnapshot, () => null);
 
@@ -31,9 +28,6 @@ export default function SearchSuggestionsPanel() {
     switch (state.kind) {
       case "live-suggestions":
         el.appendChild(window.__buildLiveSuggestionsRows(state.suggestions));
-        break;
-      case "recent-chats":
-        el.appendChild(window.__buildRecentChatsRows(state.chats));
         break;
       case "mnemonic-result": {
         const card = window.__buildMnemonicResultCard();

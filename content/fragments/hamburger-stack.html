@@ -25,89 +25,79 @@
          search-overlay.html, now empty/unused) now that it shares this permanent rail shell (see
          openRailView('ai', ...) wiring, ai-assistant-suggestions.js). No more dimming backdrop —
          this is an embedded panel like every other rail view, not a modal. Two internal views, not
-         top-level rail views of their own: the active chat (#ai-chat-view, default) and a
-         chat-history list (#ai-history-view, "New chat" pinned above the list) — toggled by each
-         view's own "←" header button (showAiHistoryView/showAiChatView, ai-assistant-
-         suggestions.js), independent of the outer rail's own open/close state. Everything inside
-         #search-chat-thread/#search-input-wrap/#search-dropdown is otherwise unchanged from when
-         it lived in the modal — every result panel still portals into a static node by id
-         (usePortalNode), so moving this subtree here didn't require touching that store/portal
-         wiring. -->
+         top-level rail views of their own: the chat list (#ai-list-view, default — search box at
+         the top, previous conversations below) and the active conversation (#ai-chat-view,
+         reached by starting a new search or opening a chat row) — toggled by each view's own "←"
+         header button where relevant (showAiListView/showAiChatView, ai-assistant-suggestions.js),
+         independent of the outer rail's own open/close state.
+         #search-input-wrap/#search-dropdown are a single shared pair, not duplicated per view —
+         they live inside #ai-list-header in this markup (their "at rest" position, since
+         #ai-list-view is the default view), and showAiChatView/showAiListView physically move them
+         (real DOM reparenting, not a second copy) to sit after #search-chat-thread instead
+         whenever a conversation is actually showing, then back here once you return to the list.
+         Every result panel inside #search-dropdown still portals into these same static nodes by
+         id (usePortalNode) regardless of which parent currently holds them, so reparenting them
+         doesn't touch that store/portal wiring at all. -->
     <div id="ai-panel" class="hmenu-panel hub-subpanel" onclick="event.stopPropagation()">
+        <div id="ai-list-view">
+            <div id="ai-list-header">
+                <div id="search-input-wrap">
+                    <textarea id="search-input" rows="1" placeholder="" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" oninput="handleSearchInput(this.value)" onfocus="handleSearchFocus()"></textarea>
+                    <svg id="search-loading-ring" aria-hidden="true">
+                        <rect class="search-loading-ring-base"></rect>
+                        <rect class="search-loading-ring-chase" pathLength="100"></rect>
+                        <!-- Idle (focused, not yet submitted) state — see handleSearchFocus/searchInputWrap's
+                             .idle-pulsing toggle. Four copies of the same eased lap, phase-shifted a hair
+                             apart via negative animation-delay (not a spatial offset) so they trail the
+                             leader correctly even though the lap speed itself isn't constant, each a bit
+                             fainter than the last for the leading-to-trailing fade. -->
+                        <rect class="search-idle-chase search-idle-chase-4" pathLength="100"></rect>
+                        <rect class="search-idle-chase search-idle-chase-3" pathLength="100"></rect>
+                        <rect class="search-idle-chase search-idle-chase-2" pathLength="100"></rect>
+                        <rect class="search-idle-chase search-idle-chase-1" pathLength="100"></rect>
+                    </svg>
+                    <div id="search-spinner" aria-hidden="true"></div>
+                    <div id="search-card-pill">
+                        <span id="search-card-pill-label" onclick="event.stopPropagation(); openSearchCardsModal();"></span>
+                        <button id="search-card-pill-clear" type="button" title="Clear attached cards" onclick="event.stopPropagation(); clearSearchCardContext();">✕</button>
+                    </div>
+                </div>
+                <div id="search-dropdown">
+                    <!-- Slash-command live suggestions (see command-palette.js) — first, so it visually
+                         leads whenever there's a "/" command being typed rather than appearing after
+                         unrelated search-result panels. -->
+                    <div id="search-command-palette"></div>
+                    <div id="search-dotbot-answer"></div>
+                    <div id="search-translation"></div>
+                    <div id="search-dictionary"></div>
+                    <div id="search-examples"></div>
+                    <div id="search-recommended"></div>
+                    <!-- The mnemonic story lands in #search-suggestions above (see
+                         renderMnemonicResultCard) — this stays LAST so its image always renders below
+                         that text, never above it. -->
+                    <div id="search-suggestions"></div>
+                    <div id="search-image-result"></div>
+                </div>
+            </div>
+            <div id="chats-list" class="hub-subpanel-list"></div>
+        </div>
         <div id="ai-chat-view">
             <div id="ai-chat-header">
-                <button id="ai-history-btn" title="Chat history" onclick="event.stopPropagation(); showAiHistoryView();">←</button>
+                <button id="ai-history-btn" title="Back to chats" onclick="event.stopPropagation(); showAiListView();">←</button>
             </div>
-            <!-- #search-chat-thread: plain document order, right after the header — empty
-                 (height:0) on the "first page" before anything's been searched, so it takes no
-                 visual space and the input box below sits right after the header. Once a real
+            <!-- #search-chat-thread: plain document order, right after the header. Once a real
                  response lands (.thread-settled, see updateChatThread/createHeightTransitionController,
                  ai-assistant-suggestions.js), it switches to flex:1 (globals.css) and fills the
                  rest of #ai-chat-view's height with its own internal scroll, which is what pushes
-                 #search-input-wrap down to sit at the panel's bottom edge — a flex-grow computed
-                 directly against its real siblings' actual sizes, not a disconnected margin-top:auto
-                 guess (an earlier attempt at "pin the input to the bottom" used margin-top:auto on
-                 this whole group instead and was reverted: the thread's own max-height cap had no
-                 way to know how much room the auto-margin actually left it, and the two disagreeing
-                 read as content clipped partway up with a large gap above it — flex-grow computed
-                 against real sibling sizes can't disagree with itself the same way). -->
+                 #search-input-wrap (reparented in here by showAiChatView, see above) down to sit
+                 at the panel's bottom edge — a flex-grow computed directly against its real
+                 siblings' actual sizes, not a disconnected margin-top:auto guess (an earlier
+                 attempt at "pin the input to the bottom" used margin-top:auto on this whole group
+                 instead and was reverted: the thread's own max-height cap had no way to know how
+                 much room the auto-margin actually left it, and the two disagreeing read as
+                 content clipped partway up with a large gap above it — flex-grow computed against
+                 real sibling sizes can't disagree with itself the same way). -->
             <div id="search-chat-thread"></div>
-            <!-- #search-input-wrap comes BEFORE #search-dropdown now (it used to be the reverse) —
-                 previously, every keystroke's live-suggestions fetch resized #search-dropdown
-                 ABOVE the input box, visibly shifting the box up and down as suggestions
-                 loaded/cleared while typing. With the dropdown below instead, nothing above the
-                 input box ever changes size while typing, and suggestions read as a normal
-                 "appears below what you're typing" dropdown. -->
-            <div id="search-input-wrap">
-                <textarea id="search-input" rows="1" placeholder="" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" oninput="handleSearchInput(this.value)" onfocus="handleSearchFocus()"></textarea>
-                <svg id="search-loading-ring" aria-hidden="true">
-                    <rect class="search-loading-ring-base"></rect>
-                    <rect class="search-loading-ring-chase" pathLength="100"></rect>
-                    <!-- Idle (focused, not yet submitted) state — see handleSearchFocus/searchInputWrap's
-                         .idle-pulsing toggle. Four copies of the same eased lap, phase-shifted a hair
-                         apart via negative animation-delay (not a spatial offset) so they trail the
-                         leader correctly even though the lap speed itself isn't constant, each a bit
-                         fainter than the last for the leading-to-trailing fade. -->
-                    <rect class="search-idle-chase search-idle-chase-4" pathLength="100"></rect>
-                    <rect class="search-idle-chase search-idle-chase-3" pathLength="100"></rect>
-                    <rect class="search-idle-chase search-idle-chase-2" pathLength="100"></rect>
-                    <rect class="search-idle-chase search-idle-chase-1" pathLength="100"></rect>
-                </svg>
-                <div id="search-spinner" aria-hidden="true"></div>
-                <div id="search-card-pill">
-                    <span id="search-card-pill-label" onclick="event.stopPropagation(); openSearchCardsModal();"></span>
-                    <button id="search-card-pill-clear" type="button" title="Clear attached cards" onclick="event.stopPropagation(); clearSearchCardContext();">✕</button>
-                </div>
-            </div>
-            <div id="search-dropdown">
-                <!-- Slash-command live suggestions (see command-palette.js) — first, so it visually
-                     leads whenever there's a "/" command being typed rather than appearing after
-                     unrelated search-result panels. -->
-                <div id="search-command-palette"></div>
-                <div id="search-dotbot-answer"></div>
-                <div id="search-translation"></div>
-                <div id="search-dictionary"></div>
-                <div id="search-examples"></div>
-                <div id="search-recommended"></div>
-                <!-- The mnemonic story lands in #search-suggestions above (see
-                     renderMnemonicResultCard) — this stays LAST so its image always renders below
-                     that text, never above it. -->
-                <div id="search-suggestions"></div>
-                <div id="search-image-result"></div>
-            </div>
-        </div>
-        <!-- No search box for v1 (unlike waypoints-panel/hub-collab-panel above) — a saved-chat
-             list is likely short enough not to need one yet; easy to add later with the same
-             pattern. -->
-        <div id="ai-history-view">
-            <div id="ai-history-header">
-                <button id="ai-history-back-btn" title="Back to chat" onclick="event.stopPropagation(); showAiChatView();">←</button>
-                <button id="ai-new-chat-btn" onclick="event.stopPropagation(); startNewAiChat();">New chat</button>
-            </div>
-            <div id="chats-list" class="hub-subpanel-list"></div>
-            <div class="hub-subpanel-footer">
-                <button class="hub-subpanel-clear-all" onclick="clearAllChats()">Clear all</button>
-            </div>
         </div>
     </div>
     <!-- Marketplace (Discover) — moved here from its own standalone floating card (content/

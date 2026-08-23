@@ -252,12 +252,12 @@ import { render } from './waypoints-render-loop.js';
             // this whole force-reset exists specifically because the normal transition path can't
             // be trusted right as an ancestor is about to go display:none (see above), and
             // 'thread-settled' (flex:1, globals.css) lingering on what's about to be an empty
-            // thread would pin the input box to the bottom of a "first page" that has no
-            // conversation on it at all.
+            // thread would pin the input box to the bottom of a conversation view that no longer
+            // has any actual conversation on it.
             appState.searchChatThread.classList.remove('visible', 'thread-settled');
         }
         window.__setChatThread([]);
-        showAiChatView(); // always land back on the chat view (not mid-history-browse) next open
+        showAiListView(); // always land back on the list view (not mid-conversation) next open
         appState.searchInput.blur();
     }
     // Thin guarded wrapper kept for the ~15 external call sites (Escape, window.onclick, etc.)
@@ -272,61 +272,59 @@ import { render } from './waypoints-render-loop.js';
         if (appState.activeRailView !== 'ai') return;
         closeRailView();
     }
-    // Toggles between the AI panel's two internal views — the active chat (default) and a
-    // chat-history list — independent of the outer rail's own open/close/pin state (openRailView/
-    // closeRailView, panels-hamburger.js), so switching between them never disturbs whether the AI
-    // panel itself is open or pinned.
-    function showAiHistoryView() {
+    // Toggles between the AI panel's two internal views — the chat list (default: search box up
+    // top, previous conversations below it) and an active conversation — independent of the outer
+    // rail's own open/close/pin state (openRailView/closeRailView, panels-hamburger.js), so
+    // switching between them never disturbs whether the AI panel itself is open or pinned.
+    // #search-input-wrap/#search-dropdown are a single shared pair (see #ai-panel's own comment,
+    // hamburger-stack.html), physically moved between #ai-list-header and #ai-chat-view by these
+    // two functions rather than duplicated — every listener/store/portal wired to their CHILDREN
+    // keeps working regardless of which parent currently holds them. Unconditional (no "already
+    // showing, skip" guard): re-running this while already on the target view is a real no-op for
+    // the DOM moves (appendChild-ing a node that's already exactly where it's going doesn't
+    // actually mutate anything), and skipping it would risk skipping the state reset below too —
+    // resetAiSearchState (closing the panel) calls this same function needing that reset to
+    // happen regardless of which view happened to be showing at the time.
+    function showAiListView() {
         appState.aiChatView.classList.remove('open');
-        appState.aiHistoryView.classList.add('open');
+        appState.aiListView.classList.add('open');
+        appState.aiListHeader.appendChild(appState.searchInputWrap);
+        appState.aiListHeader.appendChild(appState.searchDropdown);
+        // "Back" (the only way out of a conversation now — there's no separate "New chat" button
+        // anymore, see the fragment's own comment) doubles as starting fresh: the next message
+        // typed into the list view's own box should never silently continue whatever conversation
+        // was just left.
+        appState.currentConversationId = null;
+        window.__setChatThread([]);
+        updateChatThread();
         renderChatsList();
     }
     function showAiChatView() {
-        appState.aiHistoryView.classList.remove('open');
+        appState.aiListView.classList.remove('open');
         appState.aiChatView.classList.add('open');
-    }
-    // "New chat" — same conversationId/chatThreadStore reset resetAiSearchState does, without
-    // actually closing the AI panel (unlike clearSearch, which is for leaving the AI view
-    // entirely) — this is reached FROM the history view, so it also has to bring the chat view
-    // back itself.
-    function startNewAiChat() {
-        appState.currentConversationId = null;
-        window.__setChatThread([]);
-        // Unlike resetAiSearchState, the AI panel stays open here — nothing's about to hide out
-        // from under a live transition, so the normal animated path is safe (and needed): without
-        // this, #search-chat-thread's 'thread-settled' class (flex:1, globals.css — see
-        // updateChatThread's own comment) would linger from whatever conversation was just
-        // cleared, pinning the input box to the bottom of what's supposed to be a fresh, empty
-        // "first page".
-        updateChatThread();
-        appState.searchInput.value = '';
-        autoGrowSearchInput();
-        showAiChatView();
-        appState.searchInput.focus();
+        // Two inserts, in this order, land search-input-wrap directly after the thread and
+        // search-dropdown right after THAT: insertAdjacentElement moves (never clones) its
+        // argument, so the second call — running after the first already placed
+        // search-input-wrap right after the thread — pushes search-dropdown one slot further
+        // down, landing it after search-input-wrap instead.
+        appState.searchChatThread.insertAdjacentElement('afterend', appState.searchDropdown);
+        appState.searchChatThread.insertAdjacentElement('afterend', appState.searchInputWrap);
     }
     // AI search's own onOpen callback — passed to panels-hamburger.js's wireRailIcon('ai', ...)
     // call (kept there, not here, alongside every other rail icon's own wireRailIcon call, to
     // avoid calling wireRailIcon itself at this module's own top level — a circular-import timing
     // risk, since panels-hamburger.js also imports from this file; a plain function reference like
-    // this one has no such risk, it's only ever invoked later, on a real click). Always lands
-    // back on the chat view (not mid-history-browse from a previous session), and focuses the
-    // input (the rail is click-only now, so `pin` is always true here — kept as a parameter since
+    // this one has no such risk, it's only ever invoked later, on a real click). Always lands back
+    // on the list view (not mid-conversation from a previous session), and focuses the input (the
+    // rail is click-only now, so `pin` is always true here — kept as a parameter since
     // openRailView always passes it through, same as every other view's own onOpen callback).
     function refreshAiPanel(pin) {
-        showAiChatView();
-        // handleSearchFocus() is what actually populates the recent-chats list under an empty box
-        // (see its own comment) — called directly here rather than relying purely on .focus()
-        // below to trigger it via the textarea's onfocus attribute: this runs synchronously inside
-        // the SAME click handler that just made the panel visible, and a couple of real browsers
-        // don't reliably fire a focus event for a programmatic .focus() call made in that exact
-        // circumstance. handleSearchFocus() is safe to call twice in a row (its own focus-event
-        // call, if it does also fire, just repeats the same fetch) — this guarantees the list
-        // actually loads every time the panel opens rather than depending on that.
-        if (pin) { appState.searchInput.focus(); handleSearchFocus(); }
+        showAiListView();
+        if (pin) appState.searchInput.focus();
     }
     // Opens the AI panel — called from the global Space/"/" keydown shortcuts
     // (srs-connections-core.js), and from openSavedChat (hamburger-collab.js) when reopening a
-    // saved conversation from the Chats history list.
+    // saved conversation from the chat list.
     function openSearchOverlay() {
         if (!appState.aiPanel || !appState.searchInput) return;
         openRailView('ai', appState.aiPanel, appState.railBtnAi, refreshAiPanel, true);
@@ -638,28 +636,16 @@ import { render } from './waypoints-render-loop.js';
         updateSearchDropdown();
     }
 
-    // Last-fetched recent-chats list, shown instantly on refocus while a fresh copy loads in the
-    // background (see handleSearchFocus below) — without this, every single focus (not just the
-    // first) would briefly collapse the dropdown to empty and then re-grow it once the fetch
-    // resolves, a visible flash on top of what's usually the exact same list it already just
-    // showed a moment ago. null (not yet fetched this session) is distinct from [] (fetched,
-    // genuinely no chats) — only the former should skip rendering anything on cache-hit.
-    let cachedRecentChats = null;
     // Focusing the box no longer drops a static suggestion list on you — instead the border
     // itself pulses (see .idle-pulsing / the search-idle-chase rects in globals.css) for as long
     // as the box is focused and nothing's been submitted yet, replaced by the existing loading
     // ring the moment a search actually commences (see commenceSearchOrMnemonic/
-    // commenceDotbotSearch, which remove this class right before they run). While it's empty AND
-    // there's no conversation already going (appState.currentConversationId unset — same guard
-    // handleSearchInput's live-suggestions branch already uses, for the same reason: mid-chat,
-    // the box empties and refocuses itself after every response, and nothing should pop up under
-    // it at that point — follow-up suggestions are already given inline at the bottom of each
-    // message, and browsing chat history isn't something you do mid-conversation), the dropdown
-    // below it shows the SAME chat list the panel's own history view shows (reusing
-    // renderChatsList's own fetch, hamburger-collab.js, and buildRecentChatsRows' shared
-    // .outline-item/.outline-label row styling — not a separately-styled preview) — replaced the
-    // instant real typing starts, either by live suggestions or nothing (see handleSearchInput).
-    async function handleSearchFocus() {
+    // commenceDotbotSearch, which remove this class right before they run). Browsing past chats
+    // is the list view's own always-visible #chats-list now (see showAiListView), not something
+    // that pops up under the box here — an earlier version of this function fetched and showed a
+    // "recent chats" preview under an empty box, back when the box's default resting position
+    // WAS a chat view with nothing else on it; that page doesn't exist anymore.
+    function handleSearchFocus() {
         // 'rail' — the AI panel IS the currently-open rail view when this fires (focusing the box
         // only happens while it's visible), so closing the rail here would close the box's own
         // panel out from under itself. Still closes unrelated overlays (add-menu/collab/source-add)
@@ -669,19 +655,7 @@ import { render } from './waypoints-render-loop.js';
         appState.searchInputWrap.classList.add('idle-pulsing');
         const v = appState.searchInput.value.trim();
         if (v !== "") return;
-        if (appState.currentConversationId) {
-            window.__setSearchSuggestions(null);
-            updateSearchDropdown();
-            return;
-        }
-        if (cachedRecentChats !== null) { window.__setSearchSuggestions({ kind: 'recent-chats', chats: cachedRecentChats }); updateSearchDropdown(); }
-        const chats = await renderChatsList();
-        cachedRecentChats = chats;
-        // Stale guard — real typing, a submitted search, or a follow-up (currentConversationId
-        // now set) may have already taken over the dropdown by the time this network round trip
-        // resolves; never clobber that with a list that's no longer relevant to what's on screen.
-        if (appState.searchInput.value.trim() !== "" || appState.currentConversationId) return;
-        window.__setSearchSuggestions({ kind: 'recent-chats', chats });
+        window.__setSearchSuggestions(null);
         updateSearchDropdown();
     }
 
@@ -728,7 +702,7 @@ import { render } from './waypoints-render-loop.js';
     // buildRecommendedSearchesRows). #search-suggestions' content itself is real React state now
     // (see app/dotto/SearchSuggestionsPanel.jsx, searchSuggestionsStore) — see
     // renderMnemonicResultCard's own comment in mnemonic-search-matching.js for the full picture
-    // of why (shared by 6 different producers across 3 files).
+    // of why (shared by 5 different producers across 3 files).
     function buildLiveSuggestionsRows(suggestions) {
         const frag = document.createDocumentFragment();
         suggestions.slice(0, 4).forEach(text => {
@@ -743,33 +717,6 @@ import { render } from './waypoints-render-loop.js';
     function renderLiveSuggestions(suggestions) {
         window.__setSearchSuggestions({ kind: 'live-suggestions', suggestions });
         updateSearchDropdown();
-    }
-    // The SAME chat list the panel's own history view shows (see #chats-list/ChatsListPanel.jsx's
-    // ChatRow) — same .outline-item/.outline-label row styling, same window.__openSavedChat click
-    // handler, same "No chats yet." empty state, full list rather than a truncated preview — not
-    // a separately-styled version of it. It occupies the dropdown's #search-suggestions slot
-    // (unlike ChatsListPanel.jsx's own #chats-list, a completely different node) purely because
-    // that's where this needs to show — the underlying data and row appearance are meant to read
-    // as literally the same list either way it's reached, not a distinct summarized view of it.
-    function buildRecentChatsRows(chats) {
-        if (!chats.length) {
-            const empty = document.createElement('div');
-            empty.className = 'outline-empty';
-            empty.textContent = 'No chats yet.';
-            return empty;
-        }
-        const frag = document.createDocumentFragment();
-        chats.forEach(c => {
-            const div = document.createElement('div');
-            div.className = 'outline-item';
-            const label = document.createElement('span');
-            label.className = 'outline-label';
-            label.textContent = c.title || 'New chat';
-            div.appendChild(label);
-            div.onclick = (e) => { e.stopPropagation(); window.__openSavedChat(c.id); };
-            frag.appendChild(div);
-        });
-        return frag;
     }
 
     // ---------- Dotbot (AI assistant embedded in the search box) ----------
@@ -953,11 +900,10 @@ import { render } from './waypoints-render-loop.js';
         clearSearch();
     }
 
-export { applyAlignHighlightToggle, buildAlignedSentenceEls, buildLiveSuggestionsRows, buildRecentChatsRows, clearSearch, countSourceEntries, dotbotErrorMessage, escapeHtml, findParentFolderId, handleSearchFocus, handleSearchInput, isLatinScriptText, openSearchOverlay, refreshAiPanel, resetAiSearchState, scrollChatThreadToBottom, setupDotbotResultDrag, showAiChatView, showAiHistoryView, speakerIconHTML, startNewAiChat, stripHtml, truncateCenter, typewriterReveal, typewriterRevealSegments, updateChatThread, updateSearchDropdown };
+export { applyAlignHighlightToggle, buildAlignedSentenceEls, buildLiveSuggestionsRows, clearSearch, countSourceEntries, dotbotErrorMessage, escapeHtml, findParentFolderId, handleSearchFocus, handleSearchInput, isLatinScriptText, openSearchOverlay, refreshAiPanel, resetAiSearchState, scrollChatThreadToBottom, setupDotbotResultDrag, showAiChatView, showAiListView, speakerIconHTML, stripHtml, truncateCenter, typewriterReveal, typewriterRevealSegments, updateChatThread, updateSearchDropdown };
 
 window.__countSourceEntries = countSourceEntries;
 window.__buildLiveSuggestionsRows = buildLiveSuggestionsRows;
-window.__buildRecentChatsRows = buildRecentChatsRows;
 // ChatTurn (app/dotto/ChatThread.jsx) calls these directly — React files can't import public/
 // dotto/*.js as ES modules (same constraint every other window.__* bridge here exists for).
 window.__updateChatThread = updateChatThread;

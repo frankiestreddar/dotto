@@ -1,4 +1,4 @@
-import { openSearchOverlay, scrollChatThreadToBottom, updateChatThread } from './ai-assistant-suggestions.js';
+import { openSearchOverlay, scrollChatThreadToBottom, showAiChatView, updateChatThread } from './ai-assistant-suggestions.js';
 import { appState, canvasViewportCenterX, drawSettings, supabase } from './core-state.js';
 import { openCollabPanel, renderCollabPill } from './friends-presence.js';
 import { saveWorkspaceNow, smoothPanTo } from './history-autosave.js';
@@ -265,16 +265,18 @@ import { deleteCanvasCollabsForFolder, deleteWaypointCardEverywhere, expandWaypo
         const it = appState.folders[appState.currentFolderId] && appState.folders[appState.currentFolderId].items.find(i => String(i.id) === String(itemId));
         if (it) peekWaypointCard(appState.currentFolderId, it);
     }
-    // Reopens a saved conversation (clicked from the AI panel's own chat-history view, see
+    // Reopens a saved conversation (clicked from the AI panel's own chat-list rows, see
     // ChatsListPanel.jsx's row onClick), fully restoring its history — no live AI call, just
     // Stage 2's read path (dotbot_messages, RLS-scoped) replayed into the same turn-rendering
     // ChatThread.jsx uses for live results. openSearchOverlay alone (no separate closeRailView
     // first) is enough — opening the AI view already closes/hides whatever else might be open, and
-    // since it's already the active view here (that's how the history list itself is visible),
+    // since it's already the active view here (that's how the chat list itself is visible),
     // calling closeRailView first would trigger resetAiSearchState (see panels-hamburger.js) and
     // reset currentConversationId/chatThreadStore right before this function sets them again —
     // harmless in the end (this function's own assignments below run after and win), but
-    // pointless churn to avoid.
+    // pointless churn to avoid. openSearchOverlay lands on the list view by default (refreshAiPanel
+    // -> showAiListView), so this calls showAiChatView() itself, once the real data is actually in
+    // place, to bring the conversation on screen.
     async function openSavedChat(conversationId) {
         openSearchOverlay();
         if (!supabase || !appState.currentUser.id) return;
@@ -302,6 +304,7 @@ import { deleteCanvasCollabsForFolder, deleteWaypointCardEverywhere, expandWaypo
             }
         });
         window.__setChatThread(turns);
+        showAiChatView();
         updateChatThread();
         scrollChatThreadToBottom();
     }
@@ -335,18 +338,9 @@ import { deleteCanvasCollabsForFolder, deleteWaypointCardEverywhere, expandWaypo
         // updateChatThread() alongside setChatThread: without it, #search-chat-thread's
         // 'thread-settled' class (flex:1, globals.css) would linger from the just-deleted
         // conversation, pinning the AI panel's input box to the bottom of what's now a blank
-        // thread (see startNewAiChat's own comment, ai-assistant-suggestions.js, for the same fix).
+        // thread.
         if (ids.includes(appState.currentConversationId)) { appState.currentConversationId = null; window.__setChatThread([]); updateChatThread(); }
         clearListPanelSelection();
-        renderChatsList();
-    }
-    async function clearAllChats() {
-        if (!confirm("Delete all saved chats? This can't be undone.")) return;
-        const { error } = await supabase.rpc('delete_dotbot_conversations', {});
-        if (error) console.error('[chats] failed to clear all conversations:', error);
-        appState.currentConversationId = null;
-        window.__setChatThread([]);
-        updateChatThread(); // see deleteSelectedChats' own comment just above
         renderChatsList();
     }
     async function deleteSelectedWaypointRows(ids) {
@@ -404,7 +398,7 @@ import { deleteCanvasCollabsForFolder, deleteWaypointCardEverywhere, expandWaypo
     }
     drawSettings.addEventListener('click', (e) => e.stopPropagation());
 
-export { backToHubCollabMain, clearAllChats, clearListPanelSelection, dispatchListPanelDelete, goToWaypointCard, handleOwnedHubCollabRowClick, hmenuAction, openHubCollabRequestsView, openSavedChat, renderChatsList, renderHubCollabList, renderWaypointsList, resolveSharedFolderChain, respondToHubCollabRequest };
+export { backToHubCollabMain, clearListPanelSelection, dispatchListPanelDelete, goToWaypointCard, handleOwnedHubCollabRowClick, hmenuAction, openHubCollabRequestsView, openSavedChat, renderChatsList, renderHubCollabList, renderWaypointsList, resolveSharedFolderChain, respondToHubCollabRequest };
 
 // React → vanilla bridge — used by WaypointsListPanel.jsx/HubCollabListPanel.jsx/
 // ChatsListPanel.jsx (app/dotto/), which can't import these directly since public/dotto/*.js
