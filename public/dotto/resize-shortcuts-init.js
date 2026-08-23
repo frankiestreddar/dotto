@@ -12,6 +12,28 @@ import { updateDrawLayerBtns } from './srs-connections-core.js';
 import { cascadeDeleteFolderContents, centerOnContent, deleteWaypointFromDb, render, renderSelectedOutlines } from './waypoints-render-loop.js';
 
 
+    // Correct minimum for one axis (width or height) of a table whose column/row split might be
+    // UNEVEN — dragging one divider rewrites the WHOLE colWidths/rowHeights array (see
+    // startTableColResize/startTableRowResize below), and a freshly added column/row's own
+    // "average of existing" default (see growGridSizingForNewEntry, source-table.js) can leave
+    // the split uneven even without any single entry being individually dragged. Just checking
+    // count*unitMinPx (assuming every entry gets an equal share) isn't enough on its own: if one
+    // entry's percentage share is smaller than that assumption, the table-wide total could already
+    // be at that naive floor while THAT one entry is still below its own minimum — invisibly, if
+    // it's an empty cell with no text content pushing back against the too-small height the
+    // browser would otherwise silently honor (a non-empty cell's own text needing more room masks
+    // exactly this, which is why it only ever showed up on empty ones). Solving
+    // "smallestSharePct/100 * axisTotal >= unitMinPx" for axisTotal gives the true floor: whatever
+    // axisTotal makes the SMALLEST-share entry exactly hit its own minimum is the binding
+    // constraint for the whole axis, since every other (larger-share) entry is automatically well
+    // above its own minimum at that same total.
+    function tableAxisMinPx(percentages, count, unitMinPx) {
+        if (!count) return unitMinPx;
+        const arr = (Array.isArray(percentages) && percentages.length === count) ? percentages : new Array(count).fill(100 / count);
+        const minPct = Math.min(...arr);
+        return minPct > 0 ? (unitMinPx * 100) / minPct : count * unitMinPx;
+    }
+
     // ---------- Element Resize System ----------
     // Called every time a card's body is (re)built — including, for a Component-owned kind (see
     // CARD_KIND_COMPONENTS, app/dotto/CanvasItemsLayer.jsx), on every render() call, since that
@@ -46,21 +68,23 @@ import { cascadeDeleteFolderContents, centerOnContent, deleteWaypointFromDb, ren
             let sx = e.clientX, sy = e.clientY, sw = it.w, sh = it.h;
             const minSize = it.kind === 'table' ? 56 : 112;
             // A table's real minimum width/height isn't a flat constant the way every other
-            // kind's is — it depends on how many columns/rows it actually has, since every column
-            // needs at least TABLE_COL_MIN_PX and every row at least TABLE_ROW_MIN_PX (the exact
-            // same floors the per-column/row divider drag already enforces, see
-            // startTableColResize/startTableRowResize above) just to render at all. The flat 56px
-            // minSize above didn't account for that: shrinking a 5-column table's OVERALL width
-            // down to 56px asked every column to fit in ~11px, far under their own CSS
-            // min-width:40px — the cells refused to actually shrink that far (browsers don't let
-            // a cell go below its own min-width), but the WRAPPER did, so the now-too-small
-            // wrapper's own overflow:hidden clipped whatever of the (still full-sized) cells
-            // stuck out past it — including, for whichever cell that clip cut through, its own
-            // border. Flooring it.w/it.h at the table's actual per-column/row space requirement
-            // means the wrapper can never ask for less room than the cells genuinely need, so
-            // there's nothing left for it to clip.
-            const tableMinW = it.kind === 'table' ? (it.tableData[0] || []).length * TABLE_COL_MIN_PX : minSize;
-            const tableMinH = it.kind === 'table' ? (it.tableData || []).length * TABLE_ROW_MIN_PX : minSize;
+            // kind's is — it depends on how many columns/rows it actually has (every column needs
+            // at least TABLE_COL_MIN_PX, every row at least TABLE_ROW_MIN_PX, the exact same
+            // floors the per-column/row divider drag already enforces) AND, since that split can
+            // be uneven, on how the CURRENT colWidths/rowHeights actually divide up the space —
+            // see tableAxisMinPx's own comment above for why a plain count*unitMinPx isn't enough
+            // on its own once the split isn't perfectly even. The flat 56px minSize above didn't
+            // account for any of that: shrinking a 5-column table's OVERALL width down to 56px
+            // asked every column to fit in ~11px, far under their own CSS min-width:40px — the
+            // cells refused to actually shrink that far (browsers don't let a cell go below its
+            // own min-width), but the WRAPPER did, so the now-too-small wrapper's own
+            // overflow:hidden clipped whatever of the (still full-sized) cells stuck out past it —
+            // including, for whichever cell that clip cut through, its own border. Flooring
+            // it.w/it.h at the table's actual per-column/row space requirement means the wrapper
+            // can never ask for less room than the cells genuinely need, so there's nothing left
+            // for it to clip.
+            const tableMinW = it.kind === 'table' ? tableAxisMinPx(it.colWidths, (it.tableData[0] || []).length, TABLE_COL_MIN_PX) : minSize;
+            const tableMinH = it.kind === 'table' ? tableAxisMinPx(it.rowHeights, (it.tableData || []).length, TABLE_ROW_MIN_PX) : minSize;
             // Media cards (image/video/PDF/EPUB) resize proportionally, preserving their content's
             // real aspect ratio, instead of each axis independently the way table/flashcard do (or
             // width-only the way note does, just below) — locked to the PDF page's own true ratio
