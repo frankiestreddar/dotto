@@ -119,16 +119,30 @@ import { cascadeDeleteFolderContents, centerOnContent, deleteWaypointFromDb, ren
     // 28px grid unit already used elsewhere in this file's own move handler.
     const TABLE_COL_MIN_PX = 40;
     const TABLE_ROW_MIN_PX = 28;
+    // The resize affordance (purple highlight + col/row-resize cursor, both driven by the .armed
+    // class — see globals.css) only shows once the cursor has rested on a divider for this long,
+    // not the instant it merely passes over — and dragging is only actually possible once armed
+    // too (see the pointerdown guards below), so a quick pass-through across a divider on the way
+    // to somewhere else never accidentally starts a resize. Cleared immediately, timer included,
+    // on mouseleave, so leaving before the delay elapses can never arm it a moment late.
+    const TABLE_GRID_HOVER_ARM_MS = 300;
+    function armDividerOnHover(handle, signal) {
+        let armTimer = null;
+        handle.addEventListener('mouseenter', () => { armTimer = setTimeout(() => handle.classList.add('armed'), TABLE_GRID_HOVER_ARM_MS); }, { signal });
+        handle.addEventListener('mouseleave', () => { clearTimeout(armTimer); handle.classList.remove('armed'); }, { signal });
+    }
     function setupTableGridResizing(el, it) {
         el.querySelectorAll('.table-col-resize-handle').forEach((handle, i) => {
             handle.__resizeListenerAbort?.abort();
             const { signal } = (handle.__resizeListenerAbort = new AbortController());
-            handle.addEventListener('pointerdown', (e) => startTableColResize(e, it, i), { signal });
+            armDividerOnHover(handle, signal);
+            handle.addEventListener('pointerdown', (e) => { if (handle.classList.contains('armed')) startTableColResize(e, it, i); }, { signal });
         });
         el.querySelectorAll('.table-row-resize-handle').forEach((handle, i) => {
             handle.__resizeListenerAbort?.abort();
             const { signal } = (handle.__resizeListenerAbort = new AbortController());
-            handle.addEventListener('pointerdown', (e) => startTableRowResize(e, it, i), { signal });
+            armDividerOnHover(handle, signal);
+            handle.addEventListener('pointerdown', (e) => { if (handle.classList.contains('armed')) startTableRowResize(e, it, i); }, { signal });
         });
     }
     // Dragging the divider between column `i` and `i+1` only ever moves width between those two

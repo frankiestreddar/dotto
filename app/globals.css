@@ -1504,14 +1504,19 @@
        resize-shortcuts-init.js) — the plain canvas Table card only, not source/static tables
        (those already have their own auto-width column system, unrelated to userSized/colWidths).
        Positioned as a % of .table-rounded's own box, centered on the boundary itself (see the
-       transform) — invisible at rest, a soft brand-indigo highlight on hover so the boundary
-       reads as draggable without permanently drawing a second line over the cell borders that
-       already mark every column/row edge. Narrow (4px) so the hover highlight itself doesn't
-       read as a second, wider line sitting on top of the actual 1px grid line underneath it. */
-    .table-col-resize-handle{position:absolute;top:0;bottom:0;width:3px;transform:translateX(-50%);cursor:col-resize;z-index:3;}
-    .table-col-resize-handle:hover{background:rgba(99,102,241,0.35);}
-    .table-row-resize-handle{position:absolute;left:0;right:0;height:3px;transform:translateY(-50%);cursor:row-resize;z-index:3;}
-    .table-row-resize-handle:hover{background:rgba(99,102,241,0.35);}
+       transform) — invisible at rest, a soft brand-indigo highlight once .armed (see
+       armDividerOnHover, resize-shortcuts-init.js — JS-driven, not a plain :hover, since the
+       highlight/cursor/actual drag-ability are all deliberately delayed until the cursor has
+       rested on the boundary for a moment, not shown the instant it merely passes over) so the
+       boundary reads as draggable without permanently drawing a second line over the cell borders
+       that already mark every column/row edge. Narrow (3px) so the highlight itself doesn't read
+       as a second, wider line sitting on top of the actual 1px grid line underneath it. No cursor
+       at rest either (falls back to whatever the underlying cell would show) — col-resize/
+       row-resize only once armed, same reasoning as the highlight itself. */
+    .table-col-resize-handle{position:absolute;top:0;bottom:0;width:3px;transform:translateX(-50%);z-index:3;}
+    .table-col-resize-handle.armed{background:rgba(99,102,241,0.35);cursor:col-resize;}
+    .table-row-resize-handle{position:absolute;left:0;right:0;height:3px;transform:translateY(-50%);z-index:3;}
+    .table-row-resize-handle.armed{background:rgba(99,102,241,0.35);cursor:row-resize;}
     /* border-collapse:separate + border-spacing:0 instead of collapse — this is the decisive fix
        for a whole cluster of table-border issues that kept resurfacing under collapse mode: a
        focused cell's highlight leaving a gap specifically on cells touching the table's outer
