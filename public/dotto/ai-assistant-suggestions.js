@@ -93,74 +93,20 @@ import { render } from './waypoints-render-loop.js';
         const url = '/assets/icons/speaker.png';
         return `<span class="${extraClass || ''} icon-mask" style="mask-image:url(${url});-webkit-mask-image:url(${url})"></span>`;
     }
-    // Must match the .align-hl-0..N palette in globals.css.
-    // Global on/off switch for word-alignment color-coding, toggled via the examples panel's
-    // hover-slide toggle button (see buildExamplesCard) — affects every aligned sentence
-    // currently on screen (examples panel AND any embedded answerBlocks example pills, since
-    // both share the exact same highlighting mechanism), not just the panel the toggle button
-    // lives on. `dotbotAlignedRegistry` tracks every {el, str, alignment, pick} currently
-    // rendered so toggling can re-render them in place without needing to re-fetch or rebuild
-    // whole cards — cleared at the top of renderOrchestrateResult each time a fresh result comes
-    // in, so it never grows to reference stale, long-gone elements.
-    function applyAlignHighlightToggle(on) {
-        appState.dotbotAlignHighlightOn = on;
-        appState.dotbotAlignedRegistry.forEach(entry => {
-            entry.el.innerHTML = alignedSentenceHTML(entry.str, entry.alignment, entry.pick);
-        });
-    }
-    // Wraps whichever alignment phrases actually appear verbatim in `str` with color-coded
-    // highlight spans — one color per entry in the `alignment` array (see lib/dotbot.js's
-    // ALIGNMENT_SCHEMA for the {sourcePhrase, targetPhrase} contract this backs). `pickPhrase`
-    // selects which side of each pair applies to THIS string (sourcePhrase for the original
-    // sentence, targetPhrase for its translation) — calling this once per side with the same
-    // `alignment` array naturally gives a matching pair the same color on both sides, since the
-    // color is just that pair's own index in the array. A phrase that isn't found verbatim (the
-    // model didn't follow the exact-substring contract) is silently skipped rather than guessed
-    // at — same "never trust structured output blindly" posture as the rest of this codebase.
-    // Matches are found in array order and never allowed to overlap an already-claimed range, so
-    // an earlier pair's match always wins over a later, overlapping one.
-    function alignedSentenceHTML(str, alignment, pickPhrase) {
-        str = str || '';
-        if (!appState.dotbotAlignHighlightOn || !alignment || !alignment.length) return escapeHtml(str);
-        const claims = [];
-        const lowerStr = str.toLowerCase();
-        alignment.forEach((pair, i) => {
-            const phrase = pair && pickPhrase(pair);
-            if (!phrase) return;
-            // Case-insensitive search (sentence-initial capitalization shouldn't silently break
-            // an otherwise-correct alignment pair) — the ORIGINAL casing from `str` is still
-            // what actually gets sliced out and rendered below, only the search ignores case.
-            const idx = lowerStr.indexOf(phrase.toLowerCase());
-            if (idx === -1) return;
-            const end = idx + phrase.length;
-            if (claims.some(c => idx < c.end && end > c.start)) return; // overlaps an earlier, already-claimed match
-            claims.push({ start: idx, end, colorIdx: i % appState.ALIGN_HL_COLOR_COUNT });
-        });
-        if (!claims.length) return escapeHtml(str);
-        claims.sort((a, b) => a.start - b.start);
-        let html = '', cursor = 0;
-        claims.forEach(c => {
-            html += escapeHtml(str.slice(cursor, c.start));
-            html += `<span class="align-hl align-hl-${c.colorIdx}">${escapeHtml(str.slice(c.start, c.end))}</span>`;
-            cursor = c.end;
-        });
-        html += escapeHtml(str.slice(cursor));
-        return html;
-    }
-    // Builds the {text, romanization, translation} elements for one example sentence, with
-    // word-alignment highlighting applied to both text and translation — shared by the examples
-    // panel (buildExamplesCard) and the "example" blocks inside an in-depth grammar/explanation
-    // answer (see renderAnswerBlocks), so both use identical highlighting logic. Returns the
-    // elements rather than appending them anywhere, since each caller lays them out differently
-    // (the examples panel puts a TTS button alongside the text; answer blocks render as a
-    // standalone pill) — translitEl/translationEl are null when that line doesn't apply (see
-    // isLatinScriptText and the "differs from the sentence itself" rule, both unchanged from
-    // before this shared alignment behavior).
+    // Builds the {text, romanization, translation} elements for one example sentence — shared by
+    // the examples panel (buildExamplesCard) and the "example" blocks inside an in-depth
+    // grammar/explanation answer (see renderAnswerBlocks). Returns the elements rather than
+    // appending them anywhere, since each caller lays them out differently (the examples panel
+    // puts a TTS button alongside the text; answer blocks render as a standalone pill) —
+    // translitEl/translationEl are null when that line doesn't apply (see isLatinScriptText and
+    // the "differs from the sentence itself" rule). Plain escaped text throughout — this used to
+    // apply word-for-word color-coded highlighting here (see lib/dotbot.js's "alignment" field,
+    // {sourcePhrase, targetPhrase} pairs the model still generates but nothing reads anymore),
+    // removed per explicit request.
     function buildAlignedSentenceEls(s) {
         const textEl = document.createElement('div');
         textEl.className = 'dotbot-example-sentence';
-        textEl.innerHTML = alignedSentenceHTML(s.text, s.alignment, (p) => p.sourcePhrase);
-        appState.dotbotAlignedRegistry.push({ el: textEl, str: s.text, alignment: s.alignment, pick: (p) => p.sourcePhrase });
+        textEl.textContent = s.text || '';
         let translitEl = null;
         if (s.romanization && !isLatinScriptText(s.text)) {
             translitEl = document.createElement('div');
@@ -171,8 +117,7 @@ import { render } from './waypoints-render-loop.js';
         if (s.translation && s.translation !== s.text) {
             translationEl = document.createElement('div');
             translationEl.className = 'dotbot-example-translation';
-            translationEl.innerHTML = alignedSentenceHTML(s.translation, s.alignment, (p) => p.targetPhrase);
-            appState.dotbotAlignedRegistry.push({ el: translationEl, str: s.translation, alignment: s.alignment, pick: (p) => p.targetPhrase });
+            translationEl.textContent = s.translation;
         }
         return { textEl, translitEl, translationEl };
     }
@@ -900,7 +845,7 @@ import { render } from './waypoints-render-loop.js';
         clearSearch();
     }
 
-export { applyAlignHighlightToggle, buildAlignedSentenceEls, buildLiveSuggestionsRows, clearSearch, countSourceEntries, dotbotErrorMessage, escapeHtml, findParentFolderId, handleSearchFocus, handleSearchInput, isLatinScriptText, openSearchOverlay, refreshAiPanel, resetAiSearchState, scrollChatThreadToBottom, setupDotbotResultDrag, showAiChatView, showAiListView, speakerIconHTML, stripHtml, truncateCenter, typewriterReveal, typewriterRevealSegments, updateChatThread, updateSearchDropdown };
+export { buildAlignedSentenceEls, buildLiveSuggestionsRows, clearSearch, countSourceEntries, dotbotErrorMessage, escapeHtml, findParentFolderId, handleSearchFocus, handleSearchInput, isLatinScriptText, openSearchOverlay, refreshAiPanel, resetAiSearchState, scrollChatThreadToBottom, setupDotbotResultDrag, showAiChatView, showAiListView, speakerIconHTML, stripHtml, truncateCenter, typewriterReveal, typewriterRevealSegments, updateChatThread, updateSearchDropdown };
 
 window.__countSourceEntries = countSourceEntries;
 window.__buildLiveSuggestionsRows = buildLiveSuggestionsRows;

@@ -238,6 +238,7 @@
        element itself doesn't get squashed or stretched as a child of #ai-list-view's own flex
        column above. */
     #ai-list-header{flex:0 0 auto;}
+    #ai-list-title{flex:0 0 auto;font-family:'Space Grotesk', sans-serif;font-size:15px;font-weight:600;color:var(--ink);padding:10px 10px 4px;}
     /* Compact "…/parent/current" breadcrumb (see app/dotto/BreadcrumbPill.jsx, breadcrumbMapStore)
        — a .bubble inside #top-bar-center (own fixed/centring positioning lives there now, shared
        with #collab-bubble beside it), replacing the old always-visible full ancestor list that
@@ -373,8 +374,8 @@
     @keyframes remote-typing-caret-blink{0%,49%{opacity:1;}50%,100%{opacity:0;}}
     /* One of these per line a remote collaborator's live text selection spans (see
        positionSelectionHighlight) — tinted to their assigned color via currentColor, same
-       convention as .remote-cursor/.remote-typing-caret, at the same 0.3 opacity the local
-       .align-hl-* text highlights already use elsewhere in the app. */
+       convention as .remote-cursor/.remote-typing-caret, at a soft 0.3 opacity so the underlying
+       text stays fully readable through it. */
     .remote-selection-highlight{position:absolute;background:currentColor;opacity:0.3;border-radius:2px;pointer-events:none;}
 
     #collab-panel{display:none;position:fixed;width:280px;height:min(420px, calc(100vh - 100px));background:var(--bar);border:1px solid var(--card-border);border-radius:12px;z-index:2000;box-shadow:0 4px 16px rgba(0,0,0,0.5);flex-direction:column;overflow:hidden;}
@@ -1123,8 +1124,8 @@
        trap: measuring scrollHeight while they're temporarily zeroed would undercount the eventual
        open height by however much they contribute.
        The overflow:hidden below looks like it contradicts "Deliberately NOT overflow:hidden" on
-       #search-bar just above (needed so the dictionary/examples panels' hover-out nav arrows,
-       .dotbot-dictionary-arrows/.dotbot-examples-toggle below, can slide OUTSIDE their own panel's
+       #search-bar just above (needed so the dictionary panel's hover-out nav arrows,
+       .dotbot-dictionary-arrows below, can slide OUTSIDE their own panel's
        right edge) — it doesn't: this is only ever the RESTING value while collapsed (nothing to
        clip at height 0 anyway) or the TRANSIENT value for the grow/collapse transition itself; the
        JS flips it back to overflow:visible the instant that transition finishes, so the arrows
@@ -1197,8 +1198,11 @@
        instead of the thread growing downward from the top. scrollChatThreadToBottom
        (ai-assistant-suggestions.js) resets scrollTop to 0 rather than scrollHeight to match —
        under column-reverse, 0 IS the bottom. */
-    #search-chat-thread{display:flex;flex-direction:column-reverse;gap:16px;height:0;overflow:hidden;flex:0 0 auto;margin-bottom:8px;}
+    #search-chat-thread{display:flex;flex-direction:column-reverse;gap:16px;height:0;overflow:hidden;flex:0 0 auto;margin-bottom:8px;scrollbar-width:none;}
     #search-chat-thread.thread-settled{flex:1 1 auto;}
+    /* Same convention as .hub-subpanel-list (Waypoints/Chats/Collaborations) — still scrolls once
+       content overflows the flex-1 space above, just no visible scrollbar track/thumb. */
+    #search-chat-thread::-webkit-scrollbar{display:none;}
     .dotbot-turn{display:flex;flex-direction:column;gap:8px;}
     /* Right-aligned pill, same --brand indigo used elsewhere for accents — the one thing this
        whole search surface never rendered before now: the user's OWN query, as an actual message
@@ -1231,16 +1235,6 @@
     /* "Highlight/pill slightly lighter than background" — #202020 against #search-dotbot-answer's
        own --bar (#161616), same lightening convention as e.g. .shelf-row elsewhere in this file. */
     .dotbot-answer-example-pill{background:#202020;border:1px solid var(--card-border);border-radius:10px;padding:10px 12px;display:flex;flex-direction:column;gap:2px;}
-    /* Word-for-word (or morpheme-for-morpheme) highlight spans shared by every example sentence
-       in the AI results (see alignedSentenceHTML) — colors don't need to (and won't) match
-       between different sentences, only between the two matched sides of the SAME sentence. */
-    .align-hl{border-radius:4px;padding:0 2px;margin:0 -2px;}
-    .align-hl-0{background:rgba(99,102,241,0.3);}
-    .align-hl-1{background:rgba(16,185,129,0.3);}
-    .align-hl-2{background:rgba(245,158,11,0.3);}
-    .align-hl-3{background:rgba(236,72,153,0.3);}
-    .align-hl-4{background:rgba(59,130,246,0.3);}
-    .align-hl-5{background:rgba(168,85,247,0.3);}
     /* Rows use the .active hover/keyboard-selection convention shared across this dropdown's other
        row lists, see command-palette.js's setCommandActive. */
     #search-command-palette{display:none;max-height:300px;overflow-y:auto;}
@@ -1269,10 +1263,12 @@
     .search-suggestion-item.search-image-result-card{padding:10px;cursor:grab;}
     .search-image-result-card:active{cursor:grabbing;}
     .search-image-result-card img{border-radius:8px;display:block;}
-    /* Unlike most result panels these are deliberately NOT overflow:hidden — the dictionary's
-       nav arrows and the examples panel's color-toggle button both live OUTSIDE their card,
-       hover-sliding out past the panel's own right edge (see .dotbot-dictionary-arrows /
-       .dotbot-examples-toggle below), and would get clipped by a rounded-corner overflow mask. */
+    /* Unlike most result panels this is deliberately NOT overflow:hidden — the dictionary's own
+       nav arrows live OUTSIDE its card, hover-sliding out past the panel's own right edge (see
+       .dotbot-dictionary-arrows below), and would get clipped by a rounded-corner overflow mask.
+       #search-examples no longer has an equivalent need (its own color-toggle button, which used
+       to live outside its card the same way, was removed) but is left the same for consistency
+       with every other result panel here. */
     #search-dictionary, #search-examples{overflow:visible;}
     #search-translation{overflow:hidden;}
     /* Outer positioning context for the card plus the nav arrows that live outside it. */
@@ -1312,21 +1308,12 @@
     .dotbot-dictionary-tags{display:flex;flex-wrap:wrap;gap:6px;}
     .dotbot-dictionary-tag-pill{font-size:11px;color:var(--ink-soft);background:rgba(255,255,255,0.06);border:1px solid var(--card-border);padding:2px 9px;border-radius:999px;}
     .dotbot-dictionary-def{font-size:14px;color:var(--ink);line-height:1.4;}
-    .dotbot-examples-wrap{position:relative;}
     .dotbot-examples-card{padding:12px 14px;display:flex;flex-direction:column;gap:10px;}
     .dotbot-example-sentence-wrap{display:flex;flex-direction:column;gap:2px;}
     .dotbot-example-sentence-row{display:flex;align-items:center;gap:6px;}
     .dotbot-example-sentence{flex:1 1 auto;min-width:0;font-size:14px;color:var(--ink);line-height:1.4;}
     .dotbot-example-translit{font-size:12px;color:var(--ink-soft);font-style:italic;}
     .dotbot-example-translation{font-size:12px;color:var(--ink-soft);line-height:1.4;}
-    /* Color-coding on/off toggle for the WHOLE examples panel — same hover-slide-out-from-under
-       mechanic as the dictionary's nav arrows above, living outside the card on its right edge.
-       Off = plain grey circle; on = a pure-CSS conic-gradient rainbow circle, no image asset
-       needed. Flips the shared dotbotAlignHighlightOn switch (see applyAlignHighlightToggle in
-       dotto-script.js), which also governs any answerBlocks example pills on screen. */
-    .dotbot-examples-toggle{position:absolute;top:50%;right:-30px;transform:translate(-65%,-50%);width:22px;height:22px;border-radius:999px;border:1px solid var(--card-border);cursor:pointer;padding:0;background:#8a8a8a;box-shadow:0 2px 8px rgba(0,0,0,0.35);opacity:0;pointer-events:none;transition:transform .18s ease,opacity .18s ease;}
-    .dotbot-examples-wrap:hover .dotbot-examples-toggle{transform:translate(0,-50%);opacity:1;pointer-events:auto;}
-    .dotbot-examples-toggle.is-on{background:conic-gradient(from 0deg,#ff5f57,#ffbd2e,#28c941,#2e9bff,#a259ff,#ff5f57);}
     /* Word pill + language label above, on each side, with an arrow between — a direct
        translation-style query's own small panel (see lib/dotbot.js's "translation" field),
        deliberately simpler than the dictionary card (no IPA/audio/grammar tags). */
@@ -1380,10 +1367,10 @@
     .dotbot-inline-placeholder{display:inline-block;min-width:60px;height:1em;border-radius:4px;vertical-align:-2px;animation:dotbot-inline-pulse 2s ease-in-out infinite;}
     /* Wraps an inline dictionary/example/translation widget sitting mid-answer — a subtle border
        so it reads as embedded in the flow of text rather than a standalone card bolted on after.
-       Deliberately NO overflow:hidden — the dictionary card's hover-slide sense arrows and the
-       examples panel's color-toggle button both intentionally slide outside their own card's right
-       edge (see .dotbot-dictionary-arrows/.dotbot-examples-toggle above) and would get clipped by
-       a rounded-corner overflow mask, same reasoning already noted for #search-chat-thread. */
+       Deliberately NO overflow:hidden — the dictionary card's hover-slide sense arrows
+       intentionally slide outside their own card's right edge (see .dotbot-dictionary-arrows
+       above) and would get clipped by a rounded-corner overflow mask, same reasoning already
+       noted for #search-chat-thread. */
     .dotbot-inline-widget{display:block;margin:6px 0;border:1px solid var(--card-border);border-radius:10px;}
     /* Shared fade+rise-in for each staggered reveal step (answerBlocks blocks, then any remaining
        standalone cards, then recommended-searches) — see revealAnswerBlocksStaggered/

@@ -1,4 +1,4 @@
-import { applyAlignHighlightToggle, buildAlignedSentenceEls, clearSearch, dotbotErrorMessage, isLatinScriptText, scrollChatThreadToBottom, setupDotbotResultDrag, speakerIconHTML, typewriterReveal, typewriterRevealSegments, updateSearchDropdown } from './ai-assistant-suggestions.js';
+import { buildAlignedSentenceEls, clearSearch, dotbotErrorMessage, isLatinScriptText, scrollChatThreadToBottom, setupDotbotResultDrag, speakerIconHTML, typewriterReveal, typewriterRevealSegments, updateSearchDropdown } from './ai-assistant-suggestions.js';
 import { appState, canvas } from './core-state.js';
 import { saveSnapshot } from './history-autosave.js';
 import { openDotbotUpgradeModal, refreshDotbotUsage } from './profile-achievements-pricing.js';
@@ -459,21 +459,14 @@ import { render } from './waypoints-render-loop.js';
     // is only rendered when it actually differs from the sentence itself (i.e. the sentence
     // isn't already English), and romanization only when the model filled it in AND the sentence
     // isn't already Latin script (isLatinScriptText is a client-side backstop on top of the
-    // model's own instruction to omit it). Text/translation both get word-alignment highlighting
-    // via the shared buildAlignedSentenceEls (see its own comment for the {sourcePhrase,
-    // targetPhrase} contract). Each sentence is its own drag handle (not the whole card) —
-    // dropped individually onto the canvas as a dedicated 'sentence' card, not a plain note.
-    // `panel.language` (the standalone examples panel's own language field) is passed to each
-    // sentence's own TTS button so it's spoken correctly rather than falling back to the default
-    // English voice.
-    // Returns a `.dotbot-examples-wrap` (position:relative) containing the card plus a
-    // color-coding on/off toggle button living OUTSIDE it on the right edge, hidden under the
-    // card by default and sliding out on hover (same hover-slide mechanic as the dictionary
-    // card's nav arrows) — see .dotbot-examples-toggle in globals.css. The toggle is a grey
-    // circle when highlighting is off and an rgb-gradient circle when it's on, and flips the
-    // SAME global dotbotAlignHighlightOn switch that answerBlocks example pills also read (see
-    // applyAlignHighlightToggle) — one switch for all word-alignment highlighting on screen, not
-    // just this panel's own sentences.
+    // model's own instruction to omit it). Each sentence is its own drag handle (not the whole
+    // card) — dropped individually onto the canvas as a dedicated 'sentence' card, not a plain
+    // note. `panel.language` (the standalone examples panel's own language field) is passed to
+    // each sentence's own TTS button so it's spoken correctly rather than falling back to the
+    // default English voice. `alignment` (and the "sourcePhrase"/"targetPhrase" data the model
+    // still generates for it — see lib/dotbot.js) is currently unused: this used to drive
+    // word-for-word color-coding highlights, removed per explicit request; buildAlignedSentenceEls
+    // just renders plain escaped text now, ignoring its alignment argument.
     // One sentence's own drag handle + TTS button (extracted from buildExamplesCard's forEach so a
     // single referenced sentence can be shown inline — see startSequencedTurnReveal — without the
     // rest of that panel's sentences or its color-toggle chrome, which doesn't belong floating
@@ -506,24 +499,13 @@ import { render } from './waypoints-render-loop.js';
         return wrap;
     }
     function buildExamplesCard(panel) {
-        const wrap = document.createElement('div');
-        wrap.className = 'dotbot-examples-wrap';
         const card = document.createElement('div');
         card.className = 'dotbot-examples-card';
-        wrap.appendChild(card);
         const language = panel.language || '';
         (panel.sentences || []).forEach(s => {
             card.appendChild(buildExampleSentenceEl(s, language));
         });
-        const toggleBtn = document.createElement('button');
-        toggleBtn.type = 'button';
-        toggleBtn.className = 'dotbot-examples-toggle';
-        toggleBtn.title = 'Toggle word color-coding';
-        const syncToggleIcon = () => toggleBtn.classList.toggle('is-on', appState.dotbotAlignHighlightOn);
-        syncToggleIcon();
-        toggleBtn.onclick = (e) => { e.stopPropagation(); applyAlignHighlightToggle(!appState.dotbotAlignHighlightOn); syncToggleIcon(); };
-        wrap.appendChild(toggleBtn);
-        return wrap;
+        return card;
     }
     // A small, focused panel for direct translation-style queries ("how do you say X in Y",
     // "what does X mean") — see the "translation" field in lib/dotbot.js. Just a word pill with

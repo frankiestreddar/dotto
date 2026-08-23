@@ -28,10 +28,9 @@ import { render } from './waypoints-render-loop.js';
     // up on the same channel regardless of whose canvas it actually is. Reuses the exact same
     // combined presence+broadcast-on-one-channel shape as subscribeToAllFriendMessages above.
     //
-    // No per-user color exists anywhere else in the app — same "small fixed indexed palette" shape
-    // as the word-alignment highlight colors (.align-hl-0..5 in globals.css), just keyed by user id
-    // instead of alignment-pair index, so the same person always gets the same color across
-    // reloads/sessions with no server-side storage needed.
+    // A small fixed indexed palette (appState.CURSOR_COLORS), keyed by hashing the user's own id
+    // rather than anything server-stored, so the same person always gets the same color across
+    // reloads/sessions with no extra storage needed.
     function assignCursorColor(userId) {
         let hash = 0;
         for (let i = 0; i < userId.length; i++) hash = (hash * 31 + userId.charCodeAt(i)) | 0;

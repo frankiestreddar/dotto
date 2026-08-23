@@ -155,16 +155,6 @@ import { render } from './waypoints-render-loop.js';
     // etc.), which are now unused for AI content (their own components are left mounted but inert;
     // nothing feeds them anymore).
     function renderOrchestrateResult(query, panels) {
-        // Fresh per result — every aligned sentence element built below (dictionary's examples,
-        // and any answerBlocks example pills) registers itself here so the examples panel's
-        // color-coding toggle can re-render them in place (see applyAlignHighlightToggle).
-        // Deliberately NOT reset per turn anymore (an earlier, single-slot-replaced version of this
-        // did) — multiple turns' example sentences can all be visible on screen at once now, and
-        // resetting here would only leave the LATEST turn's elements trackable while the toggle
-        // silently stopped working for every earlier turn still showing above it. Letting
-        // registrations accumulate across turns means the toggle correctly affects everything
-        // currently visible in the thread, not just the newest addition.
-        appState.dotbotAlignedRegistry = appState.dotbotAlignedRegistry || [];
         // Applies the mutation directly rather than rendering a confirmation panel of its own —
         // "dotbotText" already reads as the confirmation (see the prompt), and the change is
         // immediately visible on the actual card/canvas. Stays a one-time side effect fired only

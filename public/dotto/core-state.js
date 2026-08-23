@@ -117,7 +117,6 @@
         // Tracks the arrow-selected row in #search-command-palette's row list (see
         // command-palette.js's setCommandActive).
         commandActiveIndex: -1,
-        dotbotAlignedRegistry: [],
         dotbotSearchGeneration: 0,
         // The persisted chat thread the next Dotbot message continues, if any — null means the
         // next commenceDotbotSearch call starts a fresh conversation. Set from the orchestrate
@@ -355,8 +354,6 @@
         searchCardContext: [],
         searchCardConnections: [],
         NON_LATIN_SCRIPT_RE: new RegExp("[^\u0000-\u024F\u1E00-\u1EFF\u2000-\u206F\s\d]"),
-        ALIGN_HL_COLOR_COUNT: 6,
-        dotbotAlignHighlightOn: true,
         dotbotSuggestDebounceTimer: null,
         dotbotSuggestAbortController: null,
         // Same idea as dotbotSuggestDebounceTimer above, for the slash-command palette's nested
