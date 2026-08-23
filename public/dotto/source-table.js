@@ -501,15 +501,20 @@ import { render } from './waypoints-render-loop.js';
         scheduleWorkspaceSave();
     }
     function focusTableCell(id, r, c, pos) {
-        // Row 0 no longer has editable table cells at all — it's the header's row of plain
-        // rename inputs — so route there instead when keyboard nav lands on it.
+        // Source/static tables split their header out into a separate row of plain rename
+        // inputs (row 0 has no editable <td> at all there) — route keyboard nav there instead
+        // when it lands on row 0. Plain canvas table cards have no such input: their header is
+        // just the first <tr>'s normal (greyed-out, but real and editable) <td>s, so when no
+        // matching input exists here, fall through to the ordinary cell lookup below instead of
+        // giving up — that's what was making the top row unreachable by arrow keys there.
         if (r === 0) {
             const input = document.querySelector(`#item-${id} .col-name-input[data-c="${c}"]`);
-            if (!input) return;
-            input.focus();
-            const caret = pos === 'start' ? 0 : input.value.length;
-            input.setSelectionRange(caret, caret);
-            return;
+            if (input) {
+                input.focus();
+                const caret = pos === 'start' ? 0 : input.value.length;
+                input.setSelectionRange(caret, caret);
+                return;
+            }
         }
         // Source-page (static) tables put the actual editable text in a nested `.cell-text`
         // div (so the hover tag-button/pills can live alongside it without being part of the
