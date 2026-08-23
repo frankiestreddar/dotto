@@ -1546,8 +1546,15 @@
        table's <td> is itself contentEditable, but the source/static table's editable node is the
        nested .cell-text, not the <td> itself — :focus-within fires either way. Already picks up
        whichever corner-radius rule above applies to this cell for free, since it's the same
-       border being recolored, not a separate overlay that has to be told to match it. */
-    .item-table td:focus-within{border-color:var(--brand);}
+       border being recolored, not a separate overlay that has to be told to match it.
+       !important: the plain canvas table's own border-color override just above
+       (.item.table:not(.static-table) .item-table td) is 4 classes + 1 element — MORE specific
+       than this rule's 2 classes + 1 element — so without this, focusing a cell in a plain table
+       silently lost to that rule and showed no highlight at all despite :focus-within matching
+       correctly. A focus state should unconditionally win regardless of which table variant it's
+       in, rather than this needing to keep re-winning a specificity race against every existing
+       (and future) per-variant border-color override. */
+    .item-table td:focus-within{border-color:var(--brand) !important;}
     /* The actual per-row "make room for the tag button" shift is handled in JS
        (attachStaticTableHoverZones toggling `.row-tag-shift` on just the hovered row's first
        cell's `.cell-inner` — see the rule near .static-table-row-tag-strip-wrap above) rather
