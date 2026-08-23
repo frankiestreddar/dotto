@@ -13,20 +13,47 @@ import { useLayoutEffect } from "react";
 // it.tableData[r][c] directly and never calls render(), so there's nothing for a later render to
 // fight even mid-edit.
 //
-// Mirrors the folder/waypoint title rename's own "the first click into an unfocused field always
-// lands the caret at the end, not wherever you clicked" behavior (startRenameFolderCardTitle,
+// A click and drag on a cell should move the whole card, never focus/edit that cell — but the
+// browser grabs focus on a contentEditable element the instant mousedown fires, before there's
+// any way to know yet whether this gesture is a click or the start of a drag. This tracks real
+// pointer movement after mousedown and blurs the cell the moment it crosses
+// TABLE_CELL_DRAG_THRESHOLD_PX, handing the gesture over to the wrapper's own whole-card drag
+// system (drag-drop-chat.js's setupDraggingAndClicking, already listening on the same
+// pointerdown via bubbling — completely unaffected by anything here, it was already tracking this
+// same gesture in parallel the whole time). A plain click (no meaningful movement before mouseup)
+// never blurs anything, so normal editing is untouched.
+//
+// Also handles the folder/waypoint title rename's own "the first click into an unfocused field
+// always lands the caret at the end, not wherever you clicked" behavior (startRenameFolderCardTitle,
 // waypoints-render-loop.js) — but a table <td> is always contentEditable here (never toggled on
 // click the way a rename field is), so "was this the very first click into an unfocused cell" is
-// detected via mousedown firing BEFORE the browser's own focus+click-to-caret handling, rather
-// than a contentEditable-state check. document.activeElement !== el at that point means this cell
-// wasn't already focused; the deferred call runs AFTER the native click has done its own (wrong,
-// for this one case) caret placement, overriding it. Once the cell already has focus, mousedown
-// fires the same way but the check is false, so nothing here overrides the perfectly normal
-// click-to-position behavior a second click deserves.
+// detected via document.activeElement at mousedown time, before the browser's own focus+click-to-
+// caret handling has run. The deferred placement is itself guarded on dragDetected, so a fast
+// drag that starts with a same-tick setTimeout race never re-focuses the cell right after the
+// blur above already fired.
+const TABLE_CELL_DRAG_THRESHOLD_PX = 4;
 function handleCellMouseDown(e) {
   const el = e.currentTarget;
-  if (document.activeElement === el) return;
-  setTimeout(() => window.__placeCaretEnd(el), 0);
+  const wasFocused = document.activeElement === el;
+  const downX = e.clientX, downY = e.clientY;
+  let dragDetected = false;
+  const onMove = (me) => {
+    if (dragDetected) return;
+    if (Math.hypot(me.clientX - downX, me.clientY - downY) > TABLE_CELL_DRAG_THRESHOLD_PX) {
+      dragDetected = true;
+      el.blur();
+      cleanup();
+    }
+  };
+  const cleanup = () => {
+    window.removeEventListener("mousemove", onMove);
+    window.removeEventListener("mouseup", cleanup);
+  };
+  window.addEventListener("mousemove", onMove);
+  window.addEventListener("mouseup", cleanup);
+  if (!wasFocused) {
+    setTimeout(() => { if (!dragDetected) window.__placeCaretEnd(el); }, 0);
+  }
 }
 
 // userSized's wrapper class + distributeTableSizing, and setupResizing/setupTableGridResizing,
