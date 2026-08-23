@@ -1535,29 +1535,37 @@
        edge by width/style precedence, and can drop it on some sides); and border-radius on
        individual cells blur-rendering OTHER, unrelated grid lines elsewhere in the table (collapse
        mode's border-painting algorithm doesn't compose cleanly with per-cell radius at all).
-       With separate + 0 spacing, every cell's border is its own fully independent box — two
-       adjacent cells' matching-color 1px borders sit at the exact same pixel with zero gap
-       between them (same visual result as collapse's shared line), but there's no more
-       "whose border wins" ambiguity, so a focused cell's border-color can just change directly
-       (see :focus-within below) and reliably show on all 4 sides, and per-cell border-radius on
-       the 4 corner cells is now safe to apply permanently instead of only transiently on focus.
-       No border-radius on the table element itself, and no background/border of its own anywhere
-       either — a first pass here also added border-radius directly on .item-table, on top of
-       .table-rounded's own (pre-existing, still below) radius+overflow:hidden clip and the 4
-       corner cells' own radius. Three independently-computed 10px arcs at the same corner,
-       instead of visibly agreeing perfectly, read as two slightly different curves rather than
-       one clean one. Removed: the table is made up of nothing but its cells now — .table-rounded
-       (a plain wrapper <div>, not the <table> itself) still clips everything to the same 10px
-       rounded rectangle shape as a backdrop, and the corner cells' own radius is what makes their
-       actual border LINE curve to match it, but the <table> element contributes no visual
-       styling of its own beyond holding the cells together. */
+       With separate + 0 spacing, every cell's border is its own fully independent box, so a
+       focused cell's own border-color/box-shadow can just change directly and reliably show
+       (see :focus-within below), and per-cell border-radius on the 4 corner cells is safe to
+       apply permanently instead of only transiently on focus. No border-radius on the table
+       element itself, and no background/border of its own anywhere either — a first pass here
+       also added border-radius directly on .item-table, on top of .table-rounded's own
+       (pre-existing, still below) radius+overflow:hidden clip and the 4 corner cells' own radius.
+       Three independently-computed 10px arcs at the same corner, instead of visibly agreeing
+       perfectly, read as two slightly different curves rather than one clean one. Removed: the
+       table is made up of nothing but its cells now — .table-rounded (a plain wrapper <div>, not
+       the <table> itself) still clips everything to the same 10px rounded rectangle shape as a
+       backdrop, and the corner cells' own radius is what makes their actual border LINE curve to
+       match it, but the <table> element contributes no visual styling of its own beyond holding
+       the cells together. */
     .item-table{border-collapse:separate;border-spacing:0;width:100%;table-layout:fixed;}
     /* Canvas table cards still keep the header as the first <tr> inside a single <tbody> (no
        separate header element), so this greys out that first row for them. Source-page
        static tables split the header out entirely (see below) — excluding .static-table
        here keeps this rule from also greying out their first *data* row. */
     .item.table:not(.static-table) .item-table > tbody > tr:first-child > td{background:var(--card);font-weight:600;color:var(--ink);}
-    .item-table td{border:1px solid var(--card-border);padding:6px 9px;min-width:40px;font-size:13px;outline:none;overflow:hidden;word-break:break-word;overflow-wrap:break-word;white-space:normal;text-align:var(--cell-align,left);vertical-align:middle;}
+    /* Every cell draws only its own right+bottom border, not all 4 sides. Under
+       border-collapse:separate + 0 spacing, two cells sitting flush against each other each still
+       paint a FULL independent border on their shared edge — the two 1px lines sit side by side
+       rather than merging, reading as a 2px line at every internal grid boundary (only the true
+       outer perimeter, where just one cell ever contributes a border on that side, stayed a
+       correct 1px). Owning right+bottom means every internal line is now painted by exactly one
+       cell. The two rules below add back the outer top/left edges, which no cell would otherwise
+       draw under this scheme. */
+    .item-table td{border-style:solid;border-color:var(--card-border);border-width:0 1px 1px 0;padding:6px 9px;min-width:40px;font-size:13px;outline:none;overflow:hidden;word-break:break-word;overflow-wrap:break-word;white-space:normal;text-align:var(--cell-align,left);vertical-align:middle;}
+    .item-table tr:first-child td{border-top-width:1px;}
+    .item-table td:first-child{border-left-width:1px;}
     .item.table:not(.static-table) .item-table td{border-color:rgba(255,255,255,0.1);}
     /* Rounds whichever cell is truly in one of the table's 4 outer corners to match the table's
        own 10px radius — permanent now (not just on focus), since border-collapse:separate makes
@@ -1569,45 +1577,37 @@
     .item-table tr:first-child td:last-child{border-top-right-radius:10px;}
     .item-table tr:last-child td:first-child{border-bottom-left-radius:10px;}
     .item-table tr:last-child td:last-child{border-bottom-right-radius:10px;}
-    /* Purple focus indicator for whichever cell is currently being edited — recolors the cell's
-       OWN actual border directly, at the exact same position (double the normal 1px grid-line
-       width, so the focused cell reads clearly against the rest of the grid), since
-       border-collapse:separate means this cell's border is fully its own (not shared/contested
-       with a neighbor the way collapse mode's conflict resolution could drop it on some sides).
+    /* Purple focus indicator for whichever cell is currently being edited. A box-shadow, not a
+       border-color recolor: now that cells only own a right+bottom border (see above), an
+       interior cell's top/left edges aren't its own border at all — they belong to its
+       neighbors — so recoloring border-color could only ever reach 2 of a focused cell's 4
+       sides. An inset box-shadow is a separate paint layer that doesn't care which cell "owns" a
+       given edge: it draws uniformly around all 4 sides of THIS cell's own box, starting exactly
+       at the box edge (the same position the grid line itself occupies, not pulled inward past
+       it), and it's still clipped to whichever corner-radius rule above applies to this cell, so
+       corner cells pick up the matching curve automatically. 2px spread for a visibly thicker
+       highlight against the 1px grid line — box-shadow, like outline, never participates in
+       table layout, so this can't cause the "cell grows on focus" reflow a border-width change
+       did in an earlier version.
        :focus-within (not :focus) so one rule covers both table variants: the plain canvas
        table's <td> is itself contentEditable, but the source/static table's editable node is the
-       nested .cell-text, not the <td> itself — :focus-within fires either way. Already picks up
-       whichever corner-radius rule above applies to this cell for free, since it's the same
-       border being recolored, not a separate overlay that has to be told to match it.
-       !important: the plain canvas table's own border-color override just above
-       (.item.table:not(.static-table) .item-table td) is 4 classes + 1 element — MORE specific
-       than this rule's 2 classes + 1 element — so without this, focusing a cell in a plain table
-       silently lost to that rule and showed no highlight at all despite :focus-within matching
-       correctly. A focus state should unconditionally win regardless of which table variant it's
-       in, rather than this needing to keep re-winning a specificity race against every existing
-       (and future) per-variant border-color/border-width override.
-       border-WIDTH is deliberately left alone here (still the base rule's 1px) — an earlier
-       version bumped it to 2px for a visibly thicker highlight, but border-width participates in
-       table layout, so that made every focused/hovered cell grow by a pixel and visibly reflow
-       its neighbors on every hover, exactly the kind of "the grid shifts under your cursor"
-       jitter a hover state should never cause. The extra thickness comes from an outline instead
-       (1px, pulled in by outline-offset:-1px to sit right against the now-purple border) — unlike
-       border, outline NEVER participates in layout at all, in any border-collapse mode, so it can
-       stack as much visual weight as wanted with zero risk of resizing the cell. */
-    .item-table td:focus-within{border-color:var(--brand) !important;outline:1px solid var(--brand);outline-offset:-1px;}
-    /* Same border shape as the focus indicator above (same visual ~2px weight, same position, and
-       — since border-radius lives on the cell itself now, not a separate overlay — corner cells
-       pick up their matching corner radius automatically here too) but a plain grey, one step
-       lighter than the grid line's own resting color, for hovering ANY cell (not just the focused
-       one). #454545 is this file's existing "hover border, lighter than the default" convention
-       (see e.g. #item-detail-price:hover) — reused here rather than inventing a new grey. No
-       !important needed: :focus-within's own already wins any time a cell is BOTH hovered and
-       focused, since it carries !important and this doesn't. The plain-table override just below
-       matches the same "one step lighter" idea against ITS OWN rgba(255,255,255,0.1) baseline,
-       rather than reusing the solid grey — a solid #454545 wouldn't read as a small step up
-       against that translucent-white baseline the way it does against --card-border. */
-    .item-table td:hover{border-color:#454545;outline:1px solid #454545;outline-offset:-1px;}
-    .item.table:not(.static-table) .item-table td:hover{border-color:rgba(255,255,255,0.2);outline-color:rgba(255,255,255,0.2);}
+       nested .cell-text, not the <td> itself — :focus-within fires either way.
+       !important: box-shadow isn't contested by any border-color specificity race the way the
+       old approach was, but still needs to win over the :hover rule below when both match
+       (hovering the cell you're already focused in) — a focus state should unconditionally win
+       rather than depend on which rule happens to come later in the stylesheet. */
+    .item-table td:focus-within{box-shadow:inset 0 0 0 2px var(--brand) !important;}
+    /* Same technique as the focus indicator above (so it reaches all 4 sides of any cell
+       regardless of which sides it actually owns a border on, and picks up corner radius the
+       same way), plain grey instead of purple, for hovering ANY cell (not just the focused one).
+       #454545 is this file's existing "hover border, lighter than the default" convention (see
+       e.g. #item-detail-price:hover) — reused here rather than inventing a new grey. The
+       plain-table override just below matches the same "one step lighter" idea against ITS OWN
+       rgba(255,255,255,0.1) baseline, rather than reusing the solid grey — a solid #454545
+       wouldn't read as a small step up against that translucent-white baseline the way it does
+       against --card-border. */
+    .item-table td:hover{box-shadow:inset 0 0 0 2px #454545;}
+    .item.table:not(.static-table) .item-table td:hover{box-shadow:inset 0 0 0 2px rgba(255,255,255,0.2);}
     /* The actual per-row "make room for the tag button" shift is handled in JS
        (attachStaticTableHoverZones toggling `.row-tag-shift` on just the hovered row's first
        cell's `.cell-inner` — see the rule near .static-table-row-tag-strip-wrap above) rather
