@@ -593,12 +593,21 @@ import { render } from './waypoints-render-loop.js';
         updateSearchDropdown();
     }
 
+    // Last-fetched recent-chats preview, shown instantly on refocus while a fresh copy loads in
+    // the background (see handleSearchFocus below) — without this, every single focus (not just
+    // the first) would briefly collapse the dropdown to empty and then re-grow it once the fetch
+    // resolves, a visible flash on top of what's usually the exact same list it already just
+    // showed a moment ago.
+    let cachedRecentChats = null;
     // Focusing the box no longer drops a static suggestion list on you — instead the border
     // itself pulses (see .idle-pulsing / the search-idle-chase rects in globals.css) for as long
     // as the box is focused and nothing's been submitted yet, replaced by the existing loading
     // ring the moment a search actually commences (see commenceSearchOrMnemonic/
-    // commenceDotbotSearch, which remove this class right before they run).
-    function handleSearchFocus() {
+    // commenceDotbotSearch, which remove this class right before they run). While it's empty,
+    // though, the dropdown below it now shows a short list of previous chats (reusing
+    // renderChatsList's own fetch, hamburger-collab.js — no duplicate query) — replaced the
+    // instant real typing starts, either by live suggestions or nothing (see handleSearchInput).
+    async function handleSearchFocus() {
         // 'rail' — the AI panel IS the currently-open rail view when this fires (focusing the box
         // only happens while it's visible), so closing the rail here would close the box's own
         // panel out from under itself. Still closes unrelated overlays (add-menu/collab/source-add)
@@ -608,7 +617,15 @@ import { render } from './waypoints-render-loop.js';
         appState.searchInputWrap.classList.add('idle-pulsing');
         const v = appState.searchInput.value.trim();
         if (v !== "") return;
-        window.__setSearchSuggestions(null);
+        window.__setSearchSuggestions(cachedRecentChats && cachedRecentChats.length ? { kind: 'recent-chats', chats: cachedRecentChats } : null);
+        updateSearchDropdown();
+        const chats = await renderChatsList();
+        cachedRecentChats = chats;
+        // Stale guard — real typing (or a submitted search) may have already taken over the
+        // dropdown by the time this network round trip resolves; never clobber that with a list
+        // that's no longer relevant to what's on screen.
+        if (appState.searchInput.value.trim() !== "") return;
+        window.__setSearchSuggestions(chats.length ? { kind: 'recent-chats', chats } : null);
         updateSearchDropdown();
     }
 
@@ -655,7 +672,7 @@ import { render } from './waypoints-render-loop.js';
     // buildRecommendedSearchesRows). #search-suggestions' content itself is real React state now
     // (see app/dotto/SearchSuggestionsPanel.jsx, searchSuggestionsStore) — see
     // renderMnemonicResultCard's own comment in mnemonic-search-matching.js for the full picture
-    // of why (shared by 6 different producers across 4 files).
+    // of why (shared by 6 different producers across 3 files).
     function buildLiveSuggestionsRows(suggestions) {
         const frag = document.createDocumentFragment();
         suggestions.slice(0, 4).forEach(text => {
@@ -670,6 +687,22 @@ import { render } from './waypoints-render-loop.js';
     function renderLiveSuggestions(suggestions) {
         window.__setSearchSuggestions({ kind: 'live-suggestions', suggestions });
         updateSearchDropdown();
+    }
+    // Same row look as buildLiveSuggestionsRows just above (reuses .search-suggestion-item) —
+    // they occupy the exact same slot in the dropdown, just at different moments (this one before
+    // any typing, that one once there's a query) — capped to 5, a preview rather than the full
+    // list, which stays reachable via the AI panel's own history button (showAiHistoryView).
+    // window.__openSavedChat is the same handler ChatsListPanel.jsx's own rows already use.
+    function buildRecentChatsRows(chats) {
+        const frag = document.createDocumentFragment();
+        chats.slice(0, 5).forEach(c => {
+            const div = document.createElement('div');
+            div.className = 'search-suggestion-item';
+            div.textContent = c.title || 'New chat';
+            div.onclick = (e) => { e.stopPropagation(); window.__openSavedChat(c.id); };
+            frag.appendChild(div);
+        });
+        return frag;
     }
 
     // ---------- Dotbot (AI assistant embedded in the search box) ----------
@@ -853,10 +886,11 @@ import { render } from './waypoints-render-loop.js';
         clearSearch();
     }
 
-export { applyAlignHighlightToggle, buildAlignedSentenceEls, buildLiveSuggestionsRows, clearSearch, countSourceEntries, dotbotErrorMessage, escapeHtml, findParentFolderId, handleSearchFocus, handleSearchInput, isLatinScriptText, openSearchOverlay, refreshAiPanel, resetAiSearchState, scrollChatThreadToBottom, setupDotbotResultDrag, showAiChatView, showAiHistoryView, speakerIconHTML, startNewAiChat, stripHtml, truncateCenter, typewriterReveal, typewriterRevealSegments, updateChatThread, updateSearchDropdown };
+export { applyAlignHighlightToggle, buildAlignedSentenceEls, buildLiveSuggestionsRows, buildRecentChatsRows, clearSearch, countSourceEntries, dotbotErrorMessage, escapeHtml, findParentFolderId, handleSearchFocus, handleSearchInput, isLatinScriptText, openSearchOverlay, refreshAiPanel, resetAiSearchState, scrollChatThreadToBottom, setupDotbotResultDrag, showAiChatView, showAiHistoryView, speakerIconHTML, startNewAiChat, stripHtml, truncateCenter, typewriterReveal, typewriterRevealSegments, updateChatThread, updateSearchDropdown };
 
 window.__countSourceEntries = countSourceEntries;
 window.__buildLiveSuggestionsRows = buildLiveSuggestionsRows;
+window.__buildRecentChatsRows = buildRecentChatsRows;
 // ChatTurn (app/dotto/ChatThread.jsx) calls these directly — React files can't import public/
 // dotto/*.js as ES modules (same constraint every other window.__* bridge here exists for).
 window.__updateChatThread = updateChatThread;

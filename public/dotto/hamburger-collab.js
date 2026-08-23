@@ -195,14 +195,19 @@ import { deleteCanvasCollabsForFolder, deleteWaypointCardEverywhere, expandWaypo
     // above (RLS already scopes this to the caller's own rows via owner_id = auth.uid() — see
     // supabase/migrations/20260819_add_dotbot_conversations.sql — no client-side filtering needed
     // beyond that). No search box for v1 (unlike waypoints), so no query param here.
+    // Returns the fetched rows (in addition to pushing them into chatsListStore for the full
+    // #chats-list view) — handleSearchFocus (ai-assistant-suggestions.js) reuses this same fetch
+    // for the compact "recent chats" preview shown in the AI panel's dropdown before you start
+    // typing, rather than duplicating the query.
     async function renderChatsList() {
-        if (!supabase || !appState.currentUser.id) { window.__setChatsList([]); return; }
+        if (!supabase || !appState.currentUser.id) { window.__setChatsList([]); return []; }
         const { data, error } = await supabase.from('dotbot_conversations')
             .select('id, title, updated_at')
             .eq('owner_id', appState.currentUser.id)
             .order('updated_at', { ascending: false });
-        if (error) { console.error('[chats] failed to load conversations:', error); window.__setChatsList([]); return; }
+        if (error) { console.error('[chats] failed to load conversations:', error); window.__setChatsList([]); return []; }
         window.__setChatsList(data || []);
+        return data || [];
     }
     // Pans to and briefly expands (read-only "peek") a waypoint card already present in the
     // CURRENTLY open folder's DOM — shared by both branches of goToWaypointCard below.
