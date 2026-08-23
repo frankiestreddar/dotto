@@ -1,4 +1,4 @@
-import { applyAlignHighlightToggle, buildAlignedSentenceEls, clearSearch, dotbotErrorMessage, isLatinScriptText, setupDotbotResultDrag, speakerIconHTML, typewriterReveal, typewriterRevealSegments, updateSearchDropdown } from './ai-assistant-suggestions.js';
+import { applyAlignHighlightToggle, buildAlignedSentenceEls, clearSearch, dotbotErrorMessage, isLatinScriptText, scrollChatThreadToBottom, setupDotbotResultDrag, speakerIconHTML, typewriterReveal, typewriterRevealSegments, updateSearchDropdown } from './ai-assistant-suggestions.js';
 import { appState, canvas } from './core-state.js';
 import { saveSnapshot } from './history-autosave.js';
 import { openDotbotUpgradeModal, refreshDotbotUsage } from './profile-achievements-pricing.js';
@@ -749,6 +749,22 @@ import { render } from './waypoints-render-loop.js';
     // one sentence at a time, so the trailing card is a FILTERED copy (remaining sentences only),
     // never entirely dropped.
     function startSequencedTurnReveal(el, panels, onAllDone) {
+        // Auto-follows the newest content the whole time this turn is actively revealing — text
+        // typing character by character, inline widgets swapping in, staggered blocks/cards
+        // appending — so newly-generated text never grows off the bottom of the visible area
+        // while it's happening, same "keeps following while generating" behavior other AI chat
+        // apps have. A MutationObserver, not the chat thread's own ResizeObserver-driven
+        // onOrganicResize (createHeightTransitionController, ai-assistant-suggestions.js) — that
+        // one only fires when the THREAD's own OUTER box resizes, which stops being true once it
+        // settles into flex:1 against a fixed available space (see #search-chat-thread's own
+        // comment, globals.css); content growing WITHIN that fixed box no longer resizes it at
+        // all. Scoped to exactly this turn's own reveal lifecycle (disconnected the instant
+        // onAllDone fires below) rather than left running permanently — an always-on observer
+        // would also fire, and incorrectly yank scroll back to the bottom, for unrelated later
+        // mutations, like toggling word-alignment highlighting on an older, already-settled turn.
+        const followObserver = new MutationObserver(() => scrollChatThreadToBottom());
+        followObserver.observe(el, { childList: true, subtree: true, characterData: true });
+
         const textPanel = panels.find(p => p.type === 'dotbot_text') || null;
         const dictPanel = panels.find(p => p.type === 'dictionary') || null;
         const examplesPanel = panels.find(p => p.type === 'examples') || null;
@@ -839,6 +855,7 @@ import { render } from './waypoints-render-loop.js';
         }
 
         runText(() => runAnswerBlocks(() => runRemainingCards(() => runRecommended(() => {
+            followObserver.disconnect();
             if (onAllDone) onAllDone();
         }))));
     }

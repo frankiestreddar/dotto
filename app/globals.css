@@ -1160,15 +1160,23 @@
        ai-assistant-suggestions.js) — sharing #search-dropdown's own dropdownSettledHeight/
        transitionCleanup would reintroduce exactly the bugs this session spent so many rounds
        fixing on the original, since these are two completely independent animated elements.
-       max-height is a real cap on BOTH the grow-transition's target (opts.capTarget, see
-       updateChatThread) and the flex:1 rest state below — a chat thread can accumulate arbitrarily
-       many turns, so past some point it needs to stop growing and scroll internally instead,
-       auto-scrolled to the newest turn on each append. overflow stays hidden here at the CSS level
-       (needed while the JS-driven grow/shrink transition is actively clipping content
-       mid-animation, same as #search-dropdown) — the JS hands it back to `auto` (not `visible`,
-       unlike #search-dropdown, which is deliberately non-clipping for its nav-arrow-slide-outside
-       panels) once settled, so the scrollbar/clipping the max-height cap needs actually takes
-       effect at rest.
+       No max-height here (an earlier version had a static max-height:60vh, animation-target cap
+       AND resting ceiling both) — 60vh is frequently SMALLER than this panel's actual available
+       space (a full-height sidebar, not a short modal), so once the flex:1 rest state below
+       started applying, the static cap clamped the thread well short of the space flex-grow
+       actually gave it, leaving a visible gap between the (too-short) thread+input and the
+       panel's own bottom edge. There's no correct STATIC number here — the real available space
+       depends on the header/input/dropdown's own current sizes, which change (the
+       card-attachment pill, live suggestions, etc.) — so the grow-transition's own target is
+       capped by measuring it live instead (updateChatThread's measureThreadFlexAvailable,
+       ai-assistant-suggestions.js), and the RESTING state needs no cap at all: flex:1 already
+       can't exceed the container's real available space by definition, and overflow:auto (below)
+       already scrolls internally once actual content exceeds whatever that turns out to be.
+       overflow stays hidden here at the CSS level (needed while the JS-driven grow/shrink
+       transition is actively clipping content mid-animation, same as #search-dropdown) — the JS
+       hands it back to `auto` (not `visible`, unlike #search-dropdown, which is deliberately
+       non-clipping for its nav-arrow-slide-outside panels) once settled, so the scrollbar/clipping
+       an overflowing thread needs actually takes effect at rest.
        margin-bottom guarantees the gap before the input box unconditionally (not gated by
        .visible, so it still applies while height:0 on the empty first page — a margin on a
        zero-height element still takes up space) — #search-input-wrap is always this element's
@@ -1182,12 +1190,12 @@
        once a real conversation exists: flex-grow computed directly against its real siblings'
        actual current sizes in the SAME flex container (#ai-chat-view), not a disconnected
        margin-top:auto guess. An earlier attempt at this used margin-top:auto on the whole
-       thread+dropdown+input group instead and was reverted: max-height here had no way to know how
-       much room the auto-margin actually left it, and the two disagreeing read as content clipped
-       partway up with a large gap above it. flex-grow can't disagree with itself the same way —
-       it's the single source of truth for how much space this element actually gets, and
-       max-height still applies as a hard ceiling on TOP of that regardless of which one binds. */
-    #search-chat-thread{display:flex;flex-direction:column;gap:16px;height:0;overflow:hidden;max-height:60vh;flex:0 0 auto;margin-bottom:8px;}
+       thread+dropdown+input group instead and was reverted: a fixed max-height on the thread had
+       no way to know how much room the auto-margin actually left it, and the two disagreeing read
+       as content clipped partway up with a large gap above it. flex-grow can't disagree with
+       itself the same way — it's the single source of truth for how much space this element
+       actually gets. */
+    #search-chat-thread{display:flex;flex-direction:column;gap:16px;height:0;overflow:hidden;flex:0 0 auto;margin-bottom:8px;}
     #search-chat-thread.thread-settled{flex:1 1 auto;}
     .dotbot-turn{display:flex;flex-direction:column;gap:8px;}
     /* Right-aligned pill, same --brand indigo used elsewhere for accents — the one thing this

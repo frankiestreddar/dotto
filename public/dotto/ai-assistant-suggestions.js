@@ -355,13 +355,17 @@ import { render } from './waypoints-render-loop.js';
     // - opts.restOverflow controls what `overflow` becomes once a transition settles —
     //   #search-dropdown wants 'visible' (deliberately non-clipping at rest, so the dictionary/
     //   examples panels' hover-out nav arrows can slide outside their own edge); #search-chat-
-    //   thread wants 'auto' instead (it has a real max-height cap and needs to actually clip/scroll
-    //   at rest, not stay boundlessly non-clipping).
-    // - opts.capTarget, when true, clamps the measured scrollHeight target to the element's own
-    //   current computed max-height before animating toward it — scrollHeight reports the
-    //   UNCLAMPED natural content height even under a max-height + overflow:hidden, so without this
-    //   an element with a real cap (#search-chat-thread) could animate past its own ceiling and
-    //   then visually snap back down once the cap reasserts itself.
+    //   thread wants 'auto' instead (it needs to actually clip/scroll once its flex-constrained
+    //   available space runs out, not stay boundlessly non-clipping).
+    // - opts.capTarget, when set, clamps the measured scrollHeight target before animating toward
+    //   it — scrollHeight reports the UNCLAMPED natural content height even under overflow:hidden,
+    //   so without this an element could animate past whatever ceiling it actually has and then
+    //   visually snap back down once that ceiling reasserts itself. A boolean true reads the
+    //   element's own current computed max-height (unused by any caller right now — #search-chat-
+    //   thread's own ceiling isn't a static CSS value, see updateChatThread's measureThreadFlexAvailable
+    //   below, and #search-dropdown has no cap at all). A function is called fresh on every update()
+    //   instead and used as the cap directly, for a ceiling that has to be measured live rather than
+    //   read off a fixed CSS property.
     // onOrganicResize (optional) fires from inside the ResizeObserver callback, right after
     // settledHeight updates — i.e. exactly when this element grew/shrank on its own (typewriter
     // text, etc.) without ever going through update() itself. #search-chat-thread passes
@@ -435,7 +439,7 @@ import { render } from './waypoints-render-loop.js';
             // already reflects that, we just haven't grown into it yet.
             let target = el.scrollHeight;
             if (opts.capTarget) {
-                const capPx = parseFloat(getComputedStyle(el).maxHeight);
+                const capPx = typeof opts.capTarget === 'function' ? opts.capTarget() : parseFloat(getComputedStyle(el).maxHeight);
                 if (Number.isFinite(capPx)) target = Math.min(target, capPx);
             }
             if (wasVisible && settled && Math.abs(target - settledHeight) < 1) return; // no real change, nothing in flight either
@@ -508,6 +512,32 @@ import { render } from './waypoints-render-loop.js';
     }
 
     const chatThreadAnimator = createHeightTransitionController(() => appState.searchChatThread, scrollChatThreadToBottom);
+    // The grow transition's target needs a real ceiling (see opts.capTarget's own comment above) —
+    // but #search-chat-thread no longer has a fixed one: it used to be a static max-height:60vh,
+    // which caused its own real bug once the element started resting at flex:1 (see globals.css) —
+    // 60vh is frequently SMALLER than the panel's actual available space (a full-height sidebar,
+    // not a short modal), so flex-grow would happily fill the rest while the static cap here still
+    // clamped it down, leaving a bug-reported "huge gap between the search box and the bottom of
+    // the screen" below the artificially short thread. There's no single correct static number —
+    // the real available space depends on the header/input/dropdown's own current sizes, which
+    // change (the card-attachment pill, live suggestions, etc.). So this measures it live instead:
+    // temporarily let the element actually resolve its flex:1 size (adding 'thread-settled' if it
+    // isn't already there, setting height:auto so flex-grow — not this function's own animation —
+    // determines the box), reads the real result, then restores exactly what was there before. All
+    // synchronous, no frame ever paints the transient state, same "read layout, then keep going"
+    // technique the `void el.offsetHeight;` reflow forces elsewhere in this file already rely on.
+    function measureThreadFlexAvailable() {
+        const el = appState.searchChatThread;
+        if (!el) return Infinity;
+        const hadSettled = el.classList.contains('thread-settled');
+        const prevHeight = el.style.height;
+        if (!hadSettled) el.classList.add('thread-settled');
+        el.style.height = 'auto';
+        const available = el.offsetHeight;
+        el.style.height = prevHeight;
+        if (!hadSettled) el.classList.remove('thread-settled');
+        return available;
+    }
     // #search-chat-thread has no fixed panels to check display on the way #search-dropdown does —
     // ChatThread.jsx portals turn elements directly into it, so "does it have anything to show" is
     // just "does it currently have any children" (childElementCount, not scrollHeight — scrollHeight
@@ -521,7 +551,7 @@ import { render } from './waypoints-render-loop.js';
         // dropdown) below it to the panel's bottom edge — see #search-chat-thread's own comment,
         // globals.css, for why that has to wait for "settled" rather than applying the instant
         // .visible does.
-        chatThreadAnimator(visible, Object.assign({ restOverflow: 'auto', capTarget: true, settledClass: 'thread-settled' }, HEIGHT_TRANSITION_OPTS));
+        chatThreadAnimator(visible, Object.assign({ restOverflow: 'auto', capTarget: measureThreadFlexAvailable, settledClass: 'thread-settled' }, HEIGHT_TRANSITION_OPTS));
     }
     // Auto-follows the newest turn — called after updateChatThread() so the container's real
     // scrollHeight already reflects any just-appended content. No-op while a transition is still
