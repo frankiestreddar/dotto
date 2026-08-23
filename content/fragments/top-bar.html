@@ -4,6 +4,12 @@
      #top-bar-center instead (see #nav-arrows-pill below) — they're page-navigation, not
      rail-icon-style view triggers, and read better beside the breadcrumb they actually move. -->
 <div id="dotto-rail">
+    <!-- At the very top of the rail now, ahead of every panel-trigger icon — content is
+         React-owned (see app/dotto/ProfileAvatarSm.jsx). Click-only open/close, same as every
+         other rail icon (see wireRailIcon('profile', ...), profile-achievements-pricing.js). -->
+    <button id="btn-profile" class="rail-btn" title="Profile">
+        <div class="profile-avatar-sm" id="profile-avatar-sm"></div>
+    </button>
     <button id="rail-btn-ai" class="rail-btn" title="Ask Dotbot">
         <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" aria-hidden="true"><circle cx="7" cy="7" r="5"></circle><path d="M11 11L14.5 14.5"></path></svg>
     </button>
@@ -35,17 +41,6 @@
         <div id="add-toolbar">
             <button id="btn-add" class="rail-btn" title="Add"><img class="rail-icon-img" src="/assets/icons/add-btn.png" alt=""></button>
         </div>
-        <!-- Very bottom of the rail, below the mode/add tools — the one icon that isn't a
-             navigation/panel trigger like everything above it. Click-only now, plain open/close
-             like every other rail icon (see wireRailIcon('profile', ...),
-             profile-achievements-pricing.js) — no more hover-to-logout swap; logout is a small
-             button inside the panel's own identity block instead (see profile-panel further down,
-             hamburger-stack.html). -->
-        <button id="btn-profile" class="rail-btn" title="Profile">
-            <!-- Content is React-owned now (see app/dotto/ProfileAvatarSm.jsx) — "YO" was a
-                 pre-JS placeholder, removed so the portaled avatar doesn't render alongside it. -->
-            <div class="profile-avatar-sm" id="profile-avatar-sm"></div>
-        </button>
     </div>
 </div>
 <!-- Dead centre of the viewport (position:fixed, left:50% + translateX(-50%), see globals.css) —

@@ -296,11 +296,10 @@
        picture, not a generic icon, so it keeps its native colour always. */
     .rail-icon-img{width:22px;height:22px;filter:brightness(0) invert(1);opacity:0.55;transition:opacity .15s ease;}
     .rail-btn:hover .rail-icon-img,.rail-btn.active .rail-icon-img{opacity:1;}
-    /* Pushes the mode/add tools + Profile to the bottom of the rail without needing a fixed pixel
-       gap — the column above can hold anywhere from a handful to many icons depending on future
-       additions. Profile is last inside this group (not just "in" it) — the very bottom of the
-       whole rail, since it's the one icon here that isn't a navigation/panel trigger like
-       everything above it. */
+    /* Pushes the mode/add tools to the bottom of the rail without needing a fixed pixel gap — the
+       column above can hold anywhere from a handful to many icons depending on future additions.
+       Profile itself now lives at the very TOP of #dotto-rail instead (top-bar.html), not in this
+       group. */
     #rail-bottom-group{margin-top:auto;display:flex;flex-direction:column;align-items:center;gap:4px;}
 
     #collab-bubble{display:none;position:relative;padding:0 10px;cursor:pointer;flex:0 0 auto;}
