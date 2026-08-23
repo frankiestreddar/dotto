@@ -314,7 +314,15 @@ import { render } from './waypoints-render-loop.js';
     // openRailView always passes it through, same as every other view's own onOpen callback).
     function refreshAiPanel(pin) {
         showAiChatView();
-        if (pin) appState.searchInput.focus();
+        // handleSearchFocus() is what actually populates the recent-chats list under an empty box
+        // (see its own comment) — called directly here rather than relying purely on .focus()
+        // below to trigger it via the textarea's onfocus attribute: this runs synchronously inside
+        // the SAME click handler that just made the panel visible, and a couple of real browsers
+        // don't reliably fire a focus event for a programmatic .focus() call made in that exact
+        // circumstance. handleSearchFocus() is safe to call twice in a row (its own focus-event
+        // call, if it does also fire, just repeats the same fetch) — this guarantees the list
+        // actually loads every time the panel opens rather than depending on that.
+        if (pin) { appState.searchInput.focus(); handleSearchFocus(); }
     }
     // Opens the AI panel — called from the global Space/"/" keydown shortcuts
     // (srs-connections-core.js), and from openSavedChat (hamburger-collab.js) when reopening a
