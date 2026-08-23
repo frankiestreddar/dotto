@@ -45,6 +45,22 @@ import { cascadeDeleteFolderContents, centerOnContent, deleteWaypointFromDb, ren
             }
             let sx = e.clientX, sy = e.clientY, sw = it.w, sh = it.h;
             const minSize = it.kind === 'table' ? 56 : 112;
+            // A table's real minimum width/height isn't a flat constant the way every other
+            // kind's is — it depends on how many columns/rows it actually has, since every column
+            // needs at least TABLE_COL_MIN_PX and every row at least TABLE_ROW_MIN_PX (the exact
+            // same floors the per-column/row divider drag already enforces, see
+            // startTableColResize/startTableRowResize above) just to render at all. The flat 56px
+            // minSize above didn't account for that: shrinking a 5-column table's OVERALL width
+            // down to 56px asked every column to fit in ~11px, far under their own CSS
+            // min-width:40px — the cells refused to actually shrink that far (browsers don't let
+            // a cell go below its own min-width), but the WRAPPER did, so the now-too-small
+            // wrapper's own overflow:hidden clipped whatever of the (still full-sized) cells
+            // stuck out past it — including, for whichever cell that clip cut through, its own
+            // border. Flooring it.w/it.h at the table's actual per-column/row space requirement
+            // means the wrapper can never ask for less room than the cells genuinely need, so
+            // there's nothing left for it to clip.
+            const tableMinW = it.kind === 'table' ? (it.tableData[0] || []).length * TABLE_COL_MIN_PX : minSize;
+            const tableMinH = it.kind === 'table' ? (it.tableData || []).length * TABLE_ROW_MIN_PX : minSize;
             // Media cards (image/video/PDF/EPUB) resize proportionally, preserving their content's
             // real aspect ratio, instead of each axis independently the way table/flashcard do (or
             // width-only the way note does, just below) — locked to the PDF page's own true ratio
@@ -74,8 +90,8 @@ import { cascadeDeleteFolderContents, centerOnContent, deleteWaypointFromDb, ren
                     it.w = Math.max(minSize, Math.round((sw + dx) / 28) * 28);
                     el.style.width = it.w + 'px';
                 } else {
-                    it.w = Math.max(minSize, Math.round((sw + dx) / 28) * 28);
-                    it.h = Math.max(minSize, Math.round((sh + dy) / 28) * 28);
+                    it.w = Math.max(tableMinW, Math.round((sw + dx) / 28) * 28);
+                    it.h = Math.max(tableMinH, Math.round((sh + dy) / 28) * 28);
                     el.style.width = it.w + 'px'; el.style.height = it.h + 'px';
                 }
                 if (it.kind === 'table') distributeTableSizing(it, el);
