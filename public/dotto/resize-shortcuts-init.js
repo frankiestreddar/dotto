@@ -56,25 +56,14 @@ import { cascadeDeleteFolderContents, centerOnContent, deleteWaypointFromDb, ren
             const aspectRatio = it.kind === 'media' ? (it.docAspectRatio || (sw / sh)) : null;
             const move = (me) => {
                 const dx = (me.clientX - sx) / appState.scale, dy = (me.clientY - sy) / appState.scale;
-                // Set whenever this tick's raw (pre-clamp) size was below minSize on either axis
-                // — rebases sx/sy/sw/sh to the cursor's CURRENT position right below, so reversing
-                // direction after dragging past the minimum responds on the very next tick instead
-                // of first having to retrace the whole overshoot distance before the resize starts
-                // moving again. The browser gives no way to actually stop the OS cursor itself at
-                // the boundary (no API for that outside Pointer Lock, which hides the cursor
-                // entirely — a bigger UX change than this warrants), so this is the standard
-                // substitute: it can't stop the cursor from visually outrunning the card, but it
-                // keeps the DRAG ITSELF from feeling disconnected once you reverse.
-                let clamped = false;
                 if (aspectRatio) {
                     // Follow whichever axis the cursor moved more along; derive the other from
                     // the locked ratio rather than letting both drift independently.
                     let newW, newH;
                     if (Math.abs(dx) >= Math.abs(dy)) { newW = sw + dx; newH = newW / aspectRatio; }
                     else { newH = sh + dy; newW = newH * aspectRatio; }
-                    const rawW = Math.round(newW / 28) * 28, rawH = Math.round(newH / 28) * 28;
-                    it.w = Math.max(minSize, rawW); it.h = Math.max(minSize, rawH);
-                    clamped = it.w !== rawW || it.h !== rawH;
+                    it.w = Math.max(minSize, Math.round(newW / 28) * 28);
+                    it.h = Math.max(minSize, Math.round(newH / 28) * 28);
                     el.style.width = it.w + 'px'; el.style.height = it.h + 'px';
                 } else if (it.kind === 'note') {
                     // Width only — dy is ignored entirely. Height is never set here (or anywhere
@@ -82,21 +71,13 @@ import { cascadeDeleteFolderContents, centerOnContent, deleteWaypointFromDb, ren
                     // whatever width this drag lands on (see .item.note/.body, globals.css) —
                     // the browser reflows the text and resizes the wrapper on its own, live, with
                     // no JS measurement needed on every pointermove.
-                    const rawW = Math.round((sw + dx) / 28) * 28;
-                    it.w = Math.max(minSize, rawW);
-                    clamped = it.w !== rawW;
+                    it.w = Math.max(minSize, Math.round((sw + dx) / 28) * 28);
                     el.style.width = it.w + 'px';
                 } else {
-                    const rawW = Math.round((sw + dx) / 28) * 28, rawH = Math.round((sh + dy) / 28) * 28;
-                    it.w = Math.max(minSize, rawW); it.h = Math.max(minSize, rawH);
-                    clamped = it.w !== rawW || it.h !== rawH;
+                    it.w = Math.max(minSize, Math.round((sw + dx) / 28) * 28);
+                    it.h = Math.max(minSize, Math.round((sh + dy) / 28) * 28);
                     el.style.width = it.w + 'px'; el.style.height = it.h + 'px';
                 }
-                // Rebasing BOTH axes together even when only one clamped is harmless — for the
-                // axis that DIDN'T clamp, its current value already exactly equals sw/sh + dx/dy,
-                // so resetting its own reference point to right here doesn't change anything about
-                // its future deltas, only the clamped axis actually needed the reset.
-                if (clamped) { sx = me.clientX; sy = me.clientY; sw = it.w; sh = it.h; }
                 if (it.kind === 'table') distributeTableSizing(it, el);
                 // Live visual streaming while dragging — see handleRemoteItemResize/broadcastItemResize.
                 // Purely DOM-only on the receiving end, same as item-drag; the real w/h is only
@@ -164,17 +145,11 @@ import { cascadeDeleteFolderContents, centerOnContent, deleteWaypointFromDb, ren
         const widths = (Array.isArray(it.colWidths) && it.colWidths.length === numCols) ? it.colWidths.slice() : new Array(numCols).fill(100 / numCols);
         const pairTotal = widths[i] + widths[i + 1];
         const minPct = Math.min((TABLE_COL_MIN_PX / it.w) * 100, pairTotal / 2);
-        let startA = widths[i];
-        let sx = e.clientX;
+        const startA = widths[i];
+        const sx = e.clientX;
         const move = (me) => {
             const dxPct = ((me.clientX - sx) / appState.scale / it.w) * 100;
-            const rawA = startA + dxPct;
-            const a = Math.max(minPct, Math.min(pairTotal - minPct, rawA));
-            // Rebase the drag's reference point to right here whenever clamped, same reasoning as
-            // setupResizing's own move handler above — lets reversing direction after dragging
-            // past the minimum respond on the very next tick instead of first retracing the whole
-            // overshoot distance.
-            if (a !== rawA) { sx = me.clientX; startA = a; }
+            const a = Math.max(minPct, Math.min(pairTotal - minPct, startA + dxPct));
             widths[i] = a; widths[i + 1] = pairTotal - a;
             it.colWidths = widths;
             const el2 = document.getElementById('item-' + it.id);
@@ -203,14 +178,11 @@ import { cascadeDeleteFolderContents, centerOnContent, deleteWaypointFromDb, ren
         const heights = (Array.isArray(it.rowHeights) && it.rowHeights.length === numRows) ? it.rowHeights.slice() : new Array(numRows).fill(100 / numRows);
         const pairTotal = heights[i] + heights[i + 1];
         const minPct = Math.min((TABLE_ROW_MIN_PX / it.h) * 100, pairTotal / 2);
-        let startA = heights[i];
-        let sy = e.clientY;
+        const startA = heights[i];
+        const sy = e.clientY;
         const move = (me) => {
             const dyPct = ((me.clientY - sy) / appState.scale / it.h) * 100;
-            const rawA = startA + dyPct;
-            const a = Math.max(minPct, Math.min(pairTotal - minPct, rawA));
-            // Rebase on clamp — see startTableColResize's own comment for why.
-            if (a !== rawA) { sy = me.clientY; startA = a; }
+            const a = Math.max(minPct, Math.min(pairTotal - minPct, startA + dyPct));
             heights[i] = a; heights[i + 1] = pairTotal - a;
             it.rowHeights = heights;
             const el2 = document.getElementById('item-' + it.id);
