@@ -543,9 +543,26 @@ import { render } from './waypoints-render-loop.js';
         e.preventDefault();
         focusTableCell(id, nr, nc, e.key === 'ArrowLeft' ? 'end' : 'start');
     }
+    // Extends a percentage-array (it.colWidths/it.rowHeights, see TableCard.jsx/
+    // resize-shortcuts-init.js) by one more entry for a freshly added column/row, preserving
+    // every EXISTING entry's relative proportion to the others rather than resetting the whole
+    // split back to even. The new entry gets what an even split of the new (bigger) count would
+    // give it — a size "relative to the table" rather than an arbitrary fixed pixel default — and
+    // every existing entry shrinks by that same scale factor to make room for it, so the total
+    // still sums to 100 without disturbing how any two existing columns/rows compare to each
+    // other. Harmless to call for a source/static table too (it.colWidths/rowHeights are only
+    // ever read by the plain canvas Table card's own rendering) — this function is shared between
+    // both kinds of table, and it's simpler to always compute it than to special-case one out.
+    function extendGridSizing(current, oldCount) {
+        const existing = (Array.isArray(current) && current.length === oldCount) ? current : new Array(oldCount).fill(100 / oldCount);
+        const newEntryPct = 100 / (oldCount + 1);
+        const scale = (100 - newEntryPct) / 100;
+        return [...existing.map(w => w * scale), newEntryPct];
+    }
     function addTableRow(id) {
         const it = findItemById(id); if (!it) return;
         saveSnapshot();
+        it.rowHeights = extendGridSizing(it.rowHeights, it.tableData.length);
         it.tableData.push(new Array(it.tableData[0].length).fill(''));
         render();
         // Jump the table's own vertical scroller all the way down so the freshly added
@@ -556,6 +573,7 @@ import { render } from './waypoints-render-loop.js';
     function addTableCol(id) {
         const it = findItemById(id); if (!it) return;
         saveSnapshot();
+        it.colWidths = extendGridSizing(it.colWidths, it.tableData[0].length);
         it.tableData.forEach(row => row.push(''));
         render();
         // Jump the shared horizontal scroller all the way right so the freshly added
