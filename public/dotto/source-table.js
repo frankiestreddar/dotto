@@ -543,26 +543,29 @@ import { render } from './waypoints-render-loop.js';
         e.preventDefault();
         focusTableCell(id, nr, nc, e.key === 'ArrowLeft' ? 'end' : 'start');
     }
-    // Extends a percentage-array (it.colWidths/it.rowHeights, see TableCard.jsx/
-    // resize-shortcuts-init.js) by one more entry for a freshly added column/row, preserving
-    // every EXISTING entry's relative proportion to the others rather than resetting the whole
-    // split back to even. The new entry gets what an even split of the new (bigger) count would
-    // give it — a size "relative to the table" rather than an arbitrary fixed pixel default — and
-    // every existing entry shrinks by that same scale factor to make room for it, so the total
-    // still sums to 100 without disturbing how any two existing columns/rows compare to each
-    // other. Harmless to call for a source/static table too (it.colWidths/rowHeights are only
-    // ever read by the plain canvas Table card's own rendering) — this function is shared between
-    // both kinds of table, and it's simpler to always compute it than to special-case one out.
-    function extendGridSizing(current, oldCount) {
-        const existing = (Array.isArray(current) && current.length === oldCount) ? current : new Array(oldCount).fill(100 / oldCount);
-        const newEntryPct = 100 / (oldCount + 1);
-        const scale = (100 - newEntryPct) / 100;
-        return [...existing.map(w => w * scale), newEntryPct];
+    // Grows the table's own overall size (it.w/it.h) to fit one more column/row, rather than
+    // shrinking every existing column/row to make room within the SAME overall size — every
+    // EXISTING column/row keeps its exact pixel size untouched. The new one's default pixel size
+    // is the average of the existing entries' current pixel sizes ("relative to the table" rather
+    // than an arbitrary fixed default), added on top of the table's current size. Percentages are
+    // recomputed against the NEW (bigger) total so every existing entry's PIXEL size — not its
+    // percentage — stays exactly what it was. it.userSized-gated: before the table's first corner
+    // resize it has no real it.w/it.h yet (auto-sized to content, table-layout:auto — see
+    // setupResizing, resize-shortcuts-init.js) and colWidths/rowHeights aren't rendered at all yet
+    // either (see TableCard.jsx's own it.userSized-gated colgroup/divider-handle JSX), so there's
+    // nothing meaningful to grow until then.
+    function growGridSizingForNewEntry(it, current, count, totalKey) {
+        const existing = (Array.isArray(current) && current.length === count) ? current : new Array(count).fill(100 / count);
+        const oldTotal = it[totalKey];
+        const newEntryPx = oldTotal / count;
+        const newTotal = oldTotal + newEntryPx;
+        it[totalKey] = Math.round(newTotal);
+        return [...existing.map(pct => (pct / 100 * oldTotal) / newTotal * 100), (newEntryPx / newTotal) * 100];
     }
     function addTableRow(id) {
         const it = findItemById(id); if (!it) return;
         saveSnapshot();
-        it.rowHeights = extendGridSizing(it.rowHeights, it.tableData.length);
+        if (it.userSized) it.rowHeights = growGridSizingForNewEntry(it, it.rowHeights, it.tableData.length, 'h');
         it.tableData.push(new Array(it.tableData[0].length).fill(''));
         render();
         // Jump the table's own vertical scroller all the way down so the freshly added
@@ -573,7 +576,7 @@ import { render } from './waypoints-render-loop.js';
     function addTableCol(id) {
         const it = findItemById(id); if (!it) return;
         saveSnapshot();
-        it.colWidths = extendGridSizing(it.colWidths, it.tableData[0].length);
+        if (it.userSized) it.colWidths = growGridSizingForNewEntry(it, it.colWidths, it.tableData[0].length, 'w');
         it.tableData.forEach(row => row.push(''));
         render();
         // Jump the shared horizontal scroller all the way right so the freshly added

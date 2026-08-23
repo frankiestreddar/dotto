@@ -1501,9 +1501,9 @@
        reads as draggable without permanently drawing a second line over the cell borders that
        already mark every column/row edge. Narrow (4px) so the hover highlight itself doesn't
        read as a second, wider line sitting on top of the actual 1px grid line underneath it. */
-    .table-col-resize-handle{position:absolute;top:0;bottom:0;width:4px;transform:translateX(-50%);cursor:col-resize;z-index:3;}
+    .table-col-resize-handle{position:absolute;top:0;bottom:0;width:3px;transform:translateX(-50%);cursor:col-resize;z-index:3;}
     .table-col-resize-handle:hover{background:rgba(99,102,241,0.35);}
-    .table-row-resize-handle{position:absolute;left:0;right:0;height:4px;transform:translateY(-50%);cursor:row-resize;z-index:3;}
+    .table-row-resize-handle{position:absolute;left:0;right:0;height:3px;transform:translateY(-50%);cursor:row-resize;z-index:3;}
     .table-row-resize-handle:hover{background:rgba(99,102,241,0.35);}
     .item-table{border-collapse:collapse;width:100%;table-layout:fixed;}
     /* Canvas table cards still keep the header as the first <tr> inside a single <tbody> (no
@@ -1513,21 +1513,25 @@
     .item.table:not(.static-table) .item-table > tbody > tr:first-child > td{background:var(--card);font-weight:600;color:var(--ink);}
     .item-table td{border:1px solid var(--card-border);padding:6px 9px;min-width:40px;font-size:13px;outline:none;overflow:hidden;word-break:break-word;overflow-wrap:break-word;white-space:normal;text-align:var(--cell-align,left);vertical-align:middle;}
     .item.table:not(.static-table) .item-table td{border-color:rgba(255,255,255,0.1);}
-    /* Purple focus indicator for whichever cell is currently being edited — recolors the cell's
-       own actual border line rather than drawing a second highlight on top of/inside it (an
-       earlier version used an inset box-shadow, which read as a second, thicker line sitting
-       noticeably inward from the real grid line). outline (not border-color directly) is what
-       makes this reliable: border-collapse resolves which of two ADJACENT cells' borders
-       actually gets painted at their shared edge by width/style precedence, so just recoloring
-       this cell's own border could lose that tie on some sides and leave them grey. An outline
-       is a separate paint layer scoped to this one element — never subject to that collapsing
-       — so all 4 sides are always guaranteed to actually show purple. outline-offset:-1px pulls
-       it inward by exactly the border's own 1px width, landing it right on top of where the grid
-       line already sits rather than floating outside the cell or inset deep into its padding.
+    /* Purple focus indicator for whichever cell is currently being edited. box-shadow (not
+       border-color directly) because border-collapse resolves which of two ADJACENT cells'
+       borders actually gets painted at their shared edge by width/style precedence, so just
+       recoloring this cell's own border could lose that tie on some sides and leave them grey —
+       box-shadow is a separate paint layer scoped to this one element, never subject to that
+       collapsing, so all 4 sides are always guaranteed to actually show purple. 1px (matching the
+       grid line's own width, not thicker) and inset so it's drawn from the padding edge outward
+       BY that 1px, landing directly on top of the existing 1px border instead of floating further
+       inward inside the cell's own padding.
+       An earlier attempt used outline+outline-offset instead, which looked right on interior
+       cells but left a visible gap specifically on cells touching the table's outer edge — likely
+       an interaction between how outline-offset measures a cell's border box and how
+       border-collapse allocates space differently at the table's true perimeter versus a shared
+       interior edge. box-shadow's geometry is computed directly from the padding/border box with
+       no such offset-from-an-edge step, so it isn't exposed to whatever that discrepancy was.
        :focus-within (not :focus) so one rule covers both table variants: the plain canvas
        table's <td> is itself contentEditable, but the source/static table's editable node is the
        nested .cell-text, not the <td> itself — :focus-within fires either way. */
-    .item-table td:focus-within{outline:1px solid var(--brand);outline-offset:-1px;}
+    .item-table td:focus-within{box-shadow:inset 0 0 0 1px var(--brand);}
     /* The actual per-row "make room for the tag button" shift is handled in JS
        (attachStaticTableHoverZones toggling `.row-tag-shift` on just the hovered row's first
        cell's `.cell-inner` — see the rule near .static-table-row-tag-strip-wrap above) rather
