@@ -256,7 +256,24 @@ import { render } from './waypoints-render-loop.js';
         const numRows = rows.length;
         const heights = (Array.isArray(it.rowHeights) && it.rowHeights.length === numRows) ? it.rowHeights : new Array(numRows).fill(100 / numRows);
         const totalHeight = wrap.clientHeight;
-        rows.forEach((tr, i) => { tr.style.height = (heights[i] / 100 * totalHeight) + 'px'; });
+        // The LAST row gets whatever's left over (totalHeight minus every other row's already-
+        // rounded pixel height) rather than its own independently-computed percentage. Rounding
+        // each row separately (heights[i]/100*totalHeight is rarely a whole pixel) can drift the
+        // SUM of all rows a hair past totalHeight — .table-rounded's own overflow:hidden then
+        // silently clips whatever poked past it, which for the last row means its own bottom
+        // border specifically, reading as "the table lost its bottom edge" even though every row
+        // is still technically the right height. Giving the last row the exact remainder instead
+        // guarantees the total can never exceed totalHeight, so there's nothing left to clip.
+        let usedHeight = 0;
+        rows.forEach((tr, i) => {
+            if (i === rows.length - 1) {
+                tr.style.height = Math.max(0, totalHeight - usedHeight) + 'px';
+            } else {
+                const h = Math.round(heights[i] / 100 * totalHeight);
+                tr.style.height = h + 'px';
+                usedHeight += h;
+            }
+        });
     }
     function attachStaticTableHoverZones(container, tableItem) {
         const wrap = container.querySelector('.static-table-wrap');
@@ -502,6 +519,11 @@ import { render } from './waypoints-render-loop.js';
         return testRange.toString().length === 0;
     }
     function handleTableKeydown(e, id, r, c) {
+        // Escape leaves the cell (same "Escape backs out of whatever you're focused in" pattern
+        // every other text-editing surface in this app already follows) rather than falling
+        // through to whatever the document-level Escape handler does — that one's meant for
+        // closing panels/overlays, not blurring a specific field, and wasn't reaching this at all.
+        if (e.key === 'Escape') { e.preventDefault(); e.currentTarget.blur(); return; }
         // Quick cloze markup (see resolveGameFace/hasCloze): highlight a word or phrase inside a
         // source cell and press "[" to wrap it in brackets in place, rather than typing "[" and
         // "]" by hand around the caret. Only intercepts when there's an actual (non-collapsed)
