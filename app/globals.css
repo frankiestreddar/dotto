@@ -1532,6 +1532,21 @@
        table's <td> is itself contentEditable, but the source/static table's editable node is the
        nested .cell-text, not the <td> itself — :focus-within fires either way. */
     .item-table td:focus-within{box-shadow:inset 0 0 0 1px var(--brand);}
+    /* box-shadow follows its own element's border-radius automatically — these give a focused
+       CORNER cell (one of the table's true 4 outer corners) that same 10px radius, matching
+       .table-rounded's own, so the highlight curves into the corner instead of sitting
+       square-cornered against a rounded one. Scoped to :focus-within specifically rather than
+       applied unconditionally: an earlier attempt gave every corner cell a permanent
+       border-radius (so the table's real border would curve smoothly there too, not just the
+       highlight) and that caused OTHER, unrelated grid lines throughout the table to blur-render
+       — border-radius on individual cells inside a border-collapse:collapse table is a genuinely
+       unreliable combination in general (see that fix's own commit for the full explanation), so
+       this radius existing only transiently, while a corner cell is actually focused, is a
+       deliberate trade against reintroducing that everywhere. */
+    .item-table tr:first-child td:first-child:focus-within{border-top-left-radius:10px;}
+    .item-table tr:first-child td:last-child:focus-within{border-top-right-radius:10px;}
+    .item-table tr:last-child td:first-child:focus-within{border-bottom-left-radius:10px;}
+    .item-table tr:last-child td:last-child:focus-within{border-bottom-right-radius:10px;}
     /* The actual per-row "make room for the tag button" shift is handled in JS
        (attachStaticTableHoverZones toggling `.row-tag-shift` on just the hovered row's first
        cell's `.cell-inner` — see the rule near .static-table-row-tag-strip-wrap above) rather
