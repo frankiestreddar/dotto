@@ -1562,6 +1562,19 @@
        in, rather than this needing to keep re-winning a specificity race against every existing
        (and future) per-variant border-color/border-width override. */
     .item-table td:focus-within{border-color:var(--brand) !important;border-width:2px !important;}
+    /* Same border shape as the focus indicator above (same 2px width, same position, and — since
+       border-radius lives on the cell itself now, not a separate overlay — corner cells pick up
+       their matching corner radius automatically here too) but a plain grey, one step lighter
+       than the grid line's own resting color, for hovering ANY cell (not just the focused one).
+       #454545 is this file's existing "hover border, lighter than the default" convention (see
+       e.g. #item-detail-price:hover) — reused here rather than inventing a new grey. No
+       !important needed: :focus-within's own already wins any time a cell is BOTH hovered and
+       focused, since it carries !important and this doesn't. The plain-table override just below
+       matches the same "one step lighter" idea against ITS OWN rgba(255,255,255,0.1) baseline,
+       rather than reusing the solid grey — a solid #454545 wouldn't read as a small step up
+       against that translucent-white baseline the way it does against --card-border. */
+    .item-table td:hover{border-color:#454545;border-width:2px;}
+    .item.table:not(.static-table) .item-table td:hover{border-color:rgba(255,255,255,0.2);}
     /* The actual per-row "make room for the tag button" shift is handled in JS
        (attachStaticTableHoverZones toggling `.row-tag-shift` on just the hovered row's first
        cell's `.cell-inner` — see the rule near .static-table-row-tag-strip-wrap above) rather
