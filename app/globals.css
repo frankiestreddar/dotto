@@ -1499,6 +1499,21 @@
     .item.table:not(.static-table) .item-table > tbody > tr:first-child > td{background:var(--card);font-weight:600;color:var(--ink);}
     .item-table td{border:1px solid var(--card-border);padding:6px 9px;min-width:40px;font-size:13px;outline:none;overflow:hidden;word-break:break-word;overflow-wrap:break-word;white-space:normal;text-align:var(--cell-align,left);vertical-align:middle;}
     .item.table:not(.static-table) .item-table td{border-color:rgba(255,255,255,0.1);}
+    /* Purple focus indicator for whichever cell is currently being edited. :focus-within (not
+       :focus) so one rule covers both table variants: the plain canvas table's <td> is itself
+       contentEditable, but the source/static table's editable node is the nested .cell-text, not
+       the <td> itself — :focus-within fires either way. Inset so it stays entirely within the
+       cell's own box rather than reaching into a neighboring cell's shared collapsed border.
+       The four corner rules below are belt-and-suspenders: .table-rounded's own
+       overflow:hidden+border-radius:10px (see its own rule above) already clips anything
+       painted at a corner cell into that same rounded shape for free, but setting the radius
+       explicitly on the cell itself guarantees the correct rounded look even if that clip ever
+       renders imperfectly at the pixel level in some browser. */
+    .item-table td:focus-within{box-shadow:inset 0 0 0 2px var(--brand);}
+    .item-table tr:first-child td:first-child:focus-within{border-top-left-radius:10px;}
+    .item-table tr:first-child td:last-child:focus-within{border-top-right-radius:10px;}
+    .item-table tr:last-child td:first-child:focus-within{border-bottom-left-radius:10px;}
+    .item-table tr:last-child td:last-child:focus-within{border-bottom-right-radius:10px;}
     /* The actual per-row "make room for the tag button" shift is handled in JS
        (attachStaticTableHoverZones toggling `.row-tag-shift` on just the hovered row's first
        cell's `.cell-inner` — see the rule near .static-table-row-tag-strip-wrap above) rather
