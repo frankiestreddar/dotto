@@ -38,30 +38,26 @@
             <div id="ai-chat-header">
                 <button id="ai-history-btn" title="Chat history" onclick="event.stopPropagation(); showAiHistoryView();">←</button>
             </div>
+            <!-- #search-chat-thread: plain document order, right after the header — empty
+                 (height:0) on the "first page" before anything's been searched, so it takes no
+                 visual space and the input box below sits right after the header. Once a real
+                 response lands (.thread-settled, see updateChatThread/createHeightTransitionController,
+                 ai-assistant-suggestions.js), it switches to flex:1 (globals.css) and fills the
+                 rest of #ai-chat-view's height with its own internal scroll, which is what pushes
+                 #search-input-wrap down to sit at the panel's bottom edge — a flex-grow computed
+                 directly against its real siblings' actual sizes, not a disconnected margin-top:auto
+                 guess (an earlier attempt at "pin the input to the bottom" used margin-top:auto on
+                 this whole group instead and was reverted: the thread's own max-height cap had no
+                 way to know how much room the auto-margin actually left it, and the two disagreeing
+                 read as content clipped partway up with a large gap above it — flex-grow computed
+                 against real sibling sizes can't disagree with itself the same way). -->
             <div id="search-chat-thread"></div>
-            <div id="search-dropdown">
-                <!-- Slash-command live suggestions (see command-palette.js) — first, so it visually
-                     leads whenever there's a "/" command being typed rather than appearing after
-                     unrelated search-result panels. -->
-                <div id="search-command-palette"></div>
-                <div id="search-dotbot-answer"></div>
-                <div id="search-translation"></div>
-                <div id="search-dictionary"></div>
-                <div id="search-examples"></div>
-                <div id="search-recommended"></div>
-                <!-- The mnemonic story lands in #search-suggestions above (see
-                     renderMnemonicResultCard) — this stays LAST so its image always renders below
-                     that text, never above it. -->
-                <div id="search-suggestions"></div>
-                <div id="search-image-result"></div>
-            </div>
-            <!-- Last in DOM order (not visual order — see the CSS `order` rules on this,
-                 #search-chat-thread, and #search-dropdown, globals.css) purely so a plain CSS
-                 sibling selector off #search-chat-thread's own .visible class can flip this
-                 between two layout modes with no separate JS-driven class needed: right after the
-                 header (visually at the TOP) on the "first page" before anything's been searched,
-                 or pinned to the panel's bottom edge (visually LAST, margin-top:auto lives on
-                 thread) once a real response exists, response above it like a normal chat input. -->
+            <!-- #search-input-wrap comes BEFORE #search-dropdown now (it used to be the reverse) —
+                 previously, every keystroke's live-suggestions fetch resized #search-dropdown
+                 ABOVE the input box, visibly shifting the box up and down as suggestions
+                 loaded/cleared while typing. With the dropdown below instead, nothing above the
+                 input box ever changes size while typing, and suggestions read as a normal
+                 "appears below what you're typing" dropdown. -->
             <div id="search-input-wrap">
                 <textarea id="search-input" rows="1" placeholder="" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" oninput="handleSearchInput(this.value)" onfocus="handleSearchFocus()"></textarea>
                 <svg id="search-loading-ring" aria-hidden="true">
@@ -82,6 +78,22 @@
                     <span id="search-card-pill-label" onclick="event.stopPropagation(); openSearchCardsModal();"></span>
                     <button id="search-card-pill-clear" type="button" title="Clear attached cards" onclick="event.stopPropagation(); clearSearchCardContext();">✕</button>
                 </div>
+            </div>
+            <div id="search-dropdown">
+                <!-- Slash-command live suggestions (see command-palette.js) — first, so it visually
+                     leads whenever there's a "/" command being typed rather than appearing after
+                     unrelated search-result panels. -->
+                <div id="search-command-palette"></div>
+                <div id="search-dotbot-answer"></div>
+                <div id="search-translation"></div>
+                <div id="search-dictionary"></div>
+                <div id="search-examples"></div>
+                <div id="search-recommended"></div>
+                <!-- The mnemonic story lands in #search-suggestions above (see
+                     renderMnemonicResultCard) — this stays LAST so its image always renders below
+                     that text, never above it. -->
+                <div id="search-suggestions"></div>
+                <div id="search-image-result"></div>
             </div>
         </div>
         <!-- No search box for v1 (unlike waypoints-panel/hub-collab-panel above) — a saved-chat

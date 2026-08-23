@@ -997,17 +997,19 @@
        Notifications used to live inside this box (slide-swapped with #search-input) — they're a
        top-bar pill now (see #notification-pill, further down) with no coupling to this element at
        all anymore. */
-    /* Plain document order — header, thread, dropdown, input, always (see hamburger-stack.html) —
-       no CSS `order`/margin-top:auto trying to pin this to the bottom of the panel. That was tried
-       (pushing thread+dropdown+input down together as a group once thread had a real response) and
-       caused real breakage: a long/tall thread's own max-height:60vh cap doesn't know how much
-       room the auto-margin left it, so the two could disagree about how much space was actually
-       available, reading as content clipped partway up and a large gap between the header and the
-       conversation. Simple, predictable flow avoids all of that: on the first page (thread/
-       dropdown both empty, height:0) this naturally sits right after the header anyway, and once a
-       conversation exists it just follows thread/dropdown in normal flow, which lands it
-       reasonably close to the bottom for anything beyond a trivially short exchange without any of
-       the layout gymnastics. */
+    /* Plain document order — header, thread, input, dropdown (see hamburger-stack.html) — dropdown
+       moved to AFTER this element (it used to come before) so live suggestions resizing as you
+       type never shift this box itself, and so suggestions read as appearing below the box rather
+       than above it. Pinning this to the panel's bottom edge once a real conversation exists is
+       #search-chat-thread's job now (see its own comment, above in this file) via flex:1 on
+       itself, not anything on this element — no CSS `order`/margin-top:auto here. An earlier
+       version of this comment described trying margin-top:auto on the whole thread+dropdown+input
+       group and reverting it (a long/tall thread's own max-height cap had no way to know how much
+       room the auto-margin left it, reading as content clipped partway up with a large gap above
+       it) — that reasoning is why THIS element still has no positioning logic of its own; the
+       actual fix that made pinning work landed on #search-chat-thread instead (flex-grow computed
+       directly against real sibling sizes, not a disconnected margin guess), once #search-dropdown
+       stopped needing to sit before this element at all. */
     #search-input-wrap{position:relative;width:100%;border:1px solid transparent;border-radius:16px;}
     /* Never scrollable, even past the 4-line cap - overflow is hidden, not auto. The caret still
        auto-scrolls into view internally as you type (native textarea behavior, independent of
@@ -1136,11 +1138,15 @@
        work normally the entire time the palette is actually open and settled. Individual panels
        that need their own internal scroll cap (the answer/command-palette/results panels) still
        have their own max-height+overflow-y, unchanged. */
-    /* Plain document order (see #search-input-wrap's own comment) — always between thread and
-       input. margin-bottom guarantees the gap before the input box unconditionally (not gated by
-       .visible), since #search-dropdown is always input's immediate previous sibling regardless of
-       whether it or #search-chat-thread above it currently have any content. */
-    #search-dropdown{display:flex;flex-direction:column;gap:5px;height:0;overflow:hidden;margin-top:0;margin-bottom:8px;}
+    /* #search-dropdown now sits AFTER #search-input-wrap (it used to come before, see the HTML's
+       own comment, hamburger-stack.html) — margin-top instead of the old unconditional
+       margin-bottom, and only while .visible: the gap it needs to guarantee is now "before the
+       dropdown, after the input box", not "before the input box" (that role moved to
+       #search-chat-thread's own margin-bottom below). Gated on .visible (not unconditional the
+       way the old margin-bottom was) because there's no fixed element after this one anymore to
+       always need a gap before — it's the last thing in the panel now, so an empty, height:0
+       dropdown correctly contributes no gap at all. */
+    #search-dropdown{display:flex;flex-direction:column;gap:5px;height:0;overflow:hidden;margin-top:0;}
     /* No padding-bottom (there used to be a 2px one) — #search-bar's own 8px padding is already
        the bottom gap below the last row; adding padding-bottom here on top of that stacked to 10px
        at the bottom of the card versus 8px on every other side, most noticeable with a sparse
@@ -1154,26 +1160,35 @@
        ai-assistant-suggestions.js) — sharing #search-dropdown's own dropdownSettledHeight/
        transitionCleanup would reintroduce exactly the bugs this session spent so many rounds
        fixing on the original, since these are two completely independent animated elements.
-       max-height is a real cap (first-pass number, easy to tune once visible) — unlike
-       #search-dropdown, which only ever grows to fit whatever's currently shown, a chat thread can
-       accumulate arbitrarily many turns, so past some point it needs to stop growing and scroll
-       internally instead, auto-scrolled to the newest turn on each append. overflow stays hidden
-       here at the CSS level (needed while the JS-driven grow/shrink transition is actively
-       clipping content mid-animation, same as #search-dropdown) — the JS hands it back to `auto`
-       (not `visible`, unlike #search-dropdown, which is deliberately non-clipping for its nav-
-       arrow-slide-outside panels) once settled, so the scrollbar/clipping the max-height cap needs
-       actually takes effect at rest. No margin-bottom of its own (unlike before this element and
-       #search-dropdown became direct neighbors) — #search-dropdown's own unconditional margin-
-       bottom above already provides the one guaranteed gap before the input box; giving this
-       element a margin-bottom TOO would double up into a 16px gap whenever both are visible at
-       once (their margins don't collapse against each other — flex item margins never do), instead
-       of the intended flat 8px.
-       Plain document order (no CSS `order`, no margin-top:auto) — see #search-input-wrap's own
-       comment for why an earlier attempt at pinning this + dropdown + input to the bottom as a
-       group was reverted: max-height:60vh here has no way to know how much room an auto margin
-       elsewhere left it, and the two disagreeing is exactly what read as content clipped partway up
-       with a large gap above it. */
-    #search-chat-thread{display:flex;flex-direction:column;gap:16px;height:0;overflow:hidden;max-height:60vh;}
+       max-height is a real cap on BOTH the grow-transition's target (opts.capTarget, see
+       updateChatThread) and the flex:1 rest state below — a chat thread can accumulate arbitrarily
+       many turns, so past some point it needs to stop growing and scroll internally instead,
+       auto-scrolled to the newest turn on each append. overflow stays hidden here at the CSS level
+       (needed while the JS-driven grow/shrink transition is actively clipping content
+       mid-animation, same as #search-dropdown) — the JS hands it back to `auto` (not `visible`,
+       unlike #search-dropdown, which is deliberately non-clipping for its nav-arrow-slide-outside
+       panels) once settled, so the scrollbar/clipping the max-height cap needs actually takes
+       effect at rest.
+       margin-bottom guarantees the gap before the input box unconditionally (not gated by
+       .visible, so it still applies while height:0 on the empty first page — a margin on a
+       zero-height element still takes up space) — #search-input-wrap is always this element's
+       immediate next sibling now, regardless of whether this one currently has any content.
+       flex:0 0 auto at rest, flex:1 1 auto once .thread-settled (added by
+       createHeightTransitionController's opts.settledClass, ai-assistant-suggestions.js — NOT the
+       same moment as .visible: settledClass is deliberately held off until the grow/shrink
+       transition has actually finished and handed height back to 'auto', so flex-grow's own space
+       distribution never fights the transition's own explicit px height mid-flight). This is what
+       actually pins #search-input-wrap (and #search-dropdown after it) to the panel's bottom edge
+       once a real conversation exists: flex-grow computed directly against its real siblings'
+       actual current sizes in the SAME flex container (#ai-chat-view), not a disconnected
+       margin-top:auto guess. An earlier attempt at this used margin-top:auto on the whole
+       thread+dropdown+input group instead and was reverted: max-height here had no way to know how
+       much room the auto-margin actually left it, and the two disagreeing read as content clipped
+       partway up with a large gap above it. flex-grow can't disagree with itself the same way —
+       it's the single source of truth for how much space this element actually gets, and
+       max-height still applies as a hard ceiling on TOP of that regardless of which one binds. */
+    #search-chat-thread{display:flex;flex-direction:column;gap:16px;height:0;overflow:hidden;max-height:60vh;flex:0 0 auto;margin-bottom:8px;}
+    #search-chat-thread.thread-settled{flex:1 1 auto;}
     .dotbot-turn{display:flex;flex-direction:column;gap:8px;}
     /* Right-aligned pill, same --brand indigo used elsewhere for accents — the one thing this
        whole search surface never rendered before now: the user's OWN query, as an actual message

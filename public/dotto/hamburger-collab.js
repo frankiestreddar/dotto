@@ -327,7 +327,11 @@ import { deleteCanvasCollabsForFolder, deleteWaypointCardEverywhere, expandWaypo
         if (!confirm(ids.length === 1 ? 'Delete this chat?' : `Delete ${ids.length} chats?`)) { clearListPanelSelection(); return; }
         const { error } = await supabase.rpc('delete_dotbot_conversations', { p_conversation_ids: ids });
         if (error) console.error('[chats] failed to delete conversations:', error);
-        if (ids.includes(appState.currentConversationId)) { appState.currentConversationId = null; window.__setChatThread([]); }
+        // updateChatThread() alongside setChatThread: without it, #search-chat-thread's
+        // 'thread-settled' class (flex:1, globals.css) would linger from the just-deleted
+        // conversation, pinning the AI panel's input box to the bottom of what's now a blank
+        // thread (see startNewAiChat's own comment, ai-assistant-suggestions.js, for the same fix).
+        if (ids.includes(appState.currentConversationId)) { appState.currentConversationId = null; window.__setChatThread([]); updateChatThread(); }
         clearListPanelSelection();
         renderChatsList();
     }
@@ -337,6 +341,7 @@ import { deleteCanvasCollabsForFolder, deleteWaypointCardEverywhere, expandWaypo
         if (error) console.error('[chats] failed to clear all conversations:', error);
         appState.currentConversationId = null;
         window.__setChatThread([]);
+        updateChatThread(); // see deleteSelectedChats' own comment just above
         renderChatsList();
     }
     async function deleteSelectedWaypointRows(ids) {

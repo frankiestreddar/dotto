@@ -248,6 +248,13 @@ import { render } from './waypoints-render-loop.js';
             appState.searchChatThread.style.height = 'auto';
             appState.searchChatThread.style.opacity = '1';
             appState.searchChatThread.style.overflow = 'auto';
+            // Also dropped directly here, not left for updateChatThread() to sort out later —
+            // this whole force-reset exists specifically because the normal transition path can't
+            // be trusted right as an ancestor is about to go display:none (see above), and
+            // 'thread-settled' (flex:1, globals.css) lingering on what's about to be an empty
+            // thread would pin the input box to the bottom of a "first page" that has no
+            // conversation on it at all.
+            appState.searchChatThread.classList.remove('visible', 'thread-settled');
         }
         window.__setChatThread([]);
         showAiChatView(); // always land back on the chat view (not mid-history-browse) next open
@@ -285,6 +292,13 @@ import { render } from './waypoints-render-loop.js';
     function startNewAiChat() {
         appState.currentConversationId = null;
         window.__setChatThread([]);
+        // Unlike resetAiSearchState, the AI panel stays open here — nothing's about to hide out
+        // from under a live transition, so the normal animated path is safe (and needed): without
+        // this, #search-chat-thread's 'thread-settled' class (flex:1, globals.css — see
+        // updateChatThread's own comment) would linger from whatever conversation was just
+        // cleared, pinning the input box to the bottom of what's supposed to be a fresh, empty
+        // "first page".
+        updateChatThread();
         appState.searchInput.value = '';
         autoGrowSearchInput();
         showAiChatView();
@@ -383,6 +397,12 @@ import { render } from './waypoints-render-loop.js';
             const settled = el.style.height === '' || el.style.height === 'auto';
             if (!visible) {
                 if (!wasVisible) return; // already closed, staying closed — nothing to animate
+                // Dropped immediately (not deferred to the collapse finishing) — opts.settledClass
+                // (see #search-chat-thread's own flex:1-once-settled rule, globals.css) must never
+                // be active on an empty element: even mid-collapse, a lingering flex-grow would
+                // fight this element's own explicit px height with whatever leftover flex space is
+                // still around at that moment.
+                if (opts.settledClass) el.classList.remove(opts.settledClass);
                 if (transitionCleanup) { el.removeEventListener('transitionend', transitionCleanup); transitionCleanup = null; }
                 // Only force a starting px value if coming from a settled 'auto' rest — if a grow
                 // was still in flight, its current live height is already a real px value we can
@@ -419,6 +439,12 @@ import { render } from './waypoints-render-loop.js';
                 if (Number.isFinite(capPx)) target = Math.min(target, capPx);
             }
             if (wasVisible && settled && Math.abs(target - settledHeight) < 1) return; // no real change, nothing in flight either
+            // Dropped for the same reason as the collapse branch above — while a grow transition
+            // is actively driving an explicit px height, opts.settledClass's flex-grow must not
+            // also be trying to claim leftover space on top of that same value. Restored in onDone
+            // below, once height is handed back to 'auto' and flex-grow becomes the sole thing
+            // determining this element's actual size.
+            if (opts.settledClass) el.classList.remove(opts.settledClass);
             if (transitionCleanup) { el.removeEventListener('transitionend', transitionCleanup); transitionCleanup = null; }
             if (settled) {
                 el.style.transition = 'none';
@@ -438,6 +464,7 @@ import { render } from './waypoints-render-loop.js';
                 el.style.transition = '';
                 el.style.height = 'auto';
                 el.style.overflow = restOverflow;
+                if (opts.settledClass) el.classList.add(opts.settledClass);
                 el.removeEventListener('transitionend', onDone);
                 transitionCleanup = null;
             };
@@ -489,7 +516,12 @@ import { render } from './waypoints-render-loop.js';
     function updateChatThread() {
         if (!appState.searchChatThread) return;
         const visible = appState.searchChatThread.childElementCount > 0;
-        chatThreadAnimator(visible, Object.assign({ restOverflow: 'auto', capTarget: true }, HEIGHT_TRANSITION_OPTS));
+        // settledClass ('thread-settled', globals.css): only once the grow/shrink transition has
+        // actually finished does this element switch to flex:1, pinning the input box (and
+        // dropdown) below it to the panel's bottom edge — see #search-chat-thread's own comment,
+        // globals.css, for why that has to wait for "settled" rather than applying the instant
+        // .visible does.
+        chatThreadAnimator(visible, Object.assign({ restOverflow: 'auto', capTarget: true, settledClass: 'thread-settled' }, HEIGHT_TRANSITION_OPTS));
     }
     // Auto-follows the newest turn — called after updateChatThread() so the container's real
     // scrollHeight already reflects any just-appended content. No-op while a transition is still
