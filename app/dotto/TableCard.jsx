@@ -56,6 +56,28 @@ function handleCellMouseDown(e) {
   }
 }
 
+// it.mergedCells is a flat list of {r1,c1,r2,c2} rectangular regions (see mergeTableCells,
+// source-table.js) — a plain, still-unmerged cell has no entry of its own here at all. Builds a
+// full numRows x numCols lookup, one entry per grid position pointing at whichever region (real
+// or, for an unmerged cell, the trivial 1x1 region matching just itself) actually covers it, so
+// the render loop below never has to re-search the list per cell.
+function computeMergeGrid(mergedCells, numRows, numCols) {
+  const grid = Array.from({ length: numRows }, () => new Array(numCols).fill(null));
+  (mergedCells || []).forEach((region) => {
+    for (let r = region.r1; r <= region.r2; r++) {
+      for (let c = region.c1; c <= region.c2; c++) {
+        grid[r][c] = region;
+      }
+    }
+  });
+  for (let r = 0; r < numRows; r++) {
+    for (let c = 0; c < numCols; c++) {
+      if (!grid[r][c]) grid[r][c] = { r1: r, c1: c, r2: r, c2: c };
+    }
+  }
+  return grid;
+}
+
 // userSized's wrapper class + distributeTableSizing, and setupResizing/setupTableGridResizing,
 // all need the wrapper element this component doesn't itself own — reached via
 // document.getElementById('item-'+it.id) each render, same technique TitleCard/NoteCard use.
@@ -89,6 +111,70 @@ export default function TableCard({ it }) {
   const colDividerLefts = colWidths.slice(0, -1).map((w) => (colAcc += w));
   let rowAcc = 0;
   const rowDividerTops = rowHeights.slice(0, -1).map((h) => (rowAcc += h));
+  const mergeGrid = computeMergeGrid(it.mergedCells, numRows, numCols);
+  // colLefts[i]/rowTops[i] is the left/top edge of column/row i as a % of the table's own box
+  // (colLefts[numCols]/rowTops[numRows] is the table's own right/bottom edge, 100) — a superset
+  // of colDividerLefts/rowDividerTops above (which only need the INTERNAL boundaries), needed
+  // here to place a merge-edge overlay against a region's own bounds rather than a single
+  // column/row's.
+  const colLefts = [0];
+  for (const w of colWidths) colLefts.push(colLefts[colLefts.length - 1] + w);
+  const rowTops = [0];
+  for (const h of rowHeights) rowTops.push(rowTops[rowTops.length - 1] + h);
+  // One rendered <td> per merge region (at its own top-left cell), carrying rowSpan/colSpan
+  // matching the region's size — every OTHER (r,c) a region covers is skipped (returns null; see
+  // computeMergeGrid). Merge-edge overlays (rendered as siblings of <table> further below, same
+  // reasoning as the divider handles) are collected into this flat list as a side effect of the
+  // same pass, rather than a second walk over the grid.
+  const mergeEdges = [];
+  const rows = it.tableData.map((row, ri) => (
+    <tr key={ri}>
+      {row.map((cell, ci) => {
+        const region = mergeGrid[ri][ci];
+        if (region.r1 !== ri || region.c1 !== ci) return null;
+        const rowSpan = region.r2 - region.r1 + 1;
+        const colSpan = region.c2 - region.c1 + 1;
+        // A merge across this cell's right/bottom edge is only offered when the region on that
+        // side spans the exact same row/column range as this one — anything else would produce a
+        // non-rectangular union, which a single <td> rowSpan/colSpan can't express.
+        const rightRegion = region.c2 + 1 < numCols ? mergeGrid[region.r1][region.c2 + 1] : null;
+        if (rightRegion && rightRegion.r1 === region.r1 && rightRegion.r2 === region.r2) {
+          mergeEdges.push({
+            key: `mr${region.r1}-${region.c1}`,
+            className: "table-merge-edge table-merge-edge-v",
+            style: { left: colLefts[region.c2 + 1] + "%", top: rowTops[region.r1] + "%", height: rowTops[region.r2 + 1] - rowTops[region.r1] + "%" },
+            onClick: () => window.__mergeTableCells(it.id, region, rightRegion),
+          });
+        }
+        const bottomRegion = region.r2 + 1 < numRows ? mergeGrid[region.r2 + 1][region.c1] : null;
+        if (bottomRegion && bottomRegion.c1 === region.c1 && bottomRegion.c2 === region.c2) {
+          mergeEdges.push({
+            key: `mb${region.r1}-${region.c1}`,
+            className: "table-merge-edge table-merge-edge-h",
+            style: { top: rowTops[region.r2 + 1] + "%", left: colLefts[region.c1] + "%", width: colLefts[region.c2 + 1] - colLefts[region.c1] + "%" },
+            onClick: () => window.__mergeTableCells(it.id, region, bottomRegion),
+          });
+        }
+        return (
+          <td
+            key={ci}
+            contentEditable
+            suppressContentEditableWarning
+            data-r={ri}
+            data-c={ci}
+            rowSpan={rowSpan > 1 ? rowSpan : undefined}
+            colSpan={colSpan > 1 ? colSpan : undefined}
+            onMouseDown={handleCellMouseDown}
+            onInput={(e) => window.updateTableCell(it.id, ri, ci, e.currentTarget)}
+            onKeyDown={(e) => window.handleTableKeydown(e, it.id, ri, ci)}
+            onFocus={() => window.broadcastEditingState(true, `#item-${it.id} td[data-r="${ri}"][data-c="${ci}"]`)}
+            onBlur={() => window.broadcastEditingState(false)}
+            dangerouslySetInnerHTML={{ __html: cell }}
+          />
+        );
+      })}
+    </tr>
+  ));
 
   return (
     <>
@@ -103,28 +189,22 @@ export default function TableCard({ it }) {
                   ))}
                 </colgroup>
               )}
-              <tbody>
-                {it.tableData.map((row, ri) => (
-                  <tr key={ri}>
-                    {row.map((cell, ci) => (
-                      <td
-                        key={ci}
-                        contentEditable
-                        suppressContentEditableWarning
-                        data-r={ri}
-                        data-c={ci}
-                        onMouseDown={handleCellMouseDown}
-                        onInput={(e) => window.updateTableCell(it.id, ri, ci, e.currentTarget)}
-                        onKeyDown={(e) => window.handleTableKeydown(e, it.id, ri, ci)}
-                        onFocus={() => window.broadcastEditingState(true, `#item-${it.id} td[data-r="${ri}"][data-c="${ci}"]`)}
-                        onBlur={() => window.broadcastEditingState(false)}
-                        dangerouslySetInnerHTML={{ __html: cell }}
-                      />
-                    ))}
-                  </tr>
-                ))}
-              </tbody>
+              <tbody>{rows}</tbody>
             </table>
+            {/* Gated on it.userSized, same as the divider-resize handles just below — their
+                shared percentage-based positioning (colLefts/rowTops, colDividerLefts/
+                rowDividerTops) only actually lines up with the real rendered grid once the table
+                is in fixed table-layout with real percentage column widths; before that
+                (table-layout:auto, browser-determined widths) these percentages wouldn't match
+                anything on screen. onPointerDown stops propagation (not onMouseDown/onClick
+                alone) because the whole-card drag system (drag-drop-chat.js's
+                setupDraggingAndClicking) listens for pointerdown bubbling from the card wrapper —
+                without this, clicking a merge edge would also register as the start of a
+                card-drag/select gesture underneath it. */}
+            {it.userSized &&
+              mergeEdges.map((edge) => (
+                <div key={edge.key} className={edge.className} style={edge.style} onClick={edge.onClick} onPointerDown={(e) => e.stopPropagation()} title="Delete border (merge cells)" />
+              ))}
             {/* Per-column/row divider drags — separate from the corner .resize handle below,
                 which still resizes the WHOLE table. Wired up in the effect above
                 (setupTableGridResizing), not inline here, same split as .resize itself. */}

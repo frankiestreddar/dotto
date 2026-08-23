@@ -1537,6 +1537,30 @@
     .table-row-resize-handle::after{content:'';position:absolute;left:0;right:0;top:50%;height:3px;transform:translateY(-50%);}
     .table-row-resize-handle.armed{cursor:row-resize;}
     .table-row-resize-handle.armed::after{background:rgba(99,102,241,0.35);}
+    /* Hold-Option "click an edge to merge two cells" overlays — siblings of the divider-resize
+       handles above (not nested inside individual <td>s: a cell's dangerouslySetInnerHTML owns
+       its entire content, and React doesn't allow real children alongside that), positioned the
+       same percentage-of-the-table way TableCard.jsx already computes colDividerLefts/
+       rowDividerTops with, just against a specific merge region's own bounds instead of a
+       whole-table column/row boundary — left/top/width/height (whichever apply) come from inline
+       style per instance, computed in TableCard.jsx's own render (see computeMergeGrid: only
+       rendered at all when merging across that edge would actually produce a valid rectangle,
+       i.e. the neighboring region spans the exact same row/column range as this one). Same 9px
+       hit-zone/3px visible-line split as .table-col-resize-handle/.table-row-resize-handle above
+       (a little "near enough" tolerance around the exact 1px line), but red instead of
+       purple/indigo — a color that reads as "delete", not "resize" — and only interactive at all
+       while body.option-held is set (see resize-shortcuts-init.js's global keydown/keyup
+       tracking), never reachable by an accidental hover otherwise. z-index above both the divider
+       handles (3) and the focus/hover cell-border ring (4), so it's unambiguous which mode is
+       active on the rare frame they'd otherwise overlap. */
+    .table-merge-edge{display:none;position:absolute;z-index:6;}
+    body.option-held .table-merge-edge{display:block;cursor:pointer;}
+    .table-merge-edge::after{content:'';position:absolute;}
+    .table-merge-edge-v{width:9px;transform:translateX(-50%);}
+    .table-merge-edge-v::after{top:0;bottom:0;left:50%;width:3px;transform:translateX(-50%);}
+    .table-merge-edge-h{height:9px;transform:translateY(-50%);}
+    .table-merge-edge-h::after{left:0;right:0;top:50%;height:3px;transform:translateY(-50%);}
+    .table-merge-edge:hover::after{background:#e5484d;}
     /* border-collapse:separate + border-spacing:0 instead of collapse — this is the decisive fix
        for a whole cluster of table-border issues that kept resurfacing under collapse mode: a
        focused cell's highlight leaving a gap specifically on cells touching the table's outer

@@ -157,6 +157,17 @@ import { cascadeDeleteFolderContents, centerOnContent, deleteWaypointFromDb, ren
     // TABLE_ROW_MIN_PX has no CSS counterpart to match (row height is entirely JS-driven, see
     // distributeTableSizing) — 28px is just a sane "about one line of cell content" floor, same
     // 28px grid unit already used elsewhere in this file's own move handler.
+    // Global Option/Alt-held tracking, toggling .option-held on <body> — gates the table cell-edge
+    // "hold Option, click a red edge to merge" overlays (see TableCard.jsx/mergeTableCells,
+    // source-table.js) via plain CSS :hover, since CSS itself has no way to detect a held
+    // modifier key on its own. Genuinely global rather than scoped to any one table: there's no
+    // natural per-element scope for "is a key currently held," and every table on the canvas
+    // should react to it the same way regardless of which one (if any) the cursor happens to be
+    // over. keyup and window blur both clear it, so releasing the key while focus is elsewhere
+    // (an input field swallowing the keyup, alt-tabbing away entirely) can never leave it stuck on.
+    document.addEventListener('keydown', (e) => { if (e.altKey) document.body.classList.add('option-held'); });
+    document.addEventListener('keyup', (e) => { if (!e.altKey) document.body.classList.remove('option-held'); });
+    window.addEventListener('blur', () => document.body.classList.remove('option-held'));
     const TABLE_COL_MIN_PX = 40;
     const TABLE_ROW_MIN_PX = 28;
     // The resize affordance (purple highlight + col/row-resize cursor, both driven by the .armed

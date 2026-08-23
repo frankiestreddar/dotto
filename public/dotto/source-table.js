@@ -500,7 +500,20 @@ import { render } from './waypoints-render-loop.js';
         it.tableData[r][c] = el.innerHTML;
         scheduleWorkspaceSave();
     }
+    // Plain canvas tables only support merged cells (see mergeTableCells below) — a merge region's
+    // own data lives at its top-left (r1,c1); every other (r,c) it covers has no <td> of its own
+    // to focus (see TableCard.jsx's render, which skips them). Arrow-key navigation computes a
+    // plain (r±1,c±1) target with no idea merges even exist, so without this it would land on a
+    // "hole" and silently fail to focus anything the moment it stepped onto a covered cell.
+    function resolveTableMergeHome(it, r, c) {
+        const merged = it && it.mergedCells;
+        if (!merged) return { r, c };
+        const region = merged.find(m => r >= m.r1 && r <= m.r2 && c >= m.c1 && c <= m.c2);
+        return region ? { r: region.r1, c: region.c1 } : { r, c };
+    }
     function focusTableCell(id, r, c, pos) {
+        const home = resolveTableMergeHome(findItemById(id), r, c);
+        r = home.r; c = home.c;
         // Source/static tables split their header out into a separate row of plain rename
         // inputs (row 0 has no editable <td> at all there) — route keyboard nav there instead
         // when it lands on row 0. Plain canvas table cards have no such input: their header is
@@ -652,6 +665,31 @@ import { render } from './waypoints-render-loop.js';
         // (empty) column is immediately visible instead of staying scrolled off-screen.
         const hscroll = document.querySelector(`#item-${id} .static-table-hscroll`);
         if (hscroll) hscroll.scrollLeft = hscroll.scrollWidth;
+    }
+    // Merges two adjacent cell regions (plain canvas table cards only — see TableCard.jsx's own
+    // "hold Option, click a red edge" wiring) into one, combining regionA and regionB into their
+    // bounding rectangle. Only ever called with two regions TableCard.jsx has already confirmed
+    // are rectangle-compatible on the shared axis (identical row range for a left-right merge,
+    // identical column range for a top-bottom merge — see its computeMergeGrid) — this trusts that
+    // and doesn't re-validate, so it's not safe to call with two arbitrary regions that would
+    // produce a non-rectangular union.
+    // The merged region's content is whichever cell was already at its new top-left corner
+    // (min(r1), min(c1) of the two) — tableData itself is left completely untouched here; the
+    // OTHER region's own cell data just stops being rendered (TableCard.jsx skips every (r,c) a
+    // merge region covers besides its own top-left), not deleted, in case merges are ever made
+    // reversible later.
+    function mergeTableCells(id, regionA, regionB) {
+        const it = findItemById(id); if (!it) return;
+        saveSnapshot();
+        const same = (a, b) => a.r1 === b.r1 && a.c1 === b.c1 && a.r2 === b.r2 && a.c2 === b.c2;
+        const merged = (it.mergedCells || []).filter(m => !same(m, regionA) && !same(m, regionB));
+        merged.push({
+            r1: Math.min(regionA.r1, regionB.r1), c1: Math.min(regionA.c1, regionB.c1),
+            r2: Math.max(regionA.r2, regionB.r2), c2: Math.max(regionA.c2, regionB.c2),
+        });
+        it.mergedCells = merged;
+        render();
+        scheduleWorkspaceSave();
     }
 
     // ---------- Source page: insert image/audio into the focused cell ----------
@@ -844,9 +882,10 @@ import { render } from './waypoints-render-loop.js';
         render();
     }
 
-export { addTableCol, addTableRow, attachStaticTableHoverZones, colgroupHTML, distributeTableSizing, handleCellMouseDown, handleColNameKeydown, handleTableKeydown, importDelimitedIntoSource, layoutSourceTableColumns, renameTableColumn, renderStaticTableHTML, renderTableHTML, setLastFocusedCell, startCellAudioRecording, stopCellAudioRecording, triggerCellAudioUpload, triggerCellImageUpload, updateTableCell };
+export { addTableCol, addTableRow, attachStaticTableHoverZones, colgroupHTML, distributeTableSizing, handleCellMouseDown, handleColNameKeydown, handleTableKeydown, importDelimitedIntoSource, layoutSourceTableColumns, mergeTableCells, renameTableColumn, renderStaticTableHTML, renderTableHTML, setLastFocusedCell, startCellAudioRecording, stopCellAudioRecording, triggerCellAudioUpload, triggerCellImageUpload, updateTableCell };
 
 // React → vanilla bridge (see the identical pattern/comment in cards-misc.js) — used by
 // TableCard.jsx (app/dotto/), which can't import this directly since public/dotto/*.js isn't
 // reachable from app/dotto/.
 window.__distributeTableSizing = distributeTableSizing;
+window.__mergeTableCells = mergeTableCells;
