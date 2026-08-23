@@ -1466,7 +1466,18 @@
        font-family choice. */
     .global-id-pill{font-size:9px;font-family:monospace;color:var(--ink-soft);opacity:0.55;letter-spacing:0.02em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 
-    .item.table{background:var(--paper);box-shadow:none;padding:0;overflow:visible;}
+    /* border-color:transparent — every .item kind gets a real 1px border from the generic .item
+       rule above (var(--card-border) at rest, purple once .selected — that's the whole-card
+       selection outline, unrelated to anything below), but for a table specifically that border
+       sits immediately against (for a plain table, .item.table's own padding:0 puts it flush
+       with no gap at all) the outermost cells' own border — a second, separately-painted 1px line
+       at virtually the same edge as the cell grid's own, the same "double border" pattern already
+       fixed once for .table-rounded's old box-shadow and .item-table's own border-radius. Making
+       it transparent here removes that second line entirely, so only the cells' own borders are
+       ever visible at rest — .item.selected's own border-color:var(--brand)!important still wins
+       and shows the purple selection outline when the whole card IS selected, since !important
+       overrides this transparent value too. */
+    .item.table{background:var(--paper);box-shadow:none;padding:0;overflow:visible;border-color:transparent;}
     .item.table.static-table{padding:96px 16px 16px 16px;}
     .item.table .static-table-wrap{width:100%;height:100%;display:flex;flex-direction:column;}
     .item.table .static-table-row{flex:1 1 auto;min-height:0;overflow:auto;}
@@ -1560,21 +1571,29 @@
        silently lost to that rule and showed no highlight at all despite :focus-within matching
        correctly. A focus state should unconditionally win regardless of which table variant it's
        in, rather than this needing to keep re-winning a specificity race against every existing
-       (and future) per-variant border-color/border-width override. */
-    .item-table td:focus-within{border-color:var(--brand) !important;border-width:2px !important;}
-    /* Same border shape as the focus indicator above (same 2px width, same position, and — since
-       border-radius lives on the cell itself now, not a separate overlay — corner cells pick up
-       their matching corner radius automatically here too) but a plain grey, one step lighter
-       than the grid line's own resting color, for hovering ANY cell (not just the focused one).
-       #454545 is this file's existing "hover border, lighter than the default" convention (see
-       e.g. #item-detail-price:hover) — reused here rather than inventing a new grey. No
+       (and future) per-variant border-color/border-width override.
+       border-WIDTH is deliberately left alone here (still the base rule's 1px) — an earlier
+       version bumped it to 2px for a visibly thicker highlight, but border-width participates in
+       table layout, so that made every focused/hovered cell grow by a pixel and visibly reflow
+       its neighbors on every hover, exactly the kind of "the grid shifts under your cursor"
+       jitter a hover state should never cause. The extra thickness comes from an outline instead
+       (1px, pulled in by outline-offset:-1px to sit right against the now-purple border) — unlike
+       border, outline NEVER participates in layout at all, in any border-collapse mode, so it can
+       stack as much visual weight as wanted with zero risk of resizing the cell. */
+    .item-table td:focus-within{border-color:var(--brand) !important;outline:1px solid var(--brand);outline-offset:-1px;}
+    /* Same border shape as the focus indicator above (same visual ~2px weight, same position, and
+       — since border-radius lives on the cell itself now, not a separate overlay — corner cells
+       pick up their matching corner radius automatically here too) but a plain grey, one step
+       lighter than the grid line's own resting color, for hovering ANY cell (not just the focused
+       one). #454545 is this file's existing "hover border, lighter than the default" convention
+       (see e.g. #item-detail-price:hover) — reused here rather than inventing a new grey. No
        !important needed: :focus-within's own already wins any time a cell is BOTH hovered and
        focused, since it carries !important and this doesn't. The plain-table override just below
        matches the same "one step lighter" idea against ITS OWN rgba(255,255,255,0.1) baseline,
        rather than reusing the solid grey — a solid #454545 wouldn't read as a small step up
        against that translucent-white baseline the way it does against --card-border. */
-    .item-table td:hover{border-color:#454545;border-width:2px;}
-    .item.table:not(.static-table) .item-table td:hover{border-color:rgba(255,255,255,0.2);}
+    .item-table td:hover{border-color:#454545;outline:1px solid #454545;outline-offset:-1px;}
+    .item.table:not(.static-table) .item-table td:hover{border-color:rgba(255,255,255,0.2);outline-color:rgba(255,255,255,0.2);}
     /* The actual per-row "make room for the tag button" shift is handled in JS
        (attachStaticTableHoverZones toggling `.row-tag-shift` on just the hovered row's first
        cell's `.cell-inner` — see the rule near .static-table-row-tag-strip-wrap above) rather
