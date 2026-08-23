@@ -323,6 +323,68 @@ import { deleteCanvasCollabsForFolder, deleteWaypointCardEverywhere, expandWaypo
         appState.listPanelSelection = { panel, ids };
         window.__setListPanelSelection(appState.listPanelSelection);
     }
+    // Add-only sibling of toggleListPanelSelection, for setupListPanelDragSelect below — a row
+    // the drag passes back over a second time should stay selected, not flip back off, which a
+    // toggle would do.
+    function addToListPanelSelection(panel, id) {
+        const current = appState.listPanelSelection;
+        const ids = current.panel === panel ? new Set(current.ids) : new Set();
+        ids.add(id);
+        appState.listPanelSelection = { panel, ids };
+        window.__setListPanelSelection(appState.listPanelSelection);
+    }
+    // Shift+click-DRAG "paint select" across a list panel's rows, extending the existing
+    // shift+click toggle above — holding Shift and dragging the pointer across multiple rows
+    // selects every row it passes over, the same gesture file managers use, instead of needing to
+    // shift-click each one individually. Handles BOTH the plain shift+click (toggle just the one
+    // row, unchanged from before) and the drag case (every row entered gets ADDED, never toggled
+    // back off mid-drag) from a single mousedown listener, rather than leaving the toggle split
+    // across each row component's own onClick — mousedown has to run first to even detect a drag
+    // starting, and the click event that follows every mouseup regardless would otherwise toggle
+    // the same row a second time; each row's onClick keeps only a bare `if (e.shiftKey) return;`
+    // guard now; see WaypointRow/ChatRow/HubCollabRow's own comments.
+    // Listens on the STABLE list container (never re-created by React, unlike the row elements
+    // themselves, which React re-renders on every store update) via event delegation off
+    // e.target/elementFromPoint — rows opt in just by carrying data-select-id, the same id
+    // toggleListPanelSelection already uses for that panel, so this works unchanged for any
+    // current or future list panel without needing to know its row shape.
+    const LIST_PANEL_DRAG_THRESHOLD_PX = 4;
+    function setupListPanelDragSelect(container, panel) {
+        if (!container) return;
+        container.addEventListener('mousedown', (e) => {
+            if (!e.shiftKey) return;
+            const startRow = e.target.closest('[data-select-id]');
+            if (!startRow || !container.contains(startRow)) return;
+            const startId = startRow.dataset.selectId;
+            const startX = e.clientX, startY = e.clientY;
+            let dragging = false;
+            const visited = new Set();
+            const addRow = (el) => {
+                const row = el && el.closest && el.closest('[data-select-id]');
+                if (!row || !container.contains(row) || visited.has(row.dataset.selectId)) return;
+                visited.add(row.dataset.selectId);
+                addToListPanelSelection(panel, row.dataset.selectId);
+            };
+            const onMove = (me) => {
+                if (!dragging) {
+                    if (Math.hypot(me.clientX - startX, me.clientY - startY) < LIST_PANEL_DRAG_THRESHOLD_PX) return;
+                    dragging = true;
+                    addRow(startRow); // the row the drag started on counts too — added, same as every other row it passes over
+                }
+                addRow(document.elementFromPoint(me.clientX, me.clientY));
+            };
+            const onUp = () => {
+                window.removeEventListener('mousemove', onMove);
+                window.removeEventListener('mouseup', onUp);
+                if (!dragging) toggleListPanelSelection(panel, startId); // a plain shift+click, no drag — same toggle behavior as before
+            };
+            window.addEventListener('mousemove', onMove);
+            window.addEventListener('mouseup', onUp);
+        });
+    }
+    setupListPanelDragSelect(document.getElementById('waypoints-list'), 'waypoints');
+    setupListPanelDragSelect(document.getElementById('chats-list'), 'chats');
+    setupListPanelDragSelect(document.getElementById('hub-collab-list'), 'collaborations');
     function clearListPanelSelection() {
         appState.listPanelSelection = { panel: null, ids: new Set() };
         window.__setListPanelSelection(appState.listPanelSelection);
@@ -409,4 +471,3 @@ window.__openHubCollabRequestsView = openHubCollabRequestsView;
 window.__backToHubCollabMain = backToHubCollabMain;
 window.__handleOwnedHubCollabRowClick = handleOwnedHubCollabRowClick;
 window.__respondToHubCollabRequest = respondToHubCollabRequest;
-window.__toggleListPanelSelection = toggleListPanelSelection;

@@ -39,12 +39,14 @@ function OwnedCanvasRow({ c, selected }) {
   return (
     <div
       className={"outline-item hub-collab-canvas-row" + (selected ? " outline-item-selected" : "")}
+      data-select-id={"owned:" + c.folderId}
       onClick={(e) => {
         e.stopPropagation();
-        if (e.shiftKey) {
-          window.__toggleListPanelSelection("collaborations", "owned:" + c.folderId);
-          return;
-        }
+        // Selecting (both a plain shift+click and a shift+click-drag across several rows) is
+        // handled entirely by setupListPanelDragSelect (hamburger-collab.js), listening on the
+        // stable #hub-collab-list container rather than here — this guard just stops a shift+click
+        // from ALSO running the normal row-click action below.
+        if (e.shiftKey) return;
         window.__handleOwnedHubCollabRowClick(c.folderId);
       }}
     >
@@ -72,12 +74,14 @@ function SharedCanvasRow({ c, selected }) {
   return (
     <div
       className={"outline-item hub-collab-canvas-row" + (selected ? " outline-item-selected" : "")}
+      data-select-id={"shared:" + c.id}
       onClick={(e) => {
         e.stopPropagation();
-        if (e.shiftKey) {
-          window.__toggleListPanelSelection("collaborations", "shared:" + c.id);
-          return;
-        }
+        // Selecting (both a plain shift+click and a shift+click-drag across several rows) is
+        // handled entirely by setupListPanelDragSelect (hamburger-collab.js), listening on the
+        // stable #hub-collab-list container rather than here — this guard just stops a shift+click
+        // from ALSO running the normal row-click action below.
+        if (e.shiftKey) return;
         window.__openSharedCanvas(c.ownerId, c.folderId, c.folderTitle, c.ownerName);
       }}
     >

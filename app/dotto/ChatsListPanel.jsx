@@ -15,12 +15,14 @@ function ChatRow({ r, selected }) {
   return (
     <div
       className={"outline-item" + (selected ? " outline-item-selected" : "")}
+      data-select-id={r.id}
       onClick={(e) => {
         e.stopPropagation();
-        if (e.shiftKey) {
-          window.__toggleListPanelSelection("chats", r.id);
-          return;
-        }
+        // Selecting (both a plain shift+click and a shift+click-drag across several rows) is
+        // handled entirely by setupListPanelDragSelect (hamburger-collab.js), listening on the
+        // stable #chats-list container rather than here — this guard just stops a shift+click
+        // from ALSO opening the chat below.
+        if (e.shiftKey) return;
         window.__openSavedChat(r.id);
       }}
     >

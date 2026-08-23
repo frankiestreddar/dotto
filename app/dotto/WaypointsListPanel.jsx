@@ -24,12 +24,14 @@ function WaypointRow({ r, selected }) {
   return (
     <div
       className={"outline-item" + (selected ? " outline-item-selected" : "")}
+      data-select-id={waypointRowKey(r)}
       onClick={(e) => {
         e.stopPropagation();
-        if (e.shiftKey) {
-          window.__toggleListPanelSelection("waypoints", waypointRowKey(r));
-          return;
-        }
+        // Selecting (both a plain shift+click and a shift+click-drag across several rows) is
+        // handled entirely by setupListPanelDragSelect (hamburger-collab.js), listening on the
+        // stable #waypoints-list container rather than here — this guard just stops a shift+click
+        // from ALSO running the normal open-waypoint action below.
+        if (e.shiftKey) return;
         window.__goToWaypointCard(r.owner_id, r.folder_id, r.item_id);
       }}
     >
