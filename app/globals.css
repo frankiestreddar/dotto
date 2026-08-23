@@ -455,40 +455,30 @@
        .hub-subpanel rules like every other rail view (see #hamburger-stack's own comment) — no
        more free-floating position:fixed popover beside the rail, no more New Canvas/New Source
        circles positioned outside its own box. */
-    /* Icon + name only, one line — no description (see buildAddMenuRow). Shared by the quick
-       actions row, the accordion's own item rows, and the flat search-results list — all three
-       are just "a list of icon+label rows", differing only in what feeds them. */
+    /* Icon + name only, one line — no description (see buildAddMenuRow). New Canvas/New Source
+       only now (the grid below uses its own square .add-grid-tile look instead). */
     .add-menu-row{display:flex;align-items:center;gap:10px;height:40px;box-sizing:border-box;padding:8px 14px;cursor:pointer;}
     .add-menu-row:hover{background:#2a2a2a;}
     .add-menu-row-icon{width:22px;height:22px;flex:0 0 auto;object-fit:contain;}
     .add-menu-row-name{flex:1 1 auto;min-width:0;font-size:14px;font-weight:400;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-    /* New Canvas/New Source — always visible, regardless of search or which accordion section is
-       expanded (they're not block types the search/accordion below deal in at all). */
+    /* New Canvas/New Source — always visible regardless of the grid's own search query (they're
+       not block types handleAddMenuSearchInput filters at all). */
     #add-menu-quick-actions{flex:0 0 auto;padding:6px 4px;border-bottom:1px solid var(--card-border);}
-    /* Flat cross-tab matches (see handleAddMenuSearchInput) — replaces the accordion for as long
-       as there's a query, same "search overrides the normal view" convention as every other rail
-       panel's own search box (Waypoints/Collaborations/Marketplace/Library). */
-    #add-menu-search-results{display:none;}
-    #add-menu.searching #add-menu-search-results{display:block;}
-    #add-menu.searching #add-menu-accordion{display:none;}
-    /* Vertically stacked accordion — one section per ADD_MENU_DATA category (see initAddAccordion,
-       add-menu.js), each a header immediately followed by its own item list, in place of the old
-       horizontal pill row + single swapped-out list. Scrolls internally if every section's headers
-       plus the one expanded section's items exceed the panel's height. */
-    #add-menu-accordion{flex:1 1 auto;overflow-y:auto;min-height:0;scrollbar-width:none;}
-    #add-menu-accordion::-webkit-scrollbar{display:none;}
-    .add-accordion-section{border-bottom:1px solid var(--card-border);}
-    .add-accordion-section:last-child{border-bottom:none;}
-    .add-accordion-header{width:100%;display:flex;align-items:center;justify-content:space-between;gap:8px;padding:12px 14px;background:none;border:none;color:var(--ink-soft);font-size:13px;font-weight:600;font-family:inherit;text-align:left;cursor:pointer;transition:color .15s ease;}
-    .add-accordion-header:hover{color:var(--ink);}
-    .add-accordion-section.expanded .add-accordion-header{color:var(--ink);}
-    .add-accordion-chevron{width:12px;height:12px;flex:0 0 auto;transition:transform .2s ease;}
-    .add-accordion-section.expanded .add-accordion-chevron{transform:rotate(180deg);}
-    /* Only one section's content is ever visible at a time (switchAddTab always toggles exactly
-       one .expanded on, every other off) — plain display toggle, no height animation, same
-       convention as #mode-toolbar.expanded elsewhere in this file. */
-    .add-accordion-content{display:none;padding-bottom:4px;}
-    .add-accordion-section.expanded .add-accordion-content{display:block;}
+    /* Flat grid of every block type across every ADD_MENU_DATA category (see initAddGrid,
+       add-menu.js) — no tabs, no per-category grouping, just one continuous scrollable grid of
+       square tiles. Two per row: --hmenu-width is 300px, minus this padding and the one gap
+       between columns leaves each tile roughly 130px square. */
+    #add-menu-grid{flex:1 1 auto;overflow-y:auto;min-height:0;display:grid;grid-template-columns:repeat(2, 1fr);align-content:start;gap:8px;padding:8px;scrollbar-width:none;}
+    #add-menu-grid::-webkit-scrollbar{display:none;}
+    .add-grid-tile{aspect-ratio:1;box-sizing:border-box;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;padding:8px;border-radius:12px;background:#242424;cursor:pointer;text-align:center;transition:background .15s ease;}
+    .add-grid-tile:hover{background:#2e2e2e;}
+    .add-grid-tile-icon{width:32px;height:32px;flex:0 0 auto;object-fit:contain;}
+    .add-grid-tile-name{max-width:100%;font-size:12px;font-weight:500;color:var(--ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+    .add-grid-tile-hidden{display:none;}
+    /* Spans both columns (see grid-column) so it reads as one centered message rather than being
+       squeezed into a single tile-sized cell — same convention as .outline-empty/.collab-empty
+       elsewhere in this file. */
+    .add-grid-empty{grid-column:1/-1;padding:16px;text-align:center;color:var(--ink-soft);font-size:12px;}
 
     /* ---- Source page: per-cell Add / Upload / Tags buttons (hover-only, positioned via JS) ---- */
     #source-add-menu, #cell-tag-picker{display:none;position:fixed;flex-direction:column;background:var(--bar);border:1px solid var(--card-border);border-radius:12px;box-shadow:0 10px 30px rgba(0,0,0,0.55);z-index:2000;padding:8px;gap:2px;}

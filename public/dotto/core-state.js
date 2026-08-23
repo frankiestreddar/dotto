@@ -174,7 +174,6 @@
             { kind: 'statcard', statKind: 'accuracy', label: 'Accuracy', icon: '/assets/icons/accuracy.png' },
         ]},
     },
-        currentAddTab: 'notes',
         userLibrary: {
         purchased: [],
         drafts: [],

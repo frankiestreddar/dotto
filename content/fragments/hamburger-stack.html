@@ -206,11 +206,11 @@
     </div>
     <!-- Add — moved here from its own free-floating popover beside the rail (content/fragments/
          add-menu.html, now deleted) now that it shares this permanent rail shell (see
-         wireRailIcon('add', ...), add-menu.js). Tabs are a vertical accordion (see
-         .add-accordion-section) rather than the old horizontal pill row + one swapped-out list —
-         exactly one section is expanded at a time (appState.currentAddTab/switchAddTab), never
-         zero. New Canvas/New Source (formerly two circular buttons floating outside the panel) are
-         now plain rows pinned above the accordion, always visible regardless of search/tab state. -->
+         wireRailIcon('add', ...), add-menu.js). Every block type across every ADD_MENU_DATA
+         category is one flat scrollable grid of square tiles (see #add-menu-grid), two per row —
+         no tabs, no per-category grouping. New Canvas/New Source (formerly two circular buttons
+         floating outside the panel) are plain rows pinned above the grid, always visible
+         regardless of the search box's current query. -->
     <div id="add-menu" class="hmenu-panel hub-subpanel" onclick="event.stopPropagation()">
         <div class="hub-subpanel-search-wrap">
             <input id="add-menu-search-input" class="hub-subpanel-search" type="text" placeholder="Search blocks..." oninput="handleAddMenuSearchInput(this.value)">
@@ -225,12 +225,9 @@
                 <div class="add-menu-row-name">New Source</div>
             </div>
         </div>
-        <!-- Flat cross-tab matches while #add-menu has .searching (see handleAddMenuSearchInput) —
-             hidden and empty otherwise. -->
-        <div id="add-menu-search-results" class="hub-subpanel-list"></div>
-        <!-- Built once from appState.ADD_MENU_DATA (see initAddAccordion, add-menu.js) — hidden
-             while #add-menu has .searching, shown otherwise. -->
-        <div id="add-menu-accordion"></div>
+        <!-- Built once from appState.ADD_MENU_DATA (see initAddGrid, add-menu.js) — search filters
+             which tiles are visible in place (handleAddMenuSearchInput), never rebuilds them. -->
+        <div id="add-menu-grid"></div>
     </div>
     <!-- Profile — moved here from its own standalone floating card (content/fragments/
          profile-panel.html, now empty/unused) now that it shares this permanent rail shell (see

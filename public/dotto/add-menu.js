@@ -40,76 +40,56 @@ import { setDrawMode } from './srs-connections-core.js';
         return CARD_KINDS[kind]?.defaultSize || DEFAULT_CARD_SIZE;
     }
 
-    // Vertically stacked accordion (see #add-menu-accordion, hamburger-stack.html) — one section
-    // per ADD_MENU_DATA category, each a header + its own item list directly beneath it. Exactly
-    // one section is ever .expanded (never zero): switchAddTab always both sets the new one and
-    // clears every other, so there's no separate "collapse" action that could leave none open.
-    // Built once (rows never change at runtime — ADD_MENU_DATA is static), then reused across every
-    // open/close of the panel; switching tabs only ever toggles which section has .expanded, no
-    // re-render.
-    function initAddAccordion() {
-        const container = document.getElementById('add-menu-accordion');
+    // Flat scrollable grid of every block type across every ADD_MENU_DATA category combined — no
+    // tabs, no grouping, just one continuous list of square tiles (2 per row, see
+    // .add-grid-tile/#add-menu-grid, globals.css). Built once (tiles never change at runtime —
+    // ADD_MENU_DATA is static), then reused across every open/close of the panel.
+    function initAddGrid() {
+        const container = document.getElementById('add-menu-grid');
         if (!container || container.childElementCount) return;
-        Object.entries(appState.ADD_MENU_DATA).forEach(([tabKey, tab]) => {
-            const section = document.createElement('div');
-            section.className = 'add-accordion-section' + (tabKey === appState.currentAddTab ? ' expanded' : '');
-            section.dataset.tab = tabKey;
-            const header = document.createElement('button');
-            header.type = 'button';
-            header.className = 'add-accordion-header';
-            header.onclick = () => switchAddTab(tabKey);
-            header.innerHTML = '<span class="add-accordion-header-label"></span><svg class="add-accordion-chevron" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 4.5L6 7.5L9 4.5"/></svg>';
-            header.querySelector('.add-accordion-header-label').textContent = tab.label;
-            const content = document.createElement('div');
-            content.className = 'add-accordion-content';
+        Object.values(appState.ADD_MENU_DATA).forEach(tab => {
             tab.items.forEach(item => {
-                const row = buildAddMenuRow(item.icon, item.label);
-                row.onclick = () => handleAddItemClick(item.kind, item.statKind);
-                content.appendChild(row);
+                container.appendChild(buildAddMenuTile(item.icon, item.label, item.kind, item.statKind));
             });
-            section.appendChild(header);
-            section.appendChild(content);
-            container.appendChild(section);
         });
     }
-    function switchAddTab(tab) {
-        appState.currentAddTab = tab;
-        document.querySelectorAll('#add-menu-accordion .add-accordion-section').forEach(s => {
-            s.classList.toggle('expanded', s.dataset.tab === tab);
-        });
-    }
-    // Always reopens on the accordion, never mid-search from a previous visit — same convention as
-    // every other rail view's onOpen (buildOutline, renderWaypointsList, ...) fully resetting its
-    // own transient state on every open rather than just picking up wherever it was left. Also
+    // Always reopens showing every tile, never mid-search from a previous visit — same convention
+    // as every other rail view's onOpen (buildOutline, renderWaypointsList, ...) fully resetting
+    // its own transient state on every open rather than just picking up wherever it was left. Also
     // cancels draw mode, if it was on — opening this panel to pick something else is a clear signal
     // the user is done drawing (same behavior the old floating add-menu had).
     function resetAddMenuPanel() {
         if (appState.drawMode) setDrawMode(false);
-        initAddAccordion();
+        initAddGrid();
         appState.addMenuSearchQuery = '';
         const input = document.getElementById('add-menu-search-input');
         if (input) input.value = '';
-        addMenu.classList.remove('searching');
-        document.getElementById('add-menu-search-results').innerHTML = '';
+        handleAddMenuSearchInput('');
     }
-    // Filters block types BY NAME across every tab at once (unlike the accordion, which only ever
-    // shows one tab's items at a time) — replaces the accordion with a flat matches list for as
-    // long as there's a query, same "search overrides the normal view" convention as every other
-    // rail panel's own search box.
+    // Filters the grid BY NAME in place (toggling which tiles are hidden) rather than swapping in
+    // a separate results list — every tile already lives in the one flat grid, so there's nothing
+    // to rebuild, just which of the already-built tiles currently show.
     function handleAddMenuSearchInput(value) {
         appState.addMenuSearchQuery = value;
         const query = value.trim().toLowerCase();
-        addMenu.classList.toggle('searching', !!query);
-        const list = document.getElementById('add-menu-search-results');
-        list.innerHTML = '';
-        if (!query) return;
-        const items = Object.values(appState.ADD_MENU_DATA).flatMap(tab => tab.items).filter(item => item.label.toLowerCase().includes(query));
-        items.forEach(item => {
-            const row = buildAddMenuRow(item.icon, item.label);
-            row.onclick = () => handleAddItemClick(item.kind, item.statKind);
-            list.appendChild(row);
+        const grid = document.getElementById('add-menu-grid');
+        if (!grid) return;
+        let anyVisible = false;
+        grid.querySelectorAll('.add-grid-tile').forEach(tile => {
+            const match = !query || tile.dataset.label.includes(query);
+            tile.classList.toggle('add-grid-tile-hidden', !match);
+            if (match) anyVisible = true;
         });
+        const existingEmpty = grid.querySelector('.add-grid-empty');
+        if (existingEmpty) existingEmpty.remove();
+        if (query && !anyVisible) {
+            const empty = document.createElement('div');
+            empty.className = 'add-grid-empty';
+            empty.textContent = 'No matching blocks.';
+            grid.appendChild(empty);
+        }
     }
+    // New Canvas/New Source (always-visible rows above the grid, see hamburger-stack.html).
     function buildAddMenuRow(icon, name) {
         const row = document.createElement('div');
         row.className = 'add-menu-row';
@@ -124,6 +104,25 @@ import { setDrawMode } from './srs-connections-core.js';
         row.appendChild(iconEl);
         row.appendChild(nameEl);
         return row;
+    }
+    // One square block-type tile in the grid — icon above, label below, dataset.label carrying
+    // the lowercased name handleAddMenuSearchInput filters against.
+    function buildAddMenuTile(icon, name, kind, statKind) {
+        const tile = document.createElement('div');
+        tile.className = 'add-grid-tile';
+        tile.dataset.label = name.toLowerCase();
+        const iconEl = document.createElement('img');
+        iconEl.className = 'add-grid-tile-icon';
+        iconEl.src = icon;
+        iconEl.alt = '';
+        iconEl.onerror = () => iconEl.remove(); // most icon files don't exist yet - see ADD_MENU_DATA's own comment
+        const nameEl = document.createElement('div');
+        nameEl.className = 'add-grid-tile-name';
+        nameEl.textContent = name;
+        tile.appendChild(iconEl);
+        tile.appendChild(nameEl);
+        tile.onclick = () => handleAddItemClick(kind, statKind);
+        return tile;
     }
     function handleAddItemClick(kind, statKind) {
         if (kind === 'drawing') { closeRailView(); setDrawMode(!appState.drawMode); return; }
