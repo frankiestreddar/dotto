@@ -1504,19 +1504,28 @@
        resize-shortcuts-init.js) — the plain canvas Table card only, not source/static tables
        (those already have their own auto-width column system, unrelated to userSized/colWidths).
        Positioned as a % of .table-rounded's own box, centered on the boundary itself (see the
-       transform) — invisible at rest, a soft brand-indigo highlight once .armed (see
-       armDividerOnHover, resize-shortcuts-init.js — JS-driven, not a plain :hover, since the
-       highlight/cursor/actual drag-ability are all deliberately delayed until the cursor has
-       rested on the boundary for a moment, not shown the instant it merely passes over) so the
-       boundary reads as draggable without permanently drawing a second line over the cell borders
-       that already mark every column/row edge. Narrow (3px) so the highlight itself doesn't read
-       as a second, wider line sitting on top of the actual 1px grid line underneath it. No cursor
-       at rest either (falls back to whatever the underlying cell would show) — col-resize/
-       row-resize only once armed, same reasoning as the highlight itself. */
-    .table-col-resize-handle{position:absolute;top:0;bottom:0;width:3px;transform:translateX(-50%);z-index:3;}
-    .table-col-resize-handle.armed{background:rgba(99,102,241,0.35);cursor:col-resize;}
-    .table-row-resize-handle{position:absolute;left:0;right:0;height:3px;transform:translateY(-50%);z-index:3;}
-    .table-row-resize-handle.armed{background:rgba(99,102,241,0.35);cursor:row-resize;}
+       transform). The HOVERABLE hit area (9px — the handle itself) is deliberately wider than the
+       VISIBLE highlight it shows (3px — the ::after pseudo-element nested inside it): hovering
+       needs a little "near enough" tolerance around the exact 1px line to be usable at all, but
+       the highlight itself still only ever draws as a narrow line, not a wide band, so it doesn't
+       read as a second, wider line sitting on top of the actual grid line underneath it — same
+       "hit area wider than what's actually drawn" split used for lots of thin draggable UI
+       elsewhere on the web, just made explicit here via a pseudo-element instead of relying on
+       padding (which .item-table td's own padding conventions would complicate).
+       Invisible at rest, a soft brand-indigo highlight once .armed (see armDividerOnHover,
+       resize-shortcuts-init.js — JS-driven, not a plain :hover, since the highlight/cursor/actual
+       drag-ability are all deliberately delayed until the cursor has rested on the boundary for a
+       moment, not shown the instant it merely passes over). No cursor at rest either (falls back
+       to whatever the underlying cell would show) — col-resize/row-resize only once armed, same
+       reasoning as the highlight itself. */
+    .table-col-resize-handle{position:absolute;top:0;bottom:0;width:9px;transform:translateX(-50%);z-index:3;}
+    .table-col-resize-handle::after{content:'';position:absolute;top:0;bottom:0;left:50%;width:3px;transform:translateX(-50%);}
+    .table-col-resize-handle.armed{cursor:col-resize;}
+    .table-col-resize-handle.armed::after{background:rgba(99,102,241,0.35);}
+    .table-row-resize-handle{position:absolute;left:0;right:0;height:9px;transform:translateY(-50%);z-index:3;}
+    .table-row-resize-handle::after{content:'';position:absolute;left:0;right:0;top:50%;height:3px;transform:translateY(-50%);}
+    .table-row-resize-handle.armed{cursor:row-resize;}
+    .table-row-resize-handle.armed::after{background:rgba(99,102,241,0.35);}
     /* border-collapse:separate + border-spacing:0 instead of collapse — this is the decisive fix
        for a whole cluster of table-border issues that kept resurfacing under collapse mode: a
        focused cell's highlight leaving a gap specifically on cells touching the table's outer
