@@ -34,8 +34,18 @@ import { deleteCanvasCollabsForFolder, deleteWaypointCardEverywhere, expandWaypo
                 .eq('owner_id', appState.currentUser.id)
                 .eq('status', 'accepted'),
         ]);
-        if (sharedWithMeRes.error) console.error('[collab] failed to load canvas collaborations:', sharedWithMeRes.error);
-        if (ownedRes.error) console.error('[collab] failed to load owned canvas collaborations:', ownedRes.error);
+        // message/code/details/hint spelled out explicitly (same convention as command-verbs.js,
+        // shared-canvases-outline.js, etc.) rather than logging the PostgrestError object
+        // directly — its actual fields aren't enumerable in a way every console/error-overlay
+        // serializer picks up, so a raw `console.error(..., error)` can print as an unhelpful {}.
+        if (sharedWithMeRes.error) {
+            const error = sharedWithMeRes.error;
+            console.error(`[collab] failed to load canvas collaborations: message=${error.message} code=${error.code} details=${error.details} hint=${error.hint}`);
+        }
+        if (ownedRes.error) {
+            const error = ownedRes.error;
+            console.error(`[collab] failed to load owned canvas collaborations: message=${error.message} code=${error.code} details=${error.details} hint=${error.hint}`);
+        }
 
         const rows = (sharedWithMeRes.data || []).map(r => ({
             id: r.id, folderId: r.folder_id, folderTitle: r.folder_title,
