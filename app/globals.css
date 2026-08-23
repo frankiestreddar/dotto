@@ -1563,7 +1563,7 @@
        correct 1px). Owning right+bottom means every internal line is now painted by exactly one
        cell. The two rules below add back the outer top/left edges, which no cell would otherwise
        draw under this scheme. */
-    .item-table td{border-style:solid;border-color:var(--card-border);border-width:0 1px 1px 0;padding:6px 9px;min-width:40px;font-size:13px;outline:none;overflow:hidden;word-break:break-word;overflow-wrap:break-word;white-space:normal;text-align:var(--cell-align,left);vertical-align:middle;}
+    .item-table td{position:relative;border-style:solid;border-color:var(--card-border);border-width:0 1px 1px 0;padding:6px 9px;min-width:40px;font-size:13px;outline:none;overflow:hidden;word-break:break-word;overflow-wrap:break-word;white-space:normal;text-align:var(--cell-align,left);vertical-align:middle;}
     .item-table tr:first-child td{border-top-width:1px;}
     .item-table td:first-child{border-left-width:1px;}
     .item.table:not(.static-table) .item-table td{border-color:rgba(255,255,255,0.1);}
@@ -1577,41 +1577,44 @@
     .item-table tr:first-child td:last-child{border-top-right-radius:10px;}
     .item-table tr:last-child td:first-child{border-bottom-left-radius:10px;}
     .item-table tr:last-child td:last-child{border-bottom-right-radius:10px;}
-    /* Purple focus indicator for whichever cell is currently being edited. An outline, not a
-       border-color recolor or box-shadow: now that cells only own a right+bottom border (see
-       above), an interior cell's top/left edges aren't its own border at all — they belong to
-       its neighbors — so recoloring border-color could only ever reach 2 of a focused cell's 4
-       sides. box-shadow was tried next, but an inset box-shadow is positioned starting at the
-       padding edge (i.e. just INSIDE the border), not at the border's own outer edge — with a
-       real 1px border already occupying that outer pixel, the shadow could never actually reach
-       or cover it, so the grid line stayed visibly separate with the highlight sitting a pixel
-       further in. outline doesn't have that problem: it's measured from the border box's own
-       outer edge regardless of offset, so outline-offset:-1px pulls a 1px outline ring in to sit
-       exactly on top of where a 1px border would be — the same position the grid line itself
-       occupies — on all 4 sides of this cell's own box, whether or not this cell actually owns a
-       border on that particular side. Also still respects whichever corner-radius rule above
-       applies to this cell (modern browsers clip outline to border-radius same as everything
-       else here), so corner cells keep their matching curve. outline never participates in table
-       layout, so this can't cause the "cell grows on focus" reflow a border-width change did in
-       an earlier version.
+    /* Purple focus indicator for whichever cell is currently being edited. A position:absolute
+       pseudo-element with an explicit z-index, not a plain outline on the <td> itself: outline
+       (tried previously) sits perfectly on the sides this cell already owns a real border on
+       (right/bottom) but reads a pixel short on the sides it doesn't own (top/left for any cell
+       that isn't in the first row/column — see the border-width split above) — even though
+       outline-offset:-1px is geometrically positioned exactly where the neighbor's own border
+       pixel already is, a normal in-flow outline apparently doesn't reliably repaint on top of
+       an earlier sibling cell's already-painted border in practice. A positioned pseudo-element
+       with z-index sidesteps that ambiguity entirely: it's ordered by the well-defined stacking
+       algorithm instead of implicit outline-paint-order, so it's guaranteed to paint above every
+       normal in-flow cell border regardless of which cell owns it or where it sits in the DOM —
+       same mechanism already relied on for the divider resize handles below (z-index:3 there;
+       this is z-index:4, deliberately just above them). inset:0 matches the pseudo to this
+       cell's own box exactly, and outline-offset:-1px on the pseudo (not the cell) still pulls
+       its 1px ring in to sit exactly where the grid line is. border-radius:inherit picks up
+       whichever corner-radius rule above applies to this cell, so corner cells still get the
+       matching curve. pointer-events:none so the overlay never intercepts clicks meant for the
+       cell underneath.
        :focus-within (not :focus) so one rule covers both table variants: the plain canvas
        table's <td> is itself contentEditable, but the source/static table's editable node is the
        nested .cell-text, not the <td> itself — :focus-within fires either way.
-       !important: needed so this still wins over the :hover rule below when both match (hovering
-       the cell you're already focused in) — a focus state should unconditionally win rather than
-       depend on which rule happens to come later in the stylesheet. */
-    .item-table td:focus-within{outline:1px solid var(--brand) !important;outline-offset:-1px !important;}
-    /* Same technique as the focus indicator above (so it reaches all 4 sides of any cell
-       regardless of which sides it actually owns a border on, and picks up corner radius the
-       same way), plain grey instead of purple, for hovering ANY cell (not just the focused one).
-       #454545 is this file's existing "hover border, lighter than the default" convention (see
-       e.g. #item-detail-price:hover) — reused here rather than inventing a new grey. The
+       !important: a cell can only ever have ONE ::after box, so when a cell is both hovered and
+       focused, this rule and the :hover one below are competing for the SAME box's properties,
+       not painting two separate layers — without this, source order alone would let the :hover
+       rule (declared after this one) silently win and show grey instead of purple. A focus state
+       should unconditionally win regardless of stylesheet ordering. */
+    .item-table td:focus-within::after{content:'';position:absolute;inset:0;outline:1px solid var(--brand) !important;outline-offset:-1px;border-radius:inherit;z-index:4;pointer-events:none;}
+    /* Same technique as the focus indicator above (so it reliably reaches all 4 sides of any
+       cell regardless of which sides it actually owns a border on, and picks up corner radius
+       the same way), plain grey instead of purple, for hovering ANY cell (not just the focused
+       one). #454545 is this file's existing "hover border, lighter than the default" convention
+       (see e.g. #item-detail-price:hover) — reused here rather than inventing a new grey. The
        plain-table override just below matches the same "one step lighter" idea against ITS OWN
        rgba(255,255,255,0.1) baseline, rather than reusing the solid grey — a solid #454545
        wouldn't read as a small step up against that translucent-white baseline the way it does
        against --card-border. */
-    .item-table td:hover{outline:1px solid #454545;outline-offset:-1px;}
-    .item.table:not(.static-table) .item-table td:hover{outline-color:rgba(255,255,255,0.2);}
+    .item-table td:hover::after{content:'';position:absolute;inset:0;outline:1px solid #454545;outline-offset:-1px;border-radius:inherit;z-index:4;pointer-events:none;}
+    .item.table:not(.static-table) .item-table td:hover::after{outline-color:rgba(255,255,255,0.2);}
     /* The actual per-row "make room for the tag button" shift is handled in JS
        (attachStaticTableHoverZones toggling `.row-tag-shift` on just the hovered row's first
        cell's `.cell-inner` — see the rule near .static-table-row-tag-strip-wrap above) rather
