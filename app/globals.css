@@ -1478,18 +1478,27 @@
     .item.table.sized .item-table{width:100%;table-layout:fixed;}
     .item.table .resize{display:flex;}
     .item.table:hover .resize{opacity:1;}
-    .table-rounded{border-radius:10px;overflow:hidden;box-shadow:inset 0 0 0 1px var(--card-border);}
-    .item.table:not(.static-table) .table-rounded{box-shadow:inset 0 0 0 1px rgba(255,255,255,0.1);position:relative;}
+    /* No box-shadow border of its own anymore — it used to draw its own 1px inset line around
+       the whole table to fake rounded corners, but that line sat directly against the outermost
+       cells' own borders (same nominal color, but two separately-painted 1px lines at virtually
+       the same pixel read as a doubled/darker line instead of one clean one). The corner-radius
+       rules on .item-table td below give the real cell borders the same rounded-corner look
+       instead, so there's only ever ONE border-drawing mechanism for the whole table, corners
+       included — this overflow:hidden is now purely a backup pixel-level clip, not the thing
+       actually drawing the rounded edge. */
+    .table-rounded{border-radius:10px;overflow:hidden;}
+    .item.table:not(.static-table) .table-rounded{position:relative;}
     /* Per-column/row divider drag handles (see TableCard.jsx/setupTableGridResizing,
        resize-shortcuts-init.js) — the plain canvas Table card only, not source/static tables
        (those already have their own auto-width column system, unrelated to userSized/colWidths).
        Positioned as a % of .table-rounded's own box, centered on the boundary itself (see the
        transform) — invisible at rest, a soft brand-indigo highlight on hover so the boundary
        reads as draggable without permanently drawing a second line over the cell borders that
-       already mark every column/row edge. */
-    .table-col-resize-handle{position:absolute;top:0;bottom:0;width:8px;transform:translateX(-50%);cursor:col-resize;z-index:3;}
+       already mark every column/row edge. Narrow (4px) so the hover highlight itself doesn't
+       read as a second, wider line sitting on top of the actual 1px grid line underneath it. */
+    .table-col-resize-handle{position:absolute;top:0;bottom:0;width:4px;transform:translateX(-50%);cursor:col-resize;z-index:3;}
     .table-col-resize-handle:hover{background:rgba(99,102,241,0.35);}
-    .table-row-resize-handle{position:absolute;left:0;right:0;height:8px;transform:translateY(-50%);cursor:row-resize;z-index:3;}
+    .table-row-resize-handle{position:absolute;left:0;right:0;height:4px;transform:translateY(-50%);cursor:row-resize;z-index:3;}
     .table-row-resize-handle:hover{background:rgba(99,102,241,0.35);}
     .item-table{border-collapse:collapse;width:100%;table-layout:fixed;}
     /* Canvas table cards still keep the header as the first <tr> inside a single <tbody> (no
@@ -1499,21 +1508,32 @@
     .item.table:not(.static-table) .item-table > tbody > tr:first-child > td{background:var(--card);font-weight:600;color:var(--ink);}
     .item-table td{border:1px solid var(--card-border);padding:6px 9px;min-width:40px;font-size:13px;outline:none;overflow:hidden;word-break:break-word;overflow-wrap:break-word;white-space:normal;text-align:var(--cell-align,left);vertical-align:middle;}
     .item.table:not(.static-table) .item-table td{border-color:rgba(255,255,255,0.1);}
-    /* Purple focus indicator for whichever cell is currently being edited. :focus-within (not
-       :focus) so one rule covers both table variants: the plain canvas table's <td> is itself
-       contentEditable, but the source/static table's editable node is the nested .cell-text, not
-       the <td> itself — :focus-within fires either way. Inset so it stays entirely within the
-       cell's own box rather than reaching into a neighboring cell's shared collapsed border.
-       The four corner rules below are belt-and-suspenders: .table-rounded's own
-       overflow:hidden+border-radius:10px (see its own rule above) already clips anything
-       painted at a corner cell into that same rounded shape for free, but setting the radius
-       explicitly on the cell itself guarantees the correct rounded look even if that clip ever
-       renders imperfectly at the pixel level in some browser. */
-    .item-table td:focus-within{box-shadow:inset 0 0 0 2px var(--brand);}
-    .item-table tr:first-child td:first-child:focus-within{border-top-left-radius:10px;}
-    .item-table tr:first-child td:last-child:focus-within{border-top-right-radius:10px;}
-    .item-table tr:last-child td:first-child:focus-within{border-bottom-left-radius:10px;}
-    .item-table tr:last-child td:last-child:focus-within{border-bottom-right-radius:10px;}
+    /* Rounds whichever cell is truly in one of the table's 4 outer corners to match
+       .table-rounded's own 10px radius — the table's actual border (border-collapse'd .item-table
+       td borders) draws the rounded corner itself now, instead of a separate wrapper-level line
+       (see .table-rounded's own comment above for why that used to double up). Handles every
+       table shape correctly on its own: in a 1-row or 1-column table, a cell that's both the
+       first and last row/column picks up radius from more than one of these rules at once,
+       which is exactly correct — that cell really does own all 4 corners then. */
+    .item-table tr:first-child td:first-child{border-top-left-radius:10px;}
+    .item-table tr:first-child td:last-child{border-top-right-radius:10px;}
+    .item-table tr:last-child td:first-child{border-bottom-left-radius:10px;}
+    .item-table tr:last-child td:last-child{border-bottom-right-radius:10px;}
+    /* Purple focus indicator for whichever cell is currently being edited — recolors the cell's
+       own actual border line rather than drawing a second highlight on top of/inside it (an
+       earlier version used an inset box-shadow, which read as a second, thicker line sitting
+       noticeably inward from the real grid line). outline (not border-color directly) is what
+       makes this reliable: border-collapse resolves which of two ADJACENT cells' borders
+       actually gets painted at their shared edge by width/style precedence, so just recoloring
+       this cell's own border could lose that tie on some sides and leave them grey. An outline
+       is a separate paint layer scoped to this one element — never subject to that collapsing
+       — so all 4 sides are always guaranteed to actually show purple. outline-offset:-1px pulls
+       it inward by exactly the border's own 1px width, landing it right on top of where the grid
+       line already sits rather than floating outside the cell or inset deep into its padding.
+       :focus-within (not :focus) so one rule covers both table variants: the plain canvas
+       table's <td> is itself contentEditable, but the source/static table's editable node is the
+       nested .cell-text, not the <td> itself — :focus-within fires either way. */
+    .item-table td:focus-within{outline:1px solid var(--brand);outline-offset:-1px;}
     /* The actual per-row "make room for the tag button" shift is handled in JS
        (attachStaticTableHoverZones toggling `.row-tag-shift` on just the hovered row's first
        cell's `.cell-inner` — see the rule near .static-table-row-tag-strip-wrap above) rather
