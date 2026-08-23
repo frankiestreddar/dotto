@@ -1516,11 +1516,17 @@
        "whose border wins" ambiguity, so a focused cell's border-color can just change directly
        (see :focus-within below) and reliably show on all 4 sides, and per-cell border-radius on
        the 4 corner cells is now safe to apply permanently instead of only transiently on focus.
-       border-radius is also on the table element itself now — collapse mode silently ignores
-       border-radius on <table>, separate mode honors it — so table-layout:fixed's own
-       rectangular box now genuinely has the same 10px corners .table-rounded's overflow:hidden
-       was otherwise clipping it to. */
-    .item-table{border-collapse:separate;border-spacing:0;width:100%;table-layout:fixed;border-radius:10px;}
+       No border-radius on the table element itself, and no background/border of its own anywhere
+       either — a first pass here also added border-radius directly on .item-table, on top of
+       .table-rounded's own (pre-existing, still below) radius+overflow:hidden clip and the 4
+       corner cells' own radius. Three independently-computed 10px arcs at the same corner,
+       instead of visibly agreeing perfectly, read as two slightly different curves rather than
+       one clean one. Removed: the table is made up of nothing but its cells now — .table-rounded
+       (a plain wrapper <div>, not the <table> itself) still clips everything to the same 10px
+       rounded rectangle shape as a backdrop, and the corner cells' own radius is what makes their
+       actual border LINE curve to match it, but the <table> element contributes no visual
+       styling of its own beyond holding the cells together. */
+    .item-table{border-collapse:separate;border-spacing:0;width:100%;table-layout:fixed;}
     /* Canvas table cards still keep the header as the first <tr> inside a single <tbody> (no
        separate header element), so this greys out that first row for them. Source-page
        static tables split the header out entirely (see below) — excluding .static-table
