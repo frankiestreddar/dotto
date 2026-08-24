@@ -463,6 +463,13 @@
        states just need visibly different amounts, not one shared value. */
     .rail-tooltip.expanding{padding-bottom:10px;transition:opacity .15s,width .25s ease,height .15s ease,padding-bottom .15s ease;}
     .rail-tooltip-row{display:flex;align-items:center;justify-content:space-between;gap:10px;white-space:nowrap;}
+    /* .rail-tooltip's own padding-bottom is already 0 (per two earlier rounds of "still too much"
+       follow-up), so a further "1px less" per this explicit request — scoped to only the small,
+       not-yet-expanded pill — can't come from padding at all; a small negative margin here,
+       safely clipped by .rail-tooltip's own overflow:hidden, is what actually shaves that last
+       pixel off its bottom edge. :not(.expanding) keeps this from also nudging the expanded
+       panel's own row-to-description spacing, which wasn't part of this request. */
+    .rail-tooltip:not(.expanding) .rail-tooltip-row{margin-bottom:-1px;}
     /* Same size/weight in both the small and expanded states, per explicit request — an earlier
        version bumped this to 12px/600 once expanded; removed. */
     .rail-tooltip-name{font-size:11px;color:var(--ink);}
