@@ -3,11 +3,11 @@
      panels-hamburger.js) via click-only open/switch/close (no hover preview). Back/forward live in
      #top-bar-center instead (see #nav-arrows-pill below) — they're page-navigation, not
      rail-icon-style view triggers, and read better beside the breadcrumb they actually move.
-     Icons are grouped into seven .rail-group wrappers (see globals.css) — a fixed 10px gap between
-     buttons WITHIN a group. Groups 1-6 stack at the top of the rail with a dividing line between
-     each consecutive pair (.rail-group-divider, on groups 3-6 — the line ABOVE that group),
+     Icons are grouped into eight .rail-group wrappers (see globals.css) — a fixed 10px gap between
+     buttons WITHIN a group. Groups 1-7 stack at the top of the rail with a dividing line between
+     each consecutive pair (.rail-group-divider, on groups 3-7 — the line ABOVE that group),
      except between groups 1 and 2, which get a bigger plain gap instead of a line
-     (.rail-group-gap-lg, on group 2). Group 7 (.rail-group-bottom) is pushed down to the very
+     (.rail-group-gap-lg, on group 2). Group 8 (.rail-group-bottom) is pushed down to the very
      bottom of the rail via margin-top:auto, same technique the old #rail-bottom-group used before
      it was folded into this group system. The rail no longer expands/shows text labels (that
      feature — #btn-sidebar-toggle, #dotto-rail.expanded, .rail-label — was removed per explicit
@@ -34,7 +34,16 @@
     <div class="rail-group rail-group-gap-lg">
         <button id="btn-inbox" class="rail-btn"><img class="rail-icon-img" src="/assets/icons/inbox.png" alt=""><span class="rail-tooltip">Inbox<span class="rail-tooltip-key">I</span></span></button>
     </div>
-    <!-- Group 3: Search, outline tree, Waypoints. #search-panel (hamburger-stack.html) is a bare
+    <!-- Group 3: Queries, alone — moved here (directly below Inbox) per explicit request, having
+         previously sat alone (below Collaborations/Messages, before that), then briefly alongside
+         Documents/Snippets in what's now group 7. AI chat, "Ask Dotbot" -> "Explain" -> "Queries",
+         each renamed per explicit request; dotbot.png doesn't exist in the repo yet (search.png
+         moved to #btn-search below, which needed its own icon back) — flagged the same way
+         sidebar.png was a few commits ago. -->
+    <div class="rail-group rail-group-divider">
+        <button id="rail-btn-ai" class="rail-btn"><img class="rail-icon-img" src="/assets/icons/dotbot.png" alt=""><span class="rail-tooltip">Queries<span class="rail-tooltip-key">Q</span></span></button>
+    </div>
+    <!-- Group 4: Search, outline tree, Waypoints. #search-panel (hamburger-stack.html) is a bare
          shell for now — behavior/content not yet decided, wired into the shared openRailView
          mechanism (see wireRailIcon('search', ...), panels-hamburger.js) so the icon has somewhere
          to open. -->
@@ -43,7 +52,7 @@
         <button id="btn-menu" class="rail-btn"><img class="rail-icon-img" src="/assets/icons/menu-btn.png" alt=""><span class="rail-tooltip">Outline<span class="rail-tooltip-key">O</span></span></button>
         <button id="rail-btn-waypoints" class="rail-btn"><img class="rail-icon-img" src="/assets/icons/waypoint.png" alt=""><span class="rail-tooltip">Waypoints<span class="rail-tooltip-key">W</span></span></button>
     </div>
-    <!-- Group 4: Basics, Library, Marketplace. -->
+    <!-- Group 5: Basics, Library, Marketplace. -->
     <div class="rail-group rail-group-divider">
         <button id="btn-add" class="rail-btn"><img class="rail-icon-img" src="/assets/icons/add-btn.png" alt=""><span class="rail-tooltip">Basics<span class="rail-tooltip-key">B</span></span></button>
         <!-- Own drafts/published/purchased items — used to be a Library tab sharing #cart-panel with
@@ -52,27 +61,24 @@
         <button id="btn-library" class="rail-btn"><img class="rail-icon-img" src="/assets/icons/library.png" alt=""><span class="rail-tooltip">Library<span class="rail-tooltip-key">L</span></span></button>
         <button id="btn-cart" class="rail-btn"><img class="rail-icon-img" src="/assets/icons/market-button.png" alt=""><span class="rail-tooltip">Marketplace<span class="rail-tooltip-key">;</span></span></button>
     </div>
-    <!-- Group 5: Collaborations, Messages. -->
+    <!-- Group 6: Collaborations, Messages. -->
     <div class="rail-group rail-group-divider">
         <button id="rail-btn-collab" class="rail-btn"><img class="rail-icon-img" src="/assets/icons/collaboration.png" alt=""><span class="rail-tooltip">Collaborations<span class="rail-tooltip-key">C</span></span></button>
         <button id="btn-messages" class="rail-btn"><img class="rail-icon-img" src="/assets/icons/chats-btn.png" alt=""><span class="rail-tooltip">Messages<span class="rail-tooltip-key">M</span></span></button>
     </div>
-    <!-- Group 6: Queries, Documents, Snippets — moved here (below Collaborations/Messages) per
-         explicit request. Queries: AI chat, "Ask Dotbot" -> "Explain" -> "Queries", each renamed
-         per explicit request; dotbot.png doesn't exist in the repo yet (search.png moved to
-         #btn-search above, which needed its own icon back) — flagged the same way sidebar.png was
-         a few commits ago. Documents and Snippets: both new, #documents-panel/#snippets-panel
-         (hamburger-stack.html) are bare shells for now — behavior/content not yet decided, wired
-         into the shared openRailView mechanism (see wireRailIcon('documents'/'snippets', ...),
-         panels-hamburger.js) so each icon has somewhere to open; documents.png/snippets.png don't
-         exist in the repo yet either, flagged the same way. -->
+    <!-- Group 7: Documents, Sources, Snippets. All three new, #documents-panel/#sources-panel/
+         #snippets-panel (hamburger-stack.html) are bare shells for now — behavior/content not yet
+         decided, wired into the shared openRailView mechanism (see
+         wireRailIcon('documents'/'sources'/'snippets', ...), panels-hamburger.js) so each icon has
+         somewhere to open. documents.png/snippets.png/sources.png all existed by the time each was
+         added, so none needed flagging as missing this round. -->
     <div class="rail-group rail-group-divider">
-        <button id="rail-btn-ai" class="rail-btn"><img class="rail-icon-img" src="/assets/icons/dotbot.png" alt=""><span class="rail-tooltip">Queries<span class="rail-tooltip-key">Q</span></span></button>
         <button id="btn-documents" class="rail-btn"><img class="rail-icon-img" src="/assets/icons/documents.png" alt=""><span class="rail-tooltip">Documents</span></button>
+        <button id="btn-sources" class="rail-btn"><img class="rail-icon-img" src="/assets/icons/sources.png" alt=""><span class="rail-tooltip">Sources</span></button>
         <button id="btn-snippets" class="rail-btn"><img class="rail-icon-img" src="/assets/icons/snippets.png" alt=""><span class="rail-tooltip">Snippets</span></button>
     </div>
-    <!-- Group 7: cursor-mode selector — the very bottom of the rail (.rail-group-bottom's own
-         margin-top:auto pushes it down, away from groups 1-6 which stack at the top). -->
+    <!-- Group 8: cursor-mode selector — the very bottom of the rail (.rail-group-bottom's own
+         margin-top:auto pushes it down, away from groups 1-7 which stack at the top). -->
     <div class="rail-group rail-group-bottom">
         <!-- Cursor-mode selector — collapsed shows only the currently active mode; hovering expands
              it (see #mode-toolbar.expanded, globals.css) to reveal all four stacked, same

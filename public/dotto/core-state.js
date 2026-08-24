@@ -211,9 +211,9 @@
         // per-canvas collab flyout, source-add-menu) and keep their own flags.
         panelPinned: { rail: false, collab: false, sourceAdd: false },
         // Which #hamburger-stack view is currently showing — null | 'inbox' | 'search' | 'ai' |
-        // 'documents' | 'snippets' | 'outline' | 'waypoints' | 'collab' | 'marketplace' |
-        // 'library' | 'messages' | 'profile'. Set by openRailView, cleared by closeRailView
-        // (panels-hamburger.js).
+        // 'documents' | 'sources' | 'snippets' | 'outline' | 'waypoints' | 'collab' |
+        // 'marketplace' | 'library' | 'messages' | 'profile'. Set by openRailView, cleared by
+        // closeRailView (panels-hamburger.js).
         activeRailView: null,
         dottoRail: document.getElementById('dotto-rail'),
         btnThemeToggle: document.getElementById('btn-theme-toggle'),
@@ -223,6 +223,8 @@
         searchPanel: document.getElementById('search-panel'),
         btnDocuments: document.getElementById('btn-documents'),
         documentsPanel: document.getElementById('documents-panel'),
+        btnSources: document.getElementById('btn-sources'),
+        sourcesPanel: document.getElementById('sources-panel'),
         btnSnippets: document.getElementById('btn-snippets'),
         snippetsPanel: document.getElementById('snippets-panel'),
         railBtnAi: document.getElementById('rail-btn-ai'),
@@ -413,11 +415,12 @@
     // separate rail view from Marketplace (own icon, own panel) — they used to be two tabs sharing
     // one #cart-panel; #cart-panel is now Discover browsing only. #chats-panel is deliberately NOT
     // here — Chats is a sub-view reached from inside the AI view (searchBar), not a top-level rail
-    // destination of its own. #inbox-panel/#search-panel/#documents-panel/#snippets-panel are
-    // bare shells (see wireRailIcon('inbox'/'search'/'documents'/'snippets', ...) below) — their
-    // own behavior/content hasn't been designed yet.
-    appState.railViewEls = [appState.inboxPanel, appState.searchPanel, appState.aiPanel, appState.documentsPanel, appState.snippetsPanel, appState.outlineMenu, appState.waypointsPanel, appState.hubCollabPanel, appState.cartPanel, appState.libraryPanel, appState.messagesPanel, addMenu, appState.profilePanel];
-    appState.railIconBtns = [appState.btnInbox, appState.btnSearch, appState.railBtnAi, appState.btnDocuments, appState.btnSnippets, appState.hamburgerBtn, appState.railBtnWaypoints, appState.railBtnCollab, appState.btnCart, appState.libraryBtn, appState.messagesBtn, btnAdd, appState.profileBtn];
+    // destination of its own. #inbox-panel/#search-panel/#documents-panel/#sources-panel/
+    // #snippets-panel are bare shells (see
+    // wireRailIcon('inbox'/'search'/'documents'/'sources'/'snippets', ...) below) — their own
+    // behavior/content hasn't been designed yet.
+    appState.railViewEls = [appState.inboxPanel, appState.searchPanel, appState.aiPanel, appState.documentsPanel, appState.sourcesPanel, appState.snippetsPanel, appState.outlineMenu, appState.waypointsPanel, appState.hubCollabPanel, appState.cartPanel, appState.libraryPanel, appState.messagesPanel, addMenu, appState.profilePanel];
+    appState.railIconBtns = [appState.btnInbox, appState.btnSearch, appState.railBtnAi, appState.btnDocuments, appState.btnSources, appState.btnSnippets, appState.hamburgerBtn, appState.railBtnWaypoints, appState.railBtnCollab, appState.btnCart, appState.libraryBtn, appState.messagesBtn, btnAdd, appState.profileBtn];
     appState.TOTAL_SUB_LEVELS = appState.LEVEL_NAMES.length * appState.SUB_RANKS_PER_TIER;
     // Same reason as the block above: can't reference appState.currentUser from inside appState's
     // own object literal, since appState doesn't exist yet until that literal finishes constructing.
