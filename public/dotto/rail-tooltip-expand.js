@@ -28,6 +28,10 @@ const TYPE_STEP_MS = 16;
 // this makes up the difference so setting style.height to scrollHeight+this doesn't leave the
 // box a couple px too short for its own content (border-box height = padding-box + border).
 const TOOLTIP_BORDER_PX = 2;
+// Must match .rail-tooltip.expanding's own padding-bottom (10px) minus the base rule's (2px) —
+// see beginExpand's own comment on why this needs accounting for separately from TOOLTIP_BORDER_PX
+// above.
+const EXPANDING_PADDING_BOTTOM_DELTA_PX = 8;
 
 function resetTooltip(state) {
     clearTimeout(state.openTimer);
@@ -63,8 +67,14 @@ function beginExpand(state) {
     state.tooltip.style.width = startWidth + 'px';
     state.tooltip.style.height = startHeight + 'px';
     void state.tooltip.offsetWidth; // force layout so the line above isn't optimized away before the class/width change below
+    // .expanding also bumps padding-bottom (2px -> 10px, globals.css) — without accounting for
+    // that extra 8px here too, the row would briefly render squeezed into a content box 8px
+    // shorter than it actually has room for, for the duration of the width transition below
+    // (the first typewriter tick would correct it via a fresh scrollHeight read, but not before a
+    // visible pinch/glitch on the way there).
     state.tooltip.classList.add('expanding');
     state.tooltip.style.width = EXPANDED_WIDTH_PX + 'px';
+    state.tooltip.style.height = (startHeight + EXPANDING_PADDING_BOTTOM_DELTA_PX) + 'px';
     const onWidthDone = (e) => {
         if (e.propertyName !== 'width') return;
         state.tooltip.removeEventListener('transitionend', onWidthDone);

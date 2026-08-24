@@ -434,7 +434,7 @@
        expansion begins, with their OWN transition declared in the .expanding rule below, since
        animating them here-at-all-times would fight that script's per-frame inline-style updates
        with an unwanted transition on the FIRST (JS-computed starting width/height) write too. */
-    .rail-tooltip{position:absolute;left:calc(100% + 12px);top:50%;transform:translateY(-50%);background:var(--bar);border:1px solid var(--card-border);border-radius:8px;padding:4px 4px 4px 8px;font-size:11px;color:var(--ink);opacity:0;pointer-events:none;overflow:hidden;box-sizing:border-box;box-shadow:0 4px 12px rgba(0,0,0,0.4);z-index:1001;transition:opacity .15s;}
+    .rail-tooltip{position:absolute;left:calc(100% + 12px);top:50%;transform:translateY(-50%);background:var(--bar);border:1px solid var(--card-border);border-radius:8px;padding:4px 4px 2px 8px;font-size:11px;color:var(--ink);opacity:0;pointer-events:none;overflow:hidden;box-sizing:border-box;box-shadow:0 4px 12px rgba(0,0,0,0.4);z-index:1001;transition:opacity .15s;}
     :root[data-theme="light"] .rail-tooltip{box-shadow:0 4px 12px rgba(0,0,0,0.168);}
     /* :not(.active) — the currently-open panel's own icon already has its own persistent
        indicator (the outline below) and doesn't grow on hover either (see the :not(.active) on
@@ -455,13 +455,14 @@
        file's usual "fast own-size adjustment" pace elsewhere, e.g. .static-table-row-tag-strip-
        wrap) since the typewriter's own per-character height bumps need to feel snappy/responsive
        to newly-typed text, not lag behind it. */
-    .rail-tooltip.expanding{transition:opacity .15s,width .25s ease,height .15s ease;}
+    /* padding-bottom grows from the small pill's own tight 2px (base rule above) to 10px here —
+       per explicit request, the small state had too much bottom padding and the expanded state
+       too little; the two states just need visibly different amounts, not one shared value. */
+    .rail-tooltip.expanding{padding-bottom:10px;transition:opacity .15s,width .25s ease,height .15s ease,padding-bottom .15s ease;}
     .rail-tooltip-row{display:flex;align-items:center;justify-content:space-between;gap:10px;white-space:nowrap;}
+    /* Same size/weight in both the small and expanded states, per explicit request — an earlier
+       version bumped this to 12px/600 once expanded; removed. */
     .rail-tooltip-name{font-size:11px;color:var(--ink);}
-    /* Bumped to 12px/600 by rail-tooltip-expand.js (via .rail-tooltip.expanding .rail-tooltip-name)
-       once expansion starts, echoing the small pill's plain 11px/400 name growing slightly more
-       prominent as the panel it's part of grows too. */
-    .rail-tooltip.expanding .rail-tooltip-name{font-size:12px;font-weight:600;transition:font-size .25s ease,font-weight 0s;}
     /* Empty (no text node) at rest — see .rail-tooltip's own comment on why that matters for the
        small pill's own width/height. rail-tooltip-expand.js fills this in one character at a time
        ("typerighting", per explicit request) only once .rail-tooltip's own width-grow transition
@@ -470,7 +471,7 @@
        .rail-tooltip-row above is what visibly separates them as the parent grows past the row's
        own small-pill content width) has finished. margin-top only actually shows up once real text
        exists here — an empty block contributes nothing visible either way. */
-    .rail-tooltip-desc{display:block;margin-top:6px;font-size:11px;line-height:1.4;color:var(--ink-soft);white-space:normal;}
+    .rail-tooltip-desc{display:block;margin-top:6px;font-size:11px;line-height:1.4;color:var(--ink-soft);white-space:normal;text-align:left;}
     /* The keyboard-shortcut key each tooltip ends with (see the fragment's own markup) — Space
        Grotesk (this file's semantic-heading/label typeface, see the app-typeface comment near the
        top of this file) rather than the tooltip's own body font, and a plain outline (now

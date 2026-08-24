@@ -35,7 +35,7 @@
         </button>
     </div>
     <!-- Groups 2-6 (cursor-mode+Inbox+Queries, Search/Outline/Waypoints, Essentials/Library/
-         Marketplace, Friends/Collaborations/Messages, Snippets/Sources/Files) center as one block
+         Marketplace, Friends/Collaborations/Messages, Documents/Sources/Files/Snippets) center as one block
          in whatever space is left between the pinned Group 1 above and the pinned Group 7 below
          (see #dotto-rail-middle, globals.css) — per explicit request. -->
     <div id="dotto-rail-middle">
@@ -50,9 +50,9 @@
          were earlier this session. No longer needs its own bigger top gap (rail-group-gap-lg,
          dropped) now that it sits inside the centered #dotto-rail-middle block rather than directly
          under Group 1 — #dotto-rail-middle's own gap already spaces it from its siblings uniformly.
-         Queries: moved here below Inbox per explicit request — was in group 6 (now Snippets/
-         Sources/Files, see its own comment) — #rail-btn-ai/#ai-panel keep their internal id
-         unchanged, same convention as every other rename/relocation this session. -->
+         Queries: moved here below Inbox per explicit request — was in group 6 (now Documents/
+         Sources/Files/Snippets, see its own comment) — #rail-btn-ai/#ai-panel keep their internal
+         id unchanged, same convention as every other rename/relocation this session. -->
     <div class="rail-group">
         <!-- Cursor-mode selector — collapsed shows only the currently active mode; hovering expands
              it (see #mode-toolbar.expanded, globals.css) rightward to reveal all four, same
@@ -113,26 +113,27 @@
         <button id="rail-btn-collab" class="rail-btn"><img class="rail-icon-img" src="/assets/icons/collaboration.png" alt=""><span class="rail-tooltip"><span class="rail-tooltip-row"><span class="rail-tooltip-name">Collaborations</span><span class="rail-tooltip-key">C</span></span><span class="rail-tooltip-desc" data-desc="People collaborating with you on this canvas."></span></span></button>
         <button id="btn-messages" class="rail-btn"><img class="rail-icon-img" src="/assets/icons/chats-btn.png" alt=""><span class="rail-tooltip"><span class="rail-tooltip-row"><span class="rail-tooltip-name">Messages</span><span class="rail-tooltip-key">M</span></span><span class="rail-tooltip-desc" data-desc="Direct messages and conversations."></span></span></button>
     </div>
-    <!-- Group 6: Snippets, Sources, Files. Documents (which used to sit here, first) was deleted
-         per explicit request; Queries then took Documents' old slot, and has now moved on again to
-         group 2 below Inbox (see its own comment there) per a later explicit request, leaving this
-         first slot empty for the new Snippets button below. Files (was ITSELF called Snippets,
-         renamed to Files per an earlier explicit request — #btn-snippets/#snippets-panel keep
-         their internal id, same convention as Essentials/Queries staying #btn-add/#rail-btn-ai under
-         the hood) is a different button from this new Snippets one — the two briefly shared the
-         same snippets.png icon (per explicit request at the time), until Files got its own
-         files.png per a later explicit request to tell them apart. files.png doesn't exist in the
-         repo yet — flagged the same way friends.png/settings.png were. #btn-snippets2/
-         #snippets2-panel is the new Snippets button's own id, distinct from Files' #btn-snippets/
-         #snippets-panel. Sources/Snippets(new)/Files: #sources-panel/#snippets2-panel/
-         #snippets-panel (hamburger-stack.html) are bare shells for now — behavior/content not yet
-         decided, wired into the shared openRailView mechanism (see
-         wireRailIcon('sources'/'snippets2'/'snippets', ...), panels-hamburger.js) so each icon has
+    <!-- Group 6: Documents, Sources, Files, Snippets. Documents was deleted earlier this session,
+         then re-added per a later explicit request specifying this exact order (Documents, Sources,
+         "snippets" — which the same request clarified means Files, not the newer Snippets button;
+         that one wasn't asked to move or be removed, so it stays, appended after the three
+         explicitly-ordered ones). #btn-documents/#documents-panel: same id/icon (documents.png) as
+         before its deletion. Files (was ITSELF called Snippets, renamed to Files per an earlier
+         explicit request — #btn-snippets/#snippets-panel keep their internal id, same convention as
+         Essentials/Queries staying #btn-add/#rail-btn-ai under the hood) is a different button from
+         the newer Snippets one (#btn-snippets2/#snippets2-panel) — the two briefly shared the same
+         snippets.png icon (per explicit request at the time) until Files got its own files.png per a
+         later explicit request to tell them apart. documents.png doesn't exist in the repo yet —
+         flagged the same way friends.png/settings.png were. Documents/Sources/Snippets(new):
+         #documents-panel/#sources-panel/#snippets2-panel (hamburger-stack.html) are bare shells for
+         now — behavior/content not yet decided, wired into the shared openRailView mechanism (see
+         wireRailIcon('documents'/'sources'/'snippets2', ...), panels-hamburger.js) so each icon has
          somewhere to open. -->
     <div class="rail-group rail-group-divider">
-        <button id="btn-snippets2" class="rail-btn"><img class="rail-icon-img" src="/assets/icons/snippets.png" alt=""><span class="rail-tooltip"><span class="rail-tooltip-row"><span class="rail-tooltip-name">Snippets</span><span class="rail-tooltip-key">S</span></span><span class="rail-tooltip-desc" data-desc="Reusable snippets you can drop onto any canvas."></span></span></button>
+        <button id="btn-documents" class="rail-btn"><img class="rail-icon-img" src="/assets/icons/documents.png" alt=""><span class="rail-tooltip"><span class="rail-tooltip-row"><span class="rail-tooltip-name">Documents</span></span><span class="rail-tooltip-desc" data-desc="Documents you've uploaded or created."></span></span></button>
         <button id="btn-sources" class="rail-btn"><img class="rail-icon-img" src="/assets/icons/sources.png" alt=""><span class="rail-tooltip"><span class="rail-tooltip-row"><span class="rail-tooltip-name">Sources</span><span class="rail-tooltip-key">K</span></span><span class="rail-tooltip-desc" data-desc="Structured source tables you can reference and query."></span></span></button>
         <button id="btn-snippets" class="rail-btn"><img class="rail-icon-img" src="/assets/icons/files.png" alt=""><span class="rail-tooltip"><span class="rail-tooltip-row"><span class="rail-tooltip-name">Files</span><span class="rail-tooltip-key">F</span></span><span class="rail-tooltip-desc" data-desc="Files and snippets you've saved."></span></span></button>
+        <button id="btn-snippets2" class="rail-btn"><img class="rail-icon-img" src="/assets/icons/snippets.png" alt=""><span class="rail-tooltip"><span class="rail-tooltip-row"><span class="rail-tooltip-name">Snippets</span><span class="rail-tooltip-key">S</span></span><span class="rail-tooltip-desc" data-desc="Reusable snippets you can drop onto any canvas."></span></span></button>
     </div>
     </div>
     <!-- Group 7: light/dark theme toggle, then Settings below it — pinned to the very bottom of
