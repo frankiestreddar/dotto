@@ -5,7 +5,7 @@
      rail-icon-style view triggers, and read better beside the breadcrumb they actually move.
      Icons are grouped into seven .rail-group wrappers (see globals.css) — a fixed 10px gap between
      buttons WITHIN a group. Groups 1-6 stack at the top of the rail with a dividing line between
-     each consecutive pair (.rail-group-divider, on groups 4/5/6 — the line ABOVE that group),
+     each consecutive pair (.rail-group-divider, on groups 3-6 — the line ABOVE that group),
      except between groups 1 and 2, which get a bigger plain gap instead of a line
      (.rail-group-gap-lg, on group 2). Group 7 (.rail-group-bottom) is pushed down to the very
      bottom of the rail via margin-top:auto, same technique the old #rail-bottom-group used before
@@ -34,24 +34,16 @@
     <div class="rail-group rail-group-gap-lg">
         <button id="btn-inbox" class="rail-btn"><img class="rail-icon-img" src="/assets/icons/inbox.png" alt=""><span class="rail-tooltip">Inbox<span class="rail-tooltip-key">I</span></span></button>
     </div>
-    <!-- Group 3: Queries (AI chat — "Ask Dotbot" -> "Explain" -> "Queries", each renamed per
-         explicit request), alone — Search moved into group 4 below, per explicit request. -->
-    <div class="rail-group rail-group-divider">
-        <!-- dotbot.png doesn't exist in the repo yet (search.png moved to #btn-search below, which
-             needed its own icon back) — flagged the same way sidebar.png was two commits ago. -->
-        <!-- Renamed from "Explain" to "Queries", shortcut Space -> Q, per explicit request. -->
-        <button id="rail-btn-ai" class="rail-btn"><img class="rail-icon-img" src="/assets/icons/dotbot.png" alt=""><span class="rail-tooltip">Queries<span class="rail-tooltip-key">Q</span></span></button>
-    </div>
-    <!-- Group 4: Search, outline tree, Waypoints — Search moved here (to the top) per explicit
-         request. #search-panel (hamburger-stack.html) is a bare shell for now — behavior/content
-         not yet decided, wired into the shared openRailView mechanism (see
-         wireRailIcon('search', ...), panels-hamburger.js) so the icon has somewhere to open. -->
+    <!-- Group 3: Search, outline tree, Waypoints. #search-panel (hamburger-stack.html) is a bare
+         shell for now — behavior/content not yet decided, wired into the shared openRailView
+         mechanism (see wireRailIcon('search', ...), panels-hamburger.js) so the icon has somewhere
+         to open. -->
     <div class="rail-group rail-group-divider">
         <button id="btn-search" class="rail-btn"><img class="rail-icon-img" src="/assets/icons/search.png" alt=""><span class="rail-tooltip">Search<span class="rail-tooltip-key">/</span></span></button>
         <button id="btn-menu" class="rail-btn"><img class="rail-icon-img" src="/assets/icons/menu-btn.png" alt=""><span class="rail-tooltip">Outline<span class="rail-tooltip-key">O</span></span></button>
         <button id="rail-btn-waypoints" class="rail-btn"><img class="rail-icon-img" src="/assets/icons/waypoint.png" alt=""><span class="rail-tooltip">Waypoints<span class="rail-tooltip-key">W</span></span></button>
     </div>
-    <!-- Group 5: Basics, Library, Marketplace. -->
+    <!-- Group 4: Basics, Library, Marketplace. -->
     <div class="rail-group rail-group-divider">
         <button id="btn-add" class="rail-btn"><img class="rail-icon-img" src="/assets/icons/add-btn.png" alt=""><span class="rail-tooltip">Basics<span class="rail-tooltip-key">B</span></span></button>
         <!-- Own drafts/published/purchased items — used to be a Library tab sharing #cart-panel with
@@ -60,10 +52,22 @@
         <button id="btn-library" class="rail-btn"><img class="rail-icon-img" src="/assets/icons/library.png" alt=""><span class="rail-tooltip">Library<span class="rail-tooltip-key">L</span></span></button>
         <button id="btn-cart" class="rail-btn"><img class="rail-icon-img" src="/assets/icons/market-button.png" alt=""><span class="rail-tooltip">Marketplace<span class="rail-tooltip-key">;</span></span></button>
     </div>
-    <!-- Group 6: Collaborations, Messages. -->
+    <!-- Group 5: Collaborations, Messages. -->
     <div class="rail-group rail-group-divider">
         <button id="rail-btn-collab" class="rail-btn"><img class="rail-icon-img" src="/assets/icons/collaboration.png" alt=""><span class="rail-tooltip">Collaborations<span class="rail-tooltip-key">C</span></span></button>
         <button id="btn-messages" class="rail-btn"><img class="rail-icon-img" src="/assets/icons/chats-btn.png" alt=""><span class="rail-tooltip">Messages<span class="rail-tooltip-key">M</span></span></button>
+    </div>
+    <!-- Group 6: Queries, Snippets — moved here (below Collaborations/Messages) per explicit
+         request. Queries: AI chat, "Ask Dotbot" -> "Explain" -> "Queries", each renamed per
+         explicit request; dotbot.png doesn't exist in the repo yet (search.png moved to
+         #btn-search above, which needed its own icon back) — flagged the same way sidebar.png was
+         a few commits ago. Snippets: new, #snippets-panel (hamburger-stack.html) is a bare shell
+         for now — behavior/content not yet decided, wired into the shared openRailView mechanism
+         (see wireRailIcon('snippets', ...), panels-hamburger.js) so the icon has somewhere to
+         open; snippets.png doesn't exist in the repo yet either, flagged the same way. -->
+    <div class="rail-group rail-group-divider">
+        <button id="rail-btn-ai" class="rail-btn"><img class="rail-icon-img" src="/assets/icons/dotbot.png" alt=""><span class="rail-tooltip">Queries<span class="rail-tooltip-key">Q</span></span></button>
+        <button id="btn-snippets" class="rail-btn"><img class="rail-icon-img" src="/assets/icons/snippets.png" alt=""><span class="rail-tooltip">Snippets</span></button>
     </div>
     <!-- Group 7: cursor-mode selector — the very bottom of the rail (.rail-group-bottom's own
          margin-top:auto pushes it down, away from groups 1-6 which stack at the top). -->
