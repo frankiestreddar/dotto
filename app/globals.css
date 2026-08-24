@@ -524,13 +524,13 @@
        .08s rather than the base rule's .15s, per explicit request to make just the grow-on-hover
        direction faster; the shrink-back-on-unhover direction is untouched. */
     .rail-btn:not(#btn-profile):not(.active):hover .rail-icon-img{transform:scale(1.15);transition:opacity .15s ease,transform .08s ease-out;}
-    /* Clicking a hovered (grown) icon adds .active the instant the click registers — without this,
-       that transform:scale(1) it falls back to (the .active exclusion above stops matching, so
-       there's nothing left overriding the plain default) would still animate smoothly back down
-       over the base rule's own .15s ease-in, reading as a laggy shrink while the panel is already
-       opening. transform 0s here means it snaps back instantly the moment .active lands instead,
-       per explicit request — opacity keeps its normal .15s fade, only the size snap is instant. */
-    .rail-btn.active .rail-icon-img{transition:opacity .15s ease,transform 0s;}
+    /* Clicking a hovered (grown) icon adds .active the instant the click registers, which drops it
+       out of the :hover growth rule above (its :not(.active) stops matching) — so it falls back to
+       this rule instead. transform .15s ease-in here (matching the base rule's own shrink-back
+       timing) is what makes that shrink-to-1 read as a smooth animation rather than an instant
+       snap, per explicit request (an earlier version deliberately used transform 0s for an instant
+       snap instead — reversed here). */
+    .rail-btn.active .rail-icon-img{transition:opacity .15s ease,transform .15s ease-in;}
     .rail-btn:hover .rail-icon-img,.rail-btn.active .rail-icon-img{opacity:1;}
     #collab-bubble{display:none;position:relative;padding:0 10px;cursor:pointer;flex:0 0 auto;}
     #collab-bubble.show{display:flex;align-items:center;}
