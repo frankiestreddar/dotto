@@ -368,7 +368,13 @@
        8px (was 10px, trimmed per explicit request) — the key badge (see .rail-tooltip-key below)
        is always the last thing in the pill, so its own right edge needs the same breathing room
        the pill gives every other edge, not the wider inset the label TEXT wants on the left. */
-    .rail-tooltip{position:absolute;left:calc(100% + 10px);top:50%;transform:translateY(-50%);background:var(--bar);border:1px solid var(--card-border);border-radius:8px;padding:4px 4px 4px 8px;font-size:11px;color:var(--ink);white-space:nowrap;opacity:0;pointer-events:none;transition:opacity .15s;box-shadow:0 4px 12px rgba(0,0,0,0.4);z-index:1001;}
+    /* left: this tooltip's own positioned ancestor is .rail-btn (position:relative, its immediate
+       parent), NOT #dotto-rail itself, so 100% here means "the BUTTON's own right edge" — 32px
+       wide, centered in the 56px-wide rail with a fixed 12px inset each side (see .rail-btn/
+       #dotto-rail's own comments on that centering) — not the rail's right edge. 12px (that inset)
+       + 5px (the actual gap wanted, per explicit request) = 17px gets the tooltip's own left edge
+       to sit exactly 5px past the RAIL's edge rather than the button's. */
+    .rail-tooltip{position:absolute;left:calc(100% + 17px);top:50%;transform:translateY(-50%);background:var(--bar);border:1px solid var(--card-border);border-radius:8px;padding:4px 4px 4px 8px;font-size:11px;color:var(--ink);white-space:nowrap;opacity:0;pointer-events:none;transition:opacity .15s;box-shadow:0 4px 12px rgba(0,0,0,0.4);z-index:1001;}
     :root[data-theme="light"] .rail-tooltip{box-shadow:0 4px 12px rgba(0,0,0,0.168);}
     /* :not(.active) — the currently-open panel's own icon already has its own persistent
        indicator (the outline below) and doesn't grow on hover either (see the :not(.active) on

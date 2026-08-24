@@ -580,25 +580,26 @@ import { render, renderSelectedOutlines, startBoxSelection, syncWaypointToDb } f
         // Explain panel is already open still works exactly as before, this was only ever about
         // the global keyboard shortcut.
         if (!isEditingText && !anyPanelOpen && e.key === ' ') { e.preventDefault(); openSearchOverlay(); return; }
-        if (!isEditingText && (e.key === 'm' || e.key === 'M')) { e.preventDefault(); toggleHamburgerMenu(); return; }
+        if (!isEditingText && (e.key === 'o' || e.key === 'O')) { e.preventDefault(); toggleHamburgerMenu(); return; }
         // Debug shortcut for tweaking the notification entrance/exit animation — fires a plain
         // notification with no buttons on every press. Remove once done tweaking.
         if (!isEditingText && !anyPanelOpen && (e.key === 'n' || e.key === 'N')) { e.preventDefault(); pushNotification({ type: 'debug', message: 'this is an example notification' }); return; }
         // One-letter shortcuts for the rest of the rail (see each icon's own .rail-tooltip-key,
         // top-bar.html) — .click() re-triggers the exact same wireRailIcon listener (panels-
         // hamburger.js) a real click would, open/switch/close toggle included, rather than
-        // duplicating that logic here per icon. 'm' above (Outline) is the one pre-existing
-        // exception, going through toggleHamburgerMenu() directly instead — left as-is rather
-        // than converted, since it predates this block and already works. None of these reuse a
+        // duplicating that logic here per icon. 'o' above (Outline, was 'm' before a follow-up
+        // request reassigned it) is the one pre-existing exception, going through
+        // toggleHamburgerMenu() directly instead — left as-is rather than converted, since it
+        // predates this block and already works. None of these reuse a
         // letter that already means something else globally (checked against every existing
         // e.key === '<letter>' in this codebase before picking): 'c'/'C' is copy-selected-cards
         // (history-autosave.js) and 'f'/'F' is flip-flashcard (resize-shortcuts-init.js, only
         // while hovering one, but still a real collision), which is why Collaborations is 'G'
-        // (Group) rather than the more obvious 'C', and why Marketplace is 'S' (Shop) and Messages
-        // is 'T' (Talk) rather than both wanting the already-taken 'M'. Inbox is 'I' and Search is
-        // '/' (not gated on !isEditingText's usual companions since it isn't a letter, but still
-        // needs the isEditingText check itself — typing "/" in a normal text field must never
-        // hijack focus away).
+        // (Group) rather than the more obvious 'C'. Inbox is 'I', Messages is 'M' (freed up once
+        // Outline moved to 'O' above), Marketplace is ';' and Search is '/' — none of these three
+        // are gated on !isEditingText's usual letter-shortcut companions since they aren't
+        // letters, but still need the isEditingText check itself (typing "/"/";" in a normal text
+        // field must never hijack focus away).
         // Deliberately NOT gated on !anyPanelOpen (unlike 'n' above, and unlike an earlier version
         // of these same lines) — these are meant to jump straight from one open panel to another,
         // not just open one from a clean slate. openRailView (via .click(), same as
@@ -607,12 +608,16 @@ import { render, renderSelectedOutlines, startBoxSelection, syncWaypointToDb } f
         // alone is enough to stop them firing while actually typing in a focused field.
         if (!isEditingText && (e.key === 'i' || e.key === 'I')) { e.preventDefault(); appState.btnInbox.click(); return; }
         if (!isEditingText && e.key === '/') { e.preventDefault(); appState.btnSearch.click(); return; }
+        // Not a panel — #btn-theme-toggle isn't routed through wireRailIcon/openRailView at all
+        // (see theme-toggle.js), but .click() still just works the same way it does for every
+        // other rail icon here.
+        if (!isEditingText && e.key === '\\') { e.preventDefault(); appState.btnThemeToggle.click(); return; }
         if (!isEditingText && (e.key === 'p' || e.key === 'P')) { e.preventDefault(); appState.profileBtn.click(); return; }
         if (!isEditingText && (e.key === 'w' || e.key === 'W')) { e.preventDefault(); appState.railBtnWaypoints.click(); return; }
         if (!isEditingText && (e.key === 'g' || e.key === 'G')) { e.preventDefault(); appState.railBtnCollab.click(); return; }
-        if (!isEditingText && (e.key === 's' || e.key === 'S')) { e.preventDefault(); appState.btnCart.click(); return; }
+        if (!isEditingText && e.key === ';') { e.preventDefault(); appState.btnCart.click(); return; }
         if (!isEditingText && (e.key === 'l' || e.key === 'L')) { e.preventDefault(); appState.libraryBtn.click(); return; }
-        if (!isEditingText && (e.key === 't' || e.key === 'T')) { e.preventDefault(); appState.messagesBtn.click(); return; }
+        if (!isEditingText && (e.key === 'm' || e.key === 'M')) { e.preventDefault(); appState.messagesBtn.click(); return; }
         if (!isEditingText && (e.key === 'e' || e.key === 'E')) { e.preventDefault(); btnAdd.click(); return; }
         // Finishes an in-progress point-by-point pen line without leaving pen mode (unlike
         // Escape, which also switches back to Normal mode via the separate tap/hold override
