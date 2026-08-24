@@ -672,16 +672,23 @@
     #add-menu-quick-actions{flex:0 0 auto;padding:6px 4px;border-bottom:1px solid var(--card-border);}
     /* Flat grid of every block type across every ADD_MENU_DATA category (see initAddGrid,
        add-menu.js) — no tabs, no per-category grouping, just one continuous scrollable grid of
-       square tiles. Two per row: --hmenu-width is 300px, minus this padding and the one gap
-       between columns leaves each tile roughly 130px square. */
+       rectangular pills, icon and name side by side (not stacked — was a square tile with the
+       icon above the name, changed per explicit request). Still two per row: --hmenu-width is
+       300px, minus this padding and the one gap between columns leaves each pill roughly 130px
+       wide. */
     #add-menu-grid{flex:1 1 auto;overflow-y:auto;min-height:0;display:grid;grid-template-columns:repeat(2, 1fr);align-content:start;gap:8px;padding:8px;scrollbar-width:none;}
     #add-menu-grid::-webkit-scrollbar{display:none;}
-    .add-grid-tile{aspect-ratio:1;box-sizing:border-box;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;padding:8px;border-radius:12px;background:var(--hover-bg);cursor:pointer;text-align:center;transition:background .15s ease;}
+    .add-grid-tile{box-sizing:border-box;display:flex;flex-direction:row;align-items:center;justify-content:flex-start;gap:8px;padding:8px 12px;border-radius:999px;background:var(--hover-bg);cursor:pointer;text-align:left;transition:background .15s ease;}
     .add-grid-tile:hover{background:var(--hover-bg);}
-    /* Same tinting convention as .add-menu-row-icon just above — see its own comment. */
-    .add-grid-tile-icon{width:32px;height:32px;flex:0 0 auto;object-fit:contain;filter:brightness(0) invert(1);}
+    /* Same tinting convention as .add-menu-row-icon just above — see its own comment. Shrunk from
+       32px (the old square tile's icon-above-name size) to match .add-menu-row-icon's own 22px —
+       a pill this narrow needs the icon smaller to leave real room for the name beside it. */
+    .add-grid-tile-icon{width:22px;height:22px;flex:0 0 auto;object-fit:contain;filter:brightness(0) invert(1);}
     :root[data-theme="light"] .add-grid-tile-icon{filter:brightness(0);}
-    .add-grid-tile-name{max-width:100%;font-size:12px;font-weight:500;color:var(--ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+    /* flex:1/min-width:0 (neither needed when this sat centered under the icon in the old square
+       tile) is what lets the name take up the pill's remaining width and actually ellipsize
+       instead of forcing the pill wider than its grid column. */
+    .add-grid-tile-name{flex:1 1 auto;min-width:0;font-size:12px;font-weight:500;color:var(--ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
     .add-grid-tile-hidden{display:none;}
     /* Spans both columns (see grid-column) so it reads as one centered message rather than being
        squeezed into a single tile-sized cell — same convention as .outline-empty/.collab-empty
