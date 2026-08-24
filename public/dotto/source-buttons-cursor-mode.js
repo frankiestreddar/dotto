@@ -1,5 +1,5 @@
 import { clearSearch } from './ai-assistant-suggestions.js';
-import { appState, canvas, contextMenu, effectiveMode } from './core-state.js';
+import { appState, canvas, contextMenu, drawSettings, effectiveMode } from './core-state.js';
 import { linkSelectedCards } from './drawing-connections.js';
 import { closeCollabPanel } from './friends-presence.js';
 import { dispatchListPanelDelete } from './hamburger-collab.js';
@@ -28,25 +28,32 @@ import { clearDataLinkPending } from './srs-connections-core.js';
         appState.panelPinned.sourceAdd = true;
     }
 
-    // ---------- Cursor mode toolbar (normal / data / select) ----------
+    // ---------- Cursor mode toolbar (normal / data / select / pen) ----------
     function updateModeToolbarUI() {
         const eff = effectiveMode();
         appState.modeButtons.forEach(b => {
             b.classList.toggle('mode-visible', b.dataset.mode === eff);
             b.classList.toggle('active', b.dataset.mode === appState.cardMode);
-            // Keep whichever mode is currently pinned anchored at the bottom (order 3),
-            // so expanding the pill always grows upward from the same spot.
-            b.style.order = b.dataset.mode === appState.cardMode ? '3' : String(appState.MODE_ORDER_WEIGHT[b.dataset.mode]);
+            // Keep whichever mode is currently pinned anchored at the bottom (order 99 — higher
+            // than any natural MODE_ORDER_WEIGHT value, so a future mode's own weight can never
+            // collide with this pin), so expanding the pill always grows upward from the same spot.
+            b.style.order = b.dataset.mode === appState.cardMode ? '99' : String(appState.MODE_ORDER_WEIGHT[b.dataset.mode]);
         });
     }
     function applyCursorMode() {
         const eff = effectiveMode();
         canvas.classList.toggle('mode-data', eff === 'data');
         canvas.classList.toggle('mode-select', eff === 'select');
+        canvas.classList.toggle('mode-pen', eff === 'pen');
         // Leaving data mode (for any reason — toolbar click, D/Escape/Shift override) always
         // cancels a half-made click-to-link selection rather than letting it linger and
         // potentially link two unrelated cards later when data mode is re-entered.
         if (eff !== 'data') clearDataLinkPending();
+        // #draw-settings (color/size/pen-eraser/front-back — see draw-settings.html) is pen
+        // mode's own settings bar, shown only while pen mode is actually active — was gated on
+        // the old appState.drawMode boolean via setDrawMode, now folded into this same function
+        // every other mode's own canvas-class toggling already goes through.
+        drawSettings.style.display = eff === 'pen' ? 'flex' : 'none';
         updateModeToolbarUI();
     }
     appState.modeButtons.forEach(btn => {

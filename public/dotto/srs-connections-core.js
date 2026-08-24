@@ -527,18 +527,6 @@ import { render, renderSelectedOutlines, startBoxSelection, syncWaypointToDb } f
     }
 
 
-    // btnAdd's own .active toggle here doubles as "the add panel is open" (see wireRailIcon('add',
-    // ...), add-menu.js) and "draw mode is on" — never both at once in practice, since draw mode is
-    // only ever turned on via handleAddItemClick, which closes the add panel (closeRailView) right
-    // before calling this, so by the time this runs the panel-open .active has already been
-    // stripped and this is the only thing setting it again.
-    function setDrawMode(on) {
-        appState.drawMode = on;
-        btnAdd.classList.toggle('active', appState.drawMode);
-        canvas.classList.toggle('crosshair', appState.drawMode || !!appState.addingKind);
-        drawSettings.style.display = appState.drawMode ? 'flex' : 'none';
-        if (appState.drawMode) { appState.addingKind = null; appState.addingStatKind = null; removePlacementGhost(); }
-    }
     function cancelAddingKind() {
         appState.addingKind = null;
         appState.addingStatKind = null;
@@ -641,6 +629,14 @@ import { render, renderSelectedOutlines, startBoxSelection, syncWaypointToDb } f
         if (!isEditingText && (e.key === 'l' || e.key === 'L')) { e.preventDefault(); appState.libraryBtn.click(); return; }
         if (!isEditingText && (e.key === 't' || e.key === 'T')) { e.preventDefault(); appState.messagesBtn.click(); return; }
         if (!isEditingText && (e.key === 'e' || e.key === 'E')) { e.preventDefault(); btnAdd.click(); return; }
+        // Finishes an in-progress point-by-point pen line without leaving pen mode (unlike
+        // Escape, which also switches back to Normal mode via the separate tap/hold override
+        // logic in source-buttons-cursor-mode.js) — lets you place the next line right away.
+        if (!isEditingText && effectiveMode() === 'pen' && appState.penPolyline && e.key === 'Enter') {
+            e.preventDefault();
+            finishPenPolyline();
+            return;
+        }
         // Enter, while some panel is open and nothing is actually focused yet, jumps straight into
         // that panel's own search box (per explicit request, replacing an earlier "typing any
         // character jumps into the search box" design — Enter is one single, deliberate key to
@@ -660,16 +656,89 @@ import { render, renderSelectedOutlines, startBoxSelection, syncWaypointToDb } f
         drawPenBtn.classList.toggle('active', appState.drawTool === 'pen');
         drawEraserBtn.classList.toggle('active', appState.drawTool === 'eraser');
     }
-    drawPenBtn.onclick = (e) => { e.stopPropagation(); appState.drawTool = 'pen'; updateDrawToolBtns(); };
-    drawEraserBtn.onclick = (e) => { e.stopPropagation(); appState.drawTool = 'eraser'; updateDrawToolBtns(); };
+    // Switching pen<->eraser (or the layer buttons below) mid-polyline finishes whatever line is
+    // in progress first, rather than leaving it in an ambiguous half-old-half-new-tool state.
+    drawPenBtn.onclick = (e) => { e.stopPropagation(); finishPenPolyline(); appState.drawTool = 'pen'; updateDrawToolBtns(); };
+    drawEraserBtn.onclick = (e) => { e.stopPropagation(); finishPenPolyline(); appState.drawTool = 'eraser'; updateDrawToolBtns(); };
     function updateDrawLayerBtns() {
         drawFrontBtn.classList.toggle('active', appState.drawLayer === 'front');
         drawBackBtn.classList.toggle('active', appState.drawLayer === 'back');
     }
-    drawFrontBtn.onclick = (e) => { e.stopPropagation(); appState.drawLayer = 'front'; updateDrawLayerBtns(); };
-    drawBackBtn.onclick = (e) => { e.stopPropagation(); appState.drawLayer = 'back'; updateDrawLayerBtns(); };
+    drawFrontBtn.onclick = (e) => { e.stopPropagation(); finishPenPolyline(); appState.drawLayer = 'front'; updateDrawLayerBtns(); };
+    drawBackBtn.onclick = (e) => { e.stopPropagation(); finishPenPolyline(); appState.drawLayer = 'back'; updateDrawLayerBtns(); };
 
-    function startDrawStroke(e) {
+    const PEN_CLICK_THRESHOLD_PX = 4;
+    function toWorldPoint(e, rect) {
+        return [(e.clientX - rect.left - appState.tx) / appState.scale, (e.clientY - rect.top - appState.ty) / appState.scale];
+    }
+    function makeLivePath(color, size, layer) {
+        const svg = makeLayerSVG(layer === 'back' ? 0 : 2);
+        const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+        path.setAttribute('stroke', color);
+        path.setAttribute('stroke-width', String(size));
+        path.setAttribute('fill', 'none');
+        path.setAttribute('stroke-linecap', 'round');
+        path.setAttribute('stroke-linejoin', 'round');
+        svg.appendChild(path);
+        if (layer === 'back') world.insertBefore(svg, world.firstChild); else world.appendChild(svg);
+        return { svg, path };
+    }
+
+    // ---------- Pen tool: point-by-point line ----------
+    // Reworked from the old Add-menu "Drawing" toggle (setDrawMode/appState.drawMode) into a real
+    // cursor mode — see applyCursorMode, source-buttons-cursor-mode.js, for how pen mode itself is
+    // entered/exited now (appState.cardMode === 'pen', same mechanism data/select already use).
+    // A rubber-band segment from the last placed point to the current mouse position keeps
+    // rendering between clicks via this persistent window pointermove listener (unlike a freehand
+    // stroke's own move listener below, which only lives for the duration of one drag) — stashed
+    // on appState so finishPenPolyline can remove exactly this one.
+    function startPenPolyline(wx, wy) {
+        saveSnapshot();
+        appState.penPolyline = { points: [[wx, wy]], color: appState.drawColor, layer: appState.drawLayer, width: appState.drawSize };
+        const { svg, path } = makeLivePath(appState.drawColor, appState.drawSize, appState.drawLayer);
+        appState.liveSvg = svg; appState.livePath = path;
+        const rect = canvas.getBoundingClientRect();
+        const move = (me) => {
+            const [mx, my] = toWorldPoint(me, rect);
+            appState.livePath.setAttribute('d', pointsToPath(appState.penPolyline.points.concat([[mx, my]])));
+        };
+        appState.penPolylineMoveHandler = move;
+        window.addEventListener('pointermove', move);
+    }
+    function addPenPolylinePoint(wx, wy) {
+        appState.penPolyline.points.push([wx, wy]);
+        appState.livePath.setAttribute('d', pointsToPath(appState.penPolyline.points));
+    }
+    // Commits the in-progress polyline (>=2 points) or discards it (a stray single click, undoing
+    // the saveSnapshot from startPenPolyline since nothing was actually drawn) — called on Enter
+    // (stays in pen mode, see the keydown handler below), Escape (history-autosave.js's global
+    // handler — pen mode itself is exited separately, by the pre-existing
+    // Escape-tap-switches-to-normal-mode logic in source-buttons-cursor-mode.js), double-click
+    // (below), and whenever the pen/eraser/layer toolbar buttons switch mid-line (above).
+    function finishPenPolyline() {
+        if (!appState.penPolyline) return;
+        window.removeEventListener('pointermove', appState.penPolylineMoveHandler);
+        appState.penPolylineMoveHandler = null;
+        if (appState.penPolyline.points.length > 1) {
+            ensureDrawings(appState.folders[appState.currentFolderId]).push({ color: appState.penPolyline.color, layer: appState.penPolyline.layer, d: pointsToPath(appState.penPolyline.points), width: appState.penPolyline.width });
+        } else {
+            appState.undoStack.pop();
+        }
+        if (appState.liveSvg) appState.liveSvg.remove();
+        appState.liveSvg = null; appState.livePath = null; appState.penPolyline = null;
+        render();
+    }
+
+    // ---------- Pen tool: eraser + freehand/point-by-point disambiguation ----------
+    // A single pointerdown gesture becomes ONE of three things: continuous eraseAt-on-drag (pen
+    // sub-tool is 'eraser', unchanged from before this rework), a freehand stroke (pen sub-tool,
+    // pointer moves past PEN_CLICK_THRESHOLD_PX before release), or the next point of a
+    // point-by-point line (pen sub-tool, released with barely any movement — either starting a
+    // brand new polyline, or, if one is already in progress, just extending it — see
+    // addPenPolylinePoint above). Freehand vs. click is decided lazily inside the move handler
+    // rather than up front, so saveSnapshot() only ever fires once we know which real action is
+    // actually happening.
+    function handlePenPointerDown(e) {
         const rect = canvas.getBoundingClientRect();
 
         if (appState.drawTool === 'eraser') {
@@ -684,47 +753,58 @@ import { render, renderSelectedOutlines, startBoxSelection, syncWaypointToDb } f
                     }
                 }
             };
-            const toWorld = (ce) => [(ce.clientX - rect.left - appState.tx) / appState.scale, (ce.clientY - rect.top - appState.ty) / appState.scale];
-            const [wx0, wy0] = toWorld(e);
+            const [wx0, wy0] = toWorldPoint(e, rect);
             eraseAt(wx0, wy0);
-            const move = (me) => { const [wx, wy] = toWorld(me); eraseAt(wx, wy); };
+            const move = (me) => { const [wx, wy] = toWorldPoint(me, rect); eraseAt(wx, wy); };
             const up = () => { window.removeEventListener('pointermove', move); window.removeEventListener('pointerup', up); };
             window.addEventListener('pointermove', move); window.addEventListener('pointerup', up);
             return;
         }
 
-        saveSnapshot();
-        const wx = (e.clientX - rect.left - appState.tx) / appState.scale, wy = (e.clientY - rect.top - appState.ty) / appState.scale;
-        appState.drawing = { points: [[wx, wy]], color: appState.drawColor, layer: appState.drawLayer, width: appState.drawSize };
-        appState.liveSvg = makeLayerSVG(appState.drawLayer === 'back' ? 0 : 2);
-        appState.livePath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-        appState.livePath.setAttribute('stroke', appState.drawColor);
-        appState.livePath.setAttribute('stroke-width', String(appState.drawSize));
-        appState.livePath.setAttribute('fill', 'none');
-        appState.livePath.setAttribute('stroke-linecap', 'round');
-        appState.livePath.setAttribute('stroke-linejoin', 'round');
-        appState.liveSvg.appendChild(appState.livePath);
-        if (appState.drawLayer === 'back') world.insertBefore(appState.liveSvg, world.firstChild); else world.appendChild(appState.liveSvg);
+        const [wx0, wy0] = toWorldPoint(e, rect);
 
+        // Already mid-polyline: every subsequent click just extends it, regardless of any
+        // incidental drag distance — no freehand branch is reachable until this one finishes.
+        if (appState.penPolyline) { addPenPolylinePoint(wx0, wy0); return; }
+
+        const downX = e.clientX, downY = e.clientY;
+        let dragStarted = false;
         const move = (me) => {
-            const wx2 = (me.clientX - rect.left - appState.tx) / appState.scale, wy2 = (me.clientY - rect.top - appState.ty) / appState.scale;
-            appState.drawing.points.push([wx2, wy2]);
+            if (!dragStarted) {
+                if (Math.hypot(me.clientX - downX, me.clientY - downY) < PEN_CLICK_THRESHOLD_PX) return;
+                dragStarted = true;
+                saveSnapshot();
+                appState.drawing = { points: [[wx0, wy0]], color: appState.drawColor, layer: appState.drawLayer, width: appState.drawSize };
+                const { svg, path } = makeLivePath(appState.drawColor, appState.drawSize, appState.drawLayer);
+                appState.liveSvg = svg; appState.livePath = path;
+            }
+            const [wx, wy] = toWorldPoint(me, rect);
+            appState.drawing.points.push([wx, wy]);
             appState.livePath.setAttribute('d', pointsToPath(appState.drawing.points));
         };
         const up = () => {
             window.removeEventListener('pointermove', move);
             window.removeEventListener('pointerup', up);
-            if (appState.drawing.points.length > 1) {
-                ensureDrawings(appState.folders[appState.currentFolderId]).push({ color: appState.drawing.color, layer: appState.drawing.layer, d: pointsToPath(appState.drawing.points), width: appState.drawing.width });
+            if (dragStarted) {
+                if (appState.drawing.points.length > 1) {
+                    ensureDrawings(appState.folders[appState.currentFolderId]).push({ color: appState.drawing.color, layer: appState.drawing.layer, d: pointsToPath(appState.drawing.points), width: appState.drawing.width });
+                } else {
+                    appState.undoStack.pop();
+                }
+                if (appState.liveSvg) appState.liveSvg.remove();
+                appState.liveSvg = null; appState.livePath = null; appState.drawing = null;
+                render();
             } else {
-                appState.undoStack.pop();
+                // A genuine click, no drag — the first point of a new point-by-point line.
+                startPenPolyline(wx0, wy0);
             }
-            if (appState.liveSvg) appState.liveSvg.remove();
-            appState.liveSvg = null; appState.livePath = null; appState.drawing = null;
-            render();
         };
         window.addEventListener('pointermove', move); window.addEventListener('pointerup', up);
     }
+    // Second click of the double-click already added its own point via the pointerdown handler
+    // above (landing at, or very near, the finish location) — accepted as the tradeoff most
+    // polyline-editor UIs make rather than special-casing it away.
+    canvas.addEventListener('dblclick', () => { if (appState.penPolyline) finishPenPolyline(); });
     canvas.addEventListener('pointerdown', (e) => {
         if (e.target !== canvas) return;
         if (appState.folders[appState.currentFolderId] && appState.folders[appState.currentFolderId].isSource) return;
@@ -733,7 +813,7 @@ import { render, renderSelectedOutlines, startBoxSelection, syncWaypointToDb } f
         // handleDataModeClick) rather than leaving it armed indefinitely.
         if (appState.dataLinkPendingId != null) clearDataLinkPending();
 
-        if (appState.drawMode) { startDrawStroke(e); return; }
+        if (effectiveMode() === 'pen') { handlePenPointerDown(e); return; }
 
         if (appState.addingKind) {
             const rect = canvas.getBoundingClientRect();
@@ -1151,7 +1231,7 @@ import { render, renderSelectedOutlines, startBoxSelection, syncWaypointToDb } f
         },
     };
 
-export { add, applyConnections, applyFilterToRows, calculateSM2, cancelAddingKind, clearDataLinkPending, collectAvailableFilterTags, deepCloneItem, defaultSrsState, deleteClonedItemFolders, diffRatings, isValidConnection, renderConnectionsLayer, setDrawMode, startConnectionDrag, startDrawStroke, updateDrawLayerBtns, viewportCenterWorldPoint };
+export { add, applyConnections, applyFilterToRows, calculateSM2, cancelAddingKind, clearDataLinkPending, collectAvailableFilterTags, deepCloneItem, defaultSrsState, deleteClonedItemFolders, diffRatings, finishPenPolyline, handlePenPointerDown, isValidConnection, renderConnectionsLayer, startConnectionDrag, updateDrawLayerBtns, viewportCenterWorldPoint };
 
 // React → vanilla bridge (see the identical pattern/comment in cards-misc.js) — used by
 // FilterCard.jsx (app/dotto/), which can't import these directly since public/dotto/*.js isn't

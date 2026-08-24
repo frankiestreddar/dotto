@@ -56,7 +56,7 @@
          stack at the top). -->
     <div class="rail-group rail-group-bottom">
         <!-- Cursor-mode selector — collapsed shows only the currently active mode; hovering expands
-             it (see #mode-toolbar.expanded, globals.css) to reveal all three stacked, same
+             it (see #mode-toolbar.expanded, globals.css) to reveal all four stacked, same
              collapse/expand behavior it had as its own floating bottom-center toolbar, just living
              in the rail's own column now. -->
         <div id="mode-toolbar">
@@ -71,6 +71,15 @@
             <button class="rail-btn mode-btn" data-mode="select">
                 <img class="rail-icon-img" src="/assets/icons/select-cursor.png" alt="">
                 <span class="rail-tooltip">Select mode — click or drag to select multiple cards — tap Shift, hold for temporary</span>
+            </button>
+            <!-- Pen mode — reworked from the old Add-menu "Drawing" toggle (setDrawMode) into a
+                 real cursor mode, see applyCursorMode/handlePenPointerDown (source-buttons-cursor-
+                 mode.js/srs-connections-core.js). No tap/hold keyboard shortcut yet (unlike the
+                 other three) — no unclaimed single letter has an obvious mnemonic, so entering pen
+                 mode is click-only for now. -->
+            <button class="rail-btn mode-btn" data-mode="pen">
+                <img class="rail-icon-img" src="/assets/icons/pen.png" alt="">
+                <span class="rail-tooltip">Pen mode — click and drag to draw freehand, or click point by point for straight lines (Enter/Escape/double-click to finish a line)</span>
             </button>
         </div>
         <!-- Manually toggles #dotto-rail.expanded (see wireSidebarToggle, panels-hamburger.js),

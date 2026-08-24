@@ -4,7 +4,7 @@ import { saveSnapshot } from './history-autosave.js';
 import { findItemById } from './live-presence.js';
 import { closeRailView } from './panels-hamburger.js';
 import { deleteSelectedCards } from './resize-shortcuts-init.js';
-import { setDrawMode } from './srs-connections-core.js';
+import { applyCursorMode } from './source-buttons-cursor-mode.js';
 import { render, renderSelectedOutlines } from './waypoints-render-loop.js';
 
 
@@ -114,6 +114,12 @@ import { render, renderSelectedOutlines } from './waypoints-render-loop.js';
 
     // Both callers (handleAddItemClick/newSourceClicked, add-menu.js) are only ever reached while
     // the add panel itself is the open rail view, so closeRailView here always closes that panel.
-    function prepareAdd(kind, statKind) { appState.addingKind = kind; appState.addingStatKind = statKind || null; closeRailView(); canvas.classList.add('crosshair'); setDrawMode(false); showPlacementGhost(kind); }
+    function prepareAdd(kind, statKind) {
+        appState.addingKind = kind; appState.addingStatKind = statKind || null; closeRailView(); canvas.classList.add('crosshair');
+        // Starting to place any card kind exits pen mode, same as opening the Add/Elements panel
+        // itself already does (resetAddMenuPanel, add-menu.js) — was setDrawMode(false).
+        if (appState.cardMode === 'pen') { appState.cardMode = 'normal'; applyCursorMode(); }
+        showPlacementGhost(kind);
+    }
 
 export { copySelectedCards, cutSelectedCards, pasteClipboardCards, prepareAdd, removePlacementGhost };

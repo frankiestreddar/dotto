@@ -3,7 +3,7 @@ import { renderMsgList } from './friends-presence.js';
 import { applyTransform, saveSnapshot } from './history-autosave.js';
 import { broadcastItemDragPositions, findItemById, renderConvoBody, sanitizeFlashcardSnapshot, snapshotItem } from './live-presence.js';
 import { packageSelectedAsTemplate } from './marketplace.js';
-import { deepCloneItem, deleteClonedItemFolders, startConnectionDrag, startDrawStroke } from './srs-connections-core.js';
+import { deepCloneItem, deleteClonedItemFolders, handlePenPointerDown, startConnectionDrag } from './srs-connections-core.js';
 import { addCardsToSearchContext } from './stopwatch-search-notifications.js';
 import { performMerge, render, renderSelectedOutlines } from './waypoints-render-loop.js';
 
@@ -78,10 +78,10 @@ import { performMerge, render, renderSelectedOutlines } from './waypoints-render
                 return;
             }
 
-            if (appState.drawMode) {
+            if (effectiveMode() === 'pen') {
                 if (appState.folders[appState.currentFolderId] && appState.folders[appState.currentFolderId].isSource) return;
                 e.stopPropagation();
-                startDrawStroke(e);
+                handlePenPointerDown(e);
                 return;
             }
             e.stopPropagation();

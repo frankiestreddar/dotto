@@ -1,8 +1,8 @@
 import { CARD_KINDS, DEFAULT_CARD_SIZE } from './card-kinds.js';
 import { prepareAdd } from './copy-paste.js';
 import { addMenu, appState, btnAdd } from './core-state.js';
-import { closeRailView, wireRailIcon } from './panels-hamburger.js';
-import { setDrawMode } from './srs-connections-core.js';
+import { wireRailIcon } from './panels-hamburger.js';
+import { applyCursorMode } from './source-buttons-cursor-mode.js';
 
 
     // ---------- Add menu data ----------
@@ -56,10 +56,11 @@ import { setDrawMode } from './srs-connections-core.js';
     // Always reopens showing every tile, never mid-search from a previous visit — same convention
     // as every other rail view's onOpen (buildOutline, renderWaypointsList, ...) fully resetting
     // its own transient state on every open rather than just picking up wherever it was left. Also
-    // cancels draw mode, if it was on — opening this panel to pick something else is a clear signal
-    // the user is done drawing (same behavior the old floating add-menu had).
+    // exits pen mode, if it was active — opening this panel to pick something else is a clear
+    // signal the user is done drawing (same behavior the old floating add-menu had, back when this
+    // was setDrawMode(false) instead of a cardMode switch).
     function resetAddMenuPanel() {
-        if (appState.drawMode) setDrawMode(false);
+        if (appState.cardMode === 'pen') { appState.cardMode = 'normal'; applyCursorMode(); }
         initAddGrid();
         appState.addMenuSearchQuery = '';
         const input = document.getElementById('add-menu-search-input');
@@ -125,7 +126,6 @@ import { setDrawMode } from './srs-connections-core.js';
         return tile;
     }
     function handleAddItemClick(kind, statKind) {
-        if (kind === 'drawing') { closeRailView(); setDrawMode(!appState.drawMode); return; }
         prepareAdd(kind, statKind);
     }
     function newSourceClicked() {

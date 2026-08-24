@@ -9,7 +9,7 @@ import { closeAllPanels } from './panels-hamburger.js';
 import { closeDotbotUpgradeModal, closePricingOverlay } from './profile-achievements-pricing.js';
 import { stripSharedFolderIds } from './shared-canvases-outline.js';
 import { closeCellTagPicker } from './source-tags-ai.js';
-import { cancelAddingKind, setDrawMode } from './srs-connections-core.js';
+import { cancelAddingKind, finishPenPolyline } from './srs-connections-core.js';
 import { closeSearchCardsModal, swCurrentElapsedMs, swFormatTime } from './stopwatch-search-notifications.js';
 import { centerOnContent, render } from './waypoints-render-loop.js';
 
@@ -380,7 +380,10 @@ import { centerOnContent, render } from './waypoints-render-loop.js';
             closePricingOverlay();
             closeCellTagPicker();
             clearSearch(); // also closes the search overlay + blurs the input, see its own comment
-            if (appState.drawMode) setDrawMode(false);
+            // Was setDrawMode(false) — finishes (commits, or discards a stray single point) any
+            // in-progress pen-tool polyline. Pen mode itself is exited separately, by the same
+            // tap/hold override logic just below that already handles Data/Select/Normal.
+            if (appState.penPolyline) finishPenPolyline();
             if (appState.addingKind) cancelAddingKind();
             // Escape switching the cursor back to Normal mode (tap vs. hold, same as the
             // other mode keys) is handled by the dedicated keydown/keyup pair further below —

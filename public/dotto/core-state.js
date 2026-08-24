@@ -108,8 +108,13 @@
         librarySearchQuery: '',
         marketplaceSearchQuery: '',
         selectedMarketItem: null,
-        drawMode: false, drawColor: '#ffffff', drawLayer: 'front', drawTool: 'pen', drawSize: 3,
+        drawColor: '#ffffff', drawLayer: 'front', drawTool: 'pen', drawSize: 3,
         liveSvg: null, livePath: null, drawing: null,
+        // Point-by-point pen-tool line in progress (see startPenPolyline/addPenPolylinePoint/
+        // finishPenPolyline, srs-connections-core.js) — null whenever no such line is being built.
+        // penPolylineMoveHandler holds the persistent window pointermove listener that draws the
+        // rubber-band segment between clicks, so it can be torn down when the line finishes.
+        penPolyline: null, penPolylineMoveHandler: null,
         hubCollabView: 'main',
         dotbotUpgradePromptedForFullness: false,
         activeConvoId: null,
@@ -142,11 +147,10 @@
         // (see DEPENDENT_ORDER below, right after this object literal closes) depend on another
         // one of these and can't be inlined here — see that comment for why.
         ADD_MENU_DATA: {
-        notes: { label: 'Notes', categoryDesc: 'The building blocks of your canvas — headings, notes, tables, drawings and media.', items: [
+        notes: { label: 'Notes', categoryDesc: 'The building blocks of your canvas — headings, notes, tables and media.', items: [
             { kind: 'title', label: 'Heading', icon: '/assets/icons/heading.png' },
             { kind: 'note', label: 'Note', icon: '/assets/icons/note.png' },
             { kind: 'table', label: 'Table', icon: '/assets/icons/table.png' },
-            { kind: 'drawing', label: 'Drawing', icon: '/assets/icons/drawing.png' },
             { kind: 'media', label: 'Upload', icon: '/assets/icons/media.png' },
         ]},
         tools: { label: 'Tools', categoryDesc: 'Tools that help you interact with content — read, record, link, and trace.', items: [
@@ -197,7 +201,7 @@
         cellTagPicker: document.getElementById('cell-tag-picker'),
         audioRecordIndicator: document.getElementById('audio-record-indicator'),
         modeToolbar: document.getElementById('mode-toolbar'),
-        MODE_ORDER_WEIGHT: { normal: 0, data: 1, select: 2 },
+        MODE_ORDER_WEIGHT: { normal: 0, data: 1, select: 2, pen: 3 },
         MODE_HOLD_THRESHOLD_MS: 180,
         modeKeyHoldStart: null,
         // "rail" replaces the old separate menu/messages/cart/profile/add flags — all of them now

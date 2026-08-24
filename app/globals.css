@@ -591,6 +591,11 @@
     #canvas.mode-data .item, #canvas.mode-data .item *{cursor:crosshair !important;}
     #canvas.mode-select{cursor:cell;}
     #canvas.mode-select .item, #canvas.mode-select .item *{cursor:cell !important;}
+    /* Pen mode — reworked from the old Add-menu "Drawing" toggle's own .crosshair hack (see
+       applyCursorMode, source-buttons-cursor-mode.js) into a plain mode-* class, matching
+       .mode-data/.mode-select above exactly. */
+    #canvas.mode-pen{cursor:crosshair;}
+    #canvas.mode-pen .item, #canvas.mode-pen .item *{cursor:crosshair !important;}
     .item.link-target-hover{outline:2px solid var(--brand);outline-offset:2px;}
     .item.link-target-invalid{outline:2px solid #e5484d;outline-offset:2px;}
     /* First click of a click-to-link gesture (see handleDataModeClick) — a persistent "armed and
