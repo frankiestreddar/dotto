@@ -372,9 +372,10 @@
        parent), NOT #dotto-rail itself, so 100% here means "the BUTTON's own right edge" — 32px
        wide, centered in the 56px-wide rail with a fixed 12px inset each side (see .rail-btn/
        #dotto-rail's own comments on that centering) — not the rail's right edge. 12px (that inset)
-       + 2px (the actual gap wanted, per explicit request — was 5px) = 14px gets the tooltip's own
-       left edge to sit exactly 2px past the RAIL's edge rather than the button's. */
-    .rail-tooltip{position:absolute;left:calc(100% + 14px);top:50%;transform:translateY(-50%);background:var(--bar);border:1px solid var(--card-border);border-radius:8px;padding:4px 4px 4px 8px;font-size:11px;color:var(--ink);white-space:nowrap;opacity:0;pointer-events:none;transition:opacity .15s;box-shadow:0 4px 12px rgba(0,0,0,0.4);z-index:1001;}
+       + 0px (no gap wanted, per explicit request — was 2px, then 5px before that) = 12px gets the
+       tooltip's own left edge to sit exactly flush against the RAIL's edge rather than the
+       button's. */
+    .rail-tooltip{position:absolute;left:calc(100% + 12px);top:50%;transform:translateY(-50%);background:var(--bar);border:1px solid var(--card-border);border-radius:8px;padding:4px 4px 4px 8px;font-size:11px;color:var(--ink);white-space:nowrap;opacity:0;pointer-events:none;transition:opacity .15s;box-shadow:0 4px 12px rgba(0,0,0,0.4);z-index:1001;}
     :root[data-theme="light"] .rail-tooltip{box-shadow:0 4px 12px rgba(0,0,0,0.168);}
     /* :not(.active) — the currently-open panel's own icon already has its own persistent
        indicator (the outline below) and doesn't grow on hover either (see the :not(.active) on
