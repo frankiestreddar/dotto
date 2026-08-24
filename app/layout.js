@@ -1,7 +1,11 @@
 import "./globals.css";
 
+// Static fallback shown server-side and before hydration — DottoApp (dotto-app.jsx) overwrites
+// this client-side with "Dotto | @username" once the logged-in user is known (that part can't be
+// resolved here, a plain metadata export with no access to session/auth state), per explicit
+// request to replace the old "Dotter v0.1.3" placeholder title.
 export const metadata = {
-  title: "Dotter v0.1.3",
+  title: "Dotto",
   description: "Dotto — infinite-canvas study/notes app",
 };
 

@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect } from "react";
 import Script from "next/script";
 import { flushSync } from "react-dom";
 import { createClient } from "@/lib/supabase/client";
@@ -267,6 +268,14 @@ export default function DottoApp({ sections, currentUser }) {
     // eslint-disable-next-line react-hooks/immutability
     window.__DOTTO_USER__ = currentUser;
   }
+
+  // Overwrites app/layout.js's static "Dotto" fallback title once the logged-in user is known —
+  // per explicit request, replacing the old "Dotter v0.1.3" placeholder with "Dotto | @username".
+  // A real effect (not inline during render like window.__DOTTO_USER__ above) since nothing else
+  // depends on document.title being set before some other script runs.
+  useEffect(() => {
+    document.title = `Dotto | @${currentUser.username}`;
+  }, [currentUser]);
 
   return (
     <>
