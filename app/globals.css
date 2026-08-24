@@ -281,7 +281,16 @@
        is var(--card) rather than the much lighter var(--card-border) every other bordered surface
        in this file uses, for the same reason — a step darker, closer to the rail's own paper
        background, per explicit request. */
-    #dotto-rail{position:fixed;left:0;top:0;width:var(--rail-width);height:100vh;background:var(--paper);border-right:1px solid var(--card);z-index:1000;display:flex;flex-direction:column;align-items:center;gap:4px;padding:20px 0 20px;box-sizing:border-box;transition:width .3s ease;}
+    /* padding is a constant 20px 12px in BOTH collapsed and expanded states (was 20px 0 at rest,
+       widening only once expanded) — the deliberate point of keeping it constant is that the
+       collapsed content-box width (--rail-width minus this padding) then comes out to exactly
+       32px, matching every rail icon's own natural width with zero slack either side. That's what
+       lets align-items:stretch below apply identically in both states without shifting anything:
+       an item with an explicit (non-auto) width is left-aligned at the content-box edge under
+       stretch regardless of how much slack there is, so as long as that edge itself never moves
+       (guaranteed by the constant padding here), no icon ever needs to jump — see .rail-btn and
+       #mode-toolbar's own comments below for the rest of this reasoning. */
+    #dotto-rail{position:fixed;left:0;top:0;width:var(--rail-width);height:100vh;background:var(--paper);border-right:1px solid var(--card);z-index:1000;display:flex;flex-direction:column;align-items:stretch;gap:4px;padding:20px 12px;box-sizing:border-box;transition:width .3s ease;}
     /* .expanded is a manual toggle (#btn-sidebar-toggle, the last icon in #rail-bottom-group —
        see wireSidebarToggle, panels-hamburger.js) — deliberately NOT tied to whether a panel is
        open; opening a panel no longer auto-expands the rail, per explicit request, so the two
@@ -291,23 +300,29 @@
        the canvas, exactly like #hamburger-stack's own sliding panel already does, not a resize:
        --rail-width itself (which #canvas's own left/width and core-state.js's cached RAIL_WIDTH
        constant both depend on) is left completely untouched, so canvas pan/center math is
-       unaffected. align-items switches to stretch so the icon rows below (see the .rail-btn
-       override further down) can actually reach the rail's new full width instead of staying
-       centered at their original 32px; #rail-bottom-group needs the same override since it's its
-       own nested flex column with its own align-items:center. */
-    #dotto-rail.expanded{width:var(--rail-width-expanded);align-items:stretch;padding:20px 12px;}
-    #dotto-rail.expanded #rail-bottom-group{align-items:stretch;}
+       unaffected. */
+    #dotto-rail.expanded{width:var(--rail-width-expanded);}
     /* Shared sizing/shape for every icon in the rail — 32x32 rounded-square (was 36x36, was
        40x40/64px before that — a little smaller each time the rail itself got trimmed down).
        #btn-profile overrides this to a circle below, matching its own pre-existing shape.
-       position:relative anchors .rail-tooltip below. */
-    .rail-btn{position:relative;background:none;border:none;border-radius:9px;height:32px;width:32px;flex:0 0 auto;display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--ink-soft);transition:color .15s ease,background .15s ease;}
+       position:relative anchors .rail-tooltip below. justify-content:flex-start with a fixed 6px
+       left padding (rather than justify-content:center, used until the rail could expand) is what
+       keeps every icon's own position fixed whether the rail is collapsed or expanded — a 32px
+       button centered vs. one left-aligned with 6px of left padding land the icon in the exact
+       same spot (32-20=12, half is 6), so switching to flex-start here costs nothing visually at
+       rest, but means growing the button wider later (see the .expanded override below) only adds
+       room to the RIGHT of the icon instead of re-centering it. gap only ever matters once a
+       second visible child (.rail-label) exists to leave a gap before. */
+    .rail-btn{position:relative;background:none;border:none;border-radius:9px;height:32px;width:32px;flex:0 0 auto;display:flex;align-items:center;justify-content:flex-start;padding:0 0 0 6px;gap:10px;cursor:pointer;color:var(--ink-soft);transition:color .15s ease,background .15s ease;}
     /* Icon+label row layout while the rail is expanded (see #dotto-rail's own comment above) — every
-       panel-opening icon grows to the rail's new full width and left-aligns icon+label instead of
-       centering just the icon. Excludes #btn-profile (a circle with no label of its own) and the
-       cursor-mode selector's own three .mode-btn (instant mode toggles, not panels — stay compact
-       regardless of whether the rail is expanded). */
-    #dotto-rail.expanded .rail-btn:not(#btn-profile):not(.mode-btn){width:100%;justify-content:flex-start;padding:0 8px;gap:10px;}
+       panel-opening icon grows to the rail's new full width, giving the label room to its right.
+       Only width/padding-right change here — padding-left stays the same 6px the base rule already
+       set, so the icon itself never actually moves, only the free space to its right does.
+       Excludes #btn-profile (a circle with no label of its own) and the cursor-mode selector's own
+       three .mode-btn (instant mode toggles, not panels — stay compact regardless of whether the
+       rail is expanded; see #mode-toolbar's own comment on how it avoids getting stretched wide by
+       the align-items:stretch above despite not being excluded from THAT rule itself). */
+    #dotto-rail.expanded .rail-btn:not(#btn-profile):not(.mode-btn){width:100%;padding-right:8px;}
     /* Plain text label shown next to an icon only while the rail is expanded — a separate element
        from .rail-tooltip (an absolutely-positioned floating overlay, fundamentally different layout
        needs than an inline label sitting in the row itself). No conflict with the tooltip either
@@ -401,8 +416,13 @@
     /* Pushes the mode/add tools to the bottom of the rail without needing a fixed pixel gap — the
        column above can hold anywhere from a handful to many icons depending on future additions.
        Profile itself now lives at the very TOP of #dotto-rail instead (top-bar.html), not in this
-       group. */
-    #rail-bottom-group{margin-top:auto;display:flex;flex-direction:column;align-items:center;gap:4px;}
+       group. align-items:stretch (not center) for the same reason as #dotto-rail's own — this
+       group has no explicit width of its own, so it stretches to match #dotto-rail's content width
+       in both states, and its own children (#add-toolbar/#btn-sidebar-toggle, both explicit or
+       100%-width) then position themselves flush against ITS left edge exactly like every other
+       rail icon does against #dotto-rail's. #mode-toolbar is the one child that does NOT want this
+       — see its own comment on why it opts back out with an explicit width. */
+    #rail-bottom-group{margin-top:auto;display:flex;flex-direction:column;align-items:stretch;gap:4px;}
 
     #collab-bubble{display:none;position:relative;padding:0 10px;cursor:pointer;flex:0 0 auto;}
     #collab-bubble.show{display:flex;align-items:center;}
@@ -522,18 +542,27 @@
        alongside Undo/Redo, not a separate floating bottom-center toolbar — both are plain flex
        wrappers now, no box chrome of their own (background/border/shadow/padding), since the rail
        itself already supplies that as one continuous surface, same as every other rail grouping. */
-    /* width:100% (rather than scoping it to only the expanded-rail state) is harmless at rest too —
-       this wrapper has no visible box of its own (no background/border), and #btn-add itself keeps
-       its own explicit 32px width regardless; it only actually matters once the rail is expanded
-       and #btn-add's own width becomes 100% (see #dotto-rail.expanded .rail-btn above),
-       which needs an ancestor that's already full-width to resolve that percentage against —
-       #rail-bottom-group's own align-items:stretch (see #dotto-rail's own comment) gets that width
-       to #add-toolbar, and this rule passes it the rest of the way down to #btn-add. */
+    /* width:100% is harmless at rest — this wrapper has no visible box of its own (no background/
+       border), and #btn-add itself keeps its own explicit 32px width regardless; it only actually
+       matters once the rail is expanded and #btn-add's own width becomes 100% (see
+       #dotto-rail.expanded .rail-btn above), which needs an ancestor that's already full-width to
+       resolve that percentage against — #rail-bottom-group's own align-items:stretch (see its own
+       comment) gets that width to #add-toolbar, and this rule passes it the rest of the way down
+       to #btn-add. */
     #add-toolbar{display:flex;width:100%;}
     /* Always column — collapsed only ever shows ONE .mode-visible button anyway, so there's no
        "row" state left worth keeping distinct; expanding just reveals the other two stacked
-       beneath it, pushing whatever's below in the rail down for as long as it's hovered. */
-    #mode-toolbar{display:flex;flex-direction:column;align-items:center;gap:4px;}
+       beneath it, pushing whatever's below in the rail down for as long as it's hovered. (Its own
+       .expanded here is this hover-reveal state — an unrelated, differently-scoped use of the same
+       word from #dotto-rail.expanded, the sidebar-width toggle elsewhere in this file; the two
+       never interact.) width:32px is a deliberate opt-out of #rail-bottom-group's own
+       align-items:stretch (see its comment) — without an explicit width here, this box would
+       stretch to the sidebar's full expanded width, and its own align-items:center would then
+       re-center the (still-32px, unstretched) mode buttons in the middle of that much wider box —
+       exactly the kind of icon jump the fixed-position design elsewhere in the rail is meant to
+       avoid. Kept at a fixed 32px instead, so the mode buttons stay anchored at the same spot
+       whether the sidebar is collapsed or expanded, same as every other rail icon. */
+    #mode-toolbar{display:flex;flex-direction:column;align-items:center;gap:4px;width:32px;}
     #mode-toolbar .mode-btn{display:none;}
     #mode-toolbar .mode-btn.mode-visible{display:flex;}
     #mode-toolbar.expanded .mode-btn{display:flex;}
