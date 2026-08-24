@@ -545,8 +545,16 @@
     .collab-avatar img{width:100%;height:100%;object-fit:cover;display:block;}
     .collab-avatar:first-child{margin-left:0;}
     .collab-avatar.collab-more{background:var(--hover-bg);color:var(--ink-soft);}
-    #collab-add-btn{width:26px;height:26px;border-radius:50%;background:none;border:1px dashed var(--card-border);color:var(--ink-soft);display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:14px;font-family:inherit;padding:0;}
-    #collab-add-btn:hover{color:var(--ink);border-color:var(--ink-soft);}
+    /* Was a plain "+" text glyph — now the same collaboration.png icon the Collaborations rail
+       button uses, per explicit request. .rail-icon-img (its own rule, above) already handles the
+       black-source-PNG tinting (white in dark mode, black in light mode) and the resting 0.55
+       opacity; only its SIZE needs overriding here (20px default is too big for this 26px circle)
+       and a hover rule of its own, since this button isn't a .rail-btn so the shared
+       .rail-btn:hover .rail-icon-img{opacity:1} rule doesn't reach it. */
+    #collab-add-btn{width:26px;height:26px;border-radius:50%;background:none;border:1px dashed var(--card-border);display:flex;align-items:center;justify-content:center;cursor:pointer;font-family:inherit;padding:0;}
+    #collab-add-btn .rail-icon-img{width:14px;height:14px;}
+    #collab-add-btn:hover{border-color:var(--ink-soft);}
+    #collab-add-btn:hover .rail-icon-img{opacity:1;}
     .collab-tooltip{position:absolute;top:calc(100% + 8px);left:50%;transform:translateX(-50%);background:var(--bar);border:1px solid var(--card-border);border-radius:8px;padding:4px 10px;font-size:11px;color:var(--ink);white-space:nowrap;opacity:0;pointer-events:none;transition:opacity .15s;box-shadow:0 4px 12px rgba(0,0,0,0.4);}
     :root[data-theme="light"] .collab-tooltip{box-shadow:0 4px 12px rgba(0,0,0,0.168);}
     #collab-bubble:hover .collab-tooltip{opacity:1;}

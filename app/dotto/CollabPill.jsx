@@ -32,7 +32,9 @@ export default function CollabPill() {
 
   if (!state.collabs.length) {
     return createPortal(
-      <button id="collab-add-btn" title="Add collaborators" onClick={(e) => { e.stopPropagation(); window.__openCollabPanel(true); }}>+</button>,
+      <button id="collab-add-btn" title="Add collaborators" onClick={(e) => { e.stopPropagation(); window.__openCollabPanel(true); }}>
+        <img className="rail-icon-img" src="/assets/icons/collaboration.png" alt="" />
+      </button>,
       portalNode,
     );
   }
