@@ -360,35 +360,21 @@
        within itself (justify-content:center) rather than letting them stack at the top the way
        they used to. gap:16px matches #dotto-rail's own default group-to-group gap, since
        .rail-group-divider's own padding-top was tuned assuming that baseline spacing above it.
-       overflow-y:auto plus the `safe` keyword on justify-content is what keeps this usable once
-       the viewport is too short to fit every group — plain `center` alone would still center an
-       overflowing flex container, but centering math anchors from the middle outward, so the very
-       first icon(s) can end up scrolled past the top edge with no way to scroll back up to them in
-       some browsers; `safe center` (CSS Box Alignment) falls back to start-alignment specifically
-       when the content overflows, so scrolling can always reach both ends, while still centering
-       normally whenever everything actually fits. Scrollbar hidden (scrollbar-width:none plus the
-       ::-webkit-scrollbar rule below) per this file's existing no-visible-scrollbars convention
-       (.static-table-hscroll/.table-rounded do the same) — Group 1 and Group 7 aren't part of this
-       scroll container at all, so they stay fixed in place regardless.
-       align-self:stretch matters more than it looks: without it, this element shrink-wraps to its
-       own content (~32px, matching a single button) rather than the rail's full width, and since
-       overflow-y:auto forces overflow-x to also become non-`visible` (a CSS Overflow Module rule —
-       "if one axis is visible and the other isn't, the visible one is treated as auto" — browsers
-       apply this even when overflow-x is left unset), that ~32px box is also where horizontal
-       clipping now happens. A .rail-btn.active's 1px outline needs a sliver of room past the
-       button's own edge, and a 32px-wide clip box leaves none — stretch to the full --rail-width
-       instead, matching how Group 1/7 (plain children of #dotto-rail, not of this element) already
-       get their own centering slack for free, so every button here gets the same ~12px either side
-       and the outline fits with room to spare. NOTE: this does NOT fully restore #mode-toolbar's
-       own rightward hover-expand (globals.css, ~140px past its button) — that still gets clipped
-       once the viewport is short enough for this container's overflow-x to actually matter, since
-       even --rail-width's worth of slack (56px) falls well short of what the expand needs. Fixing
-       that properly would mean detaching the expanded buttons from this scroll ancestor's clipping
-       (e.g. position:fixed with JS-computed coordinates instead of the current plain CSS `left`
-       offsets) — a separate, larger change, out of scope for the outline-clipping fix this was
-       written for. */
-    #dotto-rail-middle{flex:1 1 auto;min-height:0;align-self:stretch;display:flex;flex-direction:column;align-items:center;justify-content:safe center;gap:16px;overflow-y:auto;scrollbar-width:none;}
-    #dotto-rail-middle::-webkit-scrollbar{display:none;}
+       overflow:visible (the default, stated explicitly here as a marker) is deliberate, not an
+       oversight: a scrollable overflow-y:auto was tried here for a too-short viewport, but per the
+       CSS Overflow Module, setting only one axis to a non-`visible` value forces the OTHER axis to
+       become non-`visible` too (even left unset) — every tooltip anchored to a button in here
+       (.rail-tooltip/.rail-tooltip-expanded, both position:absolute, extending well past this
+       element's own ~32-56px width) got silently clipped into invisibility by that forced
+       overflow-x, and #mode-toolbar's own rightward hover-expand (~140px past its button) broke
+       the same way. Reverted per explicit request once that broke tooltips entirely — a real
+       "everything overflows past Group 1/Group 7 instead of scrolling" tradeoff remains on a
+       viewport too short to fit every group, but that's the pre-existing behavior this rail always
+       had, not a new regression. A correct coexistence of both scrolling AND overflow-visible
+       tooltips would need the tooltips detached from this container's clipping entirely (e.g.
+       position:fixed with JS-computed coordinates rather than the current plain CSS positioning),
+       which is a separate, larger change. */
+    #dotto-rail-middle{flex:1 1 auto;min-height:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;overflow:visible;}
     /* border-right was chosen as var(--card) specifically because in DARK mode --card (#1C1C1C)
        sits between --paper (#111111) and --card-border (#2E2E2E) — a step darker than the rail's
        own background, barely visible. In light mode --card is pure white, LIGHTER than --paper,
