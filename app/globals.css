@@ -347,13 +347,20 @@
        is var(--card) rather than the much lighter var(--card-border) every other bordered surface
        in this file uses, for the same reason — a step darker, closer to the rail's own paper
        background, per explicit request. */
-    /* gap:16px is the DEFAULT space between consecutive .rail-group boxes — groups 1-6 stack at the
-       top of the rail in plain document order, each one this far from the last, unless overridden
-       (see .rail-group-divider/.rail-group-gap-lg/.rail-group-bottom below). No justify-content:
-       space-between here — that would spread every group evenly down the full height, which is
-       what group 7 alone opts back into via its own margin-top:auto, not something applied to every
-       group uniformly. */
+    /* Three direct children now: Group 1 (profile) pinned to the top, #dotto-rail-middle (its own
+       flex column, see below) filling and centering everything else in the remaining space, and
+       Group 7 (theme toggle + Settings) pinned to the bottom — per explicit request, replacing the
+       old "every group just stacks at the top" layout. gap:16px between these three is mostly
+       inconsequential now that #dotto-rail-middle's own flex:1 does the real work of separating
+       Group 1 from Group 7. */
     #dotto-rail{position:fixed;left:0;top:0;width:var(--rail-width);height:100vh;background:var(--paper);border-right:1px solid var(--card);z-index:1000;display:flex;flex-direction:column;align-items:center;gap:16px;padding:20px 0;box-sizing:border-box;}
+    /* Holds Groups 2-6 (see top-bar.html) — grows to fill whatever vertical space Group 1 and
+       Group 7 don't use (flex:1 1 auto, min-height:0 so it can actually shrink below its content's
+       natural size on a short viewport instead of overflowing), then centers that block of groups
+       within itself (justify-content:center) rather than letting them stack at the top the way
+       they used to. gap:16px matches #dotto-rail's own default group-to-group gap, since
+       .rail-group-divider's own padding-top was tuned assuming that baseline spacing above it. */
+    #dotto-rail-middle{flex:1 1 auto;min-height:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;}
     /* border-right was chosen as var(--card) specifically because in DARK mode --card (#1C1C1C)
        sits between --paper (#111111) and --card-border (#2E2E2E) — a step darker than the rail's
        own background, barely visible. In light mode --card is pure white, LIGHTER than --paper,
@@ -366,26 +373,16 @@
        10px gap between the buttons it holds (a tighter gap than #dotto-rail's own 16px between
        separate groups, so buttons visually read as belonging to the same cluster). */
     .rail-group{display:flex;flex-direction:column;align-items:center;gap:10px;}
-    /* Dividing line ABOVE this group (groups 4/5/6 — see top-bar.html), separating it from the one
-       before. border-top rather than border-bottom on the PREVIOUS group, so the line's presence
-       only ever depends on the group that has it, never needing to know what precedes it.
-       padding-top adds breathing room below the line itself, before this group's own first button
-       — #dotto-rail's own 16px gap above already provides the matching room ABOVE the line, so the
-       line sits roughly centered in the visual space between the two groups rather than jammed
-       against either one. var(--card-border) matches this file's established plain-divider color
-       (.toolbar-divider/.library-divider/.pricing-card-divider elsewhere in this file). */
+    /* Dividing line ABOVE this group (the 2nd-5th groups inside #dotto-rail-middle — see
+       top-bar.html), separating it from the one before. border-top rather than border-bottom on
+       the PREVIOUS group, so the line's presence only ever depends on the group that has it, never
+       needing to know what precedes it. padding-top adds breathing room below the line itself,
+       before this group's own first button — #dotto-rail-middle's own 16px gap above already
+       provides the matching room ABOVE the line, so the line sits roughly centered in the visual
+       space between the two groups rather than jammed against either one. var(--card-border)
+       matches this file's established plain-divider color (.toolbar-divider/.library-divider/
+       .pricing-card-divider elsewhere in this file). */
     .rail-group-divider{border-top:1px solid var(--card-border);padding-top:12px;}
-    /* Bigger gap above group 2 instead of a dividing line, per explicit request (every other
-       consecutive pair of the top-stacked groups gets .rail-group-divider instead — see its own
-       comment). margin-top ADDS to #dotto-rail's own 16px gap rather than replacing it (gap still
-       applies to every child pair uniformly; this only pushes ITS OWN top edge further down),
-       landing on 24px total between groups 1 and 2. */
-    .rail-group-gap-lg{margin-top:8px;}
-    /* The last group (cursor-mode selector) — pushed down to the very bottom of the rail, away
-       from the groups above it which otherwise all stack together at the top in plain document
-       order. Same margin-top:auto technique the old #rail-bottom-group used before every rail icon
-       was reorganized into this group system. */
-    .rail-group-bottom{margin-top:auto;}
     /* Shared sizing/shape for every icon in the rail — 32x32 rounded-square (was 36x36, was
        40x40/64px before that — a little smaller each time the rail itself got trimmed down).
        #btn-profile overrides this to a circle below, matching its own pre-existing shape.

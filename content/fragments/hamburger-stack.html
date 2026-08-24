@@ -50,6 +50,13 @@
     <div id="friends-panel" class="hmenu-panel hub-subpanel" onclick="event.stopPropagation()">
         <div id="friends-panel-content"></div>
     </div>
+    <!-- Settings — rail icon (group 7, top-bar.html, below the theme toggle). Behavior/content not
+         decided yet; a bare shell wired into the shared openRailView mechanism (see
+         wireRailIcon('settings', ...), panels-hamburger.js) just so #btn-settings has a panel to
+         open. -->
+    <div id="settings-panel" class="hmenu-panel hub-subpanel" onclick="event.stopPropagation()">
+        <div id="settings-panel-content"></div>
+    </div>
     <!-- Files (was Snippets — renamed per explicit request; id/wiring kept as 'snippets' under the
          hood, same convention as Basics/Queries staying #btn-add/#rail-btn-ai). Rail icon (group 6,
          top-bar.html, alongside Queries/Sources). Behavior/content not decided yet; a bare shell

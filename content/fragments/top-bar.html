@@ -4,17 +4,19 @@
      #top-bar-center instead (see #nav-arrows-pill below) — they're page-navigation, not
      rail-icon-style view triggers, and read better beside the breadcrumb they actually move.
      Icons are grouped into seven .rail-group wrappers (see globals.css) — a fixed 10px gap between
-     buttons WITHIN a group. Groups 1-6 stack at the top of the rail with a dividing line between
-     each consecutive pair (.rail-group-divider, on groups 3-6 — the line ABOVE that group),
-     except between groups 1 and 2, which get a bigger plain gap instead of a line
-     (.rail-group-gap-lg, on group 2). Group 7 (.rail-group-bottom) is pushed down to the very
-     bottom of the rail via margin-top:auto, same technique the old #rail-bottom-group used before
-     it was folded into this group system. The rail no longer expands/shows text labels (that
-     feature — #btn-sidebar-toggle, #dotto-rail.expanded, .rail-label — was removed per explicit
-     request); every icon is a fixed 32px square with a hover tooltip only, same as before that
-     feature existed. -->
+     buttons WITHIN a group. Group 1 (profile) is pinned to the very top, and Group 7 (the
+     light/dark toggle, plus Settings below it) is pinned to the very bottom — neither one moves.
+     Groups 2-6 sit inside #dotto-rail-middle, a separate flex column between the two that grows to
+     fill whatever vertical space is left and centers its own children within it (justify-content:
+     center) — per explicit request, replacing the old "everything just stacks at the top" layout.
+     Groups 3-6 (now 2nd-5th inside that middle block) still get a dividing line between each
+     consecutive pair (.rail-group-divider, the line ABOVE that group). The rail no longer expands/
+     shows text labels (that feature — #btn-sidebar-toggle, #dotto-rail.expanded, .rail-label — was
+     removed per explicit request); every icon is a fixed 32px square with a hover tooltip only,
+     same as before that feature existed. -->
 <div id="dotto-rail">
-    <!-- Group 1: profile, alone. -->
+    <!-- Group 1: profile, alone — pinned to the very top of the rail, outside
+         #dotto-rail-middle's centered block below. -->
     <div class="rail-group">
         <!-- At the very top of the rail now, ahead of every panel-trigger icon — content is
              React-owned (see app/dotto/ProfileAvatarSm.jsx). Click-only open/close, same as every
@@ -24,6 +26,11 @@
             <span class="rail-tooltip">Profile<span class="rail-tooltip-key">P</span></span>
         </button>
     </div>
+    <!-- Groups 2-6 (cursor-mode+Inbox, Search/Outline/Waypoints, Basics/Library/Marketplace,
+         Friends/Collaborations/Messages, Queries/Sources/Files) center as one block in whatever
+         space is left between the pinned Group 1 above and the pinned Group 7 below (see
+         #dotto-rail-middle, globals.css) — per explicit request. -->
+    <div id="dotto-rail-middle">
     <!-- Group 2: cursor-mode selector, then Inbox. The cursor-mode selector used to sit alone in
          its own group at the very bottom of the rail (group 7) — moved up here, above Inbox, per
          explicit request; it no longer expands downward on hover (there's nothing below it in this
@@ -32,10 +39,10 @@
          behavior/content not yet decided, wired into the shared openRailView mechanism (see
          wireRailIcon('inbox', ...), panels-hamburger.js) so the icon has somewhere to open.
          inbox.png doesn't exist in the repo yet — flagged the same way sidebar.png/dotbot.png were
-         earlier this session. rail-group-gap-lg: a bigger gap above this group instead of the
-         dividing line every other group gets, per explicit request (was on the Search/Explain
-         group before Inbox took this position). -->
-    <div class="rail-group rail-group-gap-lg">
+         earlier this session. No longer needs its own bigger top gap (rail-group-gap-lg, dropped)
+         now that it sits inside the centered #dotto-rail-middle block rather than directly under
+         Group 1 — #dotto-rail-middle's own gap already spaces it from its siblings uniformly. -->
+    <div class="rail-group">
         <!-- Cursor-mode selector — collapsed shows only the currently active mode; hovering expands
              it (see #mode-toolbar.expanded, globals.css) rightward to reveal all four, same
              collapse/expand behavior it had as its own floating bottom-center toolbar, just living
@@ -111,11 +118,15 @@
         <button id="btn-sources" class="rail-btn"><img class="rail-icon-img" src="/assets/icons/sources.png" alt=""><span class="rail-tooltip">Sources<span class="rail-tooltip-key">S</span></span></button>
         <button id="btn-snippets" class="rail-btn"><img class="rail-icon-img" src="/assets/icons/snippets.png" alt=""><span class="rail-tooltip">Files<span class="rail-tooltip-key">F</span></span></button>
     </div>
-    <!-- Group 7: light/dark theme toggle, alone — the very bottom of the rail
-         (.rail-group-bottom's own margin-top:auto pushes it down, away from groups 1-6 which stack
-         at the top). The cursor-mode selector used to share this group, above the toggle — moved
-         up to group 2 per explicit request (see its own comment there). -->
-    <div class="rail-group rail-group-bottom">
+    </div>
+    <!-- Group 7: light/dark theme toggle, then Settings below it — pinned to the very bottom of
+         the rail (#dotto-rail-middle's own flex:1 above already consumes the rest of the space, so
+         nothing further is needed here to push this group down). #settings-panel
+         (hamburger-stack.html) is a bare shell for now, same as Friends when it was first added —
+         behavior/content not yet decided, wired into the shared openRailView mechanism (see
+         wireRailIcon('settings', ...), panels-hamburger.js). settings.png doesn't exist in the
+         repo yet — flagged the same way friends.png was. -->
+    <div class="rail-group">
         <!-- Icon shows the theme clicking it would SWITCH TO (light.png here since dark is the
              app's default, per explicit request — see theme-toggle.js, which swaps it to dark.png
              once light mode is active), not the currently-active one. Tooltip text ("Light
@@ -124,6 +135,7 @@
              this button isn't routed through openRailView/wireRailIcon since it doesn't open a
              panel. -->
         <button id="btn-theme-toggle" class="rail-btn"><img class="rail-icon-img" src="/assets/icons/light.png" alt=""><span class="rail-tooltip">Light mode<span class="rail-tooltip-key">\</span></span></button>
+        <button id="btn-settings" class="rail-btn"><img class="rail-icon-img" src="/assets/icons/settings.png" alt=""><span class="rail-tooltip">Settings</span></button>
     </div>
 </div>
 <!-- Dead centre of the viewport (position:fixed, left:50% + translateX(-50%), see globals.css) —
