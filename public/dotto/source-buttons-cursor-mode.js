@@ -1,11 +1,10 @@
-import { clearSearch } from './ai-assistant-suggestions.js';
 import { appState, canvas, contextMenu, drawSettings, effectiveMode } from './core-state.js';
 import { linkSelectedCards } from './drawing-connections.js';
 import { closeCollabPanel } from './friends-presence.js';
 import { dispatchListPanelDelete } from './hamburger-collab.js';
 import { hideCanvasContextMenu } from './history-autosave.js';
 import { findItemById } from './live-presence.js';
-import { closeAllPanels, closeRailView } from './panels-hamburger.js';
+import { closeAllPanels } from './panels-hamburger.js';
 import { deleteSelectedCards } from './resize-shortcuts-init.js';
 import { layoutSourceTableColumns } from './source-table.js';
 import { closeCellTagPicker } from './source-tags-ai.js';
@@ -18,7 +17,10 @@ import { clearDataLinkPending } from './srs-connections-core.js';
     // clicked, and remembers that cell as the target for the insert actions below.
     function openCellAddMenu(id, r, c, btnEl) {
         const it = findItemById(id); if (!it) return;
-        closeAllPanels(null);
+        // 'rail' — a click on a cell's own Add button is exactly the kind of "clicked elsewhere
+        // on the canvas" interaction that must no longer close an open rail panel (see
+        // window.onclick's own comment below).
+        closeAllPanels('rail');
         closeCellTagPicker();
         appState.lastFocusedCell = { id, r, c };
         const rect = btnEl.getBoundingClientRect();
@@ -137,19 +139,24 @@ import { clearDataLinkPending } from './srs-connections-core.js';
         if (tableItem && el) layoutSourceTableColumns(tableItem, el);
     });
     
+    // Deliberately does NOT close the #hamburger-stack rail panel (Search/Outline/Waypoints/
+    // Collaborations/Marketplace/Library/Messages/Sources/Files/Queries/Profile/Add) — per
+    // explicit request, a rail panel now only closes via Escape (closeAllPanels, history-
+    // autosave.js) or by clicking its own already-open icon again (wireRailIcon, panels-
+    // hamburger.js), never by clicking anywhere else. clearSearch() (ai-assistant-suggestions.js)
+    // is omitted for the same reason — despite its generic name, its only effect is closing the
+    // Queries/AI rail view specifically (see its own body), which is exactly the behavior being
+    // removed here. Everything else this handler closes (the source-add-menu, cell tag picker,
+    // canvas/item context menus, the per-canvas collab flyout, the mode-toolbar's hover-expanded
+    // state) is unrelated to that rail-panel system and keeps closing on any outside click as
+    // before.
     window.onclick = () => {
         closeSourceAddMenu();
         closeCellTagPicker();
         contextMenu.style.display = 'none';
         appState.contextMenuItemId = null;
         hideCanvasContextMenu();
-        // Outline/Waypoints/Collaborations/Marketplace/Messages/Add/Profile all share one rail
-        // shell now (see openRailView/closeRailView, panels-hamburger.js) — one call closes
-        // whichever of them happens to be open, replacing the old closeHamburgerMenu/
-        // closeMessagesPanel/closeCartPanel/closeAddMenu/closeProfilePanel quintet.
-        closeRailView();
         closeCollabPanel();
-        clearSearch();
         appState.modeToolbar.classList.remove('expanded');
         updateModeToolbarUI();
     };

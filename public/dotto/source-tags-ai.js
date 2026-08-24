@@ -157,7 +157,10 @@ import { render } from './waypoints-render-loop.js';
     // behind an "add tag" toggle), so creating a tag is just type-and-Enter.
     function openRowTagPicker(id, r, btnEl) {
         const it = resolveTableForEdit(id); if (!it) return;
-        closeAllPanels(null);
+        // 'rail' — a click on a row's own tag button is exactly the kind of "clicked elsewhere on
+        // the canvas" interaction that must no longer close an open rail panel (see
+        // window.onclick's own comment, source-buttons-cursor-mode.js).
+        closeAllPanels('rail');
         appState.activeTagRow = { id, r };
         appState.renamingTagId = null;
         closeTagContextMenu();
