@@ -546,6 +546,18 @@ import { render, renderSelectedOutlines, startBoxSelection, syncWaypointToDb } f
         removePlacementGhost();
     }
 
+    // Keyed by appState.activeRailView (see openRailView/wireRailIcon, panels-hamburger.js) — used
+    // by the Enter-focuses-search-box handler below.
+    const RAIL_PANEL_SEARCH_INPUT_ID = {
+        outline: 'outline-search',
+        waypoints: 'waypoints-search',
+        collab: 'hub-collab-search',
+        marketplace: 'market-search',
+        library: 'library-search',
+        messages: 'msg-search',
+        add: 'add-menu-search-input',
+    };
+
     document.addEventListener('keydown', (e) => {
         const active = document.activeElement;
         const isEditingText = active && (active.isContentEditable || active.tagName === 'INPUT' || active.tagName === 'SELECT' || active.tagName === 'TEXTAREA');
@@ -600,7 +612,7 @@ import { render, renderSelectedOutlines, startBoxSelection, syncWaypointToDb } f
             }
             return;
         }
-        if (!isEditingText && !anyPanelOpen && (e.key === 'm' || e.key === 'M')) { e.preventDefault(); toggleHamburgerMenu(); return; }
+        if (!isEditingText && (e.key === 'm' || e.key === 'M')) { e.preventDefault(); toggleHamburgerMenu(); return; }
         // Debug shortcut for tweaking the notification entrance/exit animation — fires a plain
         // notification with no buttons on every press. Remove once done tweaking.
         if (!isEditingText && !anyPanelOpen && (e.key === 'n' || e.key === 'N')) { e.preventDefault(); pushNotification({ type: 'debug', message: 'this is an example notification' }); return; }
@@ -616,13 +628,30 @@ import { render, renderSelectedOutlines, startBoxSelection, syncWaypointToDb } f
         // while hovering one, but still a real collision), which is why Collaborations is 'G'
         // (Group) rather than the more obvious 'C', and why Marketplace is 'S' (Shop) and Messages
         // is 'T' (Talk) rather than both wanting the already-taken 'M'.
-        if (!isEditingText && !anyPanelOpen && (e.key === 'p' || e.key === 'P')) { e.preventDefault(); appState.profileBtn.click(); return; }
-        if (!isEditingText && !anyPanelOpen && (e.key === 'w' || e.key === 'W')) { e.preventDefault(); appState.railBtnWaypoints.click(); return; }
-        if (!isEditingText && !anyPanelOpen && (e.key === 'g' || e.key === 'G')) { e.preventDefault(); appState.railBtnCollab.click(); return; }
-        if (!isEditingText && !anyPanelOpen && (e.key === 's' || e.key === 'S')) { e.preventDefault(); appState.btnCart.click(); return; }
-        if (!isEditingText && !anyPanelOpen && (e.key === 'l' || e.key === 'L')) { e.preventDefault(); appState.libraryBtn.click(); return; }
-        if (!isEditingText && !anyPanelOpen && (e.key === 't' || e.key === 'T')) { e.preventDefault(); appState.messagesBtn.click(); return; }
-        if (!isEditingText && !anyPanelOpen && (e.key === 'a' || e.key === 'A')) { e.preventDefault(); btnAdd.click(); return; }
+        // Deliberately NOT gated on !anyPanelOpen (unlike 'n' above, and unlike an earlier version
+        // of these same lines) — these are meant to jump straight from one open panel to another,
+        // not just open one from a clean slate. openRailView (via .click(), same as
+        // toggleHamburgerMenu's own openRailView call above) already closes whatever else is open
+        // before opening the new one, so switching panels this way is already safe; isEditingText
+        // alone is enough to stop them firing while actually typing in a focused field.
+        if (!isEditingText && (e.key === 'p' || e.key === 'P')) { e.preventDefault(); appState.profileBtn.click(); return; }
+        if (!isEditingText && (e.key === 'w' || e.key === 'W')) { e.preventDefault(); appState.railBtnWaypoints.click(); return; }
+        if (!isEditingText && (e.key === 'g' || e.key === 'G')) { e.preventDefault(); appState.railBtnCollab.click(); return; }
+        if (!isEditingText && (e.key === 's' || e.key === 'S')) { e.preventDefault(); appState.btnCart.click(); return; }
+        if (!isEditingText && (e.key === 'l' || e.key === 'L')) { e.preventDefault(); appState.libraryBtn.click(); return; }
+        if (!isEditingText && (e.key === 't' || e.key === 'T')) { e.preventDefault(); appState.messagesBtn.click(); return; }
+        if (!isEditingText && (e.key === 'a' || e.key === 'A')) { e.preventDefault(); btnAdd.click(); return; }
+        // Enter, while some panel is open and nothing is actually focused yet, jumps straight into
+        // that panel's own search box (per explicit request, replacing an earlier "typing any
+        // character jumps into the search box" design — Enter is one single, deliberate key to
+        // reach for, rather than every keystroke being intercepted). RAIL_PANEL_SEARCH_INPUT_ID
+        // only covers panels that actually have a search box of their own (AI/Profile don't), so
+        // Enter is simply a no-op here for those, same as it always was.
+        if (!isEditingText && anyPanelOpen && e.key === 'Enter') {
+            const searchId = RAIL_PANEL_SEARCH_INPUT_ID[appState.activeRailView];
+            const input = searchId && document.getElementById(searchId);
+            if (input) { e.preventDefault(); input.focus(); }
+        }
     });
 
     drawColorInput.oninput = (e) => { appState.drawColor = e.target.value; };
