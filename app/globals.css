@@ -726,7 +726,7 @@
        wide. */
     #add-menu-grid{flex:1 1 auto;overflow-y:auto;min-height:0;display:grid;grid-template-columns:repeat(2, 1fr);align-content:start;gap:8px;padding:8px;scrollbar-width:none;}
     #add-menu-grid::-webkit-scrollbar{display:none;}
-    .add-grid-tile{box-sizing:border-box;display:flex;flex-direction:row;align-items:center;justify-content:flex-start;gap:8px;padding:8px 12px;border-radius:12px;background:var(--hover-bg);cursor:pointer;text-align:left;transition:background .15s ease;}
+    .add-grid-tile{box-sizing:border-box;display:flex;flex-direction:row;align-items:center;justify-content:flex-start;gap:8px;padding:8px 12px;border-radius:6px;background:var(--hover-bg);cursor:pointer;text-align:left;transition:background .15s ease;}
     .add-grid-tile:hover{background:var(--hover-bg);}
     /* Same tinting convention as .add-menu-row-icon just above — see its own comment. Shrunk from
        32px (the old square tile's icon-above-name size) to match .add-menu-row-icon's own 22px —
