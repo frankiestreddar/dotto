@@ -126,12 +126,22 @@
        viewport. So left:0/top:0 here are actually relative to #world's own box, which itself
        already sits wherever #canvas's left edge currently is (rail-width, or rail-width+
        hmenu-width once a panel is open — see #canvas's own body:has(#hamburger-stack.open)
-       override above). That's why this rule needs no panel-open override of its own: the shift
-       already applies for free, the same way it does for every other (non-fixed) piece of canvas
-       content — adding one here on top would double-count it and shove the table far past the
-       panel instead of just past it, which is exactly what happened the first time this was
-       tried. */
+       override above) — that's why `left` needs no panel-open override of its own, it already
+       shifts for free. `width` is a different story: 100vw is an intrinsic viewport measurement,
+       completely unrelated to the containing-block quirk above, so it stays a constant full
+       viewport width regardless of how far `left` has shifted — meaning the box's right edge
+       would run 100vw+shift past the true left edge of the page, well past the actual right edge
+       of the window, once a panel pushes `left` over. Concretely: the rightmost slice of the
+       table (as wide as the panel itself) would render past the true viewport, made unreachable
+       by html/body's own overflow:hidden clamping any page-level scroll from ever reaching it —
+       exactly the "part of a wide table's horizontal overflow isn't actually reachable" bug this
+       fixes. The override just below shrinks `width` by the same --hmenu-width `left` already
+       shifted by, so the box's right edge lands exactly at the true window edge again; JS still
+       needs telling to recompute column widths off this new, correct container size, since toggling
+       a panel is a pure CSS change with no resize event of its own — see the transitionend
+       listener on #canvas, source-buttons-cursor-mode.js. */
     .item.static-table{position:fixed;top:0;left:0;width:100vw;height:100vh;background:var(--paper);border:none;border-radius:0;box-shadow:none;padding:96px 16px 16px 16px;z-index:1;display:block;overflow:hidden;}
+    body:has(#hamburger-stack.open) .item.static-table{width:calc(100vw - var(--hmenu-width));}
     .item.table.static-table .static-table-wrap{width:100%;height:auto;max-width:calc(100vw - 32px);display:flex;flex-direction:column;}
     .item.table.static-table .static-table-row{width:100%;height:auto;flex:0 1 auto;min-height:0;overflow:visible;}
     /* Horizontal scrolling now happens once, on the shared .static-table-hscroll ancestor.

@@ -129,16 +129,29 @@ import { clearDataLinkPending } from './srs-connections-core.js';
     });
     window.addEventListener('blur', () => { if (appState.modeOverrideKey) { appState.modeOverrideKey = null; appState.modeKeyHoldStart = null; applyCursorMode(); } });
 
-    // Re-run the source table's column sizing whenever the window resizes, since column
-    // widths are derived from the (viewport-based) rendered width of the table container.
-    window.addEventListener('resize', () => {
+    // Re-run the source table's column sizing whenever its container's rendered width actually
+    // changes, since column widths are derived from it (layoutSourceTableColumns). Shared by two
+    // genuinely different triggers: a real window resize, and a rail panel opening/closing (which
+    // now also changes the table's available width — see .item.static-table's own
+    // body:has(#hamburger-stack.open) override, globals.css — but is a pure CSS transition with
+    // no resize event of its own to hook).
+    function relayoutSourceTableIfVisible() {
         const folderObj = appState.folders[appState.currentFolderId];
         if (!folderObj || !folderObj.isSource) return;
         const tableItem = folderObj.items.find(i => i.kind === 'table');
         const el = document.querySelector('.item.static-table');
         if (tableItem && el) layoutSourceTableColumns(tableItem, el);
+    }
+    window.addEventListener('resize', relayoutSourceTableIfVisible);
+    // Fires once #canvas's own left/width transition (see its body:has(#hamburger-stack.open)
+    // override, globals.css) finishes — not sooner, since reading the container's width mid-
+    // transition would just recompute against whatever partial value the animation happened to be
+    // at that instant, not the actual end state. e.propertyName is checked so this only reacts
+    // once per transition (left and width both finish here, one event each) rather than twice.
+    canvas.addEventListener('transitionend', (e) => {
+        if (e.target === canvas && e.propertyName === 'width') relayoutSourceTableIfVisible();
     });
-    
+
     // Deliberately does NOT close the #hamburger-stack rail panel (Search/Outline/Waypoints/
     // Collaborations/Marketplace/Library/Messages/Sources/Files/Queries/Profile/Add) — per
     // explicit request, a rail panel now only closes via Escape (closeAllPanels, history-
