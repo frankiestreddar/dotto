@@ -83,8 +83,14 @@
         <button id="btn-library" class="rail-btn"><img class="rail-icon-img" src="/assets/icons/library.png" alt=""><span class="rail-tooltip">Library<span class="rail-tooltip-key">L</span></span></button>
         <button id="btn-cart" class="rail-btn"><img class="rail-icon-img" src="/assets/icons/market-button.png" alt=""><span class="rail-tooltip">Marketplace<span class="rail-tooltip-key">H</span></span></button>
     </div>
-    <!-- Group 5: Collaborations, Messages. -->
+    <!-- Group 5: Friends, Collaborations, Messages. #friends-panel (hamburger-stack.html) is a
+         bare shell for now — behavior/content not yet decided, wired into the shared openRailView
+         mechanism (see wireRailIcon('friends', ...), panels-hamburger.js) so the icon has
+         somewhere to open. No keyboard shortcut yet, same as Sources when it was first added.
+         friends.png doesn't exist in the repo yet — flagged the same way sidebar.png/dotbot.png
+         were earlier this session. -->
     <div class="rail-group rail-group-divider">
+        <button id="btn-friends" class="rail-btn"><img class="rail-icon-img" src="/assets/icons/friends.png" alt=""><span class="rail-tooltip">Friends</span></button>
         <button id="rail-btn-collab" class="rail-btn"><img class="rail-icon-img" src="/assets/icons/collaboration.png" alt=""><span class="rail-tooltip">Collaborations<span class="rail-tooltip-key">C</span></span></button>
         <button id="btn-messages" class="rail-btn"><img class="rail-icon-img" src="/assets/icons/chats-btn.png" alt=""><span class="rail-tooltip">Messages<span class="rail-tooltip-key">M</span></span></button>
     </div>
