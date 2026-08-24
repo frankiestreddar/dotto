@@ -267,27 +267,54 @@
        #hamburger-stack (900) and #world (1)). padding-top:20px on the container aligns the first
        icon with #top-bar-center's own top:20px inset, so the row reads as part of the same top band
        rather than starting mid-column. */
-    #dotto-rail{position:fixed;left:0;top:0;width:var(--rail-width);height:100vh;background:var(--bar);border-right:1px solid var(--card-border);z-index:1000;display:flex;flex-direction:column;align-items:center;gap:4px;padding:20px 0 20px;box-sizing:border-box;}
-    /* Shared sizing/shape for every icon in the rail — 36x36 rounded-square, scaled down to match
-       the skinnier --rail-width (was 40x40/64px). #btn-profile overrides this to a circle below,
-       matching its own pre-existing shape. */
-    .rail-btn{background:none;border:none;border-radius:9px;height:36px;width:36px;flex:0 0 auto;display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--ink-soft);transition:color .15s ease,background .15s ease;}
+    /* background:var(--paper) — same dark grey as #canvas itself, not the slightly-lighter --bar
+       every other floating bar/panel in this file uses, so the rail reads as part of the same
+       surface the canvas sits on rather than a visually distinct bar on top of it. */
+    #dotto-rail{position:fixed;left:0;top:0;width:var(--rail-width);height:100vh;background:var(--paper);border-right:1px solid var(--card-border);z-index:1000;display:flex;flex-direction:column;align-items:center;gap:4px;padding:20px 0 20px;box-sizing:border-box;}
+    /* Shared sizing/shape for every icon in the rail — 32x32 rounded-square (was 36x36, was
+       40x40/64px before that — a little smaller each time the rail itself got trimmed down).
+       #btn-profile overrides this to a circle below, matching its own pre-existing shape.
+       position:relative anchors .rail-tooltip below. */
+    .rail-btn{position:relative;background:none;border:none;border-radius:9px;height:32px;width:32px;flex:0 0 auto;display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--ink-soft);transition:color .15s ease,background .15s ease;}
+    /* Custom tooltip for every rail icon, replacing the native title="..." attribute (which has a
+       browser-controlled delay and can't match this app's own look) — same opacity-on-hover
+       convention as .collab-tooltip/.profile-usage-tooltip/.hub-collab-avatars-tooltip elsewhere
+       in this file, just anchored to the right of the icon (the rail is pinned to the left edge
+       of the screen, so that's the only direction with room) instead of below or cursor-following
+       — a rail icon is small and fixed-position, unlike the wide usage bars .profile-usage-tooltip
+       tracks the cursor along, so a plain CSS :hover reveal is all this needs. No transition-delay
+       anywhere in this rule, so it shows instantly on hover rather than waiting like a native
+       tooltip would. */
+    .rail-tooltip{position:absolute;left:calc(100% + 10px);top:50%;transform:translateY(-50%);background:var(--bar);border:1px solid var(--card-border);border-radius:8px;padding:4px 10px;font-size:11px;color:var(--ink);white-space:nowrap;opacity:0;pointer-events:none;transition:opacity .15s;box-shadow:0 4px 12px rgba(0,0,0,0.4);z-index:1001;}
+    .rail-btn:hover .rail-tooltip{opacity:1;}
     /* Hover is icon-only (color/opacity, via .rail-icon-img below) — no background highlight, so
        the row stays visually quiet until a panel is actually pinned open. .active (this icon's
-       panel IS open) keeps its own background — a persistent "you're here" indicator, not a hover
-       effect, so it's deliberately untouched by this. A subtle step up from the rail's own --bar
-       (#161616), not a strong highlight — just enough to read as "on" without shouting. */
+       panel IS open) gets its own persistent "you're here" indicator instead — a faint 1px grey
+       outline (#454545, this file's existing "hover border, lighter than the default" convention
+       — already reused as #btn-profile.active's own border-color right below), not a background
+       fill, and not a hover effect, so it's deliberately untouched by the plain :hover rule here. */
     .rail-btn:hover{color:var(--ink);}
-    .rail-btn.active{background:#1e1e1e;color:var(--ink);}
+    .rail-btn.active{outline:1px solid #454545;color:var(--ink);}
     /* Every rail icon (including the cursor-mode selector's own three) is a plain <img> now, all
-       rendering at the same 22x22 footprint via this one shared rule — pointer-events:none keeps
-       clicks landing on the button itself, never the icon glyph inside it.
+       rendering at the same 20x20 footprint via this one shared rule (was 22x22, shrunk to match
+       .rail-btn's own 36->32px trim) — pointer-events:none keeps clicks landing on the button
+       itself, never the icon glyph inside it.
        Grey-tinted by default, full white on hover/active — a solid-white filter (flattens
        whatever colours the source PNG has) dimmed with opacity, since none of these can follow
        `color`/currentColor the way an inline svg could. #btn-profile's own avatar photo is
        deliberately NOT part of this — it's the user's picture, not a generic icon, so it keeps
-       its native colour always. */
-    .rail-icon-img{width:22px;height:22px;filter:brightness(0) invert(1);opacity:0.55;transition:opacity .15s ease;pointer-events:none;}
+       its native colour always.
+       transform (scale, see the hover rule below) rides the same transition alongside opacity —
+       cubic-bezier(0.34,1.56,0.64,1) is a standard "back ease out" curve: it overshoots slightly
+       past 1.15 before settling back, which is what actually reads as a bounce rather than a
+       plain smooth grow. Used for BOTH directions (hover in and back out on unhover) since this
+       is the only transition rule and there's no separate one for the reverse — a symmetric
+       overshoot-then-settle on the way out reads just as bouncy as on the way in. */
+    .rail-icon-img{width:20px;height:20px;filter:brightness(0) invert(1);opacity:0.55;transition:opacity .15s ease,transform .3s cubic-bezier(0.34,1.56,0.64,1);pointer-events:none;}
+    /* Excludes #btn-profile per explicit request — its own icon is .profile-avatar-sm (the user's
+       photo), a different element entirely, so this exclusion is redundant in practice today, but
+       kept explicit rather than incidental in case that ever changes. */
+    .rail-btn:not(#btn-profile):hover .rail-icon-img{transform:scale(1.15);}
     .rail-btn:hover .rail-icon-img,.rail-btn.active .rail-icon-img{opacity:1;}
     /* Pushes the mode/add tools to the bottom of the rail without needing a fixed pixel gap — the
        column above can hold anywhere from a handful to many icons depending on future additions.
@@ -525,23 +552,26 @@
        circle. No overflow:hidden here — clipping is handled entirely by .profile-avatar-sm's own
        clip-path below, which only follows the button's circular boundary in the bottom 25%; the
        top 75% is intentionally left unclipped by the button (see below). */
-    #btn-profile{background:var(--bar);border:1px solid var(--card-border);border-radius:50%;height:36px;width:36px;flex:0 0 auto;padding:0;display:flex;align-items:flex-end;justify-content:center;cursor:pointer;}
+    #btn-profile{background:var(--bar);border:1px solid var(--card-border);border-radius:50%;height:32px;width:32px;flex:0 0 auto;padding:0;display:flex;align-items:flex-end;justify-content:center;cursor:pointer;}
     /* Border darkens while the panel is open — the only state this button has now (see
        #profile-logout-btn, profile-panel further down, for the actual logout action — no more
        hover-to-logout swap on this circle itself). */
     #btn-profile.active{border-color:#454545;}
-    /* Bigger than #btn-profile's own 40px circle, bottom-anchored (see above). The clip-path
+    /* Bigger than #btn-profile's own 32px circle, bottom-anchored (see above). The clip-path
        traces: a wide-open rectangle for the top 75% of the button's height (no clipping there —
        the avatar's own circular self-clip, from border-radius+overflow below, is all that
        shapes it), transitioning at the 75%-down line into an arc that follows the button's own
-       20px-radius circle for the bottom 25% — so only that bottom sliver is constrained to fit
+       16px-radius circle for the bottom 25% — so only that bottom sliver is constrained to fit
        inside the button; the rest of the (larger) avatar circle is free to overflow past it.
-       Coordinates are in .profile-avatar-sm's own local box (48x48, avatar bottom-flush with the
-       40px button per align-items:flex-end above, so avatar-local y = button-local y + 8, and
-       centered horizontally so avatar-local x = button-local x + 4); the button's circle
-       (center 20,20 r20 in its own coords) becomes center (24,28) r20 here, and its 75%-down
-       threshold (button y=30) becomes avatar-local y=38, intersecting the circle at x=6.68/41.32. */
-    .profile-avatar-sm{width:48px;height:48px;border-radius:50%;background:none;overflow:hidden;color:white;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600;flex:0 0 auto;clip-path:path('M -20 -20 L 68 -20 L 68 38 L 41.32 38 A 20 20 0 0 1 6.68 38 L -20 38 Z');}
+       Coordinates are in .profile-avatar-sm's own local box (43x43, avatar bottom-flush with the
+       32px button per align-items:flex-end above, so avatar-local y = button-local y + 11, and
+       centered horizontally so avatar-local x = button-local x + 5.5); the button's circle
+       (center 16,16 r16 in its own coords) becomes center (21.5,27) r16 here, and its 75%-down
+       threshold (button y=24) becomes avatar-local y=35, intersecting the circle at x=7.64/35.36.
+       Recomputed from scratch for the rail's 36->32px trim (the previous version of this comment
+       had gone stale during an EARLIER rail resize, 40->36px, and was still quoting 40px math
+       against an actual 36px button — corrected here rather than carried forward again). */
+    .profile-avatar-sm{width:43px;height:43px;border-radius:50%;background:none;overflow:hidden;color:white;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600;flex:0 0 auto;clip-path:path('M -20 -20 L 63 -20 L 63 35 L 35.36 35 A 16 16 0 0 1 7.64 35 L -20 35 Z');}
     .profile-avatar-sm img{width:100%;height:100%;object-fit:cover;display:block;}
     /* The profile "tab" is several separate stacked panels rather than one box — each
        .profile-block is its own rounded card, matching the .hmenu-panel stacked convention.
@@ -661,7 +691,10 @@
        Marketplace's own content (its widest existing view, previously a standalone 380px-wide
        floating card), now that Marketplace/Messages/Profile share this same shell/width instead of
        each picking their own. */
-    #hamburger-stack{position:fixed;left:calc(var(--rail-width) - var(--hmenu-width));width:var(--hmenu-width);z-index:900;display:flex;flex-direction:column;gap:0;pointer-events:none;top:0;height:100vh;background:var(--bar);border-right:1px solid var(--card-border);transition:left .3s ease;}
+    /* background:var(--paper) — same dark grey as #canvas/#dotto-rail, not --bar (see
+       #dotto-rail's own comment) — so the rail and its sliding panels all read as one continuous
+       surface rather than the panel looking like a separate bar floating on top. */
+    #hamburger-stack{position:fixed;left:calc(var(--rail-width) - var(--hmenu-width));width:var(--hmenu-width);z-index:900;display:flex;flex-direction:column;gap:0;pointer-events:none;top:0;height:100vh;background:var(--paper);border-right:1px solid var(--card-border);transition:left .3s ease;}
     #hamburger-stack.open{left:var(--rail-width);pointer-events:auto;}
     /* No card chrome of their own (background/border/radius/shadow) — the shell above already
        supplies the background/edge; each panel is just a section of that one continuous surface. */

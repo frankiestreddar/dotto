@@ -7,37 +7,41 @@
     <!-- At the very top of the rail now, ahead of every panel-trigger icon — content is
          React-owned (see app/dotto/ProfileAvatarSm.jsx). Click-only open/close, same as every
          other rail icon (see wireRailIcon('profile', ...), profile-achievements-pricing.js). -->
-    <button id="btn-profile" class="rail-btn" title="Profile">
+    <button id="btn-profile" class="rail-btn">
         <div class="profile-avatar-sm" id="profile-avatar-sm"></div>
+        <span class="rail-tooltip">Profile</span>
     </button>
-    <button id="rail-btn-ai" class="rail-btn" title="Ask Dotbot"><img class="rail-icon-img" src="/assets/icons/search.png" alt=""></button>
-    <button id="btn-menu" class="rail-btn" title="Outline"><img class="rail-icon-img" src="/assets/icons/menu-btn.png" alt=""></button>
-    <button id="rail-btn-waypoints" class="rail-btn" title="Waypoints"><img class="rail-icon-img" src="/assets/icons/waypoint.png" alt=""></button>
-    <button id="rail-btn-collab" class="rail-btn" title="Collaborations"><img class="rail-icon-img" src="/assets/icons/collaboration.png" alt=""></button>
-    <button id="btn-cart" class="rail-btn" title="Marketplace"><img class="rail-icon-img" src="/assets/icons/market-button.png" alt=""></button>
+    <button id="rail-btn-ai" class="rail-btn"><img class="rail-icon-img" src="/assets/icons/search.png" alt=""><span class="rail-tooltip">Ask Dotbot</span></button>
+    <button id="btn-menu" class="rail-btn"><img class="rail-icon-img" src="/assets/icons/menu-btn.png" alt=""><span class="rail-tooltip">Outline</span></button>
+    <button id="rail-btn-waypoints" class="rail-btn"><img class="rail-icon-img" src="/assets/icons/waypoint.png" alt=""><span class="rail-tooltip">Waypoints</span></button>
+    <button id="rail-btn-collab" class="rail-btn"><img class="rail-icon-img" src="/assets/icons/collaboration.png" alt=""><span class="rail-tooltip">Collaborations</span></button>
+    <button id="btn-cart" class="rail-btn"><img class="rail-icon-img" src="/assets/icons/market-button.png" alt=""><span class="rail-tooltip">Marketplace</span></button>
     <!-- Own drafts/published/purchased items — used to be a Library tab sharing #cart-panel with
          Discover; now a fully separate rail icon/panel (see wireRailIcon('library', ...),
          marketplace.js). -->
-    <button id="btn-library" class="rail-btn" title="Library"><img class="rail-icon-img" src="/assets/icons/library.png" alt=""></button>
-    <button id="btn-messages" class="rail-btn" title="Messages"><img class="rail-icon-img" src="/assets/icons/chats-btn.png" alt=""></button>
+    <button id="btn-library" class="rail-btn"><img class="rail-icon-img" src="/assets/icons/library.png" alt=""><span class="rail-tooltip">Library</span></button>
+    <button id="btn-messages" class="rail-btn"><img class="rail-icon-img" src="/assets/icons/chats-btn.png" alt=""><span class="rail-tooltip">Messages</span></button>
     <div id="rail-bottom-group">
         <!-- Cursor-mode selector — collapsed shows only the currently active mode; hovering expands
              it (see #mode-toolbar.expanded, globals.css) to reveal all three stacked, same
              collapse/expand behavior it had as its own floating bottom-center toolbar, just living
              in the rail's own column now. -->
         <div id="mode-toolbar">
-            <button class="rail-btn mode-btn mode-visible active" data-mode="normal" title="Move & select (default cursor) — tap Escape, hold for temporary">
+            <button class="rail-btn mode-btn mode-visible active" data-mode="normal">
                 <img class="rail-icon-img" src="/assets/icons/default-cursor.png" alt="">
+                <span class="rail-tooltip">Move &amp; select (default cursor) — tap Escape, hold for temporary</span>
             </button>
-            <button class="rail-btn mode-btn" data-mode="data" title="Data mode — drag from one card to another to link them — tap D, hold for temporary">
+            <button class="rail-btn mode-btn" data-mode="data">
                 <img class="rail-icon-img" src="/assets/icons/data-cursor.png" alt="">
+                <span class="rail-tooltip">Data mode — drag from one card to another to link them — tap D, hold for temporary</span>
             </button>
-            <button class="rail-btn mode-btn" data-mode="select" title="Select mode — click or drag to select multiple cards — tap Shift, hold for temporary">
+            <button class="rail-btn mode-btn" data-mode="select">
                 <img class="rail-icon-img" src="/assets/icons/select-cursor.png" alt="">
+                <span class="rail-tooltip">Select mode — click or drag to select multiple cards — tap Shift, hold for temporary</span>
             </button>
         </div>
         <div id="add-toolbar">
-            <button id="btn-add" class="rail-btn" title="Add"><img class="rail-icon-img" src="/assets/icons/add-btn.png" alt=""></button>
+            <button id="btn-add" class="rail-btn"><img class="rail-icon-img" src="/assets/icons/add-btn.png" alt=""><span class="rail-tooltip">Add</span></button>
         </div>
     </div>
 </div>
