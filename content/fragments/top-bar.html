@@ -4,12 +4,12 @@
      #top-bar-center instead (see #nav-arrows-pill below) — they're page-navigation, not
      rail-icon-style view triggers, and read better beside the breadcrumb they actually move.
      Icons are grouped into six .rail-group wrappers (see globals.css) — a fixed 10px gap between
-     buttons WITHIN a group, and #dotto-rail's own justify-content:space-between spreads the six
-     groups evenly across the rail's full height, group 1 pinned at the very top and group 6 at the
-     very bottom. Each .rail-group is also its own cursor:none boundary (see its own comment in
-     globals.css, per explicit request) — the OS cursor hides while hovering within a group
-     (buttons and their internal 10px gaps alike) but reappears in the larger space-between gaps
-     between groups. -->
+     buttons WITHIN a group. Groups 1-5 stack at the top of the rail with a dividing line between
+     each consecutive pair (.rail-group-divider, on groups 3/4/5 — the line ABOVE that group),
+     except between groups 1 and 2, which get a bigger plain gap instead of a line
+     (.rail-group-gap-lg, on group 2). Group 6 (.rail-group-bottom) is pushed down to the very
+     bottom of the rail via margin-top:auto, same technique the old #rail-bottom-group used before
+     it was folded into this six-group system. -->
 <div id="dotto-rail">
     <!-- Group 1: profile, alone. -->
     <div class="rail-group">
@@ -23,20 +23,22 @@
     </div>
     <!-- Group 2: Search, Ask Dotbot (AI chat). #search-panel (hamburger-stack.html) is a bare shell
          for now — behavior/content not yet decided, wired into the shared openRailView mechanism
-         (see wireRailIcon('search', ...), panels-hamburger.js) so the icon has somewhere to open. -->
-    <div class="rail-group">
+         (see wireRailIcon('search', ...), panels-hamburger.js) so the icon has somewhere to open.
+         rail-group-gap-lg: a bigger gap above this group instead of the dividing line every other
+         group gets, per explicit request. -->
+    <div class="rail-group rail-group-gap-lg">
         <button id="btn-search" class="rail-btn"><img class="rail-icon-img" src="/assets/icons/search.png" alt=""><span class="rail-label">Search</span><span class="rail-tooltip">Search</span></button>
         <!-- dotbot.png doesn't exist in the repo yet (search.png moved to #btn-search above, which
              needed its own icon back) — flagged the same way sidebar.png was two commits ago. -->
         <button id="rail-btn-ai" class="rail-btn"><img class="rail-icon-img" src="/assets/icons/dotbot.png" alt=""><span class="rail-label">Ask Dotbot</span><span class="rail-tooltip">Ask Dotbot<span class="rail-tooltip-key">/</span></span></button>
     </div>
     <!-- Group 3: outline tree, Waypoints. -->
-    <div class="rail-group">
+    <div class="rail-group rail-group-divider">
         <button id="btn-menu" class="rail-btn"><img class="rail-icon-img" src="/assets/icons/menu-btn.png" alt=""><span class="rail-label">Outline</span><span class="rail-tooltip">Outline<span class="rail-tooltip-key">M</span></span></button>
         <button id="rail-btn-waypoints" class="rail-btn"><img class="rail-icon-img" src="/assets/icons/waypoint.png" alt=""><span class="rail-label">Waypoints</span><span class="rail-tooltip">Waypoints<span class="rail-tooltip-key">W</span></span></button>
     </div>
     <!-- Group 4: Add, Library, Marketplace. -->
-    <div class="rail-group">
+    <div class="rail-group rail-group-divider">
         <button id="btn-add" class="rail-btn"><img class="rail-icon-img" src="/assets/icons/add-btn.png" alt=""><span class="rail-label">Add</span><span class="rail-tooltip">Add<span class="rail-tooltip-key">A</span></span></button>
         <!-- Own drafts/published/purchased items — used to be a Library tab sharing #cart-panel with
              Discover; now a fully separate rail icon/panel (see wireRailIcon('library', ...),
@@ -45,14 +47,14 @@
         <button id="btn-cart" class="rail-btn"><img class="rail-icon-img" src="/assets/icons/market-button.png" alt=""><span class="rail-label">Marketplace</span><span class="rail-tooltip">Marketplace<span class="rail-tooltip-key">S</span></span></button>
     </div>
     <!-- Group 5: Collaborations, Messages. -->
-    <div class="rail-group">
+    <div class="rail-group rail-group-divider">
         <button id="rail-btn-collab" class="rail-btn"><img class="rail-icon-img" src="/assets/icons/collaboration.png" alt=""><span class="rail-label">Collaborations</span><span class="rail-tooltip">Collaborations<span class="rail-tooltip-key">G</span></span></button>
         <button id="btn-messages" class="rail-btn"><img class="rail-icon-img" src="/assets/icons/chats-btn.png" alt=""><span class="rail-label">Messages</span><span class="rail-tooltip">Messages<span class="rail-tooltip-key">T</span></span></button>
     </div>
     <!-- Group 6: cursor-mode selector, sidebar expand/collapse toggle — the very bottom of the
-         rail, pinned there by #dotto-rail's own justify-content:space-between now rather than the
-         old #rail-bottom-group's margin-top:auto (removed; no longer needed). -->
-    <div class="rail-group">
+         rail (.rail-group-bottom's own margin-top:auto pushes it down, away from groups 1-5 which
+         stack at the top). -->
+    <div class="rail-group rail-group-bottom">
         <!-- Cursor-mode selector — collapsed shows only the currently active mode; hovering expands
              it (see #mode-toolbar.expanded, globals.css) to reveal all three stacked, same
              collapse/expand behavior it had as its own floating bottom-center toolbar, just living
