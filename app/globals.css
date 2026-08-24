@@ -425,8 +425,10 @@
        persistent "you're here" indicator (the outline below), so hovering it while open doesn't
        also grow.
        Its own transform transition (ease-out, overriding the base rule's ease-in above, which only
-       actually ends up applying on the way back out) is what actually applies on the way in. */
-    .rail-btn:not(#btn-profile):not(.active):hover .rail-icon-img{transform:scale(1.15);transition:opacity .15s ease,transform .15s ease-out;}
+       actually ends up applying on the way back out) is what actually applies on the way in —
+       .08s rather than the base rule's .15s, per explicit request to make just the grow-on-hover
+       direction faster; the shrink-back-on-unhover direction is untouched. */
+    .rail-btn:not(#btn-profile):not(.active):hover .rail-icon-img{transform:scale(1.15);transition:opacity .15s ease,transform .08s ease-out;}
     /* Clicking a hovered (grown) icon adds .active the instant the click registers — without this,
        that transform:scale(1) it falls back to (the .active exclusion above stops matching, so
        there's nothing left overriding the plain default) would still animate smoothly back down
