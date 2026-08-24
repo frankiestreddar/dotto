@@ -107,7 +107,6 @@ export default function MessagesListPanel() {
       {state.requestsCount > 0 && <RequestsRow count={state.requestsCount} />}
       {state.matchedFriends.length > 0 && (
         <>
-          <div className="msg-section-label">Chats</div>
           {state.matchedFriends.map((f) => <ChatRow key={f.id} f={f} />)}
         </>
       )}

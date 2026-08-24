@@ -1,15 +1,24 @@
+import { appState } from './core-state.js';
+
 // Hold-to-expand rail tooltips — per explicit request: hovering a rail icon shows the small
 // name+shortcut pill immediately (plain CSS, see .rail-tooltip in globals.css), same as always.
-// If the hover holds for a further 2s, THIS module takes over and runs a three-stage animation on
-// that same element (not a second, separate one — an earlier version tried a crossfade to a
-// second .rail-tooltip-expanded box, but the user explicitly asked for the tooltip itself to grow
-// in place instead): 1) smoothly widen from its current small-pill width out to a fixed 220px,
-// during which .rail-tooltip-row's own justify-content:space-between (globals.css) visibly pushes
-// the shortcut key away from the name as the row gains room; 2) once that width transition
-// finishes, "type" the description (.rail-tooltip-desc's own data-desc attribute) into place one
-// character at a time; 3) on every character, re-measure and grow the tooltip's own height to
-// match, so the box visibly grows line by line as the text wraps rather than the text overflowing
-// or the box jumping to its final height instantly.
+// If the hover holds for a further 2s — AND no #hamburger-stack rail panel is currently open (see
+// wireRailTooltipExpand's own comment; per explicit request, tooltips stay plain small pills
+// while any panel is open, expanding only when none is) — THIS module takes over and runs a
+// three-stage animation on that same element (not a second, separate one — an earlier version
+// tried a crossfade to a second .rail-tooltip-expanded box, but the user explicitly asked for the
+// tooltip itself to grow in place instead): 1) smoothly widen from its current small-pill width
+// out to a fixed 220px, during which .rail-tooltip-row's own justify-content:space-between
+// (globals.css) visibly pushes the shortcut key away from the name as the row gains room; 2) once
+// that width transition finishes, "type" the description (.rail-tooltip-desc's own data-desc
+// attribute) into place one character at a time, word by word — each word is pre-tested against
+// the current line's remaining room (temporarily rendering it in full and comparing scrollHeight
+// before/after) before its first character is typed, so a word that won't fit starts fresh on a
+// new line (a real \n, since .rail-tooltip-desc is white-space:pre-line) from character one,
+// rather than growing partway on the current line and visibly jumping to the next one once it
+// grows too long — per explicit request; 3) on every character, re-measure and grow the tooltip's
+// own height to match, so the box visibly grows line by line as the text wraps rather than the
+// text overflowing or the box jumping to its final height instantly.
 //
 // Only wired to buttons whose .rail-tooltip actually has this structure (.rail-tooltip-row +
 // .rail-tooltip-desc) — the four cursor-mode buttons' tooltips are a single plain descriptive
@@ -28,10 +37,10 @@ const TYPE_STEP_MS = 16;
 // this makes up the difference so setting style.height to scrollHeight+this doesn't leave the
 // box a couple px too short for its own content (border-box height = padding-box + border).
 const TOOLTIP_BORDER_PX = 2;
-// Must match .rail-tooltip.expanding's own padding-bottom (10px) minus the base rule's (2px) —
-// see beginExpand's own comment on why this needs accounting for separately from TOOLTIP_BORDER_PX
+// Must match .rail-tooltip.expanding's own padding-bottom (10px) minus the base rule's (0) — see
+// beginExpand's own comment on why this needs accounting for separately from TOOLTIP_BORDER_PX
 // above.
-const EXPANDING_PADDING_BOTTOM_DELTA_PX = 8;
+const EXPANDING_PADDING_BOTTOM_DELTA_PX = 10;
 
 function resetTooltip(state) {
     clearTimeout(state.openTimer);
@@ -45,33 +54,60 @@ function resetTooltip(state) {
     state.desc.textContent = '';
 }
 
+// Decides how the NEXT word should be attached to what's already revealed — '' for the very
+// first word (nothing precedes it), ' ' if it fits on the current line, '\n' if it doesn't.
+// Determined by temporarily rendering the full candidate word and comparing scrollHeight
+// before/after (a real reflow, not a text-measurement estimate — exact regardless of font/
+// kerning), then restoring the description back to its actual current (pre-word) state before
+// returning, so the caller is free to reveal the word's own characters one at a time from there.
+function pickWordSeparator(state, revealed, word) {
+    if (!revealed) return '';
+    const beforeHeight = state.tooltip.scrollHeight;
+    state.desc.textContent = revealed + ' ' + word;
+    const afterHeight = state.tooltip.scrollHeight;
+    state.desc.textContent = revealed;
+    return afterHeight > beforeHeight ? '\n' : ' ';
+}
+
 function typeDescription(state, generation) {
-    const fullText = state.desc.dataset.desc || '';
-    let i = 0;
+    const words = (state.desc.dataset.desc || '').split(' ');
+    let revealed = '';
+    let wordIndex = 0;
+    let charIndex = 0;
+    let separator = pickWordSeparator(state, revealed, words[0]);
     state.typeInterval = setInterval(() => {
         // A reset (pointerleave/click) between ticks bumps generation — bail out rather than
         // keep mutating a tooltip that's already been reverted back to its small-pill state.
         if (generation !== state.generation) { clearInterval(state.typeInterval); return; }
-        i++;
-        state.desc.textContent = fullText.slice(0, i);
+        const word = words[wordIndex];
+        if (charIndex === 0) revealed += separator;
+        revealed += word[charIndex];
+        charIndex++;
+        state.desc.textContent = revealed;
         state.tooltip.style.height = (state.tooltip.scrollHeight + TOOLTIP_BORDER_PX) + 'px';
-        if (i >= fullText.length) { clearInterval(state.typeInterval); state.typeInterval = null; }
+        if (charIndex >= word.length) {
+            wordIndex++;
+            charIndex = 0;
+            if (wordIndex >= words.length) { clearInterval(state.typeInterval); state.typeInterval = null; return; }
+            separator = pickWordSeparator(state, revealed, words[wordIndex]);
+        }
     }, TYPE_STEP_MS);
 }
 
 function beginExpand(state) {
     if (!state.btn.matches(':hover')) return; // defensive — pointerleave should already have cancelled the timer otherwise
+    if (appState.activeRailView) return; // per explicit request — tooltips only expand while no rail panel is open
     const generation = state.generation;
     const startWidth = state.tooltip.getBoundingClientRect().width;
     const startHeight = state.tooltip.getBoundingClientRect().height;
     state.tooltip.style.width = startWidth + 'px';
     state.tooltip.style.height = startHeight + 'px';
     void state.tooltip.offsetWidth; // force layout so the line above isn't optimized away before the class/width change below
-    // .expanding also bumps padding-bottom (2px -> 10px, globals.css) — without accounting for
-    // that extra 8px here too, the row would briefly render squeezed into a content box 8px
-    // shorter than it actually has room for, for the duration of the width transition below
-    // (the first typewriter tick would correct it via a fresh scrollHeight read, but not before a
-    // visible pinch/glitch on the way there).
+    // .expanding also bumps padding-bottom (0 -> 10px, globals.css) — without accounting for that
+    // extra 10px here too, the row would briefly render squeezed into a content box 10px shorter
+    // than it actually has room for, for the duration of the width transition below (the first
+    // typewriter tick would correct it via a fresh scrollHeight read, but not before a visible
+    // pinch/glitch on the way there).
     state.tooltip.classList.add('expanding');
     state.tooltip.style.width = EXPANDED_WIDTH_PX + 'px';
     state.tooltip.style.height = (startHeight + EXPANDING_PADDING_BOTTOM_DELTA_PX) + 'px';
@@ -91,6 +127,7 @@ function wireRailTooltipExpand(btn) {
     const state = { btn, tooltip, desc, openTimer: null, typeInterval: null, generation: 0 };
     btn.addEventListener('pointerenter', () => {
         if (btn.classList.contains('active')) return; // matches .rail-tooltip's own :not(.active) CSS gating
+        if (appState.activeRailView) return; // per explicit request — no expansion while any rail panel is open; re-checked again in beginExpand in case one opens during the wait
         state.openTimer = setTimeout(() => beginExpand(state), EXPAND_DELAY_MS);
     });
     btn.addEventListener('pointerleave', () => resetTooltip(state));

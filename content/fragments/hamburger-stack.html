@@ -36,23 +36,16 @@
         </div>
         <div id="search-panel-content"></div>
     </div>
-    <!-- Documents — rail icon (group 6, top-bar.html, first slot, alongside Sources/Files/
-         Snippets). Deleted earlier this session, then re-added per a later explicit request
-         specifying the group's exact order. Behavior/content not decided yet; a bare shell wired
-         into the shared openRailView mechanism (see wireRailIcon('documents', ...),
-         panels-hamburger.js) just so #btn-documents has a panel to open. -->
-    <div id="documents-panel" class="hmenu-panel hub-subpanel" onclick="event.stopPropagation()">
-        <div id="documents-panel-content"></div>
-    </div>
-    <!-- Sources — rail icon (group 6, top-bar.html, alongside Documents/Files/Snippets). Behavior/
-         content not decided yet; a bare shell wired into the shared openRailView mechanism (see
-         wireRailIcon('sources', ...), panels-hamburger.js) just so #btn-sources has a panel to
-         open. -->
+    <!-- Sources — rail icon (group 6, top-bar.html, alongside Files/Snippets — Documents briefly
+         sat here again after an earlier deletion, then was deleted a second time per an explicit
+         follow-up correction). Behavior/content not decided yet; a bare shell wired into the
+         shared openRailView mechanism (see wireRailIcon('sources', ...), panels-hamburger.js)
+         just so #btn-sources has a panel to open. -->
     <div id="sources-panel" class="hmenu-panel hub-subpanel" onclick="event.stopPropagation()">
         <div id="sources-panel-content"></div>
     </div>
-    <!-- Snippets — rail icon (group 6, top-bar.html, last slot, alongside Documents/Sources/
-         Files). A different button from Files (which used to itself be called Snippets before an
+    <!-- Snippets — rail icon (group 6, top-bar.html, last slot, alongside Files/Sources). A
+         different button from Files (which used to itself be called Snippets before an
          earlier rename — see Files' own comment below) — this is a new, separate icon per explicit
          request, with its own #btn-snippets2/#snippets2-panel id distinct from Files'
          #btn-snippets/#snippets-panel. Behavior/content not decided yet; a bare shell wired into
@@ -80,7 +73,7 @@
          #rail-btn-ai). Not to be confused with the separate, newer Snippets button above
          (#btn-snippets2/#snippets2-panel) — two different buttons that briefly shared an icon too
          until Files got its own files.png (top-bar.html), per explicit request. Rail icon (group
-         6, top-bar.html, alongside Documents/Sources/Snippets). Behavior/content not decided yet;
+         6, top-bar.html, alongside Sources/Snippets). Behavior/content not decided yet;
          a bare shell wired into the shared openRailView mechanism (see
          wireRailIcon('snippets', ...), panels-hamburger.js) just so #btn-snippets has a panel to
          open. -->
