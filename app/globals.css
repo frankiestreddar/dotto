@@ -26,14 +26,6 @@
         --brand:#6366f1; /* Beautiful Indigo */
         --hmenu-width:300px;
         --rail-width:56px;
-        /* How wide #dotto-rail grows to while manually toggled open via #btn-sidebar-toggle (see
-           #dotto-rail.expanded rules near #dotto-rail's own definition), showing a text label next
-           to each icon. Deliberately NOT a change to --rail-width itself — that one also drives
-           #canvas's own left/width (see its own comment) and a cached RAIL_WIDTH constant in
-           core-state.js used for pan/center math, neither of which should shift just because the
-           sidebar happens to be toggled open; the wider rail simply overlaps the canvas instead,
-           the same way #hamburger-stack's own sliding panel already does. */
-        --rail-width-expanded:190px;
     }
     *{box-sizing:border-box; touch-action: none; user-select:none; -webkit-user-select:none;}
     select, input, .format-bar{touch-action: auto;}
@@ -281,43 +273,18 @@
        is var(--card) rather than the much lighter var(--card-border) every other bordered surface
        in this file uses, for the same reason — a step darker, closer to the rail's own paper
        background, per explicit request. */
-    /* padding is a constant 20px 12px in BOTH collapsed and expanded states (was 20px 0 at rest,
-       widening only once expanded) — the deliberate point of keeping it constant is that the
-       collapsed content-box width (--rail-width minus this padding) then comes out to exactly
-       32px, matching every rail icon's own natural width with zero slack either side. That's what
-       lets align-items:stretch below apply identically in both states without shifting anything:
-       an item with an explicit (non-auto) width is left-aligned at the content-box edge under
-       stretch regardless of how much slack there is, so as long as that edge itself never moves
-       (guaranteed by the constant padding here), no icon ever needs to jump — see .rail-btn and
-       #mode-toolbar's own comments below for the rest of this reasoning. */
-    /* gap:16px is the DEFAULT space between consecutive .rail-group boxes — groups 1-5 stack at the
+    /* gap:16px is the DEFAULT space between consecutive .rail-group boxes — groups 1-6 stack at the
        top of the rail in plain document order, each one this far from the last, unless overridden
        (see .rail-group-divider/.rail-group-gap-lg/.rail-group-bottom below). No justify-content:
        space-between here — that would spread every group evenly down the full height, which is
-       what group 6 alone opts back into via its own margin-top:auto, not something applied to every
+       what group 7 alone opts back into via its own margin-top:auto, not something applied to every
        group uniformly. */
-    #dotto-rail{position:fixed;left:0;top:0;width:var(--rail-width);height:100vh;background:var(--paper);border-right:1px solid var(--card);z-index:1000;display:flex;flex-direction:column;align-items:stretch;gap:16px;padding:20px 12px;box-sizing:border-box;transition:width .3s ease;}
-    /* .expanded is a manual toggle (#btn-sidebar-toggle, the last icon in group 6, the bottom-most
-       .rail-group — see wireSidebarToggle, panels-hamburger.js) — deliberately NOT tied to whether
-       a panel is open; opening a panel no longer auto-expands the rail, per explicit request, so
-       the two states are fully independent (a panel can be open with the rail collapsed, or the
-       rail expanded with no panel open at all). Widens to var(--rail-width-expanded), revealing a
-       text label next to each navigational icon (see .rail-label further below) — a visual overlap
-       of the canvas, exactly like #hamburger-stack's own sliding panel already does, not a resize:
-       --rail-width itself (which #canvas's own left/width and core-state.js's cached RAIL_WIDTH
-       constant both depend on) is left completely untouched, so canvas pan/center math is
-       unaffected. */
-    #dotto-rail.expanded{width:var(--rail-width-expanded);}
-    /* Six fixed groups (see top-bar.html for which icon lands in which), each its own flex column
-       with a 10px gap between the buttons it holds (a tighter gap than #dotto-rail's own 16px
-       between separate groups, so buttons visually read as belonging to the same cluster).
-       align-items:stretch so each group (no explicit width of its own) reaches #dotto-rail's own
-       content width in both states, same reasoning as #dotto-rail's own comment above — every
-       button inside then anchors against ITS group's edge exactly the way it used to anchor
-       against the rail's edge directly, so nothing about the fixed-icon-position math elsewhere in
-       this file needed to change, just the immediate parent it's measured from. */
-    .rail-group{display:flex;flex-direction:column;align-items:stretch;gap:10px;}
-    /* Dividing line ABOVE this group (groups 3/4/5 — see top-bar.html), separating it from the one
+    #dotto-rail{position:fixed;left:0;top:0;width:var(--rail-width);height:100vh;background:var(--paper);border-right:1px solid var(--card);z-index:1000;display:flex;flex-direction:column;align-items:center;gap:16px;padding:20px 0;box-sizing:border-box;}
+    /* Every group (see top-bar.html for which icon lands in which) is its own flex column with a
+       10px gap between the buttons it holds (a tighter gap than #dotto-rail's own 16px between
+       separate groups, so buttons visually read as belonging to the same cluster). */
+    .rail-group{display:flex;flex-direction:column;align-items:center;gap:10px;}
+    /* Dividing line ABOVE this group (groups 4/5/6 — see top-bar.html), separating it from the one
        before. border-top rather than border-bottom on the PREVIOUS group, so the line's presence
        only ever depends on the group that has it, never needing to know what precedes it.
        padding-top adds breathing room below the line itself, before this group's own first button
@@ -330,43 +297,18 @@
        consecutive pair of the top-stacked groups gets .rail-group-divider instead — see its own
        comment). margin-top ADDS to #dotto-rail's own 16px gap rather than replacing it (gap still
        applies to every child pair uniformly; this only pushes ITS OWN top edge further down),
-       landing on 24px total between groups 1 and 2 (was 32px — shrunk per follow-up request). */
+       landing on 24px total between groups 1 and 2. */
     .rail-group-gap-lg{margin-top:8px;}
-    /* Group 6 (cursor-mode selector + sidebar toggle) — pushed down to the very bottom of the rail,
-       away from groups 1-5 which otherwise all stack together at the top in plain document order.
-       Same margin-top:auto technique the old #rail-bottom-group used before every rail icon was
-       reorganized into these six groups. */
+    /* The last group (cursor-mode selector) — pushed down to the very bottom of the rail, away
+       from the groups above it which otherwise all stack together at the top in plain document
+       order. Same margin-top:auto technique the old #rail-bottom-group used before every rail icon
+       was reorganized into this group system. */
     .rail-group-bottom{margin-top:auto;}
     /* Shared sizing/shape for every icon in the rail — 32x32 rounded-square (was 36x36, was
        40x40/64px before that — a little smaller each time the rail itself got trimmed down).
        #btn-profile overrides this to a circle below, matching its own pre-existing shape.
-       position:relative anchors .rail-tooltip below. justify-content:flex-start with a fixed 6px
-       left padding (rather than justify-content:center, used until the rail could expand) is what
-       keeps every icon's own position fixed whether the rail is collapsed or expanded — a 32px
-       button centered vs. one left-aligned with 6px of left padding land the icon in the exact
-       same spot (32-20=12, half is 6), so switching to flex-start here costs nothing visually at
-       rest, but means growing the button wider later (see the .expanded override below) only adds
-       room to the RIGHT of the icon instead of re-centering it. gap only ever matters once a
-       second visible child (.rail-label) exists to leave a gap before. */
-    .rail-btn{position:relative;background:none;border:none;border-radius:9px;height:32px;width:32px;flex:0 0 auto;display:flex;align-items:center;justify-content:flex-start;padding:0 0 0 6px;gap:10px;cursor:pointer;color:var(--ink-soft);transition:color .15s ease,background .15s ease;}
-    /* Icon+label row layout while the rail is expanded (see #dotto-rail's own comment above) — every
-       panel-opening icon grows to the rail's new full width, giving the label room to its right.
-       Only width/padding-right change here — padding-left stays the same 6px the base rule already
-       set, so the icon itself never actually moves, only the free space to its right does.
-       Excludes #btn-profile (a circle with no label of its own) and the cursor-mode selector's own
-       three .mode-btn (instant mode toggles, not panels — stay compact regardless of whether the
-       rail is expanded; see #mode-toolbar's own comment on how it avoids getting stretched wide by
-       the align-items:stretch above despite not being excluded from THAT rule itself). */
-    #dotto-rail.expanded .rail-btn:not(#btn-profile):not(.mode-btn){width:100%;padding-right:8px;}
-    /* Plain text label shown next to an icon only while the rail is expanded — a separate element
-       from .rail-tooltip (an absolutely-positioned floating overlay, fundamentally different layout
-       needs than an inline label sitting in the row itself). No conflict with the tooltip either
-       way: tooltips are already suppressed for the entire time the rail is expanded (see
-       #dotto-rail.expanded .rail-btn:hover .rail-tooltip below), so the label simply becomes the
-       "what does this do" indicator in the tooltip's place once it's hidden. Inherits .rail-btn's
-       own color (grey at rest, white on hover/.active) rather than setting its own.*/
-    .rail-label{display:none;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-    #dotto-rail.expanded .rail-btn:not(#btn-profile):not(.mode-btn) .rail-label{display:inline;}
+       position:relative anchors .rail-tooltip below. */
+    .rail-btn{position:relative;background:none;border:none;border-radius:9px;height:32px;width:32px;flex:0 0 auto;display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--ink-soft);transition:color .15s ease,background .15s ease;}
     /* Custom tooltip for every rail icon, replacing the native title="..." attribute (which has a
        browser-controlled delay and can't match this app's own look) — same opacity-on-hover
        convention as .collab-tooltip/.profile-usage-tooltip/.hub-collab-avatars-tooltip elsewhere
@@ -386,14 +328,6 @@
        the scale rule above); skipping its tooltip too keeps all three "you're already here, this
        icon behaves a little differently" cues consistent with each other. */
     .rail-btn:not(.active):hover .rail-tooltip{opacity:1;}
-    /* Tooltips are suppressed for every rail icon (not just the currently .active one, already
-       covered above) the whole time the rail is expanded — redundant once .rail-label is already
-       showing the same information inline (see #dotto-rail.expanded rules above). Independent of
-       whether any panel is open or not: a panel can be open with the rail collapsed (tooltips show
-       normally, same as always — see wireRailIcon's own comment, panels-hamburger.js, on why
-       hovering never switches panels), and hovering behaves identically either way except for this
-       one suppression once expanded. */
-    #dotto-rail.expanded .rail-btn:hover .rail-tooltip{opacity:0;}
     /* The keyboard-shortcut key each tooltip ends with (see the fragment's own markup) — Space
        Grotesk (this file's semantic-heading/label typeface, see the app-typeface comment near the
        top of this file) rather than the tooltip's own body font, and a plain outline (#454545,
@@ -430,15 +364,7 @@
        curve instead, then briefly had this pairing backwards) needs its own declaration on each
        side. This base rule's own transform transition (ease-in) only ever actually applies on the
        way OUT, once :hover stops matching — see the :hover rule below for the way in. */
-    /* flex-shrink:0 — without it, the icon and .rail-label were both default-shrinkable flex items,
-       so for the first frame or two of the expand animation (.rail-label's display:none->inline is
-       an instant, unanimated flip, firing before #dotto-rail's own width transition has actually
-       grown the row enough to fit icon+gap+label) the row briefly had less space than icon+label
-       together needed, and the icon itself got momentarily squeezed to make room — a visible ~1
-       frame jitter. .rail-label already has overflow:hidden (making its own flex-shrink basis 0
-       per spec), so once the icon can no longer shrink, the label is the only thing left absorbing
-       that first-frame shortfall, invisibly. */
-    .rail-icon-img{width:20px;height:20px;flex-shrink:0;filter:brightness(0) invert(1);opacity:0.55;transition:opacity .15s ease,transform .15s ease-in;pointer-events:none;}
+    .rail-icon-img{width:20px;height:20px;filter:brightness(0) invert(1);opacity:0.55;transition:opacity .15s ease,transform .15s ease-in;pointer-events:none;}
     /* Excludes #btn-profile per explicit request — its own icon is .profile-avatar-sm (the user's
        photo), a different element entirely, so this exclusion is redundant in practice today, but
        kept explicit rather than incidental in case that ever changes. Also excludes .active (this
@@ -571,18 +497,9 @@
     .collab-empty{padding:16px;text-align:center;color:var(--ink-soft);font-size:12px;}
     
     /* Always column — collapsed only ever shows ONE .mode-visible button anyway, so there's no
-       "row" state left worth keeping distinct; expanding just reveals the other two stacked
-       beneath it, pushing whatever's below in the rail down for as long as it's hovered. (Its own
-       .expanded here is this hover-reveal state — an unrelated, differently-scoped use of the same
-       word from #dotto-rail.expanded, the sidebar-width toggle elsewhere in this file; the two
-       never interact.) width:32px is a deliberate opt-out of its own .rail-group's (group 6's)
-       align-items:stretch (see .rail-group's own comment) — without an explicit width here, this
-       box would stretch to the sidebar's full expanded width, and its own align-items:center would
-       then re-center the (still-32px, unstretched) mode buttons in the middle of that much wider
-       box — exactly the kind of icon jump the fixed-position design elsewhere in the rail is meant
-       to avoid. Kept at a fixed 32px instead, so the mode buttons stay anchored at the same spot
-       whether the sidebar is collapsed or expanded, same as every other rail icon. */
-    #mode-toolbar{display:flex;flex-direction:column;align-items:center;gap:4px;width:32px;}
+       "row" state left worth keeping distinct; expanding just reveals the other three stacked
+       beneath it, pushing whatever's below in the rail down for as long as it's hovered. */
+    #mode-toolbar{display:flex;flex-direction:column;align-items:center;gap:4px;}
     #mode-toolbar .mode-btn{display:none;}
     #mode-toolbar .mode-btn.mode-visible{display:flex;}
     #mode-toolbar.expanded .mode-btn{display:flex;}
@@ -840,14 +757,6 @@
        var(--card), same darker-than-usual reasoning as #dotto-rail's own border. */
     #hamburger-stack{position:fixed;left:calc(var(--rail-width) - var(--hmenu-width));width:var(--hmenu-width);z-index:900;display:flex;flex-direction:column;gap:0;pointer-events:none;top:0;height:100vh;background:var(--paper);border-right:1px solid var(--card);transition:left .3s ease;}
     #hamburger-stack.open{left:var(--rail-width);pointer-events:auto;}
-    /* Overrides the rule above to var(--rail-width-expanded) whenever the rail also happens to be
-       manually expanded (#dotto-rail.expanded — see its own comment; independent of whether a panel
-       is open at all) — the panel needs to sit flush against whichever width the rail is actually
-       showing at, collapsed or expanded, not always the same fixed offset. #dotto-rail and
-       #hamburger-stack are siblings, not ancestor/descendant, so body is the nearest shared
-       ancestor this can be scoped from (same body:has(...) technique already used for
-       .collab-tooltip's own suppression elsewhere in this file). */
-    body:has(#dotto-rail.expanded) #hamburger-stack.open{left:var(--rail-width-expanded);}
     /* No card chrome of their own (background/border/radius/shadow) — the shell above already
        supplies the background/edge; each panel is just a section of that one continuous surface. */
     .hmenu-panel{width:100%;pointer-events:auto;}

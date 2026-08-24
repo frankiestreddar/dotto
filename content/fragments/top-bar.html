@@ -3,13 +3,16 @@
      panels-hamburger.js) via click-only open/switch/close (no hover preview). Back/forward live in
      #top-bar-center instead (see #nav-arrows-pill below) — they're page-navigation, not
      rail-icon-style view triggers, and read better beside the breadcrumb they actually move.
-     Icons are grouped into six .rail-group wrappers (see globals.css) — a fixed 10px gap between
-     buttons WITHIN a group. Groups 1-5 stack at the top of the rail with a dividing line between
-     each consecutive pair (.rail-group-divider, on groups 3/4/5 — the line ABOVE that group),
+     Icons are grouped into seven .rail-group wrappers (see globals.css) — a fixed 10px gap between
+     buttons WITHIN a group. Groups 1-6 stack at the top of the rail with a dividing line between
+     each consecutive pair (.rail-group-divider, on groups 4/5/6 — the line ABOVE that group),
      except between groups 1 and 2, which get a bigger plain gap instead of a line
-     (.rail-group-gap-lg, on group 2). Group 6 (.rail-group-bottom) is pushed down to the very
+     (.rail-group-gap-lg, on group 2). Group 7 (.rail-group-bottom) is pushed down to the very
      bottom of the rail via margin-top:auto, same technique the old #rail-bottom-group used before
-     it was folded into this six-group system. -->
+     it was folded into this group system. The rail no longer expands/shows text labels (that
+     feature — #btn-sidebar-toggle, #dotto-rail.expanded, .rail-label — was removed per explicit
+     request); every icon is a fixed 32px square with a hover tooltip only, same as before that
+     feature existed. -->
 <div id="dotto-rail">
     <!-- Group 1: profile, alone. -->
     <div class="rail-group">
@@ -21,39 +24,47 @@
             <span class="rail-tooltip">Profile<span class="rail-tooltip-key">P</span></span>
         </button>
     </div>
-    <!-- Group 2: Search, Ask Dotbot (AI chat). #search-panel (hamburger-stack.html) is a bare shell
-         for now — behavior/content not yet decided, wired into the shared openRailView mechanism
-         (see wireRailIcon('search', ...), panels-hamburger.js) so the icon has somewhere to open.
-         rail-group-gap-lg: a bigger gap above this group instead of the dividing line every other
-         group gets, per explicit request. -->
+    <!-- Group 2: Inbox, alone. #inbox-panel (hamburger-stack.html) is a bare shell for now —
+         behavior/content not yet decided, wired into the shared openRailView mechanism (see
+         wireRailIcon('inbox', ...), panels-hamburger.js) so the icon has somewhere to open.
+         inbox.png doesn't exist in the repo yet — flagged the same way sidebar.png/dotbot.png were
+         earlier this session. rail-group-gap-lg: a bigger gap above this group instead of the
+         dividing line every other group gets, per explicit request (was on the Search/Explain
+         group before Inbox took this position). -->
     <div class="rail-group rail-group-gap-lg">
-        <button id="btn-search" class="rail-btn"><img class="rail-icon-img" src="/assets/icons/search.png" alt=""><span class="rail-label">Search</span><span class="rail-tooltip">Search</span></button>
+        <button id="btn-inbox" class="rail-btn"><img class="rail-icon-img" src="/assets/icons/inbox.png" alt=""><span class="rail-tooltip">Inbox</span></button>
+    </div>
+    <!-- Group 3: Search, Explain (AI chat — renamed from "Ask Dotbot" per explicit request).
+         #search-panel (hamburger-stack.html) is a bare shell for now — behavior/content not yet
+         decided, wired into the shared openRailView mechanism (see wireRailIcon('search', ...),
+         panels-hamburger.js) so the icon has somewhere to open. -->
+    <div class="rail-group rail-group-divider">
+        <button id="btn-search" class="rail-btn"><img class="rail-icon-img" src="/assets/icons/search.png" alt=""><span class="rail-tooltip">Search</span></button>
         <!-- dotbot.png doesn't exist in the repo yet (search.png moved to #btn-search above, which
              needed its own icon back) — flagged the same way sidebar.png was two commits ago. -->
-        <button id="rail-btn-ai" class="rail-btn"><img class="rail-icon-img" src="/assets/icons/dotbot.png" alt=""><span class="rail-label">Ask Dotbot</span><span class="rail-tooltip">Ask Dotbot<span class="rail-tooltip-key">/</span></span></button>
+        <button id="rail-btn-ai" class="rail-btn"><img class="rail-icon-img" src="/assets/icons/dotbot.png" alt=""><span class="rail-tooltip">Explain<span class="rail-tooltip-key">/</span></span></button>
     </div>
-    <!-- Group 3: outline tree, Waypoints. -->
+    <!-- Group 4: outline tree, Waypoints. -->
     <div class="rail-group rail-group-divider">
-        <button id="btn-menu" class="rail-btn"><img class="rail-icon-img" src="/assets/icons/menu-btn.png" alt=""><span class="rail-label">Outline</span><span class="rail-tooltip">Outline<span class="rail-tooltip-key">M</span></span></button>
-        <button id="rail-btn-waypoints" class="rail-btn"><img class="rail-icon-img" src="/assets/icons/waypoint.png" alt=""><span class="rail-label">Waypoints</span><span class="rail-tooltip">Waypoints<span class="rail-tooltip-key">W</span></span></button>
+        <button id="btn-menu" class="rail-btn"><img class="rail-icon-img" src="/assets/icons/menu-btn.png" alt=""><span class="rail-tooltip">Outline<span class="rail-tooltip-key">M</span></span></button>
+        <button id="rail-btn-waypoints" class="rail-btn"><img class="rail-icon-img" src="/assets/icons/waypoint.png" alt=""><span class="rail-tooltip">Waypoints<span class="rail-tooltip-key">W</span></span></button>
     </div>
-    <!-- Group 4: Add, Library, Marketplace. -->
+    <!-- Group 5: Add, Library, Marketplace. -->
     <div class="rail-group rail-group-divider">
-        <button id="btn-add" class="rail-btn"><img class="rail-icon-img" src="/assets/icons/add-btn.png" alt=""><span class="rail-label">Elements</span><span class="rail-tooltip">Elements<span class="rail-tooltip-key">E</span></span></button>
+        <button id="btn-add" class="rail-btn"><img class="rail-icon-img" src="/assets/icons/add-btn.png" alt=""><span class="rail-tooltip">Elements<span class="rail-tooltip-key">E</span></span></button>
         <!-- Own drafts/published/purchased items — used to be a Library tab sharing #cart-panel with
              Discover; now a fully separate rail icon/panel (see wireRailIcon('library', ...),
              marketplace.js). -->
-        <button id="btn-library" class="rail-btn"><img class="rail-icon-img" src="/assets/icons/library.png" alt=""><span class="rail-label">Library</span><span class="rail-tooltip">Library<span class="rail-tooltip-key">L</span></span></button>
-        <button id="btn-cart" class="rail-btn"><img class="rail-icon-img" src="/assets/icons/market-button.png" alt=""><span class="rail-label">Marketplace</span><span class="rail-tooltip">Marketplace<span class="rail-tooltip-key">S</span></span></button>
+        <button id="btn-library" class="rail-btn"><img class="rail-icon-img" src="/assets/icons/library.png" alt=""><span class="rail-tooltip">Library<span class="rail-tooltip-key">L</span></span></button>
+        <button id="btn-cart" class="rail-btn"><img class="rail-icon-img" src="/assets/icons/market-button.png" alt=""><span class="rail-tooltip">Marketplace<span class="rail-tooltip-key">S</span></span></button>
     </div>
-    <!-- Group 5: Collaborations, Messages. -->
+    <!-- Group 6: Collaborations, Messages. -->
     <div class="rail-group rail-group-divider">
-        <button id="rail-btn-collab" class="rail-btn"><img class="rail-icon-img" src="/assets/icons/collaboration.png" alt=""><span class="rail-label">Collaborations</span><span class="rail-tooltip">Collaborations<span class="rail-tooltip-key">G</span></span></button>
-        <button id="btn-messages" class="rail-btn"><img class="rail-icon-img" src="/assets/icons/chats-btn.png" alt=""><span class="rail-label">Messages</span><span class="rail-tooltip">Messages<span class="rail-tooltip-key">T</span></span></button>
+        <button id="rail-btn-collab" class="rail-btn"><img class="rail-icon-img" src="/assets/icons/collaboration.png" alt=""><span class="rail-tooltip">Collaborations<span class="rail-tooltip-key">G</span></span></button>
+        <button id="btn-messages" class="rail-btn"><img class="rail-icon-img" src="/assets/icons/chats-btn.png" alt=""><span class="rail-tooltip">Messages<span class="rail-tooltip-key">T</span></span></button>
     </div>
-    <!-- Group 6: cursor-mode selector, sidebar expand/collapse toggle — the very bottom of the
-         rail (.rail-group-bottom's own margin-top:auto pushes it down, away from groups 1-5 which
-         stack at the top). -->
+    <!-- Group 7: cursor-mode selector — the very bottom of the rail (.rail-group-bottom's own
+         margin-top:auto pushes it down, away from groups 1-6 which stack at the top). -->
     <div class="rail-group rail-group-bottom">
         <!-- Cursor-mode selector — collapsed shows only the currently active mode; hovering expands
              it (see #mode-toolbar.expanded, globals.css) to reveal all four stacked, same
@@ -82,9 +93,6 @@
                 <span class="rail-tooltip">Pen mode — click and drag to draw freehand, or click point by point for straight lines (Enter/Escape/double-click to finish a line)</span>
             </button>
         </div>
-        <!-- Manually toggles #dotto-rail.expanded (see wireSidebarToggle, panels-hamburger.js),
-             independent of whether any panel is open. -->
-        <button id="btn-sidebar-toggle" class="rail-btn"><img class="rail-icon-img" src="/assets/icons/sidebar.png" alt=""><span class="rail-label">Sidebar</span><span class="rail-tooltip">Toggle sidebar</span></button>
     </div>
 </div>
 <!-- Dead centre of the viewport (position:fixed, left:50% + translateX(-50%), see globals.css) —

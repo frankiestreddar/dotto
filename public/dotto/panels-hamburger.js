@@ -133,27 +133,14 @@ import { closeSourceAddMenu } from './source-buttons-cursor-mode.js';
     }
     appState.hamburgerStack.addEventListener('click', (e) => e.stopPropagation());
 
-    // #btn-sidebar-toggle (the last icon in group 6, the bottom-most .rail-group, see top-bar.html)
-    // — the ONLY thing that ever adds/removes #dotto-rail's own 'expanded' class (see globals.css's
-    // #dotto-rail.expanded rules). Deliberately not routed through openRailView/wireRailIcon at
-    // all: it doesn't open a panel of its own, and per explicit request opening a panel must never
-    // implicitly expand or collapse the rail — the two states are fully independent.
-    function wireSidebarToggle() {
-        appState.sidebarToggleBtn.addEventListener('click', (e) => {
-            e.stopPropagation();
-            const expanded = appState.dottoRail.classList.toggle('expanded');
-            appState.sidebarToggleBtn.classList.toggle('active', expanded);
-        });
-    }
-    wireSidebarToggle();
-
     // refreshAiPanel is a plain function reference (ai-assistant-suggestions.js) — wired here,
     // alongside every other rail icon, rather than that file calling wireRailIcon on itself at its
     // own module top level, which would risk a circular-import timing issue (panels-hamburger.js
     // also imports from that file). A function reference used only inside a later event-listener
     // callback carries no such risk.
-    // #search-panel has no content/refresh logic of its own yet (see its own comment,
-    // hamburger-stack.html) — no onOpen callback needed until that's designed.
+    // #inbox-panel/#search-panel have no content/refresh logic of their own yet (see their own
+    // comments, hamburger-stack.html) — no onOpen callback needed until that's designed.
+    wireRailIcon('inbox', appState.btnInbox, appState.inboxPanel, null);
     wireRailIcon('search', appState.btnSearch, appState.searchPanel, null);
     wireRailIcon('ai', appState.railBtnAi, appState.aiPanel, refreshAiPanel);
     wireRailIcon('outline', appState.hamburgerBtn, appState.outlineMenu, buildOutline);

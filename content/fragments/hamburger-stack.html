@@ -21,7 +21,13 @@
         </div>
         <div id="waypoints-list" class="hub-subpanel-list"></div>
     </div>
-    <!-- Search — new rail icon (group 2, top-bar.html, alongside Ask Dotbot). Behavior/content not
+    <!-- Inbox — new rail icon (group 2, top-bar.html, alone). Behavior/content not decided yet; a
+         bare shell wired into the shared openRailView mechanism (see wireRailIcon('inbox', ...),
+         panels-hamburger.js) just so #btn-inbox has a panel to open. -->
+    <div id="inbox-panel" class="hmenu-panel hub-subpanel" onclick="event.stopPropagation()">
+        <div id="inbox-panel-content"></div>
+    </div>
+    <!-- Search — rail icon (group 3, top-bar.html, alongside Explain). Behavior/content not
          decided yet; a bare shell wired into the shared openRailView mechanism (see
          wireRailIcon('search', ...), panels-hamburger.js) just so #btn-search has a panel to open. -->
     <div id="search-panel" class="hmenu-panel hub-subpanel" onclick="event.stopPropagation()">
