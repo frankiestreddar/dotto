@@ -94,13 +94,14 @@
             </button>
         </div>
         <!-- Light/dark theme toggle — under the cursor-mode selector, at the very bottom of the
-             rail, per explicit request. Icon shows the CURRENTLY active theme (dark.png here since
-             dark is the app's default — see theme-toggle.js, which swaps it to light.png the
-             moment light mode is active), reading as a state indicator like every other rail icon
-             rather than "click for the other one." Wiring (click handler, localStorage
-             persistence, icon sync) all lives in theme-toggle.js — this button isn't routed
-             through openRailView/wireRailIcon since it doesn't open a panel. -->
-        <button id="btn-theme-toggle" class="rail-btn"><img class="rail-icon-img" src="/assets/icons/dark.png" alt=""><span class="rail-tooltip">Light mode</span></button>
+             rail, per explicit request. Icon shows the theme clicking it would SWITCH TO (light.png
+             here since dark is the app's default, per explicit request — see theme-toggle.js, which
+             swaps it to dark.png once light mode is active), not the currently-active one. Tooltip
+             text ("Light mode"/"Dark mode") is kept in sync with the icon by the same module.
+             Wiring (click handler, localStorage persistence, icon+tooltip sync) all lives in
+             theme-toggle.js — this button isn't routed through openRailView/wireRailIcon since it
+             doesn't open a panel. -->
+        <button id="btn-theme-toggle" class="rail-btn"><img class="rail-icon-img" src="/assets/icons/light.png" alt=""><span class="rail-tooltip">Light mode</span></button>
     </div>
 </div>
 <!-- Dead centre of the viewport (position:fixed, left:50% + translateX(-50%), see globals.css) —

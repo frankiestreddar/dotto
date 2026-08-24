@@ -11,9 +11,15 @@ export const metadata = {
 // so this is behaviorally identical to the original static markup.
 export default function RootLayout({ children }) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
       <head>
-        {/* Applies the persisted light/dark theme (see theme-toggle.js) to <html> synchronously,
+        {/* suppressHydrationWarning above: the inline script below deliberately sets data-theme on
+            <html> before React hydrates, so its attributes will legitimately differ from what got
+            server-rendered (which has no data-theme at all — there's no request-time way to know
+            the visitor's localStorage value) — exactly the "external changing data" case React's
+            own hydration-mismatch warning describes, and exactly what that prop exists for. Scoped
+            to just this one element/attribute, not a blanket suppression.
+            Applies the persisted light/dark theme (see theme-toggle.js) to <html> synchronously,
             before anything paints — this app's vanilla-JS bootstrap (dotto-script.js) loads via
             <Script strategy="afterInteractive"> in dotto-app.jsx, well after hydration, which
             would otherwise mean a visible flash of the wrong theme on every load. Deliberately a

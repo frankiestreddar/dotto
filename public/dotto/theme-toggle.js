@@ -10,12 +10,15 @@ import { appState } from './core-state.js';
 const THEME_STORAGE_KEY = 'dotto-theme';
 
 const themeIcon = appState.btnThemeToggle.querySelector('.rail-icon-img');
+const themeTooltip = appState.btnThemeToggle.querySelector('.rail-tooltip');
 
-// Icon reflects the CURRENTLY active theme (light.png while light mode is on, dark.png while
-// dark mode is on) — reads as a state indicator, same as every other rail icon, rather than
-// "click this icon to get the other theme."
+// Icon (and tooltip text) show the theme clicking the button would SWITCH TO, per explicit
+// request — light.png/"Light mode" while dark mode is active, dark.png/"Dark mode" while light
+// mode is active — the opposite of a plain state indicator.
 function syncThemeIcon(theme) {
-    themeIcon.src = theme === 'light' ? '/assets/icons/light.png' : '/assets/icons/dark.png';
+    const switchTo = theme === 'light' ? 'dark' : 'light';
+    themeIcon.src = `/assets/icons/${switchTo}.png`;
+    themeTooltip.firstChild.textContent = switchTo === 'light' ? 'Light mode' : 'Dark mode';
 }
 
 function setTheme(theme) {
