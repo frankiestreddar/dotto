@@ -369,8 +369,25 @@
        normally whenever everything actually fits. Scrollbar hidden (scrollbar-width:none plus the
        ::-webkit-scrollbar rule below) per this file's existing no-visible-scrollbars convention
        (.static-table-hscroll/.table-rounded do the same) — Group 1 and Group 7 aren't part of this
-       scroll container at all, so they stay fixed in place regardless. */
-    #dotto-rail-middle{flex:1 1 auto;min-height:0;display:flex;flex-direction:column;align-items:center;justify-content:safe center;gap:16px;overflow-y:auto;scrollbar-width:none;}
+       scroll container at all, so they stay fixed in place regardless.
+       align-self:stretch matters more than it looks: without it, this element shrink-wraps to its
+       own content (~32px, matching a single button) rather than the rail's full width, and since
+       overflow-y:auto forces overflow-x to also become non-`visible` (a CSS Overflow Module rule —
+       "if one axis is visible and the other isn't, the visible one is treated as auto" — browsers
+       apply this even when overflow-x is left unset), that ~32px box is also where horizontal
+       clipping now happens. A .rail-btn.active's 1px outline needs a sliver of room past the
+       button's own edge, and a 32px-wide clip box leaves none — stretch to the full --rail-width
+       instead, matching how Group 1/7 (plain children of #dotto-rail, not of this element) already
+       get their own centering slack for free, so every button here gets the same ~12px either side
+       and the outline fits with room to spare. NOTE: this does NOT fully restore #mode-toolbar's
+       own rightward hover-expand (globals.css, ~140px past its button) — that still gets clipped
+       once the viewport is short enough for this container's overflow-x to actually matter, since
+       even --rail-width's worth of slack (56px) falls well short of what the expand needs. Fixing
+       that properly would mean detaching the expanded buttons from this scroll ancestor's clipping
+       (e.g. position:fixed with JS-computed coordinates instead of the current plain CSS `left`
+       offsets) — a separate, larger change, out of scope for the outline-clipping fix this was
+       written for. */
+    #dotto-rail-middle{flex:1 1 auto;min-height:0;align-self:stretch;display:flex;flex-direction:column;align-items:center;justify-content:safe center;gap:16px;overflow-y:auto;scrollbar-width:none;}
     #dotto-rail-middle::-webkit-scrollbar{display:none;}
     /* border-right was chosen as var(--card) specifically because in DARK mode --card (#1C1C1C)
        sits between --paper (#111111) and --card-border (#2E2E2E) — a step darker than the rail's
@@ -686,7 +703,7 @@
        wide. */
     #add-menu-grid{flex:1 1 auto;overflow-y:auto;min-height:0;display:grid;grid-template-columns:repeat(2, 1fr);align-content:start;gap:8px;padding:8px;scrollbar-width:none;}
     #add-menu-grid::-webkit-scrollbar{display:none;}
-    .add-grid-tile{box-sizing:border-box;display:flex;flex-direction:row;align-items:center;justify-content:flex-start;gap:8px;padding:8px 12px;border-radius:999px;background:var(--hover-bg);cursor:pointer;text-align:left;transition:background .15s ease;}
+    .add-grid-tile{box-sizing:border-box;display:flex;flex-direction:row;align-items:center;justify-content:flex-start;gap:8px;padding:8px 12px;border-radius:12px;background:var(--hover-bg);cursor:pointer;text-align:left;transition:background .15s ease;}
     .add-grid-tile:hover{background:var(--hover-bg);}
     /* Same tinting convention as .add-menu-row-icon just above — see its own comment. Shrunk from
        32px (the old square tile's icon-above-name size) to match .add-menu-row-icon's own 22px —
