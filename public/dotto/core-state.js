@@ -143,7 +143,7 @@
         // one of these and can't be inlined here — see that comment for why.
         ADD_MENU_DATA: {
         notes: { label: 'Notes', categoryDesc: 'The building blocks of your canvas — headings, notes, tables, drawings and media.', items: [
-            { kind: 'title', label: 'Heading', icon: '/assets/icons/heading-1.png' },
+            { kind: 'title', label: 'Heading', icon: '/assets/icons/heading.png' },
             { kind: 'note', label: 'Note', icon: '/assets/icons/note.png' },
             { kind: 'table', label: 'Table', icon: '/assets/icons/table.png' },
             { kind: 'drawing', label: 'Drawing', icon: '/assets/icons/drawing.png' },
