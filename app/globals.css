@@ -660,7 +660,12 @@
        only now (the grid below uses its own square .add-grid-tile look instead). */
     .add-menu-row{display:flex;align-items:center;gap:10px;height:40px;box-sizing:border-box;padding:8px 14px;cursor:pointer;}
     .add-menu-row:hover{background:var(--hover-bg);}
-    .add-menu-row-icon{width:22px;height:22px;flex:0 0 auto;object-fit:contain;}
+    /* Same black-source-PNG tinting convention every other icon in this file uses (.rail-icon-img
+       is the canonical example) — brightness(0) invert(1) turns the black source white for dark
+       mode's dark tile background, and the light-mode override below drops the invert so it stays
+       black against light mode's light tile background instead. */
+    .add-menu-row-icon{width:22px;height:22px;flex:0 0 auto;object-fit:contain;filter:brightness(0) invert(1);}
+    :root[data-theme="light"] .add-menu-row-icon{filter:brightness(0);}
     .add-menu-row-name{flex:1 1 auto;min-width:0;font-size:14px;font-weight:400;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
     /* New Canvas/New Source — always visible regardless of the grid's own search query (they're
        not block types handleAddMenuSearchInput filters at all). */
@@ -673,7 +678,9 @@
     #add-menu-grid::-webkit-scrollbar{display:none;}
     .add-grid-tile{aspect-ratio:1;box-sizing:border-box;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;padding:8px;border-radius:12px;background:var(--hover-bg);cursor:pointer;text-align:center;transition:background .15s ease;}
     .add-grid-tile:hover{background:var(--hover-bg);}
-    .add-grid-tile-icon{width:32px;height:32px;flex:0 0 auto;object-fit:contain;}
+    /* Same tinting convention as .add-menu-row-icon just above — see its own comment. */
+    .add-grid-tile-icon{width:32px;height:32px;flex:0 0 auto;object-fit:contain;filter:brightness(0) invert(1);}
+    :root[data-theme="light"] .add-grid-tile-icon{filter:brightness(0);}
     .add-grid-tile-name{max-width:100%;font-size:12px;font-weight:500;color:var(--ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
     .add-grid-tile-hidden{display:none;}
     /* Spans both columns (see grid-column) so it reads as one centered message rather than being
