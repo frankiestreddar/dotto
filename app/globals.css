@@ -295,14 +295,14 @@
        the scale rule above); skipping its tooltip too keeps all three "you're already here, this
        icon behaves a little differently" cues consistent with each other. */
     .rail-btn:not(.active):hover .rail-tooltip{opacity:1;}
-    /* Once some panel is already open, hovering a DIFFERENT icon switches straight to its panel
-       instead of needing a click (see wireRailIcon's own mouseenter listener, panels-hamburger.js)
-       — showing "hover me to see what I do" right as hovering it is what actually opens it would
-       be actively misleading, so the tooltip is suppressed for every icon (not just the currently
-       .active one, already covered above) the whole time #hamburger-stack is open. Same
-       body:has(...) technique already used for .collab-tooltip's own suppression above — #dotto-rail
-       and #hamburger-stack are siblings, not ancestor/descendant, so body is the nearest shared
-       ancestor this can be scoped from. */
+    /* Tooltips are suppressed for every rail icon (not just the currently .active one, already
+       covered above) the whole time #hamburger-stack is open, per explicit request — everything
+       else about hovering a rail icon behaves identically whether a panel is open or not (see
+       wireRailIcon's own comment, panels-hamburger.js — a hover-switches-panels version of this
+       was tried and explicitly reverted; only a click ever opens/switches/closes one). Same
+       body:has(...) technique already used for .collab-tooltip's own suppression above —
+       #dotto-rail and #hamburger-stack are siblings, not ancestor/descendant, so body is the
+       nearest shared ancestor this can be scoped from. */
     body:has(#hamburger-stack.open) .rail-btn:hover .rail-tooltip{opacity:0;}
     /* The keyboard-shortcut key each tooltip ends with (see the fragment's own markup) — Space
        Grotesk (this file's semantic-heading/label typeface, see the app-typeface comment near the

@@ -115,28 +115,20 @@ import { closeSourceAddMenu } from './source-buttons-cursor-mode.js';
             closingEls.forEach(el => el.classList.remove('open', 'closing'));
         }, 300);
     }
-    // Wires one rail icon's open/switch/close — the same listener every trigger button in the app
-    // already used individually before this (compare the old per-panel wiring that used to live in
-    // marketplace.js/messages-schedule.js/profile-achievements-pricing.js), now written once
-    // instead of duplicated per file.
-    // A click always opens/switches/closes, from a clean slate or not. Hovering, on its own,
-    // previews nothing while nothing is open yet (still click-only from a clean slate, per
-    // explicit design) — but once SOME panel is already open, hovering a DIFFERENT icon switches
-    // straight to it (same "hover to preview once you're already browsing" convention as a
-    // tab strip), no click needed; the matching .rail-tooltip suppression for this state lives in
-    // globals.css (body:has(#hamburger-stack.open) .rail-btn:hover .rail-tooltip), since showing a
-    // "click me" hint on an icon that's actually about to open just from being hovered would be
-    // misleading right at the moment it stops being true.
+    // Wires one rail icon's click-only open/switch/close — the same listener every trigger button
+    // in the app already used individually before this (compare the old per-panel wiring that
+    // used to live in marketplace.js/messages-schedule.js/profile-achievements-pricing.js), now
+    // written once instead of duplicated per file. No mouseenter/mouseleave — hovering a rail icon
+    // previews/switches nothing regardless of whether some other panel is already open or not
+    // (a hover-switches-panels version of this was tried and explicitly reverted); only a click
+    // ever opens, switches, or closes a panel. The one thing that DOES change while a panel is
+    // open is the tooltip, suppressed via body:has(#hamburger-stack.open) in globals.css — that
+    // part is deliberate and stays.
     function wireRailIcon(key, btn, viewEl, onOpen) {
         btn.addEventListener('click', (e) => {
             e.stopPropagation();
             if (appState.activeRailView === key) { closeRailView(); }
             else { openRailView(key, viewEl, btn, onOpen, true); }
-        });
-        btn.addEventListener('mouseenter', () => {
-            if (appState.activeRailView && appState.activeRailView !== key) {
-                openRailView(key, viewEl, btn, onOpen, true);
-            }
         });
     }
     appState.hamburgerStack.addEventListener('click', (e) => e.stopPropagation());
