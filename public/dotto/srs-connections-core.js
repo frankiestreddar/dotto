@@ -604,6 +604,25 @@ import { render, renderSelectedOutlines, startBoxSelection, syncWaypointToDb } f
         // Debug shortcut for tweaking the notification entrance/exit animation — fires a plain
         // notification with no buttons on every press. Remove once done tweaking.
         if (!isEditingText && !anyPanelOpen && (e.key === 'n' || e.key === 'N')) { e.preventDefault(); pushNotification({ type: 'debug', message: 'this is an example notification' }); return; }
+        // One-letter shortcuts for the rest of the rail (see each icon's own .rail-tooltip-key,
+        // top-bar.html) — .click() re-triggers the exact same wireRailIcon listener (panels-
+        // hamburger.js) a real click would, open/switch/close toggle included, rather than
+        // duplicating that logic here per icon. 'm' above (Outline) is the one pre-existing
+        // exception, going through toggleHamburgerMenu() directly instead — left as-is rather
+        // than converted, since it predates this block and already works. None of these reuse a
+        // letter that already means something else globally (checked against every existing
+        // e.key === '<letter>' in this codebase before picking): 'c'/'C' is copy-selected-cards
+        // (history-autosave.js) and 'f'/'F' is flip-flashcard (resize-shortcuts-init.js, only
+        // while hovering one, but still a real collision), which is why Collaborations is 'G'
+        // (Group) rather than the more obvious 'C', and why Marketplace is 'S' (Shop) and Messages
+        // is 'T' (Talk) rather than both wanting the already-taken 'M'.
+        if (!isEditingText && !anyPanelOpen && (e.key === 'p' || e.key === 'P')) { e.preventDefault(); appState.profileBtn.click(); return; }
+        if (!isEditingText && !anyPanelOpen && (e.key === 'w' || e.key === 'W')) { e.preventDefault(); appState.railBtnWaypoints.click(); return; }
+        if (!isEditingText && !anyPanelOpen && (e.key === 'g' || e.key === 'G')) { e.preventDefault(); appState.railBtnCollab.click(); return; }
+        if (!isEditingText && !anyPanelOpen && (e.key === 's' || e.key === 'S')) { e.preventDefault(); appState.btnCart.click(); return; }
+        if (!isEditingText && !anyPanelOpen && (e.key === 'l' || e.key === 'L')) { e.preventDefault(); appState.libraryBtn.click(); return; }
+        if (!isEditingText && !anyPanelOpen && (e.key === 't' || e.key === 'T')) { e.preventDefault(); appState.messagesBtn.click(); return; }
+        if (!isEditingText && !anyPanelOpen && (e.key === 'a' || e.key === 'A')) { e.preventDefault(); btnAdd.click(); return; }
     });
 
     drawColorInput.oninput = (e) => { appState.drawColor = e.target.value; };

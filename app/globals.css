@@ -286,7 +286,16 @@
        anywhere in this rule, so it shows instantly on hover rather than waiting like a native
        tooltip would. */
     .rail-tooltip{position:absolute;left:calc(100% + 10px);top:50%;transform:translateY(-50%);background:var(--bar);border:1px solid var(--card-border);border-radius:8px;padding:4px 10px;font-size:11px;color:var(--ink);white-space:nowrap;opacity:0;pointer-events:none;transition:opacity .15s;box-shadow:0 4px 12px rgba(0,0,0,0.4);z-index:1001;}
-    .rail-btn:hover .rail-tooltip{opacity:1;}
+    /* :not(.active) — the currently-open panel's own icon already has its own persistent
+       indicator (the outline below) and doesn't bounce on hover either (see the :not(.active) on
+       the bounce rule above); skipping its tooltip too keeps all three "you're already here, this
+       icon behaves a little differently" cues consistent with each other. */
+    .rail-btn:not(.active):hover .rail-tooltip{opacity:1;}
+    /* The keyboard-shortcut key each tooltip ends with (see the fragment's own markup) — Space
+       Grotesk (this file's semantic-heading/label typeface, see the app-typeface comment near the
+       top of this file) rather than the tooltip's own body font, and a plain outline rather than
+       a filled pill so it reads as "a key on a keyboard", distinct from a badge/count. */
+    .rail-tooltip-key{display:inline-block;margin-left:6px;padding:1px 5px;border:1px solid var(--ink-soft);border-radius:4px;font-family:'Space Grotesk', sans-serif;font-size:10px;font-weight:600;color:var(--ink-soft);}
     /* Hover is icon-only (color/opacity, via .rail-icon-img below) — no background highlight, so
        the row stays visually quiet until a panel is actually pinned open. .active (this icon's
        panel IS open) gets its own persistent "you're here" indicator instead — a faint 1px grey
