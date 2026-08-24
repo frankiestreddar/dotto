@@ -2,7 +2,7 @@ import { kindLabel, kindSize } from './add-menu.js';
 import { openSearchOverlay, stripHtml } from './ai-assistant-suggestions.js';
 import { removePlacementGhost } from './copy-paste.js';
 import { appState, btnAdd, canvas, canvasViewportCenterX, drawBackBtn, drawColorInput, drawEraserBtn, drawFrontBtn, drawPenBtn, drawSettings, drawSizeInput, effectiveMode, world, zoomTrack } from './core-state.js';
-import { computeConnectorPoints, createConnection, ensureConnections, ensureDrawings, findLinkedTable, findTableById, itemRect, makeLayerSVG, pathNearPoint, pointsToLinePath, pointsToPath } from './drawing-connections.js';
+import { computeConnectorPoints, createConnection, ensureConnections, ensureDrawings, findLinkedTable, findTableById, itemRect, makeLayerSVG, pathNearPoint, penPointsToPath, pointsToLinePath, pointsToPath } from './drawing-connections.js';
 import { defaultFlashcardDeck } from './games-flashcard-typeright.js';
 import { generateGlobalId } from './global-ids.js';
 import { applyTransform, saveSnapshot, scheduleApplyTransform } from './history-autosave.js';
@@ -678,26 +678,34 @@ import { render, renderSelectedOutlines, startBoxSelection, syncWaypointToDb } f
     // Reworked from the old Add-menu "Drawing" toggle (setDrawMode/appState.drawMode) into a real
     // cursor mode — see applyCursorMode, source-buttons-cursor-mode.js, for how pen mode itself is
     // entered/exited now (appState.cardMode === 'pen', same mechanism data/select already use).
+    // Each point is {x, y, handleOut} — handleOut (world coords, or null) is the Illustrator-style
+    // bezier handle a click-DRAG pulls out when placing the 2nd point onwards (see
+    // handlePenPointerDown's own comment below), curving the segment back to the previous point;
+    // penPointsToPath (drawing-connections.js) is what actually turns this into an SVG path,
+    // straight-line M/L segments where neither endpoint has a handle, C (cubic bezier) where
+    // either does.
     // A rubber-band segment from the last placed point to the current mouse position keeps
     // rendering between clicks via this persistent window pointermove listener (unlike a freehand
     // stroke's own move listener below, which only lives for the duration of one drag) — stashed
-    // on appState so finishPenPolyline can remove exactly this one.
+    // on appState so finishPenPolyline can remove exactly this one. If the last placed point has
+    // its own handleOut, this preview already curves toward the mouse using it, so the segment
+    // doesn't visually "snap" from straight to curved the instant the next point actually lands.
     function startPenPolyline(wx, wy) {
         saveSnapshot();
-        appState.penPolyline = { points: [[wx, wy]], color: appState.drawColor, layer: appState.drawLayer, width: appState.drawSize };
+        appState.penPolyline = { points: [{ x: wx, y: wy, handleOut: null }], color: appState.drawColor, layer: appState.drawLayer, width: appState.drawSize };
         const { svg, path } = makeLivePath(appState.drawColor, appState.drawSize, appState.drawLayer);
         appState.liveSvg = svg; appState.livePath = path;
         const rect = canvas.getBoundingClientRect();
         const move = (me) => {
             const [mx, my] = toWorldPoint(me, rect);
-            appState.livePath.setAttribute('d', pointsToPath(appState.penPolyline.points.concat([[mx, my]])));
+            appState.livePath.setAttribute('d', penPointsToPath(appState.penPolyline.points.concat([{ x: mx, y: my, handleOut: null }])));
         };
         appState.penPolylineMoveHandler = move;
         window.addEventListener('pointermove', move);
     }
-    function addPenPolylinePoint(wx, wy) {
-        appState.penPolyline.points.push([wx, wy]);
-        appState.livePath.setAttribute('d', pointsToPath(appState.penPolyline.points));
+    function addPenPolylinePoint(wx, wy, handleOut) {
+        appState.penPolyline.points.push({ x: wx, y: wy, handleOut: handleOut || null });
+        appState.livePath.setAttribute('d', penPointsToPath(appState.penPolyline.points));
     }
     // Commits the in-progress polyline (>=2 points) or discards it (a stray single click, undoing
     // the saveSnapshot from startPenPolyline since nothing was actually drawn) — called on Enter
@@ -710,7 +718,7 @@ import { render, renderSelectedOutlines, startBoxSelection, syncWaypointToDb } f
         window.removeEventListener('pointermove', appState.penPolylineMoveHandler);
         appState.penPolylineMoveHandler = null;
         if (appState.penPolyline.points.length > 1) {
-            ensureDrawings(appState.folders[appState.currentFolderId]).push({ color: appState.penPolyline.color, layer: appState.penPolyline.layer, d: pointsToPath(appState.penPolyline.points), width: appState.penPolyline.width });
+            ensureDrawings(appState.folders[appState.currentFolderId]).push({ color: appState.penPolyline.color, layer: appState.penPolyline.layer, d: penPointsToPath(appState.penPolyline.points), width: appState.penPolyline.width });
         } else {
             appState.undoStack.pop();
         }
@@ -753,9 +761,36 @@ import { render, renderSelectedOutlines, startBoxSelection, syncWaypointToDb } f
 
         const [wx0, wy0] = toWorldPoint(e, rect);
 
-        // Already mid-polyline: every subsequent click just extends it, regardless of any
-        // incidental drag distance — no freehand branch is reachable until this one finishes.
-        if (appState.penPolyline) { addPenPolylinePoint(wx0, wy0); return; }
+        // Already mid-polyline: every subsequent placement extends it — no freehand branch is
+        // reachable until this one finishes. Unlike the very first point (never curvable — see
+        // startPenPolyline/the module comment above), THIS placement's own drag distance now
+        // matters again, Illustrator-pen-tool style: release within PEN_CLICK_THRESHOLD_PX of the
+        // down position and it's a plain corner point (identical to before this existed), drag
+        // past it and the release position becomes this point's handleOut, curving the segment
+        // back to the previous point — with a live curve preview during the drag itself, same
+        // threshold/live-preview pattern as the freehand-vs-click disambiguation just below.
+        if (appState.penPolyline) {
+            const downX2 = e.clientX, downY2 = e.clientY;
+            let dragging2 = false;
+            const move2 = (me) => {
+                if (!dragging2) {
+                    if (Math.hypot(me.clientX - downX2, me.clientY - downY2) < PEN_CLICK_THRESHOLD_PX) return;
+                    dragging2 = true;
+                }
+                const [mx, my] = toWorldPoint(me, rect);
+                appState.livePath.setAttribute('d', penPointsToPath(appState.penPolyline.points.concat([{ x: wx0, y: wy0, handleOut: [mx, my] }])));
+            };
+            const up2 = (ue) => {
+                window.removeEventListener('pointermove', move2);
+                window.removeEventListener('pointerup', up2);
+                if (!dragging2) { addPenPolylinePoint(wx0, wy0, null); return; }
+                const [ux, uy] = toWorldPoint(ue, rect);
+                addPenPolylinePoint(wx0, wy0, [ux, uy]);
+            };
+            window.addEventListener('pointermove', move2);
+            window.addEventListener('pointerup', up2);
+            return;
+        }
 
         const downX = e.clientX, downY = e.clientY;
         let dragStarted = false;

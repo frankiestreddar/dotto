@@ -35,6 +35,33 @@ import { render } from './waypoints-render-loop.js';
         if (!pts.length) return '';
         return 'M' + pts[0][0] + ',' + pts[0][1] + ' ' + pts.slice(1).map(p => 'L' + p[0] + ',' + p[1]).join(' ');
     }
+    // Bezier-aware sibling of pointsToPath above, used only by the pen tool's point-by-point line
+    // (startPenPolyline/addPenPolylinePoint/finishPenPolyline, srs-connections-core.js) — freehand
+    // strokes keep using plain pointsToPath, completely untouched. Takes {x, y, handleOut} objects
+    // rather than [x,y] pairs: handleOut (world coords, or null for a plain corner point) is the
+    // bezier handle a click-DRAG pulls out when placing that point — Illustrator's "smooth anchor
+    // point" behavior, per explicit request. Only handleOut is ever stored; the same point's
+    // handleIn (its tangent on the INCOMING side, when it's a curve's end rather than its start) is
+    // always just the mirror image of handleOut reflected through the anchor itself
+    // (2*x-hx, 2*y-hy) — standard symmetric-handle bezier math, computed on the fly rather than
+    // stored twice. A segment only becomes a C (cubic bezier) command if EITHER endpoint actually
+    // has a handle; with neither, it emits the exact same M/L output pointsToPath would (so a
+    // polyline with no curves in it at all is byte-for-byte identical to before this existed).
+    function penPointsToPath(points) {
+        if (!points.length) return '';
+        let d = 'M' + points[0].x + ',' + points[0].y;
+        for (let i = 1; i < points.length; i++) {
+            const prev = points[i - 1], cur = points[i];
+            if (!prev.handleOut && !cur.handleOut) {
+                d += ' L' + cur.x + ',' + cur.y;
+                continue;
+            }
+            const c1 = prev.handleOut || [prev.x, prev.y];
+            const c2 = cur.handleOut ? [2 * cur.x - cur.handleOut[0], 2 * cur.y - cur.handleOut[1]] : [cur.x, cur.y];
+            d += ' C' + c1[0] + ',' + c1[1] + ' ' + c2[0] + ',' + c2[1] + ' ' + cur.x + ',' + cur.y;
+        }
+        return d;
+    }
     function makeLayerSVG(zIndex) {
         const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
         svg.style.cssText = `position:absolute;top:0;left:0;width:1px;height:1px;overflow:visible;pointer-events:none;z-index:${zIndex};`;
@@ -209,7 +236,7 @@ import { render } from './waypoints-render-loop.js';
         return findTableById(id) || findItemById(id);
     }
 
-export { computeConnectorPoints, createConnection, ensureConnections, ensureDrawings, findLinkedTable, findTableById, folderIdForConnectedSource, folderTitleForConnectedSource, itemRect, linkSelectedCards, makeLayerSVG, pathNearPoint, pointsToLinePath, pointsToPath, resolveTableForEdit };
+export { computeConnectorPoints, createConnection, ensureConnections, ensureDrawings, findLinkedTable, findTableById, folderIdForConnectedSource, folderTitleForConnectedSource, itemRect, linkSelectedCards, makeLayerSVG, pathNearPoint, penPointsToPath, pointsToLinePath, pointsToPath, resolveTableForEdit };
 
 // React → vanilla bridge (see the identical pattern/comment in cards-misc.js) — used by
 // ShelfCard.jsx (app/dotto/), which can't import this directly since public/dotto/*.js isn't
