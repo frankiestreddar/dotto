@@ -569,13 +569,26 @@
     :root[data-theme="light"] .collab-add-btn.added:hover{background:#FBE7E7;}
     .collab-empty{padding:16px;text-align:center;color:var(--ink-soft);font-size:12px;}
     
-    /* Always column — collapsed only ever shows ONE .mode-visible button anyway, so there's no
-       "row" state left worth keeping distinct; expanding just reveals the other three stacked
-       beneath it, pushing whatever's below in the rail down for as long as it's hovered. */
-    #mode-toolbar{display:flex;flex-direction:column;align-items:center;gap:4px;}
-    #mode-toolbar .mode-btn{display:none;}
+    /* Fixed 32x32 footprint (matching any other .rail-btn) at all times, collapsed or expanded —
+       this is what keeps expansion from ever shifting Inbox (its sibling in the same .rail-group,
+       top-bar.html) sideways: a plain flex row would grow #mode-toolbar's own width when expanded,
+       which .rail-group's align-items:center would then re-center, nudging every other icon in the
+       group along with it. Instead each .mode-btn is position:absolute within this fixed box, so
+       growth never touches the group's layout — it just overflows visually to the right, past
+       #dotto-rail's own right edge, exactly like the old vertical version overflowed past the
+       rail's bottom edge onto nothing (no overflow:hidden anywhere in this chain to clip it).
+       left offsets are fixed per DOM position (normal/data/select/pen, 36px apart = 32px button +
+       4px gap) rather than tracking whichever mode is currently active — so the active mode's icon
+       can visually "jump" to its DOM-order slot on expand, same jump the old vertical version
+       already had (stacking in DOM order downward, not active-mode-first), just rotated 90°. */
+    #mode-toolbar{position:relative;width:32px;height:32px;}
+    #mode-toolbar .mode-btn{position:absolute;top:0;left:0;display:none;}
     #mode-toolbar .mode-btn.mode-visible{display:flex;}
     #mode-toolbar.expanded .mode-btn{display:flex;}
+    #mode-toolbar.expanded .mode-btn:nth-child(1){left:0;}
+    #mode-toolbar.expanded .mode-btn:nth-child(2){left:36px;}
+    #mode-toolbar.expanded .mode-btn:nth-child(3){left:72px;}
+    #mode-toolbar.expanded .mode-btn:nth-child(4){left:108px;}
 
     #canvas.mode-data{cursor:crosshair;}
     #canvas.mode-data .item, #canvas.mode-data .item *{cursor:crosshair !important;}

@@ -314,7 +314,9 @@ import { cascadeDeleteFolderContents, centerOnContent, deleteWaypointFromDb, ren
 
     // ---------- Hover-scoped game card shortcuts ----------
     // Whichever game card the mouse is currently sitting over gets its own keyboard shortcuts —
-    // F to flip a flashcard, 1-4 for its rating row once flipped, Enter to advance a Typeright
+    // Space to flip a flashcard (was F; freed up per explicit request once F became the rail
+    // shortcut for Files, srs-connections-core.js — the two collided since this handler isn't
+    // gated on !anyPanelOpen), 1-4 for its rating row once flipped, Enter to advance a Typeright
     // card once it's been checked (the ONLY way to do that from the keyboard, since the input
     // itself goes disabled right after checking — see renderTypeRightHTML — and so can no longer
     // receive its own onkeydown). Read live via the :hover pseudo-class rather than tracked
@@ -341,7 +343,7 @@ import { cascadeDeleteFolderContents, centerOnContent, deleteWaypointFromDb, ren
         const it = hoveredGameCard();
         if (!it) return;
         if (it.kind === 'flashcard') {
-            if (e.key === 'f' || e.key === 'F') { e.preventDefault(); fcFlip(it.id); return; }
+            if (e.key === ' ') { e.preventDefault(); fcFlip(it.id); return; }
             if (it.fcFlipped && (e.key === '1' || e.key === '2' || e.key === '3' || e.key === '4')) {
                 e.preventDefault();
                 fcRate(it.id, ['noclue', 'wrong', 'hard', 'easy'][Number(e.key) - 1]);

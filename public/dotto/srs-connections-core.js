@@ -592,8 +592,11 @@ import { render, renderSelectedOutlines, startBoxSelection, syncWaypointToDb } f
         // toggleHamburgerMenu() directly instead — left as-is rather than converted, since it
         // predates this block and already works. None of these reuse a
         // letter that already means something else globally (checked against every existing
-        // e.key === '<letter>' in this codebase before picking): 'f'/'F' is flip-flashcard
-        // (resize-shortcuts-init.js, only while hovering one, but still a real collision).
+        // e.key === '<letter>' in this codebase before picking). 'F' (Files, was Snippets) used to
+        // collide with resize-shortcuts-init.js's hover-scoped flip-flashcard shortcut (only while
+        // hovering a flashcard, but still a real collision since that handler isn't gated on
+        // !anyPanelOpen) — resolved per explicit request by moving flip-flashcard to Space
+        // instead, freeing 'F' up cleanly. 'S' (Sources) had no prior collision.
         // Collaborations is 'C' (was 'G', reassigned per explicit request — the bare 'c'/'C'
         // copy-selected-cards shortcut that used to collide with it was removed from
         // history-autosave.js at the same time, specifically to free this letter up cleanly, no
@@ -621,6 +624,8 @@ import { render, renderSelectedOutlines, startBoxSelection, syncWaypointToDb } f
         if (!isEditingText && (e.key === 'l' || e.key === 'L')) { e.preventDefault(); appState.libraryBtn.click(); return; }
         if (!isEditingText && (e.key === 'm' || e.key === 'M')) { e.preventDefault(); appState.messagesBtn.click(); return; }
         if (!isEditingText && (e.key === 'b' || e.key === 'B')) { e.preventDefault(); btnAdd.click(); return; }
+        if (!isEditingText && (e.key === 's' || e.key === 'S')) { e.preventDefault(); appState.btnSources.click(); return; }
+        if (!isEditingText && (e.key === 'f' || e.key === 'F')) { e.preventDefault(); appState.btnSnippets.click(); return; }
         // Finishes an in-progress point-by-point pen line without leaving pen mode (unlike
         // Escape, which also switches back to Normal mode via the separate tap/hold override
         // logic in source-buttons-cursor-mode.js) — lets you place the next line right away.
