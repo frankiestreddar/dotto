@@ -636,6 +636,9 @@ import { render, renderSelectedOutlines, startBoxSelection, syncWaypointToDb } f
         // core-state.js) — not appState.btnSnippets, which is actually Files under the hood.
         if (!isEditingText && (e.key === 's' || e.key === 'S')) { e.preventDefault(); appState.btnSnippets2.click(); return; }
         if (!isEditingText && (e.key === 'j' || e.key === 'J')) { e.preventDefault(); appState.btnFriends.click(); return; }
+        // Bare 'z'/'Z' only — Cmd/Ctrl+Z (undo/redo) is a separate, differently-gated handler
+        // (history-autosave.js, requires e.metaKey||e.ctrlKey), so the two don't collide.
+        if (!isEditingText && (e.key === 'z' || e.key === 'Z')) { e.preventDefault(); appState.btnSettings.click(); return; }
         // Not a rail icon (see upload-popup.js) — toggleUploadPopup() is a plain classList toggle
         // on its own independent #upload-popup, not an openRailView('...', ...).click() call like
         // every shortcut above it.
