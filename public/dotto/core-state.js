@@ -212,6 +212,7 @@
         // closeRailView (panels-hamburger.js).
         activeRailView: null,
         dottoRail: document.getElementById('dotto-rail'),
+        sidebarToggleBtn: document.getElementById('btn-sidebar-toggle'),
         railBtnAi: document.getElementById('rail-btn-ai'),
         railBtnWaypoints: document.getElementById('rail-btn-waypoints'),
         railBtnCollab: document.getElementById('rail-btn-collab'),

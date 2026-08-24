@@ -26,13 +26,13 @@
         --brand:#6366f1; /* Beautiful Indigo */
         --hmenu-width:300px;
         --rail-width:56px;
-        /* How wide #dotto-rail grows to when a panel is open, showing a text label next to each
-           icon (see the body:has(#hamburger-stack.open) rules near #dotto-rail's own definition).
-           Deliberately NOT a change to --rail-width itself — that one also drives #canvas's own
-           left/width (see its own comment) and a cached RAIL_WIDTH constant in core-state.js used
-           for pan/center math, neither of which should shift just because a panel happens to be
-           open; the wider rail simply overlaps the canvas instead, the same way #hamburger-stack's
-           own sliding panel already does. */
+        /* How wide #dotto-rail grows to while manually toggled open via #btn-sidebar-toggle (see
+           #dotto-rail.expanded rules near #dotto-rail's own definition), showing a text label next
+           to each icon. Deliberately NOT a change to --rail-width itself — that one also drives
+           #canvas's own left/width (see its own comment) and a cached RAIL_WIDTH constant in
+           core-state.js used for pan/center math, neither of which should shift just because the
+           sidebar happens to be toggled open; the wider rail simply overlaps the canvas instead,
+           the same way #hamburger-stack's own sliding panel already does. */
         --rail-width-expanded:190px;
     }
     *{box-sizing:border-box; touch-action: none; user-select:none; -webkit-user-select:none;}
@@ -282,17 +282,21 @@
        in this file uses, for the same reason — a step darker, closer to the rail's own paper
        background, per explicit request. */
     #dotto-rail{position:fixed;left:0;top:0;width:var(--rail-width);height:100vh;background:var(--paper);border-right:1px solid var(--card);z-index:1000;display:flex;flex-direction:column;align-items:center;gap:4px;padding:20px 0 20px;box-sizing:border-box;transition:width .3s ease;}
-    /* Widens to var(--rail-width-expanded) the whole time any panel is open, revealing a text label
-       next to each navigational icon (see .rail-label further below) — a visual overlap of the
-       canvas, exactly like #hamburger-stack's own sliding panel already does, not a resize:
+    /* .expanded is a manual toggle (#btn-sidebar-toggle, the last icon in #rail-bottom-group —
+       see wireSidebarToggle, panels-hamburger.js) — deliberately NOT tied to whether a panel is
+       open; opening a panel no longer auto-expands the rail, per explicit request, so the two
+       states are fully independent (a panel can be open with the rail collapsed, or the rail
+       expanded with no panel open at all). Widens to var(--rail-width-expanded), revealing a text
+       label next to each navigational icon (see .rail-label further below) — a visual overlap of
+       the canvas, exactly like #hamburger-stack's own sliding panel already does, not a resize:
        --rail-width itself (which #canvas's own left/width and core-state.js's cached RAIL_WIDTH
        constant both depend on) is left completely untouched, so canvas pan/center math is
        unaffected. align-items switches to stretch so the icon rows below (see the .rail-btn
        override further down) can actually reach the rail's new full width instead of staying
        centered at their original 32px; #rail-bottom-group needs the same override since it's its
        own nested flex column with its own align-items:center. */
-    body:has(#hamburger-stack.open) #dotto-rail{width:var(--rail-width-expanded);align-items:stretch;padding:20px 12px;}
-    body:has(#hamburger-stack.open) #rail-bottom-group{align-items:stretch;}
+    #dotto-rail.expanded{width:var(--rail-width-expanded);align-items:stretch;padding:20px 12px;}
+    #dotto-rail.expanded #rail-bottom-group{align-items:stretch;}
     /* Shared sizing/shape for every icon in the rail — 32x32 rounded-square (was 36x36, was
        40x40/64px before that — a little smaller each time the rail itself got trimmed down).
        #btn-profile overrides this to a circle below, matching its own pre-existing shape.
@@ -303,16 +307,16 @@
        centering just the icon. Excludes #btn-profile (a circle with no label of its own) and the
        cursor-mode selector's own three .mode-btn (instant mode toggles, not panels — stay compact
        regardless of whether the rail is expanded). */
-    body:has(#hamburger-stack.open) .rail-btn:not(#btn-profile):not(.mode-btn){width:100%;justify-content:flex-start;padding:0 8px;gap:10px;}
+    #dotto-rail.expanded .rail-btn:not(#btn-profile):not(.mode-btn){width:100%;justify-content:flex-start;padding:0 8px;gap:10px;}
     /* Plain text label shown next to an icon only while the rail is expanded — a separate element
        from .rail-tooltip (an absolutely-positioned floating overlay, fundamentally different layout
        needs than an inline label sitting in the row itself). No conflict with the tooltip either
-       way: tooltips are already suppressed for the entire time any panel is open (see
-       body:has(#hamburger-stack.open) .rail-btn:hover .rail-tooltip below), so the label simply
-       becomes the "what does this do" indicator in the tooltip's place once it's hidden. Inherits
-       .rail-btn's own color (grey at rest, white on hover/.active) rather than setting its own.*/
+       way: tooltips are already suppressed for the entire time the rail is expanded (see
+       #dotto-rail.expanded .rail-btn:hover .rail-tooltip below), so the label simply becomes the
+       "what does this do" indicator in the tooltip's place once it's hidden. Inherits .rail-btn's
+       own color (grey at rest, white on hover/.active) rather than setting its own.*/
     .rail-label{display:none;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-    body:has(#hamburger-stack.open) .rail-btn:not(#btn-profile):not(.mode-btn) .rail-label{display:inline;}
+    #dotto-rail.expanded .rail-btn:not(#btn-profile):not(.mode-btn) .rail-label{display:inline;}
     /* Custom tooltip for every rail icon, replacing the native title="..." attribute (which has a
        browser-controlled delay and can't match this app's own look) — same opacity-on-hover
        convention as .collab-tooltip/.profile-usage-tooltip/.hub-collab-avatars-tooltip elsewhere
@@ -333,14 +337,13 @@
        icon behaves a little differently" cues consistent with each other. */
     .rail-btn:not(.active):hover .rail-tooltip{opacity:1;}
     /* Tooltips are suppressed for every rail icon (not just the currently .active one, already
-       covered above) the whole time #hamburger-stack is open, per explicit request — everything
-       else about hovering a rail icon behaves identically whether a panel is open or not (see
-       wireRailIcon's own comment, panels-hamburger.js — a hover-switches-panels version of this
-       was tried and explicitly reverted; only a click ever opens/switches/closes one). Same
-       body:has(...) technique already used for .collab-tooltip's own suppression above —
-       #dotto-rail and #hamburger-stack are siblings, not ancestor/descendant, so body is the
-       nearest shared ancestor this can be scoped from. */
-    body:has(#hamburger-stack.open) .rail-btn:hover .rail-tooltip{opacity:0;}
+       covered above) the whole time the rail is expanded — redundant once .rail-label is already
+       showing the same information inline (see #dotto-rail.expanded rules above). Independent of
+       whether any panel is open or not: a panel can be open with the rail collapsed (tooltips show
+       normally, same as always — see wireRailIcon's own comment, panels-hamburger.js, on why
+       hovering never switches panels), and hovering behaves identically either way except for this
+       one suppression once expanded. */
+    #dotto-rail.expanded .rail-btn:hover .rail-tooltip{opacity:0;}
     /* The keyboard-shortcut key each tooltip ends with (see the fragment's own markup) — Space
        Grotesk (this file's semantic-heading/label typeface, see the app-typeface comment near the
        top of this file) rather than the tooltip's own body font, and a plain outline (#454545,
@@ -522,7 +525,7 @@
     /* width:100% (rather than scoping it to only the expanded-rail state) is harmless at rest too —
        this wrapper has no visible box of its own (no background/border), and #btn-add itself keeps
        its own explicit 32px width regardless; it only actually matters once the rail is expanded
-       and #btn-add's own width becomes 100% (see body:has(#hamburger-stack.open) .rail-btn above),
+       and #btn-add's own width becomes 100% (see #dotto-rail.expanded .rail-btn above),
        which needs an ancestor that's already full-width to resolve that percentage against —
        #rail-bottom-group's own align-items:stretch (see #dotto-rail's own comment) gets that width
        to #add-toolbar, and this rule passes it the rest of the way down to #btn-add. */
@@ -782,12 +785,15 @@
        surface rather than the panel looking like a separate bar floating on top. border-right is
        var(--card), same darker-than-usual reasoning as #dotto-rail's own border. */
     #hamburger-stack{position:fixed;left:calc(var(--rail-width) - var(--hmenu-width));width:var(--hmenu-width);z-index:900;display:flex;flex-direction:column;gap:0;pointer-events:none;top:0;height:100vh;background:var(--paper);border-right:1px solid var(--card);transition:left .3s ease;}
-    /* left matches --rail-width-expanded, not the plain --rail-width the rest-state rule above
-       uses — #dotto-rail itself is expanding to that same width for as long as this .open class is
-       present (see body:has(#hamburger-stack.open) #dotto-rail, near #dotto-rail's own definition),
-       so the panel needs to sit flush against the rail's new, wider right edge instead of its
-       original one. */
-    #hamburger-stack.open{left:var(--rail-width-expanded);pointer-events:auto;}
+    #hamburger-stack.open{left:var(--rail-width);pointer-events:auto;}
+    /* Overrides the rule above to var(--rail-width-expanded) whenever the rail also happens to be
+       manually expanded (#dotto-rail.expanded — see its own comment; independent of whether a panel
+       is open at all) — the panel needs to sit flush against whichever width the rail is actually
+       showing at, collapsed or expanded, not always the same fixed offset. #dotto-rail and
+       #hamburger-stack are siblings, not ancestor/descendant, so body is the nearest shared
+       ancestor this can be scoped from (same body:has(...) technique already used for
+       .collab-tooltip's own suppression elsewhere in this file). */
+    body:has(#dotto-rail.expanded) #hamburger-stack.open{left:var(--rail-width-expanded);}
     /* No card chrome of their own (background/border/radius/shadow) — the shell above already
        supplies the background/edge; each panel is just a section of that one continuous surface. */
     .hmenu-panel{width:100%;pointer-events:auto;}
