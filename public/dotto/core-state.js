@@ -467,6 +467,14 @@
     // a <Script strategy="afterInteractive"> tag, well after layout.js's blocking globals.css
     // import has applied.
     const RAIL_WIDTH = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--rail-width')) || 64;
-    function canvasViewportCenterX() { return (window.innerWidth - RAIL_WIDTH) / 2; }
+    // #hamburger-stack open reserves an extra --hmenu-width of space too now (see #canvas's own
+    // body:has(#hamburger-stack.open) override, globals.css) — subtracted here the same way
+    // RAIL_WIDTH already is, so "center of the visible canvas" stays accurate whether or not a
+    // rail panel is currently open, not just when the permanent rail alone is accounted for.
+    const HMENU_WIDTH = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--hmenu-width')) || 300;
+    function canvasViewportCenterX() {
+        const panelWidth = appState.activeRailView ? HMENU_WIDTH : 0;
+        return (window.innerWidth - RAIL_WIDTH - panelWidth) / 2;
+    }
 
 export { addMenu, appState, bringCardToFront, btnAdd, btnBack, btnForward, canvas, canvasContextMenu, canvasViewportCenterX, contextMenu, cursorOverlay, dotLayer, drawBackBtn, drawColorInput, drawEraserBtn, drawFrontBtn, drawPenBtn, drawSettings, drawSizeInput, effectiveMode, recomputeTopCardZIndex, supabase, world, zoomControl, zoomFill, zoomThumb, zoomTrack };

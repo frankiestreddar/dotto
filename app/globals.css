@@ -79,9 +79,17 @@
        no explicit width of its own, so its containing block is this element — narrowing #canvas's
        box shifts #world's whole coordinate frame with it for free, which is exactly why the JS
        pan/zoom math (canvasViewportCenterX, core-state.js) subtracts --rail-width from
-       window.innerWidth rather than adding it a second time. */
+       window.innerWidth rather than adding it a second time. The body:has(#hamburger-stack.open)
+       override just below reuses this exact same mechanism for the slide-out rail panel too, per
+       explicit request that panels reserve their own space rather than floating over the canvas —
+       narrowing/shifting #canvas's own box (with a matching .3s transition, same duration as
+       #hamburger-stack's own left transition, so the two move in visual lockstep) pushes whatever
+       was showing there out from under the panel instead of letting the panel cover it. As with
+       the rail, canvasViewportCenterX() (core-state.js) is what keeps the "center of the visible
+       canvas" pan/zoom math in sync with however much of the left edge is currently reserved. */
     #canvas{
         position:absolute;top:0;left:var(--rail-width);width:calc(100vw - var(--rail-width));height:100vh;
+        transition:left .3s ease,width .3s ease;
         overflow:hidden;
         background-color: var(--paper);
         z-index: 0;
@@ -90,6 +98,11 @@
     #canvas.crosshair{cursor: crosshair !important;}
     #canvas.crosshair .item, #canvas.crosshair .item:hover, #canvas.crosshair .item *{cursor: crosshair !important;}
     #canvas.static-source #dot-layer{display:none;}
+    /* Reserves --hmenu-width of extra space, same technique #canvas's own base rule above already
+       uses to reserve --rail-width for the permanent rail — see that rule's comment. Covers the
+       normal canvas; the source-page full-viewport table view (.item.static-table below) has its
+       own separate override, since it's position:fixed and ignores #canvas's box entirely. */
+    body:has(#hamburger-stack.open) #canvas{left:calc(var(--rail-width) + var(--hmenu-width));width:calc(100vw - var(--rail-width) - var(--hmenu-width));}
     /* The dot grid is a real element, panned/zoomed via an actual CSS `transform` (see
        applyTransform/layoutDotLayer in JS) rather than by animating background-position/size
        directly on #canvas — the latter forces the browser to re-tile and repaint the pattern
@@ -105,7 +118,15 @@
     */
     #dot-layer{position:absolute;background-image:radial-gradient(var(--dot) 1px, transparent 1px);background-size:28px 28px;transform-origin:0 0;pointer-events:none;z-index:0;}
 
-    .item.static-table{position:fixed;top:0;left:0;width:100vw;height:100vh;background:var(--paper);border:none;border-radius:0;box-shadow:none;padding:96px 16px 16px 16px;z-index:1;display:block;overflow:hidden;}
+    .item.static-table{position:fixed;top:0;left:0;width:100vw;height:100vh;background:var(--paper);border:none;border-radius:0;box-shadow:none;padding:96px 16px 16px 16px;z-index:1;display:block;overflow:hidden;transition:left .3s ease,width .3s ease;}
+    /* Same reservation #canvas gets from the rail panel (see its own body:has(...) override
+       above), for the source-page full-viewport table view specifically — position:fixed breaks
+       it out of #canvas's own box entirely, so it needs this as its own separate rule rather than
+       inheriting the #canvas shift for free. Not stacked on top of --rail-width here, since this
+       element doesn't reserve space for the permanent rail at its own left:0 baseline either
+       (the rail's higher z-index already sits visually on top of it, pre-existing, unrelated to
+       this panel-push change) — only the panel's own --hmenu-width is added. */
+    body:has(#hamburger-stack.open) .item.static-table{left:var(--hmenu-width);width:calc(100vw - var(--hmenu-width));}
     .item.table.static-table .static-table-wrap{width:100%;height:auto;max-width:calc(100vw - 32px);display:flex;flex-direction:column;}
     .item.table.static-table .static-table-row{width:100%;height:auto;flex:0 1 auto;min-height:0;overflow:visible;}
     /* Horizontal scrolling now happens once, on the shared .static-table-hscroll ancestor.
