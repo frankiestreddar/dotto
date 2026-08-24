@@ -689,6 +689,18 @@
 
     #zoom-control{position:fixed;bottom:20px;right:20px;display:flex;flex-direction:column;align-items:center;background:var(--bar);border:1px solid var(--card-border);border-radius:10px;padding:10px 4px;box-shadow:0 4px 16px rgba(0,0,0,0.4);z-index:1000;}
     :root[data-theme="light"] #zoom-control{box-shadow:0 4px 16px rgba(0,0,0,0.168);}
+
+    /* File-upload popup — bottom-left, a small gap (12px) past #dotto-rail's own right edge.
+       Plain display:none/flex toggle (no slide/fade transition), matching #draw-settings' own
+       toggle above rather than the #hamburger-stack rail-panel system's animated one — it's a
+       fully independent panel, not part of that shared shell (see upload-popup.js). */
+    #upload-popup{display:none;position:fixed;left:calc(var(--rail-width) + 12px);bottom:20px;width:300px;height:75px;background:var(--bar);border:1px solid var(--card-border);border-radius:12px;box-shadow:0 4px 16px rgba(0,0,0,0.5);z-index:2000;box-sizing:border-box;padding:8px;}
+    #upload-popup.open{display:flex;}
+    :root[data-theme="light"] #upload-popup{box-shadow:0 4px 16px rgba(0,0,0,0.21);}
+    .upload-popup-close{position:absolute;top:6px;right:6px;cursor:pointer;color:var(--ink-soft);background:none;border:none;font-size:13px;padding:4px;font-family:inherit;line-height:1;}
+    .upload-popup-close:hover{color:var(--ink);}
+    .upload-popup-btn{flex:1;height:100%;background:none;border:1px dashed var(--card-border);border-radius:8px;color:var(--ink-soft);font-size:13px;font-family:inherit;cursor:pointer;display:flex;align-items:center;justify-content:center;text-align:center;padding:4px 12px;}
+    .upload-popup-btn:hover{background:var(--hover-bg);color:var(--ink);border-color:var(--ink-soft);}
     #zoom-track{position:relative;width:4px;height:70px;background:var(--card-border);border-radius:3px;cursor:pointer;}
     #zoom-fill{position:absolute;bottom:0;left:0;width:100%;background:var(--ink-soft);border-radius:3px;pointer-events:none;}
     #zoom-thumb{position:absolute;left:50%;bottom:0;width:12px;height:12px;border-radius:50%;background:var(--ink);box-shadow:0 1px 4px rgba(0,0,0,0.4);transform:translate(-50%,50%);transition:transform .12s ease;pointer-events:none;}

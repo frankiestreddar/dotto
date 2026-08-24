@@ -225,6 +225,12 @@
         sourcesPanel: document.getElementById('sources-panel'),
         btnSnippets: document.getElementById('btn-snippets'),
         snippetsPanel: document.getElementById('snippets-panel'),
+        // File-upload popup (U toggles it) — independent of the #hamburger-stack rail-panel
+        // system entirely (not a railViewEls/railIconBtns entry, no wireRailIcon call); own
+        // open/close, see upload-popup.js.
+        uploadPopup: document.getElementById('upload-popup'),
+        uploadPopupBtn: document.getElementById('upload-popup-btn'),
+        uploadPopupClose: document.getElementById('upload-popup-close'),
         railBtnAi: document.getElementById('rail-btn-ai'),
         railBtnWaypoints: document.getElementById('rail-btn-waypoints'),
         railBtnCollab: document.getElementById('rail-btn-collab'),

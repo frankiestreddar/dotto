@@ -146,3 +146,14 @@
 <div id="notification-pill">
     <div id="notification-root"></div>
 </div>
+<!-- File-upload popup — U toggles it open/closed, independent of the #hamburger-stack rail-panel
+     system entirely (not a railViewEls/railIconBtns entry — plain classList.toggle('open') own
+     state, see upload-popup.js/core-state.js). Sits just past #dotto-rail's own right edge,
+     bottom-left. Clicking #upload-popup-btn creates a blank 'media' canvas item at the current
+     viewport center and immediately calls triggerMediaUpload on it (media-pdf-epub.js) — reusing
+     the exact same image/video/PDF/EPUB upload flow the Media card's own "Upload" button already
+     uses, rather than duplicating that FileReader/Supabase-storage logic here. -->
+<div id="upload-popup">
+    <button id="upload-popup-close" class="upload-popup-close" title="Close">✕</button>
+    <button id="upload-popup-btn" class="upload-popup-btn">Upload a file to add it to the canvas</button>
+</div>

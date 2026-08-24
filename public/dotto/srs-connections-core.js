@@ -11,6 +11,7 @@ import { isAnyUiPanelOpen } from './panels-hamburger.js';
 import { awardUserPoints, bumpAchievementStat } from './profile-achievements-pricing.js';
 import { setOutlineActive, toggleHamburgerMenu } from './shared-canvases-outline.js';
 import { pushNotification } from './stopwatch-search-notifications.js';
+import { toggleUploadPopup } from './upload-popup.js';
 import { render, renderSelectedOutlines, startBoxSelection, syncWaypointToDb } from './waypoints-render-loop.js';
 
 
@@ -626,6 +627,10 @@ import { render, renderSelectedOutlines, startBoxSelection, syncWaypointToDb } f
         if (!isEditingText && (e.key === '+' || e.key === '=')) { e.preventDefault(); btnAdd.click(); return; }
         if (!isEditingText && (e.key === 's' || e.key === 'S')) { e.preventDefault(); appState.btnSources.click(); return; }
         if (!isEditingText && (e.key === 'f' || e.key === 'F')) { e.preventDefault(); appState.btnSnippets.click(); return; }
+        // Not a rail icon (see upload-popup.js) — toggleUploadPopup() is a plain classList toggle
+        // on its own independent #upload-popup, not an openRailView('...', ...).click() call like
+        // every shortcut above it.
+        if (!isEditingText && (e.key === 'u' || e.key === 'U')) { e.preventDefault(); toggleUploadPopup(); return; }
         // Finishes an in-progress point-by-point pen line without leaving pen mode (unlike
         // Escape, which also switches back to Normal mode via the separate tap/hold override
         // logic in source-buttons-cursor-mode.js) — lets you place the next line right away.

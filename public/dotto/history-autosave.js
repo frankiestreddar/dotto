@@ -11,6 +11,7 @@ import { stripSharedFolderIds } from './shared-canvases-outline.js';
 import { closeCellTagPicker } from './source-tags-ai.js';
 import { cancelAddingKind, finishPenPolyline } from './srs-connections-core.js';
 import { closeSearchCardsModal, swCurrentElapsedMs, swFormatTime } from './stopwatch-search-notifications.js';
+import { closeUploadPopup } from './upload-popup.js';
 import { centerOnContent, render } from './waypoints-render-loop.js';
 
 
@@ -379,6 +380,7 @@ import { centerOnContent, render } from './waypoints-render-loop.js';
             closeDotbotUpgradeModal();
             closePricingOverlay();
             closeCellTagPicker();
+            closeUploadPopup();
             clearSearch(); // also closes the search overlay + blurs the input, see its own comment
             // Was setDrawMode(false) — finishes (commits, or discards a stray single point) any
             // in-progress pen-tool polyline. Pen mode itself is exited separately, by the same
