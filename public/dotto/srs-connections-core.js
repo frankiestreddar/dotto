@@ -1,5 +1,5 @@
 import { kindLabel, kindSize } from './add-menu.js';
-import { handleSearchInput, openSearchOverlay, stripHtml } from './ai-assistant-suggestions.js';
+import { openSearchOverlay, stripHtml } from './ai-assistant-suggestions.js';
 import { removePlacementGhost } from './copy-paste.js';
 import { appState, btnAdd, canvas, canvasViewportCenterX, drawBackBtn, drawColorInput, drawEraserBtn, drawFrontBtn, drawPenBtn, drawSettings, drawSizeInput, effectiveMode, world, zoomTrack } from './core-state.js';
 import { computeConnectorPoints, createConnection, ensureConnections, ensureDrawings, findLinkedTable, findTableById, itemRect, makeLayerSVG, pathNearPoint, pointsToLinePath, pointsToPath } from './drawing-connections.js';
@@ -570,36 +570,16 @@ import { render, renderSelectedOutlines, startBoxSelection, syncWaypointToDb } f
         // text box." Once some other panel is already open, reaching a DIFFERENT one now always
         // means clicking its rail icon rather than one of these letter shortcuts still firing.
         const anyPanelOpen = isAnyUiPanelOpen();
-        // Space opens the AI panel (part of #hamburger-stack, see openRailView/openSearchOverlay)
-        // empty. openSearchOverlay shows the panel THEN focuses the input — focusing an element
-        // inside a still-hidden (display:none) subtree is a silent no-op, so that order is
-        // load-bearing, not stylistic.
+        // Space opens the Explain panel (AI chat, part of #hamburger-stack — see
+        // openRailView/openSearchOverlay) empty. openSearchOverlay shows the panel THEN focuses
+        // the input — focusing an element inside a still-hidden (display:none) subtree is a silent
+        // no-op, so that order is load-bearing, not stylistic. "/" used to ALSO open this same
+        // panel (pre-filling a slash command — see command-parser.js) before Search got its own
+        // rail icon; now "/" opens Search instead (below, alongside the other letter shortcuts),
+        // so that pre-fill trick no longer applies here at all — typing "/" manually once the
+        // Explain panel is already open still works exactly as before, this was only ever about
+        // the global keyboard shortcut.
         if (!isEditingText && !anyPanelOpen && e.key === ' ') { e.preventDefault(); openSearchOverlay(); return; }
-        // Same idea as Space above, but also types the "/" rather than opening empty, since that's
-        // meant to start a slash command (see command-parser.js) — preventDefault + writing
-        // .value ourselves (rather than letting the keystroke's own default action insert it
-        // after we focus) sidesteps any browser's own default behavior for "/" outside a text
-        // field (e.g. Firefox's quick-find-on-slash).
-        if (!isEditingText && !anyPanelOpen && e.key === '/') {
-            e.preventDefault();
-            openSearchOverlay();
-            if (appState.searchInput) {
-                appState.searchInput.value = '/';
-                appState.searchInput.setSelectionRange(1, 1);
-                // Deliberately NOT called synchronously here. If handleSearchInput ran in the same
-                // tick as opening the overlay and setting the value, the browser would coalesce all
-                // of it into one paint — the box would just appear already showing suggestions,
-                // with no visible "/" -> grows -> suggestions fade in sequence (see
-                // updateSearchDropdown's own reveal animation, ai-assistant-suggestions.js). The
-                // double rAF forces an actual paint of the just-opened box with a bare "/" in it
-                // first (one rAF fires before the next paint, so it isn't enough on its own —
-                // nesting a second one inside it guarantees that paint has already happened by the
-                // time the callback runs), then triggers the suggestions a beat later so their
-                // reveal animation is an actually-visible second step, not a coalesced no-op.
-                requestAnimationFrame(() => requestAnimationFrame(() => handleSearchInput('/')));
-            }
-            return;
-        }
         if (!isEditingText && (e.key === 'm' || e.key === 'M')) { e.preventDefault(); toggleHamburgerMenu(); return; }
         // Debug shortcut for tweaking the notification entrance/exit animation — fires a plain
         // notification with no buttons on every press. Remove once done tweaking.
@@ -615,13 +595,18 @@ import { render, renderSelectedOutlines, startBoxSelection, syncWaypointToDb } f
         // (history-autosave.js) and 'f'/'F' is flip-flashcard (resize-shortcuts-init.js, only
         // while hovering one, but still a real collision), which is why Collaborations is 'G'
         // (Group) rather than the more obvious 'C', and why Marketplace is 'S' (Shop) and Messages
-        // is 'T' (Talk) rather than both wanting the already-taken 'M'.
+        // is 'T' (Talk) rather than both wanting the already-taken 'M'. Inbox is 'I' and Search is
+        // '/' (not gated on !isEditingText's usual companions since it isn't a letter, but still
+        // needs the isEditingText check itself — typing "/" in a normal text field must never
+        // hijack focus away).
         // Deliberately NOT gated on !anyPanelOpen (unlike 'n' above, and unlike an earlier version
         // of these same lines) — these are meant to jump straight from one open panel to another,
         // not just open one from a clean slate. openRailView (via .click(), same as
         // toggleHamburgerMenu's own openRailView call above) already closes whatever else is open
         // before opening the new one, so switching panels this way is already safe; isEditingText
         // alone is enough to stop them firing while actually typing in a focused field.
+        if (!isEditingText && (e.key === 'i' || e.key === 'I')) { e.preventDefault(); appState.btnInbox.click(); return; }
+        if (!isEditingText && e.key === '/') { e.preventDefault(); appState.btnSearch.click(); return; }
         if (!isEditingText && (e.key === 'p' || e.key === 'P')) { e.preventDefault(); appState.profileBtn.click(); return; }
         if (!isEditingText && (e.key === 'w' || e.key === 'W')) { e.preventDefault(); appState.railBtnWaypoints.click(); return; }
         if (!isEditingText && (e.key === 'g' || e.key === 'G')) { e.preventDefault(); appState.railBtnCollab.click(); return; }

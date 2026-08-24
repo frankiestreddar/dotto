@@ -32,17 +32,21 @@
          dividing line every other group gets, per explicit request (was on the Search/Explain
          group before Inbox took this position). -->
     <div class="rail-group rail-group-gap-lg">
-        <button id="btn-inbox" class="rail-btn"><img class="rail-icon-img" src="/assets/icons/inbox.png" alt=""><span class="rail-tooltip">Inbox</span></button>
+        <button id="btn-inbox" class="rail-btn"><img class="rail-icon-img" src="/assets/icons/inbox.png" alt=""><span class="rail-tooltip">Inbox<span class="rail-tooltip-key">I</span></span></button>
     </div>
     <!-- Group 3: Search, Explain (AI chat — renamed from "Ask Dotbot" per explicit request).
          #search-panel (hamburger-stack.html) is a bare shell for now — behavior/content not yet
          decided, wired into the shared openRailView mechanism (see wireRailIcon('search', ...),
          panels-hamburger.js) so the icon has somewhere to open. -->
     <div class="rail-group rail-group-divider">
-        <button id="btn-search" class="rail-btn"><img class="rail-icon-img" src="/assets/icons/search.png" alt=""><span class="rail-tooltip">Search</span></button>
+        <button id="btn-search" class="rail-btn"><img class="rail-icon-img" src="/assets/icons/search.png" alt=""><span class="rail-tooltip">Search<span class="rail-tooltip-key">/</span></span></button>
         <!-- dotbot.png doesn't exist in the repo yet (search.png moved to #btn-search above, which
              needed its own icon back) — flagged the same way sidebar.png was two commits ago. -->
-        <button id="rail-btn-ai" class="rail-btn"><img class="rail-icon-img" src="/assets/icons/dotbot.png" alt=""><span class="rail-tooltip">Explain<span class="rail-tooltip-key">/</span></span></button>
+        <!-- ␣ (U+2423 OPEN BOX) stands in for the space bar — fits the same fixed-size single-glyph
+             key badge every other shortcut uses (see .rail-tooltip-key, globals.css) rather than
+             needing a wider "Space"-text badge that would break the "every badge is the same size"
+             convention established earlier. -->
+        <button id="rail-btn-ai" class="rail-btn"><img class="rail-icon-img" src="/assets/icons/dotbot.png" alt=""><span class="rail-tooltip">Explain<span class="rail-tooltip-key">␣</span></span></button>
     </div>
     <!-- Group 4: outline tree, Waypoints. -->
     <div class="rail-group rail-group-divider">
