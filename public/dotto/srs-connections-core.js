@@ -627,7 +627,7 @@ import { render, renderSelectedOutlines, startBoxSelection, syncWaypointToDb } f
         if (!isEditingText && (e.key === 'h' || e.key === 'H')) { e.preventDefault(); appState.btnCart.click(); return; }
         if (!isEditingText && (e.key === 'l' || e.key === 'L')) { e.preventDefault(); appState.libraryBtn.click(); return; }
         if (!isEditingText && (e.key === 'm' || e.key === 'M')) { e.preventDefault(); appState.messagesBtn.click(); return; }
-        if (!isEditingText && (e.key === '+' || e.key === '=')) { e.preventDefault(); btnAdd.click(); return; }
+        if (!isEditingText && (e.key === 'e' || e.key === 'E')) { e.preventDefault(); btnAdd.click(); return; }
         // Sources was 'S' (reassigned to 'K' per explicit request, freeing 'S' up for the newer,
         // separate Snippets button below).
         if (!isEditingText && (e.key === 'k' || e.key === 'K')) { e.preventDefault(); appState.btnSources.click(); return; }

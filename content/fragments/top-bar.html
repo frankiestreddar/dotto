@@ -37,7 +37,7 @@
             </span>
         </button>
     </div>
-    <!-- Groups 2-6 (cursor-mode+Inbox+Queries, Search/Outline/Waypoints, Basics/Library/
+    <!-- Groups 2-6 (cursor-mode+Inbox+Queries, Search/Outline/Waypoints, Essentials/Library/
          Marketplace, Friends/Collaborations/Messages, Snippets/Sources/Files) center as one block
          in whatever space is left between the pinned Group 1 above and the pinned Group 7 below
          (see #dotto-rail-middle, globals.css) — per explicit request. -->
@@ -96,9 +96,10 @@
         <button id="btn-menu" class="rail-btn"><img class="rail-icon-img" src="/assets/icons/menu-btn.png" alt=""><span class="rail-tooltip">Outline<span class="rail-tooltip-key">O</span></span><span class="rail-tooltip-expanded"><span class="rail-tooltip-expanded-row"><span class="rail-tooltip-expanded-name">Outline</span><span class="rail-tooltip-key">O</span></span><span class="rail-tooltip-expanded-desc">A collapsible tree of every block on this canvas.</span></span></button>
         <button id="rail-btn-waypoints" class="rail-btn"><img class="rail-icon-img" src="/assets/icons/waypoint.png" alt=""><span class="rail-tooltip">Waypoints<span class="rail-tooltip-key">W</span></span><span class="rail-tooltip-expanded"><span class="rail-tooltip-expanded-row"><span class="rail-tooltip-expanded-name">Waypoints</span><span class="rail-tooltip-key">W</span></span><span class="rail-tooltip-expanded-desc">Saved locations on this canvas, sorted by distance from where you are now.</span></span></button>
     </div>
-    <!-- Group 4: Basics, Library, Marketplace. -->
+    <!-- Group 4: Essentials (was Basics — renamed per explicit request; #btn-add keeps its
+         internal id), Library, Marketplace. -->
     <div class="rail-group rail-group-divider">
-        <button id="btn-add" class="rail-btn"><img class="rail-icon-img" src="/assets/icons/add-btn.png" alt=""><span class="rail-tooltip">Basics<span class="rail-tooltip-key">+</span></span><span class="rail-tooltip-expanded"><span class="rail-tooltip-expanded-row"><span class="rail-tooltip-expanded-name">Basics</span><span class="rail-tooltip-key">+</span></span><span class="rail-tooltip-expanded-desc">Add a note, heading, table, or other block to the canvas.</span></span></button>
+        <button id="btn-add" class="rail-btn"><img class="rail-icon-img" src="/assets/icons/add-btn.png" alt=""><span class="rail-tooltip">Essentials<span class="rail-tooltip-key">E</span></span><span class="rail-tooltip-expanded"><span class="rail-tooltip-expanded-row"><span class="rail-tooltip-expanded-name">Essentials</span><span class="rail-tooltip-key">E</span></span><span class="rail-tooltip-expanded-desc">Add a note, heading, table, or other block to the canvas.</span></span></button>
         <!-- Own drafts/published/purchased items — used to be a Library tab sharing #cart-panel with
              Discover; now a fully separate rail icon/panel (see wireRailIcon('library', ...),
              marketplace.js). -->
@@ -120,7 +121,7 @@
          group 2 below Inbox (see its own comment there) per a later explicit request, leaving this
          first slot empty for the new Snippets button below. Files (was ITSELF called Snippets,
          renamed to Files per an earlier explicit request — #btn-snippets/#snippets-panel keep
-         their internal id, same convention as Basics/Queries staying #btn-add/#rail-btn-ai under
+         their internal id, same convention as Essentials/Queries staying #btn-add/#rail-btn-ai under
          the hood) is a different button from this new Snippets one — the two briefly shared the
          same snippets.png icon (per explicit request at the time), until Files got its own
          files.png per a later explicit request to tell them apart. files.png doesn't exist in the
