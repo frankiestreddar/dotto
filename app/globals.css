@@ -869,6 +869,13 @@
     .requests-count{flex:0 0 auto;min-width:16px;height:16px;padding:0 5px;border-radius:9px;background:var(--brand);color:#fff;font-size:10px;font-weight:700;display:flex;align-items:center;justify-content:center;}
     .requests-back-row{display:flex;align-items:center;gap:8px;padding:6px 10px;margin:2px 4px 6px;border-radius:6px;cursor:pointer;font-size:13px;font-weight:600;color:var(--ink-soft);}
     .requests-back-row:hover{background:var(--card);color:var(--ink);}
+    /* var(--card) reads as a subtle highlight in dark mode (a step lighter than #hamburger-stack's
+       own var(--paper) background) but in light mode --card is pure white — LIGHTER than --paper,
+       not darker — so it barely registers as a highlight there rather than being invisible.
+       var(--hover-bg) is darker than --paper in light mode specifically, giving the "grey just
+       darker than background" hover this row (and the other sidebar-panel rows below) wants, per
+       explicit request. Dark mode is left as-is. */
+    :root[data-theme="light"] .requests-back-row:hover{background:var(--hover-bg);}
     /* Both an owned canvas (avatars = its collaborators) and one shared WITH this user (single
        avatar = its owner) use this exact same row shape — icon, title+owner-subtext, avatar(s)
        pushed to the right edge — see renderHubCollabList. Owned rows additionally show a hover
@@ -895,6 +902,7 @@
     .msg-section-label{font-size:10px;text-transform:uppercase;letter-spacing:0.5px;color:var(--ink-soft);padding:8px 10px 6px;}
     .msg-chat-row{display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:8px;cursor:pointer;}
     .msg-chat-row:hover{background:var(--card);}
+    :root[data-theme="light"] .msg-chat-row:hover{background:var(--hover-bg);}
     /* No background/border, no border-radius, no clipping of any kind — plain square photo (or
        bare initials as a fallback) sitting directly on the panel. Unlike the top-bar button
        avatar (#btn-profile/.profile-avatar-sm), which keeps its circular bottom-clip treatment,
@@ -908,6 +916,7 @@
     .msg-chat-preview{font-size:12px;color:var(--ink-soft);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
     .msg-add-row{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:8px 10px;border-radius:8px;cursor:pointer;}
     .msg-add-row:hover{background:var(--card);}
+    :root[data-theme="light"] .msg-add-row:hover{background:var(--hover-bg);}
     .msg-add-btn{font-size:11px;color:var(--ink);background:var(--hover-bg);border:1px solid var(--card-border);border-radius:6px;padding:4px 8px;cursor:pointer;flex:0 0 auto;}
     .msg-add-btn:hover{background:var(--hover-bg);}
     .msg-empty{padding:16px;text-align:center;color:var(--ink-soft);font-size:12px;}
@@ -1606,6 +1615,7 @@
        dark mode while correctly reading as "more prominent than the resting var(--ink-soft) text"
        in light mode too (darker, not lighter, is what reads as emphasis on a light surface). */
     .outline-item:hover{background:var(--card);color:var(--ink);}
+    :root[data-theme="light"] .outline-item:hover{background:var(--hover-bg);}
     .outline-item.active{background:var(--hover-bg);color:var(--ink);}
     /* Shift-click selection state for the Chats/Waypoints/Collaborations hamburger list panels
        (see listPanelSelectionStore) — same brand-tinted background already used for a "selected"
