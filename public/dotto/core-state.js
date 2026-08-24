@@ -215,6 +215,7 @@
         // Set by openRailView, cleared by closeRailView (panels-hamburger.js).
         activeRailView: null,
         dottoRail: document.getElementById('dotto-rail'),
+        btnThemeToggle: document.getElementById('btn-theme-toggle'),
         btnInbox: document.getElementById('btn-inbox'),
         inboxPanel: document.getElementById('inbox-panel'),
         btnSearch: document.getElementById('btn-search'),

@@ -6,6 +6,7 @@ import './dotto/srs-connections-core.js';
 import './dotto/copy-paste.js';
 import './dotto/source-buttons-cursor-mode.js';
 import './dotto/panels-hamburger.js';
+import './dotto/theme-toggle.js';
 import './dotto/hamburger-collab.js';
 import './dotto/profile-achievements-pricing.js';
 import './dotto/messages-schedule.js';

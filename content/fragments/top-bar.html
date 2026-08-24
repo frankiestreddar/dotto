@@ -93,6 +93,14 @@
                 <span class="rail-tooltip">Pen mode — click and drag to draw freehand, or click point by point for straight lines (Enter/Escape/double-click to finish a line)</span>
             </button>
         </div>
+        <!-- Light/dark theme toggle — under the cursor-mode selector, at the very bottom of the
+             rail, per explicit request. Icon shows the CURRENTLY active theme (dark.png here since
+             dark is the app's default — see theme-toggle.js, which swaps it to light.png the
+             moment light mode is active), reading as a state indicator like every other rail icon
+             rather than "click for the other one." Wiring (click handler, localStorage
+             persistence, icon sync) all lives in theme-toggle.js — this button isn't routed
+             through openRailView/wireRailIcon since it doesn't open a panel. -->
+        <button id="btn-theme-toggle" class="rail-btn"><img class="rail-icon-img" src="/assets/icons/dark.png" alt=""><span class="rail-tooltip">Light mode</span></button>
     </div>
 </div>
 <!-- Dead centre of the viewport (position:fixed, left:50% + translateX(-50%), see globals.css) —
