@@ -36,12 +36,23 @@
         </div>
         <div id="search-panel-content"></div>
     </div>
-    <!-- Sources — rail icon (group 6, top-bar.html, alongside Queries/Snippets — Documents, which
-         used to sit here, was deleted per explicit request). Behavior/content not decided yet; a
-         bare shell wired into the shared openRailView mechanism (see wireRailIcon('sources', ...),
+    <!-- Sources — rail icon (group 6, top-bar.html, alongside Snippets/Files — Documents, which
+         used to sit here, was deleted per explicit request, and Queries, which sat here after
+         that, has since moved to group 2). Behavior/content not decided yet; a bare shell wired
+         into the shared openRailView mechanism (see wireRailIcon('sources', ...),
          panels-hamburger.js) just so #btn-sources has a panel to open. -->
     <div id="sources-panel" class="hmenu-panel hub-subpanel" onclick="event.stopPropagation()">
         <div id="sources-panel-content"></div>
+    </div>
+    <!-- Snippets — rail icon (group 6, top-bar.html, first slot, alongside Sources/Files). A
+         different button from Files (which used to itself be called Snippets before an earlier
+         rename — see Files' own comment below) — this is a new, separate icon per explicit
+         request, with its own #btn-snippets2/#snippets2-panel id distinct from Files'
+         #btn-snippets/#snippets-panel. Behavior/content not decided yet; a bare shell wired into
+         the shared openRailView mechanism (see wireRailIcon('snippets2', ...), panels-hamburger.js)
+         just so #btn-snippets2 has a panel to open. -->
+    <div id="snippets2-panel" class="hmenu-panel hub-subpanel" onclick="event.stopPropagation()">
+        <div id="snippets2-panel-content"></div>
     </div>
     <!-- Friends — rail icon (group 5, top-bar.html, above Collaborations). Behavior/content not
          decided yet; a bare shell wired into the shared openRailView mechanism (see
@@ -57,11 +68,14 @@
     <div id="settings-panel" class="hmenu-panel hub-subpanel" onclick="event.stopPropagation()">
         <div id="settings-panel-content"></div>
     </div>
-    <!-- Files (was Snippets — renamed per explicit request; id/wiring kept as 'snippets' under the
-         hood, same convention as Basics/Queries staying #btn-add/#rail-btn-ai). Rail icon (group 6,
-         top-bar.html, alongside Queries/Sources). Behavior/content not decided yet; a bare shell
-         wired into the shared openRailView mechanism (see wireRailIcon('snippets', ...), panels-
-         hamburger.js) just so #btn-snippets has a panel to open. -->
+    <!-- Files (was ITSELF called Snippets — renamed per explicit request; id/wiring kept as
+         'snippets' under the hood, same convention as Basics/Queries staying #btn-add/
+         #rail-btn-ai). Not to be confused with the separate, newer Snippets button above
+         (#btn-snippets2/#snippets2-panel) — two different buttons that happen to share a name and
+         an icon, per explicit request. Rail icon (group 6, top-bar.html, alongside Snippets/
+         Sources). Behavior/content not decided yet; a bare shell wired into the shared
+         openRailView mechanism (see wireRailIcon('snippets', ...), panels-hamburger.js) just so
+         #btn-snippets has a panel to open. -->
     <div id="snippets-panel" class="hmenu-panel hub-subpanel" onclick="event.stopPropagation()">
         <div id="snippets-panel-content"></div>
     </div>

@@ -37,22 +37,25 @@
             </span>
         </button>
     </div>
-    <!-- Groups 2-6 (cursor-mode+Inbox, Search/Outline/Waypoints, Basics/Library/Marketplace,
-         Friends/Collaborations/Messages, Queries/Sources/Files) center as one block in whatever
-         space is left between the pinned Group 1 above and the pinned Group 7 below (see
-         #dotto-rail-middle, globals.css) — per explicit request. -->
+    <!-- Groups 2-6 (cursor-mode+Inbox+Queries, Search/Outline/Waypoints, Basics/Library/
+         Marketplace, Friends/Collaborations/Messages, Snippets/Sources/Files) center as one block
+         in whatever space is left between the pinned Group 1 above and the pinned Group 7 below
+         (see #dotto-rail-middle, globals.css) — per explicit request. -->
     <div id="dotto-rail-middle">
-    <!-- Group 2: cursor-mode selector, then Inbox. The cursor-mode selector used to sit alone in
-         its own group at the very bottom of the rail (group 7) — moved up here, above Inbox, per
-         explicit request; it no longer expands downward on hover (there's nothing below it in this
-         group to push), instead expanding rightward, overflowing past the rail's own edge (see
-         #mode-toolbar, globals.css). #inbox-panel (hamburger-stack.html) is a bare shell for now —
-         behavior/content not yet decided, wired into the shared openRailView mechanism (see
-         wireRailIcon('inbox', ...), panels-hamburger.js) so the icon has somewhere to open.
-         inbox.png doesn't exist in the repo yet — flagged the same way sidebar.png/dotbot.png were
-         earlier this session. No longer needs its own bigger top gap (rail-group-gap-lg, dropped)
-         now that it sits inside the centered #dotto-rail-middle block rather than directly under
-         Group 1 — #dotto-rail-middle's own gap already spaces it from its siblings uniformly. -->
+    <!-- Group 2: cursor-mode selector, then Inbox, then Queries below it. The cursor-mode selector
+         used to sit alone in its own group at the very bottom of the rail (group 7) — moved up here,
+         above Inbox, per explicit request; it no longer expands downward on hover (there's nothing
+         below it in this group to push), instead expanding rightward, overflowing past the rail's
+         own edge (see #mode-toolbar, globals.css). #inbox-panel (hamburger-stack.html) is a bare
+         shell for now — behavior/content not yet decided, wired into the shared openRailView
+         mechanism (see wireRailIcon('inbox', ...), panels-hamburger.js) so the icon has somewhere to
+         open. inbox.png doesn't exist in the repo yet — flagged the same way sidebar.png/dotbot.png
+         were earlier this session. No longer needs its own bigger top gap (rail-group-gap-lg,
+         dropped) now that it sits inside the centered #dotto-rail-middle block rather than directly
+         under Group 1 — #dotto-rail-middle's own gap already spaces it from its siblings uniformly.
+         Queries: moved here below Inbox per explicit request — was in group 6 (now Snippets/
+         Sources/Files, see its own comment) — #rail-btn-ai/#ai-panel keep their internal id
+         unchanged, same convention as every other rename/relocation this session. -->
     <div class="rail-group">
         <!-- Cursor-mode selector — collapsed shows only the currently active mode; hovering expands
              it (see #mode-toolbar.expanded, globals.css) rightward to reveal all four, same
@@ -82,6 +85,7 @@
             </button>
         </div>
         <button id="btn-inbox" class="rail-btn"><img class="rail-icon-img" src="/assets/icons/inbox.png" alt=""><span class="rail-tooltip">Inbox<span class="rail-tooltip-key">I</span></span><span class="rail-tooltip-expanded"><span class="rail-tooltip-expanded-row"><span class="rail-tooltip-expanded-name">Inbox</span><span class="rail-tooltip-key">I</span></span><span class="rail-tooltip-expanded-desc">Notifications and updates.</span></span></button>
+        <button id="rail-btn-ai" class="rail-btn"><img class="rail-icon-img" src="/assets/icons/dotbot.png" alt=""><span class="rail-tooltip">Queries<span class="rail-tooltip-key">Q</span></span><span class="rail-tooltip-expanded"><span class="rail-tooltip-expanded-row"><span class="rail-tooltip-expanded-name">Queries</span><span class="rail-tooltip-key">Q</span></span><span class="rail-tooltip-expanded-desc">Ask Dotbot questions about this canvas.</span></span></button>
     </div>
     <!-- Group 3: Search, outline tree, Waypoints. #search-panel (hamburger-stack.html) is a bare
          shell for now — behavior/content not yet decided, wired into the shared openRailView
@@ -104,29 +108,31 @@
     <!-- Group 5: Friends, Collaborations, Messages. #friends-panel (hamburger-stack.html) is a
          bare shell for now — behavior/content not yet decided, wired into the shared openRailView
          mechanism (see wireRailIcon('friends', ...), panels-hamburger.js) so the icon has
-         somewhere to open. No keyboard shortcut yet, same as Sources when it was first added.
-         friends.png doesn't exist in the repo yet — flagged the same way sidebar.png/dotbot.png
-         were earlier this session. -->
+         somewhere to open. friends.png doesn't exist in the repo yet — flagged the same way
+         sidebar.png/dotbot.png were earlier this session. -->
     <div class="rail-group rail-group-divider">
-        <button id="btn-friends" class="rail-btn"><img class="rail-icon-img" src="/assets/icons/friends.png" alt=""><span class="rail-tooltip">Friends</span><span class="rail-tooltip-expanded"><span class="rail-tooltip-expanded-row"><span class="rail-tooltip-expanded-name">Friends</span></span><span class="rail-tooltip-expanded-desc">Manage friends and requests.</span></span></button>
+        <button id="btn-friends" class="rail-btn"><img class="rail-icon-img" src="/assets/icons/friends.png" alt=""><span class="rail-tooltip">Friends<span class="rail-tooltip-key">J</span></span><span class="rail-tooltip-expanded"><span class="rail-tooltip-expanded-row"><span class="rail-tooltip-expanded-name">Friends</span><span class="rail-tooltip-key">J</span></span><span class="rail-tooltip-expanded-desc">Manage friends and requests.</span></span></button>
         <button id="rail-btn-collab" class="rail-btn"><img class="rail-icon-img" src="/assets/icons/collaboration.png" alt=""><span class="rail-tooltip">Collaborations<span class="rail-tooltip-key">C</span></span><span class="rail-tooltip-expanded"><span class="rail-tooltip-expanded-row"><span class="rail-tooltip-expanded-name">Collaborations</span><span class="rail-tooltip-key">C</span></span><span class="rail-tooltip-expanded-desc">People collaborating with you on this canvas.</span></span></button>
         <button id="btn-messages" class="rail-btn"><img class="rail-icon-img" src="/assets/icons/chats-btn.png" alt=""><span class="rail-tooltip">Messages<span class="rail-tooltip-key">M</span></span><span class="rail-tooltip-expanded"><span class="rail-tooltip-expanded-row"><span class="rail-tooltip-expanded-name">Messages</span><span class="rail-tooltip-key">M</span></span><span class="rail-tooltip-expanded-desc">Direct messages and conversations.</span></span></button>
     </div>
-    <!-- Group 6: Queries, Sources, Files. Documents (which used to sit here, first) was deleted
-         per explicit request, and Queries — which used to have its own solo group directly under
-         Inbox — moved into the now-empty first slot in its place, collapsing that old group away
-         entirely. Queries: AI chat, "Ask Dotbot" -> "Explain" -> "Queries", each renamed per
-         explicit request; dotbot.png doesn't exist in the repo yet (search.png moved to
-         #btn-search above, which needed its own icon back) — flagged the same way sidebar.png was
-         a few commits ago. Files (was Snippets, renamed per explicit request — #btn-snippets/
-         #snippets-panel keep their internal id, same convention as Basics/Queries staying
-         #btn-add/#rail-btn-ai under the hood) and Sources: #sources-panel/#snippets-panel
-         (hamburger-stack.html) are bare shells for now — behavior/content not yet decided, wired
-         into the shared openRailView mechanism (see wireRailIcon('sources'/'snippets', ...),
-         panels-hamburger.js) so each icon has somewhere to open. -->
+    <!-- Group 6: Snippets, Sources, Files. Documents (which used to sit here, first) was deleted
+         per explicit request; Queries then took Documents' old slot, and has now moved on again to
+         group 2 below Inbox (see its own comment there) per a later explicit request, leaving this
+         first slot empty for the new Snippets button below. Files (was ITSELF called Snippets,
+         renamed to Files per an earlier explicit request — #btn-snippets/#snippets-panel keep
+         their internal id, same convention as Basics/Queries staying #btn-add/#rail-btn-ai under
+         the hood) is a different button from this new Snippets one — per explicit request this new
+         one reuses the same snippets.png icon Files used to be the sole user of, so the two now
+         look identical; that's what was asked for, not an oversight. #btn-snippets2/
+         #snippets2-panel is this new button's own id, distinct from Files' #btn-snippets/
+         #snippets-panel. Sources/Snippets(new)/Files: #sources-panel/#snippets2-panel/
+         #snippets-panel (hamburger-stack.html) are bare shells for now — behavior/content not yet
+         decided, wired into the shared openRailView mechanism (see
+         wireRailIcon('sources'/'snippets2'/'snippets', ...), panels-hamburger.js) so each icon has
+         somewhere to open. -->
     <div class="rail-group rail-group-divider">
-        <button id="rail-btn-ai" class="rail-btn"><img class="rail-icon-img" src="/assets/icons/dotbot.png" alt=""><span class="rail-tooltip">Queries<span class="rail-tooltip-key">Q</span></span><span class="rail-tooltip-expanded"><span class="rail-tooltip-expanded-row"><span class="rail-tooltip-expanded-name">Queries</span><span class="rail-tooltip-key">Q</span></span><span class="rail-tooltip-expanded-desc">Ask Dotbot questions about this canvas.</span></span></button>
-        <button id="btn-sources" class="rail-btn"><img class="rail-icon-img" src="/assets/icons/sources.png" alt=""><span class="rail-tooltip">Sources<span class="rail-tooltip-key">S</span></span><span class="rail-tooltip-expanded"><span class="rail-tooltip-expanded-row"><span class="rail-tooltip-expanded-name">Sources</span><span class="rail-tooltip-key">S</span></span><span class="rail-tooltip-expanded-desc">Structured source tables you can reference and query.</span></span></button>
+        <button id="btn-snippets2" class="rail-btn"><img class="rail-icon-img" src="/assets/icons/snippets.png" alt=""><span class="rail-tooltip">Snippets<span class="rail-tooltip-key">S</span></span><span class="rail-tooltip-expanded"><span class="rail-tooltip-expanded-row"><span class="rail-tooltip-expanded-name">Snippets</span><span class="rail-tooltip-key">S</span></span><span class="rail-tooltip-expanded-desc">Reusable snippets you can drop onto any canvas.</span></span></button>
+        <button id="btn-sources" class="rail-btn"><img class="rail-icon-img" src="/assets/icons/sources.png" alt=""><span class="rail-tooltip">Sources<span class="rail-tooltip-key">K</span></span><span class="rail-tooltip-expanded"><span class="rail-tooltip-expanded-row"><span class="rail-tooltip-expanded-name">Sources</span><span class="rail-tooltip-key">K</span></span><span class="rail-tooltip-expanded-desc">Structured source tables you can reference and query.</span></span></button>
         <button id="btn-snippets" class="rail-btn"><img class="rail-icon-img" src="/assets/icons/snippets.png" alt=""><span class="rail-tooltip">Files<span class="rail-tooltip-key">F</span></span><span class="rail-tooltip-expanded"><span class="rail-tooltip-expanded-row"><span class="rail-tooltip-expanded-name">Files</span><span class="rail-tooltip-key">F</span></span><span class="rail-tooltip-expanded-desc">Files and snippets you've saved.</span></span></button>
     </div>
     </div>

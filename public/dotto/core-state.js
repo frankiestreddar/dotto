@@ -211,9 +211,9 @@
         // per-canvas collab flyout, source-add-menu) and keep their own flags.
         panelPinned: { rail: false, collab: false, sourceAdd: false },
         // Which #hamburger-stack view is currently showing — null | 'inbox' | 'search' | 'ai' |
-        // 'sources' | 'snippets' | 'friends' | 'settings' | 'outline' | 'waypoints' | 'collab' |
-        // 'marketplace' | 'library' | 'messages' | 'profile'. Set by openRailView, cleared by
-        // closeRailView (panels-hamburger.js).
+        // 'sources' | 'snippets' | 'snippets2' | 'friends' | 'settings' | 'outline' | 'waypoints' |
+        // 'collab' | 'marketplace' | 'library' | 'messages' | 'profile'. Set by openRailView,
+        // cleared by closeRailView (panels-hamburger.js).
         activeRailView: null,
         dottoRail: document.getElementById('dotto-rail'),
         btnThemeToggle: document.getElementById('btn-theme-toggle'),
@@ -225,6 +225,11 @@
         sourcesPanel: document.getElementById('sources-panel'),
         btnSnippets: document.getElementById('btn-snippets'),
         snippetsPanel: document.getElementById('snippets-panel'),
+        // A separate, newer Snippets button from btnSnippets/snippetsPanel above (which is
+        // actually Files under the hood — see its own comment, hamburger-stack.html) — the two
+        // just happen to share a name and icon, per explicit request.
+        btnSnippets2: document.getElementById('btn-snippets2'),
+        snippets2Panel: document.getElementById('snippets2-panel'),
         // File-upload popup (U toggles it) — independent of the #hamburger-stack rail-panel
         // system entirely (not a railViewEls/railIconBtns entry, no wireRailIcon call); own
         // open/close, see upload-popup.js.
@@ -427,8 +432,8 @@
     // #snippets-panel are bare shells (see
     // wireRailIcon('inbox'/'search'/'documents'/'sources'/'snippets', ...) below) — their own
     // behavior/content hasn't been designed yet.
-    appState.railViewEls = [appState.inboxPanel, appState.searchPanel, appState.aiPanel, appState.sourcesPanel, appState.snippetsPanel, appState.friendsPanel, appState.settingsPanel, appState.outlineMenu, appState.waypointsPanel, appState.hubCollabPanel, appState.cartPanel, appState.libraryPanel, appState.messagesPanel, addMenu, appState.profilePanel];
-    appState.railIconBtns = [appState.btnInbox, appState.btnSearch, appState.railBtnAi, appState.btnSources, appState.btnSnippets, appState.btnFriends, appState.btnSettings, appState.hamburgerBtn, appState.railBtnWaypoints, appState.railBtnCollab, appState.btnCart, appState.libraryBtn, appState.messagesBtn, btnAdd, appState.profileBtn];
+    appState.railViewEls = [appState.inboxPanel, appState.searchPanel, appState.aiPanel, appState.sourcesPanel, appState.snippetsPanel, appState.snippets2Panel, appState.friendsPanel, appState.settingsPanel, appState.outlineMenu, appState.waypointsPanel, appState.hubCollabPanel, appState.cartPanel, appState.libraryPanel, appState.messagesPanel, addMenu, appState.profilePanel];
+    appState.railIconBtns = [appState.btnInbox, appState.btnSearch, appState.railBtnAi, appState.btnSources, appState.btnSnippets, appState.btnSnippets2, appState.btnFriends, appState.btnSettings, appState.hamburgerBtn, appState.railBtnWaypoints, appState.railBtnCollab, appState.btnCart, appState.libraryBtn, appState.messagesBtn, btnAdd, appState.profileBtn];
     appState.TOTAL_SUB_LEVELS = appState.LEVEL_NAMES.length * appState.SUB_RANKS_PER_TIER;
     // Same reason as the block above: can't reference appState.currentUser from inside appState's
     // own object literal, since appState doesn't exist yet until that literal finishes constructing.
