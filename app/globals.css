@@ -422,25 +422,55 @@
        + 0px (no gap wanted, per explicit request — was 2px, then 5px before that) = 12px gets the
        tooltip's own left edge to sit exactly flush against the RAIL's edge rather than the
        button's. */
-    .rail-tooltip{position:absolute;left:calc(100% + 12px);top:50%;transform:translateY(-50%);background:var(--bar);border:1px solid var(--card-border);border-radius:8px;padding:4px 4px 4px 8px;font-size:11px;color:var(--ink);white-space:nowrap;opacity:0;pointer-events:none;transition:opacity .15s;box-shadow:0 4px 12px rgba(0,0,0,0.4);z-index:1001;}
+    /* Base/small-pill state: width/height auto (shrink-to-fit just .rail-tooltip-row's content —
+       .rail-tooltip-desc starts with NO text node at all, not just visually hidden text, so it
+       contributes zero intrinsic width/height here; rail-tooltip-expand.js only ever inserts
+       characters into it once the 2s hold-to-expand actually fires, see that file's own comment).
+       overflow:hidden is required, not cosmetic — width/height both get pinned to explicit px
+       values by that same script while animating, and without clipping, description text START
+       overflowing the box before the height transition below catches up to it each tick.
+       transition only covers opacity here (plain, instant-both-ways, exactly like a native
+       tooltip) — width/height are animated by rail-tooltip-expand.js setting inline styles once
+       expansion begins, with their OWN transition declared in the .expanding rule below, since
+       animating them here-at-all-times would fight that script's per-frame inline-style updates
+       with an unwanted transition on the FIRST (JS-computed starting width/height) write too. */
+    .rail-tooltip{position:absolute;left:calc(100% + 12px);top:50%;transform:translateY(-50%);background:var(--bar);border:1px solid var(--card-border);border-radius:8px;padding:4px 4px 4px 8px;font-size:11px;color:var(--ink);opacity:0;pointer-events:none;overflow:hidden;box-sizing:border-box;box-shadow:0 4px 12px rgba(0,0,0,0.4);z-index:1001;transition:opacity .15s;}
     :root[data-theme="light"] .rail-tooltip{box-shadow:0 4px 12px rgba(0,0,0,0.168);}
     /* :not(.active) — the currently-open panel's own icon already has its own persistent
        indicator (the outline below) and doesn't grow on hover either (see the :not(.active) on
        the scale rule above); skipping its tooltip too keeps all three "you're already here, this
-       icon behaves a little differently" cues consistent with each other.
-       An @keyframes animation rather than a plain transition, specifically so this single opacity
-       value can move through THREE stages instead of two — fade in fast, hold, then fade back out
-       right as .rail-tooltip-expanded's own fade-in takes over (see its own comment) — which a
-       plain `transition` can't express for one property in one rule (only the single end-state a
-       selector change moves toward). Percentages are timed against this rule's own 2.2s duration:
-       7% ≈ the original .15s fade-in, 91% ≈ just before the 2s hold-to-expand mark, 100% (2.2s)
-       finishes fading out .2s after that mark — overlapping with .rail-tooltip-expanded's own .25s
-       fade-in (which starts exactly at 2s), so the two visibly crossfade into each other rather
-       than one abruptly replacing the other. Restarts from 0% cleanly on every fresh hover, same
-       as a transition would, since :hover adding/removing is what applies/removes this rule at
-       all. */
-    @keyframes rail-tooltip-pill-fade{0%{opacity:0;}7%{opacity:1;}91%{opacity:1;}100%{opacity:0;}}
-    .rail-btn:not(.active):hover .rail-tooltip{animation:rail-tooltip-pill-fade 2.2s ease forwards;}
+       icon behaves a little differently" cues consistent with each other. Plain opacity 0->1 on
+       hover, unchanged for as long as the hover lasts (including through the whole widen-then-
+       typewriter sequence below) — there's no second element to hand off to anymore, so nothing
+       here ever needs to fade back out on its own; rail-tooltip-expand.js resets everything the
+       instant the pointer actually leaves (see its own comment), at which point this rule simply
+       stops matching and the base rule's opacity transition takes it back to 0. */
+    .rail-btn:not(.active):hover .rail-tooltip{opacity:1;}
+    /* Set by rail-tooltip-expand.js right as it starts animating width/height toward their
+       expanded targets (see its own comment) — width/height's OWN transition lives here rather
+       than on the base rule above specifically so the very first inline-style write (locking in
+       the CURRENT small-pill size as an explicit px value, the necessary starting point for any
+       width/height transition — neither property can transition from `auto`) doesn't itself
+       animate from nothing. `width` is a bit slower (.25s) than `height` (.15s, matching this
+       file's usual "fast own-size adjustment" pace elsewhere, e.g. .static-table-row-tag-strip-
+       wrap) since the typewriter's own per-character height bumps need to feel snappy/responsive
+       to newly-typed text, not lag behind it. */
+    .rail-tooltip.expanding{transition:opacity .15s,width .25s ease,height .15s ease;}
+    .rail-tooltip-row{display:flex;align-items:center;justify-content:space-between;gap:10px;white-space:nowrap;}
+    .rail-tooltip-name{font-size:11px;color:var(--ink);}
+    /* Bumped to 12px/600 by rail-tooltip-expand.js (via .rail-tooltip.expanding .rail-tooltip-name)
+       once expansion starts, echoing the small pill's plain 11px/400 name growing slightly more
+       prominent as the panel it's part of grows too. */
+    .rail-tooltip.expanding .rail-tooltip-name{font-size:12px;font-weight:600;transition:font-size .25s ease,font-weight 0s;}
+    /* Empty (no text node) at rest — see .rail-tooltip's own comment on why that matters for the
+       small pill's own width/height. rail-tooltip-expand.js fills this in one character at a time
+       ("typerighting", per explicit request) only once .rail-tooltip's own width-grow transition
+       (the FIRST stage of the animation — "smoothly gets wider, with the name and shortcut
+       indicator separating", both per explicit request; justify-content:space-between on
+       .rail-tooltip-row above is what visibly separates them as the parent grows past the row's
+       own small-pill content width) has finished. margin-top only actually shows up once real text
+       exists here — an empty block contributes nothing visible either way. */
+    .rail-tooltip-desc{display:block;margin-top:6px;font-size:11px;line-height:1.4;color:var(--ink-soft);white-space:normal;}
     /* The keyboard-shortcut key each tooltip ends with (see the fragment's own markup) — Space
        Grotesk (this file's semantic-heading/label typeface, see the app-typeface comment near the
        top of this file) rather than the tooltip's own body font, and a plain outline (now
@@ -451,37 +481,11 @@
        narrower than "M" or "W" at the same font-size, and padding alone would have let the box
        itself shrink to fit each one instead of staying uniform. vertical-align:middle centers it
        against the pill's own height rather than the surrounding text's baseline, which an inline
-       box defaults to and would otherwise sit a couple px lower than dead-center. */
+       box defaults to and would otherwise sit a couple px lower than dead-center. flex:0 0 auto
+       also matters more than it used to now that this sits in a justify-content:space-between row
+       (.rail-tooltip-row above) — without it, a flex item can still shrink below its own content
+       size under pressure, which this fixed-size badge should never do. */
     .rail-tooltip-key{display:inline-flex;align-items:center;justify-content:center;vertical-align:middle;width:16px;height:16px;margin-left:6px;border:1px solid var(--outline-soft);border-radius:4px;font-family:'Space Grotesk', sans-serif;font-size:10px;font-weight:600;color:var(--ink-soft);flex:0 0 auto;}
-    /* Expanded hover panel — per explicit request, a hold-to-reveal upgrade of .rail-tooltip above
-       rather than a replacement: the small pill still appears immediately on hover (unchanged), and
-       this separate, wider panel fades in on top of it (same anchor point, opaque background, a
-       higher z-index) only once the hover has held for a full 2s — transition-delay is what gives
-       plain CSS a "wait N seconds, then reveal" without any JS timer. A genuinely separate element
-       rather than extra content stuffed into .rail-tooltip itself, specifically to dodge a real
-       CSS trap: .rail-tooltip's width is auto (shrink-to-fit its name+key content), and a
-       description long/wide enough to need wrapping would keep contributing its own full unwrapped
-       width to that shrink-to-fit calculation even while visually collapsed (opacity:0), silently
-       forcing the "small" pill wide open the instant any description text existed — sidestepped
-       entirely by giving the description its own fixed-width box instead of sharing one with the
-       pill. Reuses .rail-tooltip-key as-is for the shortcut badge (same look, no separate rule
-       needed) and the same :not(.active) gating .rail-tooltip itself uses (see its own comment) so
-       the currently-open panel's own icon doesn't grow one either. */
-    .rail-tooltip-expanded{position:absolute;left:calc(100% + 12px);top:50%;transform:translateY(-50%) scale(0.96);transform-origin:left center;box-sizing:border-box;width:220px;background:var(--bar);border:1px solid var(--card-border);border-radius:10px;padding:10px 12px;opacity:0;pointer-events:none;box-shadow:0 4px 12px rgba(0,0,0,0.4);z-index:1002;transition:opacity .15s ease,transform .15s ease;}
-    :root[data-theme="light"] .rail-tooltip-expanded{box-shadow:0 4px 12px rgba(0,0,0,0.168);}
-    /* The 2s hold delay lives ONLY on the hover-triggered (fade/grow-IN) transition — the base rule
-       above keeps its own fast, undelayed .15s so moving the pointer away hides this immediately
-       rather than lingering for 2s on the way out too. Starts at exactly the 2s mark .rail-tooltip's
-       own fade-out animation finishes fading toward (see its own comment) — the slightly-longer
-       .25s here versus that .2s, plus the scale(0.96)->scale(1) grow alongside the opacity fade,
-       is what makes the swap read as one tooltip smoothly transitioning into the other rather than
-       a hard cut. transform-origin:left center anchors the grow to the edge nearest the icon
-       (where both tooltips are pinned via the same `left`), so it grows away from the rail rather
-       than from its own center, matching how a panel unfurling from its anchor should look. */
-    .rail-btn:not(.active):hover .rail-tooltip-expanded{opacity:1;transform:translateY(-50%) scale(1);transition:opacity .25s ease 2s,transform .25s ease 2s;}
-    .rail-tooltip-expanded-row{display:flex;align-items:center;justify-content:space-between;gap:10px;}
-    .rail-tooltip-expanded-name{font-size:12px;font-weight:600;color:var(--ink);white-space:nowrap;}
-    .rail-tooltip-expanded-desc{display:block;margin-top:6px;font-size:11px;line-height:1.4;color:var(--ink-soft);white-space:normal;}
     /* Hover is icon-only (color/opacity, via .rail-icon-img below) — no background highlight, so
        the row stays visually quiet until a panel is actually pinned open. .active (this icon's
        panel IS open) gets its own persistent "you're here" indicator instead — a faint 1px grey

@@ -10,20 +10,18 @@ import { appState } from './core-state.js';
 const THEME_STORAGE_KEY = 'dotto-theme';
 
 const themeIcon = appState.btnThemeToggle.querySelector('.rail-icon-img');
-const themeTooltip = appState.btnThemeToggle.querySelector('.rail-tooltip');
-const themeTooltipExpandedName = appState.btnThemeToggle.querySelector('.rail-tooltip-expanded-name');
+const themeTooltipName = appState.btnThemeToggle.querySelector('.rail-tooltip-name');
 
 // Icon (and tooltip text) show the theme clicking the button would SWITCH TO, per explicit
 // request — light.png/"Light mode" while dark mode is active, dark.png/"Dark mode" while light
-// mode is active — the opposite of a plain state indicator. The 2s-hold expanded panel's own name
-// (.rail-tooltip-expanded-name, globals.css) gets the same text as the small pill, kept in sync
-// here too rather than left at its markup default.
+// mode is active — the opposite of a plain state indicator. .rail-tooltip-name is the single
+// source of the tooltip's name text now (small pill and the 2s hold-to-expand panel are the same
+// element, see rail-tooltip-expand.js's own comment), so there's only this one node to update.
 function syncThemeIcon(theme) {
     const switchTo = theme === 'light' ? 'dark' : 'light';
     const label = switchTo === 'light' ? 'Light mode' : 'Dark mode';
     themeIcon.src = `/assets/icons/${switchTo}.png`;
-    themeTooltip.firstChild.textContent = label;
-    themeTooltipExpandedName.textContent = label;
+    themeTooltipName.textContent = label;
 }
 
 function setTheme(theme) {

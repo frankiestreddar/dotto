@@ -8,6 +8,7 @@ import './dotto/source-buttons-cursor-mode.js';
 import './dotto/panels-hamburger.js';
 import './dotto/theme-toggle.js';
 import './dotto/upload-popup.js';
+import './dotto/rail-tooltip-expand.js';
 import './dotto/hamburger-collab.js';
 import './dotto/profile-achievements-pricing.js';
 import './dotto/messages-schedule.js';
