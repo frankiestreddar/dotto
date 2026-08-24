@@ -395,7 +395,15 @@
        curve instead, then briefly had this pairing backwards) needs its own declaration on each
        side. This base rule's own transform transition (ease-in) only ever actually applies on the
        way OUT, once :hover stops matching — see the :hover rule below for the way in. */
-    .rail-icon-img{width:20px;height:20px;filter:brightness(0) invert(1);opacity:0.55;transition:opacity .15s ease,transform .15s ease-in;pointer-events:none;}
+    /* flex-shrink:0 — without it, the icon and .rail-label were both default-shrinkable flex items,
+       so for the first frame or two of the expand animation (.rail-label's display:none->inline is
+       an instant, unanimated flip, firing before #dotto-rail's own width transition has actually
+       grown the row enough to fit icon+gap+label) the row briefly had less space than icon+label
+       together needed, and the icon itself got momentarily squeezed to make room — a visible ~1
+       frame jitter. .rail-label already has overflow:hidden (making its own flex-shrink basis 0
+       per spec), so once the icon can no longer shrink, the label is the only thing left absorbing
+       that first-frame shortfall, invisibly. */
+    .rail-icon-img{width:20px;height:20px;flex-shrink:0;filter:brightness(0) invert(1);opacity:0.55;transition:opacity .15s ease,transform .15s ease-in;pointer-events:none;}
     /* Excludes #btn-profile per explicit request — its own icon is .profile-avatar-sm (the user's
        photo), a different element entirely, so this exclusion is redundant in practice today, but
        kept explicit rather than incidental in case that ever changes. Also excludes .active (this
