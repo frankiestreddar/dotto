@@ -640,7 +640,7 @@ import { render, renderSelectedOutlines, startBoxSelection, syncWaypointToDb } f
         if (!isEditingText && (e.key === 's' || e.key === 'S')) { e.preventDefault(); appState.btnCart.click(); return; }
         if (!isEditingText && (e.key === 'l' || e.key === 'L')) { e.preventDefault(); appState.libraryBtn.click(); return; }
         if (!isEditingText && (e.key === 't' || e.key === 'T')) { e.preventDefault(); appState.messagesBtn.click(); return; }
-        if (!isEditingText && (e.key === 'a' || e.key === 'A')) { e.preventDefault(); btnAdd.click(); return; }
+        if (!isEditingText && (e.key === 'e' || e.key === 'E')) { e.preventDefault(); btnAdd.click(); return; }
         // Enter, while some panel is open and nothing is actually focused yet, jumps straight into
         // that panel's own search box (per explicit request, replacing an earlier "typing any
         // character jumps into the search box" design — Enter is one single, deliberate key to
