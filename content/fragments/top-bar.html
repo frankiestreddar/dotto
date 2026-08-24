@@ -121,10 +121,11 @@
          first slot empty for the new Snippets button below. Files (was ITSELF called Snippets,
          renamed to Files per an earlier explicit request — #btn-snippets/#snippets-panel keep
          their internal id, same convention as Basics/Queries staying #btn-add/#rail-btn-ai under
-         the hood) is a different button from this new Snippets one — per explicit request this new
-         one reuses the same snippets.png icon Files used to be the sole user of, so the two now
-         look identical; that's what was asked for, not an oversight. #btn-snippets2/
-         #snippets2-panel is this new button's own id, distinct from Files' #btn-snippets/
+         the hood) is a different button from this new Snippets one — the two briefly shared the
+         same snippets.png icon (per explicit request at the time), until Files got its own
+         files.png per a later explicit request to tell them apart. files.png doesn't exist in the
+         repo yet — flagged the same way friends.png/settings.png were. #btn-snippets2/
+         #snippets2-panel is the new Snippets button's own id, distinct from Files' #btn-snippets/
          #snippets-panel. Sources/Snippets(new)/Files: #sources-panel/#snippets2-panel/
          #snippets-panel (hamburger-stack.html) are bare shells for now — behavior/content not yet
          decided, wired into the shared openRailView mechanism (see
@@ -133,7 +134,7 @@
     <div class="rail-group rail-group-divider">
         <button id="btn-snippets2" class="rail-btn"><img class="rail-icon-img" src="/assets/icons/snippets.png" alt=""><span class="rail-tooltip">Snippets<span class="rail-tooltip-key">S</span></span><span class="rail-tooltip-expanded"><span class="rail-tooltip-expanded-row"><span class="rail-tooltip-expanded-name">Snippets</span><span class="rail-tooltip-key">S</span></span><span class="rail-tooltip-expanded-desc">Reusable snippets you can drop onto any canvas.</span></span></button>
         <button id="btn-sources" class="rail-btn"><img class="rail-icon-img" src="/assets/icons/sources.png" alt=""><span class="rail-tooltip">Sources<span class="rail-tooltip-key">K</span></span><span class="rail-tooltip-expanded"><span class="rail-tooltip-expanded-row"><span class="rail-tooltip-expanded-name">Sources</span><span class="rail-tooltip-key">K</span></span><span class="rail-tooltip-expanded-desc">Structured source tables you can reference and query.</span></span></button>
-        <button id="btn-snippets" class="rail-btn"><img class="rail-icon-img" src="/assets/icons/snippets.png" alt=""><span class="rail-tooltip">Files<span class="rail-tooltip-key">F</span></span><span class="rail-tooltip-expanded"><span class="rail-tooltip-expanded-row"><span class="rail-tooltip-expanded-name">Files</span><span class="rail-tooltip-key">F</span></span><span class="rail-tooltip-expanded-desc">Files and snippets you've saved.</span></span></button>
+        <button id="btn-snippets" class="rail-btn"><img class="rail-icon-img" src="/assets/icons/files.png" alt=""><span class="rail-tooltip">Files<span class="rail-tooltip-key">F</span></span><span class="rail-tooltip-expanded"><span class="rail-tooltip-expanded-row"><span class="rail-tooltip-expanded-name">Files</span><span class="rail-tooltip-key">F</span></span><span class="rail-tooltip-expanded-desc">Files and snippets you've saved.</span></span></button>
     </div>
     </div>
     <!-- Group 7: light/dark theme toggle, then Settings below it — pinned to the very bottom of
