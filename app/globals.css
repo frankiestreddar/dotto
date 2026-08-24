@@ -427,8 +427,20 @@
     /* :not(.active) — the currently-open panel's own icon already has its own persistent
        indicator (the outline below) and doesn't grow on hover either (see the :not(.active) on
        the scale rule above); skipping its tooltip too keeps all three "you're already here, this
-       icon behaves a little differently" cues consistent with each other. */
-    .rail-btn:not(.active):hover .rail-tooltip{opacity:1;}
+       icon behaves a little differently" cues consistent with each other.
+       An @keyframes animation rather than a plain transition, specifically so this single opacity
+       value can move through THREE stages instead of two — fade in fast, hold, then fade back out
+       right as .rail-tooltip-expanded's own fade-in takes over (see its own comment) — which a
+       plain `transition` can't express for one property in one rule (only the single end-state a
+       selector change moves toward). Percentages are timed against this rule's own 2.2s duration:
+       7% ≈ the original .15s fade-in, 91% ≈ just before the 2s hold-to-expand mark, 100% (2.2s)
+       finishes fading out .2s after that mark — overlapping with .rail-tooltip-expanded's own .25s
+       fade-in (which starts exactly at 2s), so the two visibly crossfade into each other rather
+       than one abruptly replacing the other. Restarts from 0% cleanly on every fresh hover, same
+       as a transition would, since :hover adding/removing is what applies/removes this rule at
+       all. */
+    @keyframes rail-tooltip-pill-fade{0%{opacity:0;}7%{opacity:1;}91%{opacity:1;}100%{opacity:0;}}
+    .rail-btn:not(.active):hover .rail-tooltip{animation:rail-tooltip-pill-fade 2.2s ease forwards;}
     /* The keyboard-shortcut key each tooltip ends with (see the fragment's own markup) — Space
        Grotesk (this file's semantic-heading/label typeface, see the app-typeface comment near the
        top of this file) rather than the tooltip's own body font, and a plain outline (now
@@ -455,12 +467,18 @@
        pill. Reuses .rail-tooltip-key as-is for the shortcut badge (same look, no separate rule
        needed) and the same :not(.active) gating .rail-tooltip itself uses (see its own comment) so
        the currently-open panel's own icon doesn't grow one either. */
-    .rail-tooltip-expanded{position:absolute;left:calc(100% + 12px);top:50%;transform:translateY(-50%);width:220px;box-sizing:border-box;background:var(--bar);border:1px solid var(--card-border);border-radius:10px;padding:10px 12px;opacity:0;pointer-events:none;box-shadow:0 4px 12px rgba(0,0,0,0.4);z-index:1002;transition:opacity .15s ease;}
+    .rail-tooltip-expanded{position:absolute;left:calc(100% + 12px);top:50%;transform:translateY(-50%) scale(0.96);transform-origin:left center;box-sizing:border-box;width:220px;background:var(--bar);border:1px solid var(--card-border);border-radius:10px;padding:10px 12px;opacity:0;pointer-events:none;box-shadow:0 4px 12px rgba(0,0,0,0.4);z-index:1002;transition:opacity .15s ease,transform .15s ease;}
     :root[data-theme="light"] .rail-tooltip-expanded{box-shadow:0 4px 12px rgba(0,0,0,0.168);}
-    /* The 2s hold delay lives ONLY on the hover-triggered (fade-IN) transition — the base rule
+    /* The 2s hold delay lives ONLY on the hover-triggered (fade/grow-IN) transition — the base rule
        above keeps its own fast, undelayed .15s so moving the pointer away hides this immediately
-       rather than lingering for 2s on the way out too. */
-    .rail-btn:not(.active):hover .rail-tooltip-expanded{opacity:1;transition:opacity .15s ease 2s;}
+       rather than lingering for 2s on the way out too. Starts at exactly the 2s mark .rail-tooltip's
+       own fade-out animation finishes fading toward (see its own comment) — the slightly-longer
+       .25s here versus that .2s, plus the scale(0.96)->scale(1) grow alongside the opacity fade,
+       is what makes the swap read as one tooltip smoothly transitioning into the other rather than
+       a hard cut. transform-origin:left center anchors the grow to the edge nearest the icon
+       (where both tooltips are pinned via the same `left`), so it grows away from the rail rather
+       than from its own center, matching how a panel unfurling from its anchor should look. */
+    .rail-btn:not(.active):hover .rail-tooltip-expanded{opacity:1;transform:translateY(-50%) scale(1);transition:opacity .25s ease 2s,transform .25s ease 2s;}
     .rail-tooltip-expanded-row{display:flex;align-items:center;justify-content:space-between;gap:10px;}
     .rail-tooltip-expanded-name{font-size:12px;font-weight:600;color:var(--ink);white-space:nowrap;}
     .rail-tooltip-expanded-desc{display:block;margin-top:6px;font-size:11px;line-height:1.4;color:var(--ink-soft);white-space:normal;}
