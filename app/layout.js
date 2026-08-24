@@ -20,7 +20,7 @@ export default function RootLayout({ children }) {
           rel="stylesheet"
         />
         <link
-          href="https://fonts.googleapis.com/css2?family=Lilex:wght@400..900&display=swap"
+          href="https://fonts.googleapis.com/css2?family=Golos+Text:wght@400..900&display=swap"
           rel="stylesheet"
         />
       </head>
