@@ -1,5 +1,5 @@
 import { clearSearch } from './ai-assistant-suggestions.js';
-import { appState, btnBack, btnForward, canvas, canvasViewportCenterX, contextMenu, supabase, world, zoomControl } from './core-state.js';
+import { appState, btnAdd, btnBack, btnForward, canvas, canvasViewportCenterX, contextMenu, supabase, world, zoomControl } from './core-state.js';
 import { setupDraggingAndClicking } from './drag-drop-chat.js';
 import { ensureDrawings, makeLayerSVG } from './drawing-connections.js';
 import { refreshCanvasCollabForCurrentFolder, renderCollabPill, syncCanvasCollabTitle } from './friends-presence.js';
@@ -545,7 +545,11 @@ import { applyConnections, renderConnectionsLayer } from './srs-connections-core
 
         if (folderObj.isSource) {
             canvas.classList.add('static-source');
-            appState.addToolbar.style.display = 'none';
+            // Was appState.addToolbar (the #add-toolbar wrapper div around #btn-add) — that wrapper
+            // was removed when the rail was split into six .rail-group sections (top-bar.html);
+            // #btn-add now sits directly in its own group with no wrapper of its own, so this just
+            // hides the button itself instead, same visual result.
+            btnAdd.style.display = 'none';
             appState.modeToolbar.style.display = 'none';
             zoomControl.style.display = 'none';
             appState.tx = 0; appState.ty = 0; appState.scale = 1; applyTransform();
@@ -568,7 +572,7 @@ import { applyConnections, renderConnectionsLayer } from './srs-connections-core
             return;
         }
         canvas.classList.remove('static-source');
-        appState.addToolbar.style.display = 'flex';
+        btnAdd.style.display = 'flex';
         appState.modeToolbar.style.display = '';
         zoomControl.style.display = '';
         closeSourceAddMenu(); closeCellTagPicker();

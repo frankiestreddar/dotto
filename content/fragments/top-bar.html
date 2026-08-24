@@ -2,26 +2,57 @@
      strip of icons, each opening its own view inside #hamburger-stack (see openRailView,
      panels-hamburger.js) via click-only open/switch/close (no hover preview). Back/forward live in
      #top-bar-center instead (see #nav-arrows-pill below) — they're page-navigation, not
-     rail-icon-style view triggers, and read better beside the breadcrumb they actually move. -->
+     rail-icon-style view triggers, and read better beside the breadcrumb they actually move.
+     Icons are grouped into six .rail-group wrappers (see globals.css) — a fixed 10px gap between
+     buttons WITHIN a group, and #dotto-rail's own justify-content:space-between spreads the six
+     groups evenly across the rail's full height, group 1 pinned at the very top and group 6 at the
+     very bottom. Each .rail-group is also its own cursor:none boundary (see its own comment in
+     globals.css, per explicit request) — the OS cursor hides while hovering within a group
+     (buttons and their internal 10px gaps alike) but reappears in the larger space-between gaps
+     between groups. -->
 <div id="dotto-rail">
-    <!-- At the very top of the rail now, ahead of every panel-trigger icon — content is
-         React-owned (see app/dotto/ProfileAvatarSm.jsx). Click-only open/close, same as every
-         other rail icon (see wireRailIcon('profile', ...), profile-achievements-pricing.js). -->
-    <button id="btn-profile" class="rail-btn">
-        <div class="profile-avatar-sm" id="profile-avatar-sm"></div>
-        <span class="rail-tooltip">Profile<span class="rail-tooltip-key">P</span></span>
-    </button>
-    <button id="rail-btn-ai" class="rail-btn"><img class="rail-icon-img" src="/assets/icons/search.png" alt=""><span class="rail-label">Ask Dotbot</span><span class="rail-tooltip">Ask Dotbot<span class="rail-tooltip-key">/</span></span></button>
-    <button id="btn-menu" class="rail-btn"><img class="rail-icon-img" src="/assets/icons/menu-btn.png" alt=""><span class="rail-label">Outline</span><span class="rail-tooltip">Outline<span class="rail-tooltip-key">M</span></span></button>
-    <button id="rail-btn-waypoints" class="rail-btn"><img class="rail-icon-img" src="/assets/icons/waypoint.png" alt=""><span class="rail-label">Waypoints</span><span class="rail-tooltip">Waypoints<span class="rail-tooltip-key">W</span></span></button>
-    <button id="rail-btn-collab" class="rail-btn"><img class="rail-icon-img" src="/assets/icons/collaboration.png" alt=""><span class="rail-label">Collaborations</span><span class="rail-tooltip">Collaborations<span class="rail-tooltip-key">G</span></span></button>
-    <button id="btn-cart" class="rail-btn"><img class="rail-icon-img" src="/assets/icons/market-button.png" alt=""><span class="rail-label">Marketplace</span><span class="rail-tooltip">Marketplace<span class="rail-tooltip-key">S</span></span></button>
-    <!-- Own drafts/published/purchased items — used to be a Library tab sharing #cart-panel with
-         Discover; now a fully separate rail icon/panel (see wireRailIcon('library', ...),
-         marketplace.js). -->
-    <button id="btn-library" class="rail-btn"><img class="rail-icon-img" src="/assets/icons/library.png" alt=""><span class="rail-label">Library</span><span class="rail-tooltip">Library<span class="rail-tooltip-key">L</span></span></button>
-    <button id="btn-messages" class="rail-btn"><img class="rail-icon-img" src="/assets/icons/chats-btn.png" alt=""><span class="rail-label">Messages</span><span class="rail-tooltip">Messages<span class="rail-tooltip-key">T</span></span></button>
-    <div id="rail-bottom-group">
+    <!-- Group 1: profile, alone. -->
+    <div class="rail-group">
+        <!-- At the very top of the rail now, ahead of every panel-trigger icon — content is
+             React-owned (see app/dotto/ProfileAvatarSm.jsx). Click-only open/close, same as every
+             other rail icon (see wireRailIcon('profile', ...), profile-achievements-pricing.js). -->
+        <button id="btn-profile" class="rail-btn">
+            <div class="profile-avatar-sm" id="profile-avatar-sm"></div>
+            <span class="rail-tooltip">Profile<span class="rail-tooltip-key">P</span></span>
+        </button>
+    </div>
+    <!-- Group 2: Search, Ask Dotbot (AI chat). #search-panel (hamburger-stack.html) is a bare shell
+         for now — behavior/content not yet decided, wired into the shared openRailView mechanism
+         (see wireRailIcon('search', ...), panels-hamburger.js) so the icon has somewhere to open. -->
+    <div class="rail-group">
+        <button id="btn-search" class="rail-btn"><img class="rail-icon-img" src="/assets/icons/search.png" alt=""><span class="rail-label">Search</span><span class="rail-tooltip">Search</span></button>
+        <!-- dotbot.png doesn't exist in the repo yet (search.png moved to #btn-search above, which
+             needed its own icon back) — flagged the same way sidebar.png was two commits ago. -->
+        <button id="rail-btn-ai" class="rail-btn"><img class="rail-icon-img" src="/assets/icons/dotbot.png" alt=""><span class="rail-label">Ask Dotbot</span><span class="rail-tooltip">Ask Dotbot<span class="rail-tooltip-key">/</span></span></button>
+    </div>
+    <!-- Group 3: outline tree, Waypoints. -->
+    <div class="rail-group">
+        <button id="btn-menu" class="rail-btn"><img class="rail-icon-img" src="/assets/icons/menu-btn.png" alt=""><span class="rail-label">Outline</span><span class="rail-tooltip">Outline<span class="rail-tooltip-key">M</span></span></button>
+        <button id="rail-btn-waypoints" class="rail-btn"><img class="rail-icon-img" src="/assets/icons/waypoint.png" alt=""><span class="rail-label">Waypoints</span><span class="rail-tooltip">Waypoints<span class="rail-tooltip-key">W</span></span></button>
+    </div>
+    <!-- Group 4: Add, Library, Marketplace. -->
+    <div class="rail-group">
+        <button id="btn-add" class="rail-btn"><img class="rail-icon-img" src="/assets/icons/add-btn.png" alt=""><span class="rail-label">Add</span><span class="rail-tooltip">Add<span class="rail-tooltip-key">A</span></span></button>
+        <!-- Own drafts/published/purchased items — used to be a Library tab sharing #cart-panel with
+             Discover; now a fully separate rail icon/panel (see wireRailIcon('library', ...),
+             marketplace.js). -->
+        <button id="btn-library" class="rail-btn"><img class="rail-icon-img" src="/assets/icons/library.png" alt=""><span class="rail-label">Library</span><span class="rail-tooltip">Library<span class="rail-tooltip-key">L</span></span></button>
+        <button id="btn-cart" class="rail-btn"><img class="rail-icon-img" src="/assets/icons/market-button.png" alt=""><span class="rail-label">Marketplace</span><span class="rail-tooltip">Marketplace<span class="rail-tooltip-key">S</span></span></button>
+    </div>
+    <!-- Group 5: Collaborations, Messages. -->
+    <div class="rail-group">
+        <button id="rail-btn-collab" class="rail-btn"><img class="rail-icon-img" src="/assets/icons/collaboration.png" alt=""><span class="rail-label">Collaborations</span><span class="rail-tooltip">Collaborations<span class="rail-tooltip-key">G</span></span></button>
+        <button id="btn-messages" class="rail-btn"><img class="rail-icon-img" src="/assets/icons/chats-btn.png" alt=""><span class="rail-label">Messages</span><span class="rail-tooltip">Messages<span class="rail-tooltip-key">T</span></span></button>
+    </div>
+    <!-- Group 6: cursor-mode selector, sidebar expand/collapse toggle — the very bottom of the
+         rail, pinned there by #dotto-rail's own justify-content:space-between now rather than the
+         old #rail-bottom-group's margin-top:auto (removed; no longer needed). -->
+    <div class="rail-group">
         <!-- Cursor-mode selector — collapsed shows only the currently active mode; hovering expands
              it (see #mode-toolbar.expanded, globals.css) to reveal all three stacked, same
              collapse/expand behavior it had as its own floating bottom-center toolbar, just living
@@ -40,11 +71,8 @@
                 <span class="rail-tooltip">Select mode — click or drag to select multiple cards — tap Shift, hold for temporary</span>
             </button>
         </div>
-        <div id="add-toolbar">
-            <button id="btn-add" class="rail-btn"><img class="rail-icon-img" src="/assets/icons/add-btn.png" alt=""><span class="rail-label">Add</span><span class="rail-tooltip">Add<span class="rail-tooltip-key">A</span></span></button>
-        </div>
-        <!-- Very bottom of the rail — manually toggles #dotto-rail.expanded (see
-             wireSidebarToggle, panels-hamburger.js), independent of whether any panel is open. -->
+        <!-- Manually toggles #dotto-rail.expanded (see wireSidebarToggle, panels-hamburger.js),
+             independent of whether any panel is open. -->
         <button id="btn-sidebar-toggle" class="rail-btn"><img class="rail-icon-img" src="/assets/icons/sidebar.png" alt=""><span class="rail-label">Sidebar</span><span class="rail-tooltip">Toggle sidebar</span></button>
     </div>
 </div>

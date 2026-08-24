@@ -21,6 +21,15 @@
         </div>
         <div id="waypoints-list" class="hub-subpanel-list"></div>
     </div>
+    <!-- Search — new rail icon (group 2, top-bar.html, alongside Ask Dotbot). Behavior/content not
+         decided yet; a bare shell wired into the shared openRailView mechanism (see
+         wireRailIcon('search', ...), panels-hamburger.js) just so #btn-search has a panel to open. -->
+    <div id="search-panel" class="hmenu-panel hub-subpanel" onclick="event.stopPropagation()">
+        <div class="hub-subpanel-search-wrap">
+            <input id="search-panel-search" class="hub-subpanel-search" type="text" placeholder="Search...">
+        </div>
+        <div id="search-panel-content"></div>
+    </div>
     <!-- AI search — moved here from its own standalone modal overlay (content/fragments/
          search-overlay.html, now empty/unused) now that it shares this permanent rail shell (see
          openRailView('ai', ...) wiring, ai-assistant-suggestions.js). No more dimming backdrop —
