@@ -359,8 +359,19 @@
        natural size on a short viewport instead of overflowing), then centers that block of groups
        within itself (justify-content:center) rather than letting them stack at the top the way
        they used to. gap:16px matches #dotto-rail's own default group-to-group gap, since
-       .rail-group-divider's own padding-top was tuned assuming that baseline spacing above it. */
-    #dotto-rail-middle{flex:1 1 auto;min-height:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;}
+       .rail-group-divider's own padding-top was tuned assuming that baseline spacing above it.
+       overflow-y:auto plus the `safe` keyword on justify-content is what keeps this usable once
+       the viewport is too short to fit every group — plain `center` alone would still center an
+       overflowing flex container, but centering math anchors from the middle outward, so the very
+       first icon(s) can end up scrolled past the top edge with no way to scroll back up to them in
+       some browsers; `safe center` (CSS Box Alignment) falls back to start-alignment specifically
+       when the content overflows, so scrolling can always reach both ends, while still centering
+       normally whenever everything actually fits. Scrollbar hidden (scrollbar-width:none plus the
+       ::-webkit-scrollbar rule below) per this file's existing no-visible-scrollbars convention
+       (.static-table-hscroll/.table-rounded do the same) — Group 1 and Group 7 aren't part of this
+       scroll container at all, so they stay fixed in place regardless. */
+    #dotto-rail-middle{flex:1 1 auto;min-height:0;display:flex;flex-direction:column;align-items:center;justify-content:safe center;gap:16px;overflow-y:auto;scrollbar-width:none;}
+    #dotto-rail-middle::-webkit-scrollbar{display:none;}
     /* border-right was chosen as var(--card) specifically because in DARK mode --card (#1C1C1C)
        sits between --paper (#111111) and --card-border (#2E2E2E) — a step darker than the rail's
        own background, barely visible. In light mode --card is pure white, LIGHTER than --paper,
