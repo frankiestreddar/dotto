@@ -11,6 +11,7 @@ import { isAnyUiPanelOpen } from './panels-hamburger.js';
 import { awardUserPoints, bumpAchievementStat } from './profile-achievements-pricing.js';
 import { setOutlineActive, toggleHamburgerMenu } from './shared-canvases-outline.js';
 import { pushNotification } from './stopwatch-search-notifications.js';
+import { toggleTheme } from './theme-toggle.js';
 import { toggleUploadPopup } from './upload-popup.js';
 import { render, renderSelectedOutlines, startBoxSelection, syncWaypointToDb } from './waypoints-render-loop.js';
 
@@ -617,10 +618,11 @@ import { render, renderSelectedOutlines, startBoxSelection, syncWaypointToDb } f
         // alone is enough to stop them firing while actually typing in a focused field.
         if (!isEditingText && (e.key === 'i' || e.key === 'I')) { e.preventDefault(); appState.btnInbox.click(); return; }
         if (!isEditingText && e.key === '/') { e.preventDefault(); appState.btnSearch.click(); return; }
-        // Not a panel — #btn-theme-toggle isn't routed through wireRailIcon/openRailView at all
-        // (see theme-toggle.js), but .click() still just works the same way it does for every
-        // other rail icon here.
-        if (!isEditingText && e.key === '\\') { e.preventDefault(); appState.btnThemeToggle.click(); return; }
+        // Not a panel, and no longer even a rail button — the theme toggle moved into a "Colour
+        // Theme" switch inside #settings-panel (per explicit request), so this calls
+        // theme-toggle.js's own toggleTheme() directly instead of .click()-ing an element that no
+        // longer exists.
+        if (!isEditingText && e.key === '\\') { e.preventDefault(); toggleTheme(); return; }
         if (!isEditingText && (e.key === 'p' || e.key === 'P')) { e.preventDefault(); appState.profileBtn.click(); return; }
         if (!isEditingText && (e.key === 'w' || e.key === 'W')) { e.preventDefault(); appState.railBtnWaypoints.click(); return; }
         if (!isEditingText && (e.key === 'c' || e.key === 'C')) { e.preventDefault(); appState.railBtnCollab.click(); return; }

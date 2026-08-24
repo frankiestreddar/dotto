@@ -4,8 +4,9 @@
      #top-bar-center instead (see #nav-arrows-pill below) — they're page-navigation, not
      rail-icon-style view triggers, and read better beside the breadcrumb they actually move.
      Icons are grouped into seven .rail-group wrappers (see globals.css) — a fixed 10px gap between
-     buttons WITHIN a group. Group 1 (profile) is pinned to the very top, and Group 7 (the
-     light/dark toggle, plus Settings below it) is pinned to the very bottom — neither one moves.
+     buttons WITHIN a group. Group 1 (profile) is pinned to the very top, and Group 7 (Settings,
+     alone — the light/dark toggle used to live here too, moved into Settings' own panel, see its
+     own comment further down) is pinned to the very bottom — neither one moves.
      Groups 2-6 sit inside #dotto-rail-middle, a separate flex column between the two that grows to
      fill whatever vertical space is left and centers its own children within it (justify-content:
      center) — per explicit request, replacing the old "everything just stacks at the top" layout.
@@ -132,23 +133,19 @@
         <button id="btn-snippets2" class="rail-btn"><img class="rail-icon-img" src="/assets/icons/snippets.png" alt=""><span class="rail-tooltip"><span class="rail-tooltip-row"><span class="rail-tooltip-name">Snippets</span><span class="rail-tooltip-key">S</span></span><span class="rail-tooltip-desc" data-desc="Reusable snippets you can drop onto any canvas."></span></span></button>
     </div>
     </div>
-    <!-- Group 7: light/dark theme toggle, then Settings below it — pinned to the very bottom of
-         the rail (#dotto-rail-middle's own flex:1 above already consumes the rest of the space, so
-         nothing further is needed here to push this group down). #settings-panel
-         (hamburger-stack.html) is a bare shell for now, same as Friends when it was first added —
-         behavior/content not yet decided, wired into the shared openRailView mechanism (see
-         wireRailIcon('settings', ...), panels-hamburger.js). settings.png doesn't exist in the
-         repo yet — flagged the same way friends.png was. -->
+    <!-- Group 7: Settings, alone — pinned to the very bottom of the rail (#dotto-rail-middle's own
+         flex:1 above already consumes the rest of the space, so nothing further is needed here to
+         push this group down). The light/dark theme toggle used to be its own rail button here
+         (#btn-theme-toggle) — removed per explicit request and moved into #settings-panel itself as
+         a "Colour Theme" switch row instead (see its own comment, hamburger-stack.html, and
+         theme-toggle.js, which now owns that switch's wiring the same way it owned the old
+         button's). The \ keyboard shortcut still toggles the theme directly (srs-connections-core.js
+         — toggleTheme(), theme-toggle.js) even though there's no longer a dedicated rail icon for
+         it. #settings-panel is otherwise still a bare shell for the rest of its content — wired
+         into the shared openRailView mechanism (see wireRailIcon('settings', ...),
+         panels-hamburger.js). settings.png doesn't exist in the repo yet — flagged the same way
+         friends.png was. -->
     <div class="rail-group">
-        <!-- Icon shows the theme clicking it would SWITCH TO (light.png here since dark is the
-             app's default, per explicit request — see theme-toggle.js, which swaps it to dark.png
-             once light mode is active), not the currently-active one. Tooltip text ("Light
-             mode"/"Dark mode") is kept in sync with the icon by the same module. Wiring (click
-             handler, localStorage persistence, icon+tooltip sync) all lives in theme-toggle.js —
-             this button isn't routed through openRailView/wireRailIcon since it doesn't open a
-             panel. .rail-tooltip-name's text is kept in sync with the same "Light mode"/"Dark mode"
-             swap by that same module — the text below is just the initial dark-mode-default. -->
-        <button id="btn-theme-toggle" class="rail-btn"><img class="rail-icon-img" src="/assets/icons/light.png" alt=""><span class="rail-tooltip"><span class="rail-tooltip-row"><span class="rail-tooltip-name">Light mode</span><span class="rail-tooltip-key">\</span></span><span class="rail-tooltip-desc" data-desc="Switch between light and dark mode."></span></span></button>
         <button id="btn-settings" class="rail-btn"><img class="rail-icon-img" src="/assets/icons/settings.png" alt=""><span class="rail-tooltip"><span class="rail-tooltip-row"><span class="rail-tooltip-name">Settings</span><span class="rail-tooltip-key">Z</span></span><span class="rail-tooltip-desc" data-desc="App preferences and account settings."></span></span></button>
     </div>
 </div>
