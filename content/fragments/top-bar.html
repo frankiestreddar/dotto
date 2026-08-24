@@ -13,7 +13,14 @@
      consecutive pair (.rail-group-divider, the line ABOVE that group). The rail no longer expands/
      shows text labels (that feature — #btn-sidebar-toggle, #dotto-rail.expanded, .rail-label — was
      removed per explicit request); every icon is a fixed 32px square with a hover tooltip only,
-     same as before that feature existed. -->
+     same as before that feature existed. Most icons carry TWO tooltip elements — .rail-tooltip
+     (the small name+shortcut pill, unchanged, appears immediately on hover) and
+     .rail-tooltip-expanded (a wider panel with the same name+shortcut on one line plus a
+     description below, fading in on top of the small pill only once the hover has held for 2s —
+     see its own comment, globals.css) — per explicit request. Skipped on the four cursor-mode
+     buttons, whose existing tooltips are already a single longer descriptive sentence rather than
+     a short name a two-line expanded panel would add much to. -->
+
 <div id="dotto-rail">
     <!-- Group 1: profile, alone — pinned to the very top of the rail, outside
          #dotto-rail-middle's centered block below. -->
@@ -24,6 +31,10 @@
         <button id="btn-profile" class="rail-btn">
             <div class="profile-avatar-sm" id="profile-avatar-sm"></div>
             <span class="rail-tooltip">Profile<span class="rail-tooltip-key">P</span></span>
+            <span class="rail-tooltip-expanded">
+                <span class="rail-tooltip-expanded-row"><span class="rail-tooltip-expanded-name">Profile</span><span class="rail-tooltip-key">P</span></span>
+                <span class="rail-tooltip-expanded-desc">Your account, achievements, and pricing.</span>
+            </span>
         </button>
     </div>
     <!-- Groups 2-6 (cursor-mode+Inbox, Search/Outline/Waypoints, Basics/Library/Marketplace,
@@ -70,25 +81,25 @@
                 <span class="rail-tooltip">Pen mode — click and drag to draw freehand, or click point by point for straight lines (Enter/Escape/double-click to finish a line)</span>
             </button>
         </div>
-        <button id="btn-inbox" class="rail-btn"><img class="rail-icon-img" src="/assets/icons/inbox.png" alt=""><span class="rail-tooltip">Inbox<span class="rail-tooltip-key">I</span></span></button>
+        <button id="btn-inbox" class="rail-btn"><img class="rail-icon-img" src="/assets/icons/inbox.png" alt=""><span class="rail-tooltip">Inbox<span class="rail-tooltip-key">I</span></span><span class="rail-tooltip-expanded"><span class="rail-tooltip-expanded-row"><span class="rail-tooltip-expanded-name">Inbox</span><span class="rail-tooltip-key">I</span></span><span class="rail-tooltip-expanded-desc">Notifications and updates.</span></span></button>
     </div>
     <!-- Group 3: Search, outline tree, Waypoints. #search-panel (hamburger-stack.html) is a bare
          shell for now — behavior/content not yet decided, wired into the shared openRailView
          mechanism (see wireRailIcon('search', ...), panels-hamburger.js) so the icon has somewhere
          to open. -->
     <div class="rail-group rail-group-divider">
-        <button id="btn-search" class="rail-btn"><img class="rail-icon-img" src="/assets/icons/search.png" alt=""><span class="rail-tooltip">Search<span class="rail-tooltip-key">/</span></span></button>
-        <button id="btn-menu" class="rail-btn"><img class="rail-icon-img" src="/assets/icons/menu-btn.png" alt=""><span class="rail-tooltip">Outline<span class="rail-tooltip-key">O</span></span></button>
-        <button id="rail-btn-waypoints" class="rail-btn"><img class="rail-icon-img" src="/assets/icons/waypoint.png" alt=""><span class="rail-tooltip">Waypoints<span class="rail-tooltip-key">W</span></span></button>
+        <button id="btn-search" class="rail-btn"><img class="rail-icon-img" src="/assets/icons/search.png" alt=""><span class="rail-tooltip">Search<span class="rail-tooltip-key">/</span></span><span class="rail-tooltip-expanded"><span class="rail-tooltip-expanded-row"><span class="rail-tooltip-expanded-name">Search</span><span class="rail-tooltip-key">/</span></span><span class="rail-tooltip-expanded-desc">Search across everything on this canvas.</span></span></button>
+        <button id="btn-menu" class="rail-btn"><img class="rail-icon-img" src="/assets/icons/menu-btn.png" alt=""><span class="rail-tooltip">Outline<span class="rail-tooltip-key">O</span></span><span class="rail-tooltip-expanded"><span class="rail-tooltip-expanded-row"><span class="rail-tooltip-expanded-name">Outline</span><span class="rail-tooltip-key">O</span></span><span class="rail-tooltip-expanded-desc">A collapsible tree of every block on this canvas.</span></span></button>
+        <button id="rail-btn-waypoints" class="rail-btn"><img class="rail-icon-img" src="/assets/icons/waypoint.png" alt=""><span class="rail-tooltip">Waypoints<span class="rail-tooltip-key">W</span></span><span class="rail-tooltip-expanded"><span class="rail-tooltip-expanded-row"><span class="rail-tooltip-expanded-name">Waypoints</span><span class="rail-tooltip-key">W</span></span><span class="rail-tooltip-expanded-desc">Saved locations on this canvas, sorted by distance from where you are now.</span></span></button>
     </div>
     <!-- Group 4: Basics, Library, Marketplace. -->
     <div class="rail-group rail-group-divider">
-        <button id="btn-add" class="rail-btn"><img class="rail-icon-img" src="/assets/icons/add-btn.png" alt=""><span class="rail-tooltip">Basics<span class="rail-tooltip-key">+</span></span></button>
+        <button id="btn-add" class="rail-btn"><img class="rail-icon-img" src="/assets/icons/add-btn.png" alt=""><span class="rail-tooltip">Basics<span class="rail-tooltip-key">+</span></span><span class="rail-tooltip-expanded"><span class="rail-tooltip-expanded-row"><span class="rail-tooltip-expanded-name">Basics</span><span class="rail-tooltip-key">+</span></span><span class="rail-tooltip-expanded-desc">Add a note, heading, table, or other block to the canvas.</span></span></button>
         <!-- Own drafts/published/purchased items — used to be a Library tab sharing #cart-panel with
              Discover; now a fully separate rail icon/panel (see wireRailIcon('library', ...),
              marketplace.js). -->
-        <button id="btn-library" class="rail-btn"><img class="rail-icon-img" src="/assets/icons/library.png" alt=""><span class="rail-tooltip">Library<span class="rail-tooltip-key">L</span></span></button>
-        <button id="btn-cart" class="rail-btn"><img class="rail-icon-img" src="/assets/icons/market-button.png" alt=""><span class="rail-tooltip">Marketplace<span class="rail-tooltip-key">H</span></span></button>
+        <button id="btn-library" class="rail-btn"><img class="rail-icon-img" src="/assets/icons/library.png" alt=""><span class="rail-tooltip">Library<span class="rail-tooltip-key">L</span></span><span class="rail-tooltip-expanded"><span class="rail-tooltip-expanded-row"><span class="rail-tooltip-expanded-name">Library</span><span class="rail-tooltip-key">L</span></span><span class="rail-tooltip-expanded-desc">Your own drafts, published items, and purchases.</span></span></button>
+        <button id="btn-cart" class="rail-btn"><img class="rail-icon-img" src="/assets/icons/market-button.png" alt=""><span class="rail-tooltip">Marketplace<span class="rail-tooltip-key">H</span></span><span class="rail-tooltip-expanded"><span class="rail-tooltip-expanded-row"><span class="rail-tooltip-expanded-name">Marketplace</span><span class="rail-tooltip-key">H</span></span><span class="rail-tooltip-expanded-desc">Discover and buy templates and canvases from other creators.</span></span></button>
     </div>
     <!-- Group 5: Friends, Collaborations, Messages. #friends-panel (hamburger-stack.html) is a
          bare shell for now — behavior/content not yet decided, wired into the shared openRailView
@@ -97,9 +108,9 @@
          friends.png doesn't exist in the repo yet — flagged the same way sidebar.png/dotbot.png
          were earlier this session. -->
     <div class="rail-group rail-group-divider">
-        <button id="btn-friends" class="rail-btn"><img class="rail-icon-img" src="/assets/icons/friends.png" alt=""><span class="rail-tooltip">Friends</span></button>
-        <button id="rail-btn-collab" class="rail-btn"><img class="rail-icon-img" src="/assets/icons/collaboration.png" alt=""><span class="rail-tooltip">Collaborations<span class="rail-tooltip-key">C</span></span></button>
-        <button id="btn-messages" class="rail-btn"><img class="rail-icon-img" src="/assets/icons/chats-btn.png" alt=""><span class="rail-tooltip">Messages<span class="rail-tooltip-key">M</span></span></button>
+        <button id="btn-friends" class="rail-btn"><img class="rail-icon-img" src="/assets/icons/friends.png" alt=""><span class="rail-tooltip">Friends</span><span class="rail-tooltip-expanded"><span class="rail-tooltip-expanded-row"><span class="rail-tooltip-expanded-name">Friends</span></span><span class="rail-tooltip-expanded-desc">Manage friends and requests.</span></span></button>
+        <button id="rail-btn-collab" class="rail-btn"><img class="rail-icon-img" src="/assets/icons/collaboration.png" alt=""><span class="rail-tooltip">Collaborations<span class="rail-tooltip-key">C</span></span><span class="rail-tooltip-expanded"><span class="rail-tooltip-expanded-row"><span class="rail-tooltip-expanded-name">Collaborations</span><span class="rail-tooltip-key">C</span></span><span class="rail-tooltip-expanded-desc">People collaborating with you on this canvas.</span></span></button>
+        <button id="btn-messages" class="rail-btn"><img class="rail-icon-img" src="/assets/icons/chats-btn.png" alt=""><span class="rail-tooltip">Messages<span class="rail-tooltip-key">M</span></span><span class="rail-tooltip-expanded"><span class="rail-tooltip-expanded-row"><span class="rail-tooltip-expanded-name">Messages</span><span class="rail-tooltip-key">M</span></span><span class="rail-tooltip-expanded-desc">Direct messages and conversations.</span></span></button>
     </div>
     <!-- Group 6: Queries, Sources, Files. Documents (which used to sit here, first) was deleted
          per explicit request, and Queries — which used to have its own solo group directly under
@@ -114,9 +125,9 @@
          into the shared openRailView mechanism (see wireRailIcon('sources'/'snippets', ...),
          panels-hamburger.js) so each icon has somewhere to open. -->
     <div class="rail-group rail-group-divider">
-        <button id="rail-btn-ai" class="rail-btn"><img class="rail-icon-img" src="/assets/icons/dotbot.png" alt=""><span class="rail-tooltip">Queries<span class="rail-tooltip-key">Q</span></span></button>
-        <button id="btn-sources" class="rail-btn"><img class="rail-icon-img" src="/assets/icons/sources.png" alt=""><span class="rail-tooltip">Sources<span class="rail-tooltip-key">S</span></span></button>
-        <button id="btn-snippets" class="rail-btn"><img class="rail-icon-img" src="/assets/icons/snippets.png" alt=""><span class="rail-tooltip">Files<span class="rail-tooltip-key">F</span></span></button>
+        <button id="rail-btn-ai" class="rail-btn"><img class="rail-icon-img" src="/assets/icons/dotbot.png" alt=""><span class="rail-tooltip">Queries<span class="rail-tooltip-key">Q</span></span><span class="rail-tooltip-expanded"><span class="rail-tooltip-expanded-row"><span class="rail-tooltip-expanded-name">Queries</span><span class="rail-tooltip-key">Q</span></span><span class="rail-tooltip-expanded-desc">Ask Dotbot questions about this canvas.</span></span></button>
+        <button id="btn-sources" class="rail-btn"><img class="rail-icon-img" src="/assets/icons/sources.png" alt=""><span class="rail-tooltip">Sources<span class="rail-tooltip-key">S</span></span><span class="rail-tooltip-expanded"><span class="rail-tooltip-expanded-row"><span class="rail-tooltip-expanded-name">Sources</span><span class="rail-tooltip-key">S</span></span><span class="rail-tooltip-expanded-desc">Structured source tables you can reference and query.</span></span></button>
+        <button id="btn-snippets" class="rail-btn"><img class="rail-icon-img" src="/assets/icons/snippets.png" alt=""><span class="rail-tooltip">Files<span class="rail-tooltip-key">F</span></span><span class="rail-tooltip-expanded"><span class="rail-tooltip-expanded-row"><span class="rail-tooltip-expanded-name">Files</span><span class="rail-tooltip-key">F</span></span><span class="rail-tooltip-expanded-desc">Files and snippets you've saved.</span></span></button>
     </div>
     </div>
     <!-- Group 7: light/dark theme toggle, then Settings below it — pinned to the very bottom of
@@ -134,8 +145,12 @@
              handler, localStorage persistence, icon+tooltip sync) all lives in theme-toggle.js —
              this button isn't routed through openRailView/wireRailIcon since it doesn't open a
              panel. -->
-        <button id="btn-theme-toggle" class="rail-btn"><img class="rail-icon-img" src="/assets/icons/light.png" alt=""><span class="rail-tooltip">Light mode<span class="rail-tooltip-key">\</span></span></button>
-        <button id="btn-settings" class="rail-btn"><img class="rail-icon-img" src="/assets/icons/settings.png" alt=""><span class="rail-tooltip">Settings</span></button>
+        <!-- rail-tooltip-expanded's own name/desc are kept in sync with the icon/small-pill's
+             "Light mode"/"Dark mode" swap by the same theme-toggle.js code that already does it for
+             the small pill (see its own comment) — .rail-tooltip-expanded-name here is just the
+             initial dark-mode-default text, same as the small pill's own default. -->
+        <button id="btn-theme-toggle" class="rail-btn"><img class="rail-icon-img" src="/assets/icons/light.png" alt=""><span class="rail-tooltip">Light mode<span class="rail-tooltip-key">\</span></span><span class="rail-tooltip-expanded"><span class="rail-tooltip-expanded-row"><span class="rail-tooltip-expanded-name">Light mode</span><span class="rail-tooltip-key">\</span></span><span class="rail-tooltip-expanded-desc">Switch between light and dark mode.</span></span></button>
+        <button id="btn-settings" class="rail-btn"><img class="rail-icon-img" src="/assets/icons/settings.png" alt=""><span class="rail-tooltip">Settings</span><span class="rail-tooltip-expanded"><span class="rail-tooltip-expanded-row"><span class="rail-tooltip-expanded-name">Settings</span></span><span class="rail-tooltip-expanded-desc">App preferences and account settings.</span></span></button>
     </div>
 </div>
 <!-- Dead centre of the viewport (position:fixed, left:50% + translateX(-50%), see globals.css) —

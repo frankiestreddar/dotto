@@ -455,6 +455,29 @@
        against the pill's own height rather than the surrounding text's baseline, which an inline
        box defaults to and would otherwise sit a couple px lower than dead-center. */
     .rail-tooltip-key{display:inline-flex;align-items:center;justify-content:center;vertical-align:middle;width:16px;height:16px;margin-left:6px;border:1px solid var(--outline-soft);border-radius:4px;font-family:'Space Grotesk', sans-serif;font-size:10px;font-weight:600;color:var(--ink-soft);flex:0 0 auto;}
+    /* Expanded hover panel — per explicit request, a hold-to-reveal upgrade of .rail-tooltip above
+       rather than a replacement: the small pill still appears immediately on hover (unchanged), and
+       this separate, wider panel fades in on top of it (same anchor point, opaque background, a
+       higher z-index) only once the hover has held for a full 2s — transition-delay is what gives
+       plain CSS a "wait N seconds, then reveal" without any JS timer. A genuinely separate element
+       rather than extra content stuffed into .rail-tooltip itself, specifically to dodge a real
+       CSS trap: .rail-tooltip's width is auto (shrink-to-fit its name+key content), and a
+       description long/wide enough to need wrapping would keep contributing its own full unwrapped
+       width to that shrink-to-fit calculation even while visually collapsed (opacity:0), silently
+       forcing the "small" pill wide open the instant any description text existed — sidestepped
+       entirely by giving the description its own fixed-width box instead of sharing one with the
+       pill. Reuses .rail-tooltip-key as-is for the shortcut badge (same look, no separate rule
+       needed) and the same :not(.active) gating .rail-tooltip itself uses (see its own comment) so
+       the currently-open panel's own icon doesn't grow one either. */
+    .rail-tooltip-expanded{position:absolute;left:calc(100% + 12px);top:50%;transform:translateY(-50%);width:220px;box-sizing:border-box;background:var(--bar);border:1px solid var(--card-border);border-radius:10px;padding:10px 12px;opacity:0;pointer-events:none;box-shadow:0 4px 12px rgba(0,0,0,0.4);z-index:1002;transition:opacity .15s ease;}
+    :root[data-theme="light"] .rail-tooltip-expanded{box-shadow:0 4px 12px rgba(0,0,0,0.168);}
+    /* The 2s hold delay lives ONLY on the hover-triggered (fade-IN) transition — the base rule
+       above keeps its own fast, undelayed .15s so moving the pointer away hides this immediately
+       rather than lingering for 2s on the way out too. */
+    .rail-btn:not(.active):hover .rail-tooltip-expanded{opacity:1;transition:opacity .15s ease 2s;}
+    .rail-tooltip-expanded-row{display:flex;align-items:center;justify-content:space-between;gap:10px;}
+    .rail-tooltip-expanded-name{font-size:12px;font-weight:600;color:var(--ink);white-space:nowrap;}
+    .rail-tooltip-expanded-desc{display:block;margin-top:6px;font-size:11px;line-height:1.4;color:var(--ink-soft);white-space:normal;}
     /* Hover is icon-only (color/opacity, via .rail-icon-img below) — no background highlight, so
        the row stays visually quiet until a panel is actually pinned open. .active (this icon's
        panel IS open) gets its own persistent "you're here" indicator instead — a faint 1px grey
