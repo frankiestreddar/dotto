@@ -304,17 +304,27 @@
        `color`/currentColor the way an inline svg could. #btn-profile's own avatar photo is
        deliberately NOT part of this — it's the user's picture, not a generic icon, so it keeps
        its native colour always.
-       transform (scale, see the hover rule below) rides the same transition alongside opacity —
-       cubic-bezier(0.34,1.56,0.64,1) is a standard "back ease out" curve: it overshoots slightly
-       past 1.15 before settling back, which is what actually reads as a bounce rather than a
-       plain smooth grow. Used for BOTH directions (hover in and back out on unhover) since this
-       is the only transition rule and there's no separate one for the reverse — a symmetric
-       overshoot-then-settle on the way out reads just as bouncy as on the way in. */
-    .rail-icon-img{width:20px;height:20px;filter:brightness(0) invert(1);opacity:0.55;transition:opacity .15s ease,transform .3s cubic-bezier(0.34,1.56,0.64,1);pointer-events:none;}
+       transform (scale, see the hover rule below) rides its own transition, declared separately
+       per direction rather than once here covering both — a single shared curve bouncing on BOTH
+       the way in AND the way back out (an earlier version of this rule did that) reads as
+       repeated/diminishing bounces rather than one clean one, especially if the cursor lingers
+       near the icon's edge and triggers hover/unhover in quick succession. This base rule's own
+       transform transition (plain ease-out, no overshoot) only ever actually applies on the way
+       OUT — see the :hover rule below for the way in. */
+    .rail-icon-img{width:20px;height:20px;filter:brightness(0) invert(1);opacity:0.55;transition:opacity .15s ease,transform .15s ease-out;pointer-events:none;}
     /* Excludes #btn-profile per explicit request — its own icon is .profile-avatar-sm (the user's
        photo), a different element entirely, so this exclusion is redundant in practice today, but
-       kept explicit rather than incidental in case that ever changes. */
-    .rail-btn:not(#btn-profile):hover .rail-icon-img{transform:scale(1.15);}
+       kept explicit rather than incidental in case that ever changes. Also excludes .active (this
+       icon's own panel is currently open) per explicit request — that state already has its own
+       persistent "you're here" indicator (the outline below), so hovering it while open doesn't
+       also bounce.
+       Its own transform transition (overriding the base rule's plain ease-out above, which only
+       actually ends up applying on the way back out once :hover stops matching) is what actually
+       produces the bounce, and only for this one direction: cubic-bezier(0.34,1.56,0.64,1) is a
+       standard "back ease out" curve — it overshoots slightly past 1.15 before settling there,
+       which is what reads as a single bounce landing into the hover state, rather than a plain
+       smooth grow. */
+    .rail-btn:not(#btn-profile):not(.active):hover .rail-icon-img{transform:scale(1.15);transition:opacity .15s ease,transform .3s cubic-bezier(0.34,1.56,0.64,1);}
     .rail-btn:hover .rail-icon-img,.rail-btn.active .rail-icon-img{opacity:1;}
     /* Pushes the mode/add tools to the bottom of the rail without needing a fixed pixel gap — the
        column above can hold anywhere from a handful to many icons depending on future additions.
@@ -731,7 +741,7 @@
     .requests-row{justify-content:space-between;}
     .requests-count{flex:0 0 auto;min-width:16px;height:16px;padding:0 5px;border-radius:9px;background:var(--brand);color:#fff;font-size:10px;font-weight:700;display:flex;align-items:center;justify-content:center;}
     .requests-back-row{display:flex;align-items:center;gap:8px;padding:6px 10px;margin:2px 4px 6px;border-radius:6px;cursor:pointer;font-size:13px;font-weight:600;color:var(--ink-soft);}
-    .requests-back-row:hover{background:#2a2a2a;color:var(--ink);}
+    .requests-back-row:hover{background:var(--card);color:var(--ink);}
     /* Both an owned canvas (avatars = its collaborators) and one shared WITH this user (single
        avatar = its owner) use this exact same row shape — icon, title+owner-subtext, avatar(s)
        pushed to the right edge — see renderHubCollabList. Owned rows additionally show a hover
@@ -756,7 +766,7 @@
     #msg-list{flex:1 1 auto;overflow-y:auto;padding:6px;}
     .msg-section-label{font-size:10px;text-transform:uppercase;letter-spacing:0.5px;color:var(--ink-soft);padding:8px 10px 6px;}
     .msg-chat-row{display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:8px;cursor:pointer;}
-    .msg-chat-row:hover{background:#333;}
+    .msg-chat-row:hover{background:var(--card);}
     /* No background/border, no border-radius, no clipping of any kind — plain square photo (or
        bare initials as a fallback) sitting directly on the panel. Unlike the top-bar button
        avatar (#btn-profile/.profile-avatar-sm), which keeps its circular bottom-clip treatment,
@@ -769,7 +779,7 @@
     .msg-chat-name{font-size:13px;color:var(--ink);font-weight:600;font-family:'Space Grotesk', sans-serif;}
     .msg-chat-preview{font-size:12px;color:var(--ink-soft);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
     .msg-add-row{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:8px 10px;border-radius:8px;cursor:pointer;}
-    .msg-add-row:hover{background:#333;}
+    .msg-add-row:hover{background:var(--card);}
     .msg-add-btn{font-size:11px;color:var(--ink);background:#2E2E2E;border:1px solid var(--card-border);border-radius:6px;padding:4px 8px;cursor:pointer;flex:0 0 auto;}
     .msg-add-btn:hover{background:#3a3a3a;}
     .msg-empty{padding:16px;text-align:center;color:var(--ink-soft);font-size:12px;}
@@ -1427,7 +1437,11 @@
     /* One uniform row style for every item in the tree - canvases, sources, and plain cards
        alike get no special/distinguishing treatment, only their icon differs (see outlineIcon). */
     .outline-item{border-radius:6px;margin:2px 4px;padding:6px 10px 6px calc(10px + var(--outline-indent, 0px));cursor:pointer;font-size:13px;color:var(--ink-soft);display:flex;align-items:center;gap:6px;min-width:0;}
-    .outline-item:hover{background:#333;color:white;}
+    /* var(--card) (#1C1C1C) — much darker than the #333 this used before, closer to the sidebar's
+       own var(--paper) background (see #dotto-rail/#hamburger-stack's own comment) now that both
+       are the same dark grey as the canvas, so a lighter #333 hover would have stood out far more
+       starkly against it than it used to against the old, lighter --bar background. */
+    .outline-item:hover{background:var(--card);color:white;}
     .outline-item.active{background:#2E2E2E;color:white;}
     /* Shift-click selection state for the Chats/Waypoints/Collaborations hamburger list panels
        (see listPanelSelectionStore) — same brand-tinted background already used for a "selected"
