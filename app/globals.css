@@ -341,6 +341,13 @@
        Its own transform transition (ease-out, overriding the base rule's ease-in above, which only
        actually ends up applying on the way back out) is what actually applies on the way in. */
     .rail-btn:not(#btn-profile):not(.active):hover .rail-icon-img{transform:scale(1.15);transition:opacity .15s ease,transform .15s ease-out;}
+    /* Clicking a hovered (grown) icon adds .active the instant the click registers — without this,
+       that transform:scale(1) it falls back to (the .active exclusion above stops matching, so
+       there's nothing left overriding the plain default) would still animate smoothly back down
+       over the base rule's own .15s ease-in, reading as a laggy shrink while the panel is already
+       opening. transform 0s here means it snaps back instantly the moment .active lands instead,
+       per explicit request — opacity keeps its normal .15s fade, only the size snap is instant. */
+    .rail-btn.active .rail-icon-img{transition:opacity .15s ease,transform 0s;}
     .rail-btn:hover .rail-icon-img,.rail-btn.active .rail-icon-img{opacity:1;}
     /* Pushes the mode/add tools to the bottom of the rail without needing a fixed pixel gap — the
        column above can hold anywhere from a handful to many icons depending on future additions.
