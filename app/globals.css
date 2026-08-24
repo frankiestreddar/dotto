@@ -269,8 +269,11 @@
        rather than starting mid-column. */
     /* background:var(--paper) — same dark grey as #canvas itself, not the slightly-lighter --bar
        every other floating bar/panel in this file uses, so the rail reads as part of the same
-       surface the canvas sits on rather than a visually distinct bar on top of it. */
-    #dotto-rail{position:fixed;left:0;top:0;width:var(--rail-width);height:100vh;background:var(--paper);border-right:1px solid var(--card-border);z-index:1000;display:flex;flex-direction:column;align-items:center;gap:4px;padding:20px 0 20px;box-sizing:border-box;}
+       surface the canvas sits on rather than a visually distinct bar on top of it. border-right
+       is var(--card) rather than the much lighter var(--card-border) every other bordered surface
+       in this file uses, for the same reason — a step darker, closer to the rail's own paper
+       background, per explicit request. */
+    #dotto-rail{position:fixed;left:0;top:0;width:var(--rail-width);height:100vh;background:var(--paper);border-right:1px solid var(--card);z-index:1000;display:flex;flex-direction:column;align-items:center;gap:4px;padding:20px 0 20px;box-sizing:border-box;}
     /* Shared sizing/shape for every icon in the rail — 32x32 rounded-square (was 36x36, was
        40x40/64px before that — a little smaller each time the rail itself got trimmed down).
        #btn-profile overrides this to a circle below, matching its own pre-existing shape.
@@ -735,8 +738,9 @@
        each picking their own. */
     /* background:var(--paper) — same dark grey as #canvas/#dotto-rail, not --bar (see
        #dotto-rail's own comment) — so the rail and its sliding panels all read as one continuous
-       surface rather than the panel looking like a separate bar floating on top. */
-    #hamburger-stack{position:fixed;left:calc(var(--rail-width) - var(--hmenu-width));width:var(--hmenu-width);z-index:900;display:flex;flex-direction:column;gap:0;pointer-events:none;top:0;height:100vh;background:var(--paper);border-right:1px solid var(--card-border);transition:left .3s ease;}
+       surface rather than the panel looking like a separate bar floating on top. border-right is
+       var(--card), same darker-than-usual reasoning as #dotto-rail's own border. */
+    #hamburger-stack{position:fixed;left:calc(var(--rail-width) - var(--hmenu-width));width:var(--hmenu-width);z-index:900;display:flex;flex-direction:column;gap:0;pointer-events:none;top:0;height:100vh;background:var(--paper);border-right:1px solid var(--card);transition:left .3s ease;}
     #hamburger-stack.open{left:var(--rail-width);pointer-events:auto;}
     /* No card chrome of their own (background/border/radius/shadow) — the shell above already
        supplies the background/edge; each panel is just a section of that one continuous surface. */
