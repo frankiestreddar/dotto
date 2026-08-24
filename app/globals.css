@@ -1646,6 +1646,14 @@
        color for free instead of needing a duplicate hover rule here. */
     .outline-icon{flex:0 0 auto;width:18px;height:18px;}
     .outline-label{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0;}
+    /* Keyboard-shortcut indicator for the first 10 rows of the Waypoints list (see WaypointRow,
+       WaypointsListPanel.jsx — 1-9 then 0) — same fixed-size single-glyph badge formula as
+       .rail-tooltip-key (Space Grotesk, faint outline), just margin-left:auto instead of a fixed
+       gap from a preceding label, since this is the last thing in the row and needs to push itself
+       to the far right rather than sit a fixed distance after specific text. .outline-label's own
+       overflow:hidden/min-width:0 above already lets it shrink (ellipsis) to make room for this
+       when a waypoint's name is long enough to otherwise collide with it. */
+    .outline-item-key{display:inline-flex;align-items:center;justify-content:center;width:16px;height:16px;margin-left:auto;flex:0 0 auto;border:1px solid var(--outline-soft);border-radius:4px;font-family:'Space Grotesk', sans-serif;font-size:10px;font-weight:600;color:var(--ink-soft);}
 
     .item{position:absolute;background:var(--card);border:1px solid var(--card-border);border-radius:10px;box-shadow:0 4px 12px rgba(0,0,0,0.3);padding:8px;display:flex;flex-direction:column;cursor:pointer;z-index:1;color:var(--ink);user-select:none; cursor: pointer;}
     :root[data-theme="light"] .item{box-shadow:0 4px 12px rgba(0,0,0,0.126);}

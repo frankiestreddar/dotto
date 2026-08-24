@@ -19,8 +19,15 @@ function waypointRowKey(r) {
   return `${r.owner_id}-${r.folder_id}-${r.item_id}`;
 }
 
-function WaypointRow({ r, selected }) {
+// index is this row's position in the current sorted-by-proximity, filtered list (WaypointsListPanel
+// below, matching appState.lastWaypointsRows' own order exactly — see sortWaypointRowsByProximity,
+// hamburger-collab.js) — the first 10 rows (index 0-9) get a keyboard-shortcut badge, 1-9 then 0,
+// per explicit request; row 11+ gets none. The actual key handling lives in srs-connections-
+// core.js's keydown handler, gated on the Waypoints panel being open — this component only draws
+// the indicator, matching whatever that handler will actually respond to.
+function WaypointRow({ r, selected, index }) {
   const iconUrl = `/assets/icons/${window.__kindIconFile("waypoint")}`;
+  const shortcutKey = index === 9 ? "0" : index < 9 ? String(index + 1) : null;
   return (
     <div
       className={"outline-item" + (selected ? " outline-item-selected" : "")}
@@ -40,6 +47,7 @@ function WaypointRow({ r, selected }) {
         style={{ maskImage: `url(${iconUrl})`, WebkitMaskImage: `url(${iconUrl})` }}
       />
       <span className="outline-label">{r.name || "New Waypoint"}</span>
+      {shortcutKey && <span className="outline-item-key">{shortcutKey}</span>}
     </div>
   );
 }
@@ -58,7 +66,7 @@ export default function WaypointsListPanel() {
 
   return createPortal(
     state.rows.length ? (
-      state.rows.map((r) => <WaypointRow key={waypointRowKey(r)} r={r} selected={selectedIds.has(waypointRowKey(r))} />)
+      state.rows.map((r, index) => <WaypointRow key={waypointRowKey(r)} r={r} selected={selectedIds.has(waypointRowKey(r))} index={index} />)
     ) : (
       <div className="outline-empty">{state.query ? "No matching waypoints." : "No waypoints yet."}</div>
     ),

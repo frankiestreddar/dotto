@@ -2,6 +2,7 @@ import { openSearchOverlay, scrollChatThreadToBottom, showAiChatView, updateChat
 import { appState, canvasViewportCenterX, drawSettings, supabase } from './core-state.js';
 import { openCollabPanel, renderCollabPill } from './friends-presence.js';
 import { saveWorkspaceNow, smoothPanTo } from './history-autosave.js';
+import { findItemById } from './live-presence.js';
 import { flashCanvasElement } from './mnemonic-search-matching.js';
 import { closeRailView } from './panels-hamburger.js';
 import { closeProfilePanel, openPricingOverlay } from './profile-achievements-pricing.js';
@@ -160,6 +161,29 @@ import { deleteCanvasCollabsForFolder, deleteWaypointCardEverywhere, expandWaypo
         await refreshCanvasCollabData();
         renderHubCollabRequests();
     }
+    // Sorts nearest-first to where the user is actually looking right now, per explicit request —
+    // but only within the CURRENTLY OPEN folder: a waypoint on some other canvas (a different
+    // owner's tree, or even just a different folder of this user's own) has no comparable
+    // "distance" at all, since world coordinates are local to each folder's own canvas, not a
+    // single shared space. Those simply keep whatever order they were already in (most-recently-
+    // updated-first, from the query above) and sort after every same-folder waypoint — Infinity
+    // for their "distance" plus Array#sort's guaranteed stability (ES2019+) is what achieves that
+    // for free, no separate two-pass split needed. canvasViewportCenterX()/window.innerHeight/2 is
+    // the same screen-space viewport-center formula smoothPanTo's own callers already pan TO (see
+    // e.g. peekWaypointCard below); inverting it back through the current tx/ty/scale (the exact
+    // reverse of toWorldPoint-style screen-to-world math used elsewhere in this app) gives the
+    // world-space point the user is currently centered on.
+    function sortWaypointRowsByProximity(rows) {
+        const worldCenterX = (canvasViewportCenterX() - appState.tx) / appState.scale;
+        const worldCenterY = (window.innerHeight / 2 - appState.ty) / appState.scale;
+        const distanceOf = (r) => {
+            if (r.folder_id !== appState.currentFolderId) return Infinity;
+            const it = findItemById(r.item_id);
+            if (!it) return Infinity;
+            return Math.hypot(it.x - worldCenterX, it.y - worldCenterY);
+        };
+        rows.sort((a, b) => distanceOf(a) - distanceOf(b));
+    }
     // Queries the global `waypoints` table (see the 20260729 migration) rather than scanning
     // locally-loaded `folders` — a friend's canvas 300 layers deep isn't loaded client-side until
     // you actually navigate into it, but a waypoint you dropped there still needs to show up and
@@ -179,11 +203,15 @@ import { deleteCanvasCollabsForFolder, deleteWaypointCardEverywhere, expandWaypo
             .order('updated_at', { ascending: false });
         if (error) { console.error('[waypoints] failed to load waypoints:', error); window.__setWaypointsList({ rows: [], query: q }); return; }
         const rows = (data || []).filter(r => !q || (r.name || 'New Waypoint').toLowerCase().includes(q));
+        sortWaypointRowsByProximity(rows);
         // Cached so deleteSelectedWaypointRows can look a selected row back up by its composite
         // key (owner_id/folder_id/item_id can't be safely reverse-parsed OUT of that key string —
         // owner_id is itself a UUID full of hyphens — but re-deriving the same key per cached row
-        // and comparing works fine). waypointsListStore (app/dotto/bridges.js) holds the same rows
-        // for rendering, but vanilla code can't read a React store back, only push to it.
+        // and comparing works fine) — and now also so the 1-9/0 keyboard shortcuts (srs-
+        // connections-core.js's keydown handler) can jump straight to row N by index, matching
+        // whatever this same sorted-and-filtered order the panel is actually showing.
+        // waypointsListStore (app/dotto/bridges.js) holds the same rows for rendering, but vanilla
+        // code can't read a React store back, only push to it.
         appState.lastWaypointsRows = rows;
         window.__setWaypointsList({ rows, query: q });
     }

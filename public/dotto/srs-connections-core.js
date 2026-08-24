@@ -638,6 +638,16 @@ import { render, renderSelectedOutlines, startBoxSelection, syncWaypointToDb } f
             const input = searchId && document.getElementById(searchId);
             if (input) { e.preventDefault(); input.focus(); }
         }
+        // 1-9 then 0 jump straight to the first 10 rows of the Waypoints panel — matching whatever
+        // it's currently showing (see sortWaypointRowsByProximity/appState.lastWaypointsRows,
+        // hamburger-collab.js, and the same-index .outline-item-key badges WaypointRow draws,
+        // WaypointsListPanel.jsx), only while that panel specifically is open. window.__goToWaypointCard
+        // is the exact same bridge each row's own onClick already calls.
+        if (!isEditingText && appState.activeRailView === 'waypoints' && /^[0-9]$/.test(e.key)) {
+            const idx = e.key === '0' ? 9 : Number(e.key) - 1;
+            const row = appState.lastWaypointsRows && appState.lastWaypointsRows[idx];
+            if (row) { e.preventDefault(); window.__goToWaypointCard(row.owner_id, row.folder_id, row.item_id); }
+        }
     });
 
     drawColorInput.oninput = (e) => { appState.drawColor = e.target.value; };
