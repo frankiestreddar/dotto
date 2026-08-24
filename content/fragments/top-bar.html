@@ -57,16 +57,18 @@
         <button id="rail-btn-collab" class="rail-btn"><img class="rail-icon-img" src="/assets/icons/collaboration.png" alt=""><span class="rail-tooltip">Collaborations<span class="rail-tooltip-key">C</span></span></button>
         <button id="btn-messages" class="rail-btn"><img class="rail-icon-img" src="/assets/icons/chats-btn.png" alt=""><span class="rail-tooltip">Messages<span class="rail-tooltip-key">M</span></span></button>
     </div>
-    <!-- Group 6: Queries, Snippets — moved here (below Collaborations/Messages) per explicit
-         request. Queries: AI chat, "Ask Dotbot" -> "Explain" -> "Queries", each renamed per
-         explicit request; dotbot.png doesn't exist in the repo yet (search.png moved to
+    <!-- Group 6: Queries, Documents, Snippets — moved here (below Collaborations/Messages) per
+         explicit request. Queries: AI chat, "Ask Dotbot" -> "Explain" -> "Queries", each renamed
+         per explicit request; dotbot.png doesn't exist in the repo yet (search.png moved to
          #btn-search above, which needed its own icon back) — flagged the same way sidebar.png was
-         a few commits ago. Snippets: new, #snippets-panel (hamburger-stack.html) is a bare shell
-         for now — behavior/content not yet decided, wired into the shared openRailView mechanism
-         (see wireRailIcon('snippets', ...), panels-hamburger.js) so the icon has somewhere to
-         open; snippets.png doesn't exist in the repo yet either, flagged the same way. -->
+         a few commits ago. Documents and Snippets: both new, #documents-panel/#snippets-panel
+         (hamburger-stack.html) are bare shells for now — behavior/content not yet decided, wired
+         into the shared openRailView mechanism (see wireRailIcon('documents'/'snippets', ...),
+         panels-hamburger.js) so each icon has somewhere to open; documents.png/snippets.png don't
+         exist in the repo yet either, flagged the same way. -->
     <div class="rail-group rail-group-divider">
         <button id="rail-btn-ai" class="rail-btn"><img class="rail-icon-img" src="/assets/icons/dotbot.png" alt=""><span class="rail-tooltip">Queries<span class="rail-tooltip-key">Q</span></span></button>
+        <button id="btn-documents" class="rail-btn"><img class="rail-icon-img" src="/assets/icons/documents.png" alt=""><span class="rail-tooltip">Documents</span></button>
         <button id="btn-snippets" class="rail-btn"><img class="rail-icon-img" src="/assets/icons/snippets.png" alt=""><span class="rail-tooltip">Snippets</span></button>
     </div>
     <!-- Group 7: cursor-mode selector — the very bottom of the rail (.rail-group-bottom's own
