@@ -45,17 +45,23 @@
        palette, and a handful of "lighten on hover" effects — each with their own
        :root[data-theme="light"] override near its own base rule instead of here, since they don't
        fit a shared variable). --brand is deliberately NOT overridden — brand identity color, same
-       in both themes. */
+       in both themes.
+       Every value below is pure neutral grey (R=G=B in every hex triple, e.g. #B0B0B0, never
+       something like #E3E3DF where the blue channel trails the other two) per explicit request —
+       an earlier version had several values a few points warmer on R/G than B, which read as a
+       faint yellow cast rather than true grey. --dot needed two separate darkening passes from
+       its first value (#DEDED8, then #C9C9C9, both against --paper's #F5F5F5) before it actually
+       read as a visible grid at the dot-grid's real 1px size, rather than a heavy line. */
     :root[data-theme="light"]{
-        --paper:#F5F5F3;
-        --dot:#DEDED8;
-        --ink:#18181B;
-        --ink-soft:#6B6B70;
+        --paper:#F5F5F5;
+        --dot:#B0B0B0;
+        --ink:#1A1A1A;
+        --ink-soft:#707070;
         --card:#FFFFFF;
-        --card-border:#E3E3DF;
+        --card-border:#E0E0E0;
         --bar:#FFFFFF;
-        --hover-bg:#EEEEEA;
-        --outline-soft:#D2D2CC;
+        --hover-bg:#ECECEC;
+        --outline-soft:#CCCCCC;
     }
     *{box-sizing:border-box; touch-action: none; user-select:none; -webkit-user-select:none;}
     select, input, .format-bar{touch-action: auto;}
@@ -185,6 +191,7 @@
     
     #world{position:absolute;top:0;left:0;transform-origin:0 0;will-change:transform;z-index:1;}
     .bubble{background:var(--bar);border:1px solid var(--card-border);border-radius:12px;padding:4px;box-shadow:0 4px 12px rgba(0,0,0,0.3);display:flex;align-items:center;gap:2px;height:40px;}
+    :root[data-theme="light"] .bubble{box-shadow:0 4px 12px rgba(0,0,0,0.126);}
 
     /* Dead centre of the viewport (left:50% + translateX(-50%)) rather than offset by the rail like
        the old #top-bar/#top-bar-left used to be — this group isn't anchored to the rail at all, so
@@ -205,6 +212,7 @@
        position/transform at all. max-width caps a long message rather than letting the pill
        stretch arbitrarily wide — #notification-text below ellipsis-truncates within it. */
     #notification-pill{position:fixed;top:20px;left:50%;z-index:1000;display:flex;align-items:center;height:40px;max-width:420px;box-sizing:border-box;padding:0 12px;background:var(--bar);border:1px solid var(--card-border);border-radius:12px;box-shadow:0 4px 12px rgba(0,0,0,0.3);transform:translateX(-50%) translateY(-60px);opacity:0;pointer-events:none;transition:transform .3s ease, opacity .3s ease;}
+    :root[data-theme="light"] #notification-pill{box-shadow:0 4px 12px rgba(0,0,0,0.126);}
     #notification-pill.notif-active{transform:translateX(-50%) translateY(0);opacity:1;pointer-events:auto;}
     /* #notification-root (the portal target React mounts #notification-content into, see
        NotificationBar.jsx) is a plain flex child of the pill; #notification-content is the actual
@@ -310,6 +318,14 @@
        what group 7 alone opts back into via its own margin-top:auto, not something applied to every
        group uniformly. */
     #dotto-rail{position:fixed;left:0;top:0;width:var(--rail-width);height:100vh;background:var(--paper);border-right:1px solid var(--card);z-index:1000;display:flex;flex-direction:column;align-items:center;gap:16px;padding:20px 0;box-sizing:border-box;}
+    /* border-right was chosen as var(--card) specifically because in DARK mode --card (#1C1C1C)
+       sits between --paper (#111111) and --card-border (#2E2E2E) — a step darker than the rail's
+       own background, barely visible. In light mode --card is pure white, LIGHTER than --paper,
+       so the same var() would flip the border to reading as brighter than the background instead
+       of darker — the opposite of the intent. var(--card-border) is what's actually darker than
+       --paper in light mode, so it's the one that keeps the "faint step darker" reading. Same fix
+       applies to #hamburger-stack's own border-right below. */
+    :root[data-theme="light"] #dotto-rail{border-right-color:var(--card-border);}
     /* Every group (see top-bar.html for which icon lands in which) is its own flex column with a
        10px gap between the buttons it holds (a tighter gap than #dotto-rail's own 16px between
        separate groups, so buttons visually read as belonging to the same cluster). */
@@ -353,6 +369,7 @@
        its own right edge needs the same breathing room the pill gives every other edge, not the
        wider inset the label TEXT wants on the left. */
     .rail-tooltip{position:absolute;left:calc(100% + 10px);top:50%;transform:translateY(-50%);background:var(--bar);border:1px solid var(--card-border);border-radius:8px;padding:4px 4px 4px 10px;font-size:11px;color:var(--ink);white-space:nowrap;opacity:0;pointer-events:none;transition:opacity .15s;box-shadow:0 4px 12px rgba(0,0,0,0.4);z-index:1001;}
+    :root[data-theme="light"] .rail-tooltip{box-shadow:0 4px 12px rgba(0,0,0,0.168);}
     /* :not(.active) — the currently-open panel's own icon already has its own persistent
        indicator (the outline below) and doesn't grow on hover either (see the :not(.active) on
        the scale rule above); skipping its tooltip too keeps all three "you're already here, this
@@ -423,13 +440,18 @@
     .collab-avatars{display:flex;align-items:center;}
     /* No border-radius — only the top-bar button avatar (#btn-profile/.profile-avatar-sm) keeps
        circular clipping; every other avatar in the app is a plain square. */
-    .collab-avatar{width:26px;height:26px;border-radius:0;border:2px solid var(--bar);display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;color:white;margin-left:-9px;flex:0 0 auto;overflow:hidden;}
+    /* color:white only actually shows for the initials-fallback case (Avatar.jsx — a real photo
+       just fills the frame, no text involved) — background:none here, so those initials sit on
+       whatever's behind this avatar (var(--bar)-ish context), which turns light in light mode.
+       var(--ink) keeps dark mode's white unchanged while going dark-on-light correctly. */
+    .collab-avatar{width:26px;height:26px;border-radius:0;border:2px solid var(--bar);display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;color:var(--ink);margin-left:-9px;flex:0 0 auto;overflow:hidden;}
     .collab-avatar img{width:100%;height:100%;object-fit:cover;display:block;}
     .collab-avatar:first-child{margin-left:0;}
     .collab-avatar.collab-more{background:var(--hover-bg);color:var(--ink-soft);}
     #collab-add-btn{width:26px;height:26px;border-radius:50%;background:none;border:1px dashed var(--card-border);color:var(--ink-soft);display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:14px;font-family:inherit;padding:0;}
     #collab-add-btn:hover{color:var(--ink);border-color:var(--ink-soft);}
     .collab-tooltip{position:absolute;top:calc(100% + 8px);left:50%;transform:translateX(-50%);background:var(--bar);border:1px solid var(--card-border);border-radius:8px;padding:4px 10px;font-size:11px;color:var(--ink);white-space:nowrap;opacity:0;pointer-events:none;transition:opacity .15s;box-shadow:0 4px 12px rgba(0,0,0,0.4);}
+    :root[data-theme="light"] .collab-tooltip{box-shadow:0 4px 12px rgba(0,0,0,0.168);}
     #collab-bubble:hover .collab-tooltip{opacity:1;}
     /* #collab-panel isn't nested under #collab-bubble (separate fragment — see
        content/fragments/collab-panel.html), so body:has(...) is the shared ancestor this needs to
@@ -471,6 +493,7 @@
        applyRemoteCursorMode), replaced by the in-place indicator below. */
     .remote-cursor-pointer{width:20px;height:20px;display:block;fill:currentColor;stroke:var(--bar);stroke-width:1px;filter:drop-shadow(0 1px 2px rgba(0,0,0,0.4));}
     .remote-cursor-label{position:absolute;left:14px;top:16px;display:flex;align-items:center;gap:4px;background:currentColor;border-radius:12px;padding:2px 8px 2px 2px;white-space:nowrap;box-shadow:0 2px 6px rgba(0,0,0,0.35);}
+    :root[data-theme="light"] .remote-cursor-label{box-shadow:0 2px 6px rgba(0,0,0,0.147);}
     .remote-cursor-avatar{width:18px;height:18px;border-radius:50%;overflow:hidden;flex:0 0 auto;background:rgba(255,255,255,0.25);}
     .remote-cursor-avatar img{width:100%;height:100%;object-fit:cover;display:block;}
     .remote-cursor-name{font-size:11px;font-weight:700;color:#fff;text-shadow:0 1px 1px rgba(0,0,0,0.3);}
@@ -485,6 +508,7 @@
        avatar+name pill markup as .remote-cursor-label, just standalone (no cursor arrow) and
        pinned above the caret instead of trailing a mouse. */
     .remote-editing-label{position:absolute;display:flex;align-items:center;gap:4px;background:currentColor;border-radius:12px;padding:2px 8px 2px 2px;white-space:nowrap;box-shadow:0 2px 6px rgba(0,0,0,0.35);pointer-events:none;}
+    :root[data-theme="light"] .remote-editing-label{box-shadow:0 2px 6px rgba(0,0,0,0.147);}
     /* The blinking colored caret itself — a plain vertical bar at the typist's real, measured
        caret position (see getCaretScreenRect), not just the target block's top-left corner. */
     .remote-typing-caret{position:absolute;width:2px;background:currentColor;pointer-events:none;animation:remote-typing-caret-blink 1s step-end infinite;}
@@ -496,6 +520,7 @@
     .remote-selection-highlight{position:absolute;background:currentColor;opacity:0.3;border-radius:2px;pointer-events:none;}
 
     #collab-panel{display:none;position:fixed;width:280px;height:min(420px, calc(100vh - 100px));background:var(--bar);border:1px solid var(--card-border);border-radius:12px;z-index:2000;box-shadow:0 4px 16px rgba(0,0,0,0.5);flex-direction:column;overflow:hidden;}
+    :root[data-theme="light"] #collab-panel{box-shadow:0 4px 16px rgba(0,0,0,0.21);}
     #collab-panel.open{display:flex;}
     #collab-search-wrap{flex:0 0 auto;padding:10px;border-bottom:1px solid var(--card-border);}
     #collab-search{width:100%;height:34px;border-radius:9px;background:var(--hover-bg);border:1px solid var(--card-border);color:var(--ink);padding:0 12px;font-size:13px;outline:none;}
@@ -600,11 +625,13 @@
 
     /* ---- Source page: per-cell Add / Upload / Tags buttons (hover-only, positioned via JS) ---- */
     #source-add-menu, #cell-tag-picker{display:none;position:fixed;flex-direction:column;background:var(--bar);border:1px solid var(--card-border);border-radius:12px;box-shadow:0 10px 30px rgba(0,0,0,0.55);z-index:2000;padding:8px;gap:2px;}
+    :root[data-theme="light"] #source-add-menu, #cell-tag-picker{box-shadow:0 10px 30px rgba(0,0,0,0.231);}
     #source-add-menu{width:180px;}
     .source-add-item{padding:8px 10px;border-radius:8px;cursor:pointer;font-size:13px;color:var(--ink);position:relative;}
     .source-add-item:hover{background:var(--hover-bg);}
     .source-add-item.has-sub:hover > .source-add-submenu{display:flex;}
     .source-add-submenu{display:none;position:absolute;left:100%;top:0;margin-left:6px;flex-direction:column;background:var(--bar);border:1px solid var(--card-border);border-radius:10px;box-shadow:0 10px 30px rgba(0,0,0,0.55);padding:6px;gap:2px;width:150px;}
+    :root[data-theme="light"] .source-add-submenu{box-shadow:0 10px 30px rgba(0,0,0,0.231);}
     .source-add-submenu div{padding:7px 9px;border-radius:7px;font-size:12px;cursor:pointer;color:var(--ink);}
     .source-add-submenu div:hover{background:var(--hover-bg);}
 
@@ -623,6 +650,7 @@
     #cell-tag-picker-new-row input[type=text]{flex:1 1 auto;background:var(--card);border:1px solid var(--card-border);border-radius:7px;color:var(--ink);font-size:12px;padding:5px 8px;outline:none;font-family:inherit;min-width:0;}
     #cell-tag-picker-new-row input[type=color]{width:22px;height:22px;padding:0;border:none;background:none;border-radius:5px;overflow:hidden;flex:0 0 auto;cursor:pointer;}
     #tag-context-menu{display:none;position:fixed;flex-direction:column;background:var(--bar);border:1px solid var(--card-border);border-radius:10px;box-shadow:0 10px 30px rgba(0,0,0,0.55);z-index:2100;padding:6px;gap:2px;min-width:110px;}
+    :root[data-theme="light"] #tag-context-menu{box-shadow:0 10px 30px rgba(0,0,0,0.231);}
     #tag-context-menu div{padding:7px 10px;border-radius:7px;font-size:12px;cursor:pointer;color:var(--ink);}
     #tag-context-menu div:hover{background:var(--hover-bg);}
 
@@ -632,14 +660,17 @@
     @keyframes rec-pulse{0%,100%{opacity:1;}50%{opacity:.3;}}
 
     #draw-settings{display:none;position:fixed;bottom:70px;left:50%;transform:translateX(-50%);background:var(--bar);border:1px solid var(--card-border);border-radius:12px;padding:8px;z-index:2000;box-shadow:0 4px 16px rgba(0,0,0,0.5);align-items:center;gap:8px;}
+    :root[data-theme="light"] #draw-settings{box-shadow:0 4px 16px rgba(0,0,0,0.21);}
     #draw-settings input[type=color]{width:28px;height:28px;border:none;background:none;cursor:pointer;padding:0;}
     #draw-size{width:80px;}
     .draw-mode-btn{width:auto;padding:0 10px;font-size:12px;}
 
     #zoom-control{position:fixed;bottom:20px;right:20px;display:flex;flex-direction:column;align-items:center;background:var(--bar);border:1px solid var(--card-border);border-radius:10px;padding:10px 4px;box-shadow:0 4px 16px rgba(0,0,0,0.4);z-index:1000;}
+    :root[data-theme="light"] #zoom-control{box-shadow:0 4px 16px rgba(0,0,0,0.168);}
     #zoom-track{position:relative;width:4px;height:70px;background:var(--card-border);border-radius:3px;cursor:pointer;}
     #zoom-fill{position:absolute;bottom:0;left:0;width:100%;background:var(--ink-soft);border-radius:3px;pointer-events:none;}
     #zoom-thumb{position:absolute;left:50%;bottom:0;width:12px;height:12px;border-radius:50%;background:var(--ink);box-shadow:0 1px 4px rgba(0,0,0,0.4);transform:translate(-50%,50%);transition:transform .12s ease;pointer-events:none;}
+    :root[data-theme="light"] #zoom-thumb{box-shadow:0 1px 4px rgba(0,0,0,0.168);}
     #zoom-track:hover #zoom-thumb, #zoom-track.dragging #zoom-thumb{transform:translate(-50%,50%) scale(1.25);}
     #zoom-track:hover{background:var(--outline-soft);}
 
@@ -670,7 +701,9 @@
        Recomputed from scratch for the rail's 36->32px trim (the previous version of this comment
        had gone stale during an EARLIER rail resize, 40->36px, and was still quoting 40px math
        against an actual 36px button — corrected here rather than carried forward again). */
-    .profile-avatar-sm{width:43px;height:43px;border-radius:50%;background:none;overflow:hidden;color:white;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600;flex:0 0 auto;clip-path:path('M -20 -20 L 63 -20 L 63 35 L 35.36 35 A 16 16 0 0 1 7.64 35 L -20 35 Z');}
+    /* color:white was invisible for the initials-fallback case (Avatar.jsx) once #btn-profile's
+       own background (var(--bar)) turned light — same fix as .collab-avatar above. */
+    .profile-avatar-sm{width:43px;height:43px;border-radius:50%;background:none;overflow:hidden;color:var(--ink);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600;flex:0 0 auto;clip-path:path('M -20 -20 L 63 -20 L 63 35 L 35.36 35 A 16 16 0 0 1 7.64 35 L -20 35 Z');}
     .profile-avatar-sm img{width:100%;height:100%;object-fit:cover;display:block;}
     /* The profile "tab" is several separate stacked panels rather than one box — each
        .profile-block is its own rounded card, matching the .hmenu-panel stacked convention.
@@ -682,6 +715,7 @@
        anymore. */
     #profile-panel{gap:5px;}
     .profile-block{background:var(--bar);border:1px solid var(--card-border);border-radius:12px;padding:14px;box-shadow:0 4px 16px rgba(0,0,0,0.5);box-sizing:border-box;}
+    :root[data-theme="light"] .profile-block{box-shadow:0 4px 16px rgba(0,0,0,0.21);}
 
     /* padding-right leaves room for #profile-logout-btn (absolutely positioned, so the flex row
        below doesn't know to shrink around it on its own) — enough that a long, ellipsis-truncated
@@ -696,7 +730,7 @@
     #profile-logout-btn svg{width:15px;height:15px;pointer-events:none;}
     /* No border-radius at all (a plain square) — only the top-bar button avatar
        (#btn-profile/.profile-avatar-sm) keeps circular clipping. */
-    .profile-avatar-lg{width:56px;height:56px;flex:0 0 auto;border-radius:0;overflow:hidden;background:none;color:white;display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:600;}
+    .profile-avatar-lg{width:56px;height:56px;flex:0 0 auto;border-radius:0;overflow:hidden;background:none;color:var(--ink);display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:600;}
     .profile-avatar-lg img{width:100%;height:100%;object-fit:cover;display:block;}
     .profile-identity-text{display:flex;flex-direction:column;gap:5px;min-width:0;margin-top:3px;}
     #profile-username{font-size:14px;color:var(--ink);font-weight:700;font-family:'Space Grotesk', sans-serif;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
@@ -747,6 +781,7 @@
        JS-set `left` (cursor x) always places it entirely to the left of the cursor regardless of
        the tooltip's own (content-dependent) width. */
     .profile-usage-tooltip{position:absolute;top:-28px;left:0;transform:translateX(-100%);background:var(--bar);border:1px solid var(--card-border);border-radius:8px;padding:4px 10px;font-size:11px;color:var(--ink);white-space:nowrap;opacity:0;pointer-events:none;transition:opacity .15s;box-shadow:0 4px 12px rgba(0,0,0,0.4);z-index:2;}
+    :root[data-theme="light"] .profile-usage-tooltip{box-shadow:0 4px 12px rgba(0,0,0,0.168);}
     /* Small caption below the three usage bars — opens the same pricing page as the "Try Dotto
        Pro" button above (see openPricingOverlay), just a quieter, always-visible nudge rather
        than a prominent button. */
@@ -795,6 +830,8 @@
        surface rather than the panel looking like a separate bar floating on top. border-right is
        var(--card), same darker-than-usual reasoning as #dotto-rail's own border. */
     #hamburger-stack{position:fixed;left:calc(var(--rail-width) - var(--hmenu-width));width:var(--hmenu-width);z-index:900;display:flex;flex-direction:column;gap:0;pointer-events:none;top:0;height:100vh;background:var(--paper);border-right:1px solid var(--card);transition:left .3s ease;}
+    /* Same light-mode fix and reasoning as #dotto-rail's own border-right above. */
+    :root[data-theme="light"] #hamburger-stack{border-right-color:var(--card-border);}
     #hamburger-stack.open{left:var(--rail-width);pointer-events:auto;}
     /* No card chrome of their own (background/border/radius/shadow) — the shell above already
        supplies the background/edge; each panel is just a section of that one continuous surface. */
@@ -843,6 +880,7 @@
     .hub-collab-row-meta .outline-label{flex:none;}
     .hub-collab-row-owner{font-size:11px;color:var(--ink-soft);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
     .hub-collab-avatars-tooltip{position:absolute;right:10px;bottom:calc(100% + 4px);background:var(--bar);border:1px solid var(--card-border);border-radius:8px;padding:4px 10px;font-size:11px;color:var(--ink);white-space:nowrap;opacity:0;pointer-events:none;transition:opacity .15s;box-shadow:0 4px 12px rgba(0,0,0,0.4);z-index:2;}
+    :root[data-theme="light"] .hub-collab-avatars-tooltip{box-shadow:0 4px 12px rgba(0,0,0,0.168);}
     .hub-collab-canvas-row:hover .hub-collab-avatars-tooltip{opacity:1;}
     /* Generic single-asset icon tinting: the PNG is used purely as an alpha shape (its own RGB is
        ignored) via mask-image, then filled with `color` — so one plain icon file can render in
@@ -920,6 +958,7 @@
     .msg-inline-canvas-zoom-track{position:relative;width:100%;height:4px;background:var(--card-border);border-radius:3px;cursor:pointer;}
     .msg-inline-canvas-zoom-fill{position:absolute;top:0;left:0;height:100%;background:var(--ink-soft);border-radius:3px;pointer-events:none;}
     .msg-inline-canvas-zoom-thumb{position:absolute;top:50%;left:0;width:12px;height:12px;border-radius:50%;background:var(--ink);box-shadow:0 1px 4px rgba(0,0,0,0.4);transform:translate(-50%,-50%);transition:transform .12s ease;pointer-events:none;}
+    :root[data-theme="light"] .msg-inline-canvas-zoom-thumb{box-shadow:0 1px 4px rgba(0,0,0,0.168);}
     .msg-inline-canvas-zoom-track:hover .msg-inline-canvas-zoom-thumb, .msg-inline-canvas-zoom-track.dragging .msg-inline-canvas-zoom-thumb{transform:translate(-50%,-50%) scale(1.25);}
     .msg-inline-canvas-zoom-track:hover{background:var(--outline-soft);}
 
@@ -932,9 +971,11 @@
     .msg-inline-canvas-source-table .resize, .msg-inline-canvas-source-table .add-col-zone, .msg-inline-canvas-source-table .add-row-zone{display:none;}
 
     .inline-canvas-drag-ghost{position:fixed;z-index:6000;pointer-events:none;background:var(--bar);border:1px solid var(--brand);border-radius:12px;padding:8px 12px;font-size:11px;color:var(--ink);box-shadow:0 8px 24px rgba(0,0,0,0.5);opacity:0.9;}
+    :root[data-theme="light"] .inline-canvas-drag-ghost{box-shadow:0 8px 24px rgba(0,0,0,0.21);}
     .canvas-modal-overlay{display:none;position:fixed;top:0;left:0;width:100vw;height:100vh;background:rgba(0,0,0,0.6);z-index:5000;align-items:center;justify-content:center;}
     .canvas-modal-overlay.open{display:flex;}
     .canvas-modal-box{width:min(560px,90vw);max-height:80vh;overflow-y:auto;background:var(--bar);border:1px solid var(--card-border);border-radius:14px;padding:16px;box-shadow:0 10px 40px rgba(0,0,0,0.6);display:flex;flex-direction:column;gap:10px;}
+    :root[data-theme="light"] .canvas-modal-box{box-shadow:0 10px 40px rgba(0,0,0,0.252);}
     .canvas-modal-header{display:flex;align-items:center;justify-content:space-between;font-size:13px;color:var(--ink-soft);font-weight:600;}
     .canvas-modal-close{cursor:pointer;color:var(--ink-soft);}
     .canvas-modal-close:hover{color:var(--ink);}
@@ -945,6 +986,7 @@
     #search-cards-modal-box{position:relative;max-width:90vw;max-height:90vh;}
     #search-cards-modal-body .msg-inline-canvas-wrap{width:min(520px,86vw);margin-top:0;}
     #search-cards-modal-close{position:absolute;top:-14px;right:-14px;width:32px;height:32px;border-radius:50%;border:1px solid var(--card-border);background:var(--bar);color:var(--ink);font-size:13px;line-height:1;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 12px rgba(0,0,0,0.45);z-index:2;}
+    :root[data-theme="light"] #search-cards-modal-close{box-shadow:0 4px 12px rgba(0,0,0,0.189);}
     #search-cards-modal-close:hover{background:var(--hover-bg);}
     .dotbot-upgrade-box{width:min(360px,90vw);}
     .dotbot-upgrade-title{font-size:15px;font-weight:700;color:var(--ink);}
@@ -961,6 +1003,7 @@
     #pricing-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:5500;align-items:center;justify-content:center;padding:24px;box-sizing:border-box;}
     #pricing-overlay.open{display:flex;}
     .pricing-page{width:min(980px,96vw);max-height:92vh;overflow-y:auto;background:var(--bar);border:1px solid var(--card-border);border-radius:16px;padding:28px;box-shadow:0 20px 60px rgba(0,0,0,0.6);box-sizing:border-box;}
+    :root[data-theme="light"] .pricing-page{box-shadow:0 20px 60px rgba(0,0,0,0.252);}
     .pricing-page-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;}
     .pricing-page-title{font-size:20px;font-weight:700;color:var(--ink);}
     .pricing-page-close{cursor:pointer;color:var(--ink-soft);background:none;border:none;font-size:15px;padding:4px;font-family:inherit;}
@@ -984,6 +1027,7 @@
     .pricing-feature-icon{flex:0 0 auto;width:14px;text-align:center;color:var(--brand);font-weight:700;}
     .pricing-feature-excluded .pricing-feature-icon{color:var(--ink-soft);}
     .msg-snapshot-card{background:var(--card);border:1px solid var(--card-border);border-radius:10px;padding:10px;color:var(--ink);box-shadow:0 2px 6px rgba(0,0,0,0.15);font-size:11px;display:flex;flex-direction:column;gap:4px;width:100%;box-sizing:border-box;user-select:text;}
+    :root[data-theme="light"] .msg-snapshot-card{box-shadow:0 2px 6px rgba(0,0,0,0.063);}
     .msg-snapshot-card .snap-header{font-size:9px;color:var(--ink-soft);text-transform:uppercase;font-weight:700;letter-spacing:0.5px;border-bottom:1px solid rgba(255,255,255,0.05);padding-bottom:2px;margin-bottom:2px;}
     /* Light mode: this and every other rgba(255,255,255,x) below assume a dark surface being
        lightened — flipped to a similarly-weighted rgba(0,0,0,x) darkening instead, since all of
@@ -1417,7 +1461,9 @@
     .tts-btn{display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;flex:0 0 auto;background:none;border:none;border-radius:6px;cursor:pointer;padding:0;transition:background-color .12s ease;}
     .tts-btn .icon-mask{width:13px;height:13px;background-color:var(--ink-soft);transition:background-color .12s ease;}
     .tts-btn:hover{background-color:var(--hover-bg);}
-    .tts-btn:hover .icon-mask{background-color:#fff;}
+    /* Was hardcoded #fff — invisible once :hover's own var(--hover-bg) background turned light
+       grey in light mode. var(--ink) matches the exact same white in dark mode. */
+    .tts-btn:hover .icon-mask{background-color:var(--ink);}
     .tts-btn.loading{opacity:0.4;cursor:default;pointer-events:none;}
     /* The "N/M" sense counter — pinned to the card's own top-right corner, staying inside the
        panel even though the up/down arrows themselves now live outside it (see below). */
@@ -1429,6 +1475,7 @@
     .dotbot-dictionary-arrows{position:absolute;top:50%;right:-30px;transform:translate(-65%,-50%);display:flex;flex-direction:column;gap:3px;opacity:0;pointer-events:none;transition:transform .18s ease,opacity .18s ease;}
     .dotbot-dictionary-wrap:hover .dotbot-dictionary-arrows{transform:translate(0,-50%);opacity:1;pointer-events:auto;}
     .dotbot-dictionary-arrow{background:var(--bar);border:1px solid var(--card-border);border-radius:6px;cursor:pointer;color:var(--ink-soft);font-size:9px;padding:4px 5px;line-height:1;box-shadow:0 2px 8px rgba(0,0,0,0.35);}
+    :root[data-theme="light"] .dotbot-dictionary-arrow{box-shadow:0 2px 8px rgba(0,0,0,0.147);}
     .dotbot-dictionary-arrow:hover{color:var(--ink);}
     .dotbot-dictionary-translit{font-size:12px;color:var(--ink-soft);font-style:italic;}
     /* A standard system UI font, not Golos Text/Space Grotesk — both are display faces that don't
@@ -1554,14 +1601,23 @@
        var(--paper) background (see #dotto-rail/#hamburger-stack's own comment) now that both
        are the same dark grey as the canvas, so a lighter #333 hover would have stood out far more
        starkly against it than it used to against the old, lighter --bar background. */
-    .outline-item:hover{background:var(--card);color:white;}
-    .outline-item.active{background:var(--hover-bg);color:white;}
+    /* color was hardcoded white on both — invisible once these themed backgrounds (var(--card)/
+       var(--hover-bg)) turned light. var(--ink) preserves the exact same white-on-dark result in
+       dark mode while correctly reading as "more prominent than the resting var(--ink-soft) text"
+       in light mode too (darker, not lighter, is what reads as emphasis on a light surface). */
+    .outline-item:hover{background:var(--card);color:var(--ink);}
+    .outline-item.active{background:var(--hover-bg);color:var(--ink);}
     /* Shift-click selection state for the Chats/Waypoints/Collaborations hamburger list panels
        (see listPanelSelectionStore) — same brand-tinted background already used for a "selected"
        row elsewhere (.cell-tag-picker-row.selected), a distinct purple tint from the plain grey
        var(--hover-bg) both :hover and .active above share, so a multi-select doesn't read as
        "currently open." */
-    .outline-item-selected, .outline-item-selected:hover{background:rgba(99,102,241,0.18);color:white;}
+    /* rgba(99,102,241,0.18)'s own alpha-blend already adapts reasonably to either theme (blends
+       to a muted dark purple over a dark surface, a light lavender over a light one) since it's
+       translucent, not solid — but color:white was hardcoded independent of that, so it stayed
+       illegible once the background it blends against turned light. var(--ink) fixes the text the
+       same way as every other case above. */
+    .outline-item-selected, .outline-item-selected:hover{background:rgba(99,102,241,0.18);color:var(--ink);}
     /* Toggled by handleOutlineSearch (shared-canvases-outline.js) — a plain post-render filter over
        the already-built tree (see appState.outlineRows), not a rebuild with the query baked in. */
     .outline-item.outline-row-hidden{display:none;}
@@ -1573,6 +1629,7 @@
     .outline-label{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0;}
 
     .item{position:absolute;background:var(--card);border:1px solid var(--card-border);border-radius:10px;box-shadow:0 4px 12px rgba(0,0,0,0.3);padding:8px;display:flex;flex-direction:column;cursor:pointer;z-index:1;color:var(--ink);user-select:none; cursor: pointer;}
+    :root[data-theme="light"] .item{box-shadow:0 4px 12px rgba(0,0,0,0.126);}
     .item:hover{cursor: pointer;border-color:var(--outline-soft);}
     .item.selected:hover{border-color:var(--brand);}
     .merging-target{outline: 2px solid white !important;}
@@ -1998,7 +2055,12 @@
        transition for just that one expand, so the box — and the end-of-text caret it was
        clipping — snap open instantly instead of the caret appearing to lag into place. */
     .item.waypoint.waypoint-no-anim{transition:none;}
-    .waypoint-card-icon{width:16px;height:16px;flex:0 0 auto;color:#fff;}
+    /* color was hardcoded #fff — invisible once .item's own background (var(--card)) turned white
+       in light mode, since this icon is an .icon-mask (background-color:currentColor) sitting
+       directly on that card surface, not on a fixed dark/brand background. var(--ink) gives the
+       exact same white-on-dark result in dark mode (var(--ink) is #fff there) while correctly
+       going dark-on-light once the theme switches. */
+    .waypoint-card-icon{width:16px;height:16px;flex:0 0 auto;color:var(--ink);}
     /* No max-width/ellipsis — the card grows to fit the full name instead of truncating it.
        position:relative + a couple px of top/left offset is a purely visual nudge (doesn't
        affect the box's own width, so it can't throw off the auto-width measurement in
@@ -2080,7 +2142,7 @@
     .checklist-remove{cursor:pointer;color:var(--ink-soft);opacity:0;}
     .checklist-row:hover .checklist-remove{opacity:1;}
     .checklist-add{margin-top:6px;font-size:12px;color:var(--ink-soft);cursor:pointer;flex:0 0 auto;}
-    .checklist-add:hover{color:white;}
+    .checklist-add:hover{color:var(--ink);}
 
     .item.watermark{background:transparent;border:none;box-shadow:none;}
     .watermark-text{opacity:0.2;font-size:44px;font-weight:700;color:var(--ink);white-space:pre-wrap;outline:none;}
@@ -2202,9 +2264,10 @@
     #placement-ghost{position:absolute;}
     
     .format-bar{position:absolute;top:-45px;left:0;display:none;background:var(--bar);border:1px solid var(--card-border);border-radius:8px;padding:4px;box-shadow:0 4px 12px rgba(0,0,0,0.5);z-index:20;flex-direction:row;gap:2px;align-items:center;}
+    :root[data-theme="light"] .format-bar{box-shadow:0 4px 12px rgba(0,0,0,0.21);}
     .item.editing .format-bar{display:flex;}
     .format-btn{width:28px;height:28px;border-radius:4px;border:none;background:none;color:var(--ink-soft);cursor:pointer;display:flex;align-items:center;justify-content:center;font-weight:bold;font-size:14px;}
-    .format-btn:hover{background:var(--hover-bg);color:white;}
+    .format-btn:hover{background:var(--hover-bg);color:var(--ink);}
     /* Same active-state convention as .btn.active elsewhere in this file — reflects
        bold/italic/underline/strikethrough currently being ON at the caret (see
        syncNoteFormatButtons, waypoints-render-loop.js). */
@@ -2213,18 +2276,21 @@
     .text-color-swatch::-webkit-color-swatch-wrapper{padding:0;border-radius:50%;}
     .text-color-swatch::-webkit-color-swatch{border:none;border-radius:50%;}
     .text-color-swatch::-moz-color-swatch{border:none;border-radius:50%;}
-    .format-select{background:var(--hover-bg);color:white;border:1px solid var(--card-border);border-radius:4px;height:28px;font-size:12px;cursor:pointer;}
+    .format-select{background:var(--hover-bg);color:var(--ink);border:1px solid var(--card-border);border-radius:4px;height:28px;font-size:12px;cursor:pointer;}
     
     #context-menu{position:fixed;display:none;flex-direction:column;background:var(--bar);border:1px solid var(--card-border);border-radius:8px;z-index:9999;box-shadow:0 4px 12px rgba(0,0,0,0.5);overflow:hidden;}
+    :root[data-theme="light"] #context-menu{box-shadow:0 4px 12px rgba(0,0,0,0.21);}
     .inline-canvas-delete-menu{position:fixed;display:none;flex-direction:column;background:var(--bar);border:1px solid var(--card-border);border-radius:8px;z-index:10001;box-shadow:0 4px 12px rgba(0,0,0,0.5);overflow:hidden;}
+    :root[data-theme="light"] .inline-canvas-delete-menu{box-shadow:0 4px 12px rgba(0,0,0,0.21);}
     #canvas-context-menu{position:fixed;display:none;flex-direction:column;background:var(--bar);border:1px solid var(--card-border);border-radius:8px;z-index:9999;box-shadow:0 4px 12px rgba(0,0,0,0.5);overflow:hidden;}
+    :root[data-theme="light"] #canvas-context-menu{box-shadow:0 4px 12px rgba(0,0,0,0.21);}
     #canvas-context-menu .menu-item.disabled{color:var(--ink-soft);cursor:default;}
     #canvas-context-menu .menu-item.disabled:hover{background:none;}
-    .menu-item{padding:8px 16px;cursor:pointer;color:white;white-space:nowrap;}
+    .menu-item{padding:8px 16px;cursor:pointer;color:var(--ink);white-space:nowrap;}
     .menu-item:hover{background:var(--hover-bg);}
     #align-pill{display:none;flex-direction:column;gap:2px;align-items:center;padding:6px;margin:2px 6px 6px;background:var(--hover-bg);border-radius:18px;}
     #align-pill button{width:28px;height:28px;border-radius:50%;border:none;background:none;color:var(--ink-soft);display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:13px;padding:0;}
-    #align-pill button:hover, #align-pill button.active{background:var(--hover-bg);color:white;}
+    #align-pill button:hover, #align-pill button.active{background:var(--hover-bg);color:var(--ink);}
 
     /* ---- Register page: live field-validation status dot (see app/(auth)/register/page.js) ----
        Only rendered (via ValidityDot) while its field is focused and has been typed into; the
@@ -2237,6 +2303,7 @@
        settle debounce, before it's resolved to a real red/green result. */
     .auth-validity-dot.pending{background:var(--ink-soft);}
     .auth-validity-tooltip{position:absolute;bottom:calc(100% + 8px);right:0;background:#ef4444;color:#fff;font-size:11px;font-weight:600;padding:4px 10px;border-radius:999px;white-space:nowrap;opacity:0;pointer-events:none;transition:opacity .15s;box-shadow:0 4px 12px rgba(0,0,0,0.4);}
+    :root[data-theme="light"] .auth-validity-tooltip{box-shadow:0 4px 12px rgba(0,0,0,0.168);}
     .auth-validity-dot.bad:hover .auth-validity-tooltip{opacity:1;}
 
     /* ---- Avatar builder (app/avatar-setup/page.js) ----
@@ -2320,6 +2387,7 @@
        at rest, 15px dragging) so the thumb never overhangs past either end of the track — see
        ColorGradientSlider. */
     .avatar-setup-gradient-thumb{position:absolute;top:50%;width:15px;height:15px;border-radius:50%;border:2px solid #fff;box-shadow:0 0 0 1px rgba(0,0,0,0.5);transform:translate(-50%,-50%);pointer-events:none;transition:width .12s ease,height .12s ease,left .12s ease;}
+    :root[data-theme="light"] .avatar-setup-gradient-thumb{box-shadow:0 0 0 1px rgba(0,0,0,0.21);}
     /* left has no transition while dragging — it must track the cursor exactly, every frame, with
        zero lag (see ColorGradientSlider's pointermove handler); only width/height (the grow
        effect) still ease. Without this override the inherited `left .12s ease` above makes the
@@ -2350,9 +2418,11 @@
        own separately-styled pill (gap between them), not two flat items inside one shared bar. */
     .selection-toolbar{position:fixed;display:none;align-items:center;gap:6px;z-index:9600;}
     .selection-toolbar-btn{background:var(--bar);border:1px solid var(--card-border);color:var(--ink);font-size:12px;font-weight:600;padding:5px 9px;border-radius:8px;cursor:pointer;white-space:nowrap;box-shadow:0 4px 12px rgba(0,0,0,0.35);}
+    :root[data-theme="light"] .selection-toolbar-btn{box-shadow:0 4px 12px rgba(0,0,0,0.147);}
     .selection-toolbar-btn:hover{background:var(--hover-bg);}
 
     .add-to-source-popup{position:fixed;display:none;flex-direction:column;gap:8px;width:460px;max-width:calc(100vw - 16px);background:var(--bar);border:1px solid var(--card-border);border-radius:12px;padding:12px;box-shadow:0 8px 24px rgba(0,0,0,0.45);z-index:9600;}
+    :root[data-theme="light"] .add-to-source-popup{box-shadow:0 8px 24px rgba(0,0,0,0.189);}
     .add-to-source-search{width:100%;height:34px;border-radius:9px;background:var(--hover-bg);border:1px solid var(--card-border);color:var(--ink);padding:0 12px;font-size:13px;outline:none;box-sizing:border-box;}
     .add-to-source-results{display:none;flex-direction:column;gap:2px;max-height:160px;overflow-y:auto;}
     .add-to-source-results.open{display:flex;}
