@@ -325,26 +325,22 @@
        deliberately NOT part of this — it's the user's picture, not a generic icon, so it keeps
        its native colour always.
        transform (scale, see the hover rule below) rides its own transition, declared separately
-       per direction rather than once here covering both — a single shared curve bouncing on BOTH
-       the way in AND the way back out (an earlier version of this rule did that) reads as
-       repeated/diminishing bounces rather than one clean one, especially if the cursor lingers
-       near the icon's edge and triggers hover/unhover in quick succession. This base rule's own
-       transform transition (plain ease-out, no overshoot) only ever actually applies on the way
-       OUT — see the :hover rule below for the way in. */
+       per direction rather than once here covering both — plain CSS has no way to give a single
+       transition property different easing per direction, so an asymmetric ease-in-to-grow/
+       ease-out-to-shrink pairing (per explicit request; an earlier version used a bouncing
+       overshoot curve instead) needs its own declaration on each side. This base rule's own
+       transform transition (ease-out) only ever actually applies on the way OUT, once :hover
+       stops matching — see the :hover rule below for the way in. */
     .rail-icon-img{width:20px;height:20px;filter:brightness(0) invert(1);opacity:0.55;transition:opacity .15s ease,transform .15s ease-out;pointer-events:none;}
     /* Excludes #btn-profile per explicit request — its own icon is .profile-avatar-sm (the user's
        photo), a different element entirely, so this exclusion is redundant in practice today, but
        kept explicit rather than incidental in case that ever changes. Also excludes .active (this
        icon's own panel is currently open) per explicit request — that state already has its own
        persistent "you're here" indicator (the outline below), so hovering it while open doesn't
-       also bounce.
-       Its own transform transition (overriding the base rule's plain ease-out above, which only
-       actually ends up applying on the way back out once :hover stops matching) is what actually
-       produces the bounce, and only for this one direction: cubic-bezier(0.34,1.56,0.64,1) is a
-       standard "back ease out" curve — it overshoots slightly past 1.15 before settling there,
-       which is what reads as a single bounce landing into the hover state, rather than a plain
-       smooth grow. */
-    .rail-btn:not(#btn-profile):not(.active):hover .rail-icon-img{transform:scale(1.15);transition:opacity .15s ease,transform .3s cubic-bezier(0.34,1.56,0.64,1);}
+       also grow.
+       Its own transform transition (ease-in, overriding the base rule's ease-out above, which only
+       actually ends up applying on the way back out) is what actually applies on the way in. */
+    .rail-btn:not(#btn-profile):not(.active):hover .rail-icon-img{transform:scale(1.15);transition:opacity .15s ease,transform .15s ease-in;}
     .rail-btn:hover .rail-icon-img,.rail-btn.active .rail-icon-img{opacity:1;}
     /* Pushes the mode/add tools to the bottom of the rail without needing a fixed pixel gap — the
        column above can hold anywhere from a handful to many icons depending on future additions.
