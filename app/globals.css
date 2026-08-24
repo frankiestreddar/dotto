@@ -290,7 +290,15 @@
        stretch regardless of how much slack there is, so as long as that edge itself never moves
        (guaranteed by the constant padding here), no icon ever needs to jump — see .rail-btn and
        #mode-toolbar's own comments below for the rest of this reasoning. */
-    #dotto-rail{position:fixed;left:0;top:0;width:var(--rail-width);height:100vh;background:var(--paper);border-right:1px solid var(--card);z-index:1000;display:flex;flex-direction:column;align-items:stretch;gap:4px;padding:20px 12px;box-sizing:border-box;transition:width .3s ease;}
+    /* cursor:none for the whole rail box, not just each button — per explicit request, moving
+       between adjacent buttons (crossing the few px of gap/padding that belong to this container,
+       not to any .rail-btn) must never let the OS cursor flash back into view for a frame; setting
+       it once here, covering the entire rail (buttons, gaps, and padding alike), is what makes that
+       robust regardless of exactly where within the rail the pointer is. .rail-btn/#btn-profile
+       each still need their own cursor:none too (see their own rules) since they already set an
+       explicit cursor:pointer of their own, which would otherwise win over this ancestor value the
+       instant the pointer is directly over a button. */
+    #dotto-rail{position:fixed;left:0;top:0;width:var(--rail-width);height:100vh;background:var(--paper);border-right:1px solid var(--card);z-index:1000;display:flex;flex-direction:column;align-items:stretch;gap:4px;padding:20px 12px;box-sizing:border-box;transition:width .3s ease;cursor:none;}
     /* .expanded is a manual toggle (#btn-sidebar-toggle, the last icon in #rail-bottom-group —
        see wireSidebarToggle, panels-hamburger.js) — deliberately NOT tied to whether a panel is
        open; opening a panel no longer auto-expands the rail, per explicit request, so the two
@@ -313,7 +321,7 @@
        rest, but means growing the button wider later (see the .expanded override below) only adds
        room to the RIGHT of the icon instead of re-centering it. gap only ever matters once a
        second visible child (.rail-label) exists to leave a gap before. */
-    .rail-btn{position:relative;background:none;border:none;border-radius:9px;height:32px;width:32px;flex:0 0 auto;display:flex;align-items:center;justify-content:flex-start;padding:0 0 0 6px;gap:10px;cursor:pointer;color:var(--ink-soft);transition:color .15s ease,background .15s ease;}
+    .rail-btn{position:relative;background:none;border:none;border-radius:9px;height:32px;width:32px;flex:0 0 auto;display:flex;align-items:center;justify-content:flex-start;padding:0 0 0 6px;gap:10px;cursor:none;color:var(--ink-soft);transition:color .15s ease,background .15s ease;}
     /* Icon+label row layout while the rail is expanded (see #dotto-rail's own comment above) — every
        panel-opening icon grows to the rail's new full width, giving the label room to its right.
        Only width/padding-right change here — padding-left stays the same 6px the base rule already
@@ -678,7 +686,7 @@
        circle. No overflow:hidden here — clipping is handled entirely by .profile-avatar-sm's own
        clip-path below, which only follows the button's circular boundary in the bottom 25%; the
        top 75% is intentionally left unclipped by the button (see below). */
-    #btn-profile{background:var(--bar);border:1px solid var(--card-border);border-radius:50%;height:32px;width:32px;flex:0 0 auto;padding:0;display:flex;align-items:flex-end;justify-content:center;cursor:pointer;}
+    #btn-profile{background:var(--bar);border:1px solid var(--card-border);border-radius:50%;height:32px;width:32px;flex:0 0 auto;padding:0;display:flex;align-items:flex-end;justify-content:center;cursor:none;}
     /* Border darkens while the panel is open — the only state this button has now (see
        #profile-logout-btn, profile-panel further down, for the actual logout action — no more
        hover-to-logout swap on this circle itself). */
