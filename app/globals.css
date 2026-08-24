@@ -523,13 +523,10 @@
     #zoom-track:hover #zoom-thumb, #zoom-track.dragging #zoom-thumb{transform:translate(-50%,50%) scale(1.25);}
     #zoom-track:hover{background:#454545;}
 
-    /* .rail-btn.active (see #dotto-rail's own comment) already highlights whenever this icon's
-       panel is open. No close.png asset exists yet, so this borrows the app's existing
-       plain-glyph close-button convention (canvas-modal-close, search-cards-modal-close) rather
-       than an image — swap in a real icon later if one gets added. */
-    #btn-menu .btn-menu-close-icon{display:none;font-size:16px;}
-    #btn-menu.active img{display:none;}
-    #btn-menu.active .btn-menu-close-icon{display:block;}
+    /* #btn-menu no longer swaps its icon to a close glyph while open — .rail-btn.active (see
+       #dotto-rail's own comment) already highlights it the exact same way every other rail icon
+       highlights while ITS OWN panel is open, and this one should read consistently with the
+       rest of the rail rather than being the one icon that behaves differently. */
     /* align-items:flex-end: the (deliberately oversized) avatar is anchored to the bottom of the
        circle. No overflow:hidden here — clipping is handled entirely by .profile-avatar-sm's own
        clip-path below, which only follows the button's circular boundary in the bottom 25%; the
