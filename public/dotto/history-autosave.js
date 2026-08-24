@@ -1,5 +1,5 @@
 import { clearSearch } from './ai-assistant-suggestions.js';
-import { copySelectedCards, cutSelectedCards, pasteClipboardCards } from './copy-paste.js';
+import { cutSelectedCards, pasteClipboardCards } from './copy-paste.js';
 import { appState, canvas, canvasContextMenu, contextMenu, dotLayer, recomputeTopCardZIndex, supabase, world, zoomFill, zoomThumb, zoomTrack } from './core-state.js';
 import { resolveTableForEdit } from './drawing-connections.js';
 import { generateGlobalId } from './global-ids.js';
@@ -398,17 +398,16 @@ import { centerOnContent, render } from './waypoints-render-loop.js';
             if (e.shiftKey) redo(); else undo();
             return;
         }
-        // Copy/Cut/Paste whatever's currently selected (shift-click or select-cursor-mode click
-        // — see setupDraggingAndClicking) as whole cards — the same independent copy an Alt-drag
-        // duplicate produces (see deepCloneItem/copySelectedCards), just reachable without a
-        // drag. isEditingText/shiftKey/altKey are all excluded so this never steals an ordinary
-        // text copy/cut/paste happening inside a note body, table cell, or title, and Cmd+X never
-        // fires alongside Shift+X's unrelated "link selected cards" shortcut.
-        if (!isEditingText && !e.shiftKey && !e.altKey && (e.key === 'c' || e.key === 'C') && appState.selectedCardIds.length > 0) {
-            e.preventDefault();
-            copySelectedCards();
-            return;
-        }
+        // Cut/Paste whatever's currently selected (shift-click or select-cursor-mode click — see
+        // setupDraggingAndClicking) as whole cards, the same independent copy an Alt-drag
+        // duplicate produces (see deepCloneItem/copySelectedCards) reachable without a drag.
+        // isEditingText/shiftKey/altKey are all excluded so this never steals an ordinary text
+        // cut/paste happening inside a note body, table cell, or title, and Cmd+X never fires
+        // alongside Shift+X's unrelated "link selected cards" shortcut.
+        // The bare 'C' copy shortcut that used to live here was removed per explicit request —
+        // Collaborations now owns 'C' outright (see srs-connections-core.js) with no fallback
+        // collision to worry about; copySelectedCards() itself stays, still called internally by
+        // cutSelectedCards() below, just no longer independently keyboard-triggerable.
         if (!isEditingText && !e.shiftKey && !e.altKey && (e.key === 'x' || e.key === 'X') && appState.selectedCardIds.length > 0) {
             e.preventDefault();
             cutSelectedCards();

@@ -579,7 +579,7 @@ import { render, renderSelectedOutlines, startBoxSelection, syncWaypointToDb } f
         // so that pre-fill trick no longer applies here at all — typing "/" manually once the
         // Explain panel is already open still works exactly as before, this was only ever about
         // the global keyboard shortcut.
-        if (!isEditingText && !anyPanelOpen && e.key === ' ') { e.preventDefault(); openSearchOverlay(); return; }
+        if (!isEditingText && !anyPanelOpen && (e.key === 'q' || e.key === 'Q')) { e.preventDefault(); openSearchOverlay(); return; }
         if (!isEditingText && (e.key === 'o' || e.key === 'O')) { e.preventDefault(); toggleHamburgerMenu(); return; }
         // Debug shortcut for tweaking the notification entrance/exit animation — fires a plain
         // notification with no buttons on every press. Remove once done tweaking.
@@ -592,13 +592,15 @@ import { render, renderSelectedOutlines, startBoxSelection, syncWaypointToDb } f
         // toggleHamburgerMenu() directly instead — left as-is rather than converted, since it
         // predates this block and already works. None of these reuse a
         // letter that already means something else globally (checked against every existing
-        // e.key === '<letter>' in this codebase before picking): 'c'/'C' is copy-selected-cards
-        // (history-autosave.js) and 'f'/'F' is flip-flashcard (resize-shortcuts-init.js, only
-        // while hovering one, but still a real collision), which is why Collaborations is 'G'
-        // (Group) rather than the more obvious 'C'. Inbox is 'I', Messages is 'M' (freed up once
-        // Outline moved to 'O' above), Marketplace is ';' and Search is '/' — none of these three
-        // are gated on !isEditingText's usual letter-shortcut companions since they aren't
-        // letters, but still need the isEditingText check itself (typing "/"/";" in a normal text
+        // e.key === '<letter>' in this codebase before picking): 'f'/'F' is flip-flashcard
+        // (resize-shortcuts-init.js, only while hovering one, but still a real collision).
+        // Collaborations is 'C' (was 'G', reassigned per explicit request — the bare 'c'/'C'
+        // copy-selected-cards shortcut that used to collide with it was removed from
+        // history-autosave.js at the same time, specifically to free this letter up cleanly, no
+        // fallback ambiguity). Inbox is 'I', Messages is 'M' (freed up once Outline moved to 'O'
+        // above), Marketplace is ';' and Search is '/' — none of these three are gated on
+        // !isEditingText's usual letter-shortcut companions since they aren't letters, but still
+        // need the isEditingText check itself (typing "/"/";" in a normal text
         // field must never hijack focus away).
         // Deliberately NOT gated on !anyPanelOpen (unlike 'n' above, and unlike an earlier version
         // of these same lines) — these are meant to jump straight from one open panel to another,
@@ -614,7 +616,7 @@ import { render, renderSelectedOutlines, startBoxSelection, syncWaypointToDb } f
         if (!isEditingText && e.key === '\\') { e.preventDefault(); appState.btnThemeToggle.click(); return; }
         if (!isEditingText && (e.key === 'p' || e.key === 'P')) { e.preventDefault(); appState.profileBtn.click(); return; }
         if (!isEditingText && (e.key === 'w' || e.key === 'W')) { e.preventDefault(); appState.railBtnWaypoints.click(); return; }
-        if (!isEditingText && (e.key === 'g' || e.key === 'G')) { e.preventDefault(); appState.railBtnCollab.click(); return; }
+        if (!isEditingText && (e.key === 'c' || e.key === 'C')) { e.preventDefault(); appState.railBtnCollab.click(); return; }
         if (!isEditingText && e.key === ';') { e.preventDefault(); appState.btnCart.click(); return; }
         if (!isEditingText && (e.key === 'l' || e.key === 'L')) { e.preventDefault(); appState.libraryBtn.click(); return; }
         if (!isEditingText && (e.key === 'm' || e.key === 'M')) { e.preventDefault(); appState.messagesBtn.click(); return; }
