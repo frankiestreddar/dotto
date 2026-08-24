@@ -623,7 +623,7 @@ import { render, renderSelectedOutlines, startBoxSelection, syncWaypointToDb } f
         if (!isEditingText && e.key === ';') { e.preventDefault(); appState.btnCart.click(); return; }
         if (!isEditingText && (e.key === 'l' || e.key === 'L')) { e.preventDefault(); appState.libraryBtn.click(); return; }
         if (!isEditingText && (e.key === 'm' || e.key === 'M')) { e.preventDefault(); appState.messagesBtn.click(); return; }
-        if (!isEditingText && (e.key === 'b' || e.key === 'B')) { e.preventDefault(); btnAdd.click(); return; }
+        if (!isEditingText && (e.key === '+' || e.key === '=')) { e.preventDefault(); btnAdd.click(); return; }
         if (!isEditingText && (e.key === 's' || e.key === 'S')) { e.preventDefault(); appState.btnSources.click(); return; }
         if (!isEditingText && (e.key === 'f' || e.key === 'F')) { e.preventDefault(); appState.btnSnippets.click(); return; }
         // Finishes an in-progress point-by-point pen line without leaving pen mode (unlike
