@@ -126,8 +126,13 @@ import { centerOnContent, render } from './waypoints-render-loop.js';
             // to avoid saving on every single drag/wheel frame), but every save that DOES happen
             // for any other reason captures wherever the camera currently is, and pagehide/
             // visibilitychange below call this directly so a plain refresh or tab close always
-            // gets one in first.
-            data: { folders: localFolders, idCounter: appState.idCounter, historyStack: resumeStack, historyIndex: resumeIndex, tx: appState.tx, ty: appState.ty, scale: appState.scale, lastSharedView },
+            // gets one in first. tabs/activeTabId/nextTabId (per explicit request that tabs
+            // survive a reload) are saved as-is, unlike resumeFolderId/resumeStack/resumeIndex
+            // above — no special-casing for a currently-open shared canvas, since any tab whose own
+            // folderId turns out to be unresolvable on the next load (a shared:/public: key that
+            // isn't fetched by default) just falls back to wherever the reload actually lands
+            // instead, see loadWorkspace's own validation.
+            data: { folders: localFolders, idCounter: appState.idCounter, historyStack: resumeStack, historyIndex: resumeIndex, tx: appState.tx, ty: appState.ty, scale: appState.scale, lastSharedView, tabs: appState.tabs, activeTabId: appState.activeTabId, nextTabId: appState.nextTabId },
             current_folder_id: resumeFolderId,
             updated_at: new Date().toISOString()
         });
@@ -222,6 +227,35 @@ import { centerOnContent, render } from './waypoints-render-loop.js';
                 appState.preSharedViewState = null; // couldn't resume — stay on this user's own canvas instead
             }
         }
+
+        // Tabs (public/dotto/shared-canvases-outline.js's addTab/switchTab/closeTab) — per explicit
+        // request that they survive a reload. Validated against appState.folders as it stands
+        // AFTER the shared-canvas resume block above (not right after the plain `data.data.folders`
+        // assignment near the top) so a tab pointing into an actively-resumed shared chain still
+        // validates correctly: any tab whose own folderId isn't currently loaded (a shared:/
+        // public: key that wasn't re-fetched, or a folder that's since been deleted) falls back to
+        // currentFolderId instead of being dropped, so a save with one bad tab never leaves fewer
+        // tabs open than before. renderTabsPanel (called from the very first render() after this)
+        // force-syncs the ACTIVE tab's own folderId to currentFolderId regardless, so only the
+        // OTHER tabs' folderIds actually depend on this validation for correctness.
+        // nextTabId is kept safely ahead of every restored tab's own numeric suffix regardless of
+        // what was persisted for it, so a freshly-added tab can never collide with a restored one.
+        const savedTabs = Array.isArray(data.data.tabs)
+            ? data.data.tabs.filter(t => t && typeof t.id === 'string' && typeof t.folderId === 'string')
+            : [];
+        if (savedTabs.length) {
+            appState.tabs = savedTabs.map(t => ({ id: t.id, folderId: appState.folders[t.folderId] ? t.folderId : appState.currentFolderId }));
+            appState.activeTabId = appState.tabs.some(t => t.id === data.data.activeTabId) ? data.data.activeTabId : appState.tabs[0].id;
+            const maxExistingId = appState.tabs.reduce((max, t) => {
+                const match = /^tab-(\d+)$/.exec(t.id);
+                return match ? Math.max(max, parseInt(match[1], 10)) : max;
+            }, -1);
+            appState.nextTabId = Math.max(Number.isInteger(data.data.nextTabId) ? data.data.nextTabId : 0, maxExistingId + 1);
+        }
+        // Older save made before this feature existed, or corrupted data — appState.tabs already
+        // has its own single-default-tab starting value from core-state.js, so there's nothing
+        // further to do here; that default just needs its folderId synced, which renderTabsPanel
+        // (see above) already handles on the first render() regardless.
 
         if (typeof data.data.tx === 'number' && typeof data.data.ty === 'number' && typeof data.data.scale === 'number') {
             appState.tx = data.data.tx; appState.ty = data.data.ty; appState.scale = data.data.scale;
