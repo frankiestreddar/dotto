@@ -457,8 +457,13 @@ import { render } from './waypoints-render-loop.js';
     // isn't already English), and romanization only when the model filled it in AND the sentence
     // isn't already Latin script (isLatinScriptText is a client-side backstop on top of the
     // model's own instruction to omit it). Each sentence is its own drag handle (not the whole
-    // card) — dropped individually onto the canvas as a dedicated 'sentence' card, not a plain
-    // note. `panel.language` (the standalone examples panel's own language field) is passed to
+    // card) — dropped individually onto the canvas as a plain 'note' (kind omitted below —
+    // same default-to-note path buildDictionaryCard/buildTranslationCard/buildDotbotAnswerTextEl
+    // already use), per explicit request that example text land as an ordinary, editable note
+    // rather than the dedicated read-only 'sentence' card it used to (still used by
+    // buildAnswerExamplePill's own inline answer-block pills, below — a different, narrower use
+    // case this request didn't ask to change). `panel.language` (the standalone examples panel's
+    // own language field) is passed to
     // each sentence's own TTS button so it's spoken correctly rather than falling back to the
     // default English voice. `alignment` (and the "sourcePhrase"/"targetPhrase" data the model
     // still generates for it — see lib/dotbot.js) is currently unused: this used to drive
@@ -486,12 +491,8 @@ import { render } from './waypoints-render-loop.js';
         if (translitEl) wrap.appendChild(translitEl);
         if (translationEl) wrap.appendChild(translationEl);
         setupDotbotResultDrag(wrap, {
-            kind: 'sentence',
             w: 220, h: 130,
-            text: s.text || '',
-            translit: s.romanization || '',
-            translation: translationEl ? s.translation : '',
-            html: [s.text, s.romanization, translationEl ? s.translation : ''].filter(Boolean).join(' — '),
+            html: [s.text, s.romanization, translationEl ? s.translation : ''].filter(Boolean).join('<br>'),
         });
         return wrap;
     }
