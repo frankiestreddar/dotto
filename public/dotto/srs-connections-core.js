@@ -537,7 +537,10 @@ import { render, renderSelectedOutlines, startBoxSelection, syncWaypointToDb } f
     }
 
     // Keyed by appState.activeRailView (see openRailView/wireRailIcon, panels-hamburger.js) — used
-    // by the Enter-focuses-search-box handler below.
+    // by the Enter-focuses-search-box handler below. 'search'/'ai' added per explicit follow-up
+    // request that every side panel's search box show/respond to this — both panels' own search
+    // boxes didn't exist yet when this map (and its "AI/Profile don't [have one]" comment further
+    // down) was first written.
     const RAIL_PANEL_SEARCH_INPUT_ID = {
         outline: 'outline-search',
         waypoints: 'waypoints-search',
@@ -546,6 +549,8 @@ import { render, renderSelectedOutlines, startBoxSelection, syncWaypointToDb } f
         library: 'library-search',
         messages: 'msg-search',
         add: 'add-menu-search-input',
+        search: 'search-panel-search',
+        ai: 'search-input',
     };
 
     document.addEventListener('keydown', (e) => {
@@ -661,9 +666,11 @@ import { render, renderSelectedOutlines, startBoxSelection, syncWaypointToDb } f
         // Enter, while some panel is open and nothing is actually focused yet, jumps straight into
         // that panel's own search box (per explicit request, replacing an earlier "typing any
         // character jumps into the search box" design — Enter is one single, deliberate key to
-        // reach for, rather than every keystroke being intercepted). RAIL_PANEL_SEARCH_INPUT_ID
-        // only covers panels that actually have a search box of their own (AI/Profile don't), so
-        // Enter is simply a no-op here for those, same as it always was.
+        // reach for, rather than every keystroke being intercepted). Also what the "Enter" hint
+        // badge inside each search box (.hub-subpanel-search-hint/#search-input-hint, globals.css)
+        // is advertising, per a later explicit follow-up request. RAIL_PANEL_SEARCH_INPUT_ID only
+        // covers panels that actually have a search box of their own (Profile doesn't), so Enter is
+        // simply a no-op here for that one, same as it always was.
         if (!isEditingText && anyPanelOpen && e.key === 'Enter') {
             const searchId = RAIL_PANEL_SEARCH_INPUT_ID[appState.activeRailView];
             const input = searchId && document.getElementById(searchId);

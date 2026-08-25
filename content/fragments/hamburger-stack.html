@@ -6,18 +6,21 @@
     <div id="outline-menu" class="hmenu-panel">
         <div class="hub-subpanel-search-wrap">
             <input id="outline-search" class="hub-subpanel-search" type="text" placeholder="Search blocks..." oninput="handleOutlineSearch(this.value)">
+            <span class="hub-subpanel-search-hint">Enter</span>
         </div>
         <div id="hmenu-outline-container"></div>
     </div>
     <div id="hub-collab-panel" class="hmenu-panel hub-subpanel" onclick="event.stopPropagation()">
         <div class="hub-subpanel-search-wrap">
             <input id="hub-collab-search" class="hub-subpanel-search" type="text" placeholder="Search..." oninput="handleHubCollabSearch(this.value)">
+            <span class="hub-subpanel-search-hint">Enter</span>
         </div>
         <div id="hub-collab-list" class="hub-subpanel-list"></div>
     </div>
     <div id="waypoints-panel" class="hmenu-panel hub-subpanel" onclick="event.stopPropagation()">
         <div class="hub-subpanel-search-wrap">
             <input id="waypoints-search" class="hub-subpanel-search" type="text" placeholder="Search..." oninput="handleWaypointsSearch(this.value)">
+            <span class="hub-subpanel-search-hint">Enter</span>
         </div>
         <div id="waypoints-list" class="hub-subpanel-list"></div>
     </div>
@@ -54,6 +57,7 @@
         <p class="search-panel-desc">Find anything across your canvases.</p>
         <div class="hub-subpanel-search-wrap search-panel-search-wrap">
             <input id="search-panel-search" class="hub-subpanel-search" type="text" placeholder="Search...">
+            <span class="hub-subpanel-search-hint">Enter</span>
         </div>
         <div id="search-panel-content" class="hub-subpanel-list"></div>
     </div>
@@ -218,6 +222,7 @@
                 <div id="search-input-wrap">
                     <textarea id="search-input" rows="1" placeholder="" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" oninput="handleSearchInput(this.value)" onfocus="handleSearchFocus()"></textarea>
                     <div id="search-spinner" aria-hidden="true"></div>
+                    <span id="search-input-hint">Enter</span>
                 </div>
                 <div id="search-dropdown">
                     <!-- Slash-command live suggestions (see command-palette.js) — first, so it visually
@@ -373,6 +378,7 @@
     <div id="add-menu" class="hmenu-panel hub-subpanel" onclick="event.stopPropagation()">
         <div class="hub-subpanel-search-wrap">
             <input id="add-menu-search-input" class="hub-subpanel-search" type="text" placeholder="Search blocks..." oninput="handleAddMenuSearchInput(this.value)">
+            <span class="hub-subpanel-search-hint">Enter</span>
         </div>
         <div id="add-menu-quick-actions">
             <div class="add-menu-row" onclick="prepareAdd('folder')">
