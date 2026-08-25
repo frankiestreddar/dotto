@@ -1755,13 +1755,16 @@
        content overflows the flex-1 space above, just no visible scrollbar track/thumb. */
     #search-chat-thread::-webkit-scrollbar{display:none;}
     .dotbot-turn{display:flex;flex-direction:column;gap:8px;}
-    /* Right-aligned pill, same --brand indigo used elsewhere for accents — the one thing this
-       whole search surface never rendered before now: the user's OWN query, as an actual message
-       rather than something that only ever lived in the input box for a moment before being
-       cleared. Assistant content below it reuses every existing card style completely unchanged
+    /* Right-aligned pill — the one thing this whole search surface never rendered before now: the
+       user's OWN query, as an actual message rather than something that only ever lived in the
+       input box for a moment before being cleared. Light grey/black text (was --brand indigo/
+       white) per explicit request — deliberately NOT themed (same fixed-color-regardless-of-theme
+       reasoning as #search-card-pill-clear elsewhere in this file), so it stays a consistent light
+       bubble in both light and dark mode rather than needing a separate dark-mode override.
+       Assistant content below it reuses every existing card style completely unchanged
        (buildDictionaryCard/buildExamplesCard/etc. — see ChatThread.jsx), just mounted into a
        per-turn container instead of one shared fixed node. */
-    .dotbot-turn-user{align-self:flex-end;max-width:80%;background:var(--brand);color:#fff;border-radius:14px 14px 4px 14px;padding:10px 14px;font-size:14px;line-height:1.4;white-space:pre-wrap;word-break:break-word;}
+    .dotbot-turn-user{align-self:flex-end;max-width:80%;background:#E5E5E5;color:#000;border-radius:14px 14px 4px 14px;padding:10px 14px;font-size:14px;line-height:1.4;white-space:pre-wrap;word-break:break-word;}
     .dotbot-turn-assistant{display:flex;flex-direction:column;gap:5px;}
     .dotbot-turn-assistant:empty{display:none;}
 
