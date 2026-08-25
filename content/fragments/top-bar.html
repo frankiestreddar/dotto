@@ -63,11 +63,14 @@
              from the original 4 .mode-btn, deliberately NOT reusing that class, so
              appState.modeButtons/the existing display:none-when-collapsed rules stay scoped to
              just the rail button and don't need to care about this popup's own always-a-row
-             styling). The currently active mode's row sorts to the top (order:-1, JS-set in
-             updateModeToolbarUI, source-buttons-cursor-mode.js) and gets a highlighted/outlined
-             .active state, with the other three following below in their normal relative order —
-             see appState.modePopupRows (core-state.js) and its own click wiring
-             (source-buttons-cursor-mode.js, mirroring appState.modeButtons' click handler). -->
+             styling). Rows stay in this fixed DOM order always — an earlier version sorted the
+             active mode to the top, removed per explicit follow-up request — the active mode just
+             gets a highlighted/outlined .active state instead (see appState.modePopupRows,
+             core-state.js, and its own click wiring in source-buttons-cursor-mode.js, mirroring
+             appState.modeButtons' click handler). .mode-popup-bridge (globals.css) is an
+             invisible strip bridging the rail's own padding gap between the button and this panel
+             — see its own comment, globals.css — needed once the panel was moved to sit flush
+             against the rail's true edge instead of the button's edge, per explicit request. -->
         <div id="mode-toolbar">
             <button class="rail-btn mode-btn mode-visible active" data-mode="normal">
                 <img class="rail-icon-img" src="/assets/icons/default-cursor.png" alt="">
@@ -87,6 +90,7 @@
                 <img class="rail-icon-img" src="/assets/icons/pen.png" alt="">
             </button>
             <div id="mode-popup" class="mode-popup">
+                <div class="mode-popup-bridge"></div>
                 <button class="mode-popup-row" data-mode="normal">
                     <img class="rail-icon-img" src="/assets/icons/default-cursor.png" alt="">
                     <span class="mode-popup-row-name">Move &amp; select</span>

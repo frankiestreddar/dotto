@@ -41,13 +41,11 @@ import { clearDataLinkPending } from './srs-connections-core.js';
             // collide with this pin), so expanding the pill always grows upward from the same spot.
             b.style.order = b.dataset.mode === appState.cardMode ? '99' : String(appState.MODE_ORDER_WEIGHT[b.dataset.mode]);
         });
-        // #mode-popup's own rows (top-bar.html) — order:-1 sorts the active one to the very top
-        // (lower than any real MODE_ORDER_WEIGHT value), the other three keep their normal
-        // relative order below it, per explicit request.
+        // #mode-popup's own rows (top-bar.html) — per explicit follow-up request the active row no
+        // longer sorts to the top; all four always stay in their fixed DOM order, only the
+        // highlight moves.
         appState.modePopupRows.forEach(row => {
-            const isActive = row.dataset.mode === appState.cardMode;
-            row.classList.toggle('active', isActive);
-            row.style.order = isActive ? '-1' : String(appState.MODE_ORDER_WEIGHT[row.dataset.mode]);
+            row.classList.toggle('active', row.dataset.mode === appState.cardMode);
         });
     }
     function applyCursorMode() {

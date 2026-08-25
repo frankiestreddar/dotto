@@ -718,29 +718,44 @@
     #mode-toolbar .mode-btn{position:absolute;top:0;left:0;display:none;}
     #mode-toolbar .mode-btn.mode-visible{display:flex;}
     /* One cohesive popup panel (not 4 individually-bordered pills, per explicit follow-up
-       request) — a real flex column so JS-set `order` (updateModeToolbarUI,
-       source-buttons-cursor-mode.js) can sort the currently active mode's row to the top, with
-       the other three following below in their normal relative order, also per explicit request.
+       request) — a real flex column; the four rows always render in their fixed DOM order (no
+       JS-set `order` here — an earlier version sorted the active mode to the top, removed per
+       explicit follow-up request that the order stay put).
        top:0 so it doesn't jump around relative to the fixed collapsed button above.
-       left:100% (flush against the button, NOT the usual left:calc(100% + 12px) gap every other
-       rail popup uses) is deliberate, per an explicit bug report: #mode-toolbar's mouseenter/
-       mouseleave (source-buttons-cursor-mode.js) is what shows/hides this panel, and a real gap
-       between the button and the panel is genuine dead space neither element's box covers — the
-       mouse crossing it on the way from one to the other fires mouseleave before ever reaching the
-       panel, collapsing it out from under the pointer. Flush removes that gap entirely rather than
-       trying to bridge it with an invisible hit-area element. */
-    .mode-popup{display:none;position:absolute;top:0;left:100%;width:170px;flex-direction:column;gap:2px;background:var(--bar);border:1px solid var(--card-border);border-radius:10px;padding:4px;box-shadow:0 4px 12px rgba(0,0,0,0.4);z-index:1001;}
+       left:calc(100% + 12px) — flush against the RAIL's own true right edge (var(--rail-width),
+       56px), not the button's own edge: #mode-toolbar is only 32px wide but sits centered inside
+       that 56px rail (#dotto-rail's align-items:center), leaving a 12px margin on either side, so
+       left:100% (an earlier version of this rule) put the panel's own left ~12px ON TOP of the
+       rail's background instead of past its true edge — per explicit bug report that the panel
+       was overlapping onto the sidebar rather than touching it. That reintroduces the exact
+       dead-space gap the earlier flush fix existed to avoid (the mouse crossing those 12px on the
+       way from button to panel fires #mode-toolbar's mouseleave before ever reaching the panel,
+       collapsing it out from under the pointer) — solved here instead with .mode-popup-bridge
+       (below), an invisible strip covering exactly that gap, per explicit request, rather than by
+       removing the gap itself. */
+    .mode-popup{display:none;position:absolute;top:0;left:calc(100% + 12px);width:170px;flex-direction:column;gap:2px;background:var(--bar);border:1px solid var(--card-border);border-radius:10px;padding:4px;box-shadow:0 4px 12px rgba(0,0,0,0.4);z-index:1001;}
     :root[data-theme="light"] .mode-popup{box-shadow:0 4px 12px rgba(0,0,0,0.168);}
     #mode-toolbar.expanded .mode-popup{display:flex;}
+    /* Invisible bridge over the 12px rail-padding gap between #mode-toolbar's button and this
+       panel's own left edge (see .mode-popup's own comment above) — a DOM descendant of
+       #mode-toolbar (nested inside .mode-popup itself; position:absolute takes it out of the
+       column flex flow so it doesn't disturb the 4 .mode-popup-row children), so hovering it
+       still counts as hovering #mode-toolbar's own subtree and keeps .expanded on (mouseenter/
+       mouseleave, source-buttons-cursor-mode.js) instead of the pointer crossing dead space no
+       element covers. height:100% matches the panel's own auto-fit height exactly, whatever that
+       happens to be. Every other rail button lives outside this subtree entirely, so moving onto
+       one of them still fires a real mouseleave and closes the panel same as ever — this only
+       bridges the one specific gap the panel's own reposition (above) introduced. */
+    .mode-popup-bridge{position:absolute;top:0;left:-12px;width:12px;height:100%;}
     /* Plain rows within that one shared panel — background:none at rest so only :hover/.active
        stand out against the panel's own surface, matching .add-menu-row's own row-in-a-shared-
        panel convention elsewhere in this file, rather than each row having its own separate
        background/border the way an earlier version of this popup did. */
     .mode-popup-row{display:flex;align-items:center;gap:10px;height:32px;padding:0 10px;border-radius:6px;background:none;border:none;cursor:pointer;font-family:inherit;}
     .mode-popup-row:hover{background:var(--hover-bg);}
-    /* The currently active mode (JS-toggled alongside its own order:-1, same place,
-       updateModeToolbarUI) — a persistent highlight, same faint-outline convention
-       .rail-btn.active already uses, not just a hover-only effect. */
+    /* The currently active mode (JS-toggled, updateModeToolbarUI) — a persistent highlight, same
+       faint-outline convention .rail-btn.active already uses, not just a hover-only effect. Row
+       order itself is untouched by this — see .mode-popup's own comment above. */
     .mode-popup-row.active{background:var(--hover-bg);outline:1px solid var(--outline-soft);}
     /* .rail-icon-img's own hover/active opacity boost (elsewhere in this file) is scoped to
        .rail-btn, which these rows deliberately aren't (see top-bar.html's own comment on why) —
