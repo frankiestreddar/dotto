@@ -34,6 +34,14 @@
         --outline-soft:#454545;
         --hmenu-width:300px;
         --rail-width:56px;
+        /* Which cursor-pointer image the body-wide native-cursor override (below --root, see its
+           own comment) actually uses — a custom property rather than a second, theme-scoped
+           selector so the override rule itself stays a single low-specificity `body *` selector;
+           adding :root[data-theme="light"] directly to that selector would have made it MORE
+           specific than body.dragging/body.avatar-color-dragging's own !important overrides just
+           above, breaking their grabbing/none cursors specifically in light mode (competing
+           !important rules are resolved by specificity, not source order). */
+        --cursor-pointer:url('/assets/icons/custom-cursor-pointer.png');
     }
     /* Light theme — toggled via the "Colour Theme" switch in #settings-panel
        (hamburger-stack.html/theme-toggle.js — was its own #btn-theme-toggle rail button before
@@ -64,6 +72,7 @@
         --bar:#FFFFFF;
         --hover-bg:#ECECEC;
         --outline-soft:#CCCCCC;
+        --cursor-pointer:url('/assets/icons/custom-cursor-pointer-light.png');
     }
     *{box-sizing:border-box; touch-action: none; user-select:none; -webkit-user-select:none;}
     select, input, .format-bar{touch-action: auto;}
@@ -76,22 +85,27 @@
     body.dragging, body.dragging * { cursor: grabbing !important; }
     /* Every native cursor the local user sees of their own pointer — every button's plain
        cursor:pointer, the draw-mode crosshair/cell cursors (#canvas.mode-data/.mode-select/
-       .mode-pen below), plain text hover, all of it — replaced by one custom pointer image, per
-       explicit request. !important + body * (not just body) is what makes this beat every one of
-       those more specific existing rules throughout this file without having to hunt down and
-       edit each individually; same body-wide !important-override shape body.dragging above and
+       .mode-pen below), plain text hover, all of it — replaced by custom-cursor.png, per explicit
+       request. !important + body * (not just body) is what makes this beat every one of those more
+       specific existing rules throughout this file without having to hunt down and edit each
+       individually; same body-wide !important-override shape body.dragging above and
        body.avatar-color-dragging further down already use for their own (higher-specificity, so
-       still correctly the one that wins during an actual drag/avatar-pick) temporary overrides.
-       custom-cursor-pointer.png is a separate, small (32x32) export baked from custom-cursor.png —
-       a plain white silhouette on transparent otherwise, same as this file's other icon PNGs, but
-       native `cursor: url()` can't be retinted per-theme the way .rail-icon-img's own CSS filter
-       chain retints those — so this version has a black outline baked directly into the pixels
-       instead, the same "visible against any background" treatment real OS pointers already use.
-       Hotspot (3,3) is that asset's own tip position once scaled down to 32x32. Doesn't touch
-       collaborators' cursors (.remote-cursor, live-presence.js) — those are unrelated DOM-rendered
-       SVG elements inside #cursor-overlay marking where OTHER users are, nothing to do with this
-       browser's own native cursor. */
-    html, body, html *, body * { cursor: url('/assets/icons/custom-cursor-pointer.png') 3 3, auto !important; }
+       still correctly the one that wins during an actual drag/avatar-pick) temporary overrides —
+       which is also exactly why the light/dark swap below is a --cursor-pointer custom property
+       (set in :root/:root[data-theme="light"] above) rather than adding a second, theme-scoped
+       selector here: that would have made THIS rule more specific than those two, breaking their
+       grabbing/none cursors specifically in light mode (competing !important rules resolve by
+       specificity, not source order, so a more-specific loser here would win regardless of which
+       rule comes first in the file). custom-cursor-pointer.png/-light.png are small (32x32) exports
+       of custom-cursor.png itself — plain white-on-transparent normally, same as this file's other
+       icon PNGs, but native `cursor: url()` can't be retinted per-theme the way .rail-icon-img's
+       own CSS filter chain retints those, so this is two separate baked-black-vs-white files
+       instead of one file plus a filter. Hotspot (4,4) is the shape's own tip position once scaled
+       down to 32x32 — identical for both files since they're otherwise pixel-for-pixel the same
+       shape. Doesn't touch collaborators' cursors (.remote-cursor, live-presence.js) — those are
+       unrelated DOM-rendered SVG elements inside #cursor-overlay marking where OTHER users are,
+       nothing to do with this browser's own native cursor. */
+    html, body, html *, body * { cursor: var(--cursor-pointer) 4 4, auto !important; }
 
     /* left/width leave room for the permanent hamburger rail (#btn-menu, see its own comment) —
        overflow:hidden here is what actually stops canvas content from rendering under the rail,
