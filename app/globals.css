@@ -1145,7 +1145,13 @@
        opacity most rail icons use) per explicit request that it read as faint rather than a normal
        icon — same black-source-PNG tinting convention as .rail-icon-img otherwise (brightness(0)
        invert(1) dark / brightness(0) light). */
-    .search-history-row{display:flex;align-items:center;gap:10px;height:32px;padding:0 10px;border-radius:6px;cursor:pointer;font-size:12px;color:var(--ink);}
+    /* Left inset lands on 18px from each panel's own true edge, per explicit follow-up request
+       ("something in between the two") — #search-panel has no padding of its own (content box =
+       full sidebar width, so this row's own 4px .hub-subpanel-list padding + 14px here = 18px),
+       while #ai-panel (Queries) has 8px padding (see its own comment) that #search-panel doesn't,
+       so #chats-list's own row (below) needs a smaller 6px to land on that same 18px total
+       (8 + 4 + 6) instead of reusing this exact number. */
+    .search-history-row{display:flex;align-items:center;gap:10px;height:32px;padding:0 14px;border-radius:6px;cursor:pointer;font-size:12px;color:var(--ink);}
     .search-history-row:hover{background:var(--hover-bg);}
     .search-history-icon{width:14px;height:14px;flex:0 0 auto;object-fit:contain;filter:brightness(0) invert(1);opacity:0.35;}
     /* #chats-list's rows (ChatsListPanel.jsx) reuse the shared .outline-item class — needed so
@@ -1153,9 +1159,11 @@
        list-panel it's wired to (see that row's own comment, ChatsListPanel.jsx) — but .outline-item's
        own margin/padding/gap (further down this file) is tuned for the real indented Outline tree,
        not a flat list, which left these rows sitting at a visibly different inset than
-       .search-history-row right above per explicit bug report. Overridden here, scoped to just this
-       list, to match that row's own box model exactly instead. */
-    #chats-list .outline-item{margin:0;height:32px;padding:0 10px;gap:10px;}
+       .search-history-row above per explicit bug report. Overridden here, scoped to just this list;
+       padding is 6px (not .search-history-row's own 14px) precisely because #ai-panel's extra 8px
+       padding (see its own comment) needs to be subtracted back out for the two to land on the same
+       18px total inset — see .search-history-row's own comment just above for that math. */
+    #chats-list .outline-item{margin:0;height:32px;padding:0 6px;gap:10px;}
     :root[data-theme="light"] .search-history-icon{filter:brightness(0);}
     .search-history-query{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0;}
     .hub-subpanel-list{flex:1 1 auto;overflow-y:auto;min-height:0;padding:6px 4px;scrollbar-width:none;}
@@ -1555,16 +1563,19 @@
     /* Never scrollable, even past the 4-line cap - overflow is hidden, not auto. The caret still
        auto-scrolls into view internally as you type (native textarea behavior, independent of
        this property), it just never shows/permits an interactive scrollbar. */
-    /* min/max-height are pure content+padding (20px padding + a 20px text line = 40px, or 4 lines
-       = 100px) — no border term, since the textarea itself is borderless now (the wrap owns the
-       1px+1px border and adds it on top). */
-    #search-input{display:block;width:100%;min-height:40px;max-height:100px;background:transparent;border:none;color:var(--ink);padding:10px 32px 10px 14px;font-size:14px;line-height:20px;font-family:inherit;outline:none;resize:none;overflow-y:hidden;transition:height 0.15s ease;}
+    /* min/max-height are pure content+padding (14px padding + a 20px text line = 34px, or 4 lines
+       = 94px) — no border term, since the textarea itself is borderless now (the wrap owns the
+       1px+1px border and adds it on top). 7px top/bottom (was 10px) is what makes the resting
+       (1-line) height land on 34px instead of 40px — matching #search-panel-search/
+       .hub-subpanel-search's own height exactly, per explicit follow-up request. */
+    #search-input{display:block;width:100%;min-height:34px;max-height:94px;background:transparent;border:none;color:var(--ink);padding:7px 32px 7px 14px;font-size:14px;line-height:20px;font-family:inherit;outline:none;resize:none;overflow-y:hidden;transition:height 0.15s ease;}
     #search-input::placeholder{color:var(--ink-soft);}
     /* The loading ring, idle-pulse chase, and card-context pill that used to live here (SVG rings
        traced around the border, a rollercoaster-eased "focused and waiting" flare, an attached-
        cards badge) are gone — per explicit follow-up request, #search-spinner below is the only
-       loading indicator left. See git history for what those looked like. */
-    #search-spinner{display:none;position:absolute;right:12px;top:14px;width:14px;height:14px;border:2px solid var(--card-border);border-top-color:var(--ink-soft);border-radius:50%;animation:dotbot-spin 0.7s linear infinite;pointer-events:none;}
+       loading indicator left. See git history for what those looked like. top:10px (was 14px)
+       centers it against #search-input's own new 34px resting height (was 40px). */
+    #search-spinner{display:none;position:absolute;right:12px;top:10px;width:14px;height:14px;border:2px solid var(--card-border);border-top-color:var(--ink-soft);border-radius:50%;animation:dotbot-spin 0.7s linear infinite;pointer-events:none;}
     #search-spinner.visible{display:block;}
     @keyframes dotbot-spin{to{transform:rotate(360deg);}}
 

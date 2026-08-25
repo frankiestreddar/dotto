@@ -422,10 +422,12 @@ import { openFolder, render } from './waypoints-render-loop.js';
     });
 
     // #search-input is a <textarea> that grows line by line as typed text wraps, up to 4 lines
-    // (100px). Repositions #search-dropdown to stay glued 7px below the input at whatever height
-    // it's currently at.
+    // (94px) — its resting (1-line) height, 34px, matches #search-panel-search's own height,
+    // per explicit follow-up request; see #search-input's own min/max-height comment, globals.css,
+    // for the padding math behind both those numbers. Repositions #search-dropdown to stay glued
+    // 7px below the input at whatever height it's currently at.
     function autoGrowSearchInput() {
-        const minH = 40;
+        const minH = 34;
         let h;
         // With no typed value, the box is always exactly 1 (text) line tall — measuring
         // scrollHeight here would instead reflect the animated placeholder's current wrapped
@@ -438,7 +440,7 @@ import { openFolder, render } from './waypoints-render-loop.js';
             // #search-input itself is borderless now (the wrap owns the border — see globals.css),
             // so scrollHeight's content+padding measurement already matches what style.height
             // (box-sizing:border-box) needs — no border-compensation offset required.
-            h = Math.max(minH, Math.min(100, appState.searchInput.scrollHeight));
+            h = Math.max(minH, Math.min(94, appState.searchInput.scrollHeight));
         }
         appState.searchInput.style.height = h + 'px';
         // #search-dropdown is a normal flex-flow sibling now, not absolutely positioned against
