@@ -1104,8 +1104,11 @@
        request, swapped for this pre-rendered 3D/glassy asset and every one of those simulated
        effects removed entirely: no tint filter, no theme handling, no drop-shadow. It already
        looks the way those were trying to approximate, so it just renders as-is at its own natural
-       size/colour, sized to match the 120px hero circle. */
-    .search-panel-hero-icon{position:relative;z-index:1;width:38px;height:38px;object-fit:contain;}
+       colour. Sized at ~4x its original 38px (was scaled to match the 120px hero circle; now
+       deliberately overflows it a bit, per explicit follow-up request to make it "about 4x
+       bigger") — the hero circle itself is untouched, .search-panel-hero has no overflow:hidden
+       so the larger icon just extends past the glow's edge symmetrically. */
+    .search-panel-hero-icon{position:relative;z-index:1;width:150px;height:150px;object-fit:contain;}
     /* Space Grotesk (this file's semantic-heading typeface, see the app-typeface comment near the
        top of this file) per explicit request; the description just below inherits the default
        Golos Text body font with no override needed, also per explicit request. font-size bumped
