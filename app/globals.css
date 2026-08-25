@@ -460,8 +460,12 @@
        to look like content actually sliding into/out of the pill's own top edge, not just fading
        in place. touch-action:none/user-select:none are for the drag-to-reorder gesture below —
        without the former, a touch-drag would fight the browser's own scroll gesture; without the
-       latter, a press-and-drag would select the pill's own text along the way. */
-    .tab-pill{display:flex;align-items:center;gap:4px;flex:0 0 auto;border-radius:6px;padding:3px 8px;border:1px solid transparent;max-width:150px;overflow:hidden;touch-action:none;user-select:none;transition:background .15s ease,border-color .15s ease;}
+       latter, a press-and-drag would select the pill's own text along the way.
+       padding:3px (was 3px 8px) — left/right brought down to match top/bottom, per explicit
+       request (briefly reverted in between, once for #breadcrumb-pill's own padding to get the
+       same treatment first — see that rule's own comment — then re-applied here once #breadcrumb-
+       pill's own fix alone still left this as the only remaining L/R-vs-T/B mismatch in the row). */
+    .tab-pill{display:flex;align-items:center;gap:4px;flex:0 0 auto;border-radius:6px;padding:3px;border:1px solid transparent;max-width:150px;overflow:hidden;touch-action:none;user-select:none;transition:background .15s ease,border-color .15s ease;}
     .tab-pill:not(.tab-pill-active){cursor:pointer;}
     /* Very subtle grey outline on every non-active tab, and a very subtle grey highlight on the
        active one — per explicit request. Both use the app's own established "subtle grey" tokens
