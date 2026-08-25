@@ -237,6 +237,13 @@
     .static-item-table:hover tr.add-row-row td.add-row-cell, .static-item-table:hover td.add-col-cell{opacity:0.35;}
     
     #world{position:absolute;top:0;left:0;transform-origin:0 0;will-change:transform;z-index:1;}
+    /* Registers --tb-offset as a real animatable <length> (Houdini @property) rather than a plain
+       untyped custom property — plain custom properties don't interpolate during a CSS transition
+       (the browser just flips them instantly at the halfway point of the property's own transition
+       list), which would make the compensating shift #top-bar-center applies (below) snap instead
+       of sliding smoothly alongside #nav-arrows-pill/#collab-bubble's own width growth. See
+       #top-bar-center's own comment for what this offset is compensating for. */
+    @property --tb-offset{syntax:'<length>';inherits:false;initial-value:0px;}
     /* background:var(--paper) — same colour as #canvas itself, not --bar (the lighter panel/floating-
        chrome background most other pill-shaped elements use) — per explicit request that these
        top-bar pills read as part of the canvas rather than a separate white-ish surface floating
@@ -264,12 +271,31 @@
        #nav-arrows-pill/#collab-bubble are both collapsed (0 width/opacity) at rest now and only
        reveal on this element's own :hover — per explicit request that they only show once the
        breadcrumb (the only thing left visible at rest) is hovered — see each section's own comment
-       for why the trigger lives here on the whole pill rather than on #breadcrumb-pill specifically. */
-    #top-bar-center{position:fixed;top:20px;left:50%;transform:translateX(-50%);z-index:1000;gap:0;height:40px;transition:transform .3s ease, opacity .3s ease;}
+       for why the trigger lives here on the whole pill rather than on #breadcrumb-pill specifically.
+       --tb-offset (registered above, see that rule's own comment) compensates for
+       #nav-arrows-pill/#collab-bubble growing by DIFFERENT amounts on hover (a fixed 2-button width
+       vs. a variable number of avatars) so #breadcrumb-pill's own on-screen centre stays exactly
+       fixed at the viewport's — per explicit request — rather than drifting with whichever side
+       happens to be wider. Plain translateX(-50%) alone only centres the PILL's own combined
+       width, which only happens to also centre the breadcrumb specifically when both sides grow by
+       equal amounts. CollabPill.jsx computes the actual target value (it needs real measured
+       widths — #collab-bubble's in particular varies with avatar count, not expressible in CSS
+       alone) into --tb-offset-target, a plain (non-animatable, doesn't need to be) custom property
+       always holding the current correct value regardless of hover state; the rule just below
+       switches --tb-offset itself to that target on hover, and back to 0 at rest (0 is always
+       correct at rest since only the breadcrumb — with nothing asymmetric on either side of it — is
+       visible then). Both nav-arrows-pill/collab-bubble's own max-width transitions and this
+       transform's transition share the same .3s ease timing, which is what makes them finish
+       growing in lockstep rather than one lagging or overshooting the other — per explicit request. */
+    #top-bar-center{position:fixed;top:20px;left:50%;--tb-offset:0px;transform:translateX(calc(-50% + var(--tb-offset)));z-index:1000;gap:0;height:40px;transition:transform .3s ease, opacity .3s ease;}
+    #top-bar-center:hover{--tb-offset:var(--tb-offset-target, 0px);}
     /* Slides up and fades out while a notification is showing (see showNotification/
        dismissCurrentNotification, stopwatch-search-notifications.js, which toggle this same class
        on #top-bar-center and #notification-pill together) — translateY stacks onto the existing
-       translateX(-50%) centering rather than replacing it, so horizontal position never moves. */
+       translate centering rather than replacing it, so horizontal position never moves. Drops back
+       to a plain -50% (no --tb-offset term) since nothing is visible to keep centred on while this
+       is active anyway (opacity:0, pointer-events:none) — one less moving part to reason about for
+       a state where it can't be seen regardless. */
     #top-bar-center.notif-active{transform:translateX(-50%) translateY(-60px);opacity:0;pointer-events:none;}
     /* Back/forward, as their own inner section (top-bar.html) — used to be its own separate .bubble;
        display:flex/align-items:center/gap:2px (the actual layout of its two buttons) is all it
