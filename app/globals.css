@@ -280,7 +280,7 @@
        rules, below) share the same .3s ease timing, which is what makes them finish growing at the
        same moment — a direct consequence of the grid recomputing its own track sizes every frame
        from both, not a separately synchronized animation. */
-    #top-bar-center{position:fixed;top:20px;left:50%;transform:translateX(-50%);z-index:1000;display:grid;grid-template-columns:1fr auto 1fr;align-items:center;column-gap:8px;height:40px;transition:transform .3s ease, opacity .3s ease;}
+    #top-bar-center{position:fixed;top:12px;left:50%;transform:translateX(-50%);z-index:1000;display:grid;grid-template-columns:1fr auto 1fr;align-items:center;column-gap:8px;height:40px;transition:transform .3s ease, opacity .3s ease;}
     /* Slides up and fades out while a notification is showing (see showNotification/
        dismissCurrentNotification, stopwatch-search-notifications.js, which toggle this same class
        on #top-bar-center and #notification-pill together) — translateY stacks onto the existing
@@ -306,7 +306,7 @@
        making a revealed button behind it hard or impossible to actually reach and click. */
     #nav-arrows-pill{display:flex;align-items:center;gap:2px;justify-self:end;max-width:0;opacity:0;overflow:hidden;transition:max-width .3s ease,opacity .2s ease;}
     #top-bar-center:hover #nav-arrows-pill{max-width:80px;opacity:1;}
-    /* Sits in the exact same fixed top:20px/centred slot as #top-bar-center, off-screen (slid up,
+    /* Sits in the exact same fixed top:12px/centred slot as #top-bar-center, off-screen (slid up,
        faded out) at rest — see its own markup comment, top-bar.html, for why it's static rather
        than fully React-rendered. Sized like a .bubble (same background/border/radius/shadow/
        height, including that same var(--paper) background per the same explicit request as
@@ -315,7 +315,7 @@
        above, and .bubble doesn't define position/transform at all. max-width caps a long message
        rather than letting the pill stretch arbitrarily wide — #notification-text below
        ellipsis-truncates within it. */
-    #notification-pill{position:fixed;top:20px;left:50%;z-index:1000;display:flex;align-items:center;height:40px;max-width:420px;box-sizing:border-box;padding:0 12px;background:var(--paper);border:1px solid var(--card-border);border-radius:12px;box-shadow:0 4px 12px rgba(0,0,0,0.3);transform:translateX(-50%) translateY(-60px);opacity:0;pointer-events:none;transition:transform .3s ease, opacity .3s ease;}
+    #notification-pill{position:fixed;top:12px;left:50%;z-index:1000;display:flex;align-items:center;height:40px;max-width:420px;box-sizing:border-box;padding:0 12px;background:var(--paper);border:1px solid var(--card-border);border-radius:12px;box-shadow:0 4px 12px rgba(0,0,0,0.3);transform:translateX(-50%) translateY(-60px);opacity:0;pointer-events:none;transition:transform .3s ease, opacity .3s ease;}
     :root[data-theme="light"] #notification-pill{box-shadow:0 4px 12px rgba(0,0,0,0.126);}
     #notification-pill.notif-active{transform:translateX(-50%) translateY(0);opacity:1;pointer-events:auto;}
     /* #notification-root (the portal target React mounts #notification-content into, see
