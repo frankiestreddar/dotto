@@ -702,14 +702,6 @@
        snap instead — reversed here). */
     .rail-btn.active .rail-icon-img{transition:opacity .15s ease,transform .15s ease-in;}
     .rail-btn:hover .rail-icon-img,.rail-btn.active .rail-icon-img{opacity:1;}
-    /* Swaps the icon itself to close-arrow.png while this button's own panel is open — per explicit
-       request. content:url() on the <img> just replaces which image renders; every other property
-       (filter/opacity/sizing/transition, above) still applies unchanged since it's the same element.
-       :not(.mode-btn) — the four cursor-mode buttons ALSO carry both .rail-btn and .active (for
-       whichever mode is currently selected, source-buttons-cursor-mode.js) but that .active means
-       something entirely different from "this button's panel is open" (they don't even open a rail
-       panel), so they're excluded here. */
-    .rail-btn.active:not(.mode-btn) .rail-icon-img{content:url("/assets/icons/close-arrow.png");}
     /* Grows/shrinks smoothly now (max-width/padding/opacity, all transitioned together) rather than
        the old hard display:none/.show{display:flex} toggle, which couldn't animate at all — per
        explicit request that the merged #top-bar-center pill (see its own comment) visibly grow when
@@ -885,11 +877,12 @@
        request) — a real flex column; the four rows always render in their fixed DOM order (no
        JS-set `order` here — an earlier version sorted the active mode to the top, removed per
        explicit follow-up request that the order stay put).
-       bottom:-6px (was top:0, while the selector's own group — top-bar.html — sat pinned right
-       under Profile near the top of the rail; before that, at the very bottom below Settings, also
-       bottom:-6px) so the panel grows upward from the button instead, matching the room actually
-       available now that the selector is pinned at the very bottom of the rail again, directly
-       above Profile, with nothing below it to grow into.
+       top:50%;transform:translateY(-50%) (was bottom:-6px) vertically centres the panel on its own
+       button instead of anchoring to one edge of it — per explicit request. Growing symmetrically
+       around the button's own centre means neither direction (up/down) depends on how much room
+       happens to be free on whichever side the selector currently sits pinned near (this rail
+       position has changed several times this session — see git history) the way the old
+       edge-anchored values each had to.
        left:calc(100% + 12px) — flush against the RAIL's own true right edge (var(--rail-width),
        56px), not the button's own edge: #mode-toolbar is only 32px wide but sits centered inside
        that 56px rail (#dotto-rail's align-items:center), leaving a 12px margin on either side, so
@@ -902,7 +895,7 @@
        closing the instant that happens — see that file's own comments for the whole mechanism;
        it's computed from each element's own live getBoundingClientRect() rather than any
        hardcoded direction, so the selector's repeated moves never needed any changes there. */
-    .mode-popup{display:none;position:absolute;bottom:-6px;left:calc(100% + 12px);width:170px;flex-direction:column;gap:2px;background:var(--bar);border:1px solid var(--card-border);border-radius:10px;padding:4px;box-shadow:0 4px 12px rgba(0,0,0,0.4);z-index:1001;}
+    .mode-popup{display:none;position:absolute;top:50%;transform:translateY(-50%);left:calc(100% + 12px);width:170px;flex-direction:column;gap:2px;background:var(--bar);border:1px solid var(--card-border);border-radius:10px;padding:4px;box-shadow:0 4px 12px rgba(0,0,0,0.4);z-index:1001;}
     :root[data-theme="light"] .mode-popup{box-shadow:0 4px 12px rgba(0,0,0,0.168);}
     #mode-toolbar.expanded .mode-popup{display:flex;}
     /* Plain rows within that one shared panel — background:none at rest so only :hover/.active
