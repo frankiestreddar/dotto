@@ -178,9 +178,21 @@
          whenever a conversation is actually showing, then back here once you return to the list.
          Every result panel inside #search-dropdown still portals into these same static nodes by
          id (usePortalNode) regardless of which parent currently holds them, so reparenting them
-         doesn't touch that store/portal wiring at all. -->
+         doesn't touch that store/portal wiring at all.
+         Hero/heading/description below reuse #search-panel's own classes verbatim (globals.css)
+         rather than a separate copy, per explicit request that this panel look "just like Search"
+         — queries-thumbnail.jpg instead of search-thumbnail.jpg, otherwise identical (square crop,
+         90% sidebar width). Only shown in #ai-list-view (not #ai-chat-view, which has no
+         equivalent), same as Search has no second view to worry about at all. The actual search
+         input/dropdown below (#ai-list-header) is untouched — a real, working feature, unlike
+         Search's own box which doesn't execute anything yet. -->
     <div id="ai-panel" class="hmenu-panel hub-subpanel" onclick="event.stopPropagation()">
         <div id="ai-list-view">
+            <div class="search-panel-hero">
+                <img class="search-panel-hero-img" src="/assets/thumbnails/queries-thumbnail.jpg" alt="">
+            </div>
+            <h2 class="search-panel-heading">Queries</h2>
+            <p class="search-panel-desc">Ask Dotbot questions about this canvas.</p>
             <div id="ai-list-header">
                 <div id="search-input-wrap">
                     <textarea id="search-input" rows="1" placeholder="" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" oninput="handleSearchInput(this.value)" onfocus="handleSearchFocus()"></textarea>
