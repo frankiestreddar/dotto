@@ -389,6 +389,11 @@
        10px gap between the buttons it holds (a tighter gap than #dotto-rail's own 16px between
        separate groups, so buttons visually read as belonging to the same cluster). */
     .rail-group{display:flex;flex-direction:column;align-items:center;gap:10px;}
+    /* A slightly bigger gap than every other within-group pair (10px, .rail-group's own gap
+       above) specifically between the cursor-mode selector and Inbox below it, per explicit
+       request — margin-top ADDS to that 10px rather than replacing it, landing on 16px total,
+       same technique .rail-group-gap-lg used for group-to-group spacing earlier this session. */
+    #btn-inbox{margin-top:6px;}
     /* Dividing line ABOVE this group (the 2nd-5th groups inside #dotto-rail-middle — see
        top-bar.html), separating it from the one before. border-top rather than border-bottom on
        the PREVIOUS group, so the line's presence only ever depends on the group that has it, never
