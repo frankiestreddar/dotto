@@ -1135,14 +1135,16 @@
     /* "Enter" shortcut hint, per explicit request — pressing Enter anywhere outside a text field
        focuses whichever panel's search box is currently open (see the global keydown handler,
        srs-connections-core.js). Same small-bordered-pill language as .rail-tooltip-key, just
-       auto-width for the word instead of a fixed 16x16 single-letter box. right:8px (was 20px, per
-       explicit follow-up request that it sit all the way at the box's own right edge, not offset
-       further in) — the input's own padding-right (54px) still keeps typed text clear of it.
-       pointer-events:none so it's a pure visual hint, never intercepts a click meant for the input
-       beneath it. :focus-within on the wrap (below) hides it the moment the input is actually
-       focused, per that same follow-up request — a hint pointing at a shortcut you'd use TO
-       focus the box has nothing left to say once you're already there. */
-    .hub-subpanel-search-hint{position:absolute;right:8px;top:50%;transform:translateY(-50%);display:inline-flex;align-items:center;justify-content:center;padding:2px 6px;border:1px solid var(--outline-soft);border-radius:4px;font-family:'Space Grotesk', sans-serif;font-size:10px;font-weight:600;color:var(--ink-soft);pointer-events:none;}
+       auto-width for the word instead of a fixed 16x16 single-letter box. right:16px (was 20px,
+       then 8px per a request to sit all the way at the box's own edge, then back out to 16px once
+       that read as flush against the input's own border with no breathing room — .hub-subpanel-
+       search-wrap's own 10px padding means an 8px offset from the WRAP's edge lands only ~2px past
+       the INPUT's own edge) — the input's own padding-right (54px) still keeps typed text clear of
+       it. pointer-events:none so it's a pure visual hint, never intercepts a click meant for the
+       input beneath it. :focus-within on the wrap (below) hides it the moment the input is actually
+       focused — a hint pointing at a shortcut you'd use TO focus the box has nothing left to say
+       once you're already there. */
+    .hub-subpanel-search-hint{position:absolute;right:16px;top:50%;transform:translateY(-50%);display:inline-flex;align-items:center;justify-content:center;padding:2px 6px;border:1px solid var(--outline-soft);border-radius:4px;font-family:'Space Grotesk', sans-serif;font-size:10px;font-weight:600;color:var(--ink-soft);pointer-events:none;}
     .hub-subpanel-search-wrap:focus-within .hub-subpanel-search-hint{display:none;}
     .hub-subpanel-search::placeholder{color:var(--ink-soft);}
     /* #search-panel's own hero — a thumbnail image, subtly rounded (replaced an earlier
@@ -1614,7 +1616,7 @@
        .hub-subpanel-search's own height exactly, per explicit follow-up request. font-size 13px
        (was 14px) for the same reason, matching .hub-subpanel-search's own — line-height stays a
        fixed 20px regardless, so this doesn't change any of the height math above. */
-    #search-input{display:block;width:100%;min-height:34px;max-height:94px;background:transparent;border:none;color:var(--ink);padding:7px 40px 7px 14px;font-size:13px;line-height:20px;font-family:inherit;outline:none;resize:none;overflow-y:hidden;transition:height 0.15s ease;}
+    #search-input{display:block;width:100%;min-height:34px;max-height:94px;background:transparent;border:none;color:var(--ink);padding:7px 58px 7px 14px;font-size:13px;line-height:20px;font-family:inherit;outline:none;resize:none;overflow-y:hidden;transition:height 0.15s ease;}
     #search-input::placeholder{color:var(--ink-soft);}
     /* The loading ring, idle-pulse chase, and card-context pill that used to live here (SVG rings
        traced around the border, a rollercoaster-eased "focused and waiting" flare, an attached-
@@ -1624,11 +1626,12 @@
     #search-spinner{display:none;position:absolute;right:12px;top:10px;width:14px;height:14px;border:2px solid var(--card-border);border-top-color:var(--ink-soft);border-radius:50%;animation:dotbot-spin 0.7s linear infinite;pointer-events:none;}
     #search-spinner.visible{display:block;}
     /* Same "Enter" shortcut hint as .hub-subpanel-search-hint (plain search boxes elsewhere) — a
-       separate rule since this box also has #search-spinner; both sit at the same right:12px (per
-       explicit follow-up request that the hint sit all the way at the box's own edge). #search-input's
-       own padding-right (40px, was 74px) only needs to clear whichever of the two is actually
-       showing, never both — the three rules below make sure of that/of when this shows at all. */
-    #search-input-hint{position:absolute;right:12px;top:50%;transform:translateY(-50%);display:inline-flex;align-items:center;justify-content:center;padding:2px 6px;border:1px solid var(--outline-soft);border-radius:4px;font-family:'Space Grotesk', sans-serif;font-size:10px;font-weight:600;color:var(--ink-soft);pointer-events:none;}
+       separate rule since this box also has #search-spinner. right:16px matches that rule's own
+       final value (see its own comment for why not flush at 8-12px — no visible gap from the
+       input's own border otherwise). #search-input's own padding-right (58px) only needs to clear
+       whichever of the hint/spinner is actually showing, never both — the three rules below make
+       sure of that/of when this shows at all. */
+    #search-input-hint{position:absolute;right:16px;top:50%;transform:translateY(-50%);display:inline-flex;align-items:center;justify-content:center;padding:2px 6px;border:1px solid var(--outline-soft);border-radius:4px;font-family:'Space Grotesk', sans-serif;font-size:10px;font-weight:600;color:var(--ink-soft);pointer-events:none;}
     /* Hides the moment the box is actually focused — a hint pointing at the shortcut to focus it
        has nothing left to say once you're already there. */
     #search-input-wrap:focus-within #search-input-hint{display:none;}
