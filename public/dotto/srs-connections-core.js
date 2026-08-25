@@ -642,10 +642,10 @@ import { render, renderSelectedOutlines, startBoxSelection, syncWaypointToDb } f
         // Bare 'z'/'Z' only — Cmd/Ctrl+Z (undo/redo) is a separate, differently-gated handler
         // (history-autosave.js, requires e.metaKey||e.ctrlKey), so the two don't collide.
         if (!isEditingText && (e.key === 'z' || e.key === 'Z')) { e.preventDefault(); appState.btnSettings.click(); return; }
-        // '?' (Shift+/) per the near-universal cross-app convention for a help shortcut — distinct
-        // from Search's own '/' above, e.key already reflects the shifted character so no separate
-        // e.shiftKey check is needed.
-        if (!isEditingText && e.key === '?') { e.preventDefault(); appState.btnHelp.click(); return; }
+        // '~' per explicit request — '`' (the same physical key, unshifted) also works so Shift
+        // isn't required either way; e.key already reflects whichever of the two was actually
+        // produced, no separate e.shiftKey check needed.
+        if (!isEditingText && (e.key === '~' || e.key === '`')) { e.preventDefault(); appState.btnHelp.click(); return; }
         // Not a rail icon (see upload-popup.js) — toggleUploadPopup() is a plain classList toggle
         // on its own independent #upload-popup, not an openRailView('...', ...).click() call like
         // every shortcut above it.

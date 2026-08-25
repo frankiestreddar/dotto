@@ -654,8 +654,20 @@ import { render } from './waypoints-render-loop.js';
         const frag = document.createDocumentFragment();
         suggestions.slice(0, 4).forEach(text => {
             const div = document.createElement('div');
-            div.className = 'search-suggestion-item';
-            div.textContent = text;
+            // .search-suggestion-item-live (not just the shared .search-suggestion-item every other
+            // producer in this file/mnemonic-search-matching.js also uses — recommended searches,
+            // mnemonic result cards, image loading states, etc.) scopes the arrow.png icon added
+            // here to just these live-as-you-type rows, per explicit request, rather than every
+            // other kind of card that reuses the base class.
+            div.className = 'search-suggestion-item search-suggestion-item-live';
+            const icon = document.createElement('img');
+            icon.className = 'search-suggestion-arrow';
+            icon.src = '/assets/icons/arrow.png';
+            icon.alt = '';
+            const label = document.createElement('span');
+            label.className = 'search-suggestion-label';
+            label.textContent = text;
+            div.append(icon, label);
             div.onclick = (e) => { e.stopPropagation(); appState.searchInput.value = text; autoGrowSearchInput(); commenceSearchOrMnemonic(text); };
             frag.appendChild(div);
         });

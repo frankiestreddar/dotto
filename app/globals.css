@@ -1860,6 +1860,16 @@
     #search-suggestions .msg-inline-canvas-wrap{margin:8px auto 0;}
     .search-suggestion-item{padding:12px 14px;border-radius:8px;font-size:13px;color:var(--ink);cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
     .search-suggestion-item:hover{background:var(--hover-bg);}
+    /* arrow.png to the left of each live-as-you-type suggestion (buildLiveSuggestionsRows,
+       ai-assistant-suggestions.js), per explicit request — scoped to .search-suggestion-item-live
+       specifically, not the base .search-suggestion-item every other card type sharing that class
+       also uses. Same black-source-PNG tinting convention as every other icon in this file
+       (brightness(0) invert(1) dark / brightness(0) light). min-width:0 on the label is what lets
+       its own ellipsis actually kick in inside the flex row, rather than the row just overflowing. */
+    .search-suggestion-item-live{display:flex;align-items:center;gap:8px;}
+    .search-suggestion-arrow{width:12px;height:12px;flex:0 0 auto;object-fit:contain;filter:brightness(0) invert(1);opacity:0.5;}
+    :root[data-theme="light"] .search-suggestion-arrow{filter:brightness(0);}
+    .search-suggestion-label{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
 
     /* An AI-generated lead-in sentence + 3 "..."-continuation follow-up rows, shown below every
        chat-thread answer now (see buildRecommendedSearchesRows) — indented via the list's own left
