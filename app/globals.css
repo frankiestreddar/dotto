@@ -103,8 +103,14 @@
     /* Reserves --hmenu-width of extra space, same technique #canvas's own base rule above already
        uses to reserve --rail-width for the permanent rail — see that rule's comment. Covers the
        normal canvas; the source-page full-viewport table view (.item.static-table below) has its
-       own separate override, since it's position:fixed and ignores #canvas's box entirely. */
-    body:has(#hamburger-stack.open) #canvas{left:calc(var(--rail-width) + var(--hmenu-width));width:calc(100vw - var(--rail-width) - var(--hmenu-width));}
+       own separate override, since it's position:fixed and ignores #canvas's box entirely.
+       :not([data-sidebar-mode="overlay"]) — per explicit request, this "push" behavior (the
+       default, hence a NOT-overlay check rather than an explicit "push" one) is now the ON state
+       of the Sidebar Display Mode switch in #settings-panel (sidebar-mode-toggle.js sets/clears
+       this attribute on <body>, mirroring how theme-toggle.js owns data-theme on <html>) — flipped
+       off, panels go back to the original overlay-the-canvas behavior this app had before that
+       change. */
+    body:has(#hamburger-stack.open):not([data-sidebar-mode="overlay"]) #canvas{left:calc(var(--rail-width) + var(--hmenu-width));width:calc(100vw - var(--rail-width) - var(--hmenu-width));}
     /* The dot grid is a real element, panned/zoomed via an actual CSS `transform` (see
        applyTransform/layoutDotLayer in JS) rather than by animating background-position/size
        directly on #canvas — the latter forces the browser to re-tile and repaint the pattern
@@ -143,7 +149,9 @@
        a panel is a pure CSS change with no resize event of its own — see the transitionend
        listener on #canvas, source-buttons-cursor-mode.js. */
     .item.static-table{position:fixed;top:0;left:0;width:100vw;height:100vh;background:var(--paper);border:none;border-radius:0;box-shadow:none;padding:96px 16px 16px 16px;z-index:1;display:block;overflow:hidden;}
-    body:has(#hamburger-stack.open) .item.static-table{width:calc(100vw - var(--hmenu-width));}
+    /* :not([data-sidebar-mode="overlay"]) — same Sidebar Display Mode gating as #canvas's own
+       identical override above; see its comment. */
+    body:has(#hamburger-stack.open):not([data-sidebar-mode="overlay"]) .item.static-table{width:calc(100vw - var(--hmenu-width));}
     .item.table.static-table .static-table-wrap{width:100%;height:auto;max-width:calc(100vw - 32px);display:flex;flex-direction:column;}
     .item.table.static-table .static-table-row{width:100%;height:auto;flex:0 1 auto;min-height:0;overflow:visible;}
     /* Horizontal scrolling now happens once, on the shared .static-table-hscroll ancestor.
@@ -704,9 +712,15 @@
        request) — a real flex column so JS-set `order` (updateModeToolbarUI,
        source-buttons-cursor-mode.js) can sort the currently active mode's row to the top, with
        the other three following below in their normal relative order, also per explicit request.
-       Anchored the same way every other rail popup is (left:calc(100% + 12px)), top:0 so it
-       doesn't jump around relative to the fixed collapsed button above. */
-    .mode-popup{display:none;position:absolute;top:0;left:calc(100% + 12px);width:170px;flex-direction:column;gap:2px;background:var(--bar);border:1px solid var(--card-border);border-radius:10px;padding:4px;box-shadow:0 4px 12px rgba(0,0,0,0.4);z-index:1001;}
+       top:0 so it doesn't jump around relative to the fixed collapsed button above.
+       left:100% (flush against the button, NOT the usual left:calc(100% + 12px) gap every other
+       rail popup uses) is deliberate, per an explicit bug report: #mode-toolbar's mouseenter/
+       mouseleave (source-buttons-cursor-mode.js) is what shows/hides this panel, and a real gap
+       between the button and the panel is genuine dead space neither element's box covers — the
+       mouse crossing it on the way from one to the other fires mouseleave before ever reaching the
+       panel, collapsing it out from under the pointer. Flush removes that gap entirely rather than
+       trying to bridge it with an invisible hit-area element. */
+    .mode-popup{display:none;position:absolute;top:0;left:100%;width:170px;flex-direction:column;gap:2px;background:var(--bar);border:1px solid var(--card-border);border-radius:10px;padding:4px;box-shadow:0 4px 12px rgba(0,0,0,0.4);z-index:1001;}
     :root[data-theme="light"] .mode-popup{box-shadow:0 4px 12px rgba(0,0,0,0.168);}
     #mode-toolbar.expanded .mode-popup{display:flex;}
     /* Plain rows within that one shared panel — background:none at rest so only :hover/.active
@@ -1051,17 +1065,25 @@
     .hub-subpanel-list{flex:1 1 auto;overflow-y:auto;min-height:0;padding:6px 4px;scrollbar-width:none;}
     .hub-subpanel-list::-webkit-scrollbar{display:none;}
     /* #settings-panel's own rows — .settings-row is deliberately generic (label left, some control
-       right) rather than theme-specific, so future settings can reuse it. Colour Theme is the
-       first and so far only row (hamburger-stack.html). */
+       right) rather than theme-specific, so future settings can reuse it. Brightness Theme (was
+       "Colour Theme") and Sidebar Display Mode are the first two rows (hamburger-stack.html). */
     .settings-row{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;gap:12px;}
     .settings-row-label{font-size:13px;color:var(--ink);}
-    .settings-theme-switch{display:inline-flex;align-items:center;gap:8px;cursor:pointer;}
+    /* Generic "label/icon flanking a switch" wrapper — was .settings-theme-switch until the
+       Sidebar Display Mode row needed the identical layout for its own text-flanked switch;
+       renamed rather than duplicated. */
+    .settings-switch-row{display:inline-flex;align-items:center;gap:8px;cursor:pointer;}
+    /* Text equivalent of .settings-theme-icon below, for the Sidebar Display Mode row (no icon
+       pair fits that concept the way light.png/dark.png fit Brightness Theme). */
+    .settings-switch-text{font-size:11px;color:var(--ink-soft);}
     /* Same black-source-PNG tinting convention as .rail-icon-img (brightness(0) invert(1) for dark
-       mode's white-on-dark, brightness(0) alone for light mode's black-on-light) but without that
-       class's own opacity/hover-brighten behavior — these are static flanking labels for the
-       switch, not interactive buttons of their own, so they stay at a constant, fully-opaque
-       tint regardless of hover. */
-    .settings-theme-icon{width:16px;height:16px;object-fit:contain;filter:brightness(0) invert(1);flex:0 0 auto;}
+       mode, brightness(0) alone for light mode) but faded to a faint grey via opacity — per
+       explicit request, these are meant to read as a light grey in light mode / dark grey in dark
+       mode, not full-strength black/white — reusing .rail-icon-img's own established 0.55 resting
+       opacity is exactly that same "faint grey" look already used for every rail icon elsewhere in
+       this file, just applied to a static (non-hover-brightening) label here instead. Shrunk from
+       16px to 13px per the same request ("a bit smaller"). */
+    .settings-theme-icon{width:13px;height:13px;object-fit:contain;filter:brightness(0) invert(1);opacity:0.55;flex:0 0 auto;}
     :root[data-theme="light"] .settings-theme-icon{filter:brightness(0);}
     /* Plain checkbox-driven switch — the checkbox itself is visually hidden (opacity:0) but still
        covers the full track so it stays keyboard-focusable/clickable. .settings-switch-track and
