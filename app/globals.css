@@ -255,8 +255,11 @@
        element, top-bar.html) holding back/forward, the breadcrumb, and the per-canvas "add a
        collaborator" flyout as plain inner sections (#nav-arrows-pill/#breadcrumb-pill/
        #collab-bubble below) rather than three separately-chromed pills sitting side by side, per
-       explicit request. .bubble's own padding:4px (reused here, see that class's own comment) is
-       what insets the very first/last visible section from this pill's own true edges.
+       explicit request. .bubble's own padding:4px (reused here, see that class's own comment)
+       still insets the pill's true top/bottom edges — padding-left/right:0 below overrides its
+       left/right down to nothing, per a later explicit request that this whole merged pill carry
+       no left/right inset of its own at all; .tab-pill's own left/right padding (below) is what
+       provides breathing room from the edges now instead, scoped per-tab rather than shared.
        #nav-arrows-pill/#collab-bubble are both collapsed (0 width/opacity) at rest now and only
        reveal on this element's own :hover — per explicit request that they only show once the
        breadcrumb (the only thing left visible at rest) is hovered — see each section's own comment
@@ -280,7 +283,7 @@
        rules, below) share the same .3s ease timing, which is what makes them finish growing at the
        same moment — a direct consequence of the grid recomputing its own track sizes every frame
        from both, not a separately synchronized animation. */
-    #top-bar-center{position:fixed;top:12px;left:50%;transform:translateX(-50%);z-index:1000;display:grid;grid-template-columns:1fr auto 1fr;align-items:center;column-gap:8px;height:40px;transition:transform .3s ease, opacity .3s ease;}
+    #top-bar-center{position:fixed;top:12px;left:50%;transform:translateX(-50%);z-index:1000;display:grid;grid-template-columns:1fr auto 1fr;align-items:center;column-gap:8px;height:40px;padding-left:0;padding-right:0;transition:transform .3s ease, opacity .3s ease;}
     /* Slides up and fades out while a notification is showing (see showNotification/
        dismissCurrentNotification, stopwatch-search-notifications.js, which toggle this same class
        on #top-bar-center and #notification-pill together) — translateY stacks onto the existing
@@ -461,11 +464,12 @@
        in place. touch-action:none/user-select:none are for the drag-to-reorder gesture below —
        without the former, a touch-drag would fight the browser's own scroll gesture; without the
        latter, a press-and-drag would select the pill's own text along the way.
-       padding:3px (was 3px 8px) — left/right brought down to match top/bottom, per explicit
-       request (briefly reverted in between, once for #breadcrumb-pill's own padding to get the
-       same treatment first — see that rule's own comment — then re-applied here once #breadcrumb-
-       pill's own fix alone still left this as the only remaining L/R-vs-T/B mismatch in the row). */
-    .tab-pill{display:flex;align-items:center;gap:4px;flex:0 0 auto;border-radius:6px;padding:3px;border:1px solid transparent;max-width:150px;overflow:hidden;touch-action:none;user-select:none;transition:background .15s ease,border-color .15s ease;}
+       padding:3px 12px (was equalized to a flat 3px briefly, then that traded for MORE left/right
+       specifically — both per explicit request) — #top-bar-center no longer contributes any
+       left/right inset of its own (padding-left/right:0 there now, its own comment explains why),
+       so this is what keeps the first/last tab's own text clear of the merged pill's true edges,
+       scoped per-tab rather than shared across the whole row. */
+    .tab-pill{display:flex;align-items:center;gap:4px;flex:0 0 auto;border-radius:6px;padding:3px 12px;border:1px solid transparent;max-width:150px;overflow:hidden;touch-action:none;user-select:none;transition:background .15s ease,border-color .15s ease;}
     .tab-pill:not(.tab-pill-active){cursor:pointer;}
     /* Very subtle grey outline on every non-active tab, and a very subtle grey highlight on the
        active one — per explicit request. Both use the app's own established "subtle grey" tokens
