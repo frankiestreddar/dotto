@@ -294,17 +294,20 @@
        exactly, per repeated explicit bug reports that hero/heading/search-box sizing still wasn't
        reading as truly identical between the two panels despite several rounds of case-by-case
        compensation. Simpler and more robust to remove the root padding entirely and have each
-       section that actually needs an inset carry it directly instead (.ai-hero-block needs none at
-       all now; #ai-list-header carries the full 10px itself, matching
-       .hub-subpanel-search-wrap's own 10px exactly rather than 8 of it borrowed from here;
-       #ai-chat-view carries its own 8px so the active-conversation view's layout is unaffected)
-       than to keep fighting a shared padding value via per-child negative-margin tricks. */
+       section that actually needs an inset carry it directly instead (.panel-hero-block needs none
+       at all; #ai-list-header carries the full 10px itself via .panel-search-header, matching
+       .panel-search-wrap's own lack of padding rather than 8px borrowed from here; #ai-chat-view
+       carries its own 8px so the active-conversation view's layout is unaffected) than to keep
+       fighting a shared padding value via per-child negative-margin tricks — #search-panel was
+       ultimately rebuilt as a like-for-like structural copy of #ai-panel's own list view sharing
+       these same classes, per repeated explicit bug reports that sizing still wasn't reading as
+       truly identical (see #search-panel's own comment, hamburger-stack.html). */
     #ai-panel{position:relative;overflow:visible;}
-    /* Wraps just the hero/heading/description block (hamburger-stack.html) that's otherwise reused
-       verbatim from #search-panel — no compensation needed any more (see #ai-panel's own comment
-       above for why), so this is now just the flex-item sizing behavior every other section here
-       also needs. */
-    .ai-hero-block{flex:0 0 auto;}
+    /* Wraps just the hero/heading/description block (hamburger-stack.html) — shared by #ai-panel
+       and #search-panel (see #ai-panel's own comment there), both of which are now built as
+       structural copies of the same layout, so this is just the flex-item sizing behavior every
+       other section here also needs. */
+    .panel-hero-block{flex:0 0 auto;}
     /* The active-conversation view's own small header — just the "back to chats" toggle,
        left-aligned, no title text (the rail icon itself already reads as "this is the AI panel",
        no need to repeat it). Same visual language as #msg-convo-header/#msg-convo-back (a
@@ -332,19 +335,15 @@
        left/right. */
     #ai-chat-view{display:none;flex-direction:column;flex:1 1 auto;min-height:0;padding:8px;}
     #ai-chat-view.open{display:flex;}
-    /* Where #search-input-wrap/#search-dropdown live at rest (see #ai-panel's own comment,
-       hamburger-stack.html) — plain block flow is enough for its own two children (they already
-       stack vertically as ordinary block-level divs), flex:0 0 auto is what matters here, so this
-       element itself doesn't get squashed or stretched as a child of #ai-list-view's own flex
-       column above. margin:10px on all sides matches .hub-subpanel-search-wrap's own 10px padding
-       exactly — #search-input-wrap itself has no padding of its own, so this is the only thing
-       insetting it (and #search-dropdown right below, inheriting the same margin for free as this
-       element's other block child) from the panel's true edges on every side, now that #ai-panel
-       no longer contributes any padding of its own (see that rule's own comment) for this to
-       partially rely on. Was 10px 2px (borrowing 8px of the horizontal from #ai-panel) before that
-       padding was removed entirely as the more robust fix, per repeated explicit bug reports that
-       the two panels' sizing still wasn't reading as truly identical. */
-    #ai-list-header{flex:0 0 auto;margin:10px;}
+    /* Shared by #ai-list-header and #search-panel-header (hamburger-stack.html) — plain block flow
+       is enough for either's own children (they already stack vertically as ordinary block-level
+       divs), flex:0 0 auto is what matters here, so neither gets squashed or stretched as a flex
+       child of its parent view above. margin:10px on all sides matches .panel-search-wrap's own
+       lack of padding — the wrap has none of its own, so this is the only thing insetting it (and,
+       for #ai-list-header, #search-dropdown right below it, inheriting the same margin for free as
+       its other block child) from the panel's true edges on every side, now that neither #ai-panel
+       nor #search-panel contributes any padding of its own for this to rely on. */
+    .panel-search-header{flex:0 0 auto;margin:10px;}
     /* Compact "…/parent/current" breadcrumb (see app/dotto/BreadcrumbPill.jsx, breadcrumbMapStore)
        — a .bubble inside #top-bar-center (own fixed/centring positioning lives there now, shared
        with #collab-bubble beside it), replacing the old always-visible full ancestor list that
@@ -1180,44 +1179,24 @@
        to move the search box closer to this description again, reversing the previous round's
        increase. text-align:left (was center) per the same explicit request as the heading above. */
     .search-panel-desc{margin:0 20px 8px;text-align:left;font-size:12px;line-height:1.4;color:var(--ink-soft);flex:0 0 auto;}
-    /* The search box moved below the new hero/heading/description (per explicit request) no
-       longer needs the divider .hub-subpanel-search-wrap normally draws below it elsewhere — the
-       hero above already fills that visual role. */
-    .search-panel-search-wrap{border-bottom:none;}
-    /* Recent search terms typed into #search-panel-search (search-panel-history.js), most recent
-       first — plain rows in one shared list, same background:none-at-rest/:hover-highlight
-       convention as .mode-popup-row/.add-menu-row elsewhere in this file rather than each row
-       having its own border. search.png at low opacity (0.35, fainter than the usual 0.55 resting
-       opacity most rail icons use) per explicit request that it read as faint rather than a normal
-       icon — same black-source-PNG tinting convention as .rail-icon-img otherwise (brightness(0)
-       invert(1) dark / brightness(0) light). */
-    /* Left inset lands on 18px from each panel's own true edge, per explicit follow-up request
-       ("something in between the two") — #search-panel has no padding of its own (content box =
-       full sidebar width, so this row's own 4px .hub-subpanel-list padding + 14px here = 18px).
-       #chats-list's own row (below) now reuses this exact same 14px, rather than a smaller
-       compensating number — #ai-panel used to carry its own 8px padding that #search-panel didn't,
-       needing #chats-list's own row padding shrunk to 6px to still land on 18px total; #ai-panel's
-       padding was removed entirely as the more robust fix for a repeated "these still aren't
-       identical" bug report, so there's nothing left to compensate for here any more. */
-    .search-history-row{display:flex;align-items:center;gap:10px;height:32px;padding:0 14px;border-radius:6px;cursor:pointer;font-size:12px;color:var(--ink);}
-    .search-history-row:hover{background:var(--hover-bg);}
+    /* search.png/query.png at low opacity (0.35, fainter than the usual 0.55 resting opacity most
+       rail icons use) per explicit request that it read as faint rather than a normal icon — same
+       black-source-PNG tinting convention as .rail-icon-img otherwise (brightness(0) invert(1)
+       dark / brightness(0) light). Shared by #chats-list's rows (ChatsListPanel.jsx, query.png) and
+       #search-panel-content's rows (search-panel-history.js, search.png). */
     .search-history-icon{width:14px;height:14px;flex:0 0 auto;object-fit:contain;filter:brightness(0) invert(1);opacity:0.35;}
-    /* #chats-list's rows (ChatsListPanel.jsx) reuse the shared .outline-item class — needed so
-       setupListPanelDragSelect's shift-click-drag selection keeps working, same as every other
-       list-panel it's wired to (see that row's own comment, ChatsListPanel.jsx) — but .outline-item's
-       own margin/padding/gap (further down this file) is tuned for the real indented Outline tree,
-       not a flat list, which left these rows sitting at a visibly different inset than
-       .search-history-row above per explicit bug report. Overridden here, scoped to just this list;
-       padding matches .search-history-row's own 14px exactly now that #ai-panel no longer has any
-       padding of its own for this to compensate around (see #ai-panel's own comment) — an earlier
-       version used a smaller 6px specifically to offset that padding, back when it still existed.
-       font-size/color also overridden (12px/var(--ink), matching .search-history-row exactly) —
-       base .outline-item is 13px/var(--ink-soft), tuned for the real Outline tree, same reasoning
-       as the box-model override above; per explicit follow-up bug report that text size read as
-       different between the two panels' history rows too. */
-    #chats-list .outline-item{margin:0;height:32px;padding:0 14px;gap:10px;font-size:12px;color:var(--ink);}
     :root[data-theme="light"] .search-history-icon{filter:brightness(0);}
-    .search-history-query{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0;}
+    /* #chats-list and #search-panel-content both render their rows as plain .outline-item elements
+       (ChatsListPanel.jsx / search-panel-history.js) rather than a bespoke row class — needed for
+       #chats-list so setupListPanelDragSelect's shift-click-drag selection keeps working, same as
+       every other list-panel it's wired to (see that row's own comment, ChatsListPanel.jsx); kept
+       for #search-panel-content too for the same visual result even though it has no selection
+       feature of its own. .outline-item's own margin/padding/gap/font-size/color (further down
+       this file) are tuned for the real indented Outline tree, not a flat list, so both lists share
+       this one override — a flat 32px row, 14px horizontal padding (landing on 18px total from
+       each panel's own true edge once .hub-subpanel-list's own 4px padding is added), 12px/
+       var(--ink) text (base .outline-item is 13px/var(--ink-soft)). */
+    .panel-history-list .outline-item{margin:0;height:32px;padding:0 14px;gap:10px;font-size:12px;color:var(--ink);}
     .hub-subpanel-list{flex:1 1 auto;overflow-y:auto;min-height:0;padding:6px 4px;scrollbar-width:none;}
     .hub-subpanel-list::-webkit-scrollbar{display:none;}
     /* #settings-panel's own rows — .settings-row is deliberately generic (label left, some control
@@ -1608,25 +1587,29 @@
        actual fix that made pinning work landed on #search-chat-thread instead (flex-grow computed
        directly against real sibling sizes, not a disconnected margin guess), once #search-dropdown
        stopped needing to sit before this element at all. */
-    /* background/border/border-radius match .hub-subpanel-search's own values exactly (was a
-       transparent border only there to size the now-removed loading ring against) — per explicit
-       follow-up request that this look like #search-panel-search's own plain box. */
-    #search-input-wrap{position:relative;width:100%;background:var(--hover-bg);border:1px solid var(--card-border);border-radius:9px;}
+    /* Shared by #search-input-wrap and #search-panel-search-wrap (hamburger-stack.html) — the box
+       chrome (background/border/radius) for both panels' search boxes lives here once, so the two
+       can't drift apart the way independently-tuned copies repeatedly did. */
+    .panel-search-wrap{position:relative;width:100%;background:var(--hover-bg);border:1px solid var(--card-border);border-radius:9px;}
+    /* Shared by #search-input (a growing <textarea>) and #search-panel-search (a plain, fixed-
+       height <input> — this box still doesn't execute anything yet, so it has no need for
+       #search-input's multi-line growth). Only the properties both share live here: the wrap above
+       owns the visible border, so the box itself is always borderless/transparent; 7px top/bottom
+       padding + a 20px line-height is what lands a single line at 34px tall; 12px left / 48px
+       right (clearing #search-spinner or either hint badge) apply identically to both. Each box's
+       own height/resize behavior is layered on top of this via its own id-scoped rule below. */
+    .panel-search-input{display:block;width:100%;background:transparent;border:none;color:var(--ink);padding:7px 48px 7px 12px;font-size:13px;line-height:20px;font-family:inherit;outline:none;}
+    .panel-search-input::placeholder{color:var(--ink-soft);}
     /* Never scrollable, even past the 4-line cap - overflow is hidden, not auto. The caret still
        auto-scrolls into view internally as you type (native textarea behavior, independent of
-       this property), it just never shows/permits an interactive scrollbar. */
-    /* min/max-height are pure content+padding (14px padding + a 20px text line = 34px, or 4 lines
-       = 94px) — no border term, since the textarea itself is borderless now (the wrap owns the
-       1px+1px border and adds it on top). 7px top/bottom (was 10px) is what makes the resting
-       (1-line) height land on 34px instead of 40px — matching #search-panel-search/
-       .hub-subpanel-search's own height exactly, per explicit follow-up request. font-size 13px
-       (was 14px font-size) for the same reason, matching .hub-subpanel-search's own — line-height stays a
-       fixed 20px regardless, so this doesn't change any of the height math above. Left padding 12px
-       (was 14px, found in a later full audit of both panels comparing every property) matches
-       .hub-subpanel-search's own 12px left padding exactly — text in the two boxes now starts at
-       the same inset from their own left border, not 2px further in here specifically. */
-    #search-input{display:block;width:100%;min-height:34px;max-height:94px;background:transparent;border:none;color:var(--ink);padding:7px 48px 7px 12px;font-size:13px;line-height:20px;font-family:inherit;outline:none;resize:none;overflow-y:hidden;transition:height 0.15s ease;}
-    #search-input::placeholder{color:var(--ink-soft);}
+       this property), it just never shows/permits an interactive scrollbar. min/max-height are
+       pure content+padding (34px resting / 94px at the 4-line cap, matching .panel-search-input's
+       own 7px+20px math above) — no border term, since the box itself is borderless (the wrap owns
+       the border). */
+    #search-input{min-height:34px;max-height:94px;resize:none;overflow-y:hidden;transition:height 0.15s ease;}
+    /* Fixed single-line height — a plain <input> never grows, so this just needs to land on the
+       same 34px resting height #search-input starts at, for visual parity between the two boxes. */
+    #search-panel-search{height:34px;}
     /* The loading ring, idle-pulse chase, and card-context pill that used to live here (SVG rings
        traced around the border, a rollercoaster-eased "focused and waiting" flare, an attached-
        cards badge) are gone — per explicit follow-up request, #search-spinner below is the only
@@ -1634,20 +1617,18 @@
        centers it against #search-input's own new 34px resting height (was 40px). */
     #search-spinner{display:none;position:absolute;right:12px;top:10px;width:14px;height:14px;border:2px solid var(--card-border);border-top-color:var(--ink-soft);border-radius:50%;animation:dotbot-spin 0.7s linear infinite;pointer-events:none;}
     #search-spinner.visible{display:block;}
-    /* Same "Enter" shortcut hint as .hub-subpanel-search-hint (plain search boxes elsewhere) — a
-       separate rule since this box also has #search-spinner. right:8px (not 16px like that other
-       rule) is fine flush-ish here specifically — unlike .hub-subpanel-search-wrap, #search-input-wrap
-       has no padding of its own for an 8px offset to land just past the edge of, so 8px already
-       reads as genuinely inset from the box's own visible border. Doesn't need to leave separate
-       room for #search-spinner either, per explicit request — the rules below already guarantee
-       the two are never showing at once, so #search-input's own padding-right (48px) only has to
-       clear whichever ACTUALLY appears. */
-    #search-input-hint{position:absolute;right:8px;top:50%;transform:translateY(-50%);display:inline-flex;align-items:center;justify-content:center;padding:2px 6px;border:1px solid var(--outline-soft);border-radius:4px;font-family:'Space Grotesk', sans-serif;font-size:10px;font-weight:600;color:var(--ink-soft);pointer-events:none;}
-    /* Hides the moment the box is actually focused — a hint pointing at the shortcut to focus it
-       has nothing left to say once you're already there. */
-    #search-input-wrap:focus-within #search-input-hint{display:none;}
+    /* Shared by #search-input-hint and #search-panel-search-hint — same "Enter" shortcut hint as
+       .hub-subpanel-search-hint (plain search boxes elsewhere), a separate class since these boxes'
+       own wraps (.panel-search-wrap) have no padding of their own for a 16px offset to land just
+       past the edge of the way that other rule's wrap does; right:8px already reads as genuinely
+       inset from the box's own visible border here. */
+    .panel-search-hint{position:absolute;right:8px;top:50%;transform:translateY(-50%);display:inline-flex;align-items:center;justify-content:center;padding:2px 6px;border:1px solid var(--outline-soft);border-radius:4px;font-family:'Space Grotesk', sans-serif;font-size:10px;font-weight:600;color:var(--ink-soft);pointer-events:none;}
+    /* Hides the moment either box is actually focused — a hint pointing at the shortcut to focus
+       it has nothing left to say once you're already there. */
+    .panel-search-wrap:focus-within .panel-search-hint{display:none;}
     /* Hides while #search-spinner is actively showing — per explicit follow-up request, a genuine
-       "a search is in flight" state the hint shouldn't compete with for the same corner. */
+       "a search is in flight" state the hint shouldn't compete with for the same corner.
+       #search-panel-search-wrap has no spinner, so this stays scoped to #search-input-wrap. */
     #search-input-wrap:has(#search-spinner.visible) #search-input-hint{display:none;}
     /* Hides once #search-input-wrap has been reparented into #ai-chat-view (showAiChatView, ai-
        assistant-suggestions.js — a real DOM move, not a second copy, once a conversation exists),

@@ -27,13 +27,16 @@ function saveHistory() {
 }
 
 function renderHistory() {
-    historyList.innerHTML = history.map(q => `
-        <div class="search-history-row" data-query="${escapeHtml(q)}">
+    // .outline-item/.outline-label — same row structure #chats-list's rows use (ChatsListPanel.jsx),
+    // shared via .panel-history-list (globals.css) so the two lists can't drift apart visually;
+    // search.png (not query.png) is this list's own icon, unchanged from before this rebuild.
+    historyList.innerHTML = history.length ? history.map(q => `
+        <div class="outline-item" data-query="${escapeHtml(q)}">
             <img class="search-history-icon" src="/assets/icons/search.png" alt="">
-            <span class="search-history-query">${escapeHtml(q)}</span>
+            <span class="outline-label">${escapeHtml(q)}</span>
         </div>
-    `).join('');
-    historyList.querySelectorAll('.search-history-row').forEach(row => {
+    `).join('') : '<div class="outline-empty">No searches yet.</div>';
+    historyList.querySelectorAll('.outline-item').forEach(row => {
         row.addEventListener('click', () => {
             searchInput.value = row.dataset.query;
             searchInput.focus();

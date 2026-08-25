@@ -26,12 +26,11 @@ function ChatRow({ r, selected }) {
         window.__openSavedChat(r.id);
       }}
     >
-      {/* .search-history-icon (globals.css) reused as-is — per explicit request that this row
-          look like #search-panel's own history rows (search-panel-history.js), just with
-          query.png instead of search.png. Row itself stays .outline-item, not
-          .search-history-row: this one still needs to work with setupListPanelDragSelect's
-          shift-click-drag selection (data-select-id/.outline-item-selected above), which that
-          class was never wired into. */}
+      {/* .search-history-icon (globals.css) reused as-is — same row structure #search-panel's own
+          history rows use (search-panel-history.js), both sharing .panel-history-list's row
+          override, just with query.png instead of search.png. Row itself is .outline-item, not a
+          bespoke class, so it keeps working with setupListPanelDragSelect's shift-click-drag
+          selection (data-select-id/.outline-item-selected above). */}
       <img className="search-history-icon" src="/assets/icons/query.png" alt="" />
       <span className="outline-label">{r.title || "New chat"}</span>
     </div>

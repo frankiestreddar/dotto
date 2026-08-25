@@ -32,34 +32,41 @@
     </div>
     <!-- Search — rail icon (group 3, top-bar.html, alongside Outline/Waypoints), wired into the
          shared openRailView mechanism (see wireRailIcon('search', ...), panels-hamburger.js).
-         #search-panel-content (below the search box) holds a plain vanilla-rendered list of recent
-         search terms — see search-panel-history.js — rather than the React-bridged list panels
-         Waypoints/Collaborations use (WaypointsListPanel.jsx etc., hamburger-collab.js): there's no
-         real search execution behind this box yet (still true per the note below), just a
-         history of what's been typed into it, so a self-contained vanilla module was simpler than
-         wiring up a whole React store for it. The hero/heading/description above the search box
-         are the first real design pass, per explicit request. The hero itself is a portrait
-         thumbnail (search-thumbnail.jpg, public/assets/thumbnails/), subtly rounded — replaced an
-         earlier glow-circle-plus-icon design entirely, per a later explicit request (see
-         .search-panel-hero's own comment, globals.css, for that design's own
-         history). Heading in this app's own Space Grotesk semantic-heading typeface (see the
-         app-typeface comment near the top of globals.css), description in the default Golos Text
-         body font — no font-family override needed for the description, it just inherits.
-         .search-panel-search-wrap overrides .hub-subpanel-search-wrap's own border-bottom off
-         (this panel's search box no longer needs a divider now that the hero fills the space
-         above it), per the same explicit request that also asked for the search box to move below
-         the new hero/heading/description instead of being the panel's first element. -->
+         Rebuilt as a structural, like-for-like copy of #ai-panel's own #ai-list-view (hero/
+         heading/description block, then a search header, then a history list below it) — per
+         explicit request, after several rounds of chasing sizing/spacing parity between two
+         independently-styled panels kept turning up new mismatches. Now shares its actual CSS with
+         #ai-panel via .panel-hero-block/.panel-search-header/.panel-search-wrap/
+         .panel-search-input/.panel-search-hint/.panel-history-list (globals.css) instead of two
+         separately-tuned rule sets, so the two can't drift apart again. Kept its own ids
+         (#search-panel-header/#search-panel-search-wrap/#search-panel-search/
+         #search-panel-search-hint) distinct from #ai-panel's (#ai-list-header/#search-input-wrap/
+         #search-input/#search-input-hint) so neither panel's existing JS wiring
+         (RAIL_PANEL_SEARCH_INPUT_ID, srs-connections-core.js; handleSearchInput/handleSearchFocus/
+         animateSearchPlaceholder, ai-assistant-suggestions.js) needed to change.
+         #search-panel-search is a plain <input>, not a growing <textarea> like #search-input —
+         this box still doesn't execute a real search yet (per explicit statement), so there's no
+         multi-line typing/dropdown machinery to justify one, just the same recent-term history
+         (search-panel-history.js) as before, now rendered as .outline-item rows (matching
+         #chats-list's own, ChatsListPanel.jsx) instead of the old .search-history-row markup.
+         Hero/heading/description reuse #ai-panel's own shared classes verbatim (globals.css),
+         just with this panel's own image/text: search-thumbnail.jpg (public/assets/thumbnails/),
+         "Search", "Find anything across your canvases." -->
     <div id="search-panel" class="hmenu-panel hub-subpanel" onclick="event.stopPropagation()">
-        <div class="search-panel-hero">
-            <img class="search-panel-hero-img" src="/assets/thumbnails/search-thumbnail.jpg" alt="">
+        <div class="panel-hero-block">
+            <div class="search-panel-hero">
+                <img class="search-panel-hero-img" src="/assets/thumbnails/search-thumbnail.jpg" alt="">
+            </div>
+            <h2 class="search-panel-heading">Search</h2>
+            <p class="search-panel-desc">Find anything across your canvases.</p>
         </div>
-        <h2 class="search-panel-heading">Search</h2>
-        <p class="search-panel-desc">Find anything across your canvases.</p>
-        <div class="hub-subpanel-search-wrap search-panel-search-wrap">
-            <input id="search-panel-search" class="hub-subpanel-search" type="text" placeholder="Search...">
-            <span class="hub-subpanel-search-hint">Enter</span>
+        <div id="search-panel-header" class="panel-search-header">
+            <div id="search-panel-search-wrap" class="panel-search-wrap">
+                <input id="search-panel-search" class="panel-search-input" type="text" placeholder="" autocomplete="off">
+                <span id="search-panel-search-hint" class="panel-search-hint">Enter</span>
+            </div>
         </div>
-        <div id="search-panel-content" class="hub-subpanel-list"></div>
+        <div id="search-panel-content" class="hub-subpanel-list panel-history-list"></div>
     </div>
     <!-- Sources — rail icon (group 6, top-bar.html, alongside Files/Snippets — Documents briefly
          sat here again after an earlier deletion, then was deleted a second time per an explicit
@@ -190,40 +197,44 @@
          equivalent), same as Search has no second view to worry about at all. The actual search
          input/dropdown below (#ai-list-header) is untouched — a real, working feature, unlike
          Search's own box which doesn't execute anything yet.
-         .ai-hero-block is just a naming/grouping wrapper now — #ai-panel used to have its own 8px
-         padding that #search-panel didn't, making the exact same width:90%/margin values as Search
-         quietly compute against a narrower 284px box instead of the full 300px sidebar despite
-         sharing identical classes; #ai-list-header/#chats-list below carried their own compensating
-         adjustments for the same reason. Per repeated explicit bug reports that sizing still wasn't
-         reading as truly identical, #ai-panel's padding was removed entirely instead (see its own
-         comment, globals.css) — the more robust fix, versus continuing to patch each child's own
-         compensation for a padding value only one of the two panels had in the first place. -->
+         #ai-panel used to have its own 8px padding that #search-panel didn't, making identically-
+         classed children quietly compute against a narrower box than Search's despite sharing
+         classes; #ai-list-header/#chats-list carried their own compensating adjustments for the
+         same reason. Per repeated explicit bug reports that sizing still wasn't reading as truly
+         identical, #ai-panel's own padding was removed entirely (see its own comment, globals.css)
+         and #search-panel was ultimately rebuilt as a like-for-like structural copy of this view
+         instead (see #search-panel's own comment) — sharing actual CSS via .panel-hero-block/
+         .panel-search-header/.panel-search-wrap/.panel-search-input/.panel-search-hint/
+         .panel-history-list rather than two independently-tuned rule sets, so sizing can't drift
+         apart between them again. -->
     <div id="ai-panel" class="hmenu-panel hub-subpanel" onclick="event.stopPropagation()">
         <div id="ai-list-view">
-            <div class="ai-hero-block">
+            <div class="panel-hero-block">
                 <div class="search-panel-hero">
                     <img class="search-panel-hero-img" src="/assets/thumbnails/queries-thumbnail.jpg" alt="">
                 </div>
                 <h2 class="search-panel-heading">Queries</h2>
                 <p class="search-panel-desc">Ask Dotbot questions about this canvas.</p>
             </div>
-            <!-- Per explicit follow-up request: styled to match #search-panel-search's own plain
-                 look (same background/border/radius as .hub-subpanel-search, globals.css) — the
-                 loading ring, idle-pulse chase, and card-context pill (all real, see their own
-                 removed comments in globals.css/git history) are gone; #search-spinner is the only
-                 loading indicator left, per that same request. Still a growing <textarea>, not a
-                 plain <input> like Search's own box — multi-line queries and the dropdown/command-
-                 palette machinery below depend on that (autoGrowSearchInput, stopwatch-search-
-                 notifications.js), so only the VISUAL chrome was simplified to match, not the
-                 underlying element. The animated placeholder (animateSearchPlaceholder,
+            <!-- .panel-search-wrap/.panel-search-input (globals.css) — the same shared classes
+                 #search-panel-search-wrap/#search-panel-search now use, so the two boxes' chrome
+                 can't drift apart again. The loading ring, idle-pulse chase, and card-context pill
+                 this box used to have (all real, see their own removed comments in globals.css/git
+                 history) are gone; #search-spinner is the only loading indicator left. Still a
+                 growing <textarea>, not a plain <input> like Search's own box — multi-line queries
+                 and the dropdown/command-palette machinery below depend on that
+                 (autoGrowSearchInput, stopwatch-search-notifications.js), so #search-input keeps
+                 its own extra height/resize rules on top of the shared class (globals.css); only
+                 the shared VISUAL chrome is unified, not the underlying element type. The animated
+                 placeholder (animateSearchPlaceholder,
                  ai-assistant-suggestions.js) is unaffected either way — every searchbox's own
                  typing-suggestions animation, per explicit request, not something being removed
                  here. -->
-            <div id="ai-list-header">
-                <div id="search-input-wrap">
-                    <textarea id="search-input" rows="1" placeholder="" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" oninput="handleSearchInput(this.value)" onfocus="handleSearchFocus()"></textarea>
+            <div id="ai-list-header" class="panel-search-header">
+                <div id="search-input-wrap" class="panel-search-wrap">
+                    <textarea id="search-input" class="panel-search-input" rows="1" placeholder="" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" oninput="handleSearchInput(this.value)" onfocus="handleSearchFocus()"></textarea>
                     <div id="search-spinner" aria-hidden="true"></div>
-                    <span id="search-input-hint">Enter</span>
+                    <span id="search-input-hint" class="panel-search-hint">Enter</span>
                 </div>
                 <div id="search-dropdown">
                     <!-- Slash-command live suggestions (see command-palette.js) — first, so it visually
@@ -242,7 +253,7 @@
                     <div id="search-image-result"></div>
                 </div>
             </div>
-            <div id="chats-list" class="hub-subpanel-list"></div>
+            <div id="chats-list" class="hub-subpanel-list panel-history-list"></div>
         </div>
         <div id="ai-chat-view">
             <div id="ai-chat-header">
