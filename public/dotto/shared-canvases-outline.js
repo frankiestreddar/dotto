@@ -377,6 +377,19 @@ import { applyFolderView, centerOnContent, expandWaypointCard, openFolder, rende
         }
     }
 
+    // Drag-to-reorder (TabsBar.jsx's own pointer-drag handling — this is just the array mutation
+    // it calls once it's computed where the dragged tab should land, per explicit request). Pure
+    // reorder, no navigation/active-tab change of any kind — dragging a tab around never switches
+    // which one is active or touches appState.currentFolderId.
+    function reorderTab(tabId, toIndex) {
+        const fromIndex = appState.tabs.findIndex(t => t.id === tabId);
+        if (fromIndex === -1 || toIndex === fromIndex) return;
+        const clampedIndex = Math.max(0, Math.min(toIndex, appState.tabs.length - 1));
+        const [tab] = appState.tabs.splice(fromIndex, 1);
+        appState.tabs.splice(clampedIndex, 0, tab);
+        renderTabsPanel();
+    }
+
     // Steps to an EXISTING position in historyStack (back/forward, breadcrumb "..") — no
     // truncation, no push, just moves the pointer.
     function jumpToHistoryIndex(newIndex) {
@@ -686,7 +699,7 @@ import { applyFolderView, centerOnContent, expandWaypointCard, openFolder, rende
         else { openRailView('outline', appState.outlineMenu, appState.hamburgerBtn, () => { buildOutline(); setOutlineActive(0); }, true); }
     }
 
-export { addTab, announceEnteredCollaboration, breadcrumbMapRowClick, buildOutline, closeTab, ensurePublicFolderLoaded, ensureSharedFolderLoaded, goToOutlineItem, handleOutlineSearch, jumpToHistoryIndex, kindIconFile, kindIconHTML, namespacePublicFolderIds, namespaceSharedFolderIds, openPublicCanvas, openSharedCanvas, parsePublicFolderKey, parseSharedFolderKey, publicFolderKey, renderBreadcrumbMapPanel, renderTabsPanel, resolveReferenceFolderKey, setOutlineActive, sharedFolderKey, stripSharedFolderIds, switchTab, toggleHamburgerMenu };
+export { addTab, announceEnteredCollaboration, breadcrumbMapRowClick, buildOutline, closeTab, ensurePublicFolderLoaded, ensureSharedFolderLoaded, goToOutlineItem, handleOutlineSearch, jumpToHistoryIndex, kindIconFile, kindIconHTML, namespacePublicFolderIds, namespaceSharedFolderIds, openPublicCanvas, openSharedCanvas, parsePublicFolderKey, parseSharedFolderKey, publicFolderKey, renderBreadcrumbMapPanel, renderTabsPanel, reorderTab, resolveReferenceFolderKey, setOutlineActive, sharedFolderKey, stripSharedFolderIds, switchTab, toggleHamburgerMenu };
 
 window.__kindIconFile = kindIconFile;
 window.__openSharedCanvas = openSharedCanvas;
@@ -700,3 +713,4 @@ window.__resolveReferenceFolderKey = resolveReferenceFolderKey;
 window.__addTab = addTab;
 window.__switchTab = switchTab;
 window.__closeTab = closeTab;
+window.__reorderTab = reorderTab;

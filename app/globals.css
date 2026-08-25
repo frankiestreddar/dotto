@@ -437,15 +437,39 @@
        border:1px solid transparent reserves the same width the inactive-tab outline (below) needs
        — same "swap colour, never width" trick .outline-item uses elsewhere in this file to prevent
        a jump when a tab's active state toggles, rather than the border only existing (and taking
-       up space) on inactive tabs. */
-    .tab-pill{display:flex;align-items:center;gap:4px;flex:0 0 auto;border-radius:6px;padding:3px 8px;border:1px solid transparent;}
+       up space) on inactive tabs.
+       max-width:150px (this rule) vs. .tab-pill-active's own 420px, below, plus the
+       transition-delay/duration on THIS rule (applies to both — same value fires whichever
+       direction .tab-pill-active is toggled) is the whole "switch tabs, pause, then smoothly grow
+       and reveal the full trail" effect, per explicit request — two explicit numeric max-width
+       states on the same element across a plain className swap, same technique
+       #collab-bubble's own reveal-on-hover already uses (see that rule's own comment), no JS
+       timing needed (TabsBar.jsx explains why in its own comment on TabRow). overflow:hidden
+       clips whichever trail/label doesn't yet fit within the currently-transitioning width.
+       touch-action:none/user-select:none are for the drag-to-reorder gesture below — without the
+       former, a touch-drag would fight the browser's own scroll gesture; without the latter, a
+       press-and-drag would select the pill's own text along the way. */
+    .tab-pill{display:flex;align-items:center;gap:4px;flex:0 0 auto;border-radius:6px;padding:3px 8px;border:1px solid transparent;max-width:150px;overflow:hidden;touch-action:none;user-select:none;transition:max-width .3s ease .15s,background .15s ease,border-color .15s ease;}
     .tab-pill:not(.tab-pill-active){cursor:pointer;}
     /* Very subtle grey outline on every non-active tab, and a very subtle grey highlight on the
        active one — per explicit request. Both use the app's own established "subtle grey" tokens
        (var(--card-border) for a border, var(--hover-bg) for a fill) rather than new colours, same
        source as most other quiet highlight/outline treatments in this file. */
     .tab-pill:not(.tab-pill-active){border-color:var(--card-border);}
-    .tab-pill-active{background:var(--hover-bg);}
+    /* 420px — comfortably past the active trail's own worst case (ellipsis+sep ~24px,
+       .breadcrumb-pill-parent has no cap of its own so a long parent name could in principle push
+       past this, same pre-existing characteristic the single breadcrumb always had before tabs —
+       see .breadcrumb-pill-current's own comment — plus sep ~12px, .breadcrumb-pill-current's own
+       180px cap, some slack for padding/gap) without being so large the transition takes visibly
+       longer to reach real content than it needs to. */
+    .tab-pill-active{max-width:420px;background:var(--hover-bg);}
+    /* Mid-drag (TabsBar.jsx) — no transition at all (tracks the pointer 1:1 via the translateX
+       TabsBar.jsx sets inline, not this element's own max-width, so the .3s/.15s delay above would
+       otherwise make it visibly lag the cursor), raised above its siblings so it visibly overlaps
+       them while passing over, and a small lift shadow as drag feedback. cursor:grabbing overrides
+       the plain pointer cursor non-active tabs otherwise show. */
+    .tab-pill-dragging{transition:none;z-index:10;cursor:grabbing;box-shadow:0 2px 8px rgba(0,0,0,0.3);}
+    :root[data-theme="light"] .tab-pill-dragging{box-shadow:0 2px 8px rgba(0,0,0,0.126);}
     /* Muted (var(--ink-soft), the app's usual secondary-text colour) at rest — brightens to
        var(--ink) plus an underline on hover, same "here's something clickable" affordance
        .breadcrumb-pill-parent:hover already uses, rather than a filled hover-background chip

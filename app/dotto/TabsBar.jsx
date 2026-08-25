@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useSyncExternalStore } from "react";
+import { useRef, useState, useSyncExternalStore } from "react";
 import { createPortal } from "react-dom";
 import { breadcrumbMapStore, tabsStore } from "./bridges";
 import usePortalNode from "./usePortalNode";
@@ -10,6 +10,12 @@ import usePortalNode from "./usePortalNode";
 // warning.
 const EMPTY_BREADCRUMB = { hasMore: false, root: null, parent: null, current: null };
 const EMPTY_TABS = { tabs: [], activeTabId: null };
+
+// Below this many px of horizontal pointer movement, a pointerdown-then-up on a tab still counts
+// as a plain click (switch tab / rename) rather than a drag-to-reorder — same "was this a click or
+// a drag" threshold shape as PEN_CLICK_THRESHOLD_PX (srs-connections-core.js), just for this
+// unrelated gesture.
+const DRAG_THRESHOLD_PX = 4;
 
 // The ACTIVE tab's own content — the full "…/parent/current" trail, per explicit request (only
 // the active tab shows the full breadcrumb; every other tab just shows its own current segment,
@@ -66,15 +72,54 @@ function ActiveTabTrail() {
 // One tab pill — the active one renders the full ActiveTabTrail above (not itself clickable as a
 // whole, same as before tabs existed: only its own ellipsis/parent/current segments carry their
 // own click behavior); every other tab is a plain clickable label that switches to it
-// (window.__switchTab). closeTabBtn is shown on both kinds whenever there's more than one tab —
-// mirrors real browser tab bars, where every tab (including the active one) can be closed as long
-// as it isn't the only one left (closeTab itself, shared-canvases-outline.js, already no-ops on a
-// single remaining tab as a second layer of defense).
-function TabRow({ tab, isActive, canClose }) {
+// (window.__switchTab). The close button is shown on both kinds whenever there's more than one tab
+// — mirrors real browser tab bars, where every tab (including the active one) can be closed as
+// long as it isn't the only one left (closeTab itself, shared-canvases-outline.js, already no-ops
+// on a single remaining tab as a second layer of defense).
+//
+// The "switch tabs, pause, then smoothly grow and reveal the full trail" behavior (per explicit
+// request) is pure CSS, not driven from here at all — .tab-pill/.tab-pill-active (globals.css)
+// each carry an explicit max-width, and toggling which one applies (by this className swapping,
+// same instant .tab-pill-active is added or removed) is what a plain CSS transition-delay +
+// transition-duration on that property animates between, the same "just two explicit numeric
+// states, no JS reflow trick needed" approach #collab-bubble's own reveal-on-hover already uses.
+//
+// Drag-to-reorder (per explicit request) lives here via plain pointer events rather than the
+// native HTML5 Drag and Drop API — same "manual pointer tracking" convention this app already uses
+// for its other custom drags (canvas item dragging, source table column resizing) rather than
+// fighting the native API's own ghost-image/styling quirks. setPointerCapture on pointerdown is
+// what keeps pointermove/pointerup routed to THIS element even once the cursor moves outside its
+// shrunk-or-grown box mid-drag. The dragged pill follows the cursor via a translateX transform
+// (not a real DOM reorder mid-drag) — TabsBar's own handleDragEnd below computes the final index
+// just once, on release, by comparing the release x position against every OTHER tab's current midpoint
+// (their real layout positions, unaffected by the dragged one's own transform) — simpler and more
+// robust than live-reordering the array on every pointermove, which would need each sibling's
+// rect re-measured every frame and is prone to off-by-one drift once several swaps have happened
+// in one drag.
+function TabRow({ tab, isActive, canClose, dragX, isDragging, tabRef, onDragStart, onDragMove, onDragEnd }) {
+  const suppressClickRef = useRef(false);
+
   return (
     <div
-      className={"tab-pill" + (isActive ? " tab-pill-active" : "")}
-      onClick={isActive ? undefined : (e) => { e.stopPropagation(); window.__switchTab(tab.id); }}
+      ref={tabRef}
+      className={"tab-pill" + (isActive ? " tab-pill-active" : "") + (isDragging ? " tab-pill-dragging" : "")}
+      style={isDragging ? { transform: `translateX(${dragX}px)` } : undefined}
+      onPointerDown={(e) => {
+        if (e.button !== 0) return;
+        e.currentTarget.setPointerCapture(e.pointerId);
+        suppressClickRef.current = false;
+        onDragStart(tab.id, e.clientX);
+      }}
+      onPointerMove={(e) => onDragMove(tab.id, e.clientX)}
+      onPointerUp={(e) => {
+        e.currentTarget.releasePointerCapture(e.pointerId);
+        suppressClickRef.current = onDragEnd(tab.id, e.clientX);
+      }}
+      onClick={isActive ? undefined : (e) => {
+        e.stopPropagation();
+        if (suppressClickRef.current) { suppressClickRef.current = false; return; }
+        window.__switchTab(tab.id);
+      }}
     >
       {isActive ? <ActiveTabTrail /> : <span className="tab-pill-label">{tab.label}</span>}
       {canClose && (
@@ -82,6 +127,7 @@ function TabRow({ tab, isActive, canClose }) {
           type="button"
           className="tab-pill-close"
           title="Close tab"
+          onPointerDown={(e) => e.stopPropagation()}
           onClick={(e) => { e.stopPropagation(); window.__closeTab(tab.id); }}
         >
           ×
@@ -102,12 +148,59 @@ export default function TabsBar() {
   const { tabs, activeTabId } = useSyncExternalStore(tabsStore.subscribe, tabsStore.getSnapshot, () => EMPTY_TABS);
   const portalNode = usePortalNode("breadcrumb-pill");
 
+  // Drag-to-reorder — see TabRow's own comment for why this is plain pointer tracking rather than
+  // native HTML5 DnD, and why the actual reorder is computed once on release rather than live.
+  const tabRefs = useRef({});
+  const dragRef = useRef(null); // { id, startX }
+  const [drag, setDrag] = useState({ id: null, x: 0 });
+
+  const handleDragStart = (id, clientX) => {
+    dragRef.current = { id, startX: clientX };
+  };
+  const handleDragMove = (id, clientX) => {
+    if (!dragRef.current || dragRef.current.id !== id) return;
+    setDrag({ id, x: clientX - dragRef.current.startX });
+  };
+  // Returns true if this release should suppress the pill's own onClick (i.e. it was a real drag,
+  // not a plain click) — TabRow reads this back into its own suppressClickRef.
+  const handleDragEnd = (id, clientX) => {
+    const wasDragging = !!dragRef.current && dragRef.current.id === id && Math.abs(clientX - dragRef.current.startX) >= DRAG_THRESHOLD_PX;
+    if (wasDragging) {
+      // Final drop index: the position of the LAST (rightmost, in left-to-right tab order) other
+      // tab whose own current midpoint the release point has passed — see the file header comment
+      // for why this single end-of-drag measurement is preferred over live per-frame reordering.
+      let toIndex = tabs.findIndex((t) => t.id === id);
+      tabs.forEach((t, i) => {
+        if (t.id === id) return;
+        const el = tabRefs.current[t.id];
+        if (!el) return;
+        const rect = el.getBoundingClientRect();
+        if (clientX > rect.left + rect.width / 2) toIndex = i;
+      });
+      window.__reorderTab(id, toIndex);
+    }
+    dragRef.current = null;
+    setDrag({ id: null, x: 0 });
+    return wasDragging;
+  };
+
   if (!portalNode || !tabs.length) return null;
 
   return createPortal(
     <>
       {tabs.map((tab) => (
-        <TabRow key={tab.id} tab={tab} isActive={tab.id === activeTabId} canClose={tabs.length > 1} />
+        <TabRow
+          key={tab.id}
+          tab={tab}
+          isActive={tab.id === activeTabId}
+          canClose={tabs.length > 1}
+          isDragging={tab.id === drag.id}
+          dragX={drag.x}
+          tabRef={(el) => { tabRefs.current[tab.id] = el; }}
+          onDragStart={handleDragStart}
+          onDragMove={handleDragMove}
+          onDragEnd={handleDragEnd}
+        />
       ))}
       <button type="button" id="tab-add-btn" title="New tab" onClick={(e) => { e.stopPropagation(); window.__addTab(); }}>
         +
