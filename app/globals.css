@@ -925,33 +925,33 @@
     #zoom-control{position:fixed;bottom:20px;right:20px;display:flex;flex-direction:column;align-items:center;background:var(--bar);border:1px solid var(--card-border);border-radius:10px;padding:10px 4px;box-shadow:0 4px 16px rgba(0,0,0,0.4);z-index:1000;}
     :root[data-theme="light"] #zoom-control{box-shadow:0 4px 16px rgba(0,0,0,0.168);}
 
-    /* File-upload popup — per explicit follow-up request, now slides in/out from behind the rail
-       and fades (left + opacity, same as #hamburger-stack's own left transition — see that rule's
-       own comment — plus the opacity fade its individual panels get via .closing), rather than the
-       plain floating box + display:none/flex toggle this used to be. A parallel implementation of
-       that same slide/fade language, not literally joining #hamburger-stack's shared shell —
-       upload-popup.js keeps its own independent open/close state (no rail icon triggers this, only
-       the U shortcut), it just now looks and moves the same way. z-index 900 matches
-       #hamburger-stack's own (#dotto-rail's 1000 stays above both, so this always slides out from
-       genuinely UNDER the rail, never over it). No padding of its own — .search-panel-heading/-desc
-       below carry their own 20px horizontal margin already (reused verbatim from Search/Queries,
-       see hamburger-stack.html's own comment on why those two share them), so adding padding here
-       too would double up that inset; .upload-dropzone/.upload-popup-btn get the same 20px via
-       their own margin instead, for the same reason. */
-    #upload-popup{position:fixed;top:0;left:calc(var(--rail-width) - var(--hmenu-width));width:var(--hmenu-width);height:100vh;z-index:900;display:flex;flex-direction:column;background:var(--paper);border-right:1px solid var(--card);opacity:0;pointer-events:none;box-sizing:border-box;transition:left .3s ease, opacity .3s ease;}
-    :root[data-theme="light"] #upload-popup{border-right-color:var(--card-border);}
-    #upload-popup.open{left:var(--rail-width);opacity:1;pointer-events:auto;}
+    /* File-upload popup — a small, rounded-corner floating box near the rail's bottom-left, per
+       explicit follow-up request that it NOT be a sidebar panel (a slide-in-from-behind-the-rail,
+       full-height design an earlier request had asked for — reverted here; see git history for
+       that version) — back to a plain display:none/flex toggle, no slide/fade transition, closer
+       to this popup's own original shape before that request, just sized for its now-richer
+       content (heading/description/dropzone/button, versus originally one plain button). z-index
+       2000 (was 900 in the sidebar-panel version) puts it back above ordinary canvas content, not
+       specifically tucked under the rail the way that version was. No padding of its own besides
+       padding-top (room for the close button) — .search-panel-heading/-desc below carry their own
+       20px horizontal margin already (reused verbatim from Search/Queries, see hamburger-
+       stack.html's own comment on why those two share them), so adding horizontal padding here too
+       would double up that inset; .upload-dropzone/.upload-popup-btn get the same 20px via their
+       own margin instead, for the same reason. */
+    #upload-popup{display:none;position:fixed;left:calc(var(--rail-width) + 12px);bottom:20px;width:300px;background:var(--bar);border:1px solid var(--card-border);border-radius:12px;box-shadow:0 4px 16px rgba(0,0,0,0.5);z-index:2000;box-sizing:border-box;flex-direction:column;padding-top:16px;}
+    :root[data-theme="light"] #upload-popup{box-shadow:0 4px 16px rgba(0,0,0,0.21);}
+    #upload-popup.open{display:flex;}
     .upload-popup-close{position:absolute;top:16px;right:16px;cursor:pointer;color:var(--ink-soft);background:none;border:none;font-size:13px;padding:4px;font-family:inherit;line-height:1;}
     .upload-popup-close:hover{color:var(--ink);}
-    /* The click-or-drag hotspot (upload-popup.js wires both) — grows to fill whatever vertical
-       room is left between the heading/description above and the button below, rather than a
-       fixed height, so it reads as the panel's main focal area regardless of viewport height.
+    /* The click-or-drag hotspot (upload-popup.js wires both). min-height (was flex:1 1 auto filling
+       a full-height column, back when this was a sidebar panel — see #upload-popup's own comment)
+       gives it real visual presence now that the popup itself is only as tall as its content needs.
        .drag-over (a real dragenter/dragleave/drop listener, not :hover) is the only state that
        needs its own class rather than a plain CSS pseudo-class, since drag events don't count as
        ":hover" — border switches from dashed to solid once a file's actually been picked
        (.has-file) as a plain "something is here now" cue, still one shared box rather than a
        separate filename row. */
-    .upload-dropzone{flex:1 1 auto;margin:8px 20px 20px;border:1px dashed var(--card-border);border-radius:12px;display:flex;align-items:center;justify-content:center;text-align:center;padding:20px;cursor:pointer;color:var(--ink-soft);font-size:13px;transition:background .15s ease,border-color .15s ease,color .15s ease;}
+    .upload-dropzone{flex:0 0 auto;min-height:110px;margin:8px 20px 20px;border:1px dashed var(--card-border);border-radius:12px;display:flex;align-items:center;justify-content:center;text-align:center;padding:20px;cursor:pointer;color:var(--ink-soft);font-size:13px;transition:background .15s ease,border-color .15s ease,color .15s ease;}
     .upload-dropzone:hover{background:var(--hover-bg);border-color:var(--ink-soft);color:var(--ink);}
     .upload-dropzone.drag-over{background:var(--hover-bg);border-color:var(--brand);color:var(--ink);}
     .upload-dropzone.has-file{border-style:solid;color:var(--ink);}

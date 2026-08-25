@@ -210,13 +210,12 @@
     <div id="notification-root"></div>
 </div>
 <!-- File-upload popup — U toggles it open/closed. Not a #hamburger-stack railViewEls/railIconBtns
-     entry (no rail icon triggers it, only the U shortcut) — but per explicit follow-up request it
-     now slides in/out from behind the rail and fades, the same left-transition + opacity language
-     #hamburger-stack/its own panels use (see #upload-popup's own comment, globals.css, for why
-     that's a parallel implementation rather than actually joining that shared shell), instead of
-     the plain floating box it used to be. openUploadPopup/closeUploadPopup (upload-popup.js) close
-     the hamburger-stack rail view and vice versa (openRailView, panels-hamburger.js) — both sit at
-     the same screen position now, so only one open at a time makes sense.
+     entry (no rail icon triggers it, only the U shortcut) — a small rounded-corner floating box
+     near the rail's bottom-left, per explicit follow-up request that it NOT be a sidebar panel (a
+     slide-in-from-behind-the-rail design an earlier request had asked for, since reverted — see
+     #upload-popup's own comment, globals.css, for that shape's own history). No longer cross-closes
+     with the hamburger-stack rail view either, now that the two don't occupy the same screen
+     position any more.
      .search-panel-heading/-desc (globals.css) reused verbatim for the "Upload"
      title/subtext, same as Search/Queries already share them with each other.
      #upload-dropzone is the click-or-drag hotspot — picking/dropping a file just stores it

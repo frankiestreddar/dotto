@@ -1,16 +1,15 @@
 import { appState } from './core-state.js';
 import { processMediaFile } from './media-pdf-epub.js';
-import { closeRailView } from './panels-hamburger.js';
 import { add, viewportCenterWorldPoint } from './srs-connections-core.js';
 
 // Independent floating popup toggled by U — not part of the #hamburger-stack rail-panel system
 // (no railViewEls/railIconBtns entry, no wireRailIcon), so it gets its own tiny open/close pair
 // instead, matching #draw-settings' plain classList-driven toggle rather than openRailView's
-// animated slide. Per explicit follow-up request it now slides/fades the same way that shell's
-// own panels do anyway (see #upload-popup's own comment, globals.css) — just via a parallel
-// implementation, not by actually joining that shared system. closeRailView() on open (and
-// closeUploadPopup() called from openRailView, panels-hamburger.js, on the way in) keeps the two
-// mutually exclusive now that they occupy the same screen position.
+// animated slide. A brief detour through looking/moving like one of those sliding panels (closing
+// the rail view on open and vice versa, since the two briefly occupied the same screen position)
+// was reverted per explicit follow-up request that this go back to being a small floating popup,
+// not a sidebar panel — see #upload-popup's own comment, globals.css, for that shape's own
+// history. No cross-closing with the rail view any more; the two don't overlap on screen.
 const UPLOAD_ACCEPT = 'image/*,video/*,application/pdf,application/epub+zip,.epub';
 const DEFAULT_DROPZONE_LABEL = 'Drag a file here, or click to browse';
 
@@ -28,7 +27,6 @@ function setPendingFile(file) {
 function resetPendingFile() { setPendingFile(null); }
 
 function openUploadPopup() {
-    closeRailView();
     appState.uploadPopup.classList.add('open');
 }
 function closeUploadPopup() {
