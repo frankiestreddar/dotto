@@ -433,9 +433,19 @@
        #breadcrumb-pill itself used to provide directly, back when it only ever held one trail. Not
        itself clickable when active (only its own ellipsis/parent/current segments, below, carry
        their own click behavior, same as before tabs existed) — TabsBar.jsx only attaches an
-       onClick (window.__switchTab) to the non-active ones. */
-    .tab-pill{display:flex;align-items:center;gap:4px;flex:0 0 auto;}
+       onClick (window.__switchTab) to the non-active ones.
+       border:1px solid transparent reserves the same width the inactive-tab outline (below) needs
+       — same "swap colour, never width" trick .outline-item uses elsewhere in this file to prevent
+       a jump when a tab's active state toggles, rather than the border only existing (and taking
+       up space) on inactive tabs. */
+    .tab-pill{display:flex;align-items:center;gap:4px;flex:0 0 auto;border-radius:6px;padding:3px 8px;border:1px solid transparent;}
     .tab-pill:not(.tab-pill-active){cursor:pointer;}
+    /* Very subtle grey outline on every non-active tab, and a very subtle grey highlight on the
+       active one — per explicit request. Both use the app's own established "subtle grey" tokens
+       (var(--card-border) for a border, var(--hover-bg) for a fill) rather than new colours, same
+       source as most other quiet highlight/outline treatments in this file. */
+    .tab-pill:not(.tab-pill-active){border-color:var(--card-border);}
+    .tab-pill-active{background:var(--hover-bg);}
     /* Muted (var(--ink-soft), the app's usual secondary-text colour) at rest — brightens to
        var(--ink) plus an underline on hover, same "here's something clickable" affordance
        .breadcrumb-pill-parent:hover already uses, rather than a filled hover-background chip
