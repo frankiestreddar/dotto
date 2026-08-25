@@ -690,7 +690,7 @@
        overflow:hidden would clip it clean off since it renders outside this element's own bounds.
        Only the brief 0-to-content-width portion of the grow transition is genuinely clipped by
        overflow:hidden at rest; once .show lands, the (small, near-immediately-reached) real content
-       width is free to render without any clipping, tooltip included. */
+       width is free to render without any clipping, tooltip included.
        Also gated on #top-bar-center:hover now, same as #nav-arrows-pill (see its own comment) — per
        explicit request that this only show once the breadcrumb (the only thing left visible at
        rest) is hovered, on top of the pre-existing .show condition (there being a canvas context
