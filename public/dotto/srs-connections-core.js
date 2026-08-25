@@ -600,8 +600,10 @@ import { render, renderSelectedOutlines, startBoxSelection, syncWaypointToDb } f
         // !anyPanelOpen) — resolved per explicit request by moving flip-flashcard to Space
         // instead, freeing 'F' up cleanly. Sources was 'S' with no prior collision, then
         // reassigned to 'K' (also no prior collision) once 'S' was wanted for the newer, separate
-        // Snippets button (appState.btnSnippets2, distinct from appState.btnSnippets/Files) —
-        // 'J' (Friends) had no prior collision either.
+        // Snippets button (appState.btnSnippets2, distinct from appState.btnSnippets/Files). 'J'
+        // (Friends) is free again — the Friends rail button/panel it opened was removed entirely
+        // per explicit request (a never-implemented stub, unrelated to the real friend-list/
+        // friend-request data model friends-presence.js still provides for Collaborations/Messages).
         // Collaborations is 'C' (was 'G', reassigned per explicit request — the bare 'c'/'C'
         // copy-selected-cards shortcut that used to collide with it was removed from
         // history-autosave.js at the same time, specifically to free this letter up cleanly, no
@@ -637,7 +639,6 @@ import { render, renderSelectedOutlines, startBoxSelection, syncWaypointToDb } f
         // appState.btnSnippets2 is the newer, separate Snippets button (see its own comment,
         // core-state.js) — not appState.btnSnippets, which is actually Files under the hood.
         if (!isEditingText && (e.key === 's' || e.key === 'S')) { e.preventDefault(); appState.btnSnippets2.click(); return; }
-        if (!isEditingText && (e.key === 'j' || e.key === 'J')) { e.preventDefault(); appState.btnFriends.click(); return; }
         // Bare 'z'/'Z' only — Cmd/Ctrl+Z (undo/redo) is a separate, differently-gated handler
         // (history-autosave.js, requires e.metaKey||e.ctrlKey), so the two don't collide.
         if (!isEditingText && (e.key === 'z' || e.key === 'Z')) { e.preventDefault(); appState.btnSettings.click(); return; }

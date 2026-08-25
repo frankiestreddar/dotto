@@ -212,7 +212,7 @@
         // per-canvas collab flyout, source-add-menu) and keep their own flags.
         panelPinned: { rail: false, collab: false, sourceAdd: false },
         // Which #hamburger-stack view is currently showing — null | 'inbox' | 'search' | 'ai' |
-        // 'sources' | 'snippets' | 'snippets2' | 'friends' | 'settings' | 'outline' | 'waypoints' |
+        // 'sources' | 'snippets' | 'snippets2' | 'settings' | 'outline' | 'waypoints' |
         // 'collab' | 'marketplace' | 'library' | 'messages' | 'profile'. Set by openRailView,
         // cleared by closeRailView (panels-hamburger.js).
         activeRailView: null,
@@ -238,8 +238,6 @@
         uploadPopupClose: document.getElementById('upload-popup-close'),
         uploadDropzone: document.getElementById('upload-dropzone'),
         uploadDropzoneLabel: document.getElementById('upload-dropzone-label'),
-        btnFriends: document.getElementById('btn-friends'),
-        friendsPanel: document.getElementById('friends-panel'),
         btnSettings: document.getElementById('btn-settings'),
         settingsPanel: document.getElementById('settings-panel'),
         railBtnAi: document.getElementById('rail-btn-ai'),
@@ -436,8 +434,8 @@
     // #snippets-panel are bare shells (see
     // wireRailIcon('inbox'/'search'/'documents'/'sources'/'snippets', ...) below) — their own
     // behavior/content hasn't been designed yet.
-    appState.railViewEls = [appState.inboxPanel, appState.searchPanel, appState.aiPanel, appState.sourcesPanel, appState.snippetsPanel, appState.snippets2Panel, appState.friendsPanel, appState.settingsPanel, appState.outlineMenu, appState.waypointsPanel, appState.hubCollabPanel, appState.cartPanel, appState.libraryPanel, appState.messagesPanel, addMenu, appState.profilePanel];
-    appState.railIconBtns = [appState.btnInbox, appState.btnSearch, appState.railBtnAi, appState.btnSources, appState.btnSnippets, appState.btnSnippets2, appState.btnFriends, appState.btnSettings, appState.hamburgerBtn, appState.railBtnWaypoints, appState.railBtnCollab, appState.btnCart, appState.libraryBtn, appState.messagesBtn, btnAdd, appState.profileBtn];
+    appState.railViewEls = [appState.inboxPanel, appState.searchPanel, appState.aiPanel, appState.sourcesPanel, appState.snippetsPanel, appState.snippets2Panel, appState.settingsPanel, appState.outlineMenu, appState.waypointsPanel, appState.hubCollabPanel, appState.cartPanel, appState.libraryPanel, appState.messagesPanel, addMenu, appState.profilePanel];
+    appState.railIconBtns = [appState.btnInbox, appState.btnSearch, appState.railBtnAi, appState.btnSources, appState.btnSnippets, appState.btnSnippets2, appState.btnSettings, appState.hamburgerBtn, appState.railBtnWaypoints, appState.railBtnCollab, appState.btnCart, appState.libraryBtn, appState.messagesBtn, btnAdd, appState.profileBtn];
     appState.TOTAL_SUB_LEVELS = appState.LEVEL_NAMES.length * appState.SUB_RANKS_PER_TIER;
     // Same reason as the block above: can't reference appState.currentUser from inside appState's
     // own object literal, since appState doesn't exist yet until that literal finishes constructing.

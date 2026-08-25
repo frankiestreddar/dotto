@@ -415,32 +415,32 @@
        10px gap between the buttons it holds (a tighter gap than #dotto-rail's own 16px between
        separate groups, so buttons visually read as belonging to the same cluster). */
     .rail-group{display:flex;flex-direction:column;align-items:center;gap:10px;}
-    /* A slightly bigger gap than every other within-group pair (10px, .rail-group's own gap
-       above) specifically between the cursor-mode selector and Inbox below it, per explicit
-       request — margin-top ADDS to that 10px rather than replacing it, landing on 16px total,
-       same technique .rail-group-gap-lg used for group-to-group spacing earlier this session. */
-    #btn-inbox{margin-top:6px;}
-    /* Tighter hover/click hotspot than the usual full 32x32 .btn box, on both rail buttons the mode
-       popup's own safe-zone quadrilateral runs alongside (Inbox directly below the selector,
-       Queries below that — see modePopupSafeZone, source-buttons-cursor-mode.js) — per explicit
-       request/screenshot: without this, a pointer cutting diagonally toward a LOWER popup row (e.g.
-       Pen mode) could land ON one of these buttons' own full box partway through, which still
-       closes the popup outright (any rail button outside #mode-toolbar's own subtree does — see
-       handleModePopupSafeMove, same file) even though the intent was just cutting past it, not
-       actually aiming for it. pointer-events:none on the button itself, re-enabled just on its own
-       icon (below), narrows the actual hit-tested target down to that icon's 20x20 box (vs.
-       .rail-icon-img's usual pointer-events:none everywhere else, which deliberately leaves the
-       full button as the target) — the buttons' real 32x32 layout boxes (and #dotto-rail's spacing/
-       gap) are completely untouched, only which part of them can actually be interacted with. An
-       earlier version used clip-path for this instead — reverted since clip-path also clips
-       everything the element PAINTS, including .rail-tooltip (a child that renders well outside
-       this tightened box via left:calc(100% + 12px)), which made Inbox stop showing a tooltip at
-       all; hover/click state still normally cascades up to a pointer-events:none ancestor from an
-       interactive descendant, so :hover/:active-driven CSS (.rail-tooltip's own opacity rule,
-       hold-to-expand's pointerenter/pointerleave listeners attached to the button itself) and click
-       bubbling both keep working exactly as before. */
-    #btn-inbox, #rail-btn-ai{pointer-events:none;}
-    #btn-inbox .rail-icon-img, #rail-btn-ai .rail-icon-img{pointer-events:auto;}
+    /* Tighter hover/click hotspot than the usual full 32x32 .btn box — per explicit request/
+       screenshot, originally on #btn-inbox/#rail-btn-ai when the cursor-mode selector's popup sat
+       just above them (Inbox/Queries were what its safe-zone quadrilateral ran alongside then, see
+       modePopupSafeZone, source-buttons-cursor-mode.js): without this, a pointer cutting diagonally
+       toward a row further from the button could land ON one of these buttons' own full box
+       partway through, which still closes the popup outright (any rail button outside
+       #mode-toolbar's own subtree does — see handleModePopupSafeMove, same file) even though the
+       intent was just cutting past it, not actually aiming for it. Moved to #btn-settings once the
+       selector itself moved to its own pinned group below Settings (top-bar.html) — Settings is now
+       the button its popup (which opens upward from that position, see .mode-popup's own comment)
+       runs alongside instead, so IT needs this treatment now, not Inbox/Queries (reverted to a
+       plain full hitbox, matching every other rail button, now that neither sits near the popup any
+       more). pointer-events:none on the button itself, re-enabled just on its own icon (below),
+       narrows the actual hit-tested target down to that icon's 20x20 box (vs. .rail-icon-img's
+       usual pointer-events:none everywhere else, which deliberately leaves the full button as the
+       target) — the button's real 32x32 layout box (and #dotto-rail's spacing/gap) is completely
+       untouched, only which part of it can actually be interacted with. An earlier version used
+       clip-path for this instead — reverted since clip-path also clips everything the element
+       PAINTS, including .rail-tooltip (a child that renders well outside this tightened box via
+       left:calc(100% + 12px)), which made the button stop showing a tooltip at all; hover/click
+       state still normally cascades up to a pointer-events:none ancestor from an interactive
+       descendant, so :hover/:active-driven CSS (.rail-tooltip's own opacity rule, hold-to-expand's
+       pointerenter/pointerleave listeners attached to the button itself) and click bubbling both
+       keep working exactly as before. */
+    #btn-settings{pointer-events:none;}
+    #btn-settings .rail-icon-img{pointer-events:auto;}
     /* Dividing line ABOVE this group (the 2nd-5th groups inside #dotto-rail-middle — see
        top-bar.html), separating it from the one before. border-top rather than border-bottom on
        the PREVIOUS group, so the line's presence only ever depends on the group that has it, never
@@ -746,13 +746,10 @@
     :root[data-theme="light"] .collab-add-btn.added:hover{background:#FBE7E7;}
     .collab-empty{padding:16px;text-align:center;color:var(--ink-soft);font-size:12px;}
     
-    /* Fixed 32x32 footprint (matching any other .rail-btn) at all times, collapsed or expanded —
-       this is what keeps #mode-popup below from ever shifting Inbox (its sibling in the same
-       .rail-group, top-bar.html) sideways: #mode-toolbar itself never changes size, so
-       .rail-group's align-items:center never has anything new to re-center around. Each .mode-btn
-       stays position:absolute within this fixed box and is NEVER itself restyled by hover/expand
-       state — per explicit follow-up request, the collapsed rail button stays exactly where/what
-       it is at all times; only the separate #mode-popup panel below appears/disappears. */
+    /* Fixed 32x32 footprint (matching any other .rail-btn) at all times, collapsed or expanded.
+       Each .mode-btn stays position:absolute within this fixed box and is NEVER itself restyled by
+       hover/expand state — per explicit follow-up request, the collapsed rail button stays exactly
+       where/what it is at all times; only the separate #mode-popup panel below appears/disappears. */
     #mode-toolbar{position:relative;width:32px;height:32px;}
     #mode-toolbar .mode-btn{position:absolute;top:0;left:0;display:none;}
     #mode-toolbar .mode-btn.mode-visible{display:flex;}
@@ -760,24 +757,29 @@
        request) — a real flex column; the four rows always render in their fixed DOM order (no
        JS-set `order` here — an earlier version sorted the active mode to the top, removed per
        explicit follow-up request that the order stay put).
-       top:0 so it doesn't jump around relative to the fixed collapsed button above.
+       bottom:0 (was top:0, before the selector's own group — top-bar.html — moved to the very
+       bottom of the rail, below Settings, per explicit follow-up request) so the panel grows
+       UPWARD from the button instead of downward — with nothing below this group any more, growing
+       down would run the popup off the bottom of the viewport.
        left:calc(100% + 12px) — flush against the RAIL's own true right edge (var(--rail-width),
        56px), not the button's own edge: #mode-toolbar is only 32px wide but sits centered inside
        that 56px rail (#dotto-rail's align-items:center), leaving a 12px margin on either side, so
        left:100% (an earlier version of this rule) put the panel's own left ~12px ON TOP of the
        rail's background instead of past its true edge — per explicit bug report that the panel
        was overlapping onto the sidebar rather than touching it. The resulting gap between button
-       and panel — and, further down, Inbox/Queries's own rows the panel runs alongside — is
-       bridged in JS instead of CSS now: source-buttons-cursor-mode.js tracks the pointer against a
-       "safe zone" polygon once it truly leaves #mode-toolbar's own DOM subtree (mouseenter/
-       mouseleave there, plus modePopupSafeZone/handleModePopupSafeMove), rather than closing the
-       instant that happens — see that file's own comments for the whole mechanism. An earlier
-       version bridged just this one 12px gap with a small invisible DOM element instead; replaced
-       once a diagonal cut toward a LOWER row (e.g. Pen mode) turned out to cross more than that
-       single gap (Inbox/Queries's own hitboxes too — see their own tightened pointer-events rules
-       earlier in this file, #btn-inbox/#rail-btn-ai), which the fixed-width element couldn't
-       cover. */
-    .mode-popup{display:none;position:absolute;top:0;left:calc(100% + 12px);width:170px;flex-direction:column;gap:2px;background:var(--bar);border:1px solid var(--card-border);border-radius:10px;padding:4px;box-shadow:0 4px 12px rgba(0,0,0,0.4);z-index:1001;}
+       and panel — and, further out, Settings's own row the panel now runs alongside (was Inbox/
+       Queries, before the selector's own move) — is bridged in JS instead of CSS: source-buttons-
+       cursor-mode.js tracks the pointer against a "safe zone" polygon once it truly leaves
+       #mode-toolbar's own DOM subtree (mouseenter/mouseleave there, plus modePopupSafeZone/
+       handleModePopupSafeMove), rather than closing the instant that happens — see that file's own
+       comments for the whole mechanism; it's computed from each element's own live
+       getBoundingClientRect() rather than any hardcoded direction, so the selector's move didn't
+       need any changes there. An earlier version bridged just the 12px gap next to the button with
+       a small invisible DOM element instead; replaced once a diagonal cut toward a row further from
+       the button turned out to cross more than that one gap (the neighboring button's own hitbox
+       too — see its own tightened pointer-events rule, #btn-settings, earlier in this file), which
+       the fixed-width element couldn't cover. */
+    .mode-popup{display:none;position:absolute;bottom:0;left:calc(100% + 12px);width:170px;flex-direction:column;gap:2px;background:var(--bar);border:1px solid var(--card-border);border-radius:10px;padding:4px;box-shadow:0 4px 12px rgba(0,0,0,0.4);z-index:1001;}
     :root[data-theme="light"] .mode-popup{box-shadow:0 4px 12px rgba(0,0,0,0.168);}
     #mode-toolbar.expanded .mode-popup{display:flex;}
     /* Plain rows within that one shared panel — background:none at rest so only :hover/.active
