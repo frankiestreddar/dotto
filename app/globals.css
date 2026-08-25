@@ -401,7 +401,19 @@
        above) specifically between the cursor-mode selector and Inbox below it, per explicit
        request — margin-top ADDS to that 10px rather than replacing it, landing on 16px total,
        same technique .rail-group-gap-lg used for group-to-group spacing earlier this session. */
-    #btn-inbox{margin-top:6px;}
+    /* clip-path (not just margin-top above) also gives Inbox a tighter hover/click hotspot than
+       the usual full 32x32 .btn box, per explicit request: moving the pointer from the cursor-mode
+       selector above (or its popup, whose own bridge runs right past Inbox's row — see
+       .mode-popup-bridge's own comment) toward a popup row could clip the corner of Inbox's full
+       box on the way, firing Inbox's own hover and closing the mode popup (any rail button outside
+       #mode-toolbar's subtree does that — see updateModeToolbarUI/mouseleave, source-buttons-
+       cursor-mode.js) even though the pointer was only passing near it, not actually aiming for it.
+       clip-path restricts hit-testing as well as rendering — content outside the path receives no
+       pointer events — so this shrinks the interactive region down to a 20x20 box tightly hugging
+       the icon itself (matching .rail-icon-img's own 20px size, i.e. removing the 6px of padding
+       around it as a hoverable margin) without touching the button's real 32x32 layout box, so
+       #dotto-rail's spacing/gap (including this same rule's own margin-top) is unaffected. */
+    #btn-inbox{margin-top:6px;clip-path:inset(6px);}
     /* Dividing line ABOVE this group (the 2nd-5th groups inside #dotto-rail-middle — see
        top-bar.html), separating it from the one before. border-top rather than border-bottom on
        the PREVIOUS group, so the line's presence only ever depends on the group that has it, never
