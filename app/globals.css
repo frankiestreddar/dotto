@@ -1999,8 +1999,13 @@
     :root[data-theme="light"] .row-flash td, :root[data-theme="light"] .row-flash th, :root[data-theme="light"] .static-table-header-track.row-flash{animation-name:row-flash-pulse-light;}
     
     /* One uniform row style for every item in the tree - canvases, sources, and plain cards
-       alike get no special/distinguishing treatment, only their icon differs (see outlineIcon). */
-    .outline-item{border-radius:6px;margin:2px 4px;padding:6px 10px 6px calc(10px + var(--outline-indent, 0px));cursor:pointer;font-size:13px;color:var(--ink-soft);display:flex;align-items:center;gap:6px;min-width:0;}
+       alike get no special/distinguishing treatment, only their icon differs (see outlineIcon).
+       border:1px solid transparent — reserves the same 1px .outline-item-selected's own border
+       occupies, so selecting a row only ever swaps that border's COLOR (transparent -> var(--brand)),
+       never its WIDTH. Without this, box-sizing:border-box shrinks the content box by the border's
+       width the instant it appears, nudging the icon/text inward by 1px — per explicit bug report
+       that selecting a row visibly jumped its icon/text. */
+    .outline-item{border-radius:6px;margin:2px 4px;padding:6px 10px 6px calc(10px + var(--outline-indent, 0px));border:1px solid transparent;cursor:pointer;font-size:13px;color:var(--ink-soft);display:flex;align-items:center;gap:6px;min-width:0;}
     /* var(--card) — much darker than the #333 this used before, closer to the sidebar's own
        var(--paper) background (see #dotto-rail/#hamburger-stack's own comment) now that both
        are the same dark grey as the canvas, so a lighter #333 hover would have stood out far more
