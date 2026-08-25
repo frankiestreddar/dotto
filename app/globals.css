@@ -428,41 +428,65 @@
        on #top-bar-center now provides breathing room from its neighbours instead, symmetric on
        both sides by construction, so it can never introduce this kind of drift. */
     #breadcrumb-pill{display:flex;align-items:center;padding:0 16px;gap:10px;font-family:'Space Grotesk', sans-serif;}
-    /* One tab's own pill — gap:4px between its OWN internal segments (the active tab's ellipsis/
-       parent/sep/current, or just the label for every other tab) is the same inner spacing
-       #breadcrumb-pill itself used to provide directly, back when it only ever held one trail. Not
-       itself clickable when active (only its own ellipsis/parent/current segments, below, carry
-       their own click behavior, same as before tabs existed) — TabsBar.jsx only attaches an
-       onClick (window.__switchTab) to the non-active ones.
+    /* One tab's own pill. Not itself clickable when active (only its own ellipsis/parent/current
+       segments, below, carry their own click behavior, same as before tabs existed) —
+       TabsBar.jsx only attaches an onClick (window.__switchTab) to the non-active ones.
        border:1px solid transparent reserves the same width the inactive-tab outline (below) needs
        — same "swap colour, never width" trick .outline-item uses elsewhere in this file to prevent
        a jump when a tab's active state toggles, rather than the border only existing (and taking
        up space) on inactive tabs.
-       max-width:150px (this rule) vs. .tab-pill-active's own 420px, below, plus the
-       transition-delay/duration on THIS rule (applies to both — same value fires whichever
-       direction .tab-pill-active is toggled) is the whole "switch tabs, pause, then smoothly grow
-       and reveal the full trail" effect, per explicit request — two explicit numeric max-width
-       states on the same element across a plain className swap, same technique
-       #collab-bubble's own reveal-on-hover already uses (see that rule's own comment), no JS
-       timing needed (TabsBar.jsx explains why in its own comment on TabRow). overflow:hidden
-       clips whichever trail/label doesn't yet fit within the currently-transitioning width.
-       touch-action:none/user-select:none are for the drag-to-reorder gesture below — without the
-       former, a touch-drag would fight the browser's own scroll gesture; without the latter, a
-       press-and-drag would select the pill's own text along the way. */
-    .tab-pill{display:flex;align-items:center;gap:4px;flex:0 0 auto;border-radius:6px;padding:3px 8px;border:1px solid transparent;max-width:150px;overflow:hidden;touch-action:none;user-select:none;transition:max-width .3s ease .15s,background .15s ease,border-color .15s ease;}
+       max-width:150px (this rule) vs. .tab-pill-grown's own 420px, below, is the WIDTH half of the
+       "switch tabs: pause, old text flies out, it grows/shrinks, new content flies in" sequence,
+       per explicit request — but unlike background/border-color (which flip on .tab-pill-active
+       immediately, giving instant selection feedback), .tab-pill-grown is driven by TabRow's own
+       `showTrail` state, only flipping partway through that JS-timed sequence — see its own
+       comment, TabsBar.jsx, for why this needed real phase timing (a plain CSS transition-delay,
+       the technique #collab-bubble's own reveal-on-hover uses, can only give ONE property
+       transitioning between two states — not three sequential visual beats with different content
+       in each). max-width transition-DELAY isn't needed here any more (was, before the JS state
+       machine existed) — the JS is what waits before flipping the class now.
+       overflow:hidden clips whichever content hasn't yet fit within the currently-transitioning
+       width, and doubles as the vertical clip the fly-out/fly-in animations (further down) rely on
+       to look like content actually sliding into/out of the pill's own top edge, not just fading
+       in place. touch-action:none/user-select:none are for the drag-to-reorder gesture below —
+       without the former, a touch-drag would fight the browser's own scroll gesture; without the
+       latter, a press-and-drag would select the pill's own text along the way. */
+    .tab-pill{display:flex;align-items:center;gap:4px;flex:0 0 auto;border-radius:6px;padding:3px 8px;border:1px solid transparent;max-width:150px;overflow:hidden;touch-action:none;user-select:none;transition:max-width .25s ease,background .15s ease,border-color .15s ease;}
     .tab-pill:not(.tab-pill-active){cursor:pointer;}
     /* Very subtle grey outline on every non-active tab, and a very subtle grey highlight on the
        active one — per explicit request. Both use the app's own established "subtle grey" tokens
        (var(--card-border) for a border, var(--hover-bg) for a fill) rather than new colours, same
-       source as most other quiet highlight/outline treatments in this file. */
+       source as most other quiet highlight/outline treatments in this file. Applied the instant
+       .tab-pill-active toggles — deliberately NOT waited on the same delay as the width/content
+       sequence below, so clicking a tab gives immediate selection feedback even while its content
+       is still mid fly-out/resize/fly-in. */
     .tab-pill:not(.tab-pill-active){border-color:var(--card-border);}
+    .tab-pill-active{background:var(--hover-bg);}
     /* 420px — comfortably past the active trail's own worst case (ellipsis+sep ~24px,
        .breadcrumb-pill-parent has no cap of its own so a long parent name could in principle push
        past this, same pre-existing characteristic the single breadcrumb always had before tabs —
        see .breadcrumb-pill-current's own comment — plus sep ~12px, .breadcrumb-pill-current's own
        180px cap, some slack for padding/gap) without being so large the transition takes visibly
        longer to reach real content than it needs to. */
-    .tab-pill-active{max-width:420px;background:var(--hover-bg);}
+    .tab-pill-grown{max-width:420px;}
+    /* Wraps whichever content is currently showing (ActiveTabTrail or the plain label) — a
+       separate element from .tab-pill itself so the fly-out/fly-in keyframes below can animate
+       its own transform/opacity independently of .tab-pill's own max-width transition running at
+       the same time. gap:4px is this wrapper's own inner spacing between segments (ellipsis/
+       parent/sep/current, or just the label) — was .tab-pill's own gap before this wrapper existed;
+       .tab-pill's own gap (above) now only separates this wrapper from .tab-pill-close. Omitted
+       entirely (not just emptied) during the 'resize' phase, TabsBar.jsx — nothing to show for
+       that beat, mid-way between the old content having flown out and the new content not yet
+       flown in. */
+    .tab-pill-content{display:flex;align-items:center;gap:4px;}
+    @keyframes tab-content-fly-out{from{transform:translateY(0);opacity:1;}to{transform:translateY(-10px);opacity:0;}}
+    @keyframes tab-content-fly-in{from{transform:translateY(10px);opacity:0;}to{transform:translateY(0);opacity:1;}}
+    /* forwards keeps each animation's own END state applied once it finishes, rather than
+       snapping back to the base .tab-pill-content styles the instant the keyframes technically
+       complete — moot in practice (TabRow swaps these classes out again right as each phase ends
+       anyway) but the correct/safe default for a one-shot reveal animation regardless. */
+    .tab-content-fly-out{animation:tab-content-fly-out .15s ease forwards;}
+    .tab-content-fly-in{animation:tab-content-fly-in .15s ease forwards;}
     /* Mid-drag (TabsBar.jsx) — no transition at all (tracks the pointer 1:1 via the translateX
        TabsBar.jsx sets inline, not this element's own max-width, so the .3s/.15s delay above would
        otherwise make it visibly lag the cursor), raised above its siblings so it visibly overlaps

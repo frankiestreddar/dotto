@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState, useSyncExternalStore } from "react";
+import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { createPortal } from "react-dom";
 import { breadcrumbMapStore, tabsStore } from "./bridges";
 import usePortalNode from "./usePortalNode";
@@ -16,6 +16,13 @@ const EMPTY_TABS = { tabs: [], activeTabId: null };
 // a drag" threshold shape as PEN_CLICK_THRESHOLD_PX (srs-connections-core.js), just for this
 // unrelated gesture.
 const DRAG_THRESHOLD_PX = 4;
+
+// The four-phase "switch tabs" sequence (per explicit request): a brief pause, then the OLD
+// content flies upward out of the tab, then the tab itself grows/shrinks, then the NEW content
+// flies up into place. Durations match the CSS this drives — see TabRow's own comment on `phase`.
+const SWITCH_DELAY_MS = 100;
+const CONTENT_FLY_MS = 150;
+const RESIZE_MS = 250;
 
 // The ACTIVE tab's own content — the full "…/parent/current" trail, per explicit request (only
 // the active tab shows the full breadcrumb; every other tab just shows its own current segment,
@@ -77,32 +84,62 @@ function ActiveTabTrail() {
 // long as it isn't the only one left (closeTab itself, shared-canvases-outline.js, already no-ops
 // on a single remaining tab as a second layer of defense).
 //
-// The "switch tabs, pause, then smoothly grow and reveal the full trail" behavior (per explicit
-// request) is pure CSS, not driven from here at all — .tab-pill/.tab-pill-active (globals.css)
-// each carry an explicit max-width, and toggling which one applies (by this className swapping,
-// same instant .tab-pill-active is added or removed) is what a plain CSS transition-delay +
-// transition-duration on that property animates between, the same "just two explicit numeric
-// states, no JS reflow trick needed" approach #collab-bubble's own reveal-on-hover already uses.
-//
-// Drag-to-reorder (per explicit request) lives here via plain pointer events rather than the
-// native HTML5 Drag and Drop API — same "manual pointer tracking" convention this app already uses
-// for its other custom drags (canvas item dragging, source table column resizing) rather than
-// fighting the native API's own ghost-image/styling quirks. setPointerCapture on pointerdown is
-// what keeps pointermove/pointerup routed to THIS element even once the cursor moves outside its
-// shrunk-or-grown box mid-drag. The dragged pill follows the cursor via a translateX transform
-// (not a real DOM reorder mid-drag) — TabsBar's own handleDragEnd below computes the final index
-// just once, on release, by comparing the release x position against every OTHER tab's current midpoint
-// (their real layout positions, unaffected by the dragged one's own transform) — simpler and more
-// robust than live-reordering the array on every pointermove, which would need each sibling's
-// rect re-measured every frame and is prone to off-by-one drift once several swaps have happened
-// in one drag.
+// The "switch tabs: pause, then the old text flies upward out of the tab, then it grows/shrinks,
+// then the new content flies up into place" sequence (per explicit request) is a small local state
+// machine — `phase` — rather than a plain className swap, since it needs THREE distinct visual
+// beats in order, not just one property transitioning between two states (which is all a plain
+// CSS transition-delay could give). `showTrail` is what's ACTUALLY rendered (label vs. full
+// trail) — deliberately decoupled from `isActive` itself, only flipping midway through the
+// sequence (right as the resize phase starts), so the OLD content is still what's on screen (and
+// able to fly out) for the first beat, and the box has already resized to fit the NEW content
+// before it flies in for the last beat. `phase` drives which CSS animation class applies:
+// 'fly-out' plays tab-content-fly-out (globals.css) on whatever `showTrail` still shows; 'resize'
+// hides the content outright (nothing to show mid-resize) while .tab-pill-grown's max-width
+// transitions; 'fly-in' plays tab-content-fly-in on the NOW-current `showTrail` content. Settles
+// back to 'idle' once the whole sequence finishes, matching whatever `isActive` currently is
+// (also the steady state on first mount / for a tab that never transitions).
 function TabRow({ tab, isActive, canClose, dragX, isDragging, tabRef, onDragStart, onDragMove, onDragEnd }) {
   const suppressClickRef = useRef(false);
+  const [phase, setPhase] = useState("idle");
+  const [showTrail, setShowTrail] = useState(isActive);
+  const prevIsActiveRef = useRef(isActive);
+
+  useEffect(() => {
+    if (isActive === prevIsActiveRef.current) return;
+    prevIsActiveRef.current = isActive;
+    let cancelled = false;
+    const t1 = setTimeout(() => {
+      if (cancelled) return;
+      setPhase("fly-out");
+      setTimeout(() => {
+        if (cancelled) return;
+        setPhase("resize");
+        setShowTrail(isActive);
+        setTimeout(() => {
+          if (cancelled) return;
+          setPhase("fly-in");
+          setTimeout(() => {
+            if (cancelled) return;
+            setPhase("idle");
+          }, CONTENT_FLY_MS);
+        }, RESIZE_MS);
+      }, CONTENT_FLY_MS);
+    }, SWITCH_DELAY_MS);
+    return () => { cancelled = true; clearTimeout(t1); };
+  }, [isActive]);
+
+  const contentClass =
+    phase === "fly-out" ? " tab-content-fly-out" : phase === "fly-in" ? " tab-content-fly-in" : "";
 
   return (
     <div
       ref={tabRef}
-      className={"tab-pill" + (isActive ? " tab-pill-active" : "") + (isDragging ? " tab-pill-dragging" : "")}
+      className={
+        "tab-pill" +
+        (isActive ? " tab-pill-active" : "") +
+        (showTrail ? " tab-pill-grown" : "") +
+        (isDragging ? " tab-pill-dragging" : "")
+      }
       style={isDragging ? { transform: `translateX(${dragX}px)` } : undefined}
       onPointerDown={(e) => {
         if (e.button !== 0) return;
@@ -121,7 +158,11 @@ function TabRow({ tab, isActive, canClose, dragX, isDragging, tabRef, onDragStar
         window.__switchTab(tab.id);
       }}
     >
-      {isActive ? <ActiveTabTrail /> : <span className="tab-pill-label">{tab.label}</span>}
+      {phase !== "resize" && (
+        <div className={"tab-pill-content" + contentClass}>
+          {showTrail ? <ActiveTabTrail /> : <span className="tab-pill-label">{tab.label}</span>}
+        </div>
+      )}
       {canClose && (
         <button
           type="button"
