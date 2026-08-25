@@ -1084,27 +1084,36 @@
        unwanted flat circular disc boundary — the reference look has no visible edge anywhere,
        just a glow fading smoothly to nothing. Removed entirely; .search-panel-hero-icon's own
        drop-shadow below is what carries the "glassy" quality now instead. */
-    .search-panel-hero{position:relative;width:72px;height:72px;margin:24px auto 14px;display:flex;align-items:center;justify-content:center;flex:0 0 auto;}
-    /* Sized well past the 72px box (120px, centered on it via the negative-margin shorthand
+    /* 96px (was 72px) and pushed down from the panel's own top edge (40px margin, was 24px) plus
+       more breathing room below before the heading (32px, was 14px) — all per explicit follow-up
+       request that everything sat too close to the top and to each other. */
+    .search-panel-hero{position:relative;width:96px;height:96px;margin:40px auto 32px;display:flex;align-items:center;justify-content:center;flex:0 0 auto;}
+    /* Sized well past the 96px box (144px, centered on it via the negative-margin shorthand
        inset:-24px) so the glow has real room to fade out gradually before it reaches anything —
        clipped by nothing, since .search-panel-hero itself has no overflow/border-radius of its
        own to interfere. Stays vivid out to 35% of its own radius before fading (var(--brand)
        repeated at two stops) rather than starting to fade immediately at the center, which is
-       what made an earlier version read as pale/washed-out instead of a genuine glow. */
-    .search-panel-hero-gradient{position:absolute;inset:-24px;border-radius:50%;background:radial-gradient(circle at center, var(--brand) 0%, var(--brand) 35%, transparent 72%);filter:blur(18px);}
+       what made an earlier version read as pale/washed-out instead of a genuine glow. Blur bumped
+       to 22px (was 18px) to stay proportional now that the glow itself is bigger. */
+    .search-panel-hero-gradient{position:absolute;inset:-24px;border-radius:50%;background:radial-gradient(circle at center, var(--brand) 0%, var(--brand) 35%, transparent 72%);filter:blur(22px);}
     /* Constant white regardless of theme — this icon always sits on the same blue glow, never on
        a per-theme surface, so it doesn't need (and shouldn't get) the usual brightness(0)/
        light-mode-drops-invert(1) treatment every other rail icon uses; same fixed-background
        exception .tag-chip/.remote-cursor-name/brand-background buttons already get elsewhere in
        this file. The "glassy" quality (per explicit request) now comes entirely from this icon's
        own soft white glow (drop-shadow, unlike box-shadow, follows the icon's own alpha shape
-       rather than its bounding box) rather than a separate disc layer. */
-    .search-panel-hero-icon{position:relative;z-index:1;width:22px;height:22px;filter:brightness(0) invert(1) drop-shadow(0 0 5px rgba(255,255,255,0.6));opacity:0.95;}
+       rather than its bounding box) rather than a separate disc layer. 30px (was 22px), per the
+       same explicit follow-up request that asked for the circle to be bigger too. */
+    .search-panel-hero-icon{position:relative;z-index:1;width:30px;height:30px;filter:brightness(0) invert(1) drop-shadow(0 0 6px rgba(255,255,255,0.6));opacity:0.95;}
     /* Space Grotesk (this file's semantic-heading typeface, see the app-typeface comment near the
        top of this file) per explicit request; the description just below inherits the default
-       Golos Text body font with no override needed, also per explicit request. */
-    .search-panel-heading{margin:8px 0 2px;text-align:center;font-family:'Space Grotesk', sans-serif;font-size:16px;font-weight:600;color:var(--ink);flex:0 0 auto;}
-    .search-panel-desc{margin:0 20px 16px;text-align:center;font-size:12px;line-height:1.4;color:var(--ink-soft);flex:0 0 auto;}
+       Golos Text body font with no override needed, also per explicit request. font-size bumped
+       to 20px (was 16px) and margin-top to 16px (was 8px), both per the same explicit follow-up
+       request that also asked for more space between the circle and everything below it. */
+    .search-panel-heading{margin:16px 0 4px;text-align:center;font-family:'Space Grotesk', sans-serif;font-size:20px;font-weight:600;color:var(--ink);flex:0 0 auto;}
+    /* Bottom margin bumped to 24px (was 16px) so the search box below sits further from the
+       description too, per the same explicit follow-up request. */
+    .search-panel-desc{margin:0 20px 24px;text-align:center;font-size:12px;line-height:1.4;color:var(--ink-soft);flex:0 0 auto;}
     /* The search box moved below the new hero/heading/description (per explicit request) no
        longer needs the divider .hub-subpanel-search-wrap normally draws below it elsewhere — the
        hero above already fills that visual role. */
