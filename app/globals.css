@@ -260,7 +260,11 @@
        #breadcrumb-pill/#collab-bubble below), so #collab-bubble's own can transition to 0 together
        with its width when it hides, instead of a flex `gap` unconditionally reserving that space
        even then. .bubble's own padding:4px (reused here, see that class's own comment) is what
-       insets the very first/last visible section from this pill's own true edges. */
+       insets the very first/last visible section from this pill's own true edges.
+       #nav-arrows-pill/#collab-bubble are both collapsed (0 width/opacity) at rest now and only
+       reveal on this element's own :hover — per explicit request that they only show once the
+       breadcrumb (the only thing left visible at rest) is hovered — see each section's own comment
+       for why the trigger lives here on the whole pill rather than on #breadcrumb-pill specifically. */
     #top-bar-center{position:fixed;top:20px;left:50%;transform:translateX(-50%);z-index:1000;gap:0;height:40px;transition:transform .3s ease, opacity .3s ease;}
     /* Slides up and fades out while a notification is showing (see showNotification/
        dismissCurrentNotification, stopwatch-search-notifications.js, which toggle this same class
@@ -271,8 +275,18 @@
        display:flex/align-items:center/gap:2px (the actual layout of its two buttons) is all it
        needs of its own now, since background/border/radius/shadow/height/edge-padding all live on
        #top-bar-center itself (see that element's own comment for the merge). No divider before it
-       — it's always the first section, flush against the pill's own left edge padding. */
-    #nav-arrows-pill{display:flex;align-items:center;gap:2px;flex:0 0 auto;}
+       — it's always the first section, flush against the pill's own left edge padding.
+       Collapsed (max-width:0/opacity:0) at rest, revealed on #top-bar-center:hover (below) — per
+       explicit request that this and #collab-bubble only show once the breadcrumb (the only thing
+       left visible at rest) is hovered. Triggered off the whole PILL's own :hover rather than
+       literally #breadcrumb-pill:hover specifically: at rest they're functionally identical (nothing
+       else in the pill has any hoverable surface yet, since this section and #collab-bubble are
+       still 0-width), but #top-bar-center:hover keeps the reveal alive once the cursor actually
+       moves onto the newly-revealed buttons themselves — a literal #breadcrumb-pill:hover trigger
+       would instead collapse them the instant the cursor left the breadcrumb's own narrower box,
+       making a revealed button behind it hard or impossible to actually reach and click. */
+    #nav-arrows-pill{display:flex;align-items:center;gap:2px;flex:0 0 auto;max-width:0;opacity:0;overflow:hidden;transition:max-width .3s ease,opacity .2s ease;}
+    #top-bar-center:hover #nav-arrows-pill{max-width:80px;opacity:1;}
     /* Sits in the exact same fixed top:20px/centred slot as #top-bar-center, off-screen (slid up,
        faded out) at rest — see its own markup comment, top-bar.html, for why it's static rather
        than fully React-rendered. Sized like a .bubble (same background/border/radius/shadow/
@@ -382,17 +396,31 @@
        one-off, not the usual grey-for-secondary-text convention. No bold anywhere in it, including
        the current segment (font-weight:400 — was 600), which still doubles as a rename control
        (cursor:text hints at that, matching a real text field).
-       display:flex/align-items:center and margin-left:4px/border-left (this section's own divider
-       from #nav-arrows-pill, and its own share of the spacing between them) used to come from the
-       now-removed .bubble class this element carried — see #top-bar-center's own comment for why
-       that merged into one pill instead. */
-    #breadcrumb-pill{display:flex;align-items:center;margin-left:4px;border-left:1px solid var(--card-border);padding:0 16px;gap:4px;max-width:280px;overflow:hidden;font-family:'Space Grotesk', sans-serif;}
+       display:flex/align-items:center (this section's own layout) used to come from the now-removed
+       .bubble class this element carried — see #top-bar-center's own comment for why that merged
+       into one pill instead.
+       margin-left/border-left (the divider from #nav-arrows-pill) collapse to 0 at rest and only
+       appear on #top-bar-center:hover, together with #nav-arrows-pill/#collab-bubble's own reveal
+       (see #nav-arrows-pill's own comment for why hover lives on the whole pill) — a divider with
+       nothing on the other side of it (#nav-arrows-pill collapsed to 0 width) would otherwise read
+       as a stray line floating at the pill's own left edge whenever the arrows aren't shown. */
+    #breadcrumb-pill{display:flex;align-items:center;margin-left:0;border-left:0 solid var(--card-border);padding:0 16px;gap:4px;max-width:280px;overflow:hidden;font-family:'Space Grotesk', sans-serif;transition:margin-left .3s ease,border-left-width .3s ease;}
+    #top-bar-center:hover #breadcrumb-pill{margin-left:4px;border-left-width:1px;}
     #breadcrumb-pill .breadcrumb-pill-ellipsis,
     #breadcrumb-pill .breadcrumb-pill-parent{color:var(--ink);font-weight:400;font-size:13px;cursor:pointer;white-space:nowrap;flex:0 0 auto;}
     #breadcrumb-pill .breadcrumb-pill-ellipsis:hover,
     #breadcrumb-pill .breadcrumb-pill-parent:hover{text-decoration:underline;}
     #breadcrumb-pill .breadcrumb-pill-sep{color:var(--ink);opacity:0.5;font-size:12px;flex:0 0 auto;}
-    #breadcrumb-pill .breadcrumb-pill-current{color:var(--ink);font-size:13px;font-weight:400;cursor:text;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:1 1 auto;min-width:0;}
+    /* outline:none — same convention as every other click-to-rename title in the app
+       (.folder-card-title/.source-card-title/#item-detail-title) — this becomes a real
+       contentEditable element while renaming (startRenameFolderCardTitle,
+       waypoints-render-loop.js), which otherwise gets the browser's own default focus ring; this
+       one was missing it, per explicit bug report. */
+    #breadcrumb-pill .breadcrumb-pill-current{color:var(--ink);font-size:13px;font-weight:400;cursor:text;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:1 1 auto;min-width:0;outline:none;}
+    /* Grey underline (not the text's own var(--ink) colour) hints this segment is click-to-rename
+       — same text-decoration-color:var(--card-border) convention .source-card-title:hover already
+       uses for the same purpose, per explicit request. */
+    #breadcrumb-pill .breadcrumb-pill-current:hover{text-decoration:underline;text-decoration-color:var(--card-border);}
     /* Permanent skinny sidebar rail — always visible (not hidden behind a hover/edge-peek gesture
        like it used to be), a real full-height strip that reserves its own screen space rather than
        floating over the canvas (see #canvas's own comment on why: a full-height floating hit-target
@@ -663,8 +691,13 @@
        Only the brief 0-to-content-width portion of the grow transition is genuinely clipped by
        overflow:hidden at rest; once .show lands, the (small, near-immediately-reached) real content
        width is free to render without any clipping, tooltip included. */
+       Also gated on #top-bar-center:hover now, same as #nav-arrows-pill (see its own comment) — per
+       explicit request that this only show once the breadcrumb (the only thing left visible at
+       rest) is hovered, on top of the pre-existing .show condition (there being a canvas context
+       for collaborators to exist at all). Both must hold: .show alone (hover-independent) no longer
+       grows it by itself. */
     #collab-bubble{position:relative;display:flex;align-items:center;cursor:pointer;flex:0 0 auto;max-width:0;margin-left:0;padding:0;border-left:0 solid var(--card-border);opacity:0;overflow:hidden;transition:max-width .3s ease,margin-left .3s ease,padding .3s ease,border-left-width .3s ease,opacity .2s ease;}
-    #collab-bubble.show{max-width:220px;margin-left:4px;padding:0 10px;border-left-width:1px;opacity:1;overflow:visible;}
+    #top-bar-center:hover #collab-bubble.show{max-width:220px;margin-left:4px;padding:0 10px;border-left-width:1px;opacity:1;overflow:visible;}
     .collab-avatars{display:flex;align-items:center;}
     /* No border-radius — only the top-bar button avatar (#btn-profile/.profile-avatar-sm) keeps
        circular clipping; every other avatar in the app is a plain square. */

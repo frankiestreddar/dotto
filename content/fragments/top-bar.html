@@ -182,7 +182,11 @@
      explicit request — used to be three separately-chromed .bubble elements sitting side by side
      with a gap between them, see globals.css for the full merge). #collab-bubble grows/shrinks
      smoothly when it appears/disappears (CollabPill.jsx toggling its own .show class) rather than
-     snapping in — also per explicit request, see that rule's own comment, globals.css. -->
+     snapping in — also per explicit request, see that rule's own comment, globals.css.
+     #nav-arrows-pill/#collab-bubble are both collapsed at rest and only reveal on hover now too,
+     per a later explicit request that they only show once the breadcrumb is hovered — see
+     #top-bar-center's own comment, globals.css, for the mechanism and why it's keyed off the whole
+     pill's :hover rather than #breadcrumb-pill's specifically. -->
 <div id="top-bar-center" class="bubble">
     <div id="nav-arrows-pill">
         <button id="btn-back" class="btn" title="Back">←</button>
