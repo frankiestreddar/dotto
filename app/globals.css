@@ -702,6 +702,14 @@
        snap instead — reversed here). */
     .rail-btn.active .rail-icon-img{transition:opacity .15s ease,transform .15s ease-in;}
     .rail-btn:hover .rail-icon-img,.rail-btn.active .rail-icon-img{opacity:1;}
+    /* Swaps the icon itself to close-arrow.png while this button's own panel is open — per explicit
+       request. content:url() on the <img> just replaces which image renders; every other property
+       (filter/opacity/sizing/transition, above) still applies unchanged since it's the same element.
+       :not(.mode-btn) — the four cursor-mode buttons ALSO carry both .rail-btn and .active (for
+       whichever mode is currently selected, source-buttons-cursor-mode.js) but that .active means
+       something entirely different from "this button's panel is open" (they don't even open a rail
+       panel), so they're excluded here. */
+    .rail-btn.active:not(.mode-btn) .rail-icon-img{content:url("/assets/icons/close-arrow.png");}
     /* Grows/shrinks smoothly now (max-width/padding/opacity, all transitioned together) rather than
        the old hard display:none/.show{display:flex} toggle, which couldn't animate at all — per
        explicit request that the merged #top-bar-center pill (see its own comment) visibly grow when
