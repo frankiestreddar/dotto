@@ -1114,14 +1114,17 @@
        glow-circle-plus-icon design entirely, see git history for that). search-thumbnail.jpg
        itself switched from a 1376x768 landscape crop to a 768x1376 portrait one (per explicit
        follow-up — the whole thumbnail set this asset belongs to, e.g. queries-thumbnail.jpg, is
-       portrait too), so this is now a smaller centered poster-style rectangle (180px wide) rather
-       than the earlier full-width landscape banner — a portrait image spanning the panel's full
-       ~260px content width would come out well over 400px tall at that aspect ratio, dwarfing the
-       heading/description/search box below it. aspect-ratio matches the source JPG's own native
-       768x1376 so the box's height always follows its own width proportionally; object-fit:cover
-       on the img itself is what actually crops any surplus rather than letting the image distort
-       to fit. */
-    .search-panel-hero{width:180px;margin:20px auto 24px;flex:0 0 auto;}
+       portrait too), so this is now a smaller centered poster-style rectangle rather than the
+       earlier full-width landscape banner — a portrait image spanning the panel's full ~260px
+       content width would come out well over 400px tall at that aspect ratio, dwarfing the
+       heading/description/search box below it. Width is 90%, per explicit follow-up request that
+       it read as 90% of the sidebar (#hamburger-stack) — .search-panel-hero's own parent,
+       #search-panel, has no padding of its own (.hmenu-panel is a plain width:100%), so its
+       content box already equals the sidebar's full width and this percentage needs no other
+       adjustment to land where asked. aspect-ratio matches the source JPG's own native 768x1376 so
+       the box's height always follows its own width proportionally; object-fit:cover on the img
+       itself is what actually crops any surplus rather than letting the image distort to fit. */
+    .search-panel-hero{width:90%;margin:20px auto 24px;flex:0 0 auto;}
     .search-panel-hero-img{display:block;width:100%;aspect-ratio:768/1376;object-fit:cover;border-radius:12px;}
     /* Space Grotesk (this file's semantic-heading typeface, see the app-typeface comment near the
        top of this file) per explicit request; the description just below inherits the default
