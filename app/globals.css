@@ -471,20 +471,29 @@
     .tab-pill-grown{max-width:420px;}
     /* Wraps whichever content is currently showing (ActiveTabTrail or the plain label) — a
        separate element from .tab-pill itself so the fly-out/fly-in keyframes below can animate
-       its own transform/opacity independently of .tab-pill's own max-width transition running at
-       the same time. gap:4px is this wrapper's own inner spacing between segments (ellipsis/
-       parent/sep/current, or just the label) — was .tab-pill's own gap before this wrapper existed;
-       .tab-pill's own gap (above) now only separates this wrapper from .tab-pill-close. Omitted
-       entirely (not just emptied) during the 'resize' phase, TabsBar.jsx — nothing to show for
-       that beat, mid-way between the old content having flown out and the new content not yet
-       flown in. */
+       its own transform/opacity independently of .tab-pill's own max-width transition. Always
+       rendered (TabsBar.jsx never conditionally removes this from the DOM, even mid-'resize') —
+       per explicit bug report that the whole tab, not just its text, was disappearing during the
+       switch sequence; conditionally unmounting it was reflowing every OTHER tab in the row each
+       time (removing/re-adding a flex child shifts every sibling's own x position), which is what
+       actually looked like tabs "disappearing." visibility:hidden (.tab-content-hidden, below)
+       hides it for the 'resize' beat instead — same visual result (nothing shown while the tab's
+       own width is mid-transition) without ever touching the DOM tree or reflowing anything else
+       in the row. gap:4px is this wrapper's own inner spacing between segments (ellipsis/parent/
+       sep/current, or just the label) — was .tab-pill's own gap before this wrapper existed;
+       .tab-pill's own gap (above) now only separates this wrapper from .tab-pill-close. */
     .tab-pill-content{display:flex;align-items:center;gap:4px;}
+    .tab-content-hidden{visibility:hidden;}
     @keyframes tab-content-fly-out{from{transform:translateY(0);opacity:1;}to{transform:translateY(-10px);opacity:0;}}
     @keyframes tab-content-fly-in{from{transform:translateY(10px);opacity:0;}to{transform:translateY(0);opacity:1;}}
     /* forwards keeps each animation's own END state applied once it finishes, rather than
        snapping back to the base .tab-pill-content styles the instant the keyframes technically
        complete — moot in practice (TabRow swaps these classes out again right as each phase ends
-       anyway) but the correct/safe default for a one-shot reveal animation regardless. */
+       anyway) but the correct/safe default for a one-shot reveal animation regardless.
+       Per explicit request, .tab-pill itself never starts resizing until AFTER this animation
+       finishes — .tab-pill-grown (the class that actually changes max-width, above) is only
+       toggled once TabRow's own JS phase machine reaches 'resize', strictly after 'fly-out' has
+       had its own full .15s to play out at the tab's ORIGINAL size, not concurrently with it. */
     .tab-content-fly-out{animation:tab-content-fly-out .15s ease forwards;}
     .tab-content-fly-in{animation:tab-content-fly-in .15s ease forwards;}
     /* Mid-drag (TabsBar.jsx) — no transition at all (tracks the pointer 1:1 via the translateX

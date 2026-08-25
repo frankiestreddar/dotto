@@ -19,24 +19,23 @@ const DRAG_THRESHOLD_PX = 4;
 
 // The four-phase "switch tabs" sequence (per explicit request): a brief pause, then the OLD
 // content flies upward out of the tab, then the tab itself grows/shrinks, then the NEW content
-// flies up into place. Durations match the CSS this drives — see TabRow's own comment on `phase`.
+// flies up into place — durations match the CSS this drives, see TabRow's own comment on `phase`.
 const SWITCH_DELAY_MS = 100;
 const CONTENT_FLY_MS = 150;
 const RESIZE_MS = 250;
 
 // The ACTIVE tab's own content — the full "…/parent/current" trail, per explicit request (only
 // the active tab shows the full breadcrumb; every other tab just shows its own current segment,
-// see TabRow below). This is exactly what BreadcrumbPill.jsx used to render directly before tabs
-// existed — breadcrumbMapStore itself still only ever describes wherever appState.currentFolderId
-// currently is, which by construction is always the active tab's own location (see
-// renderTabsPanel's own comment, shared-canvases-outline.js), so no changes were needed there.
+// see TabRow below). Takes its data as a prop now (not its own useSyncExternalStore subscription
+// — see TabRow's own comment for why) so TabRow can hand it a FROZEN snapshot while this tab is
+// fading out, rather than whatever breadcrumbMapStore currently holds (which, by the time a fade-
+// out is even playing, already describes the NEWLY active tab's folder, not this one's).
 // The current-folder segment doubles as its rename control — same click-to-edit contentEditable
 // flow every other title in the app uses (window.__startRenameFolderCardTitle, shared with folder/
 // source cards) — see waypoints-render-loop.js's own comment on that function. A plain {folderId}
 // stands in for the `it` object those callers pass; there's no real `.id`/canvas item behind a
 // breadcrumb segment, so the 3rd arg (editingClass) is inert here.
-function ActiveTabTrail() {
-  const bc = useSyncExternalStore(breadcrumbMapStore.subscribe, breadcrumbMapStore.getSnapshot, () => EMPTY_BREADCRUMB);
+function ActiveTabTrail({ bc }) {
   const currentRef = useRef(null);
 
   if (!bc.current) return null;
@@ -88,18 +87,36 @@ function ActiveTabTrail() {
 // then the new content flies up into place" sequence (per explicit request) is a small local state
 // machine — `phase` — rather than a plain className swap, since it needs THREE distinct visual
 // beats in order, not just one property transitioning between two states (which is all a plain
-// CSS transition-delay could give). `showTrail` is what's ACTUALLY rendered (label vs. full
-// trail) — deliberately decoupled from `isActive` itself, only flipping midway through the
-// sequence (right as the resize phase starts), so the OLD content is still what's on screen (and
-// able to fly out) for the first beat, and the box has already resized to fit the NEW content
-// before it flies in for the last beat. `phase` drives which CSS animation class applies:
-// 'fly-out' plays tab-content-fly-out (globals.css) on whatever `showTrail` still shows; 'resize'
-// hides the content outright (nothing to show mid-resize) while .tab-pill-grown's max-width
-// transitions; 'fly-in' plays tab-content-fly-in on the NOW-current `showTrail` content. Settles
-// back to 'idle' once the whole sequence finishes, matching whatever `isActive` currently is
-// (also the steady state on first mount / for a tab that never transitions).
+// CSS transition-delay could give). Two things this deliberately does NOT do, per an explicit
+// follow-up bug report that the whole tab (not just its text) was disappearing: the content wrapper
+// is ALWAYS rendered (never conditionally removed from the DOM — 'resize' just hides it via CSS
+// visibility, below) and `.tab-pill` itself never has anything applied that could hide the pill's
+// own box/background/border at any phase, only .tab-pill-content's own visibility/animation.
+// `bc` is subscribed to HERE (not inside ActiveTabTrail) and cached in `lastOwnBc` state while this
+// tab IS the live active one, so its fly-out plays against ITS OWN last-known breadcrumb even
+// after breadcrumbMapStore has already moved on to describe the newly active tab (which happens
+// synchronously, before any of this component's phase timers even start) — without this, a fading-
+// out tab would render the WRONG (new) trail for the brief moment it's still visible.
+// `showTrail` is what's ACTUALLY rendered (label vs. full trail) — deliberately decoupled from
+// `isActive` itself, only flipping midway through the sequence (right as the resize phase starts),
+// so the OLD content is still what's on screen (and able to fly out) for the first beat, and the
+// box has already resized to fit the NEW content before it flies in for the last beat.
 function TabRow({ tab, isActive, canClose, dragX, isDragging, tabRef, onDragStart, onDragMove, onDragEnd }) {
   const suppressClickRef = useRef(false);
+  const bc = useSyncExternalStore(breadcrumbMapStore.subscribe, breadcrumbMapStore.getSnapshot, () => EMPTY_BREADCRUMB);
+  // Cached in state, corrected DURING render (React's documented "adjusting state" pattern —
+  // https://react.dev/learn/you-might-not-need-an-effect#adjusting-some-state-when-a-prop-changes
+  // — a conditional setState call in the render body itself, not inside an effect, which would
+  // schedule an extra, avoidable commit for something this cheap) rather than a plain ref: both
+  // reading and writing a ref's .current during render are disallowed (react-hooks/refs), and a
+  // ref wouldn't need this file's OWN comment to explain safety anyway. Tracks `bc` while this tab
+  // is active — the condition (bc !== lastOwnBc) is what keeps this a single corrective update per
+  // real change rather than looping: once set equal, the condition stops matching until `bc`
+  // actually changes again. Freezes at whatever it last was the instant `isActive` goes false,
+  // which is exactly the point — see this function's own header comment for why.
+  const [lastOwnBc, setLastOwnBc] = useState(bc);
+  if (isActive && bc !== lastOwnBc) setLastOwnBc(bc);
+
   const [phase, setPhase] = useState("idle");
   const [showTrail, setShowTrail] = useState(isActive);
   const prevIsActiveRef = useRef(isActive);
@@ -108,28 +125,29 @@ function TabRow({ tab, isActive, canClose, dragX, isDragging, tabRef, onDragStar
     if (isActive === prevIsActiveRef.current) return;
     prevIsActiveRef.current = isActive;
     let cancelled = false;
-    const t1 = setTimeout(() => {
+    const timers = [];
+    timers.push(setTimeout(() => {
       if (cancelled) return;
       setPhase("fly-out");
-      setTimeout(() => {
+      timers.push(setTimeout(() => {
         if (cancelled) return;
         setPhase("resize");
         setShowTrail(isActive);
-        setTimeout(() => {
+        timers.push(setTimeout(() => {
           if (cancelled) return;
           setPhase("fly-in");
-          setTimeout(() => {
+          timers.push(setTimeout(() => {
             if (cancelled) return;
             setPhase("idle");
-          }, CONTENT_FLY_MS);
-        }, RESIZE_MS);
-      }, CONTENT_FLY_MS);
-    }, SWITCH_DELAY_MS);
-    return () => { cancelled = true; clearTimeout(t1); };
+          }, CONTENT_FLY_MS));
+        }, RESIZE_MS));
+      }, CONTENT_FLY_MS));
+    }, SWITCH_DELAY_MS));
+    return () => { cancelled = true; timers.forEach(clearTimeout); };
   }, [isActive]);
 
   const contentClass =
-    phase === "fly-out" ? " tab-content-fly-out" : phase === "fly-in" ? " tab-content-fly-in" : "";
+    phase === "fly-out" ? " tab-content-fly-out" : phase === "fly-in" ? " tab-content-fly-in" : phase === "resize" ? " tab-content-hidden" : "";
 
   return (
     <div
@@ -158,11 +176,9 @@ function TabRow({ tab, isActive, canClose, dragX, isDragging, tabRef, onDragStar
         window.__switchTab(tab.id);
       }}
     >
-      {phase !== "resize" && (
-        <div className={"tab-pill-content" + contentClass}>
-          {showTrail ? <ActiveTabTrail /> : <span className="tab-pill-label">{tab.label}</span>}
-        </div>
-      )}
+      <div className={"tab-pill-content" + contentClass}>
+        {showTrail ? <ActiveTabTrail bc={isActive ? bc : lastOwnBc} /> : <span className="tab-pill-label">{tab.label}</span>}
+      </div>
       {canClose && (
         <button
           type="button"
