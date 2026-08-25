@@ -612,8 +612,11 @@ import { render, renderSelectedOutlines, startBoxSelection, syncWaypointToDb } f
         // Collaborations is 'C' (was 'G', reassigned per explicit request — the bare 'c'/'C'
         // copy-selected-cards shortcut that used to collide with it was removed from
         // history-autosave.js at the same time, specifically to free this letter up cleanly, no
-        // fallback ambiguity). Inbox is 'I', Messages is 'M' (freed up once Outline moved to 'O'
-        // above), Marketplace is 'H' (was ';', reassigned per explicit request) and Search is '/'
+        // fallback ambiguity). Routes (was Inbox, renamed per explicit request — its own internal
+        // ids/appState fields stayed btnInbox/inboxPanel, same convention as every other rename
+        // this session, e.g. Files staying #btn-snippets under the hood) is 'R' (was 'I', freed up
+        // by the rename), Messages is 'M' (freed up once Outline moved to 'O' above), Marketplace
+        // is 'H' (was ';', reassigned per explicit request) and Search is '/'
         // — the latter isn't gated on !isEditingText's usual letter-shortcut companion since it
         // isn't a letter, but still needs the isEditingText check itself (typing "/" in a normal
         // text field must never hijack focus away).
@@ -623,7 +626,7 @@ import { render, renderSelectedOutlines, startBoxSelection, syncWaypointToDb } f
         // toggleHamburgerMenu's own openRailView call above) already closes whatever else is open
         // before opening the new one, so switching panels this way is already safe; isEditingText
         // alone is enough to stop them firing while actually typing in a focused field.
-        if (!isEditingText && (e.key === 'i' || e.key === 'I')) { e.preventDefault(); appState.btnInbox.click(); return; }
+        if (!isEditingText && (e.key === 'r' || e.key === 'R')) { e.preventDefault(); appState.btnInbox.click(); return; }
         if (!isEditingText && e.key === '/') { e.preventDefault(); appState.btnSearch.click(); return; }
         // Not a panel, and no longer even a rail button — the theme toggle moved into a "Colour
         // Theme" switch inside #profile-settings-view (per explicit request, formerly
