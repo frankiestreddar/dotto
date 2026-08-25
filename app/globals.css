@@ -1084,10 +1084,10 @@
        unwanted flat circular disc boundary — the reference look has no visible edge anywhere,
        just a glow fading smoothly to nothing. Removed entirely; .search-panel-hero-icon's own
        drop-shadow below is what carries the "glassy" quality now instead. */
-    /* 120px (was 96px, was 72px before that) and pushed down from the panel's own top edge (40px
-       margin) plus breathing room below before the heading (32px) — per two rounds of explicit
-       follow-up request. */
-    .search-panel-hero{position:relative;width:120px;height:120px;margin:40px auto 32px;display:flex;align-items:center;justify-content:center;flex:0 0 auto;}
+    /* 120px (was 96px, was 72px before that) and pushed down from the panel's own top edge (56px
+       margin, was 40px, was 24px before that) plus breathing room below before the heading (32px)
+       — per three rounds of explicit follow-up request. */
+    .search-panel-hero{position:relative;width:120px;height:120px;margin:56px auto 32px;display:flex;align-items:center;justify-content:center;flex:0 0 auto;}
     /* Sized well past the 120px box (168px, centered on it via the negative-margin shorthand
        inset:-24px) so the glow has real room to fade out gradually before it reaches anything —
        clipped by nothing, since .search-panel-hero itself has no overflow/border-radius of its
