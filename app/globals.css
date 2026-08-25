@@ -35,9 +35,10 @@
         --hmenu-width:300px;
         --rail-width:56px;
     }
-    /* Light theme — toggled via the "Colour Theme" switch in #settings-panel
+    /* Light theme — toggled via the "Colour Theme" switch in #profile-settings-view
        (hamburger-stack.html/theme-toggle.js — was its own #btn-theme-toggle rail button before
-       being moved into Settings per explicit request), which flips
+       being moved into Settings per explicit request, then into this Profile sub-view once
+       Settings' own rail icon was removed), which flips
        document.documentElement.dataset.theme and persists the choice to localStorage. Dark is the
        app's default/original identity (the plain :root block above); this block is the ONLY place
        light-mode color overrides live for anything that already goes through one of these 9
@@ -106,7 +107,7 @@
        own separate override, since it's position:fixed and ignores #canvas's box entirely.
        :not([data-sidebar-mode="overlay"]) — per explicit request, this "push" behavior (the
        default, hence a NOT-overlay check rather than an explicit "push" one) is now the ON state
-       of the Sidebar Display Mode switch in #settings-panel (sidebar-mode-toggle.js sets/clears
+       of the Sidebar Display Mode switch in #profile-settings-view (sidebar-mode-toggle.js sets/clears
        this attribute on <body>, mirroring how theme-toggle.js owns data-theme on <html>) — flipped
        off, panels go back to the original overlay-the-canvas behavior this app had before that
        change. */
@@ -378,12 +379,14 @@
        is var(--card) rather than the much lighter var(--card-border) every other bordered surface
        in this file uses, for the same reason — a step darker, closer to the rail's own paper
        background, per explicit request. */
-    /* Three direct children now: Group 1 (profile) pinned to the top, #dotto-rail-middle (its own
-       flex column, see below) filling and centering everything else in the remaining space, and
-       Group 7 (theme toggle + Settings) pinned to the bottom — per explicit request, replacing the
-       old "every group just stacks at the top" layout. gap:16px between these three is mostly
-       inconsequential now that #dotto-rail-middle's own flex:1 does the real work of separating
-       Group 1 from Group 7. */
+    /* Two direct children now: Group 1 (profile) pinned to the top, and #dotto-rail-middle (its own
+       flex column, see below) filling and centering everything else in the remaining space — a
+       third, Group 7 (theme toggle, then Settings, then Help), used to pin to the bottom the same
+       way per explicit request, replacing the old "every group just stacks at the top" layout, but
+       was removed entirely (Help deleted outright; Settings' own content moved into a Profile
+       sub-view instead — see #profile-settings-view's own comment further down), so there's nothing
+       pinned below any more. gap:16px between the two remaining children is mostly inconsequential
+       now that #dotto-rail-middle's own flex:1 already fills all the remaining space on its own. */
     #dotto-rail{position:fixed;left:0;top:0;width:var(--rail-width);height:100vh;background:var(--paper);border-right:1px solid var(--card);z-index:1000;display:flex;flex-direction:column;align-items:center;gap:16px;padding:20px 0;box-sizing:border-box;}
     /* Holds Groups 2-6 (see top-bar.html) — grows to fill whatever vertical space Group 1 and
        Group 7 don't use (flex:1 1 auto, min-height:0 so it can actually shrink below its content's
@@ -978,22 +981,44 @@
        own background (var(--bar)) turned light — same fix as .collab-avatar above. */
     .profile-avatar-sm{width:43px;height:43px;border-radius:50%;background:none;overflow:hidden;color:var(--ink);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600;flex:0 0 auto;clip-path:path('M -20 -20 L 63 -20 L 63 35 L 35.36 35 A 16 16 0 0 1 7.64 35 L -20 35 Z');}
     .profile-avatar-sm img{width:100%;height:100%;object-fit:cover;display:block;}
+    /* #profile-panel now has two internal sub-views (hamburger-stack.html) — #profile-main-view
+       (default, the panel's original content below) and #profile-settings-view (the old
+       #settings-panel's content, moved here once Settings was removed as its own rail icon, per
+       explicit request) — toggled by showProfileMainView/showProfileSettingsView
+       (profile-achievements-pricing.js), same shape as #ai-list-view/#ai-chat-view. #profile-panel
+       itself just needs to be a plain flex column now (each sub-view fills it via flex:1 1 auto
+       below) — the gap that used to live here, between the stacked .profile-block children, moved
+       down to #profile-main-view since those are its children now, not #profile-panel's directly.
+       #profile-panel itself needs no rule of its own any more — display/flex-direction/min-height
+       already come from the shared .hub-subpanel base rule (an unconditional #profile-panel{display:
+       flex;...} here would win over that rule's own display:none-until-.open by ID specificity
+       regardless of source order, breaking the outer rail's own open/close toggle). */
+    #profile-main-view{display:none;flex-direction:column;gap:5px;flex:1 1 auto;min-height:0;}
+    #profile-main-view.open{display:flex;}
+    #profile-settings-view{display:none;flex-direction:column;flex:1 1 auto;min-height:0;}
+    #profile-settings-view.open{display:flex;}
+    /* Same small "←" header as #ai-chat-header/#ai-history-btn (globals.css) — a separate rule
+       rather than a shared class since this is the only other place that shape is used so far;
+       kept visually identical on purpose. */
+    #profile-settings-header{flex:0 0 auto;display:flex;align-items:center;padding:2px 4px 6px;}
+    #profile-settings-back-btn{background:none;border:none;color:var(--ink-soft);cursor:pointer;font-size:15px;padding:4px;border-radius:6px;}
+    #profile-settings-back-btn:hover{background:var(--hover-bg);color:var(--ink);}
     /* The profile "tab" is several separate stacked panels rather than one box — each
        .profile-block is its own rounded card, matching the .hmenu-panel stacked convention.
        Position/size/display now all come from the shared .hmenu-panel/.hub-subpanel rules
        (#profile-panel shares that shell like every other rail view — see openRailView,
-       panels-hamburger.js); only the gap between the stacked .profile-block children below is
-       still specific to this panel. #profile-spritebook-block (flex:1 below) fills whatever
-       height the shell's own full-sidebar mode leaves it, no separate JS-computed height needed
-       anymore. */
-    #profile-panel{gap:5px;}
+       panels-hamburger.js). #profile-spritebook-block (flex:1 below) fills whatever height the
+       shell's own full-sidebar mode leaves it, no separate JS-computed height needed anymore. */
     .profile-block{background:var(--bar);border:1px solid var(--card-border);border-radius:12px;padding:14px;box-shadow:0 4px 16px rgba(0,0,0,0.5);box-sizing:border-box;}
     :root[data-theme="light"] .profile-block{box-shadow:0 4px 16px rgba(0,0,0,0.21);}
 
-    /* padding-right leaves room for #profile-logout-btn (absolutely positioned, so the flex row
-       below doesn't know to shrink around it on its own) — enough that a long, ellipsis-truncated
-       username never renders underneath the button. */
-    #profile-identity-block{position:relative;display:flex;align-items:center;gap:12px;flex:0 0 auto;padding-right:36px;}
+    /* padding-right leaves room for #profile-settings-btn/#profile-logout-btn (both absolutely
+       positioned, so the flex row below doesn't know to shrink around them on its own) — enough
+       that a long, ellipsis-truncated username never renders underneath either button. 10 (logout's
+       own right offset) + 26 (its width) + 8 (gap) + 26 (settings' own width) = 70, exactly wide
+       enough to clear both with no extra buffer, same convention the original single-button 36px
+       value (10+26) used. */
+    #profile-identity-block{position:relative;display:flex;align-items:center;gap:12px;flex:0 0 auto;padding-right:70px;}
     /* Small, quiet icon button in the identity block's own top-right corner — replaces the old
        hover-to-logout swap that used to live on the rail's #btn-profile circle itself (a
        destructive action shouldn't hide behind a hover state on a permanent nav icon). Reuses the
@@ -1001,6 +1026,19 @@
     #profile-logout-btn{position:absolute;top:10px;right:10px;background:none;border:none;color:var(--ink-soft);cursor:pointer;width:26px;height:26px;padding:0;border-radius:7px;display:flex;align-items:center;justify-content:center;transition:background .15s ease,color .15s ease;}
     #profile-logout-btn:hover{background:#ef4444;color:#fff;}
     #profile-logout-btn svg{width:15px;height:15px;pointer-events:none;}
+    /* Settings — was its own rail icon (#btn-settings/#settings-panel); moved here per explicit
+       request once that icon was removed. Same small icon-button box as #profile-logout-btn just
+       above (26x26, same border-radius/transition), sitting immediately to its left (right:44px =
+       logout's own 10px offset + 26px width + 8px gap) — a neutral hover instead of destructive
+       red, since opening a settings sub-view isn't a destructive action. settings.png reused
+       verbatim from the old rail icon, tinted/dimmed the same way every other icon here is
+       (brightness(0) invert(1) dark / brightness(0) light, per :root[data-theme="light"] below) —
+       full opacity on hover, matching #profile-logout-btn's own color:var(--ink)-on-hover brighten. */
+    #profile-settings-btn{position:absolute;top:10px;right:44px;background:none;border:none;cursor:pointer;width:26px;height:26px;padding:0;border-radius:7px;display:flex;align-items:center;justify-content:center;transition:background .15s ease;}
+    #profile-settings-btn:hover{background:var(--hover-bg);}
+    #profile-settings-btn img{width:15px;height:15px;pointer-events:none;filter:brightness(0) invert(1);opacity:0.55;transition:opacity .15s ease;}
+    #profile-settings-btn:hover img{opacity:1;}
+    :root[data-theme="light"] #profile-settings-btn img{filter:brightness(0);}
     /* No border-radius at all (a plain square) — only the top-bar button avatar
        (#btn-profile/.profile-avatar-sm) keeps circular clipping. */
     .profile-avatar-lg{width:56px;height:56px;flex:0 0 auto;border-radius:0;overflow:hidden;background:none;color:var(--ink);display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:600;}
@@ -1208,9 +1246,11 @@
        outer edge up with the box's exactly, instead of rows stretching wider than it on each side. */
     .panel-history-list{padding-left:10px;padding-right:10px;}
     .hub-subpanel-list::-webkit-scrollbar{display:none;}
-    /* #settings-panel's own rows — .settings-row is deliberately generic (label left, some control
-       right) rather than theme-specific, so future settings can reuse it. Brightness Theme (was
-       "Colour Theme") and Sidebar Display Mode are the first two rows (hamburger-stack.html). */
+    /* #profile-settings-view's own rows (was #settings-panel's, before Settings' own rail icon was
+       removed and this content moved into a Profile sub-view instead) — .settings-row is
+       deliberately generic (label left, some control right) rather than theme-specific, so future
+       settings can reuse it. Brightness Theme (was "Colour Theme") and Sidebar Display Mode are the
+       first two rows (hamburger-stack.html). */
     .settings-row{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;gap:12px;}
     .settings-row-label{font-size:13px;color:var(--ink);}
     /* Generic "label/icon flanking a switch" wrapper (was .settings-theme-switch — kept the more

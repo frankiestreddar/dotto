@@ -3,11 +3,13 @@
      panels-hamburger.js) via click-only open/switch/close (no hover preview). Back/forward live in
      #top-bar-center instead (see #nav-arrows-pill below) — they're page-navigation, not
      rail-icon-style view triggers, and read better beside the breadcrumb they actually move.
-     Icons are grouped into seven .rail-group wrappers (see globals.css) — a fixed 10px gap between
-     buttons WITHIN a group. Group 1 (profile) is pinned to the very top, and Group 7 (Settings,
-     alone — the light/dark toggle used to live here too, moved into Settings' own panel, see its
-     own comment further down) is pinned to the very bottom — neither one moves.
-     Groups 2-6 sit inside #dotto-rail-middle, a separate flex column between the two that grows to
+     Icons are grouped into .rail-group wrappers (see globals.css) — a fixed 10px gap between
+     buttons WITHIN a group. Group 1 (profile) is pinned to the very top — the only pinned group
+     left now that Group 7 (Settings, then Help) has been removed entirely: Help was deleted per
+     explicit request, and Settings' own content moved into a sub-view of the Profile panel instead
+     (#profile-settings-view, hamburger-stack.html) once its rail icon went too, so there's no
+     longer a bottom-pinned group at all.
+     Groups 2-6 sit inside #dotto-rail-middle, a separate flex column below the top-pinned group that grows to
      fill whatever vertical space is left and centers its own children within it (justify-content:
      center) — per explicit request, replacing the old "everything just stacks at the top" layout.
      Groups 3-6 (now 2nd-5th inside that middle block) still get a dividing line between each
@@ -103,9 +105,10 @@
         </div>
     </div>
     <!-- Groups 2-6 (Inbox+Queries, Search/Outline/Waypoints, Essentials/Library/
-         Marketplace, Friends/Collaborations/Messages, Files/Sources/Snippets) center as one block
-         in whatever space is left between the pinned groups above and the pinned Group 7 below
-         (see #dotto-rail-middle, globals.css) — per explicit request. -->
+         Marketplace, Collaborations/Messages, Files/Sources/Snippets) center as one block in
+         whatever space is left below the pinned groups above — nothing pinned below any more, now
+         that Group 7 (Settings, then Help) has been removed entirely (see #dotto-rail-middle,
+         globals.css) — per explicit request. -->
     <div id="dotto-rail-middle">
     <!-- Group 2: Inbox, then Queries. #inbox-panel (hamburger-stack.html)
          is a bare shell for now — behavior/content not yet decided, wired into the shared
@@ -168,27 +171,15 @@
         <button id="btn-messages" class="rail-btn"><img class="rail-icon-img" src="/assets/icons/chats-btn.png" alt=""><span class="rail-tooltip"><span class="rail-tooltip-row"><span class="rail-tooltip-name">Messages</span><span class="rail-tooltip-key">M</span></span><span class="rail-tooltip-desc" data-desc="Direct messages and conversations."></span></span></button>
     </div>
     </div>
-    <!-- Group 7: Settings, then Help — pinned to the very bottom of the rail (#dotto-rail-middle's
-         own flex:1 above already consumes the rest of the space, so nothing further is needed here
-         to push this group down). The light/dark theme toggle used to be its own rail button here
-         (#btn-theme-toggle) — removed per explicit request and moved into #settings-panel itself as
-         a "Colour Theme" switch row instead (see its own comment, hamburger-stack.html, and
-         theme-toggle.js, which now owns that switch's wiring the same way it owned the old
-         button's). The \ keyboard shortcut still toggles the theme directly (srs-connections-core.js
-         — toggleTheme(), theme-toggle.js) even though there's no longer a dedicated rail icon for
-         it. #settings-panel is otherwise still a bare shell for the rest of its content — wired
-         into the shared openRailView mechanism (see wireRailIcon('settings', ...),
-         panels-hamburger.js). settings.png doesn't exist in the repo yet — flagged the same way
-         friends.png was (before Friends itself was removed).
-         Help — new, per explicit request, added right below Settings in this same pinned group
-         (not a separate one — the two read as one small "utility" cluster at the rail's very
-         bottom). '~' per explicit request (was '?' briefly first) — '`' (same physical key,
-         unshifted) also works, per that same request. #help-panel (hamburger-stack.html) is a bare
-         shell for now, same as most other icons here. -->
-    <div class="rail-group">
-        <button id="btn-settings" class="rail-btn"><img class="rail-icon-img" src="/assets/icons/settings.png" alt=""><span class="rail-tooltip"><span class="rail-tooltip-row"><span class="rail-tooltip-name">Settings</span><span class="rail-tooltip-key">Z</span></span><span class="rail-tooltip-desc" data-desc="App preferences and account settings."></span></span></button>
-        <button id="btn-help" class="rail-btn"><img class="rail-icon-img" src="/assets/icons/help.png" alt=""><span class="rail-tooltip"><span class="rail-tooltip-row"><span class="rail-tooltip-name">Help</span><span class="rail-tooltip-key">~</span></span><span class="rail-tooltip-desc" data-desc="Guides, shortcuts, and support."></span></span></button>
-    </div>
+    <!-- Group 7 (Settings, then Help) removed entirely, per explicit request — Settings' own
+         content (Brightness Theme, Sidebar Mode) moved into a sub-view of #profile-panel instead
+         (#profile-settings-view, hamburger-stack.html, reached via #profile-settings-btn in the
+         identity block), so there's no bottom-pinned group left at all now. The light/dark theme
+         toggle used to be its own rail button here (#btn-theme-toggle) — removed per an earlier
+         explicit request and folded into that same settings content as a "Colour Theme" switch row
+         instead (see theme-toggle.js, which owns that switch's wiring). The \ keyboard shortcut
+         still toggles the theme directly (srs-connections-core.js — toggleTheme(), theme-toggle.js)
+         even though there's no dedicated rail icon for it either way. -->
 </div>
 <!-- Dead centre of the viewport (position:fixed, left:50% + translateX(-50%), see globals.css) —
      independent of the rail's own left offset. Back/forward (history navigation, see

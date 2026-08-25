@@ -1,5 +1,7 @@
 // Light/dark theme toggle — used to be its own rail button (#btn-theme-toggle), now a "Colour
-// Theme" switch row inside #settings-panel (hamburger-stack.html) instead, per explicit request.
+// Theme" switch row inside #profile-settings-view (hamburger-stack.html) instead, per explicit
+// request — moved there from #settings-panel once Settings' own rail icon was removed and its
+// content repurposed as a sub-view of the Profile panel (see that fragment's own comment).
 // The actual theme is applied via document.documentElement.dataset.theme, which a small blocking
 // inline script in app/layout.js's <head> already sets from localStorage BEFORE this module ever
 // loads (this app's vanilla-JS bootstrap, dotto-script.js, loads via

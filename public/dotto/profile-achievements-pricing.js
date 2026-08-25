@@ -152,7 +152,23 @@ import { pushNotification } from './stopwatch-search-notifications.js';
     // the hover-to-logout swap that used to need its own hand-written click handler here is gone
     // (logout is a small button inside the panel's identity block now, see hamburger-stack.html).
     function closeProfilePanel() { closeRailView(); }
+    // Two internal sub-views of #profile-panel, toggled independently of the outer rail's own
+    // open/close state — same shape as showAiListView/showAiChatView (ai-assistant-suggestions.js).
+    // #profile-settings-view holds the old #settings-panel's content (Brightness Theme, Sidebar
+    // Mode), moved here once Settings was removed as its own rail icon, per explicit request.
+    function showProfileMainView() {
+        appState.profileSettingsView.classList.remove('open');
+        appState.profileMainView.classList.add('open');
+    }
+    function showProfileSettingsView() {
+        appState.profileMainView.classList.remove('open');
+        appState.profileSettingsView.classList.add('open');
+    }
     function refreshProfilePanel() {
+        // Always land on the main view, not wherever the panel was left last time (e.g. mid-
+        // Settings via the 'z' shortcut, srs-connections-core.js, which switches to the settings
+        // view again right after this runs).
+        showProfileMainView();
         refreshDotbotUsage();
         // Always start at the top of the sprite grid, not wherever it happened to be scrolled to
         // last time the panel was open.
@@ -278,7 +294,7 @@ import { pushNotification } from './stopwatch-search-notifications.js';
     }
     wireRailIcon('profile', appState.profileBtn, appState.profilePanel, refreshProfilePanel);
 
-export { awardUserPoints, bumpAchievementStat, closeDotbotUpgradeModal, closePricingOverlay, closeProfilePanel, openDotbotUpgradeModal, openPricingOverlay, refreshDotbotUsage, renderAvatarInto };
+export { awardUserPoints, bumpAchievementStat, closeDotbotUpgradeModal, closePricingOverlay, closeProfilePanel, openDotbotUpgradeModal, openPricingOverlay, refreshDotbotUsage, renderAvatarInto, showProfileMainView, showProfileSettingsView };
 
 // React → vanilla bridge — used by AchievementsGrid.jsx (app/dotto/), which can't import these
 // directly since public/dotto/*.js isn't reachable from app/dotto/. True constants (never

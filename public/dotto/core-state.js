@@ -212,7 +212,7 @@
         // per-canvas collab flyout, source-add-menu) and keep their own flags.
         panelPinned: { rail: false, collab: false, sourceAdd: false },
         // Which #hamburger-stack view is currently showing — null | 'inbox' | 'search' | 'ai' |
-        // 'sources' | 'snippets' | 'snippets2' | 'settings' | 'help' | 'outline' | 'waypoints' |
+        // 'sources' | 'snippets' | 'snippets2' | 'outline' | 'waypoints' |
         // 'collab' | 'marketplace' | 'library' | 'messages' | 'profile'. Set by openRailView,
         // cleared by closeRailView (panels-hamburger.js).
         activeRailView: null,
@@ -238,10 +238,6 @@
         uploadPopupClose: document.getElementById('upload-popup-close'),
         uploadDropzone: document.getElementById('upload-dropzone'),
         uploadDropzoneLabel: document.getElementById('upload-dropzone-label'),
-        btnSettings: document.getElementById('btn-settings'),
-        settingsPanel: document.getElementById('settings-panel'),
-        btnHelp: document.getElementById('btn-help'),
-        helpPanel: document.getElementById('help-panel'),
         railBtnAi: document.getElementById('rail-btn-ai'),
         railBtnWaypoints: document.getElementById('rail-btn-waypoints'),
         railBtnCollab: document.getElementById('rail-btn-collab'),
@@ -259,6 +255,14 @@
         seenIncomingCanvasRequestIds: null,
         profileBtn: document.getElementById('btn-profile'),
         profilePanel: document.getElementById('profile-panel'),
+        // profilePanel is the whole rail view (railViewEls member); profileMainView/
+        // profileSettingsView are its two internal sub-views, toggled independently of the outer
+        // rail's own open/close state (see showProfileMainView/showProfileSettingsView,
+        // profile-achievements-pricing.js) — same shape as aiListView/aiChatView above. Settings'
+        // own content (Brightness Theme, Sidebar Mode) moved into profileSettingsView once
+        // #settings-panel was removed as its own rail icon, per explicit request.
+        profileMainView: document.getElementById('profile-main-view'),
+        profileSettingsView: document.getElementById('profile-settings-view'),
         LEVEL_NAMES: [
         'Noob', 'Novice', 'Apprentice', 'Learner', 'Scholar', 'Seeker', 'Thinker', 'Strategist',
         'Specialist', 'Expert', 'Master', 'Savant', 'Polymath', 'Brainiac', 'Prodigy', 'Intellect',
@@ -436,8 +440,8 @@
     // #snippets-panel are bare shells (see
     // wireRailIcon('inbox'/'search'/'documents'/'sources'/'snippets', ...) below) — their own
     // behavior/content hasn't been designed yet.
-    appState.railViewEls = [appState.inboxPanel, appState.searchPanel, appState.aiPanel, appState.sourcesPanel, appState.snippetsPanel, appState.snippets2Panel, appState.settingsPanel, appState.helpPanel, appState.outlineMenu, appState.waypointsPanel, appState.hubCollabPanel, appState.cartPanel, appState.libraryPanel, appState.messagesPanel, addMenu, appState.profilePanel];
-    appState.railIconBtns = [appState.btnInbox, appState.btnSearch, appState.railBtnAi, appState.btnSources, appState.btnSnippets, appState.btnSnippets2, appState.btnSettings, appState.btnHelp, appState.hamburgerBtn, appState.railBtnWaypoints, appState.railBtnCollab, appState.btnCart, appState.libraryBtn, appState.messagesBtn, btnAdd, appState.profileBtn];
+    appState.railViewEls = [appState.inboxPanel, appState.searchPanel, appState.aiPanel, appState.sourcesPanel, appState.snippetsPanel, appState.snippets2Panel, appState.outlineMenu, appState.waypointsPanel, appState.hubCollabPanel, appState.cartPanel, appState.libraryPanel, appState.messagesPanel, addMenu, appState.profilePanel];
+    appState.railIconBtns = [appState.btnInbox, appState.btnSearch, appState.railBtnAi, appState.btnSources, appState.btnSnippets, appState.btnSnippets2, appState.hamburgerBtn, appState.railBtnWaypoints, appState.railBtnCollab, appState.btnCart, appState.libraryBtn, appState.messagesBtn, btnAdd, appState.profileBtn];
     appState.TOTAL_SUB_LEVELS = appState.LEVEL_NAMES.length * appState.SUB_RANKS_PER_TIER;
     // Same reason as the block above: can't reference appState.currentUser from inside appState's
     // own object literal, since appState doesn't exist yet until that literal finishes constructing.

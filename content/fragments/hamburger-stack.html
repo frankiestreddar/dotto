@@ -86,81 +86,6 @@
     <div id="snippets2-panel" class="hmenu-panel hub-subpanel" onclick="event.stopPropagation()">
         <div id="snippets2-panel-content"></div>
     </div>
-    <!-- Settings — rail icon (group 7, top-bar.html, alone — used to sit below its own dedicated
-         light/dark theme toggle button, which was removed and folded into this panel's first real
-         row of content instead, per explicit request). Wired into the shared openRailView
-         mechanism (see wireRailIcon('settings', ...), panels-hamburger.js) just so #btn-settings
-         has a panel to open — everything else in here is still undecided, this is just the first
-         row. -->
-    <div id="settings-panel" class="hmenu-panel hub-subpanel" onclick="event.stopPropagation()">
-        <div id="settings-panel-content">
-            <!-- Brightness Theme row (was "Colour Theme", renamed per explicit request) —
-                 light.png/dark.png flank a checkbox-driven switch. Unlike the old rail button
-                 (which showed the theme clicking it would SWITCH TO), a switch is a state
-                 indicator by convention — checked means dark is currently active, per
-                 theme-toggle.js's own syncThemeSwitch, which also owns the change handler,
-                 localStorage persistence, and initial checked state.
-                 #theme-switch-track's own .on class (not a :checked sibling-selector, which an
-                 earlier version relied on and which never actually transitioned — the checkbox's
-                 own :checked state changing doesn't reliably retrigger a transition declared on a
-                 selector that only matches VIA that sibling relationship in every engine) is what
-                 syncThemeSwitch toggles the thumb's slide with instead, the same explicit
-                 JS-class-driven pattern already used everywhere else in this app (.rail-btn.active,
-                 the mode-toolbar's .expanded, etc.) rather than a pure-CSS pseudo-class trick. The
-                 checkbox itself stays for real keyboard/click/focus accessibility — clicking
-                 anywhere in this label still toggles it natively — theme-toggle.js's own change
-                 listener is what then keeps the .on class in sync with it. .settings-switch-row
-                 (was named .settings-theme-switch; kept the more generic name from when the
-                 Sidebar Mode row below briefly reused this same layout for its own switch, before
-                 that row became a plain dropdown instead) is a generic "label/icon flanking a
-                 switch" wrapper. -->
-            <div class="settings-row">
-                <span class="settings-row-label">Brightness Theme</span>
-                <label class="settings-switch-row">
-                    <img class="settings-theme-icon" src="/assets/icons/light.png" alt="Light">
-                    <span class="settings-switch">
-                        <input type="checkbox" id="theme-switch-input" class="settings-switch-input">
-                        <span id="theme-switch-track" class="settings-switch-track"><span class="settings-switch-thumb"></span></span>
-                    </span>
-                    <img class="settings-theme-icon" src="/assets/icons/dark.png" alt="Dark">
-                </label>
-            </div>
-            <!-- Sidebar Mode row (was "Sidebar Display Mode", renamed per explicit request) — a
-                 dropdown between the two rail-panel layout behaviors this app has had this
-                 session: panels overlaying the canvas (the original behavior) vs. reserving their
-                 own screen space and pushing the canvas/source-table over (the current default —
-                 see #canvas's and .item.static-table's own body:has(#hamburger-stack.open)
-                 overrides, globals.css). A fully custom trigger+popup (was a native <select>, per
-                 explicit follow-up request to not use "the standard html dropdown" — no native
-                 focus outline either, another explicit follow-up) rather than a styled-over native
-                 element — same click-toggle-popup shape as #mode-popup (top-bar.html) but opened by
-                 a click on #sidebar-mode-trigger instead of hover, since this lives inline in a
-                 settings row rather than the rail. sidebar-mode-toggle.js owns all of it: the
-                 trigger's own displayed label, each row's .active highlight, opening/closing, and
-                 the same body[data-sidebar-mode] attribute + localStorage persistence the earlier
-                 switch/select versions already used. -->
-            <div class="settings-row">
-                <span class="settings-row-label">Sidebar Mode</span>
-                <div class="settings-dropdown">
-                    <button type="button" id="sidebar-mode-trigger" class="settings-dropdown-trigger">
-                        <span id="sidebar-mode-trigger-label">Push</span>
-                        <span class="settings-dropdown-caret">▾</span>
-                    </button>
-                    <div id="sidebar-mode-popup" class="settings-dropdown-popup">
-                        <button type="button" class="settings-dropdown-row active" data-mode="push">Push</button>
-                        <button type="button" class="settings-dropdown-row" data-mode="overlay">Overlay</button>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-    <!-- Help — rail icon (group 7, top-bar.html, below Settings), new per explicit request.
-         Behavior/content not decided yet; a bare shell wired into the shared openRailView
-         mechanism (see wireRailIcon('help', ...), panels-hamburger.js) just so #btn-help has a
-         panel to open. -->
-    <div id="help-panel" class="hmenu-panel hub-subpanel" onclick="event.stopPropagation()">
-        <div id="help-panel-content"></div>
-    </div>
     <!-- Files (was ITSELF called Snippets — renamed per explicit request; id/wiring kept as
          'snippets' under the hood, same convention as Essentials/Queries staying #btn-add/
          #rail-btn-ai). Not to be confused with the separate, newer Snippets button above
@@ -408,67 +333,149 @@
     </div>
     <!-- Profile — moved here from its own standalone floating card (content/fragments/
          profile-panel.html, now empty/unused) now that it shares this permanent rail shell (see
-         refreshProfilePanel/openRailView, profile-achievements-pricing.js). -->
+         refreshProfilePanel/openRailView, profile-achievements-pricing.js). Two internal sub-views
+         now, not a top-level rail view of its own: #profile-main-view (default — identity/upgrade/
+         usage/spritebook, the panel's original content) and #profile-settings-view (the old
+         #settings-panel's content, moved here after Settings was removed as its own rail icon per
+         explicit request — "the options in its panel should be repurposed as a panel under the
+         profile panel"). Toggled by #profile-settings-btn/#profile-settings-back-btn
+         (showProfileSettingsView/showProfileMainView, profile-achievements-pricing.js), same
+         "←"-header-toggles-two-siblings shape as #ai-list-view/#ai-chat-view
+         (ai-assistant-suggestions.js), independent of the outer rail's own open/close state. -->
     <div id="profile-panel" class="hmenu-panel hub-subpanel" onclick="event.stopPropagation()">
-        <div class="profile-block" id="profile-identity-block">
-            <!-- Was a hover-swap on the rail's own #btn-profile circle (avatar → this same power
-                 icon) — now a small, explicit button here instead, top-right of the identity block
-                 it belongs to, rather than a destructive action hiding behind a hover state on the
-                 permanent nav icon. -->
-            <button id="profile-logout-btn" type="button" title="Log out" onclick="event.stopPropagation(); hmenuAction('logout');">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                    <path d="M12 2v10"></path>
-                    <path d="M18.36 6.64a9 9 0 1 1-12.73 0"></path>
-                </svg>
-            </button>
-            <div class="profile-avatar-lg" id="profile-avatar"></div>
-            <div class="profile-identity-text">
-                <div id="profile-username"></div>
-                <div class="profile-level-streak-row">
-                    <!-- Text content + background color are React-owned now (see
-                         app/dotto/ProfileLevelPill.jsx) — the inner .profile-level-pill-text span used
-                         to be static markup here; removed so the portaled one doesn't duplicate it. -->
-                    <span id="profile-level-pill" class="profile-level-pill"></span>
-                    <span class="profile-streak">
-                        <span class="profile-streak-icon icon-mask" style="mask-image:url(/assets/icons/flame.png);-webkit-mask-image:url(/assets/icons/flame.png)"></span>
-                        <span id="profile-streak-count"></span>
-                    </span>
+        <div id="profile-main-view" class="open">
+            <div class="profile-block" id="profile-identity-block">
+                <!-- Settings — was its own rail icon (#btn-settings/#settings-panel); moved here per
+                     explicit request once that icon was removed. Sits left of #profile-logout-btn in
+                     the same top-right corner, same small-icon-button shape, just a neutral hover
+                     instead of destructive red. settings.png reused from the old rail icon. -->
+                <button id="profile-settings-btn" type="button" title="Settings" onclick="event.stopPropagation(); showProfileSettingsView();">
+                    <img src="/assets/icons/settings.png" alt="">
+                </button>
+                <!-- Was a hover-swap on the rail's own #btn-profile circle (avatar → this same power
+                     icon) — now a small, explicit button here instead, top-right of the identity block
+                     it belongs to, rather than a destructive action hiding behind a hover state on the
+                     permanent nav icon. -->
+                <button id="profile-logout-btn" type="button" title="Log out" onclick="event.stopPropagation(); hmenuAction('logout');">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                        <path d="M12 2v10"></path>
+                        <path d="M18.36 6.64a9 9 0 1 1-12.73 0"></path>
+                    </svg>
+                </button>
+                <div class="profile-avatar-lg" id="profile-avatar"></div>
+                <div class="profile-identity-text">
+                    <div id="profile-username"></div>
+                    <div class="profile-level-streak-row">
+                        <!-- Text content + background color are React-owned now (see
+                             app/dotto/ProfileLevelPill.jsx) — the inner .profile-level-pill-text span used
+                             to be static markup here; removed so the portaled one doesn't duplicate it. -->
+                        <span id="profile-level-pill" class="profile-level-pill"></span>
+                        <span class="profile-streak">
+                            <span class="profile-streak-icon icon-mask" style="mask-image:url(/assets/icons/flame.png);-webkit-mask-image:url(/assets/icons/flame.png)"></span>
+                            <span id="profile-streak-count"></span>
+                        </span>
+                    </div>
+                </div>
+            </div>
+            <div class="profile-block" id="profile-upgrade-block">
+                <button id="profile-upgrade-btn" type="button" onclick="event.stopPropagation(); hmenuAction('upgrade');">
+                    <span>Try Dotto Pro</span>
+                    <span class="profile-upgrade-crown icon-mask" style="mask-image:url(/assets/icons/crown.png);-webkit-mask-image:url(/assets/icons/crown.png)"></span>
+                </button>
+            </div>
+            <div class="profile-block" id="profile-usage-block">
+                <div class="profile-block-content">
+                    <div class="profile-usage-row">
+                        <div class="profile-usage-label">Block usage</div>
+                        <div class="profile-usage-track"><div class="profile-usage-fill" id="profile-usage-blocks-fill"></div></div>
+                        <div class="profile-usage-tooltip" id="profile-usage-blocks-tooltip"></div>
+                    </div>
+                    <div class="profile-usage-row">
+                        <div class="profile-usage-label">Search usage</div>
+                        <div class="profile-usage-track"><div class="profile-usage-fill" id="profile-usage-search-fill"></div></div>
+                        <div class="profile-usage-tooltip" id="profile-usage-search-tooltip"></div>
+                    </div>
+                    <div class="profile-usage-row">
+                        <div class="profile-usage-label">Generation usage</div>
+                        <div class="profile-usage-track"><div class="profile-usage-fill" id="profile-usage-generation-fill"></div></div>
+                        <div class="profile-usage-tooltip" id="profile-usage-generation-tooltip"></div>
+                    </div>
+                </div>
+                <div id="profile-usage-upgrade-hint" onclick="event.stopPropagation(); openPricingOverlay();">Upgrade for more</div>
+            </div>
+            <!-- Always shows the full sprite set (no compact/expand toggle) and just scrolls — fills
+                 whatever viewport height remains below the blocks above (see #profile-spritebook-block
+                 in globals.css). Scroll position resets to top every time the panel opens (see
+                 refreshProfilePanel). -->
+            <div class="profile-block" id="profile-spritebook-block">
+                <div id="profile-spritebook-scroll">
+                    <div id="profile-sprite-grid"></div>
                 </div>
             </div>
         </div>
-        <div class="profile-block" id="profile-upgrade-block">
-            <button id="profile-upgrade-btn" type="button" onclick="event.stopPropagation(); hmenuAction('upgrade');">
-                <span>Try Dotto Pro</span>
-                <span class="profile-upgrade-crown icon-mask" style="mask-image:url(/assets/icons/crown.png);-webkit-mask-image:url(/assets/icons/crown.png)"></span>
-            </button>
-        </div>
-        <div class="profile-block" id="profile-usage-block">
-            <div class="profile-block-content">
-                <div class="profile-usage-row">
-                    <div class="profile-usage-label">Block usage</div>
-                    <div class="profile-usage-track"><div class="profile-usage-fill" id="profile-usage-blocks-fill"></div></div>
-                    <div class="profile-usage-tooltip" id="profile-usage-blocks-tooltip"></div>
-                </div>
-                <div class="profile-usage-row">
-                    <div class="profile-usage-label">Search usage</div>
-                    <div class="profile-usage-track"><div class="profile-usage-fill" id="profile-usage-search-fill"></div></div>
-                    <div class="profile-usage-tooltip" id="profile-usage-search-tooltip"></div>
-                </div>
-                <div class="profile-usage-row">
-                    <div class="profile-usage-label">Generation usage</div>
-                    <div class="profile-usage-track"><div class="profile-usage-fill" id="profile-usage-generation-fill"></div></div>
-                    <div class="profile-usage-tooltip" id="profile-usage-generation-tooltip"></div>
-                </div>
+        <div id="profile-settings-view">
+            <div id="profile-settings-header">
+                <button id="profile-settings-back-btn" title="Back to profile" onclick="event.stopPropagation(); showProfileMainView();">←</button>
             </div>
-            <div id="profile-usage-upgrade-hint" onclick="event.stopPropagation(); openPricingOverlay();">Upgrade for more</div>
-        </div>
-        <!-- Always shows the full sprite set (no compact/expand toggle) and just scrolls — fills
-             whatever viewport height remains below the blocks above (see #profile-spritebook-block
-             in globals.css). Scroll position resets to top every time the panel opens (see
-             refreshProfilePanel). -->
-        <div class="profile-block" id="profile-spritebook-block">
-            <div id="profile-spritebook-scroll">
-                <div id="profile-sprite-grid"></div>
+            <div class="profile-block" id="profile-settings-block">
+                <!-- Brightness Theme row (was "Colour Theme", renamed per explicit request) —
+                     light.png/dark.png flank a checkbox-driven switch. Unlike the old rail button
+                     (which showed the theme clicking it would SWITCH TO), a switch is a state
+                     indicator by convention — checked means dark is currently active, per
+                     theme-toggle.js's own syncThemeSwitch, which also owns the change handler,
+                     localStorage persistence, and initial checked state.
+                     #theme-switch-track's own .on class (not a :checked sibling-selector, which an
+                     earlier version relied on and which never actually transitioned — the checkbox's
+                     own :checked state changing doesn't reliably retrigger a transition declared on a
+                     selector that only matches VIA that sibling relationship in every engine) is what
+                     syncThemeSwitch toggles the thumb's slide with instead, the same explicit
+                     JS-class-driven pattern already used everywhere else in this app (.rail-btn.active,
+                     the mode-toolbar's .expanded, etc.) rather than a pure-CSS pseudo-class trick. The
+                     checkbox itself stays for real keyboard/click/focus accessibility — clicking
+                     anywhere in this label still toggles it natively — theme-toggle.js's own change
+                     listener is what then keeps the .on class in sync with it. .settings-switch-row
+                     (was named .settings-theme-switch; kept the more generic name from when the
+                     Sidebar Mode row below briefly reused this same layout for its own switch, before
+                     that row became a plain dropdown instead) is a generic "label/icon flanking a
+                     switch" wrapper. -->
+                <div class="settings-row">
+                    <span class="settings-row-label">Brightness Theme</span>
+                    <label class="settings-switch-row">
+                        <img class="settings-theme-icon" src="/assets/icons/light.png" alt="Light">
+                        <span class="settings-switch">
+                            <input type="checkbox" id="theme-switch-input" class="settings-switch-input">
+                            <span id="theme-switch-track" class="settings-switch-track"><span class="settings-switch-thumb"></span></span>
+                        </span>
+                        <img class="settings-theme-icon" src="/assets/icons/dark.png" alt="Dark">
+                    </label>
+                </div>
+                <!-- Sidebar Mode row (was "Sidebar Display Mode", renamed per explicit request) — a
+                     dropdown between the two rail-panel layout behaviors this app has had this
+                     session: panels overlaying the canvas (the original behavior) vs. reserving their
+                     own screen space and pushing the canvas/source-table over (the current default —
+                     see #canvas's and .item.static-table's own body:has(#hamburger-stack.open)
+                     overrides, globals.css). A fully custom trigger+popup (was a native <select>, per
+                     explicit follow-up request to not use "the standard html dropdown" — no native
+                     focus outline either, another explicit follow-up) rather than a styled-over native
+                     element — same click-toggle-popup shape as #mode-popup (top-bar.html) but opened by
+                     a click on #sidebar-mode-trigger instead of hover, since this lives inline in a
+                     settings row rather than the rail. sidebar-mode-toggle.js owns all of it: the
+                     trigger's own displayed label, each row's .active highlight, opening/closing, and
+                     the same body[data-sidebar-mode] attribute + localStorage persistence the earlier
+                     switch/select versions already used. -->
+                <div class="settings-row">
+                    <span class="settings-row-label">Sidebar Mode</span>
+                    <div class="settings-dropdown">
+                        <button type="button" id="sidebar-mode-trigger" class="settings-dropdown-trigger">
+                            <span id="sidebar-mode-trigger-label">Push</span>
+                            <span class="settings-dropdown-caret">▾</span>
+                        </button>
+                        <div id="sidebar-mode-popup" class="settings-dropdown-popup">
+                            <button type="button" class="settings-dropdown-row active" data-mode="push">Push</button>
+                            <button type="button" class="settings-dropdown-row" data-mode="overlay">Overlay</button>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
     </div>

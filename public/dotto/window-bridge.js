@@ -27,7 +27,7 @@ import { broadcastEditingState, closeConvo, closeSharedCanvasView, sendMsg, setT
 import { addItemToCustomFolderById, closeMarketDetail, deployPurchasedTemplate, handleLibrarySearch, handleMarketplaceSearch, purchaseCurrentMarketItem, removeFromCustomFolder, switchLibraryFolder } from './marketplace.js';
 import { clearMedia, setMediaFromLink, triggerMediaUpload } from './media-pdf-epub.js';
 import { handleHubCollabSearch, handleWaypointsSearch } from './panels-hamburger.js';
-import { closeDotbotUpgradeModal, closePricingOverlay, openPricingOverlay } from './profile-achievements-pricing.js';
+import { closeDotbotUpgradeModal, closePricingOverlay, openPricingOverlay, showProfileMainView, showProfileSettingsView } from './profile-achievements-pricing.js';
 import { setTableAlign } from './resize-shortcuts-init.js';
 import { handleOutlineSearch } from './shared-canvases-outline.js';
 import { openCellAddMenu } from './source-buttons-cursor-mode.js';
@@ -112,6 +112,8 @@ window.setTableAlign = setTableAlign;
 window.setTitleLevel = setTitleLevel;
 window.shelfSelectSession = shelfSelectSession;
 window.showAiListView = showAiListView;
+window.showProfileMainView = showProfileMainView;
+window.showProfileSettingsView = showProfileSettingsView;
 window.startCellAudioRecording = startCellAudioRecording;
 window.startPublishFlow = startPublishFlow;
 window.startRenameActiveTag = startRenameActiveTag;

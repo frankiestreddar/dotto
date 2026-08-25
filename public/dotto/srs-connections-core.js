@@ -8,7 +8,7 @@ import { generateGlobalId } from './global-ids.js';
 import { applyTransform, saveSnapshot, scheduleApplyTransform } from './history-autosave.js';
 import { broadcastEditingState } from './live-presence.js';
 import { isAnyUiPanelOpen } from './panels-hamburger.js';
-import { awardUserPoints, bumpAchievementStat } from './profile-achievements-pricing.js';
+import { awardUserPoints, bumpAchievementStat, showProfileSettingsView } from './profile-achievements-pricing.js';
 import { setOutlineActive, toggleHamburgerMenu } from './shared-canvases-outline.js';
 import { pushNotification } from './stopwatch-search-notifications.js';
 import { toggleTheme } from './theme-toggle.js';
@@ -626,7 +626,8 @@ import { render, renderSelectedOutlines, startBoxSelection, syncWaypointToDb } f
         if (!isEditingText && (e.key === 'i' || e.key === 'I')) { e.preventDefault(); appState.btnInbox.click(); return; }
         if (!isEditingText && e.key === '/') { e.preventDefault(); appState.btnSearch.click(); return; }
         // Not a panel, and no longer even a rail button — the theme toggle moved into a "Colour
-        // Theme" switch inside #settings-panel (per explicit request), so this calls
+        // Theme" switch inside #profile-settings-view (per explicit request, formerly
+        // #settings-panel before Settings' own rail icon was removed), so this calls
         // theme-toggle.js's own toggleTheme() directly instead of .click()-ing an element that no
         // longer exists.
         if (!isEditingText && e.key === '\\') { e.preventDefault(); toggleTheme(); return; }
@@ -645,12 +646,13 @@ import { render, renderSelectedOutlines, startBoxSelection, syncWaypointToDb } f
         // core-state.js) — not appState.btnSnippets, which is actually Files under the hood.
         if (!isEditingText && (e.key === 's' || e.key === 'S')) { e.preventDefault(); appState.btnSnippets2.click(); return; }
         // Bare 'z'/'Z' only — Cmd/Ctrl+Z (undo/redo) is a separate, differently-gated handler
-        // (history-autosave.js, requires e.metaKey||e.ctrlKey), so the two don't collide.
-        if (!isEditingText && (e.key === 'z' || e.key === 'Z')) { e.preventDefault(); appState.btnSettings.click(); return; }
-        // '~' per explicit request — '`' (the same physical key, unshifted) also works so Shift
-        // isn't required either way; e.key already reflects whichever of the two was actually
-        // produced, no separate e.shiftKey check needed.
-        if (!isEditingText && (e.key === '~' || e.key === '`')) { e.preventDefault(); appState.btnHelp.click(); return; }
+        // (history-autosave.js, requires e.metaKey||e.ctrlKey), so the two don't collide. Settings
+        // is no longer its own rail icon (moved into a sub-view of the Profile panel, per explicit
+        // request) — this now opens Profile and jumps straight to that sub-view in one step
+        // (profileBtn's own click handler, via wireRailIcon, runs synchronously — refreshProfilePanel
+        // resets to the main view first, and showProfileSettingsView right after switches it back
+        // to settings before anything paints) rather than requiring a second click once there.
+        if (!isEditingText && (e.key === 'z' || e.key === 'Z')) { e.preventDefault(); appState.profileBtn.click(); showProfileSettingsView(); return; }
         // Not a rail icon (see upload-popup.js) — toggleUploadPopup() is a plain classList toggle
         // on its own independent #upload-popup, not an openRailView('...', ...).click() call like
         // every shortcut above it.

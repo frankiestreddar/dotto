@@ -1,6 +1,8 @@
-// Sidebar Mode dropdown — #settings-panel's own fully custom trigger+popup (hamburger-stack.html;
-// was a native <select> until an explicit follow-up request to not use "the standard html
-// dropdown"), toggling between the two rail-panel layout behaviors this app has had this session:
+// Sidebar Mode dropdown — #profile-settings-view's own fully custom trigger+popup
+// (hamburger-stack.html; was a native <select> until an explicit follow-up request to not use "the
+// standard html dropdown", and lived in #settings-panel before that panel's own rail icon was
+// removed and its content moved into a sub-view of the Profile panel instead), toggling between
+// the two rail-panel layout behaviors this app has had this session:
 // panels overlaying the canvas (the original behavior) vs. reserving their own screen space and
 // pushing the canvas/source-table over (the current default — see #canvas's and .item.static-table's
 // own body:has(#hamburger-stack.open):not([data-sidebar-mode="overlay"]) overrides, globals.css).
@@ -38,7 +40,7 @@ rows.forEach(row => {
         closeDropdown();
     });
 });
-// A capture-phase listener (not the usual bubble phase) specifically because #settings-panel's own
+// A capture-phase listener (not the usual bubble phase) specifically because #profile-panel's own
 // onclick="event.stopPropagation()" (hamburger-stack.html) would otherwise swallow a click on any
 // OTHER settings row before it ever reached a plain document-level bubble listener — capture fires
 // on the way DOWN to the target, before that stopPropagation (called during the bubble phase back
