@@ -1352,10 +1352,20 @@
     #msg-convo-input-wrap{flex:0 0 auto;display:flex;gap:6px;padding:8px;border-top:1px solid var(--card-border);}
     #msg-convo-input{flex:1 1 auto;height:34px;border-radius:9px;background:var(--hover-bg);border:1px solid var(--card-border);color:var(--ink);padding:0 12px;font-size:13px;outline:none;}
     #msg-convo-send{width:34px;height:34px;border-radius:9px;background:var(--hover-bg);border:1px solid var(--card-border);color:var(--ink-soft);cursor:pointer;flex:0 0 auto;display:flex;align-items:center;justify-content:center;transition:background .12s ease,border-color .12s ease,color .12s ease;}
-    #msg-convo-send:hover{color:var(--ink);}
+    /* send.png (was a plain "➤" text glyph) — same black-source-PNG tinting convention as
+       .rail-icon-img (brightness(0) invert(1) for dark mode, brightness(0) alone for light mode),
+       muted at rest and full opacity on hover, matching the button's own dim-grey/brighten-on-
+       hover text-color convention it had before. */
+    .msg-convo-send-icon{width:16px;height:16px;object-fit:contain;filter:brightness(0) invert(1);opacity:0.55;}
+    :root[data-theme="light"] .msg-convo-send-icon{filter:brightness(0);}
+    #msg-convo-send:hover .msg-convo-send-icon{opacity:1;}
     /* Lights up once there's actually something to send (toggled via updateMsgSendState in JS on
-       input) instead of staying the same dim grey whether the box is empty or full. */
+       input) instead of staying the same dim grey whether the box is empty or full. The icon
+       stays white here regardless of theme (an #msg-convo-send.has-text ID+class selector beats
+       the plain :root[data-theme="light"] one above on specificity alone, so this wins in light
+       mode too) since it now sits on the same solid brand-blue background either way. */
     #msg-convo-send.has-text{background:var(--brand);border-color:var(--brand);color:#fff;}
+    #msg-convo-send.has-text .msg-convo-send-icon{filter:brightness(0) invert(1);opacity:1;}
 
     /* Shared by #view-discover (Marketplace) and #view-library (Library) — each panel's own
        "browse" view, one of a few toggled full-panel views within that panel (detail/publish-flow
