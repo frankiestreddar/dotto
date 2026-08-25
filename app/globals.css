@@ -339,8 +339,12 @@
        that rule, globals.css) — #search-input-wrap itself has no padding of its own, so without
        this the box sat noticeably closer to .search-panel-desc above and #chats-list below than
        Search's own layout does, per explicit bug report that the two panels' vertical rhythm
-       didn't match. */
-    #ai-list-header{flex:0 0 auto;margin:10px 0;}
+       didn't match. 2px horizontal margin (found in a later full audit of both panels, same bug
+       report) is the same idea sideways: #ai-panel's own 8px padding is all #search-input-wrap
+       had insetting it from the panel's true edge, 2px short of .hub-subpanel-search-wrap's own
+       10px on Search's side — this tops it up to match exactly, and #search-dropdown right below
+       inherits the same corrected inset for free as this element's other block child. */
+    #ai-list-header{flex:0 0 auto;margin:10px 2px;}
     /* Compact "…/parent/current" breadcrumb (see app/dotto/BreadcrumbPill.jsx, breadcrumbMapStore)
        — a .bubble inside #top-bar-center (own fixed/centring positioning lives there now, shared
        with #collab-bubble beside it), replacing the old always-visible full ancestor list that
@@ -1614,9 +1618,12 @@
        1px+1px border and adds it on top). 7px top/bottom (was 10px) is what makes the resting
        (1-line) height land on 34px instead of 40px — matching #search-panel-search/
        .hub-subpanel-search's own height exactly, per explicit follow-up request. font-size 13px
-       (was 14px) for the same reason, matching .hub-subpanel-search's own — line-height stays a
-       fixed 20px regardless, so this doesn't change any of the height math above. */
-    #search-input{display:block;width:100%;min-height:34px;max-height:94px;background:transparent;border:none;color:var(--ink);padding:7px 48px 7px 14px;font-size:13px;line-height:20px;font-family:inherit;outline:none;resize:none;overflow-y:hidden;transition:height 0.15s ease;}
+       (was 14px font-size) for the same reason, matching .hub-subpanel-search's own — line-height stays a
+       fixed 20px regardless, so this doesn't change any of the height math above. Left padding 12px
+       (was 14px, found in a later full audit of both panels comparing every property) matches
+       .hub-subpanel-search's own 12px left padding exactly — text in the two boxes now starts at
+       the same inset from their own left border, not 2px further in here specifically. */
+    #search-input{display:block;width:100%;min-height:34px;max-height:94px;background:transparent;border:none;color:var(--ink);padding:7px 48px 7px 12px;font-size:13px;line-height:20px;font-family:inherit;outline:none;resize:none;overflow-y:hidden;transition:height 0.15s ease;}
     #search-input::placeholder{color:var(--ink-soft);}
     /* The loading ring, idle-pulse chase, and card-context pill that used to live here (SVG rings
        traced around the border, a rollercoaster-eased "focused and waiting" flare, an attached-
