@@ -35,10 +35,12 @@
          a radial gradient (vivid brand blue center, blurred into a soft ambient glow with no hard
          disc edge — an earlier version also had a separate bordered "glass" layer on top for a
          frosted highlight, dropped per explicit follow-up report that it read as an unwanted flat
-         circle boundary rather than a glow) and search.png centered over it (kept a constant white
-         regardless of theme, same convention as this file's other fixed-brand-background icons —
-         it sits on the blue glow always, not the usual per-theme surface). Heading in this app's
-         own Space
+         circle boundary rather than a glow) and search-3d.png centered over it. Was search.png
+         (a flat black-on-transparent glyph) with a CSS-simulated "glassy" look — brightness(0)
+         invert(1) forcing it white, plus a soft drop-shadow glow — swapped per explicit request
+         for this pre-rendered 3D/glassy asset instead, which needs none of that: no tint filter,
+         no theme handling, no drop-shadow, it just renders as-is (see .search-panel-hero-icon's
+         own comment, globals.css). Heading in this app's own Space
          Grotesk semantic-heading typeface (see the app-typeface comment near the top of
          globals.css), description in the default Golos Text body font — no font-family override
          needed for the description, it just inherits. .search-panel-search-wrap overrides
@@ -49,7 +51,7 @@
     <div id="search-panel" class="hmenu-panel hub-subpanel" onclick="event.stopPropagation()">
         <div class="search-panel-hero">
             <div class="search-panel-hero-gradient"></div>
-            <img class="search-panel-hero-icon" src="/assets/icons/search.png" alt="">
+            <img class="search-panel-hero-icon" src="/assets/icons/search-3d.png" alt="">
         </div>
         <h2 class="search-panel-heading">Search</h2>
         <p class="search-panel-desc">Find anything across your canvases.</p>

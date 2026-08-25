@@ -1099,16 +1099,13 @@
        faded at the outer edge. Blur bumped to 26px (was 22px) to stay proportional now that the
        glow itself is bigger again. */
     .search-panel-hero-gradient{position:absolute;inset:-24px;border-radius:50%;background:radial-gradient(circle at center, rgba(99, 102, 241, 0.8) 0%, rgba(99, 102, 241, 0.8) 35%, transparent 72%);filter:blur(26px);}
-    /* Constant white regardless of theme — this icon always sits on the same blue glow, never on
-       a per-theme surface, so it doesn't need (and shouldn't get) the usual brightness(0)/
-       light-mode-drops-invert(1) treatment every other rail icon uses; same fixed-background
-       exception .tag-chip/.remote-cursor-name/brand-background buttons already get elsewhere in
-       this file. The "glassy" quality (per explicit request) now comes entirely from this icon's
-       own soft white glow (drop-shadow, unlike box-shadow, follows the icon's own alpha shape
-       rather than its bounding box) rather than a separate disc layer. 38px (was 30px, was 22px
-       before that), per two rounds of explicit follow-up request that the circle/icon be
-       bigger. */
-    .search-panel-hero-icon{position:relative;z-index:1;width:38px;height:38px;filter:brightness(0) invert(1) drop-shadow(0 0 6px rgba(255,255,255,0.6));opacity:0.95;}
+    /* search-3d.png (was search.png, a flat black-on-transparent glyph needing brightness(0)/
+       invert(1) to force it white plus a drop-shadow to fake a "glassy" glow) — per explicit
+       request, swapped for this pre-rendered 3D/glassy asset and every one of those simulated
+       effects removed entirely: no tint filter, no theme handling, no drop-shadow. It already
+       looks the way those were trying to approximate, so it just renders as-is at its own natural
+       size/colour, sized to match the 120px hero circle. */
+    .search-panel-hero-icon{position:relative;z-index:1;width:38px;height:38px;object-fit:contain;}
     /* Space Grotesk (this file's semantic-heading typeface, see the app-typeface comment near the
        top of this file) per explicit request; the description just below inherits the default
        Golos Text body font with no override needed, also per explicit request. font-size bumped
