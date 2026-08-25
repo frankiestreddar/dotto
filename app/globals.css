@@ -2017,15 +2017,18 @@
        row elsewhere (.cell-tag-picker-row.selected), a distinct purple tint from the plain grey
        var(--hover-bg) both :hover and .active above share, so a multi-select doesn't read as
        "currently open." */
-    /* A purple BORDER, not a background fill (was rgba(99,102,241,0.18), same purple ::selection
-       still uses independently, further down this file) — per explicit follow-up request. Since
-       this no longer competes with .outline-item:hover's own background (var(--card) dark /
-       var(--hover-bg) light) for the same property, the earlier light-mode specificity fix that
-       needed lives here (:root[data-theme="light"] .outline-item:hover's own 4 class-level
-       selectors used to outrank a same-property override on this rule) is gone too — hovering a
-       selected row now just shows the normal grey hover background quietly underneath this border,
-       nothing left to fight over. var(--ink) text color unchanged. */
-    .outline-item-selected, .outline-item-selected:hover{border:2px solid var(--brand);color:var(--ink);}
+    /* Purple border PLUS a purple background fill (rgba(99,102,241,0.18), same value ::selection
+       uses independently, further down this file) — per explicit follow-up request; an earlier
+       version of this rule dropped the fill entirely in favor of just the border, now restored
+       alongside it. Explicitly repeated at :hover (not left to fall through to .outline-item:hover's
+       own var(--card)/var(--hover-bg)) so a selected row stays purple on hover instead of going
+       grey, per that same request — which is also why the light-mode-specific override just below
+       is back too: :root[data-theme="light"] .outline-item:hover's own 4 class-level selectors
+       outrank a same-property override on THIS rule's plain 2 (regardless of which comes later in
+       the file — higher specificity always wins a tie), so light mode needs its own copy at
+       matching specificity to actually win there. */
+    .outline-item-selected, .outline-item-selected:hover{background:rgba(99,102,241,0.18);border:1px solid var(--brand);color:var(--ink);}
+    :root[data-theme="light"] .outline-item-selected:hover{background:rgba(99,102,241,0.18);color:var(--ink);}
     /* Adjacent selected rows merge into one continuous border instead of each getting its own
        separate box, per explicit follow-up request — :has() makes this pure CSS, no JS needed to
        track which rows border which. A selected row preceded by another selected row drops its own
