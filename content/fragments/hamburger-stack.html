@@ -185,14 +185,23 @@
          90% sidebar width). Only shown in #ai-list-view (not #ai-chat-view, which has no
          equivalent), same as Search has no second view to worry about at all. The actual search
          input/dropdown below (#ai-list-header) is untouched — a real, working feature, unlike
-         Search's own box which doesn't execute anything yet. -->
+         Search's own box which doesn't execute anything yet.
+         .ai-hero-block wraps just these three (not #ai-list-header/#chats-list below, which keep
+         relying on #ai-panel's own padding same as before) — #ai-panel has 8px padding of its own
+         that #search-panel doesn't, so reusing the exact same width:90%/margin values as Search
+         inside that extra padding was quietly computing a smaller box (284px content width instead
+         of the full 300px sidebar), not truly identical despite sharing classes — per explicit bug
+         report that the padding still didn't match. See .ai-hero-block's own comment, globals.css,
+         for how it corrects that. -->
     <div id="ai-panel" class="hmenu-panel hub-subpanel" onclick="event.stopPropagation()">
         <div id="ai-list-view">
-            <div class="search-panel-hero">
-                <img class="search-panel-hero-img" src="/assets/thumbnails/queries-thumbnail.jpg" alt="">
+            <div class="ai-hero-block">
+                <div class="search-panel-hero">
+                    <img class="search-panel-hero-img" src="/assets/thumbnails/queries-thumbnail.jpg" alt="">
+                </div>
+                <h2 class="search-panel-heading">Queries</h2>
+                <p class="search-panel-desc">Ask Dotbot questions about this canvas.</p>
             </div>
-            <h2 class="search-panel-heading">Queries</h2>
-            <p class="search-panel-desc">Ask Dotbot questions about this canvas.</p>
             <!-- Per explicit follow-up request: styled to match #search-panel-search's own plain
                  look (same background/border/radius as .hub-subpanel-search, globals.css) — the
                  loading ring, idle-pulse chase, and card-context pill (all real, see their own

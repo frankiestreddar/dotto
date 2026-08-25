@@ -295,6 +295,20 @@
        stretches edge-to-edge within the space this padding leaves it, rather than leaving a
        second, inconsistent gap around the highlight. */
     #ai-panel{position:relative;overflow:visible;padding:8px;}
+    /* Wraps just the hero/heading/description block (hamburger-stack.html) that's otherwise
+       reused verbatim from #search-panel — #search-panel has no padding of its own, so those
+       elements' width:90%/20px-margin values (globals.css, .search-panel-hero etc.) compute
+       against the FULL sidebar width there; #ai-panel's own 8px padding above means the exact
+       same values would otherwise compute against a narrower 284px box instead, rendering
+       smaller/differently despite sharing identical CSS — per explicit bug report that the
+       padding still didn't read as identical between the two panels. Negative margin matching
+       that padding breaks this block back out to the panel's full outer width (top too, so the
+       hero sits the same distance from the panel's true top edge as it does in Search, not 8px
+       further down) — everything inside it then computes exactly like Search's own copy does.
+       #ai-list-header/#chats-list below this block are deliberately NOT included — real, already-
+       working UI that was never part of the "look just like Search" ask, and still wants
+       #ai-panel's own padding same as before. */
+    .ai-hero-block{margin:-8px -8px 0;flex:0 0 auto;}
     /* The active-conversation view's own small header — just the "back to chats" toggle,
        left-aligned, no title text (the rail icon itself already reads as "this is the AI panel",
        no need to repeat it). Same visual language as #msg-convo-header/#msg-convo-back (a
