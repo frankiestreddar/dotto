@@ -55,31 +55,38 @@
          Snippets, see its own comment) — #rail-btn-ai/#ai-panel keep their internal id unchanged,
          same convention as every other rename/relocation this session. -->
     <div class="rail-group">
-        <!-- Cursor-mode selector — collapsed shows only the currently active mode; hovering expands
-             it (see #mode-toolbar.expanded, globals.css) rightward to reveal all four, same
-             collapse/expand behavior it had as its own floating bottom-center toolbar, just living
-             in the rail's own column now. -->
+        <!-- Cursor-mode selector — collapsed shows only the currently active mode (icon only, same
+             32x32 .rail-btn square as any other rail icon). Hovering shows a popup list instead of
+             the row of bare icons this used to expand into, per explicit request — each of the 4
+             .mode-btn becomes a full icon+name row (see #mode-toolbar.expanded, globals.css),
+             stacked vertically to the right of the rail (same left:calc(100% + 12px) anchor every
+             other rail popup uses), rather than reparenting into a separate wrapper element — they
+             stay the exact same clickable buttons either way, just restyled, so the existing click
+             wiring (appState.modeButtons, srs-connections-core.js) needed no changes at all. The
+             old one-line "tap X, hold for temporary" explanations are dropped from this view (icon
+             + name only, matching what was actually asked for) rather than trying to cram a
+             multi-character key badge into the fixed single-glyph .rail-tooltip-key box. -->
         <div id="mode-toolbar">
             <button class="rail-btn mode-btn mode-visible active" data-mode="normal">
                 <img class="rail-icon-img" src="/assets/icons/default-cursor.png" alt="">
-                <span class="rail-tooltip">Move &amp; select (default cursor) — tap Escape, hold for temporary</span>
+                <span class="mode-btn-name">Move &amp; select</span>
             </button>
             <button class="rail-btn mode-btn" data-mode="data">
                 <img class="rail-icon-img" src="/assets/icons/data-cursor.png" alt="">
-                <span class="rail-tooltip">Data mode — drag from one card to another to link them — tap D, hold for temporary</span>
+                <span class="mode-btn-name">Data mode</span>
             </button>
             <button class="rail-btn mode-btn" data-mode="select">
                 <img class="rail-icon-img" src="/assets/icons/select-cursor.png" alt="">
-                <span class="rail-tooltip">Select mode — click or drag to select multiple cards — tap Shift, hold for temporary</span>
+                <span class="mode-btn-name">Select mode</span>
             </button>
             <!-- Pen mode — reworked from the old Add-menu "Drawing" toggle (setDrawMode) into a
                  real cursor mode, see applyCursorMode/handlePenPointerDown (source-buttons-cursor-
-                 mode.js/srs-connections-core.js). No tap/hold keyboard shortcut yet (unlike the
-                 other three) — no unclaimed single letter has an obvious mnemonic, so entering pen
-                 mode is click-only for now. -->
+                 mode.js/srs-connections-core.js). No tap/hold keyboard shortcut (unlike the other
+                 three) — no unclaimed single letter has an obvious mnemonic, so entering pen mode
+                 is click-only. -->
             <button class="rail-btn mode-btn" data-mode="pen">
                 <img class="rail-icon-img" src="/assets/icons/pen.png" alt="">
-                <span class="rail-tooltip">Pen mode — click and drag to draw freehand, or click point by point for straight lines (Enter/Escape/double-click to finish a line)</span>
+                <span class="mode-btn-name">Pen mode</span>
             </button>
         </div>
         <button id="btn-inbox" class="rail-btn"><img class="rail-icon-img" src="/assets/icons/inbox.png" alt=""><span class="rail-tooltip"><span class="rail-tooltip-row"><span class="rail-tooltip-name">Inbox</span><span class="rail-tooltip-key">I</span></span><span class="rail-tooltip-desc" data-desc="Notifications and updates."></span></span></button>
