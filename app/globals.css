@@ -98,13 +98,19 @@
        specificity, not source order, so a more-specific loser here would win regardless of which
        rule comes first in the file). custom-cursor-dark.png/-light.png are the user's own two
        source images, referenced directly and unprocessed — per explicit request, no derived/
-       resized copy of either gets generated or committed here. Hotspot (139,145) is the shared
-       shape's own tip position in that source's native pixel coordinates (both files are the same
-       silhouette, one white-on-transparent, one black-on-transparent). Doesn't touch collaborators'
-       cursors (.remote-cursor, live-presence.js) — those are unrelated DOM-rendered SVG elements
-       inside #cursor-overlay marking where OTHER users are, nothing to do with this browser's own
-       native cursor. */
-    html, body, html *, body * { cursor: var(--cursor-pointer) 139 145, auto !important; }
+       resized copy of either gets generated or committed here; the user resizes them directly
+       (32px, then 16px, now 10px as of this comment) rather than asking for a generated export, so
+       no fixed pixel hotspot is given here either — an earlier version hardcoded one matching a
+       specific past size (e.g. 139,145 for the original 1080px files), which went out of bounds
+       and made the WHOLE cursor declaration invalid — silently falling back to the plain OS
+       pointer everywhere, not just wherever it was first noticed — the moment the files were
+       resized down without that number being updated to match. Omitting x/y entirely defaults to
+       (0,0) per spec, which is always in-bounds no matter what size these files end up at, so this
+       never breaks again the next time they're resized. Doesn't touch collaborators' cursors
+       (.remote-cursor, live-presence.js) — those are unrelated DOM-rendered SVG elements inside
+       #cursor-overlay marking where OTHER users are, nothing to do with this browser's own native
+       cursor. */
+    html, body, html *, body * { cursor: var(--cursor-pointer), auto !important; }
 
     /* left/width leave room for the permanent hamburger rail (#btn-menu, see its own comment) —
        overflow:hidden here is what actually stops canvas content from rendering under the rail,
