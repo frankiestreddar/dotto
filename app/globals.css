@@ -464,12 +464,12 @@
     .rail-tooltip.expanding{padding-bottom:10px;transition:opacity .15s,width .25s ease,height .15s ease,padding-bottom .15s ease;}
     .rail-tooltip-row{display:flex;align-items:center;justify-content:space-between;gap:10px;white-space:nowrap;}
     /* .rail-tooltip's own padding-bottom is already 0 (per two earlier rounds of "still too much"
-       follow-up), so a further "1px less" per this explicit request — scoped to only the small,
-       not-yet-expanded pill — can't come from padding at all; a small negative margin here,
-       safely clipped by .rail-tooltip's own overflow:hidden, is what actually shaves that last
-       pixel off its bottom edge. :not(.expanding) keeps this from also nudging the expanded
-       panel's own row-to-description spacing, which wasn't part of this request. */
-    .rail-tooltip:not(.expanding) .rail-tooltip-row{margin-bottom:-1px;}
+       follow-up), so shaving further off the small, not-yet-expanded pill's bottom edge (per two
+       rounds of follow-up now, -1px then -2px total) can't come from padding at all — a negative
+       margin here, safely clipped by .rail-tooltip's own overflow:hidden. :not(.expanding) keeps
+       this from also nudging the expanded panel's own row-to-description spacing, which was never
+       part of either request. */
+    .rail-tooltip:not(.expanding) .rail-tooltip-row{margin-bottom:-2px;}
     /* Same size/weight in both the small and expanded states, per explicit request — an earlier
        version bumped this to 12px/600 once expanded; removed. */
     .rail-tooltip-name{font-size:11px;color:var(--ink);}
@@ -1049,8 +1049,12 @@
        the real underlying checkbox state. */
     .settings-switch{position:relative;display:inline-flex;flex:0 0 auto;width:36px;height:20px;}
     .settings-switch-input{position:absolute;inset:0;width:100%;height:100%;margin:0;opacity:0;cursor:pointer;z-index:1;}
-    .settings-switch-track{position:absolute;inset:0;background:var(--hover-bg);border:1px solid var(--card-border);border-radius:999px;transition:background .15s ease;}
-    .settings-switch-thumb{position:absolute;top:1px;left:1px;width:16px;height:16px;border-radius:50%;background:var(--ink-soft);transition:transform .15s ease,background .15s ease;}
+    .settings-switch-track{position:absolute;inset:0;background:var(--hover-bg);border:1px solid var(--card-border);border-radius:999px;transition:background .2s ease;}
+    /* .2s ease-out (was .15s ease, per explicit follow-up request for a smoother-reading move) —
+       the thumb's own slide is what's actually visible sliding across the track, so it gets a
+       touch more time and an ease-out (fast start, gentle finish) rather than the track's own
+       flat ease, which only ever animates a background colour, not motion. */
+    .settings-switch-thumb{position:absolute;top:1px;left:1px;width:16px;height:16px;border-radius:50%;background:var(--ink-soft);transition:transform .2s ease-out,background .2s ease-out;}
     .settings-switch-input:checked ~ .settings-switch-track{background:var(--brand);}
     .settings-switch-input:checked ~ .settings-switch-track .settings-switch-thumb{transform:translateX(16px);background:#fff;}
     .requests-row{justify-content:space-between;}
