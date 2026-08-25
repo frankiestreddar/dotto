@@ -1193,11 +1193,20 @@
        for #search-panel-content too for the same visual result even though it has no selection
        feature of its own. .outline-item's own margin/padding/gap/font-size/color (further down
        this file) are tuned for the real indented Outline tree, not a flat list, so both lists share
-       this one override — a flat 32px row, 14px horizontal padding (landing on 18px total from
-       each panel's own true edge once .hub-subpanel-list's own 4px padding is added), 12px/
-       var(--ink) text (base .outline-item is 13px/var(--ink-soft)). */
+       this one override — a flat 32px row, 14px horizontal padding (internal text inset, not the
+       row's own outer edge — see .panel-history-list just below for that), 12px/var(--ink) text
+       (base .outline-item is 13px/var(--ink-soft)). */
     .panel-history-list .outline-item{margin:0;height:32px;padding:0 14px;gap:10px;font-size:12px;color:var(--ink);}
     .hub-subpanel-list{flex:1 1 auto;overflow-y:auto;min-height:0;padding:6px 4px;scrollbar-width:none;}
+    /* Row's own outer edge — 10px left/right (up from .hub-subpanel-list's own shared 4px, just
+       above), per explicit request that history rows be no wider than the search box above them.
+       Comes after .hub-subpanel-list in source so its padding-left/right win over that rule's own
+       padding shorthand (same specificity, same element, later wins). .panel-search-header's own
+       margin is 10px on every side (globals.css), so #search-input-wrap/#search-panel-search-wrap's
+       outer edge already sits 10px in from the panel's true edge; matching that here (rather than
+       the base .hub-subpanel-list's narrower 4px every other rail list still uses) lines the rows'
+       outer edge up with the box's exactly, instead of rows stretching wider than it on each side. */
+    .panel-history-list{padding-left:10px;padding-right:10px;}
     .hub-subpanel-list::-webkit-scrollbar{display:none;}
     /* #settings-panel's own rows — .settings-row is deliberately generic (label left, some control
        right) rather than theme-specific, so future settings can reuse it. Brightness Theme (was
