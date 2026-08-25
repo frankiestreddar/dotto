@@ -9,13 +9,22 @@
 const THEME_STORAGE_KEY = 'dotto-theme';
 
 const themeSwitchInput = document.getElementById('theme-switch-input');
+const themeSwitchTrack = document.getElementById('theme-switch-track');
 
-// Unlike the old rail button (which showed the theme clicking it would SWITCH TO), a checkbox-
-// driven switch is a plain state indicator by normal convention — checked means dark mode is the
-// one currently active. light.png/dark.png (either side of the switch, hamburger-stack.html)
-// don't need any JS sync of their own; they're fixed labels, not theme-dependent.
+// Unlike the old rail button (which showed the theme clicking it would SWITCH TO), this switch is
+// a plain state indicator by normal convention — "on" means dark mode is the one currently
+// active. light.png/dark.png (either side of the switch, hamburger-stack.html) don't need any JS
+// sync of their own; they're fixed labels, not theme-dependent.
+// themeSwitchTrack's own .on class (not themeSwitchInput.checked) is what the thumb's slide
+// transition (globals.css) actually keys off — an earlier version relied purely on a :checked
+// sibling-combinator CSS selector, which never actually transitioned in practice; toggling a real
+// class here instead is the same explicit pattern every other toggle in this app already uses.
+// themeSwitchInput.checked is still kept in sync too (set below), since the checkbox itself is
+// what real keyboard/click/focus interaction actually happens on.
 function syncThemeSwitch(theme) {
-    themeSwitchInput.checked = theme === 'dark';
+    const isDark = theme === 'dark';
+    themeSwitchInput.checked = isDark;
+    themeSwitchTrack.classList.toggle('on', isDark);
 }
 
 function setTheme(theme) {

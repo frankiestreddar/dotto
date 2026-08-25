@@ -73,14 +73,24 @@
                  request. Unlike the old rail button (which showed the theme clicking it would
                  SWITCH TO), a switch is a state indicator by convention — checked means dark is
                  currently active, per theme-toggle.js's own syncThemeSwitch, which also owns the
-                 change handler, localStorage persistence, and initial checked state. -->
+                 change handler, localStorage persistence, and initial checked state.
+                 #theme-switch-track's own .on class (not a :checked sibling-selector, which an
+                 earlier version relied on and which never actually transitioned — the checkbox's
+                 own :checked state changing doesn't reliably retrigger a transition declared on a
+                 selector that only matches VIA that sibling relationship in every engine) is what
+                 syncThemeSwitch toggles the thumb's slide with instead, the same explicit
+                 JS-class-driven pattern already used everywhere else in this app (.rail-btn.active,
+                 the mode-toolbar's .expanded, etc.) rather than a pure-CSS pseudo-class trick. The
+                 checkbox itself stays for real keyboard/click/focus accessibility — clicking
+                 anywhere in this label still toggles it natively — theme-toggle.js's own change
+                 listener is what then keeps the .on class in sync with it. -->
             <div class="settings-row">
                 <span class="settings-row-label">Colour Theme</span>
                 <label class="settings-theme-switch">
                     <img class="settings-theme-icon" src="/assets/icons/light.png" alt="Light">
                     <span class="settings-switch">
                         <input type="checkbox" id="theme-switch-input" class="settings-switch-input">
-                        <span class="settings-switch-track"><span class="settings-switch-thumb"></span></span>
+                        <span id="theme-switch-track" class="settings-switch-track"><span class="settings-switch-thumb"></span></span>
                     </span>
                     <img class="settings-theme-icon" src="/assets/icons/dark.png" alt="Dark">
                 </label>
