@@ -237,7 +237,12 @@
     .static-item-table:hover tr.add-row-row td.add-row-cell, .static-item-table:hover td.add-col-cell{opacity:0.35;}
     
     #world{position:absolute;top:0;left:0;transform-origin:0 0;will-change:transform;z-index:1;}
-    .bubble{background:var(--bar);border:1px solid var(--card-border);border-radius:12px;padding:4px;box-shadow:0 4px 12px rgba(0,0,0,0.3);display:flex;align-items:center;gap:2px;height:40px;}
+    /* background:var(--paper) — same colour as #canvas itself, not --bar (the lighter panel/floating-
+       chrome background most other pill-shaped elements use) — per explicit request that these
+       top-bar pills read as part of the canvas rather than a separate white-ish surface floating
+       above it, most noticeable in light mode where --bar is pure white and --paper is a step
+       darker off-white. */
+    .bubble{background:var(--paper);border:1px solid var(--card-border);border-radius:12px;padding:4px;box-shadow:0 4px 12px rgba(0,0,0,0.3);display:flex;align-items:center;gap:2px;height:40px;}
     :root[data-theme="light"] .bubble{box-shadow:0 4px 12px rgba(0,0,0,0.126);}
 
     /* Dead centre of the viewport (left:50% + translateX(-50%)) rather than offset by the rail like
@@ -254,11 +259,13 @@
     /* Sits in the exact same fixed top:20px/centred slot as #top-bar-center, off-screen (slid up,
        faded out) at rest — see its own markup comment, top-bar.html, for why it's static rather
        than fully React-rendered. Sized like a .bubble (same background/border/radius/shadow/
-       height) without actually using that class, since its own slide transform needs to compose
-       with translateX(-50%) the same way #top-bar-center's does above, and .bubble doesn't define
-       position/transform at all. max-width caps a long message rather than letting the pill
-       stretch arbitrarily wide — #notification-text below ellipsis-truncates within it. */
-    #notification-pill{position:fixed;top:20px;left:50%;z-index:1000;display:flex;align-items:center;height:40px;max-width:420px;box-sizing:border-box;padding:0 12px;background:var(--bar);border:1px solid var(--card-border);border-radius:12px;box-shadow:0 4px 12px rgba(0,0,0,0.3);transform:translateX(-50%) translateY(-60px);opacity:0;pointer-events:none;transition:transform .3s ease, opacity .3s ease;}
+       height, including that same var(--paper) background per the same explicit request as
+       .bubble's own — see its comment above) without actually using that class, since its own
+       slide transform needs to compose with translateX(-50%) the same way #top-bar-center's does
+       above, and .bubble doesn't define position/transform at all. max-width caps a long message
+       rather than letting the pill stretch arbitrarily wide — #notification-text below
+       ellipsis-truncates within it. */
+    #notification-pill{position:fixed;top:20px;left:50%;z-index:1000;display:flex;align-items:center;height:40px;max-width:420px;box-sizing:border-box;padding:0 12px;background:var(--paper);border:1px solid var(--card-border);border-radius:12px;box-shadow:0 4px 12px rgba(0,0,0,0.3);transform:translateX(-50%) translateY(-60px);opacity:0;pointer-events:none;transition:transform .3s ease, opacity .3s ease;}
     :root[data-theme="light"] #notification-pill{box-shadow:0 4px 12px rgba(0,0,0,0.126);}
     #notification-pill.notif-active{transform:translateX(-50%) translateY(0);opacity:1;pointer-events:auto;}
     /* #notification-root (the portal target React mounts #notification-content into, see
@@ -392,6 +399,12 @@
        what separates #dotto-rail-middle's own packed-at-top block from whatever comes after it once
        there's little enough content to not fully consume the flex:1 space below. */
     #dotto-rail{position:fixed;left:0;top:0;width:var(--rail-width);height:100vh;background:var(--paper);border-right:1px solid var(--card);z-index:1000;display:flex;flex-direction:column;align-items:center;gap:16px;padding:20px 0;box-sizing:border-box;}
+    /* Profile (:last-child, the very bottom of the rail — see #dotto-rail's own comment above) gets
+       a bit more breathing room from the cursor-mode selector directly above it than the rail's
+       usual 16px group-to-group gap, per explicit request — extra margin-top rather than raising
+       #dotto-rail's own gap value, since that would also widen the (unrequested) gap between the
+       cursor-mode selector and #dotto-rail-middle above it. */
+    #dotto-rail > .rail-group:last-child{margin-top:8px;}
     /* Holds Groups 2-6 (see top-bar.html) — grows to fill whatever vertical space the cursor-mode
        selector and Profile below it don't use (flex:1 1 auto, min-height:0 so it can actually
        shrink below its content's natural size on a short viewport instead of overflowing), then
