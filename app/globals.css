@@ -382,21 +382,24 @@
        is var(--card) rather than the much lighter var(--card-border) every other bordered surface
        in this file uses, for the same reason — a step darker, closer to the rail's own paper
        background, per explicit request. */
-    /* Two direct children now: Group 1 (profile) pinned to the top, and #dotto-rail-middle (its own
-       flex column, see below) filling and centering everything else in the remaining space — a
-       third, Group 7 (theme toggle, then Settings, then Help), used to pin to the bottom the same
-       way per explicit request, replacing the old "every group just stacks at the top" layout, but
-       was removed entirely (Help deleted outright; Settings' own content moved into a Profile
-       sub-view instead — see #profile-settings-view's own comment further down), so there's nothing
-       pinned below any more. gap:16px between the two remaining children is mostly inconsequential
-       now that #dotto-rail-middle's own flex:1 already fills all the remaining space on its own. */
+    /* Three direct children now, in this order: #dotto-rail-middle (its own flex column, see below)
+       first, packing Groups 2-6 at the top of the rail; then the cursor-mode selector; then Profile
+       last — the two of them pinned to the very bottom, cursor-mode selector directly above Profile
+       — per explicit request, the inverse of an earlier layout where Profile (then, briefly, also a
+       Group 7 of theme toggle/Settings/Help, since removed entirely) pinned to the top instead and
+       #dotto-rail-middle centered everything else below. gap:16px between these three is mostly
+       inconsequential for the two bottom ones (mirroring the fixed size they've always had) but is
+       what separates #dotto-rail-middle's own packed-at-top block from whatever comes after it once
+       there's little enough content to not fully consume the flex:1 space below. */
     #dotto-rail{position:fixed;left:0;top:0;width:var(--rail-width);height:100vh;background:var(--paper);border-right:1px solid var(--card);z-index:1000;display:flex;flex-direction:column;align-items:center;gap:16px;padding:20px 0;box-sizing:border-box;}
-    /* Holds Groups 2-6 (see top-bar.html) — grows to fill whatever vertical space Group 1 and
-       Group 7 don't use (flex:1 1 auto, min-height:0 so it can actually shrink below its content's
-       natural size on a short viewport instead of overflowing), then centers that block of groups
-       within itself (justify-content:center) rather than letting them stack at the top the way
-       they used to. gap:16px matches #dotto-rail's own default group-to-group gap, since
-       .rail-group-divider's own padding-top was tuned assuming that baseline spacing above it.
+    /* Holds Groups 2-6 (see top-bar.html) — grows to fill whatever vertical space the cursor-mode
+       selector and Profile below it don't use (flex:1 1 auto, min-height:0 so it can actually
+       shrink below its content's natural size on a short viewport instead of overflowing), then
+       packs that block of groups at its own TOP (justify-content:flex-start, was center) rather
+       than centering or letting them stack at the bottom — per explicit request, moving Profile/
+       the cursor-mode selector to the bottom of the rail and everything else to the top. gap:16px
+       matches #dotto-rail's own default group-to-group gap, since .rail-group-divider's own
+       padding-top was tuned assuming that baseline spacing above it.
        overflow:visible (the default, stated explicitly here as a marker) is deliberate, not an
        oversight: a scrollable overflow-y:auto was tried here for a too-short viewport, but per the
        CSS Overflow Module, setting only one axis to a non-`visible` value forces the OTHER axis to
@@ -405,13 +408,13 @@
        element's own ~32-56px width) got silently clipped into invisibility by that forced
        overflow-x, and #mode-toolbar's own rightward hover-expand (~140px past its button) broke
        the same way. Reverted per explicit request once that broke tooltips entirely — a real
-       "everything overflows past Group 1/Group 7 instead of scrolling" tradeoff remains on a
+       "everything overflows past the pinned groups instead of scrolling" tradeoff remains on a
        viewport too short to fit every group, but that's the pre-existing behavior this rail always
        had, not a new regression. A correct coexistence of both scrolling AND overflow-visible
        tooltips would need the tooltips detached from this container's clipping entirely (e.g.
        position:fixed with JS-computed coordinates rather than the current plain CSS positioning),
        which is a separate, larger change. */
-    #dotto-rail-middle{flex:1 1 auto;min-height:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;overflow:visible;}
+    #dotto-rail-middle{flex:1 1 auto;min-height:0;display:flex;flex-direction:column;align-items:center;justify-content:flex-start;gap:16px;overflow:visible;}
     /* border-right was chosen as var(--card) specifically because in DARK mode --card (#1C1C1C)
        sits between --paper (#111111) and --card-border (#2E2E2E) — a step darker than the rail's
        own background, barely visible. In light mode --card is pure white, LIGHTER than --paper,
@@ -748,11 +751,11 @@
        request) — a real flex column; the four rows always render in their fixed DOM order (no
        JS-set `order` here — an earlier version sorted the active mode to the top, removed per
        explicit follow-up request that the order stay put).
-       top:0 (was bottom:-6px, while the selector's own group — top-bar.html — briefly sat pinned at
-       the very bottom of the rail below Settings; before that, and again now, top:0) so the panel
-       grows downward from the button, matching the room actually available now that the selector
-       sits right under Profile near the top of the rail with the centered #dotto-rail-middle block
-       below it, rather than the bottom with nothing below.
+       bottom:-6px (was top:0, while the selector's own group — top-bar.html — sat pinned right
+       under Profile near the top of the rail; before that, at the very bottom below Settings, also
+       bottom:-6px) so the panel grows upward from the button instead, matching the room actually
+       available now that the selector is pinned at the very bottom of the rail again, directly
+       above Profile, with nothing below it to grow into.
        left:calc(100% + 12px) — flush against the RAIL's own true right edge (var(--rail-width),
        56px), not the button's own edge: #mode-toolbar is only 32px wide but sits centered inside
        that 56px rail (#dotto-rail's align-items:center), leaving a 12px margin on either side, so
@@ -765,7 +768,7 @@
        closing the instant that happens — see that file's own comments for the whole mechanism;
        it's computed from each element's own live getBoundingClientRect() rather than any
        hardcoded direction, so the selector's repeated moves never needed any changes there. */
-    .mode-popup{display:none;position:absolute;top:0;left:calc(100% + 12px);width:170px;flex-direction:column;gap:2px;background:var(--bar);border:1px solid var(--card-border);border-radius:10px;padding:4px;box-shadow:0 4px 12px rgba(0,0,0,0.4);z-index:1001;}
+    .mode-popup{display:none;position:absolute;bottom:-6px;left:calc(100% + 12px);width:170px;flex-direction:column;gap:2px;background:var(--bar);border:1px solid var(--card-border);border-radius:10px;padding:4px;box-shadow:0 4px 12px rgba(0,0,0,0.4);z-index:1001;}
     :root[data-theme="light"] .mode-popup{box-shadow:0 4px 12px rgba(0,0,0,0.168);}
     #mode-toolbar.expanded .mode-popup{display:flex;}
     /* Plain rows within that one shared panel — background:none at rest so only :hover/.active

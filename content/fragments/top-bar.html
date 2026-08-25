@@ -4,14 +4,13 @@
      #top-bar-center instead (see #nav-arrows-pill below) — they're page-navigation, not
      rail-icon-style view triggers, and read better beside the breadcrumb they actually move.
      Icons are grouped into .rail-group wrappers (see globals.css) — a fixed 10px gap between
-     buttons WITHIN a group. Group 1 (profile) is pinned to the very top — the only pinned group
-     left now that Group 7 (Settings, then Help) has been removed entirely: Help was deleted per
-     explicit request, and Settings' own content moved into a sub-view of the Profile panel instead
-     (#profile-settings-view, hamburger-stack.html) once its rail icon went too, so there's no
-     longer a bottom-pinned group at all.
-     Groups 2-6 sit inside #dotto-rail-middle, a separate flex column below the top-pinned group that grows to
-     fill whatever vertical space is left and centers its own children within it (justify-content:
-     center) — per explicit request, replacing the old "everything just stacks at the top" layout.
+     buttons WITHIN a group. Profile and the cursor-mode selector are pinned to the very bottom of
+     the rail (cursor-mode selector directly above Profile), per explicit request — the inverse of
+     an earlier layout where the two sat pinned at the top instead. Every other icon (Groups 2-6)
+     now sits inside #dotto-rail-middle, a separate flex column ABOVE the two bottom-pinned groups
+     that grows to fill whatever vertical space is left and packs its own children at the TOP of it
+     (justify-content:flex-start, was center — per this same explicit request) rather than
+     centering them in the middle of the rail.
      Groups 3-6 (now 2nd-5th inside that middle block) still get a dividing line between each
      consecutive pair (.rail-group-divider, the line ABOVE that group). The rail no longer expands/
      shows text labels (that feature — #btn-sidebar-toggle, #dotto-rail.expanded, .rail-label — was
@@ -26,89 +25,13 @@
      descriptive sentence rather than a short name a description panel would add much to. -->
 
 <div id="dotto-rail">
-    <!-- Group 1: profile, alone — pinned to the very top of the rail, outside
-         #dotto-rail-middle's centered block below. -->
-    <div class="rail-group">
-        <!-- At the very top of the rail now, ahead of every panel-trigger icon — content is
-             React-owned (see app/dotto/ProfileAvatarSm.jsx). Click-only open/close, same as every
-             other rail icon (see wireRailIcon('profile', ...), profile-achievements-pricing.js). -->
-        <button id="btn-profile" class="rail-btn">
-            <div class="profile-avatar-sm" id="profile-avatar-sm"></div>
-            <span class="rail-tooltip"><span class="rail-tooltip-row"><span class="rail-tooltip-name">Profile</span><span class="rail-tooltip-key">P</span></span><span class="rail-tooltip-desc" data-desc="Your account, achievements, and pricing."></span></span>
-        </button>
-    </div>
-    <!-- Group 1.5 (no official number — added between the pinned Group 1 and the centered block,
-         doesn't shift every later group's own number): cursor-mode selector, alone — pinned right
-         under Profile, per explicit follow-up request (had briefly been its own pinned group below
-         Settings before that, and before THAT sat at the top of Group 2, above Inbox — see git
-         history for both). Its popup opens downward again (.mode-popup's top:0, was bottom:-6px —
-         see that rule's own comment, globals.css) now that it's near the top of the rail with room
-         below it, rather than the bottom with nothing below. No button-specific tightened-hitbox
-         treatment this time (unlike the Settings-adjacent version before it) — there's no longer a
-         single guaranteed-adjacent neighbor the way Inbox/Queries or Settings were, since
-         #dotto-rail-middle's first group is vertically centered in whatever space is left rather
-         than fixed right below this pinned one; the safe-zone polygon (modePopupSafeZone,
-         source-buttons-cursor-mode.js) still covers the general case on its own. -->
-    <div class="rail-group">
-        <!-- Cursor-mode selector — per explicit follow-up request, the collapsed rail button
-             (icon-only, .mode-visible shows whichever mode is active) now stays exactly where it
-             is at all times, never itself restyled/moved on hover — a SEPARATE #mode-popup panel
-             (one cohesive box, not 4 individually-bordered pills) appears next to it instead,
-             listing all four modes as icon+name rows (.mode-popup-row — a different, new element
-             from the original 4 .mode-btn, deliberately NOT reusing that class, so
-             appState.modeButtons/the existing display:none-when-collapsed rules stay scoped to
-             just the rail button and don't need to care about this popup's own always-a-row
-             styling). Rows stay in this fixed DOM order always — an earlier version sorted the
-             active mode to the top, removed per explicit follow-up request — the active mode just
-             gets a highlighted/outlined .active state instead (see appState.modePopupRows,
-             core-state.js, and its own click wiring in source-buttons-cursor-mode.js, mirroring
-             appState.modeButtons' click handler). Moving the pointer from the button toward a row
-             further from it without closing the popup early is handled by a JS "safe zone" polygon
-             (modePopupSafeZone/handleModePopupSafeMove, source-buttons-cursor-mode.js) rather than
-             any DOM element here. -->
-        <div id="mode-toolbar">
-            <button class="rail-btn mode-btn mode-visible active" data-mode="normal">
-                <img class="rail-icon-img" src="/assets/icons/default-cursor.png" alt="">
-            </button>
-            <button class="rail-btn mode-btn" data-mode="data">
-                <img class="rail-icon-img" src="/assets/icons/data-cursor.png" alt="">
-            </button>
-            <button class="rail-btn mode-btn" data-mode="select">
-                <img class="rail-icon-img" src="/assets/icons/select-cursor.png" alt="">
-            </button>
-            <!-- Pen mode — reworked from the old Add-menu "Drawing" toggle (setDrawMode) into a
-                 real cursor mode, see applyCursorMode/handlePenPointerDown (source-buttons-cursor-
-                 mode.js/srs-connections-core.js). No tap/hold keyboard shortcut (unlike the other
-                 three) — no unclaimed single letter has an obvious mnemonic, so entering pen mode
-                 is click-only. -->
-            <button class="rail-btn mode-btn" data-mode="pen">
-                <img class="rail-icon-img" src="/assets/icons/pen.png" alt="">
-            </button>
-            <div id="mode-popup" class="mode-popup">
-                <button class="mode-popup-row" data-mode="normal">
-                    <img class="rail-icon-img" src="/assets/icons/default-cursor.png" alt="">
-                    <span class="mode-popup-row-name">Move &amp; select</span>
-                </button>
-                <button class="mode-popup-row" data-mode="data">
-                    <img class="rail-icon-img" src="/assets/icons/data-cursor.png" alt="">
-                    <span class="mode-popup-row-name">Data mode</span>
-                </button>
-                <button class="mode-popup-row" data-mode="select">
-                    <img class="rail-icon-img" src="/assets/icons/select-cursor.png" alt="">
-                    <span class="mode-popup-row-name">Select mode</span>
-                </button>
-                <button class="mode-popup-row" data-mode="pen">
-                    <img class="rail-icon-img" src="/assets/icons/pen.png" alt="">
-                    <span class="mode-popup-row-name">Pen mode</span>
-                </button>
-            </div>
-        </div>
-    </div>
     <!-- Groups 2-6 (Inbox+Queries, Search/Outline/Waypoints, Essentials/Library/
-         Marketplace, Collaborations/Messages, Files/Sources/Snippets) center as one block in
-         whatever space is left below the pinned groups above — nothing pinned below any more, now
-         that Group 7 (Settings, then Help) has been removed entirely (see #dotto-rail-middle,
-         globals.css) — per explicit request. -->
+         Marketplace, Collaborations/Messages, Files/Sources/Snippets) pack at the TOP of the rail
+         now, per explicit request (justify-content:flex-start, #dotto-rail-middle, globals.css) —
+         the inverse of an earlier layout where Profile and the cursor-mode selector sat pinned up
+         here instead and these centered in the space below them. Those two are now the LAST two
+         children of #dotto-rail, after this block closes — pinned to the bottom instead (see their
+         own comments further down). -->
     <div id="dotto-rail-middle">
     <!-- Group 2: Inbox, then Queries. #inbox-panel (hamburger-stack.html)
          is a bare shell for now — behavior/content not yet decided, wired into the shared
@@ -171,15 +94,85 @@
         <button id="btn-messages" class="rail-btn"><img class="rail-icon-img" src="/assets/icons/chats-btn.png" alt=""><span class="rail-tooltip"><span class="rail-tooltip-row"><span class="rail-tooltip-name">Messages</span><span class="rail-tooltip-key">M</span></span><span class="rail-tooltip-desc" data-desc="Direct messages and conversations."></span></span></button>
     </div>
     </div>
-    <!-- Group 7 (Settings, then Help) removed entirely, per explicit request — Settings' own
-         content (Brightness Theme, Sidebar Mode) moved into a sub-view of #profile-panel instead
-         (#profile-settings-view, hamburger-stack.html, reached via #profile-settings-btn in the
-         identity block), so there's no bottom-pinned group left at all now. The light/dark theme
-         toggle used to be its own rail button here (#btn-theme-toggle) — removed per an earlier
-         explicit request and folded into that same settings content as a "Colour Theme" switch row
-         instead (see theme-toggle.js, which owns that switch's wiring). The \ keyboard shortcut
-         still toggles the theme directly (srs-connections-core.js — toggleTheme(), theme-toggle.js)
-         even though there's no dedicated rail icon for it either way. -->
+    <!-- Cursor-mode selector, alone — pinned to the bottom of the rail, directly above Profile
+         (below it in this markup), per explicit request that both move here from their earlier
+         position pinned at the top (had also briefly been its own pinned group below Settings
+         before that, and before THAT sat at the top of Group 2, above Inbox — see git history for
+         all three). Its popup opens upward again (.mode-popup's bottom:-6px, was top:0 — see that
+         rule's own comment, globals.css) now that it's at the very bottom of the rail with no room
+         below it, rather than near the top with room below. No button-specific tightened-hitbox
+         treatment — the safe-zone polygon (modePopupSafeZone, source-buttons-cursor-mode.js)
+         covers the general case (including this one, even with Profile now a guaranteed-adjacent
+         neighbor below it again) on its own, same as every position this selector has sat in
+         before. -->
+    <div class="rail-group">
+        <!-- Cursor-mode selector — per explicit follow-up request, the collapsed rail button
+             (icon-only, .mode-visible shows whichever mode is active) now stays exactly where it
+             is at all times, never itself restyled/moved on hover — a SEPARATE #mode-popup panel
+             (one cohesive box, not 4 individually-bordered pills) appears next to it instead,
+             listing all four modes as icon+name rows (.mode-popup-row — a different, new element
+             from the original 4 .mode-btn, deliberately NOT reusing that class, so
+             appState.modeButtons/the existing display:none-when-collapsed rules stay scoped to
+             just the rail button and don't need to care about this popup's own always-a-row
+             styling). Rows stay in this fixed DOM order always — an earlier version sorted the
+             active mode to the top, removed per explicit follow-up request — the active mode just
+             gets a highlighted/outlined .active state instead (see appState.modePopupRows,
+             core-state.js, and its own click wiring in source-buttons-cursor-mode.js, mirroring
+             appState.modeButtons' click handler). Moving the pointer from the button toward a row
+             further from it without closing the popup early is handled by a JS "safe zone" polygon
+             (modePopupSafeZone/handleModePopupSafeMove, source-buttons-cursor-mode.js) rather than
+             any DOM element here. -->
+        <div id="mode-toolbar">
+            <button class="rail-btn mode-btn mode-visible active" data-mode="normal">
+                <img class="rail-icon-img" src="/assets/icons/default-cursor.png" alt="">
+            </button>
+            <button class="rail-btn mode-btn" data-mode="data">
+                <img class="rail-icon-img" src="/assets/icons/data-cursor.png" alt="">
+            </button>
+            <button class="rail-btn mode-btn" data-mode="select">
+                <img class="rail-icon-img" src="/assets/icons/select-cursor.png" alt="">
+            </button>
+            <!-- Pen mode — reworked from the old Add-menu "Drawing" toggle (setDrawMode) into a
+                 real cursor mode, see applyCursorMode/handlePenPointerDown (source-buttons-cursor-
+                 mode.js/srs-connections-core.js). No tap/hold keyboard shortcut (unlike the other
+                 three) — no unclaimed single letter has an obvious mnemonic, so entering pen mode
+                 is click-only. -->
+            <button class="rail-btn mode-btn" data-mode="pen">
+                <img class="rail-icon-img" src="/assets/icons/pen.png" alt="">
+            </button>
+            <div id="mode-popup" class="mode-popup">
+                <button class="mode-popup-row" data-mode="normal">
+                    <img class="rail-icon-img" src="/assets/icons/default-cursor.png" alt="">
+                    <span class="mode-popup-row-name">Move &amp; select</span>
+                </button>
+                <button class="mode-popup-row" data-mode="data">
+                    <img class="rail-icon-img" src="/assets/icons/data-cursor.png" alt="">
+                    <span class="mode-popup-row-name">Data mode</span>
+                </button>
+                <button class="mode-popup-row" data-mode="select">
+                    <img class="rail-icon-img" src="/assets/icons/select-cursor.png" alt="">
+                    <span class="mode-popup-row-name">Select mode</span>
+                </button>
+                <button class="mode-popup-row" data-mode="pen">
+                    <img class="rail-icon-img" src="/assets/icons/pen.png" alt="">
+                    <span class="mode-popup-row-name">Pen mode</span>
+                </button>
+            </div>
+        </div>
+    </div>
+    <!-- Profile, alone — pinned to the very bottom of the rail (last child of #dotto-rail), per
+         explicit request that it and the cursor-mode selector above it move here from the top,
+         swapping places with every other icon (now packed at the top instead, see
+         #dotto-rail-middle's own comment above). -->
+    <div class="rail-group">
+        <!-- Content is React-owned (see app/dotto/ProfileAvatarSm.jsx). Click-only open/close, same
+             as every other rail icon (see wireRailIcon('profile', ...),
+             profile-achievements-pricing.js). -->
+        <button id="btn-profile" class="rail-btn">
+            <div class="profile-avatar-sm" id="profile-avatar-sm"></div>
+            <span class="rail-tooltip"><span class="rail-tooltip-row"><span class="rail-tooltip-name">Profile</span><span class="rail-tooltip-key">P</span></span><span class="rail-tooltip-desc" data-desc="Your account, achievements, and pricing."></span></span>
+        </button>
+    </div>
 </div>
 <!-- Dead centre of the viewport (position:fixed, left:50% + translateX(-50%), see globals.css) —
      independent of the rail's own left offset. Back/forward (history navigation, see
