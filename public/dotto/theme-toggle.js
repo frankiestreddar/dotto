@@ -6,8 +6,6 @@
 // <Script strategy="afterInteractive"> — well after first paint, too late on its own to avoid a
 // flash of the wrong theme). This module never re-derives the theme itself; it only syncs the
 // switch to whatever's already applied and handles its change events from here on.
-import { refreshCustomCursor } from './custom-cursor.js';
-
 const THEME_STORAGE_KEY = 'dotto-theme';
 
 const themeSwitchInput = document.getElementById('theme-switch-input');
@@ -33,10 +31,6 @@ function setTheme(theme) {
     document.documentElement.dataset.theme = theme;
     try { localStorage.setItem(THEME_STORAGE_KEY, theme); } catch (e) { /* private browsing, storage disabled, etc. — theme just won't persist across reloads */ }
     syncThemeSwitch(theme);
-    // --cursor-pointer (globals.css) just changed with this — see custom-cursor.js's own comment
-    // for why the actual on-screen cursor needs a nudge to repaint immediately instead of going
-    // blank until the next real mouse movement.
-    refreshCustomCursor();
 }
 
 function toggleTheme() {
