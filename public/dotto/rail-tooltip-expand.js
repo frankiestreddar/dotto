@@ -37,10 +37,6 @@ const TYPE_STEP_MS = 16;
 // this makes up the difference so setting style.height to scrollHeight+this doesn't leave the
 // box a couple px too short for its own content (border-box height = padding-box + border).
 const TOOLTIP_BORDER_PX = 2;
-// Must match .rail-tooltip.expanding's own padding-bottom (10px) minus the base rule's (0) — see
-// beginExpand's own comment on why this needs accounting for separately from TOOLTIP_BORDER_PX
-// above.
-const EXPANDING_PADDING_BOTTOM_DELTA_PX = 10;
 
 function resetTooltip(state) {
     clearTimeout(state.openTimer);
@@ -48,7 +44,7 @@ function resetTooltip(state) {
     clearInterval(state.typeInterval);
     state.typeInterval = null;
     state.generation++;
-    state.tooltip.classList.remove('expanding');
+    state.tooltip.classList.remove('expanding', 'typing');
     state.tooltip.style.width = '';
     state.tooltip.style.height = '';
     state.desc.textContent = '';
@@ -70,6 +66,11 @@ function pickWordSeparator(state, revealed, word) {
 }
 
 function typeDescription(state, generation) {
+    // Per explicit request, height only ever starts growing once typing actually starts — not
+    // during the width-only phase before it (beginExpand, below). .typing is what turns on both
+    // the height transition AND the padding-bottom bump (0 -> 10px) together, exactly when this
+    // phase begins, rather than either happening earlier alongside the width change.
+    state.tooltip.classList.add('typing');
     const words = (state.desc.dataset.desc || '').split(' ');
     let revealed = '';
     let wordIndex = 0;
@@ -103,14 +104,12 @@ function beginExpand(state) {
     state.tooltip.style.width = startWidth + 'px';
     state.tooltip.style.height = startHeight + 'px';
     void state.tooltip.offsetWidth; // force layout so the line above isn't optimized away before the class/width change below
-    // .expanding also bumps padding-bottom (0 -> 10px, globals.css) — without accounting for that
-    // extra 10px here too, the row would briefly render squeezed into a content box 10px shorter
-    // than it actually has room for, for the duration of the width transition below (the first
-    // typewriter tick would correct it via a fresh scrollHeight read, but not before a visible
-    // pinch/glitch on the way there).
+    // .expanding covers ONLY the width transition (globals.css) — height/padding-bottom
+    // deliberately stay untouched here, per explicit request that this phase widen only, with no
+    // height change at all, and only start growing once typing actually begins (see
+    // typeDescription's own .typing class instead).
     state.tooltip.classList.add('expanding');
     state.tooltip.style.width = EXPANDED_WIDTH_PX + 'px';
-    state.tooltip.style.height = (startHeight + EXPANDING_PADDING_BOTTOM_DELTA_PX) + 'px';
     const onWidthDone = (e) => {
         if (e.propertyName !== 'width') return;
         state.tooltip.removeEventListener('transitionend', onWidthDone);

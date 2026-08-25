@@ -461,20 +461,29 @@
        instant the pointer actually leaves (see its own comment), at which point this rule simply
        stops matching and the base rule's opacity transition takes it back to 0. */
     .rail-btn:not(.active):hover .rail-tooltip{opacity:1;}
-    /* Set by rail-tooltip-expand.js right as it starts animating width/height toward their
-       expanded targets (see its own comment) — width/height's OWN transition lives here rather
-       than on the base rule above specifically so the very first inline-style write (locking in
-       the CURRENT small-pill size as an explicit px value, the necessary starting point for any
-       width/height transition — neither property can transition from `auto`) doesn't itself
-       animate from nothing. `width` is a bit slower (.25s) than `height` (.15s, matching this
-       file's usual "fast own-size adjustment" pace elsewhere, e.g. .static-table-row-tag-strip-
-       wrap) since the typewriter's own per-character height bumps need to feel snappy/responsive
-       to newly-typed text, not lag behind it. */
-    /* padding-bottom grows from the small pill's own 0 (base rule above — was 4px, then 2px,
-       still too much per two rounds of explicit follow-up) to 10px here — per explicit request,
-       the small state had too much bottom padding and the expanded state too little; the two
-       states just need visibly different amounts, not one shared value. */
-    .rail-tooltip.expanding{padding-bottom:10px;transition:opacity .15s,width .25s ease,height .15s ease,padding-bottom .15s ease;}
+    /* Set by rail-tooltip-expand.js right as it starts animating width toward its expanded
+       target (see its own comment) — width's OWN transition lives here rather than on the base
+       rule above specifically so the very first inline-style write (locking in the CURRENT
+       small-pill width as an explicit px value, the necessary starting point for any width
+       transition — it can't transition from `auto`) doesn't itself animate from nothing.
+       Deliberately covers ONLY width (and opacity, inherited from the base rule either way) — per
+       explicit request, this first phase widens the pill with NO height change at all; height/
+       padding-bottom don't start moving until .typing below, once typing actually begins. */
+    .rail-tooltip.expanding{transition:opacity .15s,width .25s ease;}
+    /* Added by rail-tooltip-expand.js right as typing starts (after .expanding's own width
+       transition has already finished) — height's own transition lives here for the same reason
+       width's lives on .expanding above (the per-character inline-style writes that follow need
+       an already-active transition to animate against, and .15s here matches this file's usual
+       "fast own-size adjustment" pace elsewhere, e.g. .static-table-row-tag-strip-wrap, since the
+       typewriter's per-character height bumps need to feel snappy/responsive to newly-typed
+       text). padding-bottom grows from the small pill's own 0 (base rule above — was 4px, then
+       2px, still too much per two rounds of explicit follow-up) to 10px here at the same time —
+       per explicit request the small state had too much bottom padding and the expanded state too
+       little, and now that both height and padding-bottom transition together starting from this
+       same moment, they naturally stay in sync without needing the manual pixel compensation an
+       earlier version of this needed when padding-bottom used to jump immediately alongside the
+       width change instead. */
+    .rail-tooltip.typing{padding-bottom:10px;transition:opacity .15s,height .15s ease,padding-bottom .15s ease;}
     .rail-tooltip-row{display:flex;align-items:center;justify-content:space-between;gap:10px;white-space:nowrap;}
     /* .rail-tooltip's own padding-bottom is already 0 (per two earlier rounds of "still too much"
        follow-up), so shaving further off the small, not-yet-expanded pill's bottom edge (per two
