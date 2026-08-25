@@ -1111,22 +1111,15 @@
     .hub-subpanel-search{width:100%;height:34px;border-radius:9px;background:var(--hover-bg);border:1px solid var(--card-border);color:var(--ink);padding:0 12px;font-size:13px;outline:none;box-sizing:border-box;}
     .hub-subpanel-search::placeholder{color:var(--ink-soft);}
     /* #search-panel's own hero — a thumbnail image, subtly rounded (replaced an earlier
-       glow-circle-plus-icon design entirely, see git history for that). search-thumbnail.jpg
-       itself switched from a 1376x768 landscape crop to a 768x1376 portrait one (per explicit
-       follow-up — the whole thumbnail set this asset belongs to, e.g. queries-thumbnail.jpg, is
-       portrait too), so this is now a smaller centered poster-style rectangle rather than the
-       earlier full-width landscape banner — a portrait image spanning the panel's full ~260px
-       content width would come out well over 400px tall at that aspect ratio, dwarfing the
-       heading/description/search box below it. Width is 90% of the sidebar (#hamburger-stack) —
-       briefly bumped to 96% then reverted back, per two quick follow-up requests.
-       .search-panel-hero's own parent, #search-panel, has no padding of its own (.hmenu-panel is
-       a plain width:100%), so its
-       content box already equals the sidebar's full width and this percentage needs no other
-       adjustment to land where asked. aspect-ratio matches the source JPG's own native 768x1376 so
-       the box's height always follows its own width proportionally; object-fit:cover on the img
-       itself is what actually crops any surplus rather than letting the image distort to fit. */
+       glow-circle-plus-icon design entirely, see git history for that). Box is a plain square
+       (aspect-ratio:1/1) per explicit follow-up request, not the source JPG's own native 768x1376
+       portrait ratio — object-fit:cover (default object-position:center) crops the tall source
+       down to a centered square rather than distorting it or leaving letterboxing. Width is 90% of
+       the sidebar (#hamburger-stack) — .search-panel-hero's own parent, #search-panel, has no
+       padding of its own (.hmenu-panel is a plain width:100%), so its content box already equals
+       the sidebar's full width and this percentage needs no other adjustment to land where asked. */
     .search-panel-hero{width:90%;margin:20px auto 24px;flex:0 0 auto;}
-    .search-panel-hero-img{display:block;width:100%;aspect-ratio:768/1376;object-fit:cover;border-radius:12px;}
+    .search-panel-hero-img{display:block;width:100%;aspect-ratio:1/1;object-fit:cover;border-radius:12px;}
     /* Space Grotesk (this file's semantic-heading typeface, see the app-typeface comment near the
        top of this file) per explicit request; the description just below inherits the default
        Golos Text body font with no override needed, also per explicit request. font-size bumped
