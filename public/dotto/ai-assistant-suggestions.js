@@ -267,12 +267,12 @@ import { render } from './waypoints-render-loop.js';
     // avoid calling wireRailIcon itself at this module's own top level — a circular-import timing
     // risk, since panels-hamburger.js also imports from this file; a plain function reference like
     // this one has no such risk, it's only ever invoked later, on a real click). Always lands back
-    // on the list view (not mid-conversation from a previous session), and focuses the input (the
-    // rail is click-only now, so `pin` is always true here — kept as a parameter since
-    // openRailView always passes it through, same as every other view's own onOpen callback).
+    // on the list view (not mid-conversation from a previous session). Used to also focus the input
+    // here — removed per explicit request that opening the panel not auto-focus the search box;
+    // `pin` is kept as a parameter since openRailView always passes it through, same as every other
+    // view's own onOpen callback, even though nothing in this function reads it any more.
     function refreshAiPanel(pin) {
         showAiListView();
-        if (pin) appState.searchInput.focus();
     }
     // Opens the AI panel — called from the global Space/"/" keydown shortcuts
     // (srs-connections-core.js), and from openSavedChat (hamburger-collab.js) when reopening a
