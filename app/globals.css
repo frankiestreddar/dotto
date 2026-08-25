@@ -334,8 +334,13 @@
        hamburger-stack.html) — plain block flow is enough for its own two children (they already
        stack vertically as ordinary block-level divs), flex:0 0 auto is what matters here, so this
        element itself doesn't get squashed or stretched as a child of #ai-list-view's own flex
-       column above. */
-    #ai-list-header{flex:0 0 auto;}
+       column above. margin 10px top/bottom matches the vertical breathing room
+       .hub-subpanel-search-wrap's own 10px padding gives #search-panel-search above/below it (see
+       that rule, globals.css) — #search-input-wrap itself has no padding of its own, so without
+       this the box sat noticeably closer to .search-panel-desc above and #chats-list below than
+       Search's own layout does, per explicit bug report that the two panels' vertical rhythm
+       didn't match. */
+    #ai-list-header{flex:0 0 auto;margin:10px 0;}
     /* Compact "…/parent/current" breadcrumb (see app/dotto/BreadcrumbPill.jsx, breadcrumbMapStore)
        — a .bubble inside #top-bar-center (own fixed/centring positioning lives there now, shared
        with #collab-bubble beside it), replacing the old always-visible full ancestor list that
