@@ -70,8 +70,7 @@ import { render } from './waypoints-render-loop.js';
     async function commenceDotbotSearch(query) {
         query = (query || '').trim();
         if (!query) return;
-        appState.searchInputWrap.classList.remove('idle-pulsing'); // redundant when reached via commenceSearchOrMnemonic, needed for direct callers like selectionToolbarLookUp
-        appState.dotbotSearchGeneration++; // same reasoning — redundant via commenceSearchOrMnemonic, needed for direct callers
+        appState.dotbotSearchGeneration++; // redundant when reached via commenceSearchOrMnemonic, needed for direct callers like selectionToolbarLookUp
         bumpAchievementStat('twenty_searches');
         const folderObj = appState.folders[appState.currentFolderId];
         if (!folderObj) return;
@@ -84,7 +83,6 @@ import { render } from './waypoints-render-loop.js';
         clearTimeout(appState.dotbotSuggestDebounceTimer);
         if (appState.dotbotSuggestAbortController) appState.dotbotSuggestAbortController.abort();
         appState.searchSpinner.classList.add('visible');
-        appState.searchInputWrap.classList.add('loading');
         try {
             const res = await fetch('/api/dotbot/orchestrate', {
                 method: 'POST',
@@ -115,17 +113,10 @@ import { render } from './waypoints-render-loop.js';
             });
             const data = await res.json();
             appState.searchSpinner.classList.remove('visible');
-            appState.searchInputWrap.classList.remove('loading');
-            // Stay focused with the idle-pulse ring back on, rather than blurring — a response
-            // landing is exactly when you're most likely to want to type a follow-up immediately.
-            // (This used to blur() with a comment about forcing the border back from a :focus/
-            // :hover-brightened state — that #search-input-wrap border behavior doesn't exist
-            // anymore, so blurring here just meant the box visibly went quiet: no loading ring,
-            // no idle-pulse ring, nothing but #search-bar's own deliberately subtle border left,
-            // which read as "the border disappeared" even though it was never actually removed.)
+            // Stay focused rather than blurring — a response landing is exactly when you're most
+            // likely to want to type a follow-up immediately.
             appState.searchInput.value = '';
             appState.searchInput.focus();
-            appState.searchInputWrap.classList.add('idle-pulsing');
             autoGrowSearchInput();
             if (!res.ok) { renderDotbotOrchestrateError(data.error); return; }
             refreshDotbotUsage();
@@ -136,10 +127,8 @@ import { render } from './waypoints-render-loop.js';
             renderOrchestrateResult(query, data.panels || []);
         } catch (e) {
             appState.searchSpinner.classList.remove('visible');
-            appState.searchInputWrap.classList.remove('loading');
             appState.searchInput.value = '';
             appState.searchInput.focus();
-            appState.searchInputWrap.classList.add('idle-pulsing');
             autoGrowSearchInput();
             console.error('[dotbot/orchestrate] failed:', e);
             renderDotbotOrchestrateError('error');
@@ -436,9 +425,6 @@ import { render } from './waypoints-render-loop.js';
         // onfocus="handleSearchFocus()" alone would silently do nothing until the next keystroke.
         // Calling it here too makes a click always reopen the initial-suggestion state.
         appState.searchInput.addEventListener('click', (e) => { e.stopPropagation(); handleSearchFocus(); });
-        // Clicking/tabbing away without submitting stops the idle pulse (see handleSearchFocus) —
-        // Escape's own searchInput.blur() call elsewhere routes through this same listener too.
-        appState.searchInput.addEventListener('blur', () => appState.searchInputWrap.classList.remove('idle-pulsing'));
         appState.searchInput.addEventListener('keydown', (e) => {
             if (e.key === 'Escape') { clearSearch(); return; }
             // Slash-command mode (see command-palette.js) — Arrow/Enter get their own meaning

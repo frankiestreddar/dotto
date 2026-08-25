@@ -346,8 +346,6 @@
         searchChatThread: document.getElementById('search-chat-thread'),
         searchSpinner: document.getElementById('search-spinner'),
         searchInputWrap: document.getElementById('search-input-wrap'),
-        searchCardPill: document.getElementById('search-card-pill'),
-        searchCardPillLabel: document.getElementById('search-card-pill-label'),
         // AI search shares the permanent rail's one shell now (see openRailView, panels-
         // hamburger.js) — no more #search-overlay-backdrop modal, so no lookup for it. aiPanel is
         // the whole rail view (railViewEls member); aiChatView/aiListView are its two internal

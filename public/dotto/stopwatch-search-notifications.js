@@ -422,18 +422,10 @@ import { openFolder, render } from './waypoints-render-loop.js';
     });
 
     // #search-input is a <textarea> that grows line by line as typed text wraps, up to 4 lines
-    // (100px) — or 3 text lines + the card-context pill's own line (80px) when cards are
-    // attached, since the pill counts toward the same 4-line budget. Repositions #search-dropdown
-    // to stay glued 7px below the input at whatever height it's currently at.
+    // (100px). Repositions #search-dropdown to stay glued 7px below the input at whatever height
+    // it's currently at.
     function autoGrowSearchInput() {
-        // The pill (when shown) claims its own line by pushing padding-bottom from 10px to 30px
-        // (see #search-input.has-pill in globals.css) — that alone shrinks the available TEXT
-        // budget from 4 lines to 3 within the very same 100px overall cap (10 top pad + 3*20 text
-        // + 30 bottom pad/pill = 100, vs. 10 + 4*20 + 10 = 100 with no pill), so the cap itself
-        // never changes, only the minimum (1 empty text line, plus the pill's own line when
-        // present).
-        const hasPill = typeof appState.searchCardContext !== 'undefined' && appState.searchCardContext.length > 0;
-        const minH = hasPill ? 60 : 40;
+        const minH = 40;
         let h;
         // With no typed value, the box is always exactly 1 (text) line tall — measuring
         // scrollHeight here would instead reflect the animated placeholder's current wrapped
@@ -467,15 +459,6 @@ import { openFolder, render } from './waypoints-render-loop.js';
     // any pair that was dragged in together, so a data-mode link between two dragged cards
     // survives into the popup preview.
 
-    function renderSearchCardPill() {
-        if (!appState.searchCardPill) return;
-        const n = appState.searchCardContext.length;
-        appState.searchCardPill.classList.toggle('visible', n > 0);
-        appState.searchInput.classList.toggle('has-pill', n > 0);
-        appState.searchCardPillLabel.textContent = n > 0 ? `${n} card${n === 1 ? '' : 's'}` : '';
-        autoGrowSearchInput();
-    }
-
     // Adds `ids` (a drag gesture's card ids — a single card or a multi-selection) to the
     // persistent card-context set. Each is snapshotted and sanitized exactly like a
     // marketplace/chat export (see sanitizeFlashcardSnapshot) using the OTHER ids in this same
@@ -498,23 +481,21 @@ import { openFolder, render } from './waypoints-render-loop.js';
             if (appState.searchCardConnections.some(sc => sc.fromId === c.fromId && sc.toId === c.toId)) return;
             appState.searchCardConnections.push({ fromId: c.fromId, toId: c.toId });
         });
-        renderSearchCardPill();
     }
 
     function removeSearchCardContextItem(id) {
         appState.searchCardContext = appState.searchCardContext.filter(c => c.id !== id);
         appState.searchCardConnections = appState.searchCardConnections.filter(c => c.fromId !== id && c.toId !== id);
-        renderSearchCardPill();
         if (!appState.searchCardContext.length) { closeSearchCardsModal(); return; }
         if (document.getElementById('search-cards-modal-overlay').classList.contains('open')) openSearchCardsModal();
     }
 
-    // The pill's hover-reveal "✕" — clears every attached card at once, unlike
-    // removeSearchCardContextItem which only drops one.
+    // Clears every attached card at once, unlike removeSearchCardContextItem which only drops one
+    // — no longer reachable from the search box's own UI (the card-context pill it used to hang
+    // off is gone, per explicit request), still exported/wired in case something else calls it.
     function clearSearchCardContext() {
         appState.searchCardContext = [];
         appState.searchCardConnections = [];
-        renderSearchCardPill();
         closeSearchCardsModal();
     }
 

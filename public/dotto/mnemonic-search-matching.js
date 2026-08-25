@@ -253,11 +253,8 @@ import { render } from './waypoints-render-loop.js';
     }
     // Shared by every way a query gets submitted (Enter, clicking a suggestion/recommended-search
     // row) — routes a mnemonic-shaped query to the right generation flow, or falls through to the
-    // normal orchestrated search for everything else. Also where the idle border pulse (see
-    // handleSearchFocus) hands off to the real loading state, since this is the one place every
-    // submission path passes through.
+    // normal orchestrated search for everything else.
     function commenceSearchOrMnemonic(query) {
-        appState.searchInputWrap.classList.remove('idle-pulsing');
         // Cancel any live-suggestion fetch still in flight from typing, and mark every response
         // from before this point as stale (see scheduleLiveSuggestions) — otherwise a suggestions
         // list that was already loading can land right as/after this submit and overwrite the

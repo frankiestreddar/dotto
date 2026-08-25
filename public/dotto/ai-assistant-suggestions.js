@@ -10,7 +10,14 @@ import { render } from './waypoints-render-loop.js';
 
 
     // ---------- Animated Placeholder (types out & deletes a looping series of suggestions) ----------
+    // Every searchbox in the app does this — per explicit request, not just Queries' own
+    // #search-input (which is all this ever drove originally). #search-panel-search
+    // (search-panel-history.js) is the other one so far; both are plain elements with a
+    // `.placeholder` property (a <textarea> and an <input>), set identically here regardless of
+    // which, so adding a future box just means adding its selector below.
     (function animateSearchPlaceholder() {
+        const targets = [appState.searchInput, document.getElementById('search-panel-search')].filter(Boolean);
+        if (!targets.length) return;
         const suggestions = [
             'Find anything in your canvas...',
             'Ask me how to conjugate verbs...',
@@ -22,7 +29,7 @@ import { render } from './waypoints-render-loop.js';
             const current = suggestions[sIndex];
             if (!deleting) {
                 charIndex++;
-                appState.searchInput.placeholder = current.slice(0, charIndex);
+                targets.forEach(t => { t.placeholder = current.slice(0, charIndex); });
                 if (charIndex >= current.length) {
                     deleting = true;
                     setTimeout(tick, PAUSE_AFTER_TYPE);
@@ -31,7 +38,7 @@ import { render } from './waypoints-render-loop.js';
                 setTimeout(tick, TYPE_SPEED);
             } else {
                 charIndex--;
-                appState.searchInput.placeholder = current.slice(0, charIndex);
+                targets.forEach(t => { t.placeholder = current.slice(0, charIndex); });
                 if (charIndex <= 0) {
                     deleting = false;
                     sIndex = (sIndex + 1) % suggestions.length;
@@ -581,15 +588,11 @@ import { render } from './waypoints-render-loop.js';
         updateSearchDropdown();
     }
 
-    // Focusing the box no longer drops a static suggestion list on you — instead the border
-    // itself pulses (see .idle-pulsing / the search-idle-chase rects in globals.css) for as long
-    // as the box is focused and nothing's been submitted yet, replaced by the existing loading
-    // ring the moment a search actually commences (see commenceSearchOrMnemonic/
-    // commenceDotbotSearch, which remove this class right before they run). Browsing past chats
-    // is the list view's own always-visible #chats-list now (see showAiListView), not something
-    // that pops up under the box here — an earlier version of this function fetched and showed a
-    // "recent chats" preview under an empty box, back when the box's default resting position
-    // WAS a chat view with nothing else on it; that page doesn't exist anymore.
+    // Focusing the box no longer drops a static suggestion list on you. Browsing past chats is the
+    // list view's own always-visible #chats-list now (see showAiListView), not something that pops
+    // up under the box here — an earlier version of this function fetched and showed a "recent
+    // chats" preview under an empty box, back when the box's default resting position WAS a chat
+    // view with nothing else on it; that page doesn't exist anymore.
     function handleSearchFocus() {
         // 'rail' — the AI panel IS the currently-open rail view when this fires (focusing the box
         // only happens while it's visible), so closing the rail here would close the box's own
@@ -597,7 +600,6 @@ import { render } from './waypoints-render-loop.js';
         // that might be open at the same time.
         closeAllPanels('rail');
         hideDotbotResultPanels();
-        appState.searchInputWrap.classList.add('idle-pulsing');
         const v = appState.searchInput.value.trim();
         if (v !== "") return;
         window.__setSearchSuggestions(null);
