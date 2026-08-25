@@ -456,7 +456,7 @@
        in place. touch-action:none/user-select:none are for the drag-to-reorder gesture below —
        without the former, a touch-drag would fight the browser's own scroll gesture; without the
        latter, a press-and-drag would select the pill's own text along the way. */
-    .tab-pill{display:flex;align-items:center;gap:4px;flex:0 0 auto;border-radius:6px;padding:3px 8px;border:1px solid transparent;max-width:150px;overflow:hidden;touch-action:none;user-select:none;transition:background .15s ease,border-color .15s ease;}
+    .tab-pill{display:flex;align-items:center;gap:4px;flex:0 0 auto;border-radius:6px;padding:3px;border:1px solid transparent;max-width:150px;overflow:hidden;touch-action:none;user-select:none;transition:background .15s ease,border-color .15s ease;}
     .tab-pill:not(.tab-pill-active){cursor:pointer;}
     /* Very subtle grey outline on every non-active tab, and a very subtle grey highlight on the
        active one — per explicit request. Both use the app's own established "subtle grey" tokens
@@ -531,8 +531,17 @@
        explicit request. Small icon-only button, same minimal border-radius/hover-background
        language as most other icon buttons in this file (e.g. #profile-settings-btn) rather than a
        filled/bordered "add" affordance like #collab-add-btn's dashed circle — this one sits inline
-       in a text-heavy row, not floating alone in its own panel. */
-    #tab-add-btn{display:flex;align-items:center;justify-content:center;width:20px;height:20px;border-radius:6px;border:none;background:none;color:var(--ink-soft);font-size:14px;line-height:1;cursor:pointer;padding:0;flex:0 0 auto;}
+       in a text-heavy row, not floating alone in its own panel.
+       Hidden until #breadcrumb-pill itself is hovered — per a later explicit request. Gated on
+       #breadcrumb-pill's OWN :hover (not the whole #top-bar-center pill's, the way
+       #nav-arrows-pill/#collab-bubble's reveals are — see #top-bar-center's own comment for why
+       THOSE needed that) since this button is a normal DESCENDANT of #breadcrumb-pill itself
+       (TabsBar.jsx portals it in as the last child, alongside the tab pills), not a sibling
+       section outside it — moving the pointer from a tab pill onto this button never leaves
+       #breadcrumb-pill's own bounds, so a literal :hover here can't suffer the "reveal collapses
+       before you can reach it" problem that trigger avoided. */
+    #tab-add-btn{display:none;align-items:center;justify-content:center;width:20px;height:20px;border-radius:6px;border:none;background:none;color:var(--ink-soft);font-size:14px;line-height:1;cursor:pointer;padding:0;flex:0 0 auto;}
+    #breadcrumb-pill:hover #tab-add-btn{display:flex;}
     #tab-add-btn:hover{background:var(--hover-bg);color:var(--ink);}
     #breadcrumb-pill .breadcrumb-pill-ellipsis,
     #breadcrumb-pill .breadcrumb-pill-parent{color:var(--ink);font-weight:400;font-size:13px;cursor:pointer;white-space:nowrap;flex:0 0 auto;}
