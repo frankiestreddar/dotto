@@ -7,7 +7,7 @@ import { closeGameOptionsPanel, openGameOptionsPanel } from './games-flashcard-t
 import { applyTransform, ensureSwTicking, saveSnapshot, scheduleWorkspaceSave, updateContextMenuPosition } from './history-autosave.js';
 import { broadcastEditingState, miniLabelForItem, placeCaretEnd, renderRealCardPreview, repositionAllRemoteCursors, syncColorPicker } from './live-presence.js';
 import { findNextFreeSlot, setupResizing } from './resize-shortcuts-init.js';
-import { ensureSharedFolderLoaded, renderBreadcrumbMapPanel, sharedFolderKey, stripSharedFolderIds } from './shared-canvases-outline.js';
+import { ensureSharedFolderLoaded, renderBreadcrumbMapPanel, renderTabsPanel, sharedFolderKey, stripSharedFolderIds } from './shared-canvases-outline.js';
 import { closeSourceAddMenu } from './source-buttons-cursor-mode.js';
 import { attachStaticTableHoverZones, layoutSourceTableColumns, renderStaticTableHTML } from './source-table.js';
 import { closeCellTagPicker } from './source-tags-ai.js';
@@ -403,9 +403,10 @@ import { applyConnections, renderConnectionsLayer } from './srs-connections-core
         return viewport;
     }
 
-    // Inline-rename a folder/source card's title, right on the card — also reused by the
-    // breadcrumb pill (BreadcrumbPill.jsx, via window.__startRenameFolderCardTitle) for renaming
-    // the current-folder segment, passing a plain {folderId} with no real `.id` — see the
+    // Inline-rename a folder/source card's title, right on the card — also reused by the active
+    // tab's own breadcrumb trail (TabsBar.jsx's ActiveTabTrail, via
+    // window.__startRenameFolderCardTitle) for renaming the current-folder segment, passing a
+    // plain {folderId} with no real `.id` — see the
     // targetSelector guard below. Writes to the exact same folders[folderId].title every one of
     // these editors shares, so they all stay in sync for free, no separate propagation needed.
     // Guarded on folders[it.folderId] existing at all: a folder card nested INSIDE a canvas
@@ -535,11 +536,16 @@ import { applyConnections, renderConnectionsLayer } from './srs-connections-core
         // choice for shared ones (owner still sees it, collaborators don't, rather than everyone).
         const folderOwnerId = folderObj.isSharedView ? folderObj.sharedOwnerId : appState.currentUser.id;
         const currentItems = folderObj.items.filter(it => it.kind !== 'waypoint' || (it.creatorId || folderOwnerId) === appState.currentUser.id);
-        // Location/wayfinding lives in the top-bar breadcrumb pill (see renderBreadcrumbMapPanel,
-        // shared-canvases-outline.js, and BreadcrumbPill.jsx). The current-folder segment's rename
+        // Location/wayfinding lives in the top-bar tabs bar (see renderBreadcrumbMapPanel,
+        // shared-canvases-outline.js, and TabsBar.jsx). The current-folder segment's rename
         // click reuses startRenameFolderCardTitle below, the same flow folder/source cards already
         // use.
         renderBreadcrumbMapPanel();
+        // Keeps the active tab's own bookmarked folderId (and its displayed label) in sync with
+        // wherever navigation just landed — see renderTabsPanel's own comment,
+        // shared-canvases-outline.js, for why this needs to run after literally every navigation,
+        // not just ones that went through addTab/switchTab/closeTab directly.
+        renderTabsPanel();
 
         renderCollabPill();
 

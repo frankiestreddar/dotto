@@ -249,13 +249,21 @@ export const itemDetailFooterStore = createStore(null);
 // `.show` class synchronously right after a caller in hamburger-collab.js calls this.
 export const collabPillStore = createStore({ show: false, collabs: [], moreCount: 0 });
 
-// Compact "…/parent/current" breadcrumb pill next to the back/forward arrows (see
-// app/dotto/BreadcrumbPill.jsx, public/dotto/shared-canvases-outline.js's
+// Compact "…/parent/current" breadcrumb trail shown by whichever tab is active (see
+// app/dotto/TabsBar.jsx's ActiveTabTrail, public/dotto/shared-canvases-outline.js's
 // renderBreadcrumbMapPanel) — { hasMore, root, parent, current }, each of `root`/`parent`/
 // `current` either null or {label, folderId, isSyntheticRoot}. Not flushSync'd — a plain store.set,
 // same reasoning as chatsListStore/waypointsListStore: no synchronous DOM read follows a
 // navigation-driven update.
 export const breadcrumbMapStore = createStore({ hasMore: false, root: null, parent: null, current: null });
+
+// Canvas tabs, next to the breadcrumb pill (see app/dotto/TabsBar.jsx,
+// public/dotto/shared-canvases-outline.js's renderTabsPanel/addTab/switchTab/closeTab) —
+// { tabs: [{id, folderId, label}], activeTabId }. Each tab is a lightweight bookmark of a folder
+// location, not an independent history/camera context — see renderTabsPanel's own comment for why.
+// Not flushSync'd — same reasoning as breadcrumbMapStore just above: a plain store.set, no
+// synchronous DOM read follows a navigation-driven update.
+export const tabsStore = createStore({ tabs: [], activeTabId: null });
 
 // First slice of item 11's "Live canvas presence + real-time content sync" grab-bag (see
 // PHASE2_ROADMAP.md — that section needed a 3-way split before extraction): the messaging/

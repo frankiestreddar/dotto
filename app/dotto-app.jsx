@@ -34,12 +34,12 @@ import {
   searchSuggestionsStore,
   selectionToolbarStore,
   sharedCanvasModalStore,
+  tabsStore,
   translationPanelStore,
   waypointsListStore,
 } from "./dotto/bridges";
 import AchievementsGrid from "./dotto/AchievementsGrid";
 import AddToSourcePopup from "./dotto/AddToSourcePopup";
-import BreadcrumbPill from "./dotto/BreadcrumbPill";
 import CanvasItemsLayer from "./dotto/CanvasItemsLayer";
 import CellTagPickerList from "./dotto/CellTagPickerList";
 import ChatsListPanel from "./dotto/ChatsListPanel";
@@ -68,6 +68,7 @@ import RecommendedSearchesPanel from "./dotto/RecommendedSearchesPanel";
 import SearchSuggestionsPanel from "./dotto/SearchSuggestionsPanel";
 import SelectionToolbar from "./dotto/SelectionToolbar";
 import SharedCanvasModalBody from "./dotto/SharedCanvasModalBody";
+import TabsBar from "./dotto/TabsBar";
 import TranslationPanel from "./dotto/TranslationPanel";
 import WaypointsListPanel from "./dotto/WaypointsListPanel";
 
@@ -238,10 +239,14 @@ if (typeof window !== "undefined") {
   // MUST be flushSync: openCollabPanel (friends-presence.js) reads collabBubble's `.show` class
   // synchronously right after a caller in hamburger-collab.js calls this.
   window.__setCollabPill = (state) => flushSync(() => collabPillStore.set(state));
-  // Breadcrumb pill — the compact "…/parent/current" trail next to the back/forward arrows (see
-  // app/dotto/BreadcrumbPill.jsx, shared-canvases-outline.js's renderBreadcrumbMapPanel, called
-  // from every render()) — a plain store.set, no synchronous DOM read follows it.
+  // Breadcrumb pill — the compact "…/parent/current" trail shown by whichever tab is active (see
+  // app/dotto/TabsBar.jsx, shared-canvases-outline.js's renderBreadcrumbMapPanel, called from
+  // every render()) — a plain store.set, no synchronous DOM read follows it.
   window.__setBreadcrumbMap = breadcrumbMapStore.set;
+  // Canvas tabs (see app/dotto/TabsBar.jsx, shared-canvases-outline.js's renderTabsPanel, called
+  // from every render() alongside the breadcrumb map above) — a plain store.set, no synchronous
+  // DOM read follows it.
+  window.__setTabs = tabsStore.set;
   // Open conversation thread (see app/dotto/MsgConvo.jsx, live-presence.js's renderConvoBody) — a
   // plain store.set, no synchronous DOM read follows it (the scroll-to-bottom reset lives in a
   // useLayoutEffect inside MsgConvo.jsx itself instead).
@@ -321,7 +326,7 @@ export default function DottoApp({ sections, currentUser }) {
       <ErrorBoundary name="LibraryPanel"><LibraryPanel /></ErrorBoundary>
       <ErrorBoundary name="ItemDetailFooter"><ItemDetailFooter /></ErrorBoundary>
       <ErrorBoundary name="CollabPill"><CollabPill /></ErrorBoundary>
-      <ErrorBoundary name="BreadcrumbPill"><BreadcrumbPill /></ErrorBoundary>
+      <ErrorBoundary name="TabsBar"><TabsBar /></ErrorBoundary>
       <ErrorBoundary name="MsgConvo"><MsgConvo /></ErrorBoundary>
       <ErrorBoundary name="SharedCanvasModalBody"><SharedCanvasModalBody /></ErrorBoundary>
       <ErrorBoundary name="CellTagPickerList"><CellTagPickerList /></ErrorBoundary>

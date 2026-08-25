@@ -405,16 +405,17 @@
        its other block child) from the panel's true edges on every side, now that neither #ai-panel
        nor #search-panel contributes any padding of its own for this to rely on. */
     .panel-search-header{flex:0 0 auto;margin:10px;}
-    /* Compact "…/parent/current" breadcrumb (see app/dotto/BreadcrumbPill.jsx, breadcrumbMapStore)
-       — a plain inner section of the single merged #top-bar-center pill now (own fixed/centring
-       positioning lives there, shared with #nav-arrows-pill/#collab-bubble either side of it — see
-       that element's own comment for the merge), replacing the old always-visible full ancestor
-       list that used to live inside the hamburger sidebar. Space Grotesk (see the app-typeface
-       comment at the top of this file) and pure white throughout, INCLUDING the parent/ellipsis/
-       separator segments that read as var(--ink-soft) everywhere else in the app — a deliberate
-       one-off, not the usual grey-for-secondary-text convention. No bold anywhere in it, including
-       the current segment (font-weight:400 — was 600), which still doubles as a rename control
-       (cursor:text hints at that, matching a real text field).
+    /* Now a ROW of tab pills (see app/dotto/TabsBar.jsx, breadcrumbMapStore/tabsStore) rather than
+       a single breadcrumb trail directly — per explicit request, a "+" button (#tab-add-btn below)
+       next to the breadcrumb adds a new tab; the active tab shows the full "…/parent/current" trail
+       (.tab-pill-active, still using the .breadcrumb-pill-* classes just below — unchanged from
+       before tabs existed, just now scoped to one tab's own pill instead of this whole element
+       directly), every other tab shows just its own current-folder label (.tab-pill-label). gap:10px
+       between whole TABS now (was 4px, tuned back when this only ever held one trail's own
+       ellipsis/parent/sep/current — that inner spacing moved to .tab-pill's own gap below).
+       max-width:280px/overflow:hidden removed — those capped a single trail's own text; with
+       multiple tab pills now, each one caps its own label instead (.tab-pill-label/
+       .breadcrumb-pill-current below) rather than the whole row.
        display:flex/align-items:center (this section's own layout) used to come from the now-removed
        .bubble class this element carried — see #top-bar-center's own comment for why that merged
        into one pill instead. No divider from #nav-arrows-pill/#collab-bubble any more (an earlier
@@ -426,7 +427,40 @@
        element's own text stays centred WITHIN that box if its own edges grow unevenly). column-gap
        on #top-bar-center now provides breathing room from its neighbours instead, symmetric on
        both sides by construction, so it can never introduce this kind of drift. */
-    #breadcrumb-pill{display:flex;align-items:center;padding:0 16px;gap:4px;max-width:280px;overflow:hidden;font-family:'Space Grotesk', sans-serif;}
+    #breadcrumb-pill{display:flex;align-items:center;padding:0 16px;gap:10px;font-family:'Space Grotesk', sans-serif;}
+    /* One tab's own pill — gap:4px between its OWN internal segments (the active tab's ellipsis/
+       parent/sep/current, or just the label for every other tab) is the same inner spacing
+       #breadcrumb-pill itself used to provide directly, back when it only ever held one trail. Not
+       itself clickable when active (only its own ellipsis/parent/current segments, below, carry
+       their own click behavior, same as before tabs existed) — TabsBar.jsx only attaches an
+       onClick (window.__switchTab) to the non-active ones. */
+    .tab-pill{display:flex;align-items:center;gap:4px;flex:0 0 auto;}
+    .tab-pill:not(.tab-pill-active){cursor:pointer;}
+    /* Muted (var(--ink-soft), the app's usual secondary-text colour) at rest — brightens to
+       var(--ink) plus an underline on hover, same "here's something clickable" affordance
+       .breadcrumb-pill-parent:hover already uses, rather than a filled hover-background chip
+       (keeps every tab pill visually consistent with the active one's own plain-text aesthetic,
+       no chip backgrounds anywhere in this pill). max-width/ellipsis so one long folder name can't
+       dominate the row when several tabs are open. */
+    .tab-pill-label{color:var(--ink-soft);font-size:12px;font-weight:400;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:110px;}
+    .tab-pill:not(.tab-pill-active):hover .tab-pill-label{color:var(--ink);text-decoration:underline;}
+    /* Hidden until its own tab is hovered (mirrors the common browser-tab convention of only
+       showing a close control on the tab the pointer is actually over, so a row of several tabs
+       doesn't read as cluttered with ×'s at rest). Shown on EITHER kind of tab, active or not —
+       TabsBar.jsx only renders it at all once there's more than one tab (closeTab itself,
+       shared-canvases-outline.js, also refuses to close the last remaining one as a second layer
+       of defense). */
+    .tab-pill-close{display:none;align-items:center;justify-content:center;width:14px;height:14px;border-radius:4px;border:none;background:none;color:var(--ink-soft);font-size:12px;line-height:1;cursor:pointer;padding:0;flex:0 0 auto;}
+    .tab-pill:hover .tab-pill-close{display:inline-flex;}
+    .tab-pill-close:hover{background:var(--hover-bg);color:var(--ink);}
+    /* Sits after every tab pill, inside #breadcrumb-pill's own row — adds a new tab bookmarked to
+       wherever the currently active one already is (addTab, shared-canvases-outline.js), per
+       explicit request. Small icon-only button, same minimal border-radius/hover-background
+       language as most other icon buttons in this file (e.g. #profile-settings-btn) rather than a
+       filled/bordered "add" affordance like #collab-add-btn's dashed circle — this one sits inline
+       in a text-heavy row, not floating alone in its own panel. */
+    #tab-add-btn{display:flex;align-items:center;justify-content:center;width:20px;height:20px;border-radius:6px;border:none;background:none;color:var(--ink-soft);font-size:14px;line-height:1;cursor:pointer;padding:0;flex:0 0 auto;}
+    #tab-add-btn:hover{background:var(--hover-bg);color:var(--ink);}
     #breadcrumb-pill .breadcrumb-pill-ellipsis,
     #breadcrumb-pill .breadcrumb-pill-parent{color:var(--ink);font-weight:400;font-size:13px;cursor:pointer;white-space:nowrap;flex:0 0 auto;}
     #breadcrumb-pill .breadcrumb-pill-ellipsis:hover,
@@ -436,8 +470,11 @@
        (.folder-card-title/.source-card-title/#item-detail-title) — this becomes a real
        contentEditable element while renaming (startRenameFolderCardTitle,
        waypoints-render-loop.js), which otherwise gets the browser's own default focus ring; this
-       one was missing it, per explicit bug report. */
-    #breadcrumb-pill .breadcrumb-pill-current{color:var(--ink);font-size:13px;font-weight:400;cursor:text;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:1 1 auto;min-width:0;outline:none;}
+       one was missing it, per explicit bug report. max-width:180px (new) is what caps the active
+       tab's own current-segment width now that #breadcrumb-pill's own 280px cap (above) was
+       removed — a little roomier than .tab-pill-label's 110px, same reasoning
+       .breadcrumb-pill-current always had for being the most prominent segment. */
+    #breadcrumb-pill .breadcrumb-pill-current{color:var(--ink);font-size:13px;font-weight:400;cursor:text;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:180px;flex:1 1 auto;min-width:0;outline:none;}
     /* Grey underline (not the text's own var(--ink) colour) hints this segment is click-to-rename
        — same text-decoration-color:var(--card-border) convention .source-card-title:hover already
        uses for the same purpose, per explicit request. */

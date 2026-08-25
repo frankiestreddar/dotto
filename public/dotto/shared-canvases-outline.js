@@ -271,8 +271,8 @@ import { applyFolderView, centerOnContent, expandWaypointCard, openFolder, rende
         }
         return chain;
     }
-    // Real React state (see app/dotto/BreadcrumbPill.jsx, breadcrumbMapStore) — a compact
-    // "…/parent/current" pill next to the back/forward arrows now, not a full indented ancestor
+    // Real React state (see app/dotto/TabsBar.jsx's ActiveTabTrail, breadcrumbMapStore) — a
+    // compact "…/parent/current" trail for whichever tab is active now, not a full indented ancestor
     // list, so this only ever needs the last couple of links in the chain plus whether there's
     // more above them. Called straight from render() (waypoints-render-loop.js) on every
     // navigation, same as before. Still walks the full structural chain (buildAncestorChain,
@@ -301,11 +301,80 @@ import { applyFolderView, centerOnContent, expandWaypointCard, openFolder, rende
         window.__setBreadcrumbMap({ hasMore: chain.length > 2, root, parent, current });
     }
 
-    // Wired up from BreadcrumbPill.jsx's ellipsis/parent onClick — a non-current segment's click
-    // either exits to root (the synthetic row) or navigates there directly.
+    // Wired up from TabsBar.jsx's ActiveTabTrail ellipsis/parent onClick — a non-current segment's
+    // click either exits to root (the synthetic row) or navigates there directly.
     function breadcrumbMapRowClick(folderId, isSyntheticRoot) {
         if (isSyntheticRoot) exitSharedCanvasToRoot();
         else openFolder(folderId);
+    }
+
+    // Tabs (top-bar.html, next to the breadcrumb pill — see app/dotto/TabsBar.jsx) — each a
+    // lightweight bookmark of a folder location, NOT an independent history/camera context: back/
+    // forward (historyStack/historyIndex) and pan/zoom stay global/shared across all tabs, same as
+    // before this feature existed. Switching tabs just re-runs applyFolderView(tab.folderId), the
+    // same primitive every other navigation entry point (openFolder, jumpToHistoryIndex,
+    // breadcrumbMapRowClick above, goToOutlineItem) already uses — a tab's own "location" really
+    // just means "which folder to jump back to when you click it," not a fully isolated view.
+
+    // Pushes appState.tabs/activeTabId into React (TabsBar.jsx) — called after every mutation
+    // below, and also from render() on every navigation (same call site as
+    // renderBreadcrumbMapPanel, waypoints-render-loop.js), so the active tab's own folderId/label
+    // stay in sync no matter how the current folder changed (a folder card click, back/forward,
+    // breadcrumb, outline row — render() runs after literally all of them).
+    function renderTabsPanel() {
+        const activeTab = appState.tabs.find(t => t.id === appState.activeTabId);
+        if (activeTab) activeTab.folderId = appState.currentFolderId;
+        const snapshot = appState.tabs.map(t => ({
+            id: t.id,
+            folderId: t.folderId,
+            label: (appState.folders[t.folderId] && appState.folders[t.folderId].title) || 'Untitled',
+        }));
+        window.__setTabs({ tabs: snapshot, activeTabId: appState.activeTabId });
+    }
+
+    // New tab starts at the SAME location as whichever tab is currently active — per explicit
+    // request — so this is a bookmark copy, not a fresh "go to root" tab the way a real browser's
+    // new-tab button would be; there's no location picker/history for it to start from anything
+    // else. Already showing the right folder (nothing navigated), so no applyFolderView/render()
+    // call needed — just refresh the tab bar's own display.
+    function addTab() {
+        const activeTab = appState.tabs.find(t => t.id === appState.activeTabId);
+        const folderId = activeTab ? activeTab.folderId : appState.currentFolderId;
+        const id = 'tab-' + appState.nextTabId++;
+        appState.tabs.push({ id, folderId });
+        appState.activeTabId = id;
+        renderTabsPanel();
+    }
+
+    // Switching TO the already-active tab is a no-op (matches clicking the tab you're already on
+    // in a real browser). Otherwise re-navigates the canvas to that tab's own bookmarked folder via
+    // applyFolderView — which itself calls render(), which calls renderTabsPanel() again, keeping
+    // this store in sync without a second explicit call here.
+    function switchTab(tabId) {
+        if (tabId === appState.activeTabId) return;
+        const tab = appState.tabs.find(t => t.id === tabId);
+        if (!tab) return;
+        appState.activeTabId = tabId;
+        applyFolderView(tab.folderId);
+    }
+
+    // Always keeps at least one tab — mirrors real browser tab-bar behavior (closing the last tab
+    // closes the window instead; there's no app-level equivalent here, so the last tab simply
+    // can't be closed). Closing the ACTIVE tab activates its nearest left neighbor (or the new
+    // first tab, if it was leftmost) and navigates there, same "which tab becomes active next"
+    // convention most browsers use; closing an inactive tab just removes it, no navigation needed.
+    function closeTab(tabId) {
+        const idx = appState.tabs.findIndex(t => t.id === tabId);
+        if (idx === -1 || appState.tabs.length <= 1) return;
+        const wasActive = tabId === appState.activeTabId;
+        appState.tabs.splice(idx, 1);
+        if (wasActive) {
+            const next = appState.tabs[Math.max(0, idx - 1)];
+            appState.activeTabId = next.id;
+            applyFolderView(next.folderId);
+        } else {
+            renderTabsPanel();
+        }
     }
 
     // Steps to an EXISTING position in historyStack (back/forward, breadcrumb "..") — no
@@ -617,12 +686,17 @@ import { applyFolderView, centerOnContent, expandWaypointCard, openFolder, rende
         else { openRailView('outline', appState.outlineMenu, appState.hamburgerBtn, () => { buildOutline(); setOutlineActive(0); }, true); }
     }
 
-export { announceEnteredCollaboration, breadcrumbMapRowClick, buildOutline, ensurePublicFolderLoaded, ensureSharedFolderLoaded, goToOutlineItem, handleOutlineSearch, jumpToHistoryIndex, kindIconFile, kindIconHTML, namespacePublicFolderIds, namespaceSharedFolderIds, openPublicCanvas, openSharedCanvas, parsePublicFolderKey, parseSharedFolderKey, publicFolderKey, renderBreadcrumbMapPanel, resolveReferenceFolderKey, setOutlineActive, sharedFolderKey, stripSharedFolderIds, toggleHamburgerMenu };
+export { addTab, announceEnteredCollaboration, breadcrumbMapRowClick, buildOutline, closeTab, ensurePublicFolderLoaded, ensureSharedFolderLoaded, goToOutlineItem, handleOutlineSearch, jumpToHistoryIndex, kindIconFile, kindIconHTML, namespacePublicFolderIds, namespaceSharedFolderIds, openPublicCanvas, openSharedCanvas, parsePublicFolderKey, parseSharedFolderKey, publicFolderKey, renderBreadcrumbMapPanel, renderTabsPanel, resolveReferenceFolderKey, setOutlineActive, sharedFolderKey, stripSharedFolderIds, switchTab, toggleHamburgerMenu };
 
 window.__kindIconFile = kindIconFile;
 window.__openSharedCanvas = openSharedCanvas;
 
-// React → vanilla bridge — used by BreadcrumbPill.jsx (app/dotto/), which can't import this
-// directly since public/dotto/*.js isn't reachable from app/dotto/.
+// React → vanilla bridge — used by TabsBar.jsx's ActiveTabTrail (app/dotto/), which can't import
+// this directly since public/dotto/*.js isn't reachable from app/dotto/.
 window.__breadcrumbMapRowClick = breadcrumbMapRowClick;
 window.__resolveReferenceFolderKey = resolveReferenceFolderKey;
+// React → vanilla bridge — used by TabsBar.jsx (app/dotto/), same reasoning as
+// window.__breadcrumbMapRowClick just above.
+window.__addTab = addTab;
+window.__switchTab = switchTab;
+window.__closeTab = closeTab;

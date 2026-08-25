@@ -40,6 +40,13 @@
         contextMenuTagId: null, // tag the right-click context menu (rename/delete) is currently targeting
         cellAudioRecorder: null, cellAudioChunks: [],
         historyStack: ['root'], historyIndex: 0, currentFolderId: 'root',
+        // Canvas tabs (public/dotto/shared-canvases-outline.js's addTab/switchTab/closeTab, see
+        // their own comments) — each a lightweight bookmark of a folder location, NOT an
+        // independent history/camera context: back/forward (historyStack/historyIndex above) and
+        // pan/zoom stay global/shared across all tabs. Starts with exactly one tab pointing at the
+        // initial currentFolderId above; nextTabId is a plain incrementing counter for generating
+        // each new tab's id.
+        tabs: [{ id: 'tab-0', folderId: 'root' }], activeTabId: 'tab-0', nextTabId: 1,
         // Core data mapping of our multiple folder structures
         folders: {
             'root': {
