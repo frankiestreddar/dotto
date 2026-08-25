@@ -860,6 +860,15 @@
     #draw-settings input[type=color]{width:28px;height:28px;border:none;background:none;cursor:pointer;padding:0;}
     #draw-size{width:80px;}
     .draw-mode-btn{width:auto;padding:0 10px;font-size:12px;}
+    /* pen.png/eraser.png — same black-source-PNG tinting convention as .rail-icon-img/
+       .msg-convo-send-icon elsewhere in this file (brightness(0) invert(1) for dark mode,
+       brightness(0) alone for light mode; works regardless of the source PNG's own color since
+       brightness(0) crushes every opaque pixel to black first). Resting opacity 0.55, full opacity
+       once .draw-mode-btn carries .active (JS-toggled in srs-connections-core.js), matching the
+       rest of this file's active-icon convention. */
+    .draw-mode-icon{width:16px;height:16px;object-fit:contain;filter:brightness(0) invert(1);opacity:0.55;pointer-events:none;}
+    :root[data-theme="light"] .draw-mode-icon{filter:brightness(0);}
+    .draw-mode-btn.active .draw-mode-icon{opacity:1;}
 
     #zoom-control{position:fixed;bottom:20px;right:20px;display:flex;flex-direction:column;align-items:center;background:var(--bar);border:1px solid var(--card-border);border-radius:10px;padding:10px 4px;box-shadow:0 4px 16px rgba(0,0,0,0.4);z-index:1000;}
     :root[data-theme="light"] #zoom-control{box-shadow:0 4px 16px rgba(0,0,0,0.168);}
