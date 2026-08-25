@@ -73,31 +73,36 @@ import { render } from './waypoints-render-loop.js';
             render();
         });
     }
+    // The actual file-to-item pipeline, split out from triggerMediaUpload below so
+    // upload-popup.js's own dropzone (a file already in hand, from a click-to-pick or a real drag-
+    // and-drop — no native picker of its own) can reuse it without needing to fake a change event
+    // on a file input just to get here.
+    function processMediaFile(id, file) {
+        if (!file) return;
+        const isPdf = file.type === 'application/pdf' || /\.pdf$/i.test(file.name);
+        const isEpub = file.type === 'application/epub+zip' || /\.epub$/i.test(file.name);
+        if (isPdf || isEpub) { uploadDocumentToStorage(id, file, isPdf ? 'pdf' : 'epub'); return; }
+        const reader = new FileReader();
+        reader.onload = () => {
+            const it = findItemById(id); if (!it) return;
+            saveSnapshot();
+            const isVideo = file.type.startsWith('video');
+            it.mediaType = isVideo ? 'video' : 'image';
+            it.mediaSrc = reader.result;
+            render();
+            measureMediaNaturalSize(it.mediaSrc, isVideo, (w, h) => {
+                const live = findItemById(id);
+                if (!live || live.mediaSrc !== it.mediaSrc) return;
+                Object.assign(live, computeMediaCardSize(w, h));
+                render();
+            });
+        };
+        reader.readAsDataURL(file);
+    }
     function triggerMediaUpload(id) {
         const input = document.createElement('input');
         input.type = 'file'; input.accept = 'image/*,video/*,application/pdf,application/epub+zip,.epub';
-        input.onchange = () => {
-            const file = input.files[0]; if (!file) return;
-            const isPdf = file.type === 'application/pdf' || /\.pdf$/i.test(file.name);
-            const isEpub = file.type === 'application/epub+zip' || /\.epub$/i.test(file.name);
-            if (isPdf || isEpub) { uploadDocumentToStorage(id, file, isPdf ? 'pdf' : 'epub'); return; }
-            const reader = new FileReader();
-            reader.onload = () => {
-                const it = findItemById(id); if (!it) return;
-                saveSnapshot();
-                const isVideo = file.type.startsWith('video');
-                it.mediaType = isVideo ? 'video' : 'image';
-                it.mediaSrc = reader.result;
-                render();
-                measureMediaNaturalSize(it.mediaSrc, isVideo, (w, h) => {
-                    const live = findItemById(id);
-                    if (!live || live.mediaSrc !== it.mediaSrc) return;
-                    Object.assign(live, computeMediaCardSize(w, h));
-                    render();
-                });
-            };
-            reader.readAsDataURL(file);
-        };
+        input.onchange = () => processMediaFile(id, input.files[0]);
         input.click();
     }
     // PDFs/EPUBs go through real Supabase Storage rather than the data: URL path images/video use
@@ -403,7 +408,7 @@ import { render } from './waypoints-render-loop.js';
         return wrap;
     }
 
-export { buildEpubViewer, buildPdfViewer, clearMedia, renderMediaHTML, setMediaFromLink, triggerMediaUpload };
+export { buildEpubViewer, buildPdfViewer, clearMedia, processMediaFile, renderMediaHTML, setMediaFromLink, triggerMediaUpload };
 
 // React → vanilla bridge (see MediaCard.jsx, app/dotto/CanvasItemsLayer.jsx's CARD_KIND_COMPONENTS)
 // — buildPdfViewer/buildEpubViewer build a whole live DOM subtree (pdf.js/epub.js need real

@@ -204,14 +204,29 @@
 <div id="notification-pill">
     <div id="notification-root"></div>
 </div>
-<!-- File-upload popup — U toggles it open/closed, independent of the #hamburger-stack rail-panel
-     system entirely (not a railViewEls/railIconBtns entry — plain classList.toggle('open') own
-     state, see upload-popup.js/core-state.js). Sits just past #dotto-rail's own right edge,
-     bottom-left. Clicking #upload-popup-btn creates a blank 'media' canvas item at the current
-     viewport center and immediately calls triggerMediaUpload on it (media-pdf-epub.js) — reusing
-     the exact same image/video/PDF/EPUB upload flow the Media card's own "Upload" button already
-     uses, rather than duplicating that FileReader/Supabase-storage logic here. -->
+<!-- File-upload popup — U toggles it open/closed. Not a #hamburger-stack railViewEls/railIconBtns
+     entry (no rail icon triggers it, only the U shortcut) — but per explicit follow-up request it
+     now slides in/out from behind the rail and fades, the same left-transition + opacity language
+     #hamburger-stack/its own panels use (see #upload-popup's own comment, globals.css, for why
+     that's a parallel implementation rather than actually joining that shared shell), instead of
+     the plain floating box it used to be. openUploadPopup/closeUploadPopup (upload-popup.js) close
+     the hamburger-stack rail view and vice versa (openRailView, panels-hamburger.js) — both sit at
+     the same screen position now, so only one open at a time makes sense.
+     .search-panel-heading/-desc (globals.css) reused verbatim for the "Upload"
+     title/subtext, same as Search/Queries already share them with each other.
+     #upload-dropzone is the click-or-drag hotspot — picking/dropping a file just stores it
+     locally (see upload-popup.js) and shows its name here; nothing touches the canvas until
+     #upload-popup-btn is actually clicked, which is what creates the blank 'media' item and hands
+     the already-picked file to processMediaFile (media-pdf-epub.js) — the same FileReader/
+     Supabase-storage pipeline the Media card's own "Upload" button uses (via triggerMediaUpload,
+     a thin wrapper around that same function for the picker-then-process flow), not a
+     reimplementation. -->
 <div id="upload-popup">
     <button id="upload-popup-close" class="upload-popup-close" title="Close">✕</button>
-    <button id="upload-popup-btn" class="upload-popup-btn">Upload a file to add it to the canvas</button>
+    <h2 class="search-panel-heading">Upload</h2>
+    <p class="search-panel-desc">Add a file to your canvas.</p>
+    <div id="upload-dropzone" class="upload-dropzone">
+        <span id="upload-dropzone-label" class="upload-dropzone-label">Drag a file here, or click to browse</span>
+    </div>
+    <button id="upload-popup-btn" class="upload-popup-btn" disabled>Add to canvas</button>
 </div>

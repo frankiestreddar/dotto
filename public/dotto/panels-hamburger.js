@@ -4,6 +4,7 @@ import { closeCollabPanel } from './friends-presence.js';
 import { clearListPanelSelection, renderHubCollabList, renderWaypointsList } from './hamburger-collab.js';
 import { buildOutline } from './shared-canvases-outline.js';
 import { closeSourceAddMenu } from './source-buttons-cursor-mode.js';
+import { closeUploadPopup } from './upload-popup.js';
 
 
     // ---------- Hover/Pin Panel Helper ----------
@@ -75,6 +76,11 @@ import { closeSourceAddMenu } from './source-buttons-cursor-mode.js';
     // check needs the OLD value.
     let railCloseTimeoutId = null;
     function openRailView(key, viewEl, btn, onOpen, pin) {
+        // #upload-popup (upload-popup.js) now slides out from the same spot behind the rail as
+        // this shell does, per explicit request — the two aren't part of the same railViewEls
+        // system (no rail icon triggers Upload, only the U shortcut), so it needs its own explicit
+        // close here rather than getting it for free the way every OTHER rail view does above.
+        closeUploadPopup();
         clearListPanelSelection();
         clearTimeout(railCloseTimeoutId);
         if (appState.activeRailView === 'ai' && key !== 'ai') resetAiSearchState();

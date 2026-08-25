@@ -236,6 +236,8 @@
         uploadPopup: document.getElementById('upload-popup'),
         uploadPopupBtn: document.getElementById('upload-popup-btn'),
         uploadPopupClose: document.getElementById('upload-popup-close'),
+        uploadDropzone: document.getElementById('upload-dropzone'),
+        uploadDropzoneLabel: document.getElementById('upload-dropzone-label'),
         btnFriends: document.getElementById('btn-friends'),
         friendsPanel: document.getElementById('friends-panel'),
         btnSettings: document.getElementById('btn-settings'),
