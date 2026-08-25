@@ -1071,6 +1071,38 @@
     .hub-subpanel-search-wrap{flex:0 0 auto;padding:10px;border-bottom:1px solid var(--card-border);}
     .hub-subpanel-search{width:100%;height:34px;border-radius:9px;background:var(--hover-bg);border:1px solid var(--card-border);color:var(--ink);padding:0 12px;font-size:13px;outline:none;box-sizing:border-box;}
     .hub-subpanel-search::placeholder{color:var(--ink-soft);}
+    /* #search-panel's own hero — a glassy, blurred radial-gradient circle (brand blue center
+       fading to the panel's own var(--paper) background at the edge, per explicit request) with
+       search.png centered on top. overflow:hidden + border-radius:50% on the wrapper is what
+       clips .search-panel-hero-gradient's own oversized inset:-16px box into a clean circular
+       blur — blurring a gradient sized exactly to its container tends to look "cut off" in a
+       boxy way right at the edge; extending it past the container first and clipping the excess
+       gives a properly soft circular fade instead. */
+    .search-panel-hero{position:relative;width:72px;height:72px;margin:24px auto 4px;border-radius:50%;overflow:hidden;display:flex;align-items:center;justify-content:center;flex:0 0 auto;}
+    .search-panel-hero-gradient{position:absolute;inset:-16px;background:radial-gradient(circle at center, var(--brand) 0%, var(--paper) 72%);filter:blur(12px);}
+    /* The "glassy" layer, per explicit request — a faint translucent white tint plus a soft inset
+       highlight/shadow pair, sitting on top of the blurred gradient. backdrop-filter blurs
+       whatever renders behind it WITHIN this same circle (the gradient layer just below), adding
+       an extra layer of soft diffusion on top of that gradient's own filter:blur — deliberately
+       theme-agnostic (no light-mode override) since a frosted-glass highlight reads the same way
+       regardless of theme, same reasoning .search-panel-hero-icon below uses for staying a
+       constant white. */
+    .search-panel-hero-glass{position:absolute;inset:0;border-radius:50%;background:rgba(255,255,255,0.08);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);border:1px solid rgba(255,255,255,0.18);box-shadow:inset 0 1px 2px rgba(255,255,255,0.3),inset 0 -6px 10px rgba(0,0,0,0.15);}
+    /* Constant white regardless of theme — this icon always sits on the same blue gradient, never
+       on a per-theme surface, so it doesn't need (and shouldn't get) the usual brightness(0)/
+       light-mode-drops-invert(1) treatment every other rail icon uses; same fixed-background
+       exception .tag-chip/.remote-cursor-name/brand-background buttons already get elsewhere in
+       this file. */
+    .search-panel-hero-icon{position:relative;z-index:1;width:22px;height:22px;filter:brightness(0) invert(1);opacity:0.95;}
+    /* Space Grotesk (this file's semantic-heading typeface, see the app-typeface comment near the
+       top of this file) per explicit request; the description just below inherits the default
+       Golos Text body font with no override needed, also per explicit request. */
+    .search-panel-heading{margin:8px 0 2px;text-align:center;font-family:'Space Grotesk', sans-serif;font-size:16px;font-weight:600;color:var(--ink);flex:0 0 auto;}
+    .search-panel-desc{margin:0 20px 16px;text-align:center;font-size:12px;line-height:1.4;color:var(--ink-soft);flex:0 0 auto;}
+    /* The search box moved below the new hero/heading/description (per explicit request) no
+       longer needs the divider .hub-subpanel-search-wrap normally draws below it elsewhere — the
+       hero above already fills that visual role. */
+    .search-panel-search-wrap{border-bottom:none;}
     .hub-subpanel-list{flex:1 1 auto;overflow-y:auto;min-height:0;padding:6px 4px;scrollbar-width:none;}
     .hub-subpanel-list::-webkit-scrollbar{display:none;}
     /* #settings-panel's own rows — .settings-row is deliberately generic (label left, some control
