@@ -237,13 +237,6 @@
     .static-item-table:hover tr.add-row-row td.add-row-cell, .static-item-table:hover td.add-col-cell{opacity:0.35;}
     
     #world{position:absolute;top:0;left:0;transform-origin:0 0;will-change:transform;z-index:1;}
-    /* Registers --tb-offset as a real animatable <length> (Houdini @property) rather than a plain
-       untyped custom property — plain custom properties don't interpolate during a CSS transition
-       (the browser just flips them instantly at the halfway point of the property's own transition
-       list), which would make the compensating shift #top-bar-center applies (below) snap instead
-       of sliding smoothly alongside #nav-arrows-pill/#collab-bubble's own width growth. See
-       #top-bar-center's own comment for what this offset is compensating for. */
-    @property --tb-offset{syntax:'<length>';inherits:false;initial-value:0px;}
     /* background:var(--paper) — same colour as #canvas itself, not --bar (the lighter panel/floating-
        chrome background most other pill-shaped elements use) — per explicit request that these
        top-bar pills read as part of the canvas rather than a separate white-ish surface floating
@@ -262,46 +255,46 @@
        element, top-bar.html) holding back/forward, the breadcrumb, and the per-canvas "add a
        collaborator" flyout as plain inner sections (#nav-arrows-pill/#breadcrumb-pill/
        #collab-bubble below) rather than three separately-chromed pills sitting side by side, per
-       explicit request. gap:0 (was 10px, back when each section was its own pill needing real
-       space between them) — spacing between sections is each section's own margin-left now (see
-       #breadcrumb-pill/#collab-bubble below), so #collab-bubble's own can transition to 0 together
-       with its width when it hides, instead of a flex `gap` unconditionally reserving that space
-       even then. .bubble's own padding:4px (reused here, see that class's own comment) is what
-       insets the very first/last visible section from this pill's own true edges.
+       explicit request. .bubble's own padding:4px (reused here, see that class's own comment) is
+       what insets the very first/last visible section from this pill's own true edges.
        #nav-arrows-pill/#collab-bubble are both collapsed (0 width/opacity) at rest now and only
        reveal on this element's own :hover — per explicit request that they only show once the
        breadcrumb (the only thing left visible at rest) is hovered — see each section's own comment
        for why the trigger lives here on the whole pill rather than on #breadcrumb-pill specifically.
-       --tb-offset (registered above, see that rule's own comment) compensates for
-       #nav-arrows-pill/#collab-bubble growing by DIFFERENT amounts on hover (a fixed 2-button width
-       vs. a variable number of avatars) so #breadcrumb-pill's own on-screen centre stays exactly
-       fixed at the viewport's — per explicit request — rather than drifting with whichever side
-       happens to be wider. Plain translateX(-50%) alone only centres the PILL's own combined
-       width, which only happens to also centre the breadcrumb specifically when both sides grow by
-       equal amounts. CollabPill.jsx computes the actual target value (it needs real measured
-       widths — #collab-bubble's in particular varies with avatar count, not expressible in CSS
-       alone) into --tb-offset-target, a plain (non-animatable, doesn't need to be) custom property
-       always holding the current correct value regardless of hover state; the rule just below
-       switches --tb-offset itself to that target on hover, and back to 0 at rest (0 is always
-       correct at rest since only the breadcrumb — with nothing asymmetric on either side of it — is
-       visible then). Both nav-arrows-pill/collab-bubble's own max-width transitions and this
-       transform's transition share the same .3s ease timing, which is what makes them finish
-       growing in lockstep rather than one lagging or overshooting the other — per explicit request. */
-    #top-bar-center{position:fixed;top:20px;left:50%;--tb-offset:0px;transform:translateX(calc(-50% + var(--tb-offset)));z-index:1000;gap:0;height:40px;transition:transform .3s ease, opacity .3s ease;}
-    #top-bar-center:hover{--tb-offset:var(--tb-offset-target, 0px);}
+       display:grid;grid-template-columns:1fr auto 1fr (overriding .bubble's own display:flex —
+       wins since this is an ID rule) is what keeps #breadcrumb-pill's own on-screen centre exactly
+       fixed at the viewport's regardless of #nav-arrows-pill/#collab-bubble growing by DIFFERENT
+       amounts on hover (a fixed 2-button width vs. a variable number of avatars) — per explicit
+       request, after an earlier flexbox-plus-JS-measured-compensating-transform attempt at this
+       proved genuinely glitchy in practice. The two `1fr` tracks are, by definition, always exactly
+       equal width — CSS mirrors whichever SIDE's natural content is wider onto BOTH tracks (this is
+       standard `fr`-unit intrinsic-sizing behavior, not anything hand-rolled here), so the `auto`
+       middle column (breadcrumb) sits exactly centred by pure grid geometry at every instant,
+       including every intermediate frame of the hover transition — no JS measurement, no custom
+       properties, no manual offset math, nothing that can drift out of sync. justify-self:end/start
+       on #nav-arrows-pill/#collab-bubble (below) is what pulls each one's own real content flush
+       against its OWN track's inner (breadcrumb-facing) edge rather than centring within — or
+       filling — whatever extra width its track's mirrored sizing left it with; any leftover space
+       from the narrower side lands on the pill's own OUTER edge instead, as plain background,
+       rather than as a gap next to the breadcrumb. Both sides' max-width transitions (their own
+       rules, below) share the same .3s ease timing, which is what makes them finish growing at the
+       same moment — a direct consequence of the grid recomputing its own track sizes every frame
+       from both, not a separately synchronized animation. */
+    #top-bar-center{position:fixed;top:20px;left:50%;transform:translateX(-50%);z-index:1000;display:grid;grid-template-columns:1fr auto 1fr;align-items:center;column-gap:8px;height:40px;transition:transform .3s ease, opacity .3s ease;}
     /* Slides up and fades out while a notification is showing (see showNotification/
        dismissCurrentNotification, stopwatch-search-notifications.js, which toggle this same class
        on #top-bar-center and #notification-pill together) — translateY stacks onto the existing
-       translate centering rather than replacing it, so horizontal position never moves. Drops back
-       to a plain -50% (no --tb-offset term) since nothing is visible to keep centred on while this
-       is active anyway (opacity:0, pointer-events:none) — one less moving part to reason about for
-       a state where it can't be seen regardless. */
+       translateX(-50%) centering rather than replacing it, so horizontal position never moves. */
     #top-bar-center.notif-active{transform:translateX(-50%) translateY(-60px);opacity:0;pointer-events:none;}
     /* Back/forward, as their own inner section (top-bar.html) — used to be its own separate .bubble;
-       display:flex/align-items:center/gap:2px (the actual layout of its two buttons) is all it
-       needs of its own now, since background/border/radius/shadow/height/edge-padding all live on
-       #top-bar-center itself (see that element's own comment for the merge). No divider before it
-       — it's always the first section, flush against the pill's own left edge padding.
+       display:flex/align-items:center/gap:2px (the actual layout of its two buttons) is its own
+       INTERNAL layout, independent of it also being a grid item of #top-bar-center's own
+       grid-template-columns:1fr auto 1fr (see that element's own comment for the merge and why a
+       grid). justify-self:end pulls it flush against this track's own right edge — the one facing
+       #breadcrumb-pill — rather than centring within (or filling) the full 1fr track width, which
+       mirrors whichever side (this or #collab-bubble) has more actual content; any resulting slack
+       on the narrower side shows up as background past THIS section's own outer (left) edge
+       instead, never as a gap next to the breadcrumb.
        Collapsed (max-width:0/opacity:0) at rest, revealed on #top-bar-center:hover (below) — per
        explicit request that this and #collab-bubble only show once the breadcrumb (the only thing
        left visible at rest) is hovered. Triggered off the whole PILL's own :hover rather than
@@ -311,7 +304,7 @@
        moves onto the newly-revealed buttons themselves — a literal #breadcrumb-pill:hover trigger
        would instead collapse them the instant the cursor left the breadcrumb's own narrower box,
        making a revealed button behind it hard or impossible to actually reach and click. */
-    #nav-arrows-pill{display:flex;align-items:center;gap:2px;flex:0 0 auto;max-width:0;opacity:0;overflow:hidden;transition:max-width .3s ease,opacity .2s ease;}
+    #nav-arrows-pill{display:flex;align-items:center;gap:2px;justify-self:end;max-width:0;opacity:0;overflow:hidden;transition:max-width .3s ease,opacity .2s ease;}
     #top-bar-center:hover #nav-arrows-pill{max-width:80px;opacity:1;}
     /* Sits in the exact same fixed top:20px/centred slot as #top-bar-center, off-screen (slid up,
        faded out) at rest — see its own markup comment, top-bar.html, for why it's static rather
@@ -424,14 +417,16 @@
        (cursor:text hints at that, matching a real text field).
        display:flex/align-items:center (this section's own layout) used to come from the now-removed
        .bubble class this element carried — see #top-bar-center's own comment for why that merged
-       into one pill instead.
-       margin-left/border-left (the divider from #nav-arrows-pill) collapse to 0 at rest and only
-       appear on #top-bar-center:hover, together with #nav-arrows-pill/#collab-bubble's own reveal
-       (see #nav-arrows-pill's own comment for why hover lives on the whole pill) — a divider with
-       nothing on the other side of it (#nav-arrows-pill collapsed to 0 width) would otherwise read
-       as a stray line floating at the pill's own left edge whenever the arrows aren't shown. */
-    #breadcrumb-pill{display:flex;align-items:center;margin-left:0;border-left:0 solid var(--card-border);padding:0 16px;gap:4px;max-width:280px;overflow:hidden;font-family:'Space Grotesk', sans-serif;transition:margin-left .3s ease,border-left-width .3s ease;}
-    #top-bar-center:hover #breadcrumb-pill{margin-left:4px;border-left-width:1px;}
+       into one pill instead. No divider from #nav-arrows-pill/#collab-bubble any more (an earlier
+       version had one, via margin-left/border-left transitioning in on hover) — deliberately
+       removed: adding width asymmetrically on only this section's OWN left side shifted its text a
+       couple px off true centre whenever it appeared, undermining the exact "breadcrumb stays fixed
+       in the centre of the viewport" requirement (#top-bar-center's own grid layout, see its own
+       comment, only guarantees the CENTRE COLUMN's overall box stays centred — not that this
+       element's own text stays centred WITHIN that box if its own edges grow unevenly). column-gap
+       on #top-bar-center now provides breathing room from its neighbours instead, symmetric on
+       both sides by construction, so it can never introduce this kind of drift. */
+    #breadcrumb-pill{display:flex;align-items:center;padding:0 16px;gap:4px;max-width:280px;overflow:hidden;font-family:'Space Grotesk', sans-serif;}
     #breadcrumb-pill .breadcrumb-pill-ellipsis,
     #breadcrumb-pill .breadcrumb-pill-parent{color:var(--ink);font-weight:400;font-size:13px;cursor:pointer;white-space:nowrap;flex:0 0 auto;}
     #breadcrumb-pill .breadcrumb-pill-ellipsis:hover,
@@ -707,20 +702,25 @@
        snap instead — reversed here). */
     .rail-btn.active .rail-icon-img{transition:opacity .15s ease,transform .15s ease-in;}
     .rail-btn:hover .rail-icon-img,.rail-btn.active .rail-icon-img{opacity:1;}
-    /* Grows/shrinks smoothly now (max-width/margin-left/padding/border-left-width/opacity, all
-       transitioned together) rather than the old hard display:none/.show{display:flex} toggle,
-       which couldn't animate at all — per explicit request that the merged #top-bar-center pill
-       (see its own comment) visibly grow when this section appears instead of snapping into place.
-       Always display:flex now (CollabPill.jsx only ever toggles the .show CLASS, see its own
-       comment — no JS changes needed here). max-width:0/220px (was width:auto via display:none) is
-       the standard "animate a flex item's width toward its natural size" trick — 220px is just a
-       generous cap comfortably past this section's real content width (a handful of small avatars
-       plus a +N pill, or the single #collab-add-btn circle), never actually the size it renders at;
-       overflow:hidden clips it to whatever the transitioning max-width currently allows.
-       margin-left/padding/border-left-width all animate from 0 together with max-width/opacity so
-       the collapsed state truly contributes zero width to the pill (a plain border-left:1px, even
-       transparent, would still reserve that 1px regardless of color — animating the WIDTH itself to
-       0 avoids that) rather than just being invisible while still taking up space.
+    /* Grows/shrinks smoothly now (max-width/padding/opacity, all transitioned together) rather than
+       the old hard display:none/.show{display:flex} toggle, which couldn't animate at all — per
+       explicit request that the merged #top-bar-center pill (see its own comment) visibly grow when
+       this section appears instead of snapping into place. Always display:flex now (CollabPill.jsx
+       only ever toggles the .show CLASS, see its own comment — no JS changes needed here).
+       justify-self:start pulls it flush against its own grid track's left edge — the one facing
+       #breadcrumb-pill — same reasoning as #nav-arrows-pill's own justify-self:end (see that rule's
+       own comment, and #top-bar-center's for why this is a grid at all now). max-width:0/220px (was
+       width:auto via display:none) is the standard "animate a flex item's width toward its natural
+       size" trick — 220px is just a generous cap comfortably past this section's real content width
+       (a handful of small avatars plus a +N pill, or the single #collab-add-btn circle), never
+       actually the size it renders at; overflow:hidden clips it to whatever the transitioning
+       max-width currently allows. padding animates from 0 together with max-width/opacity so the
+       collapsed state truly contributes zero width. No margin-left/border-left divider any more (an
+       earlier version had one) — see #breadcrumb-pill's own comment for why that was dropped
+       (adding width asymmetrically on only one section's edge risked shifting the CENTRE COLUMN's
+       own content off true centre — collab-bubble's own margin wasn't actually the cause of that
+       specific bug under this grid layout, but a divider on only one side looked odd once
+       breadcrumb's matching one was removed, so both went for consistency).
        overflow switches to visible the instant .show is added (not transitioned — overflow itself
        can't animate) rather than staying hidden throughout: .collab-tooltip is an absolutely
        positioned child that pops up BELOW this element's own box on hover (top:calc(100% + 8px)) —
@@ -733,8 +733,8 @@
        rest) is hovered, on top of the pre-existing .show condition (there being a canvas context
        for collaborators to exist at all). Both must hold: .show alone (hover-independent) no longer
        grows it by itself. */
-    #collab-bubble{position:relative;display:flex;align-items:center;cursor:pointer;flex:0 0 auto;max-width:0;margin-left:0;padding:0;border-left:0 solid var(--card-border);opacity:0;overflow:hidden;transition:max-width .3s ease,margin-left .3s ease,padding .3s ease,border-left-width .3s ease,opacity .2s ease;}
-    #top-bar-center:hover #collab-bubble.show{max-width:220px;margin-left:4px;padding:0 10px;border-left-width:1px;opacity:1;overflow:visible;}
+    #collab-bubble{position:relative;display:flex;align-items:center;cursor:pointer;justify-self:start;max-width:0;padding:0;opacity:0;overflow:hidden;transition:max-width .3s ease,padding .3s ease,opacity .2s ease;}
+    #top-bar-center:hover #collab-bubble.show{max-width:220px;padding:0 10px;opacity:1;overflow:visible;}
     .collab-avatars{display:flex;align-items:center;}
     /* No border-radius — only the top-bar button avatar (#btn-profile/.profile-avatar-sm) keeps
        circular clipping; every other avatar in the app is a plain square. */
