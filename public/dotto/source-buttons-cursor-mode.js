@@ -76,9 +76,7 @@ import { clearDataLinkPending } from './srs-connections-core.js';
         if (!appState.modeToolbar.classList.contains('expanded')) { stopModePopupSafeZone(); return; }
         if (appState.modeToolbar.contains(e.target)) { stopModePopupSafeZone(); return; } // back over it for real — nothing left to track
         // Landing on another rail button's own hitbox closes the popup outright, even inside the
-        // safe zone below — per explicit request that hovering another icon still closes it. Only
-        // its real (possibly tightened, see #btn-inbox/#rail-btn-ai, globals.css) hitbox counts as
-        // "landing on" it, not just passing near its visual footprint.
+        // safe zone below — per explicit request that hovering another icon still closes it.
         const otherBtn = e.target.closest && e.target.closest('.rail-btn');
         if (otherBtn && !appState.modeToolbar.contains(otherBtn)) { closeModePopup(); return; }
         if (!pointInPolygon(e.clientX, e.clientY, modePopupSafeZone())) closeModePopup();

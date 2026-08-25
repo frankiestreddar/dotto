@@ -1990,18 +1990,25 @@
        row elsewhere (.cell-tag-picker-row.selected), a distinct purple tint from the plain grey
        var(--hover-bg) both :hover and .active above share, so a multi-select doesn't read as
        "currently open." */
-    /* rgba(99,102,241,0.18)'s own alpha-blend already adapts reasonably to either theme (blends
-       to a muted dark purple over a dark surface, a light lavender over a light one) since it's
-       translucent, not solid — but color:white was hardcoded independent of that, so it stayed
-       illegible once the background it blends against turned light. var(--ink) fixes the text the
-       same way as every other case above. */
-    .outline-item-selected, .outline-item-selected:hover{background:rgba(99,102,241,0.18);color:var(--ink);}
-    /* :root[data-theme="light"] .outline-item:hover above (4 class-level selectors) otherwise
-       outranks .outline-item-selected:hover (2) in light mode specifically — regardless of which
-       comes later in the file, higher specificity always wins a tie — so a selected+hovered row
-       fell back to the plain grey hover background there instead of staying purple, per explicit
-       bug report. Repeating the same rule at matching specificity fixes it in both themes. */
-    :root[data-theme="light"] .outline-item-selected:hover{background:rgba(99,102,241,0.18);color:var(--ink);}
+    /* A purple BORDER, not a background fill (was rgba(99,102,241,0.18), same purple ::selection
+       still uses independently, further down this file) — per explicit follow-up request. Since
+       this no longer competes with .outline-item:hover's own background (var(--card) dark /
+       var(--hover-bg) light) for the same property, the earlier light-mode specificity fix that
+       needed lives here (:root[data-theme="light"] .outline-item:hover's own 4 class-level
+       selectors used to outrank a same-property override on this rule) is gone too — hovering a
+       selected row now just shows the normal grey hover background quietly underneath this border,
+       nothing left to fight over. var(--ink) text color unchanged. */
+    .outline-item-selected, .outline-item-selected:hover{border:2px solid var(--brand);color:var(--ink);}
+    /* Adjacent selected rows merge into one continuous border instead of each getting its own
+       separate box, per explicit follow-up request — :has() makes this pure CSS, no JS needed to
+       track which rows border which. A selected row preceded by another selected row drops its own
+       top edge/radius (the border above it continues seamlessly instead); a selected row followed
+       by another drops its own bottom edge/radius the same way — a row in the middle of a longer
+       run matches both rules at once, leaving only straight left/right sides. margin-top:0 on the
+       "preceded by" case removes .outline-item's own 2px vertical gap between rows so touching
+       borders actually touch instead of sitting 2px apart. */
+    .outline-item-selected + .outline-item-selected{border-top:none;border-top-left-radius:0;border-top-right-radius:0;margin-top:0;}
+    .outline-item-selected:has(+ .outline-item-selected){border-bottom:none;border-bottom-left-radius:0;border-bottom-right-radius:0;}
     /* Toggled by handleOutlineSearch (shared-canvases-outline.js) — a plain post-render filter over
        the already-built tree (see appState.outlineRows), not a rebuild with the query baked in. */
     .outline-item.outline-row-hidden{display:none;}
@@ -2802,12 +2809,13 @@
 
     /* Purple text-selection highlight. Note: ::selection is spec-limited to color/background-
        color/text-shadow (plus a couple others) — no browser honors padding or border-radius on
-       it, so this is the closest a native selection highlight can get to that look. Exactly matches
-       the sidebar's own shift-click .outline-item-selected rows (rgba(99,102,241,0.18)/var(--ink)),
-       per explicit follow-up request — an earlier version used a solid var(--brand)/#fff instead,
-       reasoning the row style's translucent alpha wasn't strong enough for ::selection to stay
-       legible against any background; reverted since the request was for an exact match, not just
-       the same hue. */
+       it, so this is the closest a native selection highlight can get to that look. Matches
+       rgba(99,102,241,0.18)/var(--ink), per explicit follow-up request that it exactly match the
+       sidebar's own shift-click .outline-item-selected rows — at the time, a translucent
+       background fill those rows used too; they've since switched to a solid var(--brand) BORDER
+       instead (per a later explicit request), which doesn't translate to ::selection the same way
+       (no border-radius/border support there), so this keeps the original fill value rather than
+       trying to chase that follow-up change. */
     ::selection{background:rgba(99,102,241,0.18);color:var(--ink);}
 
     /* ---------- Text selection toolbar + add-to-source popup (dotto-script.js) ---------- */
