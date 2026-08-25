@@ -691,36 +691,41 @@
     .collab-empty{padding:16px;text-align:center;color:var(--ink-soft);font-size:12px;}
     
     /* Fixed 32x32 footprint (matching any other .rail-btn) at all times, collapsed or expanded —
-       this is what keeps expansion from ever shifting Inbox (its sibling in the same .rail-group,
-       top-bar.html) sideways: a plain flex column would grow #mode-toolbar's own height when
-       expanded (or width, for the row version this used to be), which .rail-group's
-       align-items:center would then re-center, nudging every other icon in the group along with
-       it. Instead each .mode-btn stays position:absolute within this fixed box, so growth never
-       touches the group's layout — it just overflows visually past #dotto-rail's own right edge
-       (no overflow:hidden anywhere in this chain to clip it).
-       Per explicit request, hovering now reveals a vertical popup LIST (icon+name rows, like a
-       small dropdown menu) rather than the row of bare icons this used to expand into sideways —
-       each .mode-btn keeps its collapsed 32x32 .rail-btn sizing right up until .expanded overrides
-       it into a full-width row (justify-content:flex-start instead of center, .mode-btn-name
-       revealed, a background/border/shadow of its own matching every other rail popup's look).
-       top offsets are fixed per DOM position (normal/data/select/pen, 38px apart = 32px row height
-       + a bit of breathing room) rather than tracking whichever mode is currently active — so the
-       active mode's row can visually "jump" to its DOM-order slot on expand, same tradeoff the
-       very first (horizontal) version of this already had, just rotated 90° again. */
+       this is what keeps #mode-popup below from ever shifting Inbox (its sibling in the same
+       .rail-group, top-bar.html) sideways: #mode-toolbar itself never changes size, so
+       .rail-group's align-items:center never has anything new to re-center around. Each .mode-btn
+       stays position:absolute within this fixed box and is NEVER itself restyled by hover/expand
+       state — per explicit follow-up request, the collapsed rail button stays exactly where/what
+       it is at all times; only the separate #mode-popup panel below appears/disappears. */
     #mode-toolbar{position:relative;width:32px;height:32px;}
     #mode-toolbar .mode-btn{position:absolute;top:0;left:0;display:none;}
     #mode-toolbar .mode-btn.mode-visible{display:flex;}
-    #mode-toolbar.expanded .mode-btn{display:flex;left:calc(100% + 12px);width:170px;height:32px;justify-content:flex-start;gap:10px;padding:0 12px;background:var(--bar);border:1px solid var(--card-border);box-shadow:0 4px 12px rgba(0,0,0,0.4);z-index:1001;}
-    :root[data-theme="light"] #mode-toolbar.expanded .mode-btn{box-shadow:0 4px 12px rgba(0,0,0,0.168);}
-    #mode-toolbar.expanded .mode-btn:hover{background:var(--hover-bg);}
-    #mode-toolbar.expanded .mode-btn:nth-child(1){top:0;}
-    #mode-toolbar.expanded .mode-btn:nth-child(2){top:38px;}
-    #mode-toolbar.expanded .mode-btn:nth-child(3){top:76px;}
-    #mode-toolbar.expanded .mode-btn:nth-child(4){top:114px;}
-    /* Hidden collapsed (bare icon, matching every other rail button); revealed only once the row
-       above widens to fit it. */
-    .mode-btn-name{display:none;}
-    #mode-toolbar.expanded .mode-btn-name{display:inline;font-size:12px;color:var(--ink);white-space:nowrap;}
+    /* One cohesive popup panel (not 4 individually-bordered pills, per explicit follow-up
+       request) — a real flex column so JS-set `order` (updateModeToolbarUI,
+       source-buttons-cursor-mode.js) can sort the currently active mode's row to the top, with
+       the other three following below in their normal relative order, also per explicit request.
+       Anchored the same way every other rail popup is (left:calc(100% + 12px)), top:0 so it
+       doesn't jump around relative to the fixed collapsed button above. */
+    .mode-popup{display:none;position:absolute;top:0;left:calc(100% + 12px);width:170px;flex-direction:column;gap:2px;background:var(--bar);border:1px solid var(--card-border);border-radius:10px;padding:4px;box-shadow:0 4px 12px rgba(0,0,0,0.4);z-index:1001;}
+    :root[data-theme="light"] .mode-popup{box-shadow:0 4px 12px rgba(0,0,0,0.168);}
+    #mode-toolbar.expanded .mode-popup{display:flex;}
+    /* Plain rows within that one shared panel — background:none at rest so only :hover/.active
+       stand out against the panel's own surface, matching .add-menu-row's own row-in-a-shared-
+       panel convention elsewhere in this file, rather than each row having its own separate
+       background/border the way an earlier version of this popup did. */
+    .mode-popup-row{display:flex;align-items:center;gap:10px;height:32px;padding:0 10px;border-radius:6px;background:none;border:none;cursor:pointer;font-family:inherit;}
+    .mode-popup-row:hover{background:var(--hover-bg);}
+    /* The currently active mode (JS-toggled alongside its own order:-1, same place,
+       updateModeToolbarUI) — a persistent highlight, same faint-outline convention
+       .rail-btn.active already uses, not just a hover-only effect. */
+    .mode-popup-row.active{background:var(--hover-bg);outline:1px solid var(--outline-soft);}
+    /* .rail-icon-img's own hover/active opacity boost (elsewhere in this file) is scoped to
+       .rail-btn, which these rows deliberately aren't (see top-bar.html's own comment on why) —
+       repeated here so the icon still brightens on hover/for the active row instead of staying
+       dimmed. */
+    .mode-popup-row .rail-icon-img{opacity:0.55;}
+    .mode-popup-row:hover .rail-icon-img,.mode-popup-row.active .rail-icon-img{opacity:1;}
+    .mode-popup-row-name{font-size:12px;color:var(--ink);white-space:nowrap;}
 
     #canvas.mode-data{cursor:crosshair;}
     #canvas.mode-data .item, #canvas.mode-data .item *{cursor:crosshair !important;}

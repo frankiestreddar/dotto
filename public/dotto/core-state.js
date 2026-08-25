@@ -420,6 +420,10 @@
     appState.dotLayerBaseX = -appState.DOT_LAYER_MARGIN / 2;
     appState.dotLayerBaseY = -appState.DOT_LAYER_MARGIN / 2;
     appState.modeButtons = Array.from(appState.modeToolbar.querySelectorAll('.mode-btn'));
+    // The separate popup-panel rows (top-bar.html) — a different, new element from .mode-btn
+    // above, deliberately not sharing that class (see the panel's own comment there); kept in
+    // sync alongside modeButtons by the same updateModeToolbarUI (source-buttons-cursor-mode.js).
+    appState.modePopupRows = Array.from(appState.modeToolbar.querySelectorAll('.mode-popup-row'));
     // Every panel-style rail view, in the same order as their icons top-to-bottom in #dotto-rail
     // (see openRailView/closeRailView, panels-hamburger.js) — replaces the old hubSubpanels (just
     // Waypoints/Collaborations/Chats) now that Marketplace/Library/Messages/Add/Profile/AI search

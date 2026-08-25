@@ -55,29 +55,28 @@
          Snippets, see its own comment) — #rail-btn-ai/#ai-panel keep their internal id unchanged,
          same convention as every other rename/relocation this session. -->
     <div class="rail-group">
-        <!-- Cursor-mode selector — collapsed shows only the currently active mode (icon only, same
-             32x32 .rail-btn square as any other rail icon). Hovering shows a popup list instead of
-             the row of bare icons this used to expand into, per explicit request — each of the 4
-             .mode-btn becomes a full icon+name row (see #mode-toolbar.expanded, globals.css),
-             stacked vertically to the right of the rail (same left:calc(100% + 12px) anchor every
-             other rail popup uses), rather than reparenting into a separate wrapper element — they
-             stay the exact same clickable buttons either way, just restyled, so the existing click
-             wiring (appState.modeButtons, srs-connections-core.js) needed no changes at all. The
-             old one-line "tap X, hold for temporary" explanations are dropped from this view (icon
-             + name only, matching what was actually asked for) rather than trying to cram a
-             multi-character key badge into the fixed single-glyph .rail-tooltip-key box. -->
+        <!-- Cursor-mode selector — per explicit follow-up request, the collapsed rail button
+             (icon-only, .mode-visible shows whichever mode is active) now stays exactly where it
+             is at all times, never itself restyled/moved on hover — a SEPARATE #mode-popup panel
+             (one cohesive box, not 4 individually-bordered pills) appears next to it instead,
+             listing all four modes as icon+name rows (.mode-popup-row — a different, new element
+             from the original 4 .mode-btn, deliberately NOT reusing that class, so
+             appState.modeButtons/the existing display:none-when-collapsed rules stay scoped to
+             just the rail button and don't need to care about this popup's own always-a-row
+             styling). The currently active mode's row sorts to the top (order:-1, JS-set in
+             updateModeToolbarUI, source-buttons-cursor-mode.js) and gets a highlighted/outlined
+             .active state, with the other three following below in their normal relative order —
+             see appState.modePopupRows (core-state.js) and its own click wiring
+             (source-buttons-cursor-mode.js, mirroring appState.modeButtons' click handler). -->
         <div id="mode-toolbar">
             <button class="rail-btn mode-btn mode-visible active" data-mode="normal">
                 <img class="rail-icon-img" src="/assets/icons/default-cursor.png" alt="">
-                <span class="mode-btn-name">Move &amp; select</span>
             </button>
             <button class="rail-btn mode-btn" data-mode="data">
                 <img class="rail-icon-img" src="/assets/icons/data-cursor.png" alt="">
-                <span class="mode-btn-name">Data mode</span>
             </button>
             <button class="rail-btn mode-btn" data-mode="select">
                 <img class="rail-icon-img" src="/assets/icons/select-cursor.png" alt="">
-                <span class="mode-btn-name">Select mode</span>
             </button>
             <!-- Pen mode — reworked from the old Add-menu "Drawing" toggle (setDrawMode) into a
                  real cursor mode, see applyCursorMode/handlePenPointerDown (source-buttons-cursor-
@@ -86,8 +85,25 @@
                  is click-only. -->
             <button class="rail-btn mode-btn" data-mode="pen">
                 <img class="rail-icon-img" src="/assets/icons/pen.png" alt="">
-                <span class="mode-btn-name">Pen mode</span>
             </button>
+            <div id="mode-popup" class="mode-popup">
+                <button class="mode-popup-row" data-mode="normal">
+                    <img class="rail-icon-img" src="/assets/icons/default-cursor.png" alt="">
+                    <span class="mode-popup-row-name">Move &amp; select</span>
+                </button>
+                <button class="mode-popup-row" data-mode="data">
+                    <img class="rail-icon-img" src="/assets/icons/data-cursor.png" alt="">
+                    <span class="mode-popup-row-name">Data mode</span>
+                </button>
+                <button class="mode-popup-row" data-mode="select">
+                    <img class="rail-icon-img" src="/assets/icons/select-cursor.png" alt="">
+                    <span class="mode-popup-row-name">Select mode</span>
+                </button>
+                <button class="mode-popup-row" data-mode="pen">
+                    <img class="rail-icon-img" src="/assets/icons/pen.png" alt="">
+                    <span class="mode-popup-row-name">Pen mode</span>
+                </button>
+            </div>
         </div>
         <button id="btn-inbox" class="rail-btn"><img class="rail-icon-img" src="/assets/icons/inbox.png" alt=""><span class="rail-tooltip"><span class="rail-tooltip-row"><span class="rail-tooltip-name">Inbox</span><span class="rail-tooltip-key">I</span></span><span class="rail-tooltip-desc" data-desc="Notifications and updates."></span></span></button>
         <button id="rail-btn-ai" class="rail-btn"><img class="rail-icon-img" src="/assets/icons/dotbot.png" alt=""><span class="rail-tooltip"><span class="rail-tooltip-row"><span class="rail-tooltip-name">Queries</span><span class="rail-tooltip-key">Q</span></span><span class="rail-tooltip-desc" data-desc="Ask Dotbot questions about this canvas."></span></span></button>

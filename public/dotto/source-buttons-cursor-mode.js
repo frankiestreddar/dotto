@@ -41,6 +41,14 @@ import { clearDataLinkPending } from './srs-connections-core.js';
             // collide with this pin), so expanding the pill always grows upward from the same spot.
             b.style.order = b.dataset.mode === appState.cardMode ? '99' : String(appState.MODE_ORDER_WEIGHT[b.dataset.mode]);
         });
+        // #mode-popup's own rows (top-bar.html) — order:-1 sorts the active one to the very top
+        // (lower than any real MODE_ORDER_WEIGHT value), the other three keep their normal
+        // relative order below it, per explicit request.
+        appState.modePopupRows.forEach(row => {
+            const isActive = row.dataset.mode === appState.cardMode;
+            row.classList.toggle('active', isActive);
+            row.style.order = isActive ? '-1' : String(appState.MODE_ORDER_WEIGHT[row.dataset.mode]);
+        });
     }
     function applyCursorMode() {
         const eff = effectiveMode();
@@ -62,6 +70,16 @@ import { clearDataLinkPending } from './srs-connections-core.js';
         btn.addEventListener('click', (e) => {
             e.stopPropagation();
             appState.cardMode = btn.dataset.mode;
+            appState.modeToolbar.classList.remove('expanded');
+            applyCursorMode();
+        });
+    });
+    // Same click behavior as the .mode-btn handler just above, wired separately since
+    // #mode-popup's rows (top-bar.html) are their own distinct elements, not the rail button.
+    appState.modePopupRows.forEach(row => {
+        row.addEventListener('click', (e) => {
+            e.stopPropagation();
+            appState.cardMode = row.dataset.mode;
             appState.modeToolbar.classList.remove('expanded');
             applyCursorMode();
         });
