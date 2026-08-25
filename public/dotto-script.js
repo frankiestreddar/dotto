@@ -23,6 +23,7 @@ import './dotto/cards-misc.js';
 import './dotto/games-flashcard-typeright.js';
 import './dotto/stopwatch-search-notifications.js';
 import './dotto/ai-assistant-suggestions.js';
+import './dotto/search-panel-history.js';
 import './dotto/mnemonic-search-matching.js';
 import './dotto/search-orchestration-selection.js';
 import './dotto/waypoints-render-loop.js';

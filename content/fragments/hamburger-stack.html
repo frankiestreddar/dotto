@@ -27,10 +27,14 @@
     <div id="inbox-panel" class="hmenu-panel hub-subpanel" onclick="event.stopPropagation()">
         <div id="inbox-panel-content"></div>
     </div>
-    <!-- Search — rail icon (group 3, top-bar.html, alongside Outline/Waypoints). Behavior/content
-         below the search box itself not decided yet; a bare #search-panel-content shell, wired
-         into the shared openRailView mechanism (see wireRailIcon('search', ...),
-         panels-hamburger.js) just so #btn-search has a panel to open. The hero circle/heading/
+    <!-- Search — rail icon (group 3, top-bar.html, alongside Outline/Waypoints), wired into the
+         shared openRailView mechanism (see wireRailIcon('search', ...), panels-hamburger.js).
+         #search-panel-content (below the search box) holds a plain vanilla-rendered list of recent
+         search terms — see search-panel-history.js — rather than the React-bridged list panels
+         Waypoints/Collaborations use (WaypointsListPanel.jsx etc., hamburger-collab.js): there's no
+         real search execution behind this box yet (still true per the note below), just a
+         history of what's been typed into it, so a self-contained vanilla module was simpler than
+         wiring up a whole React store for it. The hero circle/heading/
          description above the search box ARE the first real design pass, per explicit request:
          a radial gradient (vivid brand blue center, blurred into a soft ambient glow with no hard
          disc edge — an earlier version also had a separate bordered "glass" layer on top for a
@@ -58,7 +62,7 @@
         <div class="hub-subpanel-search-wrap search-panel-search-wrap">
             <input id="search-panel-search" class="hub-subpanel-search" type="text" placeholder="Search...">
         </div>
-        <div id="search-panel-content"></div>
+        <div id="search-panel-content" class="hub-subpanel-list"></div>
     </div>
     <!-- Sources — rail icon (group 6, top-bar.html, alongside Files/Snippets — Documents briefly
          sat here again after an earlier deletion, then was deleted a second time per an explicit
