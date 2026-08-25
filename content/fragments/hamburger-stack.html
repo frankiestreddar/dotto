@@ -84,10 +84,11 @@
                  the mode-toolbar's .expanded, etc.) rather than a pure-CSS pseudo-class trick. The
                  checkbox itself stays for real keyboard/click/focus accessibility — clicking
                  anywhere in this label still toggles it natively — theme-toggle.js's own change
-                 listener is what then keeps the .on class in sync with it. .settings-switch-row is
-                 a generic "label/icon flanking a switch" wrapper (was named .settings-theme-switch
-                 until the Sidebar Display Mode row below needed the exact same layout for its own,
-                 non-theme switch — renamed rather than duplicated). -->
+                 listener is what then keeps the .on class in sync with it. .settings-switch-row
+                 (was named .settings-theme-switch; kept the more generic name from when the
+                 Sidebar Mode row below briefly reused this same layout for its own switch, before
+                 that row became a plain dropdown instead) is a generic "label/icon flanking a
+                 switch" wrapper. -->
             <div class="settings-row">
                 <span class="settings-row-label">Brightness Theme</span>
                 <label class="settings-switch-row">
@@ -99,27 +100,24 @@
                     <img class="settings-theme-icon" src="/assets/icons/dark.png" alt="Dark">
                 </label>
             </div>
-            <!-- Sidebar Display Mode row — per explicit request, a toggle between the two rail-
-                 panel layout behaviors this app has had this session: panels overlaying the canvas
-                 (the original behavior) vs. reserving their own screen space and pushing the
-                 canvas/source-table over (the current default — see #canvas's and
-                 .item.static-table's own body:has(#hamburger-stack.open) overrides, globals.css).
-                 "Push" (checked/on, the default) vs "Overlay" (unchecked/off) — sidebar-mode-
-                 toggle.js owns the switch's wiring the same way theme-toggle.js owns the Brightness
-                 Theme one above; #sidebar-mode-switch-track's own .on class is what those
-                 body:has(...) CSS overrides are now additionally gated on
-                 (:not([data-sidebar-mode="overlay"]) on <body>), so this switch genuinely changes
-                 that layout behavior, not just a label. -->
+            <!-- Sidebar Mode row (was "Sidebar Display Mode", renamed per explicit request) — a
+                 dropdown (was a switch, per explicit follow-up request) between the two rail-panel
+                 layout behaviors this app has had this session: panels overlaying the canvas (the
+                 original behavior) vs. reserving their own screen space and pushing the canvas/
+                 source-table over (the current default — see #canvas's and .item.static-table's
+                 own body:has(#hamburger-stack.open) overrides, globals.css). Still inline with the
+                 row's own label (.settings-row's usual label-left/control-right layout), just a
+                 <select> instead of a switch now. sidebar-mode-toggle.js owns its wiring the same
+                 way it owned the switch before — #settings-panel-content's own body[data-sidebar-
+                 mode] attribute is what those body:has(...) CSS overrides are gated on
+                 (:not([data-sidebar-mode="overlay"])), so this dropdown genuinely changes that
+                 layout behavior, not just a label. -->
             <div class="settings-row">
-                <span class="settings-row-label">Sidebar Display Mode</span>
-                <label class="settings-switch-row">
-                    <span class="settings-switch-text">Overlay</span>
-                    <span class="settings-switch">
-                        <input type="checkbox" id="sidebar-mode-switch-input" class="settings-switch-input" checked>
-                        <span id="sidebar-mode-switch-track" class="settings-switch-track"><span class="settings-switch-thumb"></span></span>
-                    </span>
-                    <span class="settings-switch-text">Push</span>
-                </label>
+                <span class="settings-row-label">Sidebar Mode</span>
+                <select id="sidebar-mode-select" class="settings-select">
+                    <option value="push" selected>Push</option>
+                    <option value="overlay">Overlay</option>
+                </select>
             </div>
         </div>
     </div>

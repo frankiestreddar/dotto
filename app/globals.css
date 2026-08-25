@@ -1069,13 +1069,13 @@
        "Colour Theme") and Sidebar Display Mode are the first two rows (hamburger-stack.html). */
     .settings-row{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;gap:12px;}
     .settings-row-label{font-size:13px;color:var(--ink);}
-    /* Generic "label/icon flanking a switch" wrapper — was .settings-theme-switch until the
-       Sidebar Display Mode row needed the identical layout for its own text-flanked switch;
-       renamed rather than duplicated. */
+    /* Generic "label/icon flanking a switch" wrapper (was .settings-theme-switch — kept the more
+       generic name from when the Sidebar Mode row briefly reused this same layout for its own
+       text-flanked switch, before that row became a plain dropdown instead). */
     .settings-switch-row{display:inline-flex;align-items:center;gap:8px;cursor:pointer;}
-    /* Text equivalent of .settings-theme-icon below, for the Sidebar Display Mode row (no icon
-       pair fits that concept the way light.png/dark.png fit Brightness Theme). */
-    .settings-switch-text{font-size:11px;color:var(--ink-soft);}
+    /* Compact themed <select>, matching this file's existing small-inline-dropdown convention
+       (.lib-add-to-folder-select is the closest example) — used by the Sidebar Mode row. */
+    .settings-select{font-size:12px;background:var(--hover-bg);color:var(--ink);border:1px solid var(--card-border);border-radius:6px;padding:4px 8px;cursor:pointer;}
     /* Same black-source-PNG tinting convention as .rail-icon-img (brightness(0) invert(1) for dark
        mode, brightness(0) alone for light mode) but faded to a faint grey via opacity — per
        explicit request, these are meant to read as a light grey in light mode / dark grey in dark
