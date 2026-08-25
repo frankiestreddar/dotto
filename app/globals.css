@@ -1071,39 +1071,35 @@
     .hub-subpanel-search-wrap{flex:0 0 auto;padding:10px;border-bottom:1px solid var(--card-border);}
     .hub-subpanel-search{width:100%;height:34px;border-radius:9px;background:var(--hover-bg);border:1px solid var(--card-border);color:var(--ink);padding:0 12px;font-size:13px;outline:none;box-sizing:border-box;}
     .hub-subpanel-search::placeholder{color:var(--ink-soft);}
-    /* #search-panel's own hero — a glassy, blurred radial-gradient circle (brand blue center
-       fading to the panel's own var(--paper) background at the edge, per explicit request) with
-       search.png centered on top.
-       Per an explicit bug report, this used to rely on a separate wrapper's overflow:hidden +
-       border-radius:50% to clip an oversized (inset:-16px) blurred gradient child down into a
-       circle — that reads correctly in theory, but blurred content escaping a border-radius clip
-       via overflow:hidden is a real, known rendering gap in some engines, and here it visibly
-       showed as a square gradient with only the glass layer on top actually circular. Fixed by
-       giving .search-panel-hero-gradient its OWN border-radius:50% (inset:0, matching the 72x72
-       parent exactly) and blurring that already-circular shape directly — the blur softens its
-       own edges without ever needing a separate ancestor to clip it, so there's no cross-element
-       clip relationship left to fail. .search-panel-hero itself no longer needs overflow:hidden
-       or its own border-radius at all, since nothing relies on it clipping anything anymore. */
-    .search-panel-hero{position:relative;width:72px;height:72px;margin:24px auto 4px;display:flex;align-items:center;justify-content:center;flex:0 0 auto;}
-    .search-panel-hero-gradient{position:absolute;inset:0;border-radius:50%;background:radial-gradient(circle at center, var(--brand) 0%, var(--paper) 72%);filter:blur(12px);}
-    /* The "glassy" layer, per explicit request — a faint translucent white tint plus a soft inset
-       highlight/shadow pair, sitting on top of the blurred gradient. backdrop-filter blurs
-       whatever renders behind it WITHIN this same circle (the gradient layer just below), adding
-       an extra layer of soft diffusion on top of that gradient's own filter:blur — deliberately
-       theme-agnostic (no light-mode override) since a frosted-glass highlight reads the same way
-       regardless of theme, same reasoning .search-panel-hero-icon below uses for staying a
-       constant white. */
-    .search-panel-hero-glass{position:absolute;inset:0;border-radius:50%;background:rgba(255,255,255,0.08);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);border:1px solid rgba(255,255,255,0.18);box-shadow:inset 0 1px 2px rgba(255,255,255,0.3),inset 0 -6px 10px rgba(0,0,0,0.15);}
-    /* Constant white regardless of theme — this icon always sits on the same blue gradient, never
-       on a per-theme surface, so it doesn't need (and shouldn't get) the usual brightness(0)/
+    /* #search-panel's own hero — a soft ambient glow (vivid brand blue, blurred, with no hard
+       disc edge at all) with search.png centered on it, per explicit request.
+       Two earlier attempts corrected here, both per explicit visual bug reports: (1) relying on a
+       separate wrapper's overflow:hidden + border-radius:50% to clip an oversized blurred
+       gradient child into a circle rendered as a square instead — blurred content escaping a
+       border-radius clip via overflow:hidden is a real, known rendering gap in some engines.
+       Fixed by giving .search-panel-hero-gradient its OWN border-radius:50%, sized larger than
+       and centered on the 72px box, and blurring that already-circular shape directly — no
+       cross-element clip relationship left to fail. (2) A separate bordered/shadowed "glass"
+       layer on top of the gradient, meant to add a frosted highlight, instead read as an
+       unwanted flat circular disc boundary — the reference look has no visible edge anywhere,
+       just a glow fading smoothly to nothing. Removed entirely; .search-panel-hero-icon's own
+       drop-shadow below is what carries the "glassy" quality now instead. */
+    .search-panel-hero{position:relative;width:72px;height:72px;margin:24px auto 14px;display:flex;align-items:center;justify-content:center;flex:0 0 auto;}
+    /* Sized well past the 72px box (120px, centered on it via the negative-margin shorthand
+       inset:-24px) so the glow has real room to fade out gradually before it reaches anything —
+       clipped by nothing, since .search-panel-hero itself has no overflow/border-radius of its
+       own to interfere. Stays vivid out to 35% of its own radius before fading (var(--brand)
+       repeated at two stops) rather than starting to fade immediately at the center, which is
+       what made an earlier version read as pale/washed-out instead of a genuine glow. */
+    .search-panel-hero-gradient{position:absolute;inset:-24px;border-radius:50%;background:radial-gradient(circle at center, var(--brand) 0%, var(--brand) 35%, transparent 72%);filter:blur(18px);}
+    /* Constant white regardless of theme — this icon always sits on the same blue glow, never on
+       a per-theme surface, so it doesn't need (and shouldn't get) the usual brightness(0)/
        light-mode-drops-invert(1) treatment every other rail icon uses; same fixed-background
        exception .tag-chip/.remote-cursor-name/brand-background buttons already get elsewhere in
-       this file. Given its own "glassy" look per explicit request — a slightly reduced opacity
-       (0.85, letting a touch of the gradient show through it rather than sitting fully opaque on
-       top) plus a soft drop-shadow chained onto the same filter (drop-shadow, unlike box-shadow,
-       follows the icon's own alpha shape rather than its bounding box, so it reads as a subtle
-       embossed edge on the glyph itself) for a bit of depth, rather than a flat solid cutout. */
-    .search-panel-hero-icon{position:relative;z-index:1;width:22px;height:22px;filter:brightness(0) invert(1) drop-shadow(0 1px 1px rgba(0,0,0,0.3));opacity:0.85;}
+       this file. The "glassy" quality (per explicit request) now comes entirely from this icon's
+       own soft white glow (drop-shadow, unlike box-shadow, follows the icon's own alpha shape
+       rather than its bounding box) rather than a separate disc layer. */
+    .search-panel-hero-icon{position:relative;z-index:1;width:22px;height:22px;filter:brightness(0) invert(1) drop-shadow(0 0 5px rgba(255,255,255,0.6));opacity:0.95;}
     /* Space Grotesk (this file's semantic-heading typeface, see the app-typeface comment near the
        top of this file) per explicit request; the description just below inherits the default
        Golos Text body font with no override needed, also per explicit request. */

@@ -32,11 +32,13 @@
          into the shared openRailView mechanism (see wireRailIcon('search', ...),
          panels-hamburger.js) just so #btn-search has a panel to open. The hero circle/heading/
          description above the search box ARE the first real design pass, per explicit request:
-         a radial gradient (brand blue center fading to the panel's own var(--paper) background at
-         the edge) blurred into a soft glow, a translucent "glass" layer on top for a frosted
-         highlight, and search.png centered over both (kept a constant white regardless of theme,
-         same convention as this file's other fixed-brand-background icons — it sits on the blue
-         gradient always, not the usual per-theme surface). Heading in this app's own Space
+         a radial gradient (vivid brand blue center, blurred into a soft ambient glow with no hard
+         disc edge — an earlier version also had a separate bordered "glass" layer on top for a
+         frosted highlight, dropped per explicit follow-up report that it read as an unwanted flat
+         circle boundary rather than a glow) and search.png centered over it (kept a constant white
+         regardless of theme, same convention as this file's other fixed-brand-background icons —
+         it sits on the blue glow always, not the usual per-theme surface). Heading in this app's
+         own Space
          Grotesk semantic-heading typeface (see the app-typeface comment near the top of
          globals.css), description in the default Golos Text body font — no font-family override
          needed for the description, it just inherits. .search-panel-search-wrap overrides
@@ -47,7 +49,6 @@
     <div id="search-panel" class="hmenu-panel hub-subpanel" onclick="event.stopPropagation()">
         <div class="search-panel-hero">
             <div class="search-panel-hero-gradient"></div>
-            <div class="search-panel-hero-glass"></div>
             <img class="search-panel-hero-icon" src="/assets/icons/search.png" alt="">
         </div>
         <h2 class="search-panel-heading">Search</h2>
