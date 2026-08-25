@@ -1123,9 +1123,11 @@
     /* Space Grotesk (this file's semantic-heading typeface, see the app-typeface comment near the
        top of this file) per explicit request; the description just below inherits the default
        Golos Text body font with no override needed, also per explicit request. font-size bumped
-       to 20px (was 16px) and margin-top to 16px (was 8px), both per the same explicit follow-up
-       request that also asked for more space between the circle and everything below it. */
-    .search-panel-heading{margin:16px 0 4px;text-align:center;font-family:'Space Grotesk', sans-serif;font-size:20px;font-weight:600;color:var(--ink);flex:0 0 auto;}
+       to 20px (was 16px), per an earlier explicit follow-up request. margin-top back down to 8px
+       (was 16px, was 8px before that) — per a later explicit follow-up request that it sit closer
+       to the hero now that the hero is a much bigger square thumbnail rather than the small glow
+       circle that first request's extra spacing was written for. */
+    .search-panel-heading{margin:8px 0 4px;text-align:center;font-family:'Space Grotesk', sans-serif;font-size:20px;font-weight:600;color:var(--ink);flex:0 0 auto;}
     /* Bottom margin down to 8px (was 24px, was 16px before that) — per explicit follow-up request
        to move the search box closer to this description again, reversing the previous round's
        increase. */
