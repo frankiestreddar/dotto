@@ -1110,44 +1110,16 @@
     .hub-subpanel-search-wrap{flex:0 0 auto;padding:10px;border-bottom:1px solid var(--card-border);}
     .hub-subpanel-search{width:100%;height:34px;border-radius:9px;background:var(--hover-bg);border:1px solid var(--card-border);color:var(--ink);padding:0 12px;font-size:13px;outline:none;box-sizing:border-box;}
     .hub-subpanel-search::placeholder{color:var(--ink-soft);}
-    /* #search-panel's own hero — a soft ambient glow (vivid brand blue, blurred, with no hard
-       disc edge at all) with search.png centered on it, per explicit request.
-       Two earlier attempts corrected here, both per explicit visual bug reports: (1) relying on a
-       separate wrapper's overflow:hidden + border-radius:50% to clip an oversized blurred
-       gradient child into a circle rendered as a square instead — blurred content escaping a
-       border-radius clip via overflow:hidden is a real, known rendering gap in some engines.
-       Fixed by giving .search-panel-hero-gradient its OWN border-radius:50%, sized larger than
-       and centered on the 72px box, and blurring that already-circular shape directly — no
-       cross-element clip relationship left to fail. (2) A separate bordered/shadowed "glass"
-       layer on top of the gradient, meant to add a frosted highlight, instead read as an
-       unwanted flat circular disc boundary — the reference look has no visible edge anywhere,
-       just a glow fading smoothly to nothing. Removed entirely; .search-panel-hero-icon's own
-       drop-shadow below is what carries the "glassy" quality now instead. */
-    /* 120px (was 96px, was 72px before that) and pushed down from the panel's own top edge (56px
-       margin, was 40px, was 24px before that) plus breathing room below before the heading (32px)
-       — per three rounds of explicit follow-up request. */
-    .search-panel-hero{position:relative;width:120px;height:120px;margin:56px auto 32px;display:flex;align-items:center;justify-content:center;flex:0 0 auto;}
-    /* Sized well past the 120px box (168px, centered on it via the negative-margin shorthand
-       inset:-24px) so the glow has real room to fade out gradually before it reaches anything —
-       clipped by nothing, since .search-panel-hero itself has no overflow/border-radius of its
-       own to interfere. Stays vivid out to 35% of its own radius before fading (rather than
-       starting to fade immediately at the center, which is what made an earlier version read as
-       pale/washed-out instead of a genuine glow) — both of those vivid-core stops are rgba(99,
-       102, 241, 0.8) (var(--brand)'s own #6366f1 at 80% opacity) rather than fully solid, per
-       explicit follow-up request that the centre colour itself read as only 80% opaque, not just
-       faded at the outer edge. Blur bumped to 26px (was 22px) to stay proportional now that the
-       glow itself is bigger again. */
-    .search-panel-hero-gradient{position:absolute;inset:-24px;border-radius:50%;background:radial-gradient(circle at center, rgba(99, 102, 241, 0.8) 0%, rgba(99, 102, 241, 0.8) 35%, transparent 72%);filter:blur(26px);}
-    /* search-3d.png (was search.png, a flat black-on-transparent glyph needing brightness(0)/
-       invert(1) to force it white plus a drop-shadow to fake a "glassy" glow) — per explicit
-       request, swapped for this pre-rendered 3D/glassy asset and every one of those simulated
-       effects removed entirely: no tint filter, no theme handling, no drop-shadow. It already
-       looks the way those were trying to approximate, so it just renders as-is at its own natural
-       colour. Sized at ~4x its original 38px (was scaled to match the 120px hero circle; now
-       deliberately overflows it a bit, per explicit follow-up request to make it "about 4x
-       bigger") — the hero circle itself is untouched, .search-panel-hero has no overflow:hidden
-       so the larger icon just extends past the glow's edge symmetrically. */
-    .search-panel-hero-icon{position:relative;z-index:1;width:150px;height:150px;object-fit:contain;}
+    /* #search-panel's own hero — a plain horizontal thumbnail banner, subtly rounded, per explicit
+       request (replaced an earlier glow-circle-plus-icon design entirely, see git history for
+       that). Side margins (20px) match .search-panel-desc's own horizontal margin just below,
+       so the banner's edges line up with the text under it rather than running edge-to-edge.
+       aspect-ratio matches search-thumbnail.jpg's own native 1376x768 so the box's height always
+       follows its width proportionally (no fixed px height to go stale if the panel's own width
+       ever changes) — object-fit:cover on the img itself is what actually crops any surplus rather
+       than letting the image distort to fit. */
+    .search-panel-hero{width:calc(100% - 40px);margin:20px auto 24px;flex:0 0 auto;}
+    .search-panel-hero-img{display:block;width:100%;aspect-ratio:1376/768;object-fit:cover;border-radius:12px;}
     /* Space Grotesk (this file's semantic-heading typeface, see the app-typeface comment near the
        top of this file) per explicit request; the description just below inherits the default
        Golos Text body font with no override needed, also per explicit request. font-size bumped

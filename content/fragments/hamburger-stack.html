@@ -34,28 +34,21 @@
          Waypoints/Collaborations use (WaypointsListPanel.jsx etc., hamburger-collab.js): there's no
          real search execution behind this box yet (still true per the note below), just a
          history of what's been typed into it, so a self-contained vanilla module was simpler than
-         wiring up a whole React store for it. The hero circle/heading/
-         description above the search box ARE the first real design pass, per explicit request:
-         a radial gradient (vivid brand blue center, blurred into a soft ambient glow with no hard
-         disc edge — an earlier version also had a separate bordered "glass" layer on top for a
-         frosted highlight, dropped per explicit follow-up report that it read as an unwanted flat
-         circle boundary rather than a glow) and search-3d.png centered over it. Was search.png
-         (a flat black-on-transparent glyph) with a CSS-simulated "glassy" look — brightness(0)
-         invert(1) forcing it white, plus a soft drop-shadow glow — swapped per explicit request
-         for this pre-rendered 3D/glassy asset instead, which needs none of that: no tint filter,
-         no theme handling, no drop-shadow, it just renders as-is (see .search-panel-hero-icon's
-         own comment, globals.css). Heading in this app's own Space
-         Grotesk semantic-heading typeface (see the app-typeface comment near the top of
-         globals.css), description in the default Golos Text body font — no font-family override
-         needed for the description, it just inherits. .search-panel-search-wrap overrides
-         .hub-subpanel-search-wrap's own border-bottom off (this panel's search box no longer
-         needs a divider now that the hero fills the space above it), per the same explicit
-         request that also asked for the search box to move below the new hero/heading/description
-         instead of being the panel's first element. -->
+         wiring up a whole React store for it. The hero/heading/description above the search box
+         are the first real design pass, per explicit request. The hero itself is a plain
+         horizontal thumbnail banner (search-thumbnail.jpg, public/assets/thumbnails/), subtly
+         rounded — replaced an earlier glow-circle-plus-icon design entirely, per a later explicit
+         request (see .search-panel-hero's own comment, globals.css, for that design's own
+         history). Heading in this app's own Space Grotesk semantic-heading typeface (see the
+         app-typeface comment near the top of globals.css), description in the default Golos Text
+         body font — no font-family override needed for the description, it just inherits.
+         .search-panel-search-wrap overrides .hub-subpanel-search-wrap's own border-bottom off
+         (this panel's search box no longer needs a divider now that the hero fills the space
+         above it), per the same explicit request that also asked for the search box to move below
+         the new hero/heading/description instead of being the panel's first element. -->
     <div id="search-panel" class="hmenu-panel hub-subpanel" onclick="event.stopPropagation()">
         <div class="search-panel-hero">
-            <div class="search-panel-hero-gradient"></div>
-            <img class="search-panel-hero-icon" src="/assets/icons/search-3d.png" alt="">
+            <img class="search-panel-hero-img" src="/assets/thumbnails/search-thumbnail.jpg" alt="">
         </div>
         <h2 class="search-panel-heading">Search</h2>
         <p class="search-panel-desc">Find anything across your canvases.</p>
