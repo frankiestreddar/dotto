@@ -115,15 +115,20 @@ import { clearDataLinkPending } from './srs-connections-core.js';
         updateModeToolbarUI();
     }
     appState.modeButtons.forEach(btn => {
+        // This is the collapsed rail icon itself (only the currently-active mode's .mode-btn is
+        // ever visible/clickable, see updateModeToolbarUI's own .mode-visible toggle) — clicking it
+        // always just re-selects whatever mode is already active. Per explicit follow-up request,
+        // that click no longer closes the popup either — it leaves it open exactly as hover already
+        // does, rather than closeModePopup() like an actual row selection (below) does.
         btn.addEventListener('click', (e) => {
             e.stopPropagation();
             appState.cardMode = btn.dataset.mode;
-            closeModePopup();
             applyCursorMode();
         });
     });
-    // Same click behavior as the .mode-btn handler just above, wired separately since
-    // #mode-popup's rows (top-bar.html) are their own distinct elements, not the rail button.
+    // A real mode selection (unlike the rail icon's own click just above) — still closes the popup,
+    // wired separately since #mode-popup's rows (top-bar.html) are their own distinct elements, not
+    // the rail button.
     appState.modePopupRows.forEach(row => {
         row.addEventListener('click', (e) => {
             e.stopPropagation();

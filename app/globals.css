@@ -74,7 +74,25 @@
        real h1-h3 tags, so those get the same override individually where they're styled below. */
     h1,h2,h3{font-family:'Space Grotesk', sans-serif;}
     body.dragging, body.dragging * { cursor: grabbing !important; }
-    
+    /* Every native cursor the local user sees of their own pointer — every button's plain
+       cursor:pointer, the draw-mode crosshair/cell cursors (#canvas.mode-data/.mode-select/
+       .mode-pen below), plain text hover, all of it — replaced by one custom pointer image, per
+       explicit request. !important + body * (not just body) is what makes this beat every one of
+       those more specific existing rules throughout this file without having to hunt down and
+       edit each individually; same body-wide !important-override shape body.dragging above and
+       body.avatar-color-dragging further down already use for their own (higher-specificity, so
+       still correctly the one that wins during an actual drag/avatar-pick) temporary overrides.
+       custom-cursor-pointer.png is a separate, small (32x32) export baked from custom-cursor.png —
+       a plain white silhouette on transparent otherwise, same as this file's other icon PNGs, but
+       native `cursor: url()` can't be retinted per-theme the way .rail-icon-img's own CSS filter
+       chain retints those — so this version has a black outline baked directly into the pixels
+       instead, the same "visible against any background" treatment real OS pointers already use.
+       Hotspot (3,3) is that asset's own tip position once scaled down to 32x32. Doesn't touch
+       collaborators' cursors (.remote-cursor, live-presence.js) — those are unrelated DOM-rendered
+       SVG elements inside #cursor-overlay marking where OTHER users are, nothing to do with this
+       browser's own native cursor. */
+    html, body, html *, body * { cursor: url('/assets/icons/custom-cursor-pointer.png') 3 3, auto !important; }
+
     /* left/width leave room for the permanent hamburger rail (#btn-menu, see its own comment) —
        overflow:hidden here is what actually stops canvas content from rendering under the rail,
        not just being visually covered by it. #world (canvas-area.html) is position:absolute with
