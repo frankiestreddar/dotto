@@ -583,6 +583,17 @@
        instant the pointer actually leaves (see its own comment), at which point this rule simply
        stops matching and the base rule's opacity transition takes it back to 0. */
     .rail-btn:not(.active):hover .rail-tooltip{opacity:1;}
+    /* Overrides the rule just above back to hidden while the pointer is still sitting on a button
+       right after a click that CLOSED its own panel (wireRailIcon, panels-hamburger.js) — per
+       explicit bug report, the tooltip shouldn't pop up as a side effect of that click (closing
+       removes .active, which is what un-gates the rule above) until the pointer actually leaves and
+       re-hovers for real. Needs the same specificity as that rule (four class-level selectors each)
+       plus coming AFTER it in source to actually win, rather than just being "more specific" on
+       paper — same-specificity cascade resolves by source order. The :hover here is redundant in
+       practice (.tooltip-hold-hidden is only ever present while still hovering — see
+       wireRailIcon's own comment for why) but is what makes the specificity match in the first
+       place. */
+    .rail-btn.tooltip-hold-hidden:hover .rail-tooltip{opacity:0;}
     /* Set by rail-tooltip-expand.js right as it starts animating width toward its expanded
        target (see its own comment) — width's OWN transition lives here rather than on the base
        rule above specifically so the very first inline-style write (locking in the CURRENT

@@ -127,9 +127,18 @@ import { closeSourceAddMenu } from './source-buttons-cursor-mode.js';
     function wireRailIcon(key, btn, viewEl, onOpen) {
         btn.addEventListener('click', (e) => {
             e.stopPropagation();
-            if (appState.activeRailView === key) { closeRailView(); }
-            else { openRailView(key, viewEl, btn, onOpen, true); }
+            if (appState.activeRailView === key) {
+                closeRailView();
+                // Closing removes .active, which immediately re-satisfies .rail-tooltip's own
+                // :not(.active):hover CSS rule (globals.css) — without this, the tooltip would pop
+                // up right away as a side effect of the click, even though the pointer never
+                // actually left the button and re-hovered it. .tooltip-hold-hidden overrides that
+                // rule back to hidden (see its own comment, globals.css) until a real pointerleave
+                // below actually happens, per explicit bug report.
+                btn.classList.add('tooltip-hold-hidden');
+            } else { openRailView(key, viewEl, btn, onOpen, true); }
         });
+        btn.addEventListener('pointerleave', () => btn.classList.remove('tooltip-hold-hidden'));
     }
     appState.hamburgerStack.addEventListener('click', (e) => e.stopPropagation());
 
