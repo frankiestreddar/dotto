@@ -518,14 +518,13 @@
        dominate the row when several tabs are open. */
     .tab-pill-label{color:var(--ink-soft);font-size:12px;font-weight:400;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:110px;}
     .tab-pill:not(.tab-pill-active):hover .tab-pill-label{color:var(--ink);text-decoration:underline;}
-    /* Hidden until its own tab is hovered (mirrors the common browser-tab convention of only
-       showing a close control on the tab the pointer is actually over, so a row of several tabs
-       doesn't read as cluttered with ×'s at rest). Shown on EITHER kind of tab, active or not —
-       TabsBar.jsx only renders it at all once there's more than one tab (closeTab itself,
-       shared-canvases-outline.js, also refuses to close the last remaining one as a second layer
-       of defense). */
+    /* Hidden entirely for now, per explicit request — was previously revealed on hover (mirroring
+       the common browser-tab convention of only showing a close control on the tab the pointer is
+       actually over). The hover-reveal rule that used to sit here is removed rather than commented
+       out to keep this a real, buildable no-op; re-add `.tab-pill:hover .tab-pill-close{display:
+       inline-flex;}` to bring it back. TabsBar.jsx/closeTab (shared-canvases-outline.js) are
+       untouched — the button still exists and still works, it's just never visible right now. */
     .tab-pill-close{display:none;align-items:center;justify-content:center;width:14px;height:14px;border-radius:4px;border:none;background:none;color:var(--ink-soft);font-size:12px;line-height:1;cursor:pointer;padding:0;flex:0 0 auto;}
-    .tab-pill:hover .tab-pill-close{display:inline-flex;}
     .tab-pill-close:hover{background:var(--hover-bg);color:var(--ink);}
     /* Sits after every tab pill, inside #breadcrumb-pill's own row — adds a new tab bookmarked to
        wherever the currently active one already is (addTab, shared-canvases-outline.js), per
