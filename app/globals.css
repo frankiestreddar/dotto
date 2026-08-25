@@ -757,10 +757,12 @@
        request) — a real flex column; the four rows always render in their fixed DOM order (no
        JS-set `order` here — an earlier version sorted the active mode to the top, removed per
        explicit follow-up request that the order stay put).
-       bottom:0 (was top:0, before the selector's own group — top-bar.html — moved to the very
+       bottom:-6px (was top:0, before the selector's own group — top-bar.html — moved to the very
        bottom of the rail, below Settings, per explicit follow-up request) so the panel grows
        UPWARD from the button instead of downward — with nothing below this group any more, growing
-       down would run the popup off the bottom of the viewport.
+       down would run the popup off the bottom of the viewport. -6px (was 0, nudged down a few
+       pixels per a further explicit follow-up request) shifts it down slightly from being flush
+       with the button's own bottom edge.
        left:calc(100% + 12px) — flush against the RAIL's own true right edge (var(--rail-width),
        56px), not the button's own edge: #mode-toolbar is only 32px wide but sits centered inside
        that 56px rail (#dotto-rail's align-items:center), leaving a 12px margin on either side, so
@@ -779,7 +781,7 @@
        the button turned out to cross more than that one gap (the neighboring button's own hitbox
        too — see its own tightened pointer-events rule, #btn-settings, earlier in this file), which
        the fixed-width element couldn't cover. */
-    .mode-popup{display:none;position:absolute;bottom:0;left:calc(100% + 12px);width:170px;flex-direction:column;gap:2px;background:var(--bar);border:1px solid var(--card-border);border-radius:10px;padding:4px;box-shadow:0 4px 12px rgba(0,0,0,0.4);z-index:1001;}
+    .mode-popup{display:none;position:absolute;bottom:-6px;left:calc(100% + 12px);width:170px;flex-direction:column;gap:2px;background:var(--bar);border:1px solid var(--card-border);border-radius:10px;padding:4px;box-shadow:0 4px 12px rgba(0,0,0,0.4);z-index:1001;}
     :root[data-theme="light"] .mode-popup{box-shadow:0 4px 12px rgba(0,0,0,0.168);}
     #mode-toolbar.expanded .mode-popup{display:flex;}
     /* Plain rows within that one shared panel — background:none at rest so only :hover/.active
@@ -1992,6 +1994,12 @@
        illegible once the background it blends against turned light. var(--ink) fixes the text the
        same way as every other case above. */
     .outline-item-selected, .outline-item-selected:hover{background:rgba(99,102,241,0.18);color:var(--ink);}
+    /* :root[data-theme="light"] .outline-item:hover above (4 class-level selectors) otherwise
+       outranks .outline-item-selected:hover (2) in light mode specifically — regardless of which
+       comes later in the file, higher specificity always wins a tie — so a selected+hovered row
+       fell back to the plain grey hover background there instead of staying purple, per explicit
+       bug report. Repeating the same rule at matching specificity fixes it in both themes. */
+    :root[data-theme="light"] .outline-item-selected:hover{background:rgba(99,102,241,0.18);color:var(--ink);}
     /* Toggled by handleOutlineSearch (shared-canvases-outline.js) — a plain post-render filter over
        the already-built tree (see appState.outlineRows), not a rebuild with the query baked in. */
     .outline-item.outline-row-hidden{display:none;}
@@ -2792,8 +2800,14 @@
 
     /* Purple text-selection highlight. Note: ::selection is spec-limited to color/background-
        color/text-shadow (plus a couple others) — no browser honors padding or border-radius on
-       it, so this is the closest a native selection highlight can get to that look. */
-    ::selection{background:#8b5cf6;color:#fff;}
+       it, so this is the closest a native selection highlight can get to that look. var(--brand)
+       (was #8b5cf6, a different violet) per explicit request to match the same purple as the
+       sidebar's own shift-click .outline-item-selected rows — those use var(--brand) at 18%
+       opacity as a translucent row TINT over an existing surface, which isn't suitable here at
+       full strength (::selection needs to fully cover the text it's behind to stay legible against
+       any background, not just tint it), so this reuses the same base hue solid instead rather
+       than the row style's own alpha value. */
+    ::selection{background:var(--brand);color:#fff;}
 
     /* ---------- Text selection toolbar + add-to-source popup (dotto-script.js) ---------- */
     /* Just a positioning wrapper — no background/border/padding of its own. Each button is its
