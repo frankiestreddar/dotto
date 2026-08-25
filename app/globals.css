@@ -1211,8 +1211,12 @@
        .search-history-row above per explicit bug report. Overridden here, scoped to just this list;
        padding is 6px (not .search-history-row's own 14px) precisely because #ai-panel's extra 8px
        padding (see its own comment) needs to be subtracted back out for the two to land on the same
-       18px total inset — see .search-history-row's own comment just above for that math. */
-    #chats-list .outline-item{margin:0;height:32px;padding:0 6px;gap:10px;}
+       18px total inset — see .search-history-row's own comment just above for that math.
+       font-size/color also overridden (12px/var(--ink), matching .search-history-row exactly) —
+       base .outline-item is 13px/var(--ink-soft), tuned for the real Outline tree, same reasoning
+       as the box-model override above; per explicit follow-up bug report that text size read as
+       different between the two panels' history rows too. */
+    #chats-list .outline-item{margin:0;height:32px;padding:0 6px;gap:10px;font-size:12px;color:var(--ink);}
     :root[data-theme="light"] .search-history-icon{filter:brightness(0);}
     .search-history-query{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0;}
     .hub-subpanel-list{flex:1 1 auto;overflow-y:auto;min-height:0;padding:6px 4px;scrollbar-width:none;}
@@ -1616,8 +1620,10 @@
        = 94px) — no border term, since the textarea itself is borderless now (the wrap owns the
        1px+1px border and adds it on top). 7px top/bottom (was 10px) is what makes the resting
        (1-line) height land on 34px instead of 40px — matching #search-panel-search/
-       .hub-subpanel-search's own height exactly, per explicit follow-up request. */
-    #search-input{display:block;width:100%;min-height:34px;max-height:94px;background:transparent;border:none;color:var(--ink);padding:7px 32px 7px 14px;font-size:14px;line-height:20px;font-family:inherit;outline:none;resize:none;overflow-y:hidden;transition:height 0.15s ease;}
+       .hub-subpanel-search's own height exactly, per explicit follow-up request. font-size 13px
+       (was 14px) for the same reason, matching .hub-subpanel-search's own — line-height stays a
+       fixed 20px regardless, so this doesn't change any of the height math above. */
+    #search-input{display:block;width:100%;min-height:34px;max-height:94px;background:transparent;border:none;color:var(--ink);padding:7px 32px 7px 14px;font-size:13px;line-height:20px;font-family:inherit;outline:none;resize:none;overflow-y:hidden;transition:height 0.15s ease;}
     #search-input::placeholder{color:var(--ink-soft);}
     /* The loading ring, idle-pulse chase, and card-context pill that used to live here (SVG rings
        traced around the border, a rollercoaster-eased "focused and waiting" flare, an attached-
