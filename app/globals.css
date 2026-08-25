@@ -426,8 +426,13 @@
        comment, only guarantees the CENTRE COLUMN's overall box stays centred — not that this
        element's own text stays centred WITHIN that box if its own edges grow unevenly). column-gap
        on #top-bar-center now provides breathing room from its neighbours instead, symmetric on
-       both sides by construction, so it can never introduce this kind of drift. */
-    #breadcrumb-pill{display:flex;align-items:center;padding:0 16px;gap:10px;font-family:'Space Grotesk', sans-serif;}
+       both sides by construction, so it can never introduce this kind of drift.
+       padding:0 (was 0 16px) — left/right brought down to match top/bottom, per explicit request.
+       #top-bar-center's own .bubble padding (4px, all sides) is still what insets this whole row
+       from the merged pill's true left/right edges — gap:10px (below) only ever separated tab
+       pills FROM EACH OTHER, never from those outer edges, so the first/last pill's own inset is
+       now just that shared 4px rather than 4px+16px. */
+    #breadcrumb-pill{display:flex;align-items:center;padding:0;gap:10px;font-family:'Space Grotesk', sans-serif;}
     /* One tab's own pill. Not itself clickable when active (only its own ellipsis/parent/current
        segments, below, carry their own click behavior, same as before tabs existed) —
        TabsBar.jsx only attaches an onClick (window.__switchTab) to the non-active ones.
@@ -456,7 +461,7 @@
        in place. touch-action:none/user-select:none are for the drag-to-reorder gesture below —
        without the former, a touch-drag would fight the browser's own scroll gesture; without the
        latter, a press-and-drag would select the pill's own text along the way. */
-    .tab-pill{display:flex;align-items:center;gap:4px;flex:0 0 auto;border-radius:6px;padding:3px;border:1px solid transparent;max-width:150px;overflow:hidden;touch-action:none;user-select:none;transition:background .15s ease,border-color .15s ease;}
+    .tab-pill{display:flex;align-items:center;gap:4px;flex:0 0 auto;border-radius:6px;padding:3px 8px;border:1px solid transparent;max-width:150px;overflow:hidden;touch-action:none;user-select:none;transition:background .15s ease,border-color .15s ease;}
     .tab-pill:not(.tab-pill-active){cursor:pointer;}
     /* Very subtle grey outline on every non-active tab, and a very subtle grey highlight on the
        active one — per explicit request. Both use the app's own established "subtle grey" tokens
