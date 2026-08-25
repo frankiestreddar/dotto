@@ -83,9 +83,11 @@ function ActiveTabTrail({ bc }) {
 // long as it isn't the only one left (closeTab itself, shared-canvases-outline.js, already no-ops
 // on a single remaining tab as a second layer of defense).
 //
-// The "switch tabs: pause, then the old text flies upward out of the tab, then it grows/shrinks,
-// then the new content flies up into place" sequence (per explicit request) is a small local state
-// machine — `phase` — rather than a plain className swap, since it needs THREE distinct visual
+// The "switch tabs: pause, then the old text flies upward out of the tab, then it grows, then the
+// new content flies up into place" sequence (per explicit request) plays ONLY for the tab BECOMING
+// active — the one it's replacing shrinks back to its short label instantly instead (per a later
+// explicit request), no pause/animation of any kind. It's a small local state machine — `phase` —
+// rather than a plain className swap, since the growing direction needs THREE distinct visual
 // beats in order, not just one property transitioning between two states (which is all a plain
 // CSS transition-delay could give). Two things this deliberately does NOT do, per an explicit
 // follow-up bug report that the whole tab (not just its text) was disappearing: the content wrapper
@@ -96,11 +98,15 @@ function ActiveTabTrail({ bc }) {
 // tab IS the live active one, so its fly-out plays against ITS OWN last-known breadcrumb even
 // after breadcrumbMapStore has already moved on to describe the newly active tab (which happens
 // synchronously, before any of this component's phase timers even start) — without this, a fading-
-// out tab would render the WRONG (new) trail for the brief moment it's still visible.
+// out tab would render the WRONG (new) trail for the brief moment it's still visible. Moot for the
+// instant-shrink direction itself (nothing animates long enough to read stale data), but still
+// correct to keep unconditional here since a shrunk tab can always become the fly-out candidate
+// again on some LATER switch.
 // `showTrail` is what's ACTUALLY rendered (label vs. full trail) — deliberately decoupled from
-// `isActive` itself, only flipping midway through the sequence (right as the resize phase starts),
-// so the OLD content is still what's on screen (and able to fly out) for the first beat, and the
-// box has already resized to fit the NEW content before it flies in for the last beat.
+// `isActive` itself: for the growing direction it only flips midway through the sequence (right as
+// the resize phase starts), so the OLD content is still on screen (and able to fly out) for the
+// first beat, and the box has already resized to fit the NEW content before it flies in for the
+// last; for the shrinking direction it flips immediately, alongside everything else.
 function TabRow({ tab, isActive, canClose, dragX, isDragging, tabRef, onDragStart, onDragMove, onDragEnd }) {
   const suppressClickRef = useRef(false);
   const bc = useSyncExternalStore(breadcrumbMapStore.subscribe, breadcrumbMapStore.getSnapshot, () => EMPTY_BREADCRUMB);
@@ -121,9 +127,24 @@ function TabRow({ tab, isActive, canClose, dragX, isDragging, tabRef, onDragStar
   const [showTrail, setShowTrail] = useState(isActive);
   const prevIsActiveRef = useRef(isActive);
 
+  // Losing active status shrinks instantly — per explicit request, only the tab BECOMING active
+  // gets the pause/fly-out/resize/fly-in sequence below; the one it's replacing just snaps straight
+  // back to its short label with no animation at all, content or width. (The width half of
+  // "instant" comes from .tab-pill-grown carrying its OWN transition, globals.css, rather than the
+  // base .tab-pill rule — removing that class, exactly what happens here, then has no transition to
+  // animate through.) Corrected DURING render (same reasoning/pattern as `lastOwnBc` above) rather
+  // than in the effect below — a synchronous setState call in an effect body is exactly what
+  // react-hooks/set-state-in-effect flags, even for a legitimate "sync state to this prop" case
+  // like this one.
+  if (!isActive && showTrail) {
+    setShowTrail(false);
+    setPhase("idle");
+  }
+
   useEffect(() => {
     if (isActive === prevIsActiveRef.current) return;
     prevIsActiveRef.current = isActive;
+    if (!isActive) return; // instant shrink already handled during render, above
     let cancelled = false;
     const timers = [];
     timers.push(setTimeout(() => {
@@ -132,7 +153,7 @@ function TabRow({ tab, isActive, canClose, dragX, isDragging, tabRef, onDragStar
       timers.push(setTimeout(() => {
         if (cancelled) return;
         setPhase("resize");
-        setShowTrail(isActive);
+        setShowTrail(true);
         timers.push(setTimeout(() => {
           if (cancelled) return;
           setPhase("fly-in");

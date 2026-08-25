@@ -436,22 +436,27 @@
        a jump when a tab's active state toggles, rather than the border only existing (and taking
        up space) on inactive tabs.
        max-width:150px (this rule) vs. .tab-pill-grown's own 420px, below, is the WIDTH half of the
-       "switch tabs: pause, old text flies out, it grows/shrinks, new content flies in" sequence,
-       per explicit request — but unlike background/border-color (which flip on .tab-pill-active
+       "switch tabs: pause, old text flies out, it grows, new content flies in" sequence, per
+       explicit request — but unlike background/border-color (which flip on .tab-pill-active
        immediately, giving instant selection feedback), .tab-pill-grown is driven by TabRow's own
-       `showTrail` state, only flipping partway through that JS-timed sequence — see its own
-       comment, TabsBar.jsx, for why this needed real phase timing (a plain CSS transition-delay,
-       the technique #collab-bubble's own reveal-on-hover uses, can only give ONE property
-       transitioning between two states — not three sequential visual beats with different content
-       in each). max-width transition-DELAY isn't needed here any more (was, before the JS state
-       machine existed) — the JS is what waits before flipping the class now.
+       `showTrail` state, only flipping partway through that JS-timed sequence for the GROWING
+       direction — see its own comment, TabsBar.jsx, for why this needed real phase timing (a plain
+       CSS transition-delay, the technique #collab-bubble's own reveal-on-hover uses, can only give
+       ONE property transitioning between two states — not three sequential visual beats with
+       different content in each). No transition property on THIS rule any more (moved onto
+       .tab-pill-grown itself, below) — per a later explicit request that the SHRINKING direction
+       (losing .tab-pill-grown) be instant rather than animated: a CSS transition uses whichever
+       `transition` value applies to the element's DESTINATION state, not its starting one, so
+       putting it only on .tab-pill-grown means adding that class (growing) animates smoothly while
+       removing it (shrinking, landing back on this un-transitioned base rule) snaps immediately —
+       without needing a second JS-driven "was this shrinking or growing" branch just for CSS.
        overflow:hidden clips whichever content hasn't yet fit within the currently-transitioning
        width, and doubles as the vertical clip the fly-out/fly-in animations (further down) rely on
        to look like content actually sliding into/out of the pill's own top edge, not just fading
        in place. touch-action:none/user-select:none are for the drag-to-reorder gesture below —
        without the former, a touch-drag would fight the browser's own scroll gesture; without the
        latter, a press-and-drag would select the pill's own text along the way. */
-    .tab-pill{display:flex;align-items:center;gap:4px;flex:0 0 auto;border-radius:6px;padding:3px 8px;border:1px solid transparent;max-width:150px;overflow:hidden;touch-action:none;user-select:none;transition:max-width .25s ease,background .15s ease,border-color .15s ease;}
+    .tab-pill{display:flex;align-items:center;gap:4px;flex:0 0 auto;border-radius:6px;padding:3px 8px;border:1px solid transparent;max-width:150px;overflow:hidden;touch-action:none;user-select:none;transition:background .15s ease,border-color .15s ease;}
     .tab-pill:not(.tab-pill-active){cursor:pointer;}
     /* Very subtle grey outline on every non-active tab, and a very subtle grey highlight on the
        active one — per explicit request. Both use the app's own established "subtle grey" tokens
@@ -467,8 +472,10 @@
        past this, same pre-existing characteristic the single breadcrumb always had before tabs —
        see .breadcrumb-pill-current's own comment — plus sep ~12px, .breadcrumb-pill-current's own
        180px cap, some slack for padding/gap) without being so large the transition takes visibly
-       longer to reach real content than it needs to. */
-    .tab-pill-grown{max-width:420px;}
+       longer to reach real content than it needs to. transition lives HERE, not on the base
+       .tab-pill rule — see that rule's own comment for why that's what makes only the GROWING
+       direction (gaining this class) animate, while shrinking (losing it) is instant. */
+    .tab-pill-grown{max-width:420px;transition:max-width .25s ease;}
     /* Wraps whichever content is currently showing (ActiveTabTrail or the plain label) — a
        separate element from .tab-pill itself so the fly-out/fly-in keyframes below can animate
        its own transform/opacity independently of .tab-pill's own max-width transition. Always
