@@ -49,14 +49,12 @@
          multi-line typing/dropdown machinery to justify one, just the same recent-term history
          (search-panel-history.js) as before, now rendered as .outline-item rows (matching
          #chats-list's own, ChatsListPanel.jsx) instead of the old .search-history-row markup.
-         Hero/heading/description reuse #ai-panel's own shared classes verbatim (globals.css),
-         just with this panel's own image/text: search-thumbnail.jpg (public/assets/thumbnails/),
-         "Search", "Find anything across your canvases." -->
+         Heading/description reuse #ai-panel's own shared classes verbatim (globals.css), just with
+         this panel's own text: "Search", "Find anything across your canvases." The hero thumbnail
+         image that used to sit above them (search-thumbnail.jpg, public/assets/thumbnails/) was
+         removed per explicit request — see .panel-hero-block's own comment, globals.css. -->
     <div id="search-panel" class="hmenu-panel hub-subpanel" onclick="event.stopPropagation()">
         <div class="panel-hero-block">
-            <div class="search-panel-hero">
-                <img class="search-panel-hero-img" src="/assets/thumbnails/search-thumbnail.jpg" alt="">
-            </div>
             <h2 class="search-panel-heading">Search</h2>
             <p class="search-panel-desc">Find anything across your canvases.</p>
         </div>
@@ -115,11 +113,13 @@
          Every result panel inside #search-dropdown still portals into these same static nodes by
          id (usePortalNode) regardless of which parent currently holds them, so reparenting them
          doesn't touch that store/portal wiring at all.
-         Hero/heading/description below reuse #search-panel's own classes verbatim (globals.css)
-         rather than a separate copy, per explicit request that this panel look "just like Search"
-         — queries-thumbnail.jpg instead of search-thumbnail.jpg, otherwise identical (square crop,
-         90% sidebar width). Only shown in #ai-list-view (not #ai-chat-view, which has no
-         equivalent), same as Search has no second view to worry about at all. The actual search
+         Heading/description below reuse #search-panel's own classes verbatim (globals.css) rather
+         than a separate copy, per explicit request that this panel look "just like Search". Both
+         panels used to have a hero thumbnail image above them too (queries-thumbnail.jpg here,
+         search-thumbnail.jpg on Search) — removed from both per a later explicit request (see
+         .panel-hero-block's own comment, globals.css). Only shown in #ai-list-view (not
+         #ai-chat-view, which has no equivalent), same as Search has no second view to worry about
+         at all. The actual search
          input/dropdown below (#ai-list-header) is untouched — a real, working feature, unlike
          Search's own box which doesn't execute anything yet.
          #ai-panel used to have its own 8px padding that #search-panel didn't, making identically-
@@ -135,9 +135,6 @@
     <div id="ai-panel" class="hmenu-panel hub-subpanel" onclick="event.stopPropagation()">
         <div id="ai-list-view">
             <div class="panel-hero-block">
-                <div class="search-panel-hero">
-                    <img class="search-panel-hero-img" src="/assets/thumbnails/queries-thumbnail.jpg" alt="">
-                </div>
                 <h2 class="search-panel-heading">Queries</h2>
                 <p class="search-panel-desc">Ask Dotbot questions about this canvas.</p>
             </div>

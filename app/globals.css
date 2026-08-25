@@ -304,10 +304,13 @@
        these same classes, per repeated explicit bug reports that sizing still wasn't reading as
        truly identical (see #search-panel's own comment, hamburger-stack.html). */
     #ai-panel{position:relative;overflow:visible;}
-    /* Wraps just the hero/heading/description block (hamburger-stack.html) — shared by #ai-panel
-       and #search-panel (see #ai-panel's own comment there), both of which are now built as
-       structural copies of the same layout, so this is just the flex-item sizing behavior every
-       other section here also needs. */
+    /* Wraps the heading/description block (hamburger-stack.html) — shared by #ai-panel and
+       #search-panel (see #ai-panel's own comment there), both of which are now built as structural
+       copies of the same layout, so this is just the flex-item sizing behavior every other section
+       here also needs. Named for the hero thumbnail image it used to also wrap, above the heading
+       — removed per explicit request (see .search-panel-heading's own comment further down); kept
+       the name rather than renaming everywhere, since it's still the same grouping wrapper either
+       way. */
     .panel-hero-block{flex:0 0 auto;}
     /* The active-conversation view's own small header — just the "back to chats" toggle,
        left-aligned, no title text (the rail icon itself already reads as "this is the AI panel",
@@ -1188,31 +1191,23 @@
     .hub-subpanel-search-hint{position:absolute;right:16px;top:50%;transform:translateY(-50%);display:inline-flex;align-items:center;justify-content:center;padding:2px 6px;border:1px solid var(--outline-soft);border-radius:4px;font-family:'Space Grotesk', sans-serif;font-size:10px;font-weight:600;color:var(--ink-soft);pointer-events:none;}
     .hub-subpanel-search-wrap:focus-within .hub-subpanel-search-hint{display:none;}
     .hub-subpanel-search::placeholder{color:var(--ink-soft);}
-    /* #search-panel's own hero — a thumbnail image, subtly rounded (replaced an earlier
-       glow-circle-plus-icon design entirely, see git history for that). Box is a plain square
-       (aspect-ratio:1/1) per explicit follow-up request, not the source JPG's own native 768x1376
-       portrait ratio — object-fit:cover (default object-position:center) crops the tall source
-       down to a centered square rather than distorting it or leaving letterboxing. Width is 90% of
-       the sidebar (#hamburger-stack) — .search-panel-hero's own parent, #search-panel, has no
-       padding of its own (.hmenu-panel is a plain width:100%), so its content box already equals
-       the sidebar's full width and this percentage needs no other adjustment to land where asked.
-       Top margin 12px (was 20px) — per explicit follow-up request to move the thumbnail up a
-       little, shared by both #search-panel and #ai-panel (.search-panel-hero used verbatim in
-       both, see #ai-panel's own comment, hamburger-stack.html). */
-    .search-panel-hero{width:90%;margin:12px auto 24px;flex:0 0 auto;}
-    .search-panel-hero-img{display:block;width:100%;aspect-ratio:1/1;object-fit:cover;border-radius:12px;}
+    /* .search-panel-hero/.search-panel-hero-img (the square thumbnail image that used to sit above
+       the heading, both #search-panel and #ai-panel) were removed per explicit request — see git
+       history for what that design looked like, and .panel-hero-block's own comment further down
+       for how the heading's own top margin picked up the resulting top-of-panel inset instead. */
     /* Space Grotesk (this file's semantic-heading typeface, see the app-typeface comment near the
        top of this file) per explicit request; the description just below inherits the default
        Golos Text body font with no override needed, also per explicit request. font-size bumped
-       to 20px (was 16px), per an earlier explicit follow-up request. margin-top down to 4px (was
-       8px, was 16px, was 8px before that) across two later explicit follow-up requests that it sit
-       closer to the hero now that the hero is a much bigger square thumbnail rather than the small
-       glow circle the very first of those spacing values was written for. */
+       to 20px (was 16px), per an earlier explicit follow-up request. margin-top 16px (was 4px, back
+       when the hero thumbnail above it — since removed, see this rule's own comment above — meant
+       this only had to clear that image's own bottom margin rather than the panel's true top edge)
+       gives it a top-of-panel inset in the same rough range .panel-search-header's own 10px margin
+       and other panels' first elements use, now that it's the first thing in the panel. */
     /* text-align:left (was center) per explicit request — horizontal margin bumped from 0 to 20px
        (matching .search-panel-desc's own, just below) in the same change, so the two share a
        common left edge instead of the heading starting flush against the panel's own edge while
        the description sits indented 20px in from it. */
-    .search-panel-heading{margin:4px 20px 4px;text-align:left;font-family:'Space Grotesk', sans-serif;font-size:20px;font-weight:600;color:var(--ink);flex:0 0 auto;}
+    .search-panel-heading{margin:16px 20px 4px;text-align:left;font-family:'Space Grotesk', sans-serif;font-size:20px;font-weight:600;color:var(--ink);flex:0 0 auto;}
     /* Bottom margin down to 8px (was 24px, was 16px before that) — per explicit follow-up request
        to move the search box closer to this description again, reversing the previous round's
        increase. text-align:left (was center) per the same explicit request as the heading above. */
