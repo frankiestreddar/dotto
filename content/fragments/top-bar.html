@@ -176,17 +176,20 @@
 </div>
 <!-- Dead centre of the viewport (position:fixed, left:50% + translateX(-50%), see globals.css) —
      independent of the rail's own left offset. Back/forward (history navigation, see
-     jumpToHistoryIndex, resize-shortcuts-init.js) sit in their own pill to the left of the
-     compact "…/parent/current" breadcrumb (see app/dotto/BreadcrumbPill.jsx, breadcrumbMapStore),
-     with the per-canvas "add a collaborator" flyout to the breadcrumb's right — all three riding
-     in the same centred group rather than each picking their own position. -->
-<div id="top-bar-center">
-    <div class="bubble" id="nav-arrows-pill">
+     jumpToHistoryIndex, resize-shortcuts-init.js), the compact "…/parent/current" breadcrumb (see
+     app/dotto/BreadcrumbPill.jsx, breadcrumbMapStore), and the per-canvas "add a collaborator"
+     flyout are all sections of ONE merged pill now (#top-bar-center itself carries .bubble, per
+     explicit request — used to be three separately-chromed .bubble elements sitting side by side
+     with a gap between them, see globals.css for the full merge). #collab-bubble grows/shrinks
+     smoothly when it appears/disappears (CollabPill.jsx toggling its own .show class) rather than
+     snapping in — also per explicit request, see that rule's own comment, globals.css. -->
+<div id="top-bar-center" class="bubble">
+    <div id="nav-arrows-pill">
         <button id="btn-back" class="btn" title="Back">←</button>
         <button id="btn-forward" class="btn" title="Forward">→</button>
     </div>
-    <div class="bubble" id="breadcrumb-pill"></div>
-    <div class="bubble" id="collab-bubble">
+    <div id="breadcrumb-pill"></div>
+    <div id="collab-bubble">
         <div id="collab-content"></div>
         <div class="collab-tooltip" id="collab-tooltip"></div>
     </div>

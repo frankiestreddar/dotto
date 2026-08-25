@@ -241,21 +241,38 @@
        chrome background most other pill-shaped elements use) — per explicit request that these
        top-bar pills read as part of the canvas rather than a separate white-ish surface floating
        above it, most noticeable in light mode where --bar is pure white and --paper is a step
-       darker off-white. */
+       darker off-white.
+       Now only carried by #top-bar-center itself (see its own comment just below) — back/forward,
+       the breadcrumb, and the collaborator flyout used to each be their own separate .bubble, per
+       explicit request they're now sections of ONE merged pill instead, so this class's actual
+       background/border/shadow/radius chrome only needs applying once. */
     .bubble{background:var(--paper);border:1px solid var(--card-border);border-radius:12px;padding:4px;box-shadow:0 4px 12px rgba(0,0,0,0.3);display:flex;align-items:center;gap:2px;height:40px;}
     :root[data-theme="light"] .bubble{box-shadow:0 4px 12px rgba(0,0,0,0.126);}
 
     /* Dead centre of the viewport (left:50% + translateX(-50%)) rather than offset by the rail like
        the old #top-bar/#top-bar-left used to be — this group isn't anchored to the rail at all, so
-       it doesn't need to leave room for it. Houses the breadcrumb and the per-canvas "add a
-       collaborator" flyout side by side (#breadcrumb-pill, #collab-bubble — see top-bar.html), so
-       the whole cluster centres and grows together instead of each bubble picking its own spot. */
-    #top-bar-center{position:fixed;top:20px;left:50%;transform:translateX(-50%);z-index:1000;display:flex;align-items:center;gap:10px;height:40px;transition:transform .3s ease, opacity .3s ease;}
+       it doesn't need to leave room for it. One single .bubble now (class carried directly on this
+       element, top-bar.html) holding back/forward, the breadcrumb, and the per-canvas "add a
+       collaborator" flyout as plain inner sections (#nav-arrows-pill/#breadcrumb-pill/
+       #collab-bubble below) rather than three separately-chromed pills sitting side by side, per
+       explicit request. gap:0 (was 10px, back when each section was its own pill needing real
+       space between them) — spacing between sections is each section's own margin-left now (see
+       #breadcrumb-pill/#collab-bubble below), so #collab-bubble's own can transition to 0 together
+       with its width when it hides, instead of a flex `gap` unconditionally reserving that space
+       even then. .bubble's own padding:4px (reused here, see that class's own comment) is what
+       insets the very first/last visible section from this pill's own true edges. */
+    #top-bar-center{position:fixed;top:20px;left:50%;transform:translateX(-50%);z-index:1000;gap:0;height:40px;transition:transform .3s ease, opacity .3s ease;}
     /* Slides up and fades out while a notification is showing (see showNotification/
        dismissCurrentNotification, stopwatch-search-notifications.js, which toggle this same class
        on #top-bar-center and #notification-pill together) — translateY stacks onto the existing
        translateX(-50%) centering rather than replacing it, so horizontal position never moves. */
     #top-bar-center.notif-active{transform:translateX(-50%) translateY(-60px);opacity:0;pointer-events:none;}
+    /* Back/forward, as their own inner section (top-bar.html) — used to be its own separate .bubble;
+       display:flex/align-items:center/gap:2px (the actual layout of its two buttons) is all it
+       needs of its own now, since background/border/radius/shadow/height/edge-padding all live on
+       #top-bar-center itself (see that element's own comment for the merge). No divider before it
+       — it's always the first section, flush against the pill's own left edge padding. */
+    #nav-arrows-pill{display:flex;align-items:center;gap:2px;flex:0 0 auto;}
     /* Sits in the exact same fixed top:20px/centred slot as #top-bar-center, off-screen (slid up,
        faded out) at rest — see its own markup comment, top-bar.html, for why it's static rather
        than fully React-rendered. Sized like a .bubble (same background/border/radius/shadow/
@@ -356,15 +373,20 @@
        nor #search-panel contributes any padding of its own for this to rely on. */
     .panel-search-header{flex:0 0 auto;margin:10px;}
     /* Compact "…/parent/current" breadcrumb (see app/dotto/BreadcrumbPill.jsx, breadcrumbMapStore)
-       — a .bubble inside #top-bar-center (own fixed/centring positioning lives there now, shared
-       with #collab-bubble beside it), replacing the old always-visible full ancestor list that
-       used to live inside the hamburger sidebar. Space Grotesk (see the app-typeface comment at
-       the top of this file) and pure white throughout, INCLUDING the parent/ellipsis/separator
-       segments that read as var(--ink-soft) everywhere else in the app — a deliberate one-off, not
-       the usual grey-for-secondary-text convention. No bold anywhere in it, including the current
-       segment (font-weight:400 — was 600), which still doubles as a rename control (cursor:text
-       hints at that, matching a real text field). */
-    #breadcrumb-pill{padding:0 16px;gap:4px;max-width:280px;overflow:hidden;font-family:'Space Grotesk', sans-serif;}
+       — a plain inner section of the single merged #top-bar-center pill now (own fixed/centring
+       positioning lives there, shared with #nav-arrows-pill/#collab-bubble either side of it — see
+       that element's own comment for the merge), replacing the old always-visible full ancestor
+       list that used to live inside the hamburger sidebar. Space Grotesk (see the app-typeface
+       comment at the top of this file) and pure white throughout, INCLUDING the parent/ellipsis/
+       separator segments that read as var(--ink-soft) everywhere else in the app — a deliberate
+       one-off, not the usual grey-for-secondary-text convention. No bold anywhere in it, including
+       the current segment (font-weight:400 — was 600), which still doubles as a rename control
+       (cursor:text hints at that, matching a real text field).
+       display:flex/align-items:center and margin-left:4px/border-left (this section's own divider
+       from #nav-arrows-pill, and its own share of the spacing between them) used to come from the
+       now-removed .bubble class this element carried — see #top-bar-center's own comment for why
+       that merged into one pill instead. */
+    #breadcrumb-pill{display:flex;align-items:center;margin-left:4px;border-left:1px solid var(--card-border);padding:0 16px;gap:4px;max-width:280px;overflow:hidden;font-family:'Space Grotesk', sans-serif;}
     #breadcrumb-pill .breadcrumb-pill-ellipsis,
     #breadcrumb-pill .breadcrumb-pill-parent{color:var(--ink);font-weight:400;font-size:13px;cursor:pointer;white-space:nowrap;flex:0 0 auto;}
     #breadcrumb-pill .breadcrumb-pill-ellipsis:hover,
@@ -620,8 +642,29 @@
        snap instead — reversed here). */
     .rail-btn.active .rail-icon-img{transition:opacity .15s ease,transform .15s ease-in;}
     .rail-btn:hover .rail-icon-img,.rail-btn.active .rail-icon-img{opacity:1;}
-    #collab-bubble{display:none;position:relative;padding:0 10px;cursor:pointer;flex:0 0 auto;}
-    #collab-bubble.show{display:flex;align-items:center;}
+    /* Grows/shrinks smoothly now (max-width/margin-left/padding/border-left-width/opacity, all
+       transitioned together) rather than the old hard display:none/.show{display:flex} toggle,
+       which couldn't animate at all — per explicit request that the merged #top-bar-center pill
+       (see its own comment) visibly grow when this section appears instead of snapping into place.
+       Always display:flex now (CollabPill.jsx only ever toggles the .show CLASS, see its own
+       comment — no JS changes needed here). max-width:0/220px (was width:auto via display:none) is
+       the standard "animate a flex item's width toward its natural size" trick — 220px is just a
+       generous cap comfortably past this section's real content width (a handful of small avatars
+       plus a +N pill, or the single #collab-add-btn circle), never actually the size it renders at;
+       overflow:hidden clips it to whatever the transitioning max-width currently allows.
+       margin-left/padding/border-left-width all animate from 0 together with max-width/opacity so
+       the collapsed state truly contributes zero width to the pill (a plain border-left:1px, even
+       transparent, would still reserve that 1px regardless of color — animating the WIDTH itself to
+       0 avoids that) rather than just being invisible while still taking up space.
+       overflow switches to visible the instant .show is added (not transitioned — overflow itself
+       can't animate) rather than staying hidden throughout: .collab-tooltip is an absolutely
+       positioned child that pops up BELOW this element's own box on hover (top:calc(100% + 8px)) —
+       overflow:hidden would clip it clean off since it renders outside this element's own bounds.
+       Only the brief 0-to-content-width portion of the grow transition is genuinely clipped by
+       overflow:hidden at rest; once .show lands, the (small, near-immediately-reached) real content
+       width is free to render without any clipping, tooltip included. */
+    #collab-bubble{position:relative;display:flex;align-items:center;cursor:pointer;flex:0 0 auto;max-width:0;margin-left:0;padding:0;border-left:0 solid var(--card-border);opacity:0;overflow:hidden;transition:max-width .3s ease,margin-left .3s ease,padding .3s ease,border-left-width .3s ease,opacity .2s ease;}
+    #collab-bubble.show{max-width:220px;margin-left:4px;padding:0 10px;border-left-width:1px;opacity:1;overflow:visible;}
     .collab-avatars{display:flex;align-items:center;}
     /* No border-radius — only the top-bar button avatar (#btn-profile/.profile-avatar-sm) keeps
        circular clipping; every other avatar in the app is a plain square. */
