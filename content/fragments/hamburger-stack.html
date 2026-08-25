@@ -143,6 +143,13 @@
             </div>
         </div>
     </div>
+    <!-- Help — rail icon (group 7, top-bar.html, below Settings), new per explicit request.
+         Behavior/content not decided yet; a bare shell wired into the shared openRailView
+         mechanism (see wireRailIcon('help', ...), panels-hamburger.js) just so #btn-help has a
+         panel to open. -->
+    <div id="help-panel" class="hmenu-panel hub-subpanel" onclick="event.stopPropagation()">
+        <div id="help-panel-content"></div>
+    </div>
     <!-- Files (was ITSELF called Snippets — renamed per explicit request; id/wiring kept as
          'snippets' under the hood, same convention as Essentials/Queries staying #btn-add/
          #rail-btn-ai). Not to be confused with the separate, newer Snippets button above

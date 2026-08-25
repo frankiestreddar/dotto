@@ -35,14 +35,79 @@
             <span class="rail-tooltip"><span class="rail-tooltip-row"><span class="rail-tooltip-name">Profile</span><span class="rail-tooltip-key">P</span></span><span class="rail-tooltip-desc" data-desc="Your account, achievements, and pricing."></span></span>
         </button>
     </div>
-    <!-- Groups 2-6 (cursor-mode+Inbox+Queries, Search/Outline/Waypoints, Essentials/Library/
+    <!-- Group 1.5 (no official number — added between the pinned Group 1 and the centered block,
+         doesn't shift every later group's own number): cursor-mode selector, alone — pinned right
+         under Profile, per explicit follow-up request (had briefly been its own pinned group below
+         Settings before that, and before THAT sat at the top of Group 2, above Inbox — see git
+         history for both). Its popup opens downward again (.mode-popup's top:0, was bottom:-6px —
+         see that rule's own comment, globals.css) now that it's near the top of the rail with room
+         below it, rather than the bottom with nothing below. No button-specific tightened-hitbox
+         treatment this time (unlike the Settings-adjacent version before it) — there's no longer a
+         single guaranteed-adjacent neighbor the way Inbox/Queries or Settings were, since
+         #dotto-rail-middle's first group is vertically centered in whatever space is left rather
+         than fixed right below this pinned one; the safe-zone polygon (modePopupSafeZone,
+         source-buttons-cursor-mode.js) still covers the general case on its own. -->
+    <div class="rail-group">
+        <!-- Cursor-mode selector — per explicit follow-up request, the collapsed rail button
+             (icon-only, .mode-visible shows whichever mode is active) now stays exactly where it
+             is at all times, never itself restyled/moved on hover — a SEPARATE #mode-popup panel
+             (one cohesive box, not 4 individually-bordered pills) appears next to it instead,
+             listing all four modes as icon+name rows (.mode-popup-row — a different, new element
+             from the original 4 .mode-btn, deliberately NOT reusing that class, so
+             appState.modeButtons/the existing display:none-when-collapsed rules stay scoped to
+             just the rail button and don't need to care about this popup's own always-a-row
+             styling). Rows stay in this fixed DOM order always — an earlier version sorted the
+             active mode to the top, removed per explicit follow-up request — the active mode just
+             gets a highlighted/outlined .active state instead (see appState.modePopupRows,
+             core-state.js, and its own click wiring in source-buttons-cursor-mode.js, mirroring
+             appState.modeButtons' click handler). Moving the pointer from the button toward a row
+             further from it without closing the popup early is handled by a JS "safe zone" polygon
+             (modePopupSafeZone/handleModePopupSafeMove, source-buttons-cursor-mode.js) rather than
+             any DOM element here. -->
+        <div id="mode-toolbar">
+            <button class="rail-btn mode-btn mode-visible active" data-mode="normal">
+                <img class="rail-icon-img" src="/assets/icons/default-cursor.png" alt="">
+            </button>
+            <button class="rail-btn mode-btn" data-mode="data">
+                <img class="rail-icon-img" src="/assets/icons/data-cursor.png" alt="">
+            </button>
+            <button class="rail-btn mode-btn" data-mode="select">
+                <img class="rail-icon-img" src="/assets/icons/select-cursor.png" alt="">
+            </button>
+            <!-- Pen mode — reworked from the old Add-menu "Drawing" toggle (setDrawMode) into a
+                 real cursor mode, see applyCursorMode/handlePenPointerDown (source-buttons-cursor-
+                 mode.js/srs-connections-core.js). No tap/hold keyboard shortcut (unlike the other
+                 three) — no unclaimed single letter has an obvious mnemonic, so entering pen mode
+                 is click-only. -->
+            <button class="rail-btn mode-btn" data-mode="pen">
+                <img class="rail-icon-img" src="/assets/icons/pen.png" alt="">
+            </button>
+            <div id="mode-popup" class="mode-popup">
+                <button class="mode-popup-row" data-mode="normal">
+                    <img class="rail-icon-img" src="/assets/icons/default-cursor.png" alt="">
+                    <span class="mode-popup-row-name">Move &amp; select</span>
+                </button>
+                <button class="mode-popup-row" data-mode="data">
+                    <img class="rail-icon-img" src="/assets/icons/data-cursor.png" alt="">
+                    <span class="mode-popup-row-name">Data mode</span>
+                </button>
+                <button class="mode-popup-row" data-mode="select">
+                    <img class="rail-icon-img" src="/assets/icons/select-cursor.png" alt="">
+                    <span class="mode-popup-row-name">Select mode</span>
+                </button>
+                <button class="mode-popup-row" data-mode="pen">
+                    <img class="rail-icon-img" src="/assets/icons/pen.png" alt="">
+                    <span class="mode-popup-row-name">Pen mode</span>
+                </button>
+            </div>
+        </div>
+    </div>
+    <!-- Groups 2-6 (Inbox+Queries, Search/Outline/Waypoints, Essentials/Library/
          Marketplace, Friends/Collaborations/Messages, Files/Sources/Snippets) center as one block
-         in whatever space is left between the pinned Group 1 above and the pinned Group 7 below
+         in whatever space is left between the pinned groups above and the pinned Group 7 below
          (see #dotto-rail-middle, globals.css) — per explicit request. -->
     <div id="dotto-rail-middle">
-    <!-- Group 2: Inbox, then Queries. The cursor-mode selector used to sit here too (above Inbox)
-         — moved to its own pinned group at the very bottom of the rail, below Settings, per
-         explicit follow-up request (see Group 8, below Group 7). #inbox-panel (hamburger-stack.html)
+    <!-- Group 2: Inbox, then Queries. #inbox-panel (hamburger-stack.html)
          is a bare shell for now — behavior/content not yet decided, wired into the shared
          openRailView mechanism (see wireRailIcon('inbox', ...), panels-hamburger.js) so the icon has
          somewhere to open. inbox.png doesn't exist in the repo yet — flagged the same way
@@ -103,9 +168,9 @@
         <button id="btn-messages" class="rail-btn"><img class="rail-icon-img" src="/assets/icons/chats-btn.png" alt=""><span class="rail-tooltip"><span class="rail-tooltip-row"><span class="rail-tooltip-name">Messages</span><span class="rail-tooltip-key">M</span></span><span class="rail-tooltip-desc" data-desc="Direct messages and conversations."></span></span></button>
     </div>
     </div>
-    <!-- Group 7: Settings, alone — pinned to the very bottom of the rail (#dotto-rail-middle's own
-         flex:1 above already consumes the rest of the space, so nothing further is needed here to
-         push this group down). The light/dark theme toggle used to be its own rail button here
+    <!-- Group 7: Settings, then Help — pinned to the very bottom of the rail (#dotto-rail-middle's
+         own flex:1 above already consumes the rest of the space, so nothing further is needed here
+         to push this group down). The light/dark theme toggle used to be its own rail button here
          (#btn-theme-toggle) — removed per explicit request and moved into #settings-panel itself as
          a "Colour Theme" switch row instead (see its own comment, hamburger-stack.html, and
          theme-toggle.js, which now owns that switch's wiring the same way it owned the old
@@ -114,73 +179,15 @@
          it. #settings-panel is otherwise still a bare shell for the rest of its content — wired
          into the shared openRailView mechanism (see wireRailIcon('settings', ...),
          panels-hamburger.js). settings.png doesn't exist in the repo yet — flagged the same way
-         friends.png was (before Friends itself was removed). -->
+         friends.png was (before Friends itself was removed).
+         Help — new, per explicit request, added right below Settings in this same pinned group
+         (not a separate one — the two read as one small "utility" cluster at the rail's very
+         bottom). '?' per the near-universal cross-app convention for a help shortcut, rather than
+         picking from whatever single letters happen to still be free. #help-panel
+         (hamburger-stack.html) is a bare shell for now, same as most other icons here. -->
     <div class="rail-group">
         <button id="btn-settings" class="rail-btn"><img class="rail-icon-img" src="/assets/icons/settings.png" alt=""><span class="rail-tooltip"><span class="rail-tooltip-row"><span class="rail-tooltip-name">Settings</span><span class="rail-tooltip-key">Z</span></span><span class="rail-tooltip-desc" data-desc="App preferences and account settings."></span></span></button>
-    </div>
-    <!-- Group 8: cursor-mode selector, alone — pinned to the very bottom of the rail, below
-         Settings, per explicit follow-up request (used to sit at the top of Group 2, above Inbox).
-         Its own popup now opens UPWARD (.mode-popup's bottom:0, was top:0 — see that rule's own
-         comment, globals.css) instead of downward, since there's nothing below this group for it to
-         grow into anymore; Settings is now the neighbor its safe-zone/tightened-hitbox treatment
-         needs to account for instead of Inbox/Queries (see #btn-settings's own comment, globals.css,
-         and modePopupSafeZone, source-buttons-cursor-mode.js, which is geometry-driven from live
-         element rects either way, so needed no changes itself). -->
-    <div class="rail-group">
-        <!-- Cursor-mode selector — per explicit follow-up request, the collapsed rail button
-             (icon-only, .mode-visible shows whichever mode is active) now stays exactly where it
-             is at all times, never itself restyled/moved on hover — a SEPARATE #mode-popup panel
-             (one cohesive box, not 4 individually-bordered pills) appears next to it instead,
-             listing all four modes as icon+name rows (.mode-popup-row — a different, new element
-             from the original 4 .mode-btn, deliberately NOT reusing that class, so
-             appState.modeButtons/the existing display:none-when-collapsed rules stay scoped to
-             just the rail button and don't need to care about this popup's own always-a-row
-             styling). Rows stay in this fixed DOM order always — an earlier version sorted the
-             active mode to the top, removed per explicit follow-up request — the active mode just
-             gets a highlighted/outlined .active state instead (see appState.modePopupRows,
-             core-state.js, and its own click wiring in source-buttons-cursor-mode.js, mirroring
-             appState.modeButtons' click handler). Moving the pointer from the button toward a
-             row further from it — or past Settings's own now-tightened hitbox (see #btn-settings,
-             globals.css) — without closing the popup early is handled by a JS "safe zone" polygon
-             (modePopupSafeZone/handleModePopupSafeMove, source-buttons-cursor-mode.js) rather than
-             any DOM element here. -->
-        <div id="mode-toolbar">
-            <button class="rail-btn mode-btn mode-visible active" data-mode="normal">
-                <img class="rail-icon-img" src="/assets/icons/default-cursor.png" alt="">
-            </button>
-            <button class="rail-btn mode-btn" data-mode="data">
-                <img class="rail-icon-img" src="/assets/icons/data-cursor.png" alt="">
-            </button>
-            <button class="rail-btn mode-btn" data-mode="select">
-                <img class="rail-icon-img" src="/assets/icons/select-cursor.png" alt="">
-            </button>
-            <!-- Pen mode — reworked from the old Add-menu "Drawing" toggle (setDrawMode) into a
-                 real cursor mode, see applyCursorMode/handlePenPointerDown (source-buttons-cursor-
-                 mode.js/srs-connections-core.js). No tap/hold keyboard shortcut (unlike the other
-                 three) — no unclaimed single letter has an obvious mnemonic, so entering pen mode
-                 is click-only. -->
-            <button class="rail-btn mode-btn" data-mode="pen">
-                <img class="rail-icon-img" src="/assets/icons/pen.png" alt="">
-            </button>
-            <div id="mode-popup" class="mode-popup">
-                <button class="mode-popup-row" data-mode="normal">
-                    <img class="rail-icon-img" src="/assets/icons/default-cursor.png" alt="">
-                    <span class="mode-popup-row-name">Move &amp; select</span>
-                </button>
-                <button class="mode-popup-row" data-mode="data">
-                    <img class="rail-icon-img" src="/assets/icons/data-cursor.png" alt="">
-                    <span class="mode-popup-row-name">Data mode</span>
-                </button>
-                <button class="mode-popup-row" data-mode="select">
-                    <img class="rail-icon-img" src="/assets/icons/select-cursor.png" alt="">
-                    <span class="mode-popup-row-name">Select mode</span>
-                </button>
-                <button class="mode-popup-row" data-mode="pen">
-                    <img class="rail-icon-img" src="/assets/icons/pen.png" alt="">
-                    <span class="mode-popup-row-name">Pen mode</span>
-                </button>
-            </div>
-        </div>
+        <button id="btn-help" class="rail-btn"><img class="rail-icon-img" src="/assets/icons/help.png" alt=""><span class="rail-tooltip"><span class="rail-tooltip-row"><span class="rail-tooltip-name">Help</span><span class="rail-tooltip-key">?</span></span><span class="rail-tooltip-desc" data-desc="Guides, shortcuts, and support."></span></span></button>
     </div>
 </div>
 <!-- Dead centre of the viewport (position:fixed, left:50% + translateX(-50%), see globals.css) —

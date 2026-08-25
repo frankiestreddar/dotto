@@ -138,15 +138,16 @@ import { closeSourceAddMenu } from './source-buttons-cursor-mode.js';
     // own module top level, which would risk a circular-import timing issue (panels-hamburger.js
     // also imports from that file). A function reference used only inside a later event-listener
     // callback carries no such risk.
-    // #inbox-panel/#search-panel/#sources-panel/#snippets-panel/#snippets2-panel/#settings-panel
-    // have no content/refresh logic of their own yet (see their own comments, hamburger-stack.html)
-    // — no onOpen callback needed until that's designed.
+    // #inbox-panel/#search-panel/#sources-panel/#snippets-panel/#snippets2-panel/#settings-panel/
+    // #help-panel have no content/refresh logic of their own yet (see their own comments,
+    // hamburger-stack.html) — no onOpen callback needed until that's designed.
     wireRailIcon('inbox', appState.btnInbox, appState.inboxPanel, null);
     wireRailIcon('search', appState.btnSearch, appState.searchPanel, null);
     wireRailIcon('sources', appState.btnSources, appState.sourcesPanel, null);
     wireRailIcon('snippets', appState.btnSnippets, appState.snippetsPanel, null);
     wireRailIcon('snippets2', appState.btnSnippets2, appState.snippets2Panel, null);
     wireRailIcon('settings', appState.btnSettings, appState.settingsPanel, null);
+    wireRailIcon('help', appState.btnHelp, appState.helpPanel, null);
     wireRailIcon('ai', appState.railBtnAi, appState.aiPanel, refreshAiPanel);
     wireRailIcon('outline', appState.hamburgerBtn, appState.outlineMenu, buildOutline);
     wireRailIcon('waypoints', appState.railBtnWaypoints, appState.waypointsPanel, () => renderWaypointsList(''));
