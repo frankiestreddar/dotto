@@ -201,6 +201,7 @@
         cellTagPicker: document.getElementById('cell-tag-picker'),
         audioRecordIndicator: document.getElementById('audio-record-indicator'),
         modeToolbar: document.getElementById('mode-toolbar'),
+        modePopup: document.getElementById('mode-popup'),
         MODE_ORDER_WEIGHT: { normal: 0, data: 1, select: 2, pen: 3 },
         MODE_HOLD_THRESHOLD_MS: 180,
         modeKeyHoldStart: null,

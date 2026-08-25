@@ -48,6 +48,56 @@ import { clearDataLinkPending } from './srs-connections-core.js';
             row.classList.toggle('active', row.dataset.mode === appState.cardMode);
         });
     }
+    // Even-odd ray-casting point-in-polygon test (Jordan curve theorem) — generic over any vertex
+    // count, used below for the mode popup's "safe zone" quadrilateral.
+    function pointInPolygon(x, y, poly) {
+        let inside = false;
+        for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) {
+            const xi = poly[i][0], yi = poly[i][1], xj = poly[j][0], yj = poly[j][1];
+            const intersect = ((yi > y) !== (yj > y)) && (x < (xj - xi) * (y - yi) / (yj - yi) + xi);
+            if (intersect) inside = !inside;
+        }
+        return inside;
+    }
+    // The "safe zone" quadrilateral covering every straight-line path from anywhere in the
+    // mode-toolbar button to anywhere on the popup's own left edge — toolbar's left corners paired
+    // with the popup's near corners, live-measured so it tracks either element's actual current
+    // size/position rather than any hardcoded pixel guess. Per explicit follow-up request/
+    // screenshot: cutting diagonally from the toolbar toward a lower popup row (e.g. Pen mode)
+    // used to cross dead space or another rail button's hitbox partway through and close the
+    // popup early — this is what lets that diagonal path stay "inside" the whole way.
+    function modePopupSafeZone() {
+        const t = appState.modeToolbar.getBoundingClientRect();
+        const p = appState.modePopup.getBoundingClientRect();
+        return [[t.left, t.top], [p.left, p.top], [p.left, p.bottom], [t.left, t.bottom]];
+    }
+    let modePopupSafeZoneActive = false;
+    function handleModePopupSafeMove(e) {
+        if (!appState.modeToolbar.classList.contains('expanded')) { stopModePopupSafeZone(); return; }
+        if (appState.modeToolbar.contains(e.target)) { stopModePopupSafeZone(); return; } // back over it for real — nothing left to track
+        // Landing on another rail button's own hitbox closes the popup outright, even inside the
+        // safe zone below — per explicit request that hovering another icon still closes it. Only
+        // its real (possibly tightened, see #btn-inbox/#rail-btn-ai, globals.css) hitbox counts as
+        // "landing on" it, not just passing near its visual footprint.
+        const otherBtn = e.target.closest && e.target.closest('.rail-btn');
+        if (otherBtn && !appState.modeToolbar.contains(otherBtn)) { closeModePopup(); return; }
+        if (!pointInPolygon(e.clientX, e.clientY, modePopupSafeZone())) closeModePopup();
+    }
+    function startModePopupSafeZone() {
+        if (modePopupSafeZoneActive) return;
+        modePopupSafeZoneActive = true;
+        document.addEventListener('mousemove', handleModePopupSafeMove);
+    }
+    function stopModePopupSafeZone() {
+        if (!modePopupSafeZoneActive) return;
+        modePopupSafeZoneActive = false;
+        document.removeEventListener('mousemove', handleModePopupSafeMove);
+    }
+    function closeModePopup() {
+        stopModePopupSafeZone();
+        appState.modeToolbar.classList.remove('expanded');
+        updateModeToolbarUI();
+    }
     function applyCursorMode() {
         const eff = effectiveMode();
         canvas.classList.toggle('mode-data', eff === 'data');
@@ -68,7 +118,7 @@ import { clearDataLinkPending } from './srs-connections-core.js';
         btn.addEventListener('click', (e) => {
             e.stopPropagation();
             appState.cardMode = btn.dataset.mode;
-            appState.modeToolbar.classList.remove('expanded');
+            closeModePopup();
             applyCursorMode();
         });
     });
@@ -78,12 +128,15 @@ import { clearDataLinkPending } from './srs-connections-core.js';
         row.addEventListener('click', (e) => {
             e.stopPropagation();
             appState.cardMode = row.dataset.mode;
-            appState.modeToolbar.classList.remove('expanded');
+            closeModePopup();
             applyCursorMode();
         });
     });
-    appState.modeToolbar.addEventListener('mouseenter', () => { appState.modeToolbar.classList.add('expanded'); updateModeToolbarUI(); });
-    appState.modeToolbar.addEventListener('mouseleave', () => { appState.modeToolbar.classList.remove('expanded'); updateModeToolbarUI(); });
+    appState.modeToolbar.addEventListener('mouseenter', () => { stopModePopupSafeZone(); appState.modeToolbar.classList.add('expanded'); updateModeToolbarUI(); });
+    // Doesn't close outright — starts the safe-zone tracker (above) instead, which closes for real
+    // once the pointer actually leaves that zone (or lands on another rail button), rather than the
+    // instant the pointer leaves the toolbar's own small box.
+    appState.modeToolbar.addEventListener('mouseleave', () => { startModePopupSafeZone(); });
 
     // D / Escape / Shift each work as both a quick switch and a temporary (held) override for
     // the three cursor modes (Data / Normal / Select respectively): pressing and releasing one
@@ -186,8 +239,7 @@ import { clearDataLinkPending } from './srs-connections-core.js';
         appState.contextMenuItemId = null;
         hideCanvasContextMenu();
         closeCollabPanel();
-        appState.modeToolbar.classList.remove('expanded');
-        updateModeToolbarUI();
+        closeModePopup();
     };
 
 export { applyCursorMode, closeSourceAddMenu, openCellAddMenu };

@@ -67,10 +67,13 @@
              active mode to the top, removed per explicit follow-up request — the active mode just
              gets a highlighted/outlined .active state instead (see appState.modePopupRows,
              core-state.js, and its own click wiring in source-buttons-cursor-mode.js, mirroring
-             appState.modeButtons' click handler). .mode-popup-bridge (globals.css) is an
-             invisible strip bridging the rail's own padding gap between the button and this panel
-             — see its own comment, globals.css — needed once the panel was moved to sit flush
-             against the rail's true edge instead of the button's edge, per explicit request. -->
+             appState.modeButtons' click handler). Moving the pointer from the button toward a
+             lower row (e.g. Pen mode) — or past Inbox/Queries's own now-tightened hitboxes below
+             (see #btn-inbox/#rail-btn-ai, globals.css) — without closing the popup early is handled
+             by a JS "safe zone" polygon (modePopupSafeZone/handleModePopupSafeMove, source-buttons-
+             cursor-mode.js) rather than any DOM element here — an earlier version used a small
+             invisible bridge div for just the narrow gap next to the button, replaced once a
+             diagonal cut toward a lower row turned out to cross more than that one gap. -->
         <div id="mode-toolbar">
             <button class="rail-btn mode-btn mode-visible active" data-mode="normal">
                 <img class="rail-icon-img" src="/assets/icons/default-cursor.png" alt="">
@@ -90,7 +93,6 @@
                 <img class="rail-icon-img" src="/assets/icons/pen.png" alt="">
             </button>
             <div id="mode-popup" class="mode-popup">
-                <div class="mode-popup-bridge"></div>
                 <button class="mode-popup-row" data-mode="normal">
                     <img class="rail-icon-img" src="/assets/icons/default-cursor.png" alt="">
                     <span class="mode-popup-row-name">Move &amp; select</span>
