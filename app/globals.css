@@ -2788,14 +2788,13 @@
 
     /* Purple text-selection highlight. Note: ::selection is spec-limited to color/background-
        color/text-shadow (plus a couple others) — no browser honors padding or border-radius on
-       it, so this is the closest a native selection highlight can get to that look. var(--brand)
-       (was #8b5cf6, a different violet) per explicit request to match the same purple as the
-       sidebar's own shift-click .outline-item-selected rows — those use var(--brand) at 18%
-       opacity as a translucent row TINT over an existing surface, which isn't suitable here at
-       full strength (::selection needs to fully cover the text it's behind to stay legible against
-       any background, not just tint it), so this reuses the same base hue solid instead rather
-       than the row style's own alpha value. */
-    ::selection{background:var(--brand);color:#fff;}
+       it, so this is the closest a native selection highlight can get to that look. Exactly matches
+       the sidebar's own shift-click .outline-item-selected rows (rgba(99,102,241,0.18)/var(--ink)),
+       per explicit follow-up request — an earlier version used a solid var(--brand)/#fff instead,
+       reasoning the row style's translucent alpha wasn't strong enough for ::selection to stay
+       legible against any background; reverted since the request was for an exact match, not just
+       the same hue. */
+    ::selection{background:rgba(99,102,241,0.18);color:var(--ink);}
 
     /* ---------- Text selection toolbar + add-to-source popup (dotto-script.js) ---------- */
     /* Just a positioning wrapper — no background/border/padding of its own. Each button is its
