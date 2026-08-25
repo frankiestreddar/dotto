@@ -1624,15 +1624,22 @@
     #search-spinner{display:none;position:absolute;right:12px;top:10px;width:14px;height:14px;border:2px solid var(--card-border);border-top-color:var(--ink-soft);border-radius:50%;animation:dotbot-spin 0.7s linear infinite;pointer-events:none;}
     #search-spinner.visible{display:block;}
     /* Same "Enter" shortcut hint as .hub-subpanel-search-hint (plain search boxes elsewhere) — a
-       separate rule since this box also has #search-spinner. Both sit at the same right:12px now
-       (per explicit follow-up request that the hint sit all the way at the box's own edge) rather
-       than offset apart, since they're never actually visible at once in practice: the hint hides
-       the moment the box is focused (:focus-within below), and the spinner only ever shows while a
-       search is in flight, which happens with the box still focused — by the time it could show,
-       the hint's already gone. #search-input's own padding-right (40px, was 74px) only needs to
-       clear whichever of the two is actually showing, not both simultaneously. */
+       separate rule since this box also has #search-spinner; both sit at the same right:12px (per
+       explicit follow-up request that the hint sit all the way at the box's own edge). #search-input's
+       own padding-right (40px, was 74px) only needs to clear whichever of the two is actually
+       showing, never both — the three rules below make sure of that/of when this shows at all. */
     #search-input-hint{position:absolute;right:12px;top:50%;transform:translateY(-50%);display:inline-flex;align-items:center;justify-content:center;padding:2px 6px;border:1px solid var(--outline-soft);border-radius:4px;font-family:'Space Grotesk', sans-serif;font-size:10px;font-weight:600;color:var(--ink-soft);pointer-events:none;}
+    /* Hides the moment the box is actually focused — a hint pointing at the shortcut to focus it
+       has nothing left to say once you're already there. */
     #search-input-wrap:focus-within #search-input-hint{display:none;}
+    /* Hides while #search-spinner is actively showing — per explicit follow-up request, a genuine
+       "a search is in flight" state the hint shouldn't compete with for the same corner. */
+    #search-input-wrap:has(#search-spinner.visible) #search-input-hint{display:none;}
+    /* Hides once #search-input-wrap has been reparented into #ai-chat-view (showAiChatView, ai-
+       assistant-suggestions.js — a real DOM move, not a second copy, once a conversation exists),
+       per explicit follow-up request that this only show in the initial list view, not once you're
+       actually in a chat. */
+    #ai-chat-view #search-input-hint{display:none;}
     @keyframes dotbot-spin{to{transform:rotate(360deg);}}
 
     /* Notifications (pushNotification) live in the top bar now, not here — see #notification-pill
