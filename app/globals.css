@@ -288,27 +288,23 @@
        centered card of its own. overflow is explicitly set back to visible here, overriding
        .hub-subpanel's own overflow:hidden — the dictionary/examples panels' hover-out nav arrows
        intentionally slide outside their own panel's edge, which .hub-subpanel's default clipping
-       (fine for every other, simpler list-style rail view) would otherwise cut off. padding stays
-       on this element (not #search-input-wrap or #search-dropdown individually) so the input row
-       and every result row inset from the card's edges by the same amount, uniformly — #search-
-       dropdown itself still has no side padding of its own, so a row's hover background still
-       stretches edge-to-edge within the space this padding leaves it, rather than leaving a
-       second, inconsistent gap around the highlight. */
-    #ai-panel{position:relative;overflow:visible;padding:8px;}
-    /* Wraps just the hero/heading/description block (hamburger-stack.html) that's otherwise
-       reused verbatim from #search-panel — #search-panel has no padding of its own, so those
-       elements' width:90%/20px-margin values (globals.css, .search-panel-hero etc.) compute
-       against the FULL sidebar width there; #ai-panel's own 8px padding above means the exact
-       same values would otherwise compute against a narrower 284px box instead, rendering
-       smaller/differently despite sharing identical CSS — per explicit bug report that the
-       padding still didn't read as identical between the two panels. Negative margin matching
-       that padding breaks this block back out to the panel's full outer width (top too, so the
-       hero sits the same distance from the panel's true top edge as it does in Search, not 8px
-       further down) — everything inside it then computes exactly like Search's own copy does.
-       #ai-list-header/#chats-list below this block are deliberately NOT included — real, already-
-       working UI that was never part of the "look just like Search" ask, and still wants
-       #ai-panel's own padding same as before. */
-    .ai-hero-block{margin:-8px -8px 0;flex:0 0 auto;}
+       (fine for every other, simpler list-style rail view) would otherwise cut off.
+       No padding of its own any more (was 8px, with every child either relying on it directly or
+       compensating around it — see git history) — matching #search-panel's own zero padding
+       exactly, per repeated explicit bug reports that hero/heading/search-box sizing still wasn't
+       reading as truly identical between the two panels despite several rounds of case-by-case
+       compensation. Simpler and more robust to remove the root padding entirely and have each
+       section that actually needs an inset carry it directly instead (.ai-hero-block needs none at
+       all now; #ai-list-header carries the full 10px itself, matching
+       .hub-subpanel-search-wrap's own 10px exactly rather than 8 of it borrowed from here;
+       #ai-chat-view carries its own 8px so the active-conversation view's layout is unaffected)
+       than to keep fighting a shared padding value via per-child negative-margin tricks. */
+    #ai-panel{position:relative;overflow:visible;}
+    /* Wraps just the hero/heading/description block (hamburger-stack.html) that's otherwise reused
+       verbatim from #search-panel — no compensation needed any more (see #ai-panel's own comment
+       above for why), so this is now just the flex-item sizing behavior every other section here
+       also needs. */
+    .ai-hero-block{flex:0 0 auto;}
     /* The active-conversation view's own small header — just the "back to chats" toggle,
        left-aligned, no title text (the rail icon itself already reads as "this is the AI panel",
        no need to repeat it). Same visual language as #msg-convo-header/#msg-convo-back (a
@@ -328,23 +324,27 @@
        just below), every previous conversation listed below it (#chats-list, further down). */
     #ai-list-view{display:none;flex-direction:column;flex:1 1 auto;min-height:0;}
     #ai-list-view.open{display:flex;}
-    #ai-chat-view{display:none;flex-direction:column;flex:1 1 auto;min-height:0;}
+    /* padding:8px, all sides (was inherited from #ai-panel's own uniform 8px padding, now removed —
+       see that rule's own comment) — this view's content (#ai-chat-header, #search-chat-thread, and
+       #search-input-wrap/#search-dropdown once reparented in here by showAiChatView) has none of
+       its own beyond #ai-chat-header's own extra 4px/2px/6px, so it needs to carry this itself now
+       to keep the active-conversation view's layout exactly as it was on every side, not just
+       left/right. */
+    #ai-chat-view{display:none;flex-direction:column;flex:1 1 auto;min-height:0;padding:8px;}
     #ai-chat-view.open{display:flex;}
     /* Where #search-input-wrap/#search-dropdown live at rest (see #ai-panel's own comment,
        hamburger-stack.html) — plain block flow is enough for its own two children (they already
        stack vertically as ordinary block-level divs), flex:0 0 auto is what matters here, so this
        element itself doesn't get squashed or stretched as a child of #ai-list-view's own flex
-       column above. margin 10px top/bottom matches the vertical breathing room
-       .hub-subpanel-search-wrap's own 10px padding gives #search-panel-search above/below it (see
-       that rule, globals.css) — #search-input-wrap itself has no padding of its own, so without
-       this the box sat noticeably closer to .search-panel-desc above and #chats-list below than
-       Search's own layout does, per explicit bug report that the two panels' vertical rhythm
-       didn't match. 2px horizontal margin (found in a later full audit of both panels, same bug
-       report) is the same idea sideways: #ai-panel's own 8px padding is all #search-input-wrap
-       had insetting it from the panel's true edge, 2px short of .hub-subpanel-search-wrap's own
-       10px on Search's side — this tops it up to match exactly, and #search-dropdown right below
-       inherits the same corrected inset for free as this element's other block child. */
-    #ai-list-header{flex:0 0 auto;margin:10px 2px;}
+       column above. margin:10px on all sides matches .hub-subpanel-search-wrap's own 10px padding
+       exactly — #search-input-wrap itself has no padding of its own, so this is the only thing
+       insetting it (and #search-dropdown right below, inheriting the same margin for free as this
+       element's other block child) from the panel's true edges on every side, now that #ai-panel
+       no longer contributes any padding of its own (see that rule's own comment) for this to
+       partially rely on. Was 10px 2px (borrowing 8px of the horizontal from #ai-panel) before that
+       padding was removed entirely as the more robust fix, per repeated explicit bug reports that
+       the two panels' sizing still wasn't reading as truly identical. */
+    #ai-list-header{flex:0 0 auto;margin:10px;}
     /* Compact "…/parent/current" breadcrumb (see app/dotto/BreadcrumbPill.jsx, breadcrumbMapStore)
        — a .bubble inside #top-bar-center (own fixed/centring positioning lives there now, shared
        with #collab-bubble beside it), replacing the old always-visible full ancestor list that
@@ -1193,10 +1193,12 @@
        invert(1) dark / brightness(0) light). */
     /* Left inset lands on 18px from each panel's own true edge, per explicit follow-up request
        ("something in between the two") — #search-panel has no padding of its own (content box =
-       full sidebar width, so this row's own 4px .hub-subpanel-list padding + 14px here = 18px),
-       while #ai-panel (Queries) has 8px padding (see its own comment) that #search-panel doesn't,
-       so #chats-list's own row (below) needs a smaller 6px to land on that same 18px total
-       (8 + 4 + 6) instead of reusing this exact number. */
+       full sidebar width, so this row's own 4px .hub-subpanel-list padding + 14px here = 18px).
+       #chats-list's own row (below) now reuses this exact same 14px, rather than a smaller
+       compensating number — #ai-panel used to carry its own 8px padding that #search-panel didn't,
+       needing #chats-list's own row padding shrunk to 6px to still land on 18px total; #ai-panel's
+       padding was removed entirely as the more robust fix for a repeated "these still aren't
+       identical" bug report, so there's nothing left to compensate for here any more. */
     .search-history-row{display:flex;align-items:center;gap:10px;height:32px;padding:0 14px;border-radius:6px;cursor:pointer;font-size:12px;color:var(--ink);}
     .search-history-row:hover{background:var(--hover-bg);}
     .search-history-icon{width:14px;height:14px;flex:0 0 auto;object-fit:contain;filter:brightness(0) invert(1);opacity:0.35;}
@@ -1206,14 +1208,14 @@
        own margin/padding/gap (further down this file) is tuned for the real indented Outline tree,
        not a flat list, which left these rows sitting at a visibly different inset than
        .search-history-row above per explicit bug report. Overridden here, scoped to just this list;
-       padding is 6px (not .search-history-row's own 14px) precisely because #ai-panel's extra 8px
-       padding (see its own comment) needs to be subtracted back out for the two to land on the same
-       18px total inset — see .search-history-row's own comment just above for that math.
+       padding matches .search-history-row's own 14px exactly now that #ai-panel no longer has any
+       padding of its own for this to compensate around (see #ai-panel's own comment) — an earlier
+       version used a smaller 6px specifically to offset that padding, back when it still existed.
        font-size/color also overridden (12px/var(--ink), matching .search-history-row exactly) —
        base .outline-item is 13px/var(--ink-soft), tuned for the real Outline tree, same reasoning
        as the box-model override above; per explicit follow-up bug report that text size read as
        different between the two panels' history rows too. */
-    #chats-list .outline-item{margin:0;height:32px;padding:0 6px;gap:10px;font-size:12px;color:var(--ink);}
+    #chats-list .outline-item{margin:0;height:32px;padding:0 14px;gap:10px;font-size:12px;color:var(--ink);}
     :root[data-theme="light"] .search-history-icon{filter:brightness(0);}
     .search-history-query{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0;}
     .hub-subpanel-list{flex:1 1 auto;overflow-y:auto;min-height:0;padding:6px 4px;scrollbar-width:none;}

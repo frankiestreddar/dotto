@@ -190,13 +190,14 @@
          equivalent), same as Search has no second view to worry about at all. The actual search
          input/dropdown below (#ai-list-header) is untouched — a real, working feature, unlike
          Search's own box which doesn't execute anything yet.
-         .ai-hero-block wraps just these three (not #ai-list-header/#chats-list below, which keep
-         relying on #ai-panel's own padding same as before) — #ai-panel has 8px padding of its own
-         that #search-panel doesn't, so reusing the exact same width:90%/margin values as Search
-         inside that extra padding was quietly computing a smaller box (284px content width instead
-         of the full 300px sidebar), not truly identical despite sharing classes — per explicit bug
-         report that the padding still didn't match. See .ai-hero-block's own comment, globals.css,
-         for how it corrects that. -->
+         .ai-hero-block is just a naming/grouping wrapper now — #ai-panel used to have its own 8px
+         padding that #search-panel didn't, making the exact same width:90%/margin values as Search
+         quietly compute against a narrower 284px box instead of the full 300px sidebar despite
+         sharing identical classes; #ai-list-header/#chats-list below carried their own compensating
+         adjustments for the same reason. Per repeated explicit bug reports that sizing still wasn't
+         reading as truly identical, #ai-panel's padding was removed entirely instead (see its own
+         comment, globals.css) — the more robust fix, versus continuing to patch each child's own
+         compensation for a padding value only one of the two panels had in the first place. -->
     <div id="ai-panel" class="hmenu-panel hub-subpanel" onclick="event.stopPropagation()">
         <div id="ai-list-view">
             <div class="ai-hero-block">
