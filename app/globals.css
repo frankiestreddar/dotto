@@ -464,12 +464,13 @@
        in place. touch-action:none/user-select:none are for the drag-to-reorder gesture below —
        without the former, a touch-drag would fight the browser's own scroll gesture; without the
        latter, a press-and-drag would select the pill's own text along the way.
-       padding:3px 12px (was equalized to a flat 3px briefly, then that traded for MORE left/right
-       specifically — both per explicit request) — #top-bar-center no longer contributes any
-       left/right inset of its own (padding-left/right:0 there now, its own comment explains why),
-       so this is what keeps the first/last tab's own text clear of the merged pill's true edges,
-       scoped per-tab rather than shared across the whole row. */
-    .tab-pill{display:flex;align-items:center;gap:4px;flex:0 0 auto;border-radius:6px;padding:3px 12px;border:1px solid transparent;max-width:150px;overflow:hidden;touch-action:none;user-select:none;transition:background .15s ease,border-color .15s ease;}
+       padding:3px 7px (was equalized to a flat 3px briefly, then bumped to 12px for more
+       left/right specifically, then back down to 7px — all per explicit follow-up requests) —
+       #top-bar-center no longer contributes any left/right inset of its own (padding-left/right:0
+       there now, its own comment explains why), so this is what keeps the first/last tab's own
+       text clear of the merged pill's true edges, scoped per-tab rather than shared across the
+       whole row. */
+    .tab-pill{display:flex;align-items:center;gap:4px;flex:0 0 auto;border-radius:6px;padding:3px 7px;border:1px solid transparent;max-width:150px;overflow:hidden;touch-action:none;user-select:none;transition:background .15s ease,border-color .15s ease;}
     .tab-pill:not(.tab-pill-active){cursor:pointer;}
     /* Very subtle grey outline on every non-active tab, and a very subtle grey highlight on the
        active one — per explicit request. Both use the app's own established "subtle grey" tokens
