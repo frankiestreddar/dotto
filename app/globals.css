@@ -1061,6 +1061,15 @@
     .mode-popup-row .rail-icon-img{opacity:0.55;}
     .mode-popup-row:hover .rail-icon-img,.mode-popup-row.active .rail-icon-img{opacity:1;}
     .mode-popup-row-name{font-size:12px;color:var(--ink);white-space:nowrap;}
+    /* Per-row keyboard-shortcut badge — same auto-width bordered-pill formula as .hub-subpanel-
+       search-hint (fits multi-letter labels like "Shift"/"Esc", unlike the fixed 16x16 single-glyph
+       .rail-tooltip-key/.outline-item-key badges elsewhere), pushed to the row's far right via
+       margin-left:auto since .mode-popup-row-name doesn't flex-grow to fill the row on its own.
+       Hidden on whichever row is currently active (appState.cardMode) per explicit request — no
+       point showing the shortcut for the mode you're already in — riding the same .active class
+       source-buttons-cursor-mode.js already toggles per-row, so no extra JS is needed here. */
+    .mode-popup-row-key{display:inline-flex;align-items:center;justify-content:center;margin-left:auto;padding:2px 6px;border:1px solid var(--outline-soft);border-radius:4px;font-family:'Space Grotesk', sans-serif;font-size:10px;font-weight:600;color:var(--ink-soft);flex:0 0 auto;}
+    .mode-popup-row.active .mode-popup-row-key{display:none;}
 
     #canvas.mode-data{cursor:crosshair;}
     #canvas.mode-data .item, #canvas.mode-data .item *{cursor:crosshair !important;}

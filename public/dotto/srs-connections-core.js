@@ -635,7 +635,12 @@ import { render, renderSelectedOutlines, startBoxSelection, syncWaypointToDb } f
         // theme-toggle.js's own toggleTheme() directly instead of .click()-ing an element that no
         // longer exists.
         if (!isEditingText && e.key === '\\') { e.preventDefault(); toggleTheme(); return; }
-        if (!isEditingText && (e.key === 'p' || e.key === 'P')) { e.preventDefault(); appState.profileBtn.click(); return; }
+        // Was 'p'/'P' — reassigned to Tab per explicit request, freeing 'p' up for Pen mode
+        // (source-buttons-cursor-mode.js's own beginModeOverride/endModeOverride pair). Note this
+        // does mean Tab no longer moves focus between elements anywhere outside a text field
+        // (isEditingText only guards contentEditable/INPUT/SELECT/TEXTAREA, not e.g. a focused
+        // button) — an explicit tradeoff, not an oversight.
+        if (!isEditingText && e.key === 'Tab') { e.preventDefault(); appState.profileBtn.click(); return; }
         if (!isEditingText && (e.key === 'w' || e.key === 'W')) { e.preventDefault(); appState.railBtnWaypoints.click(); return; }
         if (!isEditingText && (e.key === 'c' || e.key === 'C')) { e.preventDefault(); appState.railBtnCollab.click(); return; }
         if (!isEditingText && (e.key === 'h' || e.key === 'H')) { e.preventDefault(); appState.btnCart.click(); return; }
@@ -650,13 +655,18 @@ import { render, renderSelectedOutlines, startBoxSelection, syncWaypointToDb } f
         // core-state.js) — not appState.btnSnippets, which is actually Files under the hood.
         if (!isEditingText && (e.key === 's' || e.key === 'S')) { e.preventDefault(); appState.btnSnippets2.click(); return; }
         // Bare 'z'/'Z' only — Cmd/Ctrl+Z (undo/redo) is a separate, differently-gated handler
-        // (history-autosave.js, requires e.metaKey||e.ctrlKey), so the two don't collide. Settings
-        // is no longer its own rail icon (moved into a sub-view of the Profile panel, per explicit
-        // request) — this now opens Profile and jumps straight to that sub-view in one step
-        // (profileBtn's own click handler, via wireRailIcon, runs synchronously — refreshProfilePanel
-        // resets to the main view first, and showProfileSettingsView right after switches it back
-        // to settings before anything paints) rather than requiring a second click once there.
-        if (!isEditingText && (e.key === 'z' || e.key === 'Z')) { e.preventDefault(); appState.profileBtn.click(); showProfileSettingsView(); return; }
+        // (history-autosave.js, requires e.metaKey||e.ctrlKey). The comment here used to claim
+        // that alone was enough to keep the two from colliding, but preventDefault() on THIS
+        // listener does nothing to stop history-autosave.js's own keydown listener from also
+        // firing on the same Cmd/Ctrl+Z press — this handler needed its own !e.metaKey/!e.ctrlKey
+        // guard to actually stay out of undo's way, per explicit bug report that Cmd+Z was opening
+        // Settings. Settings is no longer its own rail icon (moved into a sub-view of the Profile
+        // panel, per explicit request) — this now opens Profile and jumps straight to that sub-view
+        // in one step (profileBtn's own click handler, via wireRailIcon, runs synchronously —
+        // refreshProfilePanel resets to the main view first, and showProfileSettingsView right
+        // after switches it back to settings before anything paints) rather than requiring a
+        // second click once there.
+        if (!isEditingText && !e.metaKey && !e.ctrlKey && (e.key === 'z' || e.key === 'Z')) { e.preventDefault(); appState.profileBtn.click(); showProfileSettingsView(); return; }
         // Not a rail icon (see upload-popup.js) — toggleUploadPopup() is a plain classList toggle
         // on its own independent #upload-popup, not an openRailView('...', ...).click() call like
         // every shortcut above it.

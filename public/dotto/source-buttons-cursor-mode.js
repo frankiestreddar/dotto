@@ -141,17 +141,19 @@ import { clearDataLinkPending } from './srs-connections-core.js';
     // instant the pointer leaves the toolbar's own small box.
     appState.modeToolbar.addEventListener('mouseleave', () => { startModePopupSafeZone(); });
 
-    // D / Escape / Shift each work as both a quick switch and a temporary (held) override for
-    // the three cursor modes (Data / Normal / Select respectively): pressing and releasing one
+    // D / P / Escape / Shift each work as both a quick switch and a temporary (held) override for
+    // the four cursor modes (Data / Pen / Normal / Select respectively): pressing and releasing one
     // within MODE_HOLD_THRESHOLD_MS counts as a tap and switches to that mode for good, exactly
     // like clicking its toolbar button — the same as it would happen anyway from the immediate
     // keydown-triggered override, just made to stick around after keyup instead of reverting.
     // Holding it past that threshold keeps it a temporary override, reverting back to whatever
     // mode was active before the key went down the moment it's released. Option/Alt+drag is
-    // reserved separately for duplicating cards, so D/Shift are ignored while actively typing in
+    // reserved separately for duplicating cards, so D/P/Shift are ignored while actively typing in
     // a text field (Escape never types a character, so it's exempt from that check — same as its
-    // other, unrelated "close everything" behavior above), and D/Shift both bail out while a
-    // meta/ctrl modifier is held so they don't hijack unrelated shortcuts (e.g. Cmd+Z for undo).
+    // other, unrelated "close everything" behavior above), and D/P/Shift all bail out while a
+    // meta/ctrl modifier is held so they don't hijack unrelated shortcuts (e.g. Cmd+Z for undo,
+    // Cmd+P for print — 'P' in particular used to be Profile's own rail shortcut, now Tab, per
+    // explicit request that freed it up for this).
     function beginModeOverride(key) {
         if (appState.modeOverrideKey === key) return;
         appState.modeOverrideKey = key;
@@ -192,11 +194,13 @@ import { clearDataLinkPending } from './srs-connections-core.js';
         }
         if (!isEditingText && e.key === 'Shift' && !e.metaKey && !e.ctrlKey) { beginModeOverride('shift'); }
         else if (!isEditingText && !e.metaKey && !e.ctrlKey && (e.key === 'd' || e.key === 'D')) { beginModeOverride('d'); }
+        else if (!isEditingText && !e.metaKey && !e.ctrlKey && (e.key === 'p' || e.key === 'P')) { beginModeOverride('p'); }
         else if (e.key === 'Escape') { beginModeOverride('escape'); }
     });
     document.addEventListener('keyup', (e) => {
         if (e.key === 'Shift') endModeOverride('shift', 'select');
         else if (e.key === 'd' || e.key === 'D') endModeOverride('d', 'data');
+        else if (e.key === 'p' || e.key === 'P') endModeOverride('p', 'pen');
         else if (e.key === 'Escape') endModeOverride('escape', 'normal');
     });
     window.addEventListener('blur', () => { if (appState.modeOverrideKey) { appState.modeOverrideKey = null; appState.modeKeyHoldStart = null; applyCursorMode(); } });

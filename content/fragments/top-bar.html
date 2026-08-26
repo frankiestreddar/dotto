@@ -137,28 +137,39 @@
             </button>
             <!-- Pen mode — reworked from the old Add-menu "Drawing" toggle (setDrawMode) into a
                  real cursor mode, see applyCursorMode/handlePenPointerDown (source-buttons-cursor-
-                 mode.js/srs-connections-core.js). No tap/hold keyboard shortcut (unlike the other
-                 three) — no unclaimed single letter has an obvious mnemonic, so entering pen mode
-                 is click-only. -->
+                 mode.js/srs-connections-core.js). Tap/hold 'P' now enters it (beginModeOverride/
+                 endModeOverride('p', 'pen')) — freed up from its old use as Profile's own rail
+                 shortcut, which moved to Tab per explicit request. -->
             <button class="rail-btn mode-btn" data-mode="pen">
                 <img class="rail-icon-img" src="/assets/icons/pen.png" alt="">
             </button>
+            <!-- Each row's .mode-popup-row-key badge mirrors the tap/hold keyboard shortcut that
+                 also switches to that mode (see the keydown/keyup listeners, source-buttons-cursor-
+                 mode.js) — Escape for Move & select since that's its own dedicated key, not a
+                 letter. Per explicit request the CURRENTLY ACTIVE mode's row hides its own badge
+                 (redundant to show the shortcut for the mode you're already in) — handled purely in
+                 CSS off the same .active class this JS already toggles per-row above, no separate
+                 JS needed (.mode-popup-row.active .mode-popup-row-key{display:none}, globals.css). -->
             <div id="mode-popup" class="mode-popup">
                 <button class="mode-popup-row" data-mode="normal">
                     <img class="rail-icon-img" src="/assets/icons/default-cursor.png" alt="">
                     <span class="mode-popup-row-name">Move &amp; select</span>
+                    <span class="mode-popup-row-key">Esc</span>
                 </button>
                 <button class="mode-popup-row" data-mode="data">
                     <img class="rail-icon-img" src="/assets/icons/data-cursor.png" alt="">
                     <span class="mode-popup-row-name">Data mode</span>
+                    <span class="mode-popup-row-key">D</span>
                 </button>
                 <button class="mode-popup-row" data-mode="select">
                     <img class="rail-icon-img" src="/assets/icons/select-cursor.png" alt="">
                     <span class="mode-popup-row-name">Select mode</span>
+                    <span class="mode-popup-row-key">Shift</span>
                 </button>
                 <button class="mode-popup-row" data-mode="pen">
                     <img class="rail-icon-img" src="/assets/icons/pen.png" alt="">
                     <span class="mode-popup-row-name">Pen mode</span>
+                    <span class="mode-popup-row-key">P</span>
                 </button>
             </div>
         </div>
