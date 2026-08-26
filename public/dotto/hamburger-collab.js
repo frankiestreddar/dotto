@@ -250,7 +250,7 @@ import { deleteCanvasCollabsForFolder, deleteWaypointCardEverywhere, expandWaypo
         );
         const rows = Object.values(appState.folders)
             .filter(f => f.isSource)
-            .map(f => ({ id: f.id, folderId: f.id, title: f.title || 'New Source', onCanvas: onCanvasIds.has(f.id) }))
+            .map(f => ({ id: f.id, folderId: f.id, title: f.title || 'New Source', onCanvas: onCanvasIds.has(f.id), active: f.id === appState.currentFolderId }))
             .filter(r => !q || r.title.toLowerCase().includes(q))
             .sort((a, b) => (b.onCanvas === a.onCanvas ? 0 : b.onCanvas ? 1 : -1));
         window.__setSourcesList({ rows, query: q });
