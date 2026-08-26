@@ -429,6 +429,14 @@ import { applyFolderView, centerOnContent, expandWaypointCard, openFolder, rende
     function outlineIcon(kind, level) {
         return kindIconHTML(kind, level, 'outline-icon');
     }
+    // Hover-revealed action-button overlay shared by every sidebar list row — see .outline-item-
+    // actions' own comment, globals.css, and RowActions.jsx (the React equivalent every OTHER
+    // panel's rows use — this file's own rows are still plain HTML strings, so it needs its own
+    // literal copy of the same markup rather than importing that component). "For now" just a Share
+    // button (share.png) per explicit request; keep both in sync if this ever changes.
+    function rowActionsHTML() {
+        return '<div class="outline-item-actions"><button type="button" class="outline-item-share-btn" onclick="event.stopPropagation()" title="Share"><img src="/assets/icons/share.png" alt=""></button></div>';
+    }
     function outlineLabel(item) {
         if (item.kind === 'folder' || item.kind === 'source') return (appState.folders[item.folderId] ? appState.folders[item.folderId].title : 'Canvas');
         if (item.kind === 'table') return 'Table';
@@ -550,7 +558,7 @@ import { applyFolderView, centerOnContent, expandWaypointCard, openFolder, rende
             const row = document.createElement('div');
             row.className = 'outline-item';
             row.style.setProperty('--outline-indent', ((depth + subIndent) * 14) + 'px');
-            row.innerHTML = `${outlineIcon(item.kind, item.level)}<span class="outline-label">${escapeHtml(outlineLabel(item))}</span>`;
+            row.innerHTML = `${outlineIcon(item.kind, item.level)}<span class="outline-label">${escapeHtml(outlineLabel(item))}</span>${rowActionsHTML()}`;
             row.onclick = (e) => {
                 e.stopPropagation();
                 if (item.kind === 'source') {
@@ -636,7 +644,7 @@ import { applyFolderView, centerOnContent, expandWaypointCard, openFolder, rende
             const label = stripHtml(row[0]) || 'Untitled';
             const rowEl = document.createElement('div');
             rowEl.className = 'outline-item';
-            rowEl.innerHTML = `<span class="outline-item-number">${ri}</span><span class="outline-label">${escapeHtml(label)}</span>`;
+            rowEl.innerHTML = `<span class="outline-item-number">${ri}</span><span class="outline-label">${escapeHtml(label)}</span>${rowActionsHTML()}`;
             rowEl.onclick = (e) => {
                 e.stopPropagation();
                 focusTableCell(tableItem.id, ri, 0);
@@ -749,7 +757,7 @@ import { applyFolderView, centerOnContent, expandWaypointCard, openFolder, rende
         else { openRailView('outline', appState.outlineMenu, appState.hamburgerBtn, () => { buildOutline(); setOutlineActive(0); }, true); }
     }
 
-export { addTab, announceEnteredCollaboration, breadcrumbMapRowClick, buildOutline, closeTab, ensurePublicFolderLoaded, ensureSharedFolderLoaded, goToOutlineItem, handleOutlineSearch, jumpToHistoryIndex, kindIconFile, kindIconHTML, namespacePublicFolderIds, namespaceSharedFolderIds, openPublicCanvas, openSharedCanvas, parsePublicFolderKey, parseSharedFolderKey, publicFolderKey, renderBreadcrumbMapPanel, renderTabsPanel, reorderTab, resolveReferenceFolderKey, setOutlineActive, sharedFolderKey, stripSharedFolderIds, switchTab, toggleHamburgerMenu };
+export { addTab, announceEnteredCollaboration, breadcrumbMapRowClick, buildOutline, closeTab, ensurePublicFolderLoaded, ensureSharedFolderLoaded, goToOutlineItem, handleOutlineSearch, jumpToHistoryIndex, kindIconFile, kindIconHTML, namespacePublicFolderIds, namespaceSharedFolderIds, openPublicCanvas, openSharedCanvas, parsePublicFolderKey, parseSharedFolderKey, publicFolderKey, renderBreadcrumbMapPanel, renderTabsPanel, reorderTab, resolveReferenceFolderKey, rowActionsHTML, setOutlineActive, sharedFolderKey, stripSharedFolderIds, switchTab, toggleHamburgerMenu };
 
 window.__kindIconFile = kindIconFile;
 window.__openSharedCanvas = openSharedCanvas;

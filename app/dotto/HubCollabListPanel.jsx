@@ -4,6 +4,7 @@ import { useSyncExternalStore } from "react";
 import { createPortal } from "react-dom";
 import Avatar from "./Avatar";
 import { hubCollabListStore, listPanelSelectionStore } from "./bridges";
+import RowActions from "./RowActions";
 import usePortalNode from "./usePortalNode";
 
 // Module-level, not inline — see CanvasItemsLayer.jsx's identical EMPTY_ITEMS comment for why a
@@ -64,6 +65,10 @@ function OwnedCanvasRow({ c, selected }) {
         ))}
         {c.collaborators.length > 3 && <div className="collab-avatar collab-more">+{c.collaborators.length - 3}</div>}
       </div>
+      {/* Overlays on top of .collab-avatars' own right-edge position on hover (both want the same
+          spot) — an accepted first-pass overlap for now, same as every other row type's own share
+          button (RowActions' own comment). */}
+      <RowActions />
     </div>
   );
 }
@@ -93,6 +98,7 @@ function SharedCanvasRow({ c, selected }) {
       <div className="collab-avatars">
         <Avatar className="collab-avatar" avatar={{ id: c.ownerAvatarId, url: c.ownerAvatarUrl }} name={c.ownerName} />
       </div>
+      <RowActions />
     </div>
   );
 }

@@ -2390,7 +2390,27 @@
        never its WIDTH. Without this, box-sizing:border-box shrinks the content box by the border's
        width the instant it appears, nudging the icon/text inward by 1px — per explicit bug report
        that selecting a row visibly jumped its icon/text. */
-    .outline-item{border-radius:6px;margin:2px 4px;padding:6px 10px 6px calc(10px + var(--outline-indent, 0px));border:1px solid transparent;cursor:pointer;font-size:13px;color:var(--ink-soft);display:flex;align-items:center;gap:6px;min-width:0;}
+    .outline-item{position:relative;border-radius:6px;margin:2px 4px;padding:6px 10px 6px calc(10px + var(--outline-indent, 0px));border:1px solid transparent;cursor:pointer;font-size:13px;color:var(--ink-soft);display:flex;align-items:center;gap:6px;min-width:0;}
+    /* First of what'll be a small ROW of hover-revealed action buttons overlaid on the right edge
+       of any sidebar list row (Outline/Waypoints/Chats/Sources/Collaborations so far) — per explicit
+       request, "for now" just a Share button (share.png); more are expected to join it later as
+       siblings inside .outline-item-actions, which is why that's a wrapper rather than styling this
+       button directly against .outline-item. position:relative above is what this anchors against.
+       Overlaid (position:absolute), not pushing the row's own content to make room — per explicit
+       request — so it sits on TOP of a long label's own ellipsis-truncated tail rather than the
+       label reflowing/shrinking further to leave a gap for it. display:none/flex (not a max-width/
+       opacity transition like the top-bar pill's own hover reveals elsewhere in this file) since
+       this needs to be instant, simple, and per-row — no animation was asked for here. No onClick
+       wired to the button itself yet anywhere it's used (share behavior isn't built yet) — every
+       call site still stops the click from also bubbling into the row's OWN click/select handler
+       underneath it, so the placeholder button doesn't accidentally trigger row navigation/selection
+       while it sits there inert. */
+    .outline-item-actions{display:none;position:absolute;top:50%;right:6px;transform:translateY(-50%);align-items:center;gap:4px;}
+    .outline-item:hover .outline-item-actions{display:flex;}
+    .outline-item-share-btn{display:flex;align-items:center;justify-content:center;width:24px;height:24px;flex:0 0 auto;border-radius:6px;border:none;background:var(--hover-bg);cursor:pointer;padding:0;}
+    .outline-item-share-btn:hover{background:var(--card-border);}
+    .outline-item-share-btn img{width:14px;height:14px;opacity:0.7;}
+    .outline-item-share-btn:hover img{opacity:1;}
     /* var(--card) — much darker than the #333 this used before, closer to the sidebar's own
        var(--paper) background (see #dotto-rail/#hamburger-stack's own comment) now that both
        are the same dark grey as the canvas, so a lighter #333 hover would have stood out far more
@@ -2480,8 +2500,12 @@
        gap from a preceding label, since this is the last thing in the row and needs to push itself
        to the far right rather than sit a fixed distance after specific text. .outline-label's own
        overflow:hidden/min-width:0 above already lets it shrink (ellipsis) to make room for this
-       when a waypoint's name is long enough to otherwise collide with it. */
+       when a waypoint's name is long enough to otherwise collide with it. Hidden on hover (below)
+       now that .outline-item-actions' own share button overlays the exact same right-edge spot —
+       showing the keyboard shortcut for a row you're already pointing at is redundant anyway, same
+       reasoning .mode-popup-row-key's own active-row hiding already uses elsewhere in this file. */
     .outline-item-key{display:inline-flex;align-items:center;justify-content:center;width:16px;height:16px;margin-left:auto;flex:0 0 auto;border:1px solid var(--outline-soft);border-radius:4px;font-family:'Space Grotesk', sans-serif;font-size:10px;font-weight:600;color:var(--ink-soft);}
+    .outline-item:hover .outline-item-key{display:none;}
 
     .item{position:absolute;background:var(--card);border:1px solid var(--card-border);border-radius:10px;box-shadow:0 4px 12px rgba(0,0,0,0.3);padding:8px;display:flex;flex-direction:column;cursor:pointer;z-index:1;color:var(--ink);user-select:none; cursor: pointer;}
     :root[data-theme="light"] .item{box-shadow:0 4px 12px rgba(0,0,0,0.126);}

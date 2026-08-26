@@ -3,6 +3,7 @@
 import { useSyncExternalStore } from "react";
 import { createPortal } from "react-dom";
 import { listPanelSelectionStore, waypointsListStore } from "./bridges";
+import RowActions from "./RowActions";
 import usePortalNode from "./usePortalNode";
 
 // Module-level, not inline — see CanvasItemsLayer.jsx's identical EMPTY_ITEMS comment for why a
@@ -48,6 +49,7 @@ function WaypointRow({ r, selected, index }) {
       />
       <span className="outline-label">{r.name || "New Waypoint"}</span>
       {shortcutKey && <span className="outline-item-key">{shortcutKey}</span>}
+      <RowActions />
     </div>
   );
 }

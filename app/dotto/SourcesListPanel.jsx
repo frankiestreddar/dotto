@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { createPortal } from "react-dom";
 import { sourcesListStore } from "./bridges";
+import RowActions from "./RowActions";
 import usePortalNode from "./usePortalNode";
 
 // Module-level, not inline — see CanvasItemsLayer.jsx's identical EMPTY_ITEMS comment for why a
@@ -69,6 +70,7 @@ function SourceRow({ r, altHeld }) {
         {r.title}
       </span>
       {r.globalId && <span className="outline-item-id">{r.globalId}</span>}
+      <RowActions />
     </div>
   );
 }

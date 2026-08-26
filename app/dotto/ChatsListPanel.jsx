@@ -3,6 +3,7 @@
 import { useSyncExternalStore } from "react";
 import { createPortal } from "react-dom";
 import { chatsListStore, listPanelSelectionStore } from "./bridges";
+import RowActions from "./RowActions";
 import usePortalNode from "./usePortalNode";
 
 // Module-level, not inline — see CanvasItemsLayer.jsx's identical EMPTY_ITEMS comment for why a
@@ -33,6 +34,7 @@ function ChatRow({ r, selected }) {
           selection (data-select-id/.outline-item-selected above). */}
       <img className="search-history-icon" src="/assets/icons/query.png" alt="" />
       <span className="outline-label">{r.title || "New chat"}</span>
+      <RowActions />
     </div>
   );
 }
