@@ -4,6 +4,7 @@ import { appState, canvasViewportCenterX, supabase } from './core-state.js';
 import { applyTransform, smoothPanTo } from './history-autosave.js';
 import { flashCanvasElement } from './mnemonic-search-matching.js';
 import { closeRailView, openRailView } from './panels-hamburger.js';
+import { focusTableCell } from './source-table.js';
 import { pushNotification } from './stopwatch-search-notifications.js';
 import { applyFolderView, centerOnContent, expandWaypointCard, openFolder, render } from './waypoints-render-loop.js';
 
@@ -613,6 +614,40 @@ import { applyFolderView, centerOnContent, expandWaypointCard, openFolder, rende
         return any;
     }
 
+    // A source folder's own outline — per explicit request, distinct from the tree above (which
+    // would otherwise just show this folder's single real item, the table itself, as one useless
+    // "Table" row via outlineLabel's own kind==='table' branch). Instead, every DATA row of the
+    // table becomes its own outline row, numbered 1/2/3/... (matching `ri`, the same 1-based data-
+    // row index tableData/focusTableCell/data-r attributes already use everywhere else — tableData[0]
+    // is the header, so data rows start at index 1) with that row's first-column value as its label,
+    // stripped of any rich-text markup the same way every other free-text outline label already is
+    // (e.g. .note's own outlineLabel branch above). Clicking a row focuses that row's first cell
+    // directly in the live table (focusTableCell, source-table.js — the same primitive arrow-key
+    // navigation and Enter-to-edit already use) rather than panning/flashing a canvas element the
+    // way goToOutlineItem does — there's no canvas to pan on a source page, it's a fixed full-
+    // viewport table, and focusing the cell already scrolls it into view within .table-rounded's own
+    // scroll container for free.
+    function renderSourceOutline(container, folder) {
+        const tableItem = folder.items.find(i => i.kind === 'table');
+        if (!tableItem) return false;
+        const dataRows = tableItem.tableData.slice(1);
+        dataRows.forEach((row, dataIdx) => {
+            const ri = dataIdx + 1;
+            const label = stripHtml(row[0]) || 'Untitled';
+            const rowEl = document.createElement('div');
+            rowEl.className = 'outline-item';
+            rowEl.innerHTML = `<span class="outline-item-number">${ri}</span><span class="outline-label">${escapeHtml(label)}</span>`;
+            rowEl.onclick = (e) => {
+                e.stopPropagation();
+                focusTableCell(tableItem.id, ri, 0);
+                closeRailView();
+            };
+            container.appendChild(rowEl);
+            appState.outlineRows.push({ el: rowEl });
+        });
+        return dataRows.length > 0;
+    }
+
     function buildOutline() {
         const container = document.getElementById('hmenu-outline-container');
         if (!container) return;
@@ -625,7 +660,9 @@ import { applyFolderView, centerOnContent, expandWaypointCard, openFolder, rende
         if (appState.outlineSearchInput) appState.outlineSearchInput.value = '';
 
         const rootFolder = appState.folders[appState.currentFolderId];
-        const any = rootFolder ? renderOutlineFolderContents(container, rootFolder, 0, new Set([rootFolder.id])) : false;
+        const any = rootFolder
+            ? (rootFolder.isSource ? renderSourceOutline(container, rootFolder) : renderOutlineFolderContents(container, rootFolder, 0, new Set([rootFolder.id])))
+            : false;
 
         if (!any) {
             const empty = document.createElement('div');

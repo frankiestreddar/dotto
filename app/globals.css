@@ -2403,6 +2403,12 @@
        hover/active per the rules above), so the icon-mask tints along with the row's own text
        color for free instead of needing a duplicate hover rule here. */
     .outline-icon{flex:0 0 auto;width:18px;height:18px;}
+    /* Source-page outline rows (renderSourceOutline, shared-canvases-outline.js) use this in place
+       of .outline-icon — a plain row NUMBER (1/2/3/...) rather than a kind icon, since every row on
+       that tree is the same kind (a table row) so an icon would carry no information. Same 18px
+       width as .outline-icon so labels still line up whichever kind of row precedes them, just
+       text-align:center/muted colour instead of an image. */
+    .outline-item-number{flex:0 0 auto;width:18px;text-align:center;color:var(--ink-soft);font-size:12px;font-variant-numeric:tabular-nums;}
     .outline-label{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0;}
     /* Keyboard-shortcut indicator for the first 10 rows of the Waypoints list (see WaypointRow,
        WaypointsListPanel.jsx — 1-9 then 0) — same fixed-size single-glyph badge formula as
