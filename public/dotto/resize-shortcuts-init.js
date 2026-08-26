@@ -168,37 +168,36 @@ import { cascadeDeleteFolderContents, centerOnContent, deleteWaypointFromDb, ren
     document.addEventListener('keydown', (e) => { if (e.altKey) document.body.classList.add('option-held'); });
     document.addEventListener('keyup', (e) => { if (!e.altKey) document.body.classList.remove('option-held'); });
     window.addEventListener('blur', () => document.body.classList.remove('option-held'));
-    // Expands the top-bar pill (#top-bar-center — arrows/collaborator/add-tab sections) not just on
-    // a literal :hover but also when the cursor CROSSES INTO TOP_BAR_PROXIMITY_PX of its own
-    // rendered box from further away — per explicit request. Deliberately NOT "stay expanded the
-    // whole time the cursor is anywhere in that zone": a later explicit follow-up asked that leaving
-    // the pill's own box collapse it straight away regardless of still being inside the wider zone,
-    // and that it only expand again either by touching the pill directly or by leaving the zone
-    // entirely and re-entering it — brushing back and forth nearby without ever re-crossing the
-    // zone's own outer edge shouldn't keep re-triggering it. CSS alone has no "within N px of an
-    // element," let alone "on the rising edge of crossing into that radius," so this is a plain
-    // mousemove listener toggling a class (.pill-proximity) that every #top-bar-center:hover-gated
-    // rule also matches on (see #nav-arrows-pill's own comment, globals.css) — real :hover stays as
-    // an independent, unmodified second trigger in those same rules, which is what naturally
-    // guarantees "leaves the pill closes straight away" for the direct-hover path (native :hover
-    // already behaves exactly that way on its own; the state machine below is only responsible for
-    // replicating the same discipline for the proximity-triggered path).
-    // pillExpanded/pillWasOutsideZone are this listener's own small state machine, updated once per
-    // move and both read fresh on the next:
-    //  - overPill (distance 0 — the point is already inside the rect): always expands, and marks
-    //    the zone as "not freshly entered" so drifting back off the pill afterward (still within the
-    //    zone) falls through to the collapse branch below rather than reading as a fresh entry.
-    //  - !inZone: always collapses, and arms a fresh-entry so crossing back in later re-triggers.
-    //  - inZone but not over the pill, with a fresh-entry armed: the rising-edge case — expand once,
-    //    then disarm so continuing to drift around inside the zone doesn't keep re-expanding it.
-    //  - inZone, not over the pill, no fresh-entry armed: was expanded a moment ago (either from
-    //    having been on the pill, or from that one rising-edge trigger) and the cursor has since
-    //    moved off it while staying in the wider zone — collapse, per the explicit follow-up above.
+    // Expands the top-bar pill (#top-bar-center — arrows/collaborator/add-tab sections) whenever the
+    // cursor is ANYWHERE within TOP_BAR_PROXIMITY_PX of its own rendered box, not just while
+    // literally hovering it — per explicit request — with one carve-out, also per explicit request:
+    // once the cursor has actually touched the pill itself and then moved back off it, the pill
+    // collapses straight away and STAYS collapsed for the rest of that zone visit (drifting back and
+    // forth nearby doesn't re-open it) — it only expands again by touching the pill directly once
+    // more, or by leaving the zone entirely and re-entering it, which resets everything back to the
+    // plain "open anywhere in the zone" default. CSS alone has no "within N px of an element," so
+    // this is a plain mousemove listener toggling a class (.pill-proximity) that every
+    // #top-bar-center:hover-gated rule also matches on (see #nav-arrows-pill's own comment,
+    // globals.css) — real :hover stays as an independent, unmodified second trigger in those same
+    // rules, harmless overlap with the state machine below since both agree in every case that
+    // matters.
+    // pillExpanded/pillZoneUsed/pillWasOverPill are this listener's own state, updated once per move:
+    //  - overPill (distance 0 — the point is already inside the rect): always expands. Touching the
+    //    pill is always able to (re-)open it, even after pillZoneUsed has "used up" the plain
+    //    proximity trigger for this zone visit.
+    //  - !inZone: always collapses and resets pillZoneUsed to false — leaving the zone entirely is
+    //    the other way (besides touching the pill) back to a fresh visit.
+    //  - inZone, not over the pill, but WAS over the pill last tick: the cursor just left the pill's
+    //    own box while still in the wider zone — collapse immediately and set pillZoneUsed, so the
+    //    plain "in zone" rule below stops re-opening it for the remainder of this visit.
+    //  - inZone, not over the pill, wasn't over it last tick either: the plain default — expanded
+    //    unless pillZoneUsed says this visit's proximity trigger has already been spent.
     // Recomputed against the pill's CURRENT getBoundingClientRect() every move rather than a cached
     // box, so the zone itself tracks the pill's own live size as it expands/collapses.
     const TOP_BAR_PROXIMITY_PX = 100;
     let pillExpanded = false;
-    let pillWasOutsideZone = true;
+    let pillZoneUsed = false;
+    let pillWasOverPill = false;
     function distanceToRect(x, y, rect) {
         const dx = Math.max(rect.left - x, 0, x - rect.right);
         const dy = Math.max(rect.top - y, 0, y - rect.bottom);
@@ -212,16 +211,16 @@ import { cascadeDeleteFolderContents, centerOnContent, deleteWaypointFromDb, ren
         const inZone = dist <= TOP_BAR_PROXIMITY_PX;
         if (overPill) {
             pillExpanded = true;
-            pillWasOutsideZone = false;
         } else if (!inZone) {
             pillExpanded = false;
-            pillWasOutsideZone = true;
-        } else if (pillWasOutsideZone) {
-            pillExpanded = true;
-            pillWasOutsideZone = false;
-        } else {
+            pillZoneUsed = false;
+        } else if (pillWasOverPill) {
             pillExpanded = false;
+            pillZoneUsed = true;
+        } else {
+            pillExpanded = !pillZoneUsed;
         }
+        pillWasOverPill = overPill;
         appState.topBarCenter.classList.toggle('pill-proximity', pillExpanded);
     });
     // No further mousemove ever fires once the cursor leaves the window, which could otherwise
@@ -229,7 +228,8 @@ import { cascadeDeleteFolderContents, centerOnContent, deleteWaypointFromDb, ren
     // uses for the identical class of problem.
     window.addEventListener('blur', () => {
         pillExpanded = false;
-        pillWasOutsideZone = true;
+        pillZoneUsed = false;
+        pillWasOverPill = false;
         if (appState.topBarCenter) appState.topBarCenter.classList.remove('pill-proximity');
     });
     const TABLE_COL_MIN_PX = 40;
