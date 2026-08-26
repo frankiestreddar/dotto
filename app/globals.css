@@ -2488,9 +2488,19 @@
     .outline-item-key{display:inline-flex;align-items:center;justify-content:center;width:16px;height:16px;margin-left:auto;flex:0 0 auto;border:1px solid var(--outline-soft);border-radius:4px;font-family:'Space Grotesk', sans-serif;font-size:10px;font-weight:600;color:var(--ink-soft);}
     .outline-item:hover .outline-item-key{display:none;}
 
-    .item{position:absolute;background:var(--card);border:1px solid var(--card-border);border-radius:10px;box-shadow:0 4px 12px rgba(0,0,0,0.3);padding:8px;display:flex;flex-direction:column;cursor:pointer;z-index:1;color:var(--ink);user-select:none; cursor: pointer;}
+    /* transform:scale(0.95) at rest, growing to scale(1) on hover (below) — per explicit request
+       that every block sit very slightly shrunk by default and smoothly grow to its true size when
+       hovered. Purely cosmetic: transform never touches left/top (position:absolute, set via inline
+       style — applyItemWrapperAttrs, waypoints-render-loop.js), and stays constant for the whole
+       duration of any drag/resize gesture (both start with a pointerdown ON the card, i.e. while
+       already :hover-matched, and the pointer doesn't need to keep literally hovering it for
+       :hover to keep matching or the drag/resize itself to keep tracking — pointermove/pointerup
+       listen on window, not this element), so there's no risk of the scale itself changing (and
+       every measurement that reads the card's live box, e.g. resize math) mid-gesture — it's
+       already settled at 1 before either kind of gesture can begin. */
+    .item{position:absolute;background:var(--card);border:1px solid var(--card-border);border-radius:10px;box-shadow:0 4px 12px rgba(0,0,0,0.3);padding:8px;display:flex;flex-direction:column;cursor:pointer;z-index:1;color:var(--ink);user-select:none; cursor: pointer;transform:scale(0.95);transition:transform .15s ease-in;}
     :root[data-theme="light"] .item{box-shadow:0 4px 12px rgba(0,0,0,0.126);}
-    .item:hover{cursor: pointer;border-color:var(--outline-soft);}
+    .item:hover{cursor: pointer;border-color:var(--outline-soft);transform:scale(1);}
     .item.selected:hover{border-color:var(--brand);}
     .merging-target{outline: 2px solid white !important;}
     
