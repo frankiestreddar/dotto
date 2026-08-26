@@ -2415,6 +2415,16 @@
        never focusable), same as .breadcrumb-pill-current/.folder-card-title's own identical rule
        for the exact same contentEditable-focus-ring reason. */
     .outline-label{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0;outline:none;}
+    /* What was actually still showing up as an "outline around the name" after the above, per a
+       follow-up report — not the browser's contentEditable focus ring at all (outline:none above
+       already handles that), but this app's own global ::selection rule (rgba(99,102,241,0.18)
+       purple fill, see its own comment further down this file) painting a solid highlight behind
+       the text once startRenameFolderCardTitle's selectAll:true selects the whole name on rename
+       start — a full-width selection highlight box reads exactly like an outline around the word.
+       Scoped to just this element (transparent background only, .outline-label keeps every other
+       ::selection property it'd otherwise inherit) rather than touching the app-wide rule, since
+       nothing else was reported to have this problem. */
+    .outline-label::selection{background:transparent;}
     /* Sources panel rows only (SourcesListPanel.jsx) — a grey underline on hovering the name itself,
        per explicit request, as a visual hint that double-clicking it renames the source. Scoped to
        this extra class (on top of the shared .outline-label above) rather than .outline-label
