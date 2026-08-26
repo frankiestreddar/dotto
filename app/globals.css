@@ -2383,7 +2383,14 @@
     .outline-item:hover .outline-item-actions{display:flex;}
     .outline-item-share-btn{display:flex;align-items:center;justify-content:center;width:24px;height:24px;flex:0 0 auto;border-radius:6px;border:none;background:var(--hover-bg);cursor:pointer;padding:0;}
     .outline-item-share-btn:hover{background:var(--card-border);}
-    .outline-item-share-btn img{width:14px;height:14px;opacity:0.7;}
+    /* Same filter:brightness(0) invert(1)/light-mode-brightness(0)-only tinting every other raw
+       (non icon-mask) PNG icon in this file already uses (.rail-icon-img/.search-history-icon,
+       above) — without it share.png's own native colour would show unmodified in both themes,
+       reading as grey/black-on-grey in light mode (per explicit bug report) since these small
+       source PNGs are all authored assuming a dark background by default, the same reason every
+       other one of them needs this same per-theme flip. */
+    .outline-item-share-btn img{width:14px;height:14px;opacity:0.7;filter:brightness(0) invert(1);}
+    :root[data-theme="light"] .outline-item-share-btn img{filter:brightness(0);}
     .outline-item-share-btn:hover img{opacity:1;}
     /* var(--card) — much darker than the #333 this used before, closer to the sidebar's own
        var(--paper) background (see #dotto-rail/#hamburger-stack's own comment) now that both
