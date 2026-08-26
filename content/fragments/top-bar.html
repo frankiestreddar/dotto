@@ -25,7 +25,7 @@
      descriptive sentence rather than a short name a description panel would add much to. -->
 
 <div id="dotto-rail">
-    <!-- Groups 2-6 (Search+Queries, Outline/Waypoints/Routes, Essentials/Library/
+    <!-- Groups 2-6 (Search+Queries, Routes/Waypoints/Outline, Essentials/Library/
          Marketplace, Collaborations/Messages, Files/Sources/Snippets) pack at the TOP of the rail
          now, per explicit request (justify-content:flex-start, #dotto-rail-middle, globals.css) —
          the inverse of an earlier layout where Profile and the cursor-mode selector sat pinned up
@@ -44,18 +44,18 @@
         <button id="btn-search" class="rail-btn"><img class="rail-icon-img" src="/assets/icons/search.png" alt=""><span class="rail-tooltip"><span class="rail-tooltip-row"><span class="rail-tooltip-name">Search</span><span class="rail-tooltip-key">/</span></span><span class="rail-tooltip-desc" data-desc="Search across everything on this canvas."></span></span></button>
         <button id="rail-btn-ai" class="rail-btn"><img class="rail-icon-img" src="/assets/icons/dotbot.png" alt=""><span class="rail-tooltip"><span class="rail-tooltip-row"><span class="rail-tooltip-name">Queries</span><span class="rail-tooltip-key">Q</span></span><span class="rail-tooltip-desc" data-desc="Ask Dotbot questions about this canvas."></span></span></button>
     </div>
-    <!-- Group 3: Outline tree, Waypoints, Routes (reordered per explicit request — was Routes,
-         outline tree, Waypoints; before that, Search, outline tree, Waypoints, swapped with
-         Group 2's own Routes per an earlier explicit request). Routes (was Inbox, renamed per an
-         earlier explicit request; id/wiring kept as 'inbox'/#btn-inbox/#inbox-panel under the
-         hood, same convention as every other rename this session, e.g. Files staying
-         #btn-snippets) is a bare shell for now — behavior/content not yet decided, wired into the
-         shared openRailView mechanism (see wireRailIcon('inbox', ...), panels-hamburger.js) so the
-         icon has somewhere to open. -->
+    <!-- Group 3: Routes, Waypoints, Outline tree (reordered per explicit request — was Outline
+         tree, Waypoints, Routes; before that, Routes, outline tree, Waypoints; before that,
+         Search, outline tree, Waypoints, swapped with Group 2's own Routes per an earlier explicit
+         request). Routes (was Inbox, renamed per an earlier explicit request; id/wiring kept as
+         'inbox'/#btn-inbox/#inbox-panel under the hood, same convention as every other rename this
+         session, e.g. Files staying #btn-snippets) is a bare shell for now — behavior/content not
+         yet decided, wired into the shared openRailView mechanism (see wireRailIcon('inbox', ...),
+         panels-hamburger.js) so the icon has somewhere to open. -->
     <div class="rail-group rail-group-divider">
-        <button id="btn-menu" class="rail-btn"><img class="rail-icon-img" src="/assets/icons/menu-btn.png" alt=""><span class="rail-tooltip"><span class="rail-tooltip-row"><span class="rail-tooltip-name">Outline</span><span class="rail-tooltip-key">O</span></span><span class="rail-tooltip-desc" data-desc="A collapsible tree of every block on this canvas."></span></span></button>
-        <button id="rail-btn-waypoints" class="rail-btn"><img class="rail-icon-img" src="/assets/icons/waypoint.png" alt=""><span class="rail-tooltip"><span class="rail-tooltip-row"><span class="rail-tooltip-name">Waypoints</span><span class="rail-tooltip-key">W</span></span><span class="rail-tooltip-desc" data-desc="Saved locations on this canvas, sorted by distance from where you are now."></span></span></button>
         <button id="btn-inbox" class="rail-btn"><img class="rail-icon-img" src="/assets/icons/routes.png" alt=""><span class="rail-tooltip"><span class="rail-tooltip-row"><span class="rail-tooltip-name">Routes</span><span class="rail-tooltip-key">R</span></span><span class="rail-tooltip-desc" data-desc="Routes and destinations you've saved."></span></span></button>
+        <button id="rail-btn-waypoints" class="rail-btn"><img class="rail-icon-img" src="/assets/icons/waypoint.png" alt=""><span class="rail-tooltip"><span class="rail-tooltip-row"><span class="rail-tooltip-name">Waypoints</span><span class="rail-tooltip-key">W</span></span><span class="rail-tooltip-desc" data-desc="Saved locations on this canvas, sorted by distance from where you are now."></span></span></button>
+        <button id="btn-menu" class="rail-btn"><img class="rail-icon-img" src="/assets/icons/menu-btn.png" alt=""><span class="rail-tooltip"><span class="rail-tooltip-row"><span class="rail-tooltip-name">Outline</span><span class="rail-tooltip-key">O</span></span><span class="rail-tooltip-desc" data-desc="A collapsible tree of every block on this canvas."></span></span></button>
     </div>
     <!-- Group 4: Essentials (was Basics — renamed per explicit request; #btn-add keeps its
          internal id), Library, Marketplace. -->
