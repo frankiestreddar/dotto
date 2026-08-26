@@ -936,6 +936,19 @@ import { render, renderSelectedOutlines, startBoxSelection, syncWaypointToDb } f
         if (appState.folders[appState.currentFolderId] && appState.folders[appState.currentFolderId].isSource) return;
         const bodyEl = e.target.closest && e.target.closest('.item.note .body');
         if (bodyEl && bodyEl.scrollHeight > bodyEl.clientHeight) return;
+        // EPUB cards render as one continuous scroll (epub.js's 'scrolled-doc' flow,
+        // buildEpubViewer, media-pdf-epub.js) — per explicit request, scrolling over one should
+        // scroll the book itself, not pan the canvas underneath it. Unlike the note-body check just
+        // above, this doesn't verify actual overflow first: epub.js renders each chapter inside its
+        // own same-origin iframe (see buildEpubViewer's own comment on why — CSS isolation), so the
+        // element that actually scrolls is somewhere inside that iframe's own document, not
+        // reliably measurable as a plain scrollHeight/clientHeight check on .epub-viewer-container
+        // from here. A book is essentially always going to have more content than fits in a small
+        // canvas card anyway, so unconditionally deferring to the book's own native scroll — worst
+        // case, a wheel over a book so short it needed no scrolling now just does nothing, instead
+        // of the previous behavior of unexpectedly panning the whole canvas — is an acceptable
+        // simplification over fragile cross-frame overflow probing.
+        if (e.target.closest && e.target.closest('.epub-viewer')) return;
         e.preventDefault();
         if (e.ctrlKey) {
             const factor = Math.pow(1.1, -e.deltaY / 60);
