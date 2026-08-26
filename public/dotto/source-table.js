@@ -157,17 +157,19 @@ import { render } from './waypoints-render-loop.js';
             </div>`;
     }
     // Sizes every column (the header pill slots and the table's own <col>s) to an identical
-    // width derived from the container's (viewport-based) rendered width: with 3 or fewer
-    // columns they simply divide up the full width, but past 3 columns each column is pinned
-    // to containerWidth/VISIBLE_COLS regardless of how many there are, so 3 full columns plus
-    // roughly a fifth of the next one show at once and the table scrolls horizontally.
+    // width derived from the container's (viewport-based) rendered width: with 2 or fewer
+    // columns they simply divide up the full width, but past 2 columns each column is pinned
+    // to containerWidth/VISIBLE_COLS regardless of how many there are, so 2 full columns plus
+    // roughly a fifth of the next one show at once and the table scrolls horizontally — was 3
+    // columns before it scrolled, tightened to 2 per explicit request that 2 columns fit the
+    // screen and anything past that scroll instead.
     // Each header pill's *slot* always gets the exact same width as its table column, and
     // slots sit flush against each other with no gap/margin of their own — that's what keeps
     // the header perfectly aligned with the table no matter how many columns exist. The
     // visible pill inside each slot is simply drawn narrower (by GAP px) than its slot, which
     // is what creates the gap between pills without ever touching their positions. This also
     // sizes and shows/hides the fixed upload-button overlay and its fade-out.
- // 3 full columns + ~1/5 of a 4th once overflowing
+ // 2 full columns + ~1/5 of a 3rd once overflowing
  // must match .static-table-hscroll's column-direction gap
  // must match .item.static-table's padding-top
  // must match .item.static-table's padding-bottom
@@ -187,7 +189,7 @@ import { render } from './waypoints-render-loop.js';
         if (!numCols) return;
         const fullContainerWidth = wrap.clientWidth;
         if (!fullContainerWidth || fullContainerWidth <= 0) return;
-        const overflowing = numCols > 3;
+        const overflowing = numCols > 2;
 
         // The header pill row always sizes itself off the FULL container width — it never
         // reacts to `reserve`. The add-column hover shrink is meant to only nudge the table's
@@ -372,7 +374,7 @@ import { render } from './waypoints-render-loop.js';
             if (appState.activeTagRow) return;
             // "Add column" needs to react to the *visible* right edge of the table area
             // (wrap's own rect), not table-rounded's actual content edge — once a table has
-            // more than 3 columns, table-rounded is wider than the viewport, so its real edge
+            // more than 2 columns, table-rounded is wider than the viewport, so its real edge
             // can be scrolled far off-screen. Vertical bounds still come from table-rounded
             // since its height always matches what's actually on screen.
             //

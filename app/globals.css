@@ -2627,7 +2627,7 @@
        fade-out live in a separate, non-scrolling overlay stacked on top (pointer-events:none
        except on the button itself), so they stay fixed in place at the row's right edge while
        the header/table scroll underneath them; .visible on the fade (added once there are
-       more than 3 columns) is what fades the pills as they pass beneath it. ---- */
+       more than 2 columns) is what fades the pills as they pass beneath it. ---- */
     .static-table-hscroll{display:flex;flex-direction:column;gap:10px;flex:1 1 auto;min-width:0;overflow-x:auto;overflow-y:hidden;}
     .static-table-header-track{display:flex;transition:width .18s ease;}
     .col-name-slot{flex:0 0 auto;box-sizing:border-box;transition:width .18s ease;}
