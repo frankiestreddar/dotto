@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useSyncExternalStore } from "react";
+import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { createPortal } from "react-dom";
 import { sourcesListStore } from "./bridges";
 import usePortalNode from "./usePortalNode";
@@ -28,11 +28,40 @@ const EMPTY_STATE = { rows: [], query: "" };
 // state, passed down) and :hover apply, at which point it swaps places with .outline-label instead
 // of sitting alongside it (globals.css). Pure CSS for the hover half so no per-row mouseenter/leave
 // tracking is needed here — only the keyboard half needs JS.
+// Double-clicking the label renames the source in place (window.__startRenameFolderCardTitle, the
+// same primitive the breadcrumb's current segment and folder/source cards already use) — per
+// explicit request. A single click still navigates (window.__openFolder), so the row's own onClick
+// needs the same "delay navigation, cancel if a second click lands within the window" dance
+// ShelfCard.jsx's handleShelfSourceRowClick already establishes for this exact tension (see its own
+// comment there) rather than firing immediately, or a genuine double-click would navigate away on
+// its first click before ever reaching onDoubleClick. clickTimerRef is per-row (a plain local ref,
+// not a shared appState slot like the vanilla shelf version) since each row's pending click is
+// already scoped to its own component instance.
 function SourceRow({ r, altHeld }) {
+  const labelRef = useRef(null);
+  const clickTimerRef = useRef(null);
+
   return (
-    <div className={"outline-item" + (r.active ? " active" : "") + (altHeld ? " alt-reveal-id" : "")} onClick={(e) => { e.stopPropagation(); window.__openFolder(r.folderId); }}>
+    <div
+      className={"outline-item" + (r.active ? " active" : "") + (altHeld ? " alt-reveal-id" : "")}
+      onClick={(e) => {
+        e.stopPropagation();
+        if (clickTimerRef.current) { clearTimeout(clickTimerRef.current); clickTimerRef.current = null; return; }
+        clickTimerRef.current = setTimeout(() => { clickTimerRef.current = null; window.__openFolder(r.folderId); }, 220);
+      }}
+    >
       <img className="search-history-icon" src="/assets/icons/source.png" alt="" />
-      <span className="outline-label">{r.title}</span>
+      <span
+        ref={labelRef}
+        className="outline-label"
+        onDoubleClick={(e) => {
+          e.stopPropagation();
+          window.__startRenameFolderCardTitle(labelRef.current, { folderId: r.folderId }, "outline-label");
+        }}
+        title="Double-click to rename"
+      >
+        {r.title}
+      </span>
       {r.globalId && <span className="outline-item-id">{r.globalId}</span>}
     </div>
   );
