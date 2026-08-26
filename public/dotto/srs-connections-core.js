@@ -1,6 +1,6 @@
 import { kindLabel, kindSize } from './add-menu.js';
 import { openSearchOverlay, stripHtml } from './ai-assistant-suggestions.js';
-import { removePlacementGhost } from './copy-paste.js';
+import { prepareAdd, removePlacementGhost } from './copy-paste.js';
 import { appState, btnAdd, canvas, canvasViewportCenterX, drawBackBtn, drawColorInput, drawEraserBtn, drawFrontBtn, drawPenBtn, drawSettings, drawSizeInput, effectiveMode, world, zoomTrack } from './core-state.js';
 import { computeConnectorPoints, createConnection, ensureConnections, ensureDrawings, findLinkedTable, findTableById, itemRect, makeLayerSVG, pathNearPoint, penPointsToPath, pointsToLinePath, pointsToPath } from './drawing-connections.js';
 import { defaultFlashcardDeck } from './games-flashcard-typeright.js';
@@ -556,11 +556,13 @@ import { render, renderSelectedOutlines, startBoxSelection, syncWaypointToDb } f
     };
 
     // 'a'-prefix add-block chord — pressing 'a' then a second letter within ADD_CHORD_TIMEOUT_MS
-    // adds that block type at the current viewport centre (addBlockAtViewportCenter, below) rather
-    // than opening the whole Add menu ('E'/btnAdd) to pick one manually. "Just to test" the idea
-    // per explicit request — only 'n' (note) and 'h' (heading) are wired up so far; add more
-    // entries to ADD_CHORD_KEYS as they're decided. A leader-key chord like this has no existing
-    // precedent elsewhere in the app to reuse.
+    // arms a placement ghost for that block kind (prepareAdd, copy-paste.js — the exact same
+    // click-to-place flow the Add menu's own tiles use, e.g. newSourceClicked -> prepareAdd
+    // ('source')), letting the next canvas click choose where it lands, rather than dropping it at
+    // the viewport centre immediately — per explicit follow-up request. "Just to test" the idea per
+    // the original explicit request — only 'n' (note) and 'h' (heading) are wired up so far; add
+    // more entries to ADD_CHORD_KEYS as they're decided. A leader-key chord like this has no
+    // existing precedent elsewhere in the app to reuse.
     // addChordArmed/addChordTimer are plain module-level state, not appState — purely ephemeral
     // input state with nothing else in the app needing to read it, same reasoning
     // modePopupSafeZoneActive (source-buttons-cursor-mode.js) stays a local closure too rather than
@@ -585,7 +587,7 @@ import { render, renderSelectedOutlines, startBoxSelection, syncWaypointToDb } f
             addChordArmed = false;
             clearTimeout(addChordTimer);
             const chordKind = ADD_CHORD_KEYS[e.key.toLowerCase()];
-            if (chordKind) { e.preventDefault(); addBlockAtViewportCenter(chordKind); return; }
+            if (chordKind) { e.preventDefault(); prepareAdd(chordKind); return; }
         } else if (!isEditingText && (e.key === 'a' || e.key === 'A') && !e.metaKey && !e.ctrlKey) {
             e.preventDefault();
             addChordArmed = true;
@@ -1107,18 +1109,6 @@ import { render, renderSelectedOutlines, startBoxSelection, syncWaypointToDb } f
         const y = Math.round((center.y - h / 2) / 28) * 28;
         add('source', x, y);
     }
-    // Same viewport-centre placement math as createNewSource just above, generalized to any kind
-    // — used by the 'a'-prefix add-block keyboard chord (its own comment, the keydown handler
-    // below) so a chorded shortcut drops its block in view immediately, the same way clicking a
-    // tile in the Add menu does, rather than needing a click-to-place gesture afterward.
-    function addBlockAtViewportCenter(kind) {
-        const { w, h } = kindSize(kind);
-        const center = viewportCenterWorldPoint();
-        const x = Math.round((center.x - w / 2) / 28) * 28;
-        const y = Math.round((center.y - h / 2) / 28) * 28;
-        add(kind, x, y);
-    }
-
     // Deep-clones a LIVE canvas item for a true, independent duplicate (Alt-drag). Critically,
     // for a 'folder'/'source' item this also clones the folder it points to into a brand-new
     // folders[] entry (recursively, for any folders/sources nested inside it), so the copy gets
