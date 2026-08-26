@@ -417,6 +417,44 @@ import { cascadeDeleteFolderContents, centerOnContent, deleteWaypointFromDb, ren
         }
     });
 
+    // Left/Right arrow keys turn the page while hovering a PDF card — per explicit request. EPUB
+    // is deliberately NOT included here: it renders as one continuous scroll (epub.js's
+    // 'scrolled-doc' flow, see buildEpubViewer's own comment, media-pdf-epub.js) rather than
+    // discrete pages, so there's no page concept for arrow keys to move between — extending this
+    // to EPUB would mean switching it to a paginated flow first, which wasn't asked for here.
+    // Same :hover-based lookup as hoveredGameCard above, for the same reason (render() rebuilds
+    // every .item element from scratch on every change, so tracked mouseenter/mouseleave state
+    // would need constant re-wiring for no benefit over just reading live :hover). A media card's
+    // own wrapper is only ever class="item media" regardless of mediaType (applyItemWrapperAttrs,
+    // waypoints-render-loop.js) — pdf/epub/image/video all share that one kind — so this reads
+    // it.mediaType off the found item rather than being able to select on kind alone the way
+    // hoveredGameCard's flashcard/typeright split can.
+    function hoveredPdfCard() {
+        const el = document.querySelector('.item.media:hover');
+        if (!el) return null;
+        const it = findItemById(Number(el.id.replace('item-', '')));
+        return (it && it.kind === 'media' && it.mediaType === 'pdf') ? { it, el } : null;
+    }
+    document.addEventListener('keydown', (e) => {
+        if (e.metaKey || e.ctrlKey || e.altKey) return;
+        if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return;
+        const active = document.activeElement;
+        const isEditingText = active && (active.isContentEditable || active.tagName === 'INPUT' || active.tagName === 'SELECT' || active.tagName === 'TEXTAREA');
+        if (isEditingText) return;
+        if (isAnyUiPanelOpen()) return;
+        if (appState.currentNotification) return;
+        const hovered = hoveredPdfCard();
+        if (!hovered) return;
+        // Reuses buildPdfViewer's own prevBtn/nextBtn click handlers directly (bounds-checking,
+        // it.docPage persistence, scheduleWorkspaceSave, and the actual re-render all already live
+        // there, on goToPage — a purely local closure with nothing exported to call instead) rather
+        // than duplicating that logic here. .pdf-viewer-nav-btn is the same class on both buttons;
+        // DOM order (prev, page label, next — see buildPdfViewer) is what tells them apart.
+        const navBtns = hovered.el.querySelectorAll('.pdf-viewer-nav-btn');
+        const btn = e.key === 'ArrowLeft' ? navBtns[0] : navBtns[1];
+        if (btn) { e.preventDefault(); btn.click(); }
+    });
+
 
     btnBack.onclick = () => { if(appState.historyIndex > 0) jumpToHistoryIndex(appState.historyIndex - 1); };
     btnForward.onclick = () => { if(appState.historyIndex < appState.historyStack.length - 1) jumpToHistoryIndex(appState.historyIndex + 1); };
