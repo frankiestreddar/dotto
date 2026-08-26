@@ -8,7 +8,7 @@ import { renderSourcesList } from './hamburger-collab.js';
 import { applyTransform, ensureSwTicking, saveSnapshot, scheduleWorkspaceSave, updateContextMenuPosition } from './history-autosave.js';
 import { broadcastEditingState, miniLabelForItem, placeCaretEnd, renderRealCardPreview, repositionAllRemoteCursors, syncColorPicker } from './live-presence.js';
 import { findNextFreeSlot, setupResizing } from './resize-shortcuts-init.js';
-import { ensureSharedFolderLoaded, renderBreadcrumbMapPanel, renderTabsPanel, sharedFolderKey, stripSharedFolderIds } from './shared-canvases-outline.js';
+import { buildOutline, ensureSharedFolderLoaded, renderBreadcrumbMapPanel, renderTabsPanel, sharedFolderKey, stripSharedFolderIds } from './shared-canvases-outline.js';
 import { closeSourceAddMenu } from './source-buttons-cursor-mode.js';
 import { attachStaticTableHoverZones, layoutSourceTableColumns, renderStaticTableHTML } from './source-table.js';
 import { closeCellTagPicker } from './source-tags-ai.js';
@@ -551,11 +551,24 @@ import { applyConnections, renderConnectionsLayer } from './srs-connections-core
         // shared-canvases-outline.js, for why this needs to run after literally every navigation,
         // not just ones that went through addTab/switchTab/closeTab directly.
         renderTabsPanel();
-        // Sources rail panel (SourcesListPanel.jsx) — every kind:'source' item on THIS folder,
-        // per explicit request; see renderSourcesList's own comment, hamburger-collab.js, for why
-        // it's called unconditionally here rather than only on panel-open/search-input, same
-        // reasoning as renderBreadcrumbMapPanel/renderTabsPanel just above.
+        // Sources rail panel (SourcesListPanel.jsx) — every source account-wide (current-canvas
+        // ones sorted first), per explicit request; see renderSourcesList's own comment,
+        // hamburger-collab.js, for why it's called unconditionally here rather than only on
+        // panel-open/search-input, same reasoning as renderBreadcrumbMapPanel/renderTabsPanel just
+        // above.
         renderSourcesList();
+        // Outline rail panel (shared-canvases-outline.js) — per explicit request that it reflect
+        // whatever page navigation just landed on, and any rename that just happened anywhere on
+        // the canvas, without needing to be closed and reopened first. Same unconditional-on-every-
+        // render() reasoning as the three calls just above, but buildOutline itself needed a
+        // preserveState param first (true here) — unlike those three, its own from-scratch build
+        // used to always reset the panel's scroll position and blow away any in-progress search
+        // text, which was fine for a fresh panel-OPEN (still is — see buildOutline's own comment,
+        // shared-canvases-outline.js, and toggleHamburgerMenu's own call, which passes no argument)
+        // but would otherwise re-fire on every one of this function's many other callers too,
+        // constantly yanking focus/scroll out from under someone actively browsing or searching an
+        // already-open outline.
+        buildOutline(true);
 
         renderCollabPill();
 

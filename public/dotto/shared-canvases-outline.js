@@ -648,16 +648,24 @@ import { applyFolderView, centerOnContent, expandWaypointCard, openFolder, rende
         return dataRows.length > 0;
     }
 
-    function buildOutline() {
+    // preserveState (per explicit request) is what lets render() call this unconditionally on
+    // every navigation/rename/etc — see its own call site's comment, waypoints-render-loop.js —
+    // without also constantly resetting an already-open panel's scroll position or blowing away
+    // whatever the user is actively searching for. false/omitted (every existing caller before this
+    // — toggleHamburgerMenu's own panel-open callback, the outline search input's own Enter-to-
+    // refocus flow if any) keeps the original always-start-fresh behavior, which is exactly what a
+    // just-opened panel should do.
+    function buildOutline(preserveState) {
         const container = document.getElementById('hmenu-outline-container');
         if (!container) return;
+        const savedScrollTop = preserveState ? container.scrollTop : 0;
+        const savedQuery = (preserveState && appState.outlineSearchInput) ? appState.outlineSearchInput.value : '';
         container.innerHTML = '';
-        container.scrollTop = 0; // buildOutline only ever runs when the menu is being opened — always start at the top
         appState.outlineRows = []; appState.outlineActiveIndex = -1;
-        // buildOutline always runs on open (see wireRailIcon('outline', ...), toggleHamburgerMenu)
-        // and always rebuilds the full, unfiltered tree — clear any search term left over from a
-        // previous visit so the input doesn't lie about what's actually showing.
-        if (appState.outlineSearchInput) appState.outlineSearchInput.value = '';
+        // Fresh open only — clear any search term left over from a previous visit so the input
+        // doesn't lie about what's actually showing. A preserveState rebuild instead re-applies
+        // savedQuery (below, after the tree exists again) so an in-progress search survives.
+        if (!preserveState && appState.outlineSearchInput) appState.outlineSearchInput.value = '';
 
         const rootFolder = appState.folders[appState.currentFolderId];
         const any = rootFolder
@@ -669,6 +677,11 @@ import { applyFolderView, centerOnContent, expandWaypointCard, openFolder, rende
             empty.className = 'outline-empty';
             empty.textContent = 'Nothing here yet.';
             container.appendChild(empty);
+        }
+
+        if (preserveState) {
+            if (savedQuery) handleOutlineSearch(savedQuery);
+            container.scrollTop = savedScrollTop;
         }
     }
     // Plain post-render filter over the already-built tree (appState.outlineRows, populated by
