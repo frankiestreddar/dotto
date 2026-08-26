@@ -188,22 +188,31 @@
         </button>
     </div>
 </div>
-<!-- Dead centre of the viewport (position:fixed, left:50% + translateX(-50%), see globals.css) —
-     independent of the rail's own left offset. Back/forward (history navigation, see
-     jumpToHistoryIndex, resize-shortcuts-init.js), the tabs bar (see app/dotto/TabsBar.jsx,
-     breadcrumbMapStore/tabsStore), and the per-canvas "add a collaborator" flyout are all sections
-     of ONE merged pill now (#top-bar-center itself carries .bubble, per explicit request — used to
-     be three separately-chromed .bubble elements sitting side by side with a gap between them, see
-     globals.css for the full merge). #collab-bubble grows/shrinks smoothly when it appears/
-     disappears (CollabPill.jsx toggling its own .show class) rather than snapping in — also per
-     explicit request, see that rule's own comment, globals.css.
+<!-- Dead centre of the viewport (#breadcrumb-pill itself is what's position:fixed, left:50% +
+     translateX(-50%) now — see globals.css) — independent of the rail's own left offset. Back/
+     forward (history navigation, see jumpToHistoryIndex, resize-shortcuts-init.js), the tabs bar
+     (see app/dotto/TabsBar.jsx, breadcrumbMapStore/tabsStore), and the per-canvas "add a
+     collaborator" flyout all read as ONE seamless merged pill (per explicit request — used to be
+     three separately-chromed .bubble elements sitting side by side with a gap between them), but
+     per a LATER explicit request the two side sections (#nav-arrows-pill/#right-actions-pill) no
+     longer force each other to the same width to achieve that — each now grows to fit only its own
+     content, independently, while #breadcrumb-pill's own on-screen position never moves regardless
+     of either side's width. See #breadcrumb-anchor's own comment, globals.css, for the positioning
+     mechanism (#nav-arrows-pill/#right-actions-pill anchored via right:100%/left:100% against
+     #breadcrumb-pill's own rendered edges) and how they still LOOK like one continuous pill despite
+     each now carrying its own matching background/border/shadow (outer-corner-only rounding, no
+     border on the touching edge, breadcrumb squaring its own touching corners to match whenever
+     hovered) rather than sharing a single box the old grid-mirroring approach did.
+     #collab-bubble grows/shrinks smoothly when it appears/disappears (CollabPill.jsx toggling its
+     own .show class) rather than snapping in — also per explicit request, see that rule's own
+     comment, globals.css.
      #nav-arrows-pill/#collab-bubble are both collapsed at rest and only reveal on hover now too,
      per a later explicit request that they only show once the breadcrumb is hovered — see
      #top-bar-center's own comment, globals.css, for the mechanism and why it's keyed off the whole
      pill's :hover rather than #breadcrumb-pill's specifically.
      #breadcrumb-pill itself — despite the id, kept unchanged rather than renamed to avoid touching
-     the CSS Grid machinery above that depends on it as the fixed-centre column — now holds a row of
-     TAB pills (per a later explicit request: a "+" button that adds a tab; the active tab shows the
+     the machinery above that depends on it as the fixed-centre anchor — now holds a row of TAB
+     pills (per a later explicit request: a "+" button that adds a tab; the active tab shows the
      full "…/parent/current" trail, every other tab shows just its own current segment, and a new tab
      starts at the same location as whichever tab was active when it was created), not a single
      breadcrumb trail directly — see TabsBar.jsx and its own ActiveTabTrail sub-component (which is
@@ -212,21 +221,21 @@
      #right-actions-pill — per a later explicit request, that "+" button (#tab-add-btn, TabsBar.jsx —
      still the same component, just portaling into #tab-add-slot below instead of into
      #breadcrumb-pill now) moved out of the tab row to sit grouped with #collab-bubble instead, as two
-     flex siblings inside this new wrapper; see its own comment, globals.css, for why a wrapper (the
-     #top-bar-center grid only ever sees three top-level items) and how #tab-add-btn still shows on
-     its own even when #collab-bubble has no collaborator context to grow into. -->
-<div id="top-bar-center" class="bubble">
-    <div id="nav-arrows-pill">
-        <button id="btn-back" class="btn" title="Back">←</button>
-        <button id="btn-forward" class="btn" title="Forward">→</button>
-    </div>
-    <div id="breadcrumb-pill"></div>
-    <div id="right-actions-pill">
-        <div id="collab-bubble">
-            <div id="collab-content"></div>
-            <div class="collab-tooltip" id="collab-tooltip"></div>
+     flex siblings inside this section. -->
+<div id="top-bar-center">
+    <div id="breadcrumb-anchor">
+        <div id="nav-arrows-pill">
+            <button id="btn-back" class="btn" title="Back">←</button>
+            <button id="btn-forward" class="btn" title="Forward">→</button>
         </div>
-        <div id="tab-add-slot"></div>
+        <div id="breadcrumb-pill" class="bubble"></div>
+        <div id="right-actions-pill">
+            <div id="collab-bubble">
+                <div id="collab-content"></div>
+                <div class="collab-tooltip" id="collab-tooltip"></div>
+            </div>
+            <div id="tab-add-slot"></div>
+        </div>
     </div>
 </div>
 <!-- Sits in the exact same fixed top:20px/centred slot as #top-bar-center, off-screen (slid up,
