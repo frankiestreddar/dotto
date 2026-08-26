@@ -8,7 +8,7 @@ import { closeRailView } from './panels-hamburger.js';
 import { closeProfilePanel, openPricingOverlay } from './profile-achievements-pricing.js';
 import { announceEnteredCollaboration, ensureSharedFolderLoaded, sharedFolderKey } from './shared-canvases-outline.js';
 import { pushNotification } from './stopwatch-search-notifications.js';
-import { deleteCanvasCollabsForFolder, deleteWaypointCardEverywhere, expandWaypointCard, openFolder, render } from './waypoints-render-loop.js';
+import { deleteCanvasCollabsForFolder, deleteWaypointCardEverywhere, expandWaypointCard, folderGlobalId, openFolder, render } from './waypoints-render-loop.js';
 
 
     // ---------- Hamburger "Collaborations" panel ----------
@@ -250,7 +250,7 @@ import { deleteCanvasCollabsForFolder, deleteWaypointCardEverywhere, expandWaypo
         );
         const rows = Object.values(appState.folders)
             .filter(f => f.isSource)
-            .map(f => ({ id: f.id, folderId: f.id, title: f.title || 'New Source', onCanvas: onCanvasIds.has(f.id), active: f.id === appState.currentFolderId }))
+            .map(f => ({ id: f.id, folderId: f.id, title: f.title || 'New Source', globalId: folderGlobalId(f.id), onCanvas: onCanvasIds.has(f.id), active: f.id === appState.currentFolderId }))
             .filter(r => !q || r.title.toLowerCase().includes(q))
             .sort((a, b) => (b.onCanvas === a.onCanvas ? 0 : b.onCanvas ? 1 : -1));
         window.__setSourcesList({ rows, query: q });

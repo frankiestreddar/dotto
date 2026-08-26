@@ -1,6 +1,6 @@
 "use client";
 
-import { useSyncExternalStore } from "react";
+import { useEffect, useState, useSyncExternalStore } from "react";
 import { createPortal } from "react-dom";
 import { sourcesListStore } from "./bridges";
 import usePortalNode from "./usePortalNode";
@@ -22,11 +22,18 @@ const EMPTY_STATE = { rows: [], query: "" };
 // own currentFolderId subscription) reuses the exact same .outline-item.active rule the Outline
 // panel already applies to its own current-folder row (shared-canvases-outline.js) — a permanent
 // version of the same highlight :hover gives every row, per explicit request.
-function SourceRow({ r }) {
+// r.globalId's own display is Option/Alt-gated (see SourcesListPanel's own comment below on why
+// SourceCard.jsx no longer shows it directly on the canvas block) — always rendered, but hidden by
+// CSS (.outline-item-id{display:none}) unless BOTH `alt-reveal-id` (this component's own altHeld
+// state, passed down) and :hover apply, at which point it swaps places with .outline-label instead
+// of sitting alongside it (globals.css). Pure CSS for the hover half so no per-row mouseenter/leave
+// tracking is needed here — only the keyboard half needs JS.
+function SourceRow({ r, altHeld }) {
   return (
-    <div className={"outline-item" + (r.active ? " active" : "")} onClick={(e) => { e.stopPropagation(); window.__openFolder(r.folderId); }}>
+    <div className={"outline-item" + (r.active ? " active" : "") + (altHeld ? " alt-reveal-id" : "")} onClick={(e) => { e.stopPropagation(); window.__openFolder(r.folderId); }}>
       <img className="search-history-icon" src="/assets/icons/source.png" alt="" />
       <span className="outline-label">{r.title}</span>
+      {r.globalId && <span className="outline-item-id">{r.globalId}</span>}
     </div>
   );
 }
@@ -37,15 +44,39 @@ function SourceRow({ r }) {
 // this component only owns the row list. Lists every source anywhere in the account, current-
 // canvas ones sorted first — see renderSourcesList's own comment, hamburger-collab.js, for the
 // full reasoning and why it refreshes on every render() rather than just on panel-open/search-input.
+//
+// altHeld tracks the Option/Alt key globally (keydown/keyup, both scoped to this component's own
+// mount rather than a permanently-attached vanilla listener — this state is only ever relevant
+// while the Sources panel can actually be seen) — reset on window blur too, same convention
+// source-buttons-cursor-mode.js's own mode-override system uses, so alt-tabbing away never leaves
+// this "stuck" thinking the key is still held once focus returns. Per explicit request: source
+// blocks on the canvas itself (SourceCard.jsx) no longer show their global id pill directly — it's
+// only reachable here now, by holding Option and hovering a row, which swaps that row's name for
+// its id (SourceRow above).
 export default function SourcesListPanel() {
   const state = useSyncExternalStore(sourcesListStore.subscribe, sourcesListStore.getSnapshot, () => EMPTY_STATE);
   const portalNode = usePortalNode("sources-panel-content");
+  const [altHeld, setAltHeld] = useState(false);
+
+  useEffect(() => {
+    const onKeyDown = (e) => { if (e.key === "Alt") setAltHeld(true); };
+    const onKeyUp = (e) => { if (e.key === "Alt") setAltHeld(false); };
+    const onBlur = () => setAltHeld(false);
+    window.addEventListener("keydown", onKeyDown);
+    window.addEventListener("keyup", onKeyUp);
+    window.addEventListener("blur", onBlur);
+    return () => {
+      window.removeEventListener("keydown", onKeyDown);
+      window.removeEventListener("keyup", onKeyUp);
+      window.removeEventListener("blur", onBlur);
+    };
+  }, []);
 
   if (!portalNode) return null;
 
   return createPortal(
     state.rows.length ? (
-      state.rows.map((r) => <SourceRow key={r.id} r={r} />)
+      state.rows.map((r) => <SourceRow key={r.id} r={r} altHeld={altHeld} />)
     ) : (
       <div className="outline-empty">{state.query ? "No matching sources." : "No sources yet."}</div>
     ),

@@ -23,7 +23,6 @@ export default function SourceCard({ it }) {
   const liveTitle = window.__folderTitle(it.folderId);
   const nestedCount = window.__countSourceEntries(it.folderId);
   const iconUrl = `/assets/icons/${window.__kindIconFile("source")}`;
-  const globalId = window.__folderGlobalId(it.folderId);
 
   return (
     <>
@@ -38,7 +37,6 @@ export default function SourceCard({ it }) {
         <span className="source-card-count">
           {nestedCount} {nestedCount === 1 ? "entry" : "entries"}
         </span>
-        {globalId && <span className="global-id-pill">{globalId}</span>}
       </div>
     </>
   );

@@ -2410,6 +2410,15 @@
        text-align:center/muted colour instead of an image. */
     .outline-item-number{flex:0 0 auto;width:18px;text-align:center;color:var(--ink-soft);font-size:12px;font-variant-numeric:tabular-nums;}
     .outline-label{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0;}
+    /* Sources panel rows only (SourcesListPanel.jsx) — a source's global id, same monospace/faint
+       language as .global-id-pill (the on-canvas source block used to show this directly; per
+       explicit request it no longer does, this is the only place left to see it). Hidden by
+       default; swaps places with .outline-label (never shown alongside it) only while BOTH Option/
+       Alt is held (.alt-reveal-id, toggled by that component's own keydown/keyup state) AND this
+       specific row is hovered — the hover half is pure CSS, only the key state needs JS. */
+    .outline-item-id{display:none;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0;font-family:monospace;font-size:11px;letter-spacing:0.02em;}
+    .outline-item.alt-reveal-id:hover .outline-label{display:none;}
+    .outline-item.alt-reveal-id:hover .outline-item-id{display:inline;}
     /* Keyboard-shortcut indicator for the first 10 rows of the Waypoints list (see WaypointRow,
        WaypointsListPanel.jsx — 1-9 then 0) — same fixed-size single-glyph badge formula as
        .rail-tooltip-key (Space Grotesk, faint outline), just margin-left:auto instead of a fixed
