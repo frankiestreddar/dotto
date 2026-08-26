@@ -2903,8 +2903,19 @@
     .pdf-viewer-page-label{font-size:12px;color:var(--ink-soft);}
 
     /* ---------- EPUB viewer (media card, mediaType:'epub' — see buildEpubViewer) ---------- */
+    /* overflow:hidden here is only ever meant to clip to the card's own rounded corners (same
+       convention as .table-rounded elsewhere in this file) — it was never meant to also block
+       scrolling, but since .epub-viewer-container (below) was left with no overflow of its own
+       (defaulting to visible), THIS was the first ancestor that actually clipped anything, which
+       silently ate the book's own scroll entirely: epub.js's 'scrolled-doc' flow (buildEpubViewer's
+       own comment) works by resizing its rendered content taller than the container so the
+       container itself can scroll through it — with nothing set to actually allow that scroll, the
+       overflowing content was just invisible/unreachable, not scrolled. Per explicit bug report
+       ("epubs don't seem to be scrolling") — overflow-y:auto moved onto .epub-viewer-container
+       itself instead, which still sits exactly inside this element's own 100%-sized box, so the
+       rounded-corner clipping here is untouched either way. */
     .epub-viewer{width:100%;height:100%;background:var(--card);overflow:hidden;}
-    .epub-viewer-container{width:100%;height:100%;}
+    .epub-viewer-container{width:100%;height:100%;overflow-y:auto;overflow-x:hidden;}
     .epub-viewer-container iframe{border:none;}
 
     /* padding:0/overflow:hidden so the header+iframe reach every edge (same as .item.media) — the
