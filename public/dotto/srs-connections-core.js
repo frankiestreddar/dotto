@@ -551,6 +551,7 @@ import { render, renderSelectedOutlines, startBoxSelection, syncWaypointToDb } f
         add: 'add-menu-search-input',
         search: 'search-panel-search',
         ai: 'search-input',
+        sources: 'sources-panel-search',
     };
 
     document.addEventListener('keydown', (e) => {
@@ -1030,6 +1031,24 @@ import { render, renderSelectedOutlines, startBoxSelection, syncWaypointToDb } f
         if (kind === 'waypoint') syncWaypointToDb(appState.currentFolderId, base);
     }
 
+    // "New Source" button in the Sources rail panel (window.__createNewSource, SourcesListPanel.jsx
+    // — per explicit request that it "adds it to both the list and your canvas in current
+    // viewport"). Same underlying add('source', x, y) the Add-menu's own "New Source" row
+    // (newSourceClicked -> prepareAdd('source')) eventually calls too, just supplying viewport-
+    // centre coordinates itself, grid-snapped the same way the click-to-place flow's own math does
+    // (the canvas pointerdown handler above), rather than arming a placement ghost and waiting for
+    // the user's next canvas click. render() (inside add()) already refreshes everything reading
+    // off appState.folders[appState.currentFolderId].items, including the new source's own linking
+    // item — the panel's own list just needs its own render hook wired to pick that up too, see
+    // panels-hamburger.js/hamburger-collab.js.
+    function createNewSource() {
+        const { w, h } = kindSize('source');
+        const center = viewportCenterWorldPoint();
+        const x = Math.round((center.x - w / 2) / 28) * 28;
+        const y = Math.round((center.y - h / 2) / 28) * 28;
+        add('source', x, y);
+    }
+
     // Deep-clones a LIVE canvas item for a true, independent duplicate (Alt-drag). Critically,
     // for a 'folder'/'source' item this also clones the folder it points to into a brand-new
     // folders[] entry (recursively, for any folders/sources nested inside it), so the copy gets
@@ -1309,7 +1328,7 @@ import { render, renderSelectedOutlines, startBoxSelection, syncWaypointToDb } f
         },
     };
 
-export { add, applyConnections, applyFilterToRows, calculateSM2, cancelAddingKind, clearDataLinkPending, collectAvailableFilterTags, deepCloneItem, defaultSrsState, deleteClonedItemFolders, diffRatings, finishPenPolyline, handlePenPointerDown, isValidConnection, renderConnectionsLayer, startConnectionDrag, updateDrawLayerBtns, viewportCenterWorldPoint };
+export { add, applyConnections, applyFilterToRows, calculateSM2, cancelAddingKind, clearDataLinkPending, collectAvailableFilterTags, createNewSource, deepCloneItem, defaultSrsState, deleteClonedItemFolders, diffRatings, finishPenPolyline, handlePenPointerDown, isValidConnection, renderConnectionsLayer, startConnectionDrag, updateDrawLayerBtns, viewportCenterWorldPoint };
 
 // React → vanilla bridge (see the identical pattern/comment in cards-misc.js) — used by
 // FilterCard.jsx (app/dotto/), which can't import these directly since public/dotto/*.js isn't

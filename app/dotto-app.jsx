@@ -34,6 +34,7 @@ import {
   searchSuggestionsStore,
   selectionToolbarStore,
   sharedCanvasModalStore,
+  sourcesListStore,
   tabsStore,
   translationPanelStore,
   waypointsListStore,
@@ -68,6 +69,7 @@ import RecommendedSearchesPanel from "./dotto/RecommendedSearchesPanel";
 import SearchSuggestionsPanel from "./dotto/SearchSuggestionsPanel";
 import SelectionToolbar from "./dotto/SelectionToolbar";
 import SharedCanvasModalBody from "./dotto/SharedCanvasModalBody";
+import SourcesListPanel from "./dotto/SourcesListPanel";
 import TabsBar from "./dotto/TabsBar";
 import TranslationPanel from "./dotto/TranslationPanel";
 import WaypointsListPanel from "./dotto/WaypointsListPanel";
@@ -199,6 +201,10 @@ if (typeof window !== "undefined") {
   // it follows is async (a real network round-trip), so there's no synchronous DOM read racing
   // this the way there was for the search panels.
   window.__setWaypointsList = waypointsListStore.set;
+  // Hamburger menu's Sources panel (see app/dotto/SourcesListPanel.jsx,
+  // hamburger-collab.js's renderSourcesList) — a plain store.set, no synchronous DOM read follows
+  // it (it's called from render() itself, not a click handler expecting an immediate reflection).
+  window.__setSourcesList = sourcesListStore.set;
   // Hamburger menu's Chats panel (see app/dotto/ChatsListPanel.jsx, hamburger-collab.js's
   // renderChatsList) — same reasoning as __setWaypointsList: a real async Supabase call.
   window.__setChatsList = chatsListStore.set;
@@ -317,6 +323,7 @@ export default function DottoApp({ sections, currentUser }) {
       <ErrorBoundary name="ChatThread"><ChatThread /></ErrorBoundary>
       <ErrorBoundary name="AddToSourcePopup"><AddToSourcePopup /></ErrorBoundary>
       <ErrorBoundary name="WaypointsListPanel"><WaypointsListPanel /></ErrorBoundary>
+      <ErrorBoundary name="SourcesListPanel"><SourcesListPanel /></ErrorBoundary>
       <ErrorBoundary name="ChatsListPanel"><ChatsListPanel /></ErrorBoundary>
       <ErrorBoundary name="HubCollabListPanel"><HubCollabListPanel /></ErrorBoundary>
       <ErrorBoundary name="MessagesListPanel"><MessagesListPanel /></ErrorBoundary>

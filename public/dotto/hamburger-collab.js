@@ -218,6 +218,33 @@ import { deleteCanvasCollabsForFolder, deleteWaypointCardEverywhere, expandWaypo
     // Matches WaypointsListPanel.jsx's own `key={...}` computation exactly — reused here as the
     // shift-click selection id for waypoint rows (see listPanelSelectionStore).
     function waypointRowKey(r) { return `${r.owner_id}-${r.folder_id}-${r.item_id}`; }
+    // Sources rail panel (SourcesListPanel.jsx) — every kind:'source' linking item on the CURRENT
+    // canvas specifically (appState.folders[currentFolderId].items), not every source anywhere in
+    // the whole workspace (that's findAllSourceFolders(), search-orchestration-selection.js, a
+    // different, unrelated use case) — per explicit request. Entirely local/synchronous, unlike
+    // renderWaypointsList/renderChatsList/renderHubCollabList above (no Supabase round trip needed
+    // — a canvas's own item list is already fully in memory).
+    // Called from render() itself (waypoints-render-loop.js), same as renderBreadcrumbMapPanel/
+    // renderTabsPanel — not just on panel-open/search-input — so the list stays correct even if the
+    // current folder changes while the panel happens to be pinned open, and so creating a new
+    // source (createNewSource, srs-connections-core.js, which calls add() -> render()) updates the
+    // list for free without a second explicit render call of its own.
+    // query is optional — render()'s own call omits it, falling back to whatever's currently typed
+    // into the live search input (if the panel isn't even open/mounted yet, that lookup just comes
+    // back empty, same as an untouched box) so a render()-driven refresh doesn't clobber the user's
+    // in-progress search; the oninput handler (handleSourcesSearch, panels-hamburger.js) always
+    // passes the freshly-typed value directly instead.
+    function renderSourcesList(query) {
+        const input = document.getElementById('sources-panel-search');
+        const q = (query !== undefined ? query : (input ? input.value : '')).trim().toLowerCase();
+        const folderObj = appState.folders[appState.currentFolderId];
+        const items = folderObj ? folderObj.items : [];
+        const rows = items
+            .filter(it => it.kind === 'source')
+            .map(it => ({ id: it.id, folderId: it.folderId, title: (appState.folders[it.folderId] && appState.folders[it.folderId].title) || 'New Source' }))
+            .filter(r => !q || r.title.toLowerCase().includes(q));
+        window.__setSourcesList({ rows, query: q });
+    }
     // Hamburger menu's Chats panel — every saved Dotbot conversation belonging to this user, most
     // recently updated first. Same fresh-fetch-every-open pattern as renderWaypointsList right
     // above (RLS already scopes this to the caller's own rows via owner_id = auth.uid() — see
@@ -468,7 +495,7 @@ import { deleteCanvasCollabsForFolder, deleteWaypointCardEverywhere, expandWaypo
     }
     drawSettings.addEventListener('click', (e) => e.stopPropagation());
 
-export { backToHubCollabMain, clearListPanelSelection, dispatchListPanelDelete, goToWaypointCard, handleOwnedHubCollabRowClick, hmenuAction, openHubCollabRequestsView, openSavedChat, renderChatsList, renderHubCollabList, renderWaypointsList, resolveSharedFolderChain, respondToHubCollabRequest };
+export { backToHubCollabMain, clearListPanelSelection, dispatchListPanelDelete, goToWaypointCard, handleOwnedHubCollabRowClick, hmenuAction, openHubCollabRequestsView, openSavedChat, renderChatsList, renderHubCollabList, renderSourcesList, renderWaypointsList, resolveSharedFolderChain, respondToHubCollabRequest };
 
 // React → vanilla bridge — used by WaypointsListPanel.jsx/HubCollabListPanel.jsx/
 // ChatsListPanel.jsx (app/dotto/), which can't import these directly since public/dotto/*.js

@@ -4,6 +4,7 @@ import { setupDraggingAndClicking } from './drag-drop-chat.js';
 import { ensureDrawings, makeLayerSVG } from './drawing-connections.js';
 import { refreshCanvasCollabForCurrentFolder, renderCollabPill, syncCanvasCollabTitle } from './friends-presence.js';
 import { closeGameOptionsPanel, openGameOptionsPanel } from './games-flashcard-typeright.js';
+import { renderSourcesList } from './hamburger-collab.js';
 import { applyTransform, ensureSwTicking, saveSnapshot, scheduleWorkspaceSave, updateContextMenuPosition } from './history-autosave.js';
 import { broadcastEditingState, miniLabelForItem, placeCaretEnd, renderRealCardPreview, repositionAllRemoteCursors, syncColorPicker } from './live-presence.js';
 import { findNextFreeSlot, setupResizing } from './resize-shortcuts-init.js';
@@ -546,6 +547,11 @@ import { applyConnections, renderConnectionsLayer } from './srs-connections-core
         // shared-canvases-outline.js, for why this needs to run after literally every navigation,
         // not just ones that went through addTab/switchTab/closeTab directly.
         renderTabsPanel();
+        // Sources rail panel (SourcesListPanel.jsx) — every kind:'source' item on THIS folder,
+        // per explicit request; see renderSourcesList's own comment, hamburger-collab.js, for why
+        // it's called unconditionally here rather than only on panel-open/search-input, same
+        // reasoning as renderBreadcrumbMapPanel/renderTabsPanel just above.
+        renderSourcesList();
 
         renderCollabPill();
 

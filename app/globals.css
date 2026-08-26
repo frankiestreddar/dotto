@@ -408,6 +408,19 @@
        its other block child) from the panel's true edges on every side, now that neither #ai-panel
        nor #search-panel contributes any padding of its own for this to rely on. */
     .panel-search-header{flex:0 0 auto;margin:10px;}
+    /* Additional layout for #sources-panel-header specifically (carries this class alongside
+       .panel-search-header, not instead of it — #search-panel/#ai-panel's own headers are
+       unaffected) — per explicit request for a "+ New Source" button (#sources-new-btn below)
+       sitting beside the search box rather than #search-panel's own single-child header. The wrap
+       takes all the remaining width (flex:1 1 auto on .panel-search-wrap, below) so the button
+       stays a fixed size at the row's end instead of the row just growing to fit both. */
+    .panel-search-header-row{display:flex;align-items:center;gap:6px;}
+    .panel-search-header-row .panel-search-wrap{flex:1 1 auto;min-width:0;}
+    /* Small icon-only button, same minimal border-radius/hover-background language as most other
+       icon buttons in this file (e.g. #tab-add-btn/#profile-settings-btn) rather than a filled/
+       bordered "add" affordance like #collab-add-btn's dashed circle. */
+    #sources-new-btn{display:flex;align-items:center;justify-content:center;width:34px;height:34px;flex:0 0 auto;border-radius:9px;border:none;background:var(--hover-bg);color:var(--ink-soft);font-size:16px;line-height:1;cursor:pointer;padding:0;}
+    #sources-new-btn:hover{background:var(--card-border);color:var(--ink);}
     /* Now a ROW of tab pills (see app/dotto/TabsBar.jsx, breadcrumbMapStore/tabsStore) rather than
        a single breadcrumb trail directly — per explicit request, a "+" button (#tab-add-btn below)
        next to the breadcrumb adds a new tab; the active tab shows the full "…/parent/current" trail

@@ -151,6 +151,12 @@ export const addToSourcePopupStore = createStore({ isOpen: false, left: 0, top: 
 // state message ("No waypoints yet." vs "No matching waypoints."), matching the original.
 export const waypointsListStore = createStore({ rows: [], query: "" });
 
+// Hamburger menu's Sources panel (public/dotto/hamburger-collab.js's renderSourcesList) —
+// { rows: [{id, folderId, title}], query }, one row per kind:'source' item on the CURRENT canvas.
+// Genuine JSX rows (see SourcesListPanel.jsx), same reasoning as chatsListStore below. Not
+// flushSync'd — a plain store.set, no synchronous DOM read follows a render()-driven update.
+export const sourcesListStore = createStore({ rows: [], query: "" });
+
 // Hamburger menu's Chats panel (public/dotto/hamburger-collab.js's renderChatsList) — a plain
 // array of { id, title, updated_at } rows (see ChatsListPanel.jsx), no search/query state (v1: no
 // search box, unlike Waypoints/Collaborations above — a saved-chat list is likely short enough not

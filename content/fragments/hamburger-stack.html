@@ -68,13 +68,42 @@
         </div>
         <div id="search-panel-content" class="hub-subpanel-list panel-history-list"></div>
     </div>
-    <!-- Sources — rail icon (group 6, top-bar.html, alongside Files/Snippets — Documents briefly
-         sat here again after an earlier deletion, then was deleted a second time per an explicit
-         follow-up correction). Behavior/content not decided yet; a bare shell wired into the
-         shared openRailView mechanism (see wireRailIcon('sources', ...), panels-hamburger.js)
-         just so #btn-sources has a panel to open. -->
+    <!-- Sources — rail icon (group 6, top-bar.html, alongside Files/Snippets). Built as a
+         structural, like-for-like copy of
+         #search-panel (per explicit request that it "look identical") — same
+         .panel-hero-block/.panel-search-header/.panel-search-wrap/.panel-search-input/
+         .panel-search-hint/.panel-history-list classes (globals.css), same shape, just this
+         panel's own text/ids so neither's existing JS wiring needed to change. Unlike
+         #search-panel's own box (which still doesn't execute anything), #sources-panel-search
+         DOES filter live (oninput="handleSourcesSearch(...)", panels-hamburger.js/
+         renderSourcesList, hamburger-collab.js) — matches #waypoints-search/#hub-collab-search's
+         own working-search convention instead, since this panel needed a real one from the start
+         (per explicit request: "it should list all your sources in the canvas").
+         #sources-panel-content lists every kind:'source' item on the CURRENT canvas (not every
+         source anywhere in the whole workspace — see renderSourcesList's own comment,
+         hamburger-collab.js) as real React rows (SourcesListPanel.jsx), same .outline-item/
+         .search-history-icon/.outline-label row shape #chats-list's own rows use, since it shares
+         that same .panel-history-list class.
+         #sources-new-btn ("+", per explicit request) creates a new source and drops it at the
+         current viewport centre immediately (createNewSource, srs-connections-core.js) rather than
+         the Add-menu's own "New Source" row's click-to-place flow (newSourceClicked ->
+         prepareAdd('source')) — both ultimately call the same add('source', x, y). Sits inside the
+         search header's own row via .panel-search-header-row (globals.css, a small addition on top
+         of .panel-search-header — #search-panel/#ai-panel's own headers don't carry it, so they're
+         unaffected), rather than #search-panel's own single-child header. -->
     <div id="sources-panel" class="hmenu-panel hub-subpanel" onclick="event.stopPropagation()">
-        <div id="sources-panel-content"></div>
+        <div class="panel-hero-block">
+            <h2 class="search-panel-heading">Sources</h2>
+            <p class="search-panel-desc">Structured source tables on this canvas.</p>
+        </div>
+        <div id="sources-panel-header" class="panel-search-header panel-search-header-row">
+            <div id="sources-panel-search-wrap" class="panel-search-wrap">
+                <input id="sources-panel-search" class="panel-search-input" type="text" placeholder="" autocomplete="off" oninput="handleSourcesSearch(this.value)">
+                <span id="sources-panel-search-hint" class="panel-search-hint">Enter</span>
+            </div>
+            <button type="button" id="sources-new-btn" title="New source" onclick="event.stopPropagation(); createNewSource();">+</button>
+        </div>
+        <div id="sources-panel-content" class="hub-subpanel-list panel-history-list"></div>
     </div>
     <!-- Snippets — rail icon (group 6, top-bar.html, last slot, alongside Files/Sources). A
          different button from Files (which used to itself be called Snippets before an
