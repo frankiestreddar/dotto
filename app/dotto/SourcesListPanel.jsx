@@ -29,14 +29,20 @@ const EMPTY_STATE = { rows: [], query: "" };
 // of sitting alongside it (globals.css). Pure CSS for the hover half so no per-row mouseenter/leave
 // tracking is needed here — only the keyboard half needs JS.
 // Double-clicking the label renames the source in place (window.__startRenameFolderCardTitle, the
-// same primitive the breadcrumb's current segment and folder/source cards already use) — per
-// explicit request. A single click still navigates (window.__openFolder), so the row's own onClick
-// needs the same "delay navigation, cancel if a second click lands within the window" dance
-// ShelfCard.jsx's handleShelfSourceRowClick already establishes for this exact tension (see its own
-// comment there) rather than firing immediately, or a genuine double-click would navigate away on
-// its first click before ever reaching onDoubleClick. clickTimerRef is per-row (a plain local ref,
-// not a shared appState slot like the vanilla shelf version) since each row's pending click is
-// already scoped to its own component instance.
+// same primitive the breadcrumb's current segment and folder/source cards already use, passed
+// selectAll:true — per explicit follow-up request — so the whole name is selected right away
+// instead of just a caret at the end, ready to be typed straight over) — per explicit request. A
+// single click still navigates (window.__openFolder), so the row's own onClick needs the same
+// "delay navigation, cancel if a second click lands within the window" dance ShelfCard.jsx's
+// handleShelfSourceRowClick already establishes for this exact tension (see its own comment there)
+// rather than firing immediately, or a genuine double-click would navigate away on its first click
+// before ever reaching onDoubleClick. clickTimerRef is per-row (a plain local ref, not a shared
+// appState slot like the vanilla shelf version) since each row's pending click is already scoped
+// to its own component instance.
+// .outline-label-renameable (on top of the shared .outline-label, globals.css) is what gives just
+// THIS label a grey underline on hover — per explicit request, a visual hint that it's the
+// double-clickable rename target — without adding that hover styling to every other, non-renameable
+// use of the shared .outline-label class elsewhere (Outline/Waypoints/Chats rows, etc).
 function SourceRow({ r, altHeld }) {
   const labelRef = useRef(null);
   const clickTimerRef = useRef(null);
@@ -53,10 +59,10 @@ function SourceRow({ r, altHeld }) {
       <img className="search-history-icon" src="/assets/icons/source.png" alt="" />
       <span
         ref={labelRef}
-        className="outline-label"
+        className="outline-label outline-label-renameable"
         onDoubleClick={(e) => {
           e.stopPropagation();
-          window.__startRenameFolderCardTitle(labelRef.current, { folderId: r.folderId }, "outline-label");
+          window.__startRenameFolderCardTitle(labelRef.current, { folderId: r.folderId }, "outline-label", true);
         }}
         title="Double-click to rename"
       >

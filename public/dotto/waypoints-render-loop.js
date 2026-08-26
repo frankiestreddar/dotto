@@ -413,7 +413,7 @@ import { applyConnections, renderConnectionsLayer } from './srs-connections-core
     // Guarded on folders[it.folderId] existing at all: a folder card nested INSIDE a canvas
     // someone else shared with you is a static, non-drillable preview (see the sharing scope note
     // in 20260726_add_canvas_collaboration.sql) with no local data to rename in the first place.
-    function startRenameFolderCardTitle(titleEl, it, editingClass) {
+    function startRenameFolderCardTitle(titleEl, it, editingClass, selectAll) {
         editingClass = editingClass || 'folder-card-title';
         const folderId = it.folderId;
         if (!appState.folders[folderId] || titleEl.contentEditable === 'true') return;
@@ -435,17 +435,21 @@ import { applyConnections, renderConnectionsLayer } from './srs-connections-core
         titleEl.focus();
         // Same caret-at-end-on-a-deferred-macrotask dance as the breadcrumb rename — see its own
         // comment for why the deferral is load-bearing (a pending native click-to-caret action
-        // would otherwise silently override this).
-        const placeCaretAtEnd = () => {
+        // (or, for a double-click-triggered rename — the Sources panel, selectAll:true — the
+        // browser's own native "double-click selects the word under the cursor" behavior) would
+        // otherwise silently override this). selectAll (per explicit request, Sources panel only
+        // so far) leaves the range spanning the whole title instead of collapsing it to the end,
+        // so the very next keystroke replaces the entire name rather than appending to it.
+        const applySelection = () => {
             const range = document.createRange();
             range.selectNodeContents(titleEl);
-            range.collapse(false);
+            if (!selectAll) range.collapse(false);
             const sel = window.getSelection();
             sel.removeAllRanges();
             sel.addRange(range);
         };
-        placeCaretAtEnd();
-        setTimeout(placeCaretAtEnd, 0);
+        applySelection();
+        setTimeout(applySelection, 0);
         titleEl.onblur = () => {
             titleEl.contentEditable = false;
             broadcastEditingState(false);

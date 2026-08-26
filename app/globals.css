@@ -2415,6 +2415,12 @@
        never focusable), same as .breadcrumb-pill-current/.folder-card-title's own identical rule
        for the exact same contentEditable-focus-ring reason. */
     .outline-label{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0;outline:none;}
+    /* Sources panel rows only (SourcesListPanel.jsx) — a grey underline on hovering the name itself,
+       per explicit request, as a visual hint that double-clicking it renames the source. Scoped to
+       this extra class (on top of the shared .outline-label above) rather than .outline-label
+       itself so no other, non-renameable use of that shared class (Outline/Waypoints/Chats rows,
+       etc) picks up the same hover styling. */
+    .outline-label-renameable:hover{text-decoration:underline;text-decoration-color:var(--ink-soft);}
     /* Sources panel rows only (SourcesListPanel.jsx) — a source's global id, same monospace/faint
        language as .global-id-pill (the on-canvas source block used to show this directly; per
        explicit request it no longer does, this is the only place left to see it). Hidden by
