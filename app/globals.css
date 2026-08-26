@@ -317,9 +317,16 @@
        still 0-width), but #top-bar-center:hover keeps the reveal alive once the cursor actually
        moves onto the newly-revealed buttons themselves — a literal #breadcrumb-pill:hover trigger
        would instead collapse them the instant the cursor left the breadcrumb's own narrower box,
-       making a revealed button behind it hard or impossible to actually reach and click. */
+       making a revealed button behind it hard or impossible to actually reach and click.
+       .pill-proximity is the other trigger, alongside :hover, everywhere in this file — a plain
+       class, toggled by JS (the mousemove listener in resize-shortcuts-init.js) whenever the cursor
+       is within TOP_BAR_PROXIMITY_PX of the pill's own live bounding rect in ANY direction, not
+       just literally over its box — per explicit request. CSS alone can't express "within N px of
+       an element," hence the JS; see that listener's own comment for the distance-to-rect math and
+       why it's recomputed against the pill's current (possibly already-expanding) size every move
+       rather than a fixed snapshot. */
     #nav-arrows-pill{display:flex;align-items:center;gap:2px;justify-self:end;max-width:0;opacity:0;overflow:hidden;transition:max-width .3s ease,opacity .2s ease;}
-    #top-bar-center:hover #nav-arrows-pill{max-width:80px;opacity:1;}
+    #top-bar-center:hover #nav-arrows-pill,#top-bar-center.pill-proximity #nav-arrows-pill{max-width:80px;opacity:1;}
     /* Right-side grid item (mirrors #nav-arrows-pill's own role on the left), holding #collab-bubble
        and #tab-add-btn (top-bar.html) as two flex siblings — per explicit request to group the "add
        tab" button with the collaborator button rather than leave it inside #breadcrumb-pill's own
@@ -603,7 +610,7 @@
        collaborator button at all (#collab-bubble never gets `.show` there, and so never expands),
        not just alongside one. */
     #tab-add-btn{display:none;align-items:center;justify-content:center;width:20px;height:20px;border-radius:6px;border:none;background:none;color:var(--ink-soft);font-size:14px;line-height:1;cursor:pointer;padding:0;flex:0 0 auto;}
-    #top-bar-center:hover #tab-add-btn{display:flex;}
+    #top-bar-center:hover #tab-add-btn,#top-bar-center.pill-proximity #tab-add-btn{display:flex;}
     #tab-add-btn:hover{background:var(--hover-bg);color:var(--ink);}
     #breadcrumb-pill .breadcrumb-pill-ellipsis,
     #breadcrumb-pill .breadcrumb-pill-parent{color:var(--ink);font-weight:400;font-size:13px;cursor:pointer;white-space:nowrap;flex:0 0 auto;}
@@ -909,17 +916,18 @@
        Only the brief 0-to-content-width portion of the grow transition is genuinely clipped by
        overflow:hidden at rest; once .show lands, the (small, near-immediately-reached) real content
        width is free to render without any clipping, tooltip included.
-       Also gated on #top-bar-center:hover now, same as #nav-arrows-pill (see its own comment) — per
-       explicit request that this only show once the breadcrumb (the only thing left visible at
-       rest) is hovered, on top of the pre-existing .show condition (there being a canvas context
-       for collaborators to exist at all). Both must hold: .show alone (hover-independent) no longer
+       Also gated on #top-bar-center:hover (or .pill-proximity — see #nav-arrows-pill's own comment
+       for the mousemove-proximity mechanism) now, same as #nav-arrows-pill — per explicit request
+       that this only show once the breadcrumb (the only thing left visible at rest) is hovered/
+       approached, on top of the pre-existing .show condition (there being a canvas context for
+       collaborators to exist at all). Both must hold: .show alone (hover-independent) no longer
        grows it by itself.
        No longer carries justify-self:start directly — that moved to the new #right-actions-pill
        wrapper (below) once #tab-add-btn joined it as a sibling here, per explicit request to group
        the two; this element is now that wrapper's flex child rather than a #top-bar-center grid item
        itself. Its own max-width/opacity collapse is untouched by that move. */
     #collab-bubble{position:relative;display:flex;align-items:center;cursor:pointer;max-width:0;padding:0;opacity:0;overflow:hidden;transition:max-width .3s ease,padding .3s ease,opacity .2s ease;}
-    #top-bar-center:hover #collab-bubble.show{max-width:220px;padding:0 10px;opacity:1;overflow:visible;}
+    #top-bar-center:hover #collab-bubble.show,#top-bar-center.pill-proximity #collab-bubble.show{max-width:220px;padding:0 10px;opacity:1;overflow:visible;}
     .collab-avatars{display:flex;align-items:center;}
     /* No border-radius — only the top-bar button avatar (#btn-profile/.profile-avatar-sm) keeps
        circular clipping; every other avatar in the app is a plain square. */

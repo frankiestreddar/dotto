@@ -168,6 +168,36 @@ import { cascadeDeleteFolderContents, centerOnContent, deleteWaypointFromDb, ren
     document.addEventListener('keydown', (e) => { if (e.altKey) document.body.classList.add('option-held'); });
     document.addEventListener('keyup', (e) => { if (!e.altKey) document.body.classList.remove('option-held'); });
     window.addEventListener('blur', () => document.body.classList.remove('option-held'));
+    // Expands the top-bar pill (#top-bar-center — arrows/collaborator/add-tab sections) not just on
+    // a literal :hover but within TOP_BAR_PROXIMITY_PX of its own rendered box in ANY direction —
+    // per explicit request, so nudging the cursor generally toward the pill (not landing exactly on
+    // its box) already reveals it. CSS alone has no "within N px of an element" selector, hence a
+    // plain mousemove listener toggling a class (.pill-proximity) that every one of the pill's own
+    // #top-bar-center:hover-gated rules also matches on (see #nav-arrows-pill's own comment,
+    // globals.css). distanceToRect returns 0 the instant the point is already inside the rect
+    // (Math.max clamps each axis's overshoot to 0 there), so this is a strict superset of :hover,
+    // never a replacement that could leave a directly-hovered pill un-expanded. Recomputed against
+    // the pill's CURRENT getBoundingClientRect() on every move rather than a cached/fixed box, so
+    // the proximity zone itself grows/shrinks together with the pill as it expands and collapses —
+    // deliberately, since a already-expanding pill's own edges have already moved outward toward the
+    // cursor by the time this next fires. Unthrottled, same as every other plain mousemove-driven
+    // listener already in this codebase (e.g. the various drag handlers) — getBoundingClientRect
+    // plus one hypot call per move is cheap enough not to need it.
+    const TOP_BAR_PROXIMITY_PX = 100;
+    function distanceToRect(x, y, rect) {
+        const dx = Math.max(rect.left - x, 0, x - rect.right);
+        const dy = Math.max(rect.top - y, 0, y - rect.bottom);
+        return Math.hypot(dx, dy);
+    }
+    document.addEventListener('mousemove', (e) => {
+        if (!appState.topBarCenter) return;
+        const near = distanceToRect(e.clientX, e.clientY, appState.topBarCenter.getBoundingClientRect()) <= TOP_BAR_PROXIMITY_PX;
+        appState.topBarCenter.classList.toggle('pill-proximity', near);
+    });
+    // No further mousemove ever fires once the cursor leaves the window, which could otherwise
+    // leave the pill stuck expanded — same "clear on blur" safety net .option-held above already
+    // uses for the identical class of problem.
+    window.addEventListener('blur', () => { if (appState.topBarCenter) appState.topBarCenter.classList.remove('pill-proximity'); });
     const TABLE_COL_MIN_PX = 40;
     const TABLE_ROW_MIN_PX = 28;
     // The resize affordance (purple highlight + col/row-resize cursor, both driven by the .armed
