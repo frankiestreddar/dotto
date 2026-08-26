@@ -79,6 +79,11 @@ import { centerOnContent, render } from './waypoints-render-loop.js';
     async function saveWorkspaceNow() {
         clearTimeout(appState.workspaceSaveTimer);
         if (!supabase || !appState.currentUser.id) return;
+        // See appState.workspaceLoaded's own comment, core-state.js — refuses to save before the
+        // initial loadWorkspace() has resolved, so a tab-hide/pagehide firing mid-fetch (visibility
+        // change/pagehide listeners below, both registered from plain page load with no way to know
+        // that fetch is still pending) can never upsert pre-load default state over real saved data.
+        if (!appState.workspaceLoaded) return;
 
         // shared:owner:folderId entries (see openSharedCanvas) are someone else's canvas fetched
         // on demand, not this user's own — they must never be written into this user's own
@@ -115,6 +120,7 @@ import { centerOnContent, render } from './waypoints-render-loop.js';
             ? { ownerId: activeShared.sharedOwnerId, folderId: activeShared.sharedRemoteFolderId }
             : null;
 
+        const workspaceData = { folders: localFolders, idCounter: appState.idCounter, historyStack: resumeStack, historyIndex: resumeIndex, tx: appState.tx, ty: appState.ty, scale: appState.scale, lastSharedView, tabs: appState.tabs, activeTabId: appState.activeTabId, nextTabId: appState.nextTabId };
         const { error } = await supabase.from('workspaces').upsert({
             user_id: appState.currentUser.id,
             // historyStack/historyIndex are saved alongside folders so the full
@@ -132,11 +138,25 @@ import { centerOnContent, render } from './waypoints-render-loop.js';
             // folderId turns out to be unresolvable on the next load (a shared:/public: key that
             // isn't fetched by default) just falls back to wherever the reload actually lands
             // instead, see loadWorkspace's own validation.
-            data: { folders: localFolders, idCounter: appState.idCounter, historyStack: resumeStack, historyIndex: resumeIndex, tx: appState.tx, ty: appState.ty, scale: appState.scale, lastSharedView, tabs: appState.tabs, activeTabId: appState.activeTabId, nextTabId: appState.nextTabId },
+            data: workspaceData,
             current_folder_id: resumeFolderId,
             updated_at: new Date().toISOString()
         });
-        if (error) console.error('[workspace] save failed:', error);
+        // error often logs as an unhelpful bare '{}' by itself — a PostgrestError's own useful
+        // fields (message/code/details/hint) aren't own-enumerable in a way every console
+        // formatter reliably expands, and some failure modes (e.g. a request that never reaches
+        // Postgres at all — a payload too large for a proxy/CDN hop, a network drop) don't produce
+        // a real PostgrestError to begin with. Logging those fields explicitly, plus the actual
+        // payload size (a large embedded image/video — media-pdf-epub.js still stores those as
+        // inline data: URLs rather than routing them to real Storage the way PDF/EPUB uploads
+        // already do, see uploadDocumentToStorage's own comment there — is the prime suspect for a
+        // save that starts failing without anything else about the workspace having changed),
+        // gives an actual diagnosable trail the next time this happens instead of just '{}'.
+        if (error) {
+            let payloadSize = 'unknown';
+            try { payloadSize = JSON.stringify(workspaceData).length + ' chars'; } catch (e) { /* circular or unserializable — the error itself either way */ }
+            console.error('[workspace] save failed:', { message: error.message, code: error.code, details: error.details, hint: error.hint, payloadSize });
+        }
 
         // Lazy global-id registration (global-ids.js) — every local folder, every save. Simpler
         // than tracking which ones already round-tripped successfully, at the cost of one cheap
@@ -181,14 +201,26 @@ import { centerOnContent, render } from './waypoints-render-loop.js';
     // skip its own default centerOnContent() in that case, the same way applyFolderView already
     // prefers a folder's own saved lastView over re-centering when one exists.
     async function loadWorkspace() {
-        if (!supabase || !appState.currentUser.id) return false;
+        // appState.workspaceLoaded (its own comment, core-state.js) gets set true on EVERY exit
+        // path below, including the early-return ones — once this async attempt has definitively
+        // concluded, one way or another, saveWorkspaceNow() is safe to run: there's no longer any
+        // window where it could fire against stale pre-load default state instead of whatever
+        // should actually be persisted.
+        if (!supabase || !appState.currentUser.id) { appState.workspaceLoaded = true; return false; }
         const { data, error } = await supabase
             .from('workspaces')
             .select('data, current_folder_id')
             .eq('user_id', appState.currentUser.id)
             .maybeSingle();
-        if (error) { console.error('[workspace] load failed:', error); return false; }
-        if (!data) return false; // first-ever login — keep the built-in starter content
+        if (error) {
+            // Same reasoning as the save-failure log above — a bare error object often console.logs
+            // as an unhelpful '{}'; its own real fields are more reliably readable pulled out
+            // explicitly.
+            console.error('[workspace] load failed:', { message: error.message, code: error.code, details: error.details, hint: error.hint });
+            appState.workspaceLoaded = true;
+            return false;
+        }
+        if (!data) { appState.workspaceLoaded = true; return false; } // first-ever login — keep the built-in starter content
         appState.folders = data.data.folders;
         appState.idCounter = data.data.idCounter;
         recomputeTopCardZIndex();
@@ -257,6 +289,7 @@ import { centerOnContent, render } from './waypoints-render-loop.js';
         // further to do here; that default just needs its folderId synced, which renderTabsPanel
         // (see above) already handles on the first render() regardless.
 
+        appState.workspaceLoaded = true;
         if (typeof data.data.tx === 'number' && typeof data.data.ty === 'number' && typeof data.data.scale === 'number') {
             appState.tx = data.data.tx; appState.ty = data.data.ty; appState.scale = data.data.scale;
             return true;

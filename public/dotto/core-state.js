@@ -195,6 +195,22 @@
         redoStack: [],
         swTickInterval: null,
         workspaceSaveTimer: null,
+        // Guards against a real, observed data-loss race: loadWorkspace() (history-autosave.js) is
+        // an async network round-trip, awaited before the very first render() (resize-shortcuts-
+        // init.js) — but the visibilitychange/pagehide listeners that flush an immediate save on
+        // tab-hide/close (same file) are registered at plain module-load time, active from the
+        // instant the page starts, with no awareness of whether that initial fetch has resolved
+        // yet. If the tab was hidden (switched away, minimized, closed) at any point WHILE the
+        // fetch was still in flight, saveWorkspaceNow() fired immediately using whatever appState
+        // .folders held at that exact moment — the built-in single-root STARTER content, since the
+        // real saved data hadn't been applied yet — and upsert has no merge semantics, so that tiny
+        // starter payload silently overwrote the user's entire real workspace in the database.
+        // false until loadWorkspace's own async work concludes (every one of its exit points sets
+        // this true — see its own comment) in every outcome (real data restored, confirmed nothing
+        // saved yet, or a load error), at which point appState.folders is known to correctly
+        // reflect whatever should actually be persisted; saveWorkspaceNow bails out early while
+        // this is still false rather than ever risking a save from pre-load default state.
+        workspaceLoaded: false,
         contextMenuTableCtx: null,
         ZOOM_MIN: 0.2,
         ZOOM_MAX: 2,
