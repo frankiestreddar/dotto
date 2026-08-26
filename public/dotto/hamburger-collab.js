@@ -234,15 +234,25 @@ import { deleteCanvasCollabsForFolder, deleteWaypointCardEverywhere, expandWaypo
     // back empty, same as an untouched box) so a render()-driven refresh doesn't clobber the user's
     // in-progress search; the oninput handler (handleSourcesSearch, panels-hamburger.js) always
     // passes the freshly-typed value directly instead.
+    // Account-wide: every source folder that exists (appState.folders is a flat, non-nested map
+    // of ALL folders — see findAllSourceFolders's own comment, search-orchestration-selection.js,
+    // for the same fact established there), not just the ones linked onto the current canvas —
+    // per explicit request that this list show every source, not just this canvas's. The ones
+    // actually linked here (a kind:'source' item in this folder's own items[], pointing at that
+    // source folder via folderId) are pulled to the top via the sort below, also per explicit
+    // request, rather than being the only ones shown as before.
     function renderSourcesList(query) {
         const input = document.getElementById('sources-panel-search');
         const q = (query !== undefined ? query : (input ? input.value : '')).trim().toLowerCase();
         const folderObj = appState.folders[appState.currentFolderId];
-        const items = folderObj ? folderObj.items : [];
-        const rows = items
-            .filter(it => it.kind === 'source')
-            .map(it => ({ id: it.id, folderId: it.folderId, title: (appState.folders[it.folderId] && appState.folders[it.folderId].title) || 'New Source' }))
-            .filter(r => !q || r.title.toLowerCase().includes(q));
+        const onCanvasIds = new Set(
+            (folderObj ? folderObj.items : []).filter(it => it.kind === 'source').map(it => it.folderId)
+        );
+        const rows = Object.values(appState.folders)
+            .filter(f => f.isSource)
+            .map(f => ({ id: f.id, folderId: f.id, title: f.title || 'New Source', onCanvas: onCanvasIds.has(f.id) }))
+            .filter(r => !q || r.title.toLowerCase().includes(q))
+            .sort((a, b) => (b.onCanvas === a.onCanvas ? 0 : b.onCanvas ? 1 : -1));
         window.__setSourcesList({ rows, query: q });
     }
     // Hamburger menu's Chats panel — every saved Dotbot conversation belonging to this user, most
