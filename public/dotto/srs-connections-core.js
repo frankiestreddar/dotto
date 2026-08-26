@@ -555,9 +555,44 @@ import { render, renderSelectedOutlines, startBoxSelection, syncWaypointToDb } f
         snippets: 'files-panel-search',
     };
 
+    // 'a'-prefix add-block chord — pressing 'a' then a second letter within ADD_CHORD_TIMEOUT_MS
+    // adds that block type at the current viewport centre (addBlockAtViewportCenter, below) rather
+    // than opening the whole Add menu ('E'/btnAdd) to pick one manually. "Just to test" the idea
+    // per explicit request — only 'n' (note) and 'h' (heading) are wired up so far; add more
+    // entries to ADD_CHORD_KEYS as they're decided. A leader-key chord like this has no existing
+    // precedent elsewhere in the app to reuse.
+    // addChordArmed/addChordTimer are plain module-level state, not appState — purely ephemeral
+    // input state with nothing else in the app needing to read it, same reasoning
+    // modePopupSafeZoneActive (source-buttons-cursor-mode.js) stays a local closure too rather than
+    // living on shared state.
+    const ADD_CHORD_TIMEOUT_MS = 1000;
+    const ADD_CHORD_KEYS = { n: 'note', h: 'title' };
+    let addChordArmed = false;
+    let addChordTimer = null;
+
     document.addEventListener('keydown', (e) => {
         const active = document.activeElement;
         const isEditingText = active && (active.isContentEditable || active.tagName === 'INPUT' || active.tagName === 'SELECT' || active.tagName === 'TEXTAREA');
+
+        // Checked before every other single-letter branch below so a chord's own second key (e.g.
+        // 'n', separately bound below to a debug notification test; 'h', separately bound to
+        // Library/#btnCart) is consumed HERE instead of also falling through to that unrelated
+        // shortcut. Any key that ISN'T a registered chord entry just cancels the chord silently and
+        // falls through to whatever it would normally do instead — 'a' then 'w' still opens
+        // Waypoints, it doesn't add anything, since the chord only ever intercepts its own
+        // recognized second keys.
+        if (!isEditingText && addChordArmed) {
+            addChordArmed = false;
+            clearTimeout(addChordTimer);
+            const chordKind = ADD_CHORD_KEYS[e.key.toLowerCase()];
+            if (chordKind) { e.preventDefault(); addBlockAtViewportCenter(chordKind); return; }
+        } else if (!isEditingText && (e.key === 'a' || e.key === 'A') && !e.metaKey && !e.ctrlKey) {
+            e.preventDefault();
+            addChordArmed = true;
+            clearTimeout(addChordTimer);
+            addChordTimer = setTimeout(() => { addChordArmed = false; }, ADD_CHORD_TIMEOUT_MS);
+            return;
+        }
 
         if (!isEditingText && appState.outlineMenu.classList.contains('open')) {
             if (e.key === 'ArrowDown') { e.preventDefault(); setOutlineActive(appState.outlineActiveIndex + 1); return; }
@@ -1071,6 +1106,17 @@ import { render, renderSelectedOutlines, startBoxSelection, syncWaypointToDb } f
         const x = Math.round((center.x - w / 2) / 28) * 28;
         const y = Math.round((center.y - h / 2) / 28) * 28;
         add('source', x, y);
+    }
+    // Same viewport-centre placement math as createNewSource just above, generalized to any kind
+    // — used by the 'a'-prefix add-block keyboard chord (its own comment, the keydown handler
+    // below) so a chorded shortcut drops its block in view immediately, the same way clicking a
+    // tile in the Add menu does, rather than needing a click-to-place gesture afterward.
+    function addBlockAtViewportCenter(kind) {
+        const { w, h } = kindSize(kind);
+        const center = viewportCenterWorldPoint();
+        const x = Math.round((center.x - w / 2) / 28) * 28;
+        const y = Math.round((center.y - h / 2) / 28) * 28;
+        add(kind, x, y);
     }
 
     // Deep-clones a LIVE canvas item for a true, independent duplicate (Alt-drag). Critically,
