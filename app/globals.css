@@ -2655,10 +2655,14 @@
        the cells together. */
     .item-table{border-collapse:separate;border-spacing:0;width:100%;table-layout:fixed;}
     /* Canvas table cards still keep the header as the first <tr> inside a single <tbody> (no
-       separate header element), so this greys out that first row for them. Source-page
-       static tables split the header out entirely (see below) — excluding .static-table
-       here keeps this rule from also greying out their first *data* row. */
-    .item.table:not(.static-table) .item-table > tbody > tr:first-child > td{background:var(--card);font-weight:600;color:var(--ink);}
+       separate header element) — this keeps it visually distinct with bold text, but per explicit
+       request its own background/text colour are no longer special-cased: every cell (see the
+       plain .item-table td rule below) is now the same fixed white, header included, rather than
+       this row alone following var(--card)/var(--ink) (which happened to already read as plain
+       white in light mode, since --card IS white there, but rendered as dark grey-on-white-text in
+       dark mode). Source-page static tables split the header out entirely (see below) —
+       excluding .static-table here keeps this rule from also affecting their first *data* row. */
+    .item.table:not(.static-table) .item-table > tbody > tr:first-child > td{font-weight:600;}
     /* Every cell draws only its own right+bottom border, not all 4 sides. Under
        border-collapse:separate + 0 spacing, two cells sitting flush against each other each still
        paint a FULL independent border on their shared edge — the two 1px lines sit side by side
@@ -2672,6 +2676,15 @@
     .item-table td:first-child{border-left-width:1px;}
     .item.table:not(.static-table) .item-table td{border-color:rgba(255,255,255,0.1);}
     :root[data-theme="light"] .item.table:not(.static-table) .item-table td{border-color:rgba(0,0,0,0.1);}
+    /* Per explicit request: every cell in a canvas table card (header included — see that row's own
+       rule, above) is a fixed white, in both themes, rather than following var(--card) (already
+       white in light mode, since --card IS white there, but dark grey in dark mode). Text goes
+       explicitly dark to match — the same fixed value regardless of theme, since it now always
+       sits on the same fixed white background rather than the theme's own var(--ink), which would
+       still be near-white (unreadable) in dark mode otherwise. Scoped to :not(.static-table), same
+       as the border-color rule just above — the source-page static table is a different context
+       this wasn't asked to change. */
+    .item.table:not(.static-table) .item-table td{background:#fff;color:#1a1a1a;}
     /* Rounds whichever cell is truly in one of the table's 4 outer corners to match the table's
        own 10px radius — permanent now (not just on focus), since border-collapse:separate makes
        per-cell border-radius safe (the blur risk above was specifically a collapse-mode quirk).
