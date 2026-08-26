@@ -552,6 +552,7 @@ import { render, renderSelectedOutlines, startBoxSelection, syncWaypointToDb } f
         search: 'search-panel-search',
         ai: 'search-input',
         sources: 'sources-panel-search',
+        snippets: 'files-panel-search',
     };
 
     document.addEventListener('keydown', (e) => {

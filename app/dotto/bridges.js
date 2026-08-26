@@ -152,10 +152,17 @@ export const addToSourcePopupStore = createStore({ isOpen: false, left: 0, top: 
 export const waypointsListStore = createStore({ rows: [], query: "" });
 
 // Hamburger menu's Sources panel (public/dotto/hamburger-collab.js's renderSourcesList) —
-// { rows: [{id, folderId, title}], query }, one row per kind:'source' item on the CURRENT canvas.
-// Genuine JSX rows (see SourcesListPanel.jsx), same reasoning as chatsListStore below. Not
-// flushSync'd — a plain store.set, no synchronous DOM read follows a render()-driven update.
+// { rows: [{id, folderId, title, globalId, onCanvas, active}] , query }, one row per source folder
+// account-wide (current-canvas ones sorted first). Genuine JSX rows (see SourcesListPanel.jsx),
+// same reasoning as chatsListStore below. Not flushSync'd — a plain store.set, no synchronous DOM
+// read follows a render()-driven update.
 export const sourcesListStore = createStore({ rows: [], query: "" });
+
+// Hamburger menu's Files panel (public/dotto/hamburger-collab.js's renderFilesList) — structurally
+// identical to sourcesListStore just above (copied from it per explicit request), just
+// { rows: [{id, folderId, itemId, title, onCanvas}], query }, one row per uploaded kind:'media' item
+// account-wide (current-canvas ones sorted first). See FilesListPanel.jsx.
+export const filesListStore = createStore({ rows: [], query: "" });
 
 // Hamburger menu's Chats panel (public/dotto/hamburger-collab.js's renderChatsList) — a plain
 // array of { id, title, updated_at } rows (see ChatsListPanel.jsx), no search/query state (v1: no

@@ -18,6 +18,7 @@ import {
   dictionaryPanelStore,
   dotbotAnswerStore,
   examplesPanelStore,
+  filesListStore,
   hubCollabListStore,
   imageResultStore,
   itemDetailFooterStore,
@@ -52,6 +53,7 @@ import DictionaryPanel from "./dotto/DictionaryPanel";
 import DotbotAnswerPanel from "./dotto/DotbotAnswerPanel";
 import ErrorBoundary from "./dotto/ErrorBoundary";
 import ExamplesPanel from "./dotto/ExamplesPanel";
+import FilesListPanel from "./dotto/FilesListPanel";
 import HubCollabListPanel from "./dotto/HubCollabListPanel";
 import ImageResultPanel from "./dotto/ImageResultPanel";
 import ItemDetailFooter from "./dotto/ItemDetailFooter";
@@ -205,6 +207,10 @@ if (typeof window !== "undefined") {
   // hamburger-collab.js's renderSourcesList) — a plain store.set, no synchronous DOM read follows
   // it (it's called from render() itself, not a click handler expecting an immediate reflection).
   window.__setSourcesList = sourcesListStore.set;
+  // Hamburger menu's Files panel (see app/dotto/FilesListPanel.jsx, hamburger-collab.js's
+  // renderFilesList) — copied from __setSourcesList just above per explicit request; same
+  // reasoning (a plain store.set, no synchronous DOM read follows it).
+  window.__setFilesList = filesListStore.set;
   // Hamburger menu's Chats panel (see app/dotto/ChatsListPanel.jsx, hamburger-collab.js's
   // renderChatsList) — same reasoning as __setWaypointsList: a real async Supabase call.
   window.__setChatsList = chatsListStore.set;
@@ -324,6 +330,7 @@ export default function DottoApp({ sections, currentUser }) {
       <ErrorBoundary name="AddToSourcePopup"><AddToSourcePopup /></ErrorBoundary>
       <ErrorBoundary name="WaypointsListPanel"><WaypointsListPanel /></ErrorBoundary>
       <ErrorBoundary name="SourcesListPanel"><SourcesListPanel /></ErrorBoundary>
+      <ErrorBoundary name="FilesListPanel"><FilesListPanel /></ErrorBoundary>
       <ErrorBoundary name="ChatsListPanel"><ChatsListPanel /></ErrorBoundary>
       <ErrorBoundary name="HubCollabListPanel"><HubCollabListPanel /></ErrorBoundary>
       <ErrorBoundary name="MessagesListPanel"><MessagesListPanel /></ErrorBoundary>

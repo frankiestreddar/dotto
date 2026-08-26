@@ -26,7 +26,7 @@ import { blurPublishFlowName, commitItemDetailDesc, commitItemDetailTitle, confi
 import { broadcastEditingState, closeConvo, closeSharedCanvasView, sendMsg, setTitleLevel } from './live-presence.js';
 import { addItemToCustomFolderById, closeMarketDetail, deployPurchasedTemplate, handleLibrarySearch, handleMarketplaceSearch, purchaseCurrentMarketItem, removeFromCustomFolder, switchLibraryFolder } from './marketplace.js';
 import { clearMedia, setMediaFromLink, triggerMediaUpload } from './media-pdf-epub.js';
-import { handleHubCollabSearch, handleSourcesSearch, handleWaypointsSearch } from './panels-hamburger.js';
+import { handleFilesSearch, handleHubCollabSearch, handleSourcesSearch, handleWaypointsSearch } from './panels-hamburger.js';
 import { closeDotbotUpgradeModal, closePricingOverlay, openPricingOverlay, showProfileMainView, showProfileSettingsView } from './profile-achievements-pricing.js';
 import { setTableAlign } from './resize-shortcuts-init.js';
 import { handleOutlineSearch } from './shared-canvases-outline.js';
@@ -74,6 +74,7 @@ window.handleAddMenuSearchInput = handleAddMenuSearchInput;
 window.handleCellMouseDown = handleCellMouseDown;
 window.handleCollabSearch = handleCollabSearch;
 window.handleColNameKeydown = handleColNameKeydown;
+window.handleFilesSearch = handleFilesSearch;
 window.handleHubCollabSearch = handleHubCollabSearch;
 window.handleLibrarySearch = handleLibrarySearch;
 window.handleMarketplaceSearch = handleMarketplaceSearch;

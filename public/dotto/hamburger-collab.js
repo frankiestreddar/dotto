@@ -6,7 +6,7 @@ import { findItemById } from './live-presence.js';
 import { flashCanvasElement } from './mnemonic-search-matching.js';
 import { closeRailView } from './panels-hamburger.js';
 import { closeProfilePanel, openPricingOverlay } from './profile-achievements-pricing.js';
-import { announceEnteredCollaboration, ensureSharedFolderLoaded, sharedFolderKey } from './shared-canvases-outline.js';
+import { announceEnteredCollaboration, ensureSharedFolderLoaded, goToOutlineItem, sharedFolderKey } from './shared-canvases-outline.js';
 import { pushNotification } from './stopwatch-search-notifications.js';
 import { deleteCanvasCollabsForFolder, deleteWaypointCardEverywhere, expandWaypointCard, folderGlobalId, openFolder, render } from './waypoints-render-loop.js';
 
@@ -254,6 +254,42 @@ import { deleteCanvasCollabsForFolder, deleteWaypointCardEverywhere, expandWaypo
             .filter(r => !q || r.title.toLowerCase().includes(q))
             .sort((a, b) => (b.onCanvas === a.onCanvas ? 0 : b.onCanvas ? 1 : -1));
         window.__setSourcesList({ rows, query: q });
+    }
+    // Files panel (SourcesListPanel's own structure copied — see #snippets-panel's own comment,
+    // hamburger-stack.html — then edited to list a different underlying thing) — every uploaded
+    // file across the user's ENTIRE account, not just the current canvas, per explicit request:
+    // every kind:'media' item (media-pdf-epub.js) with a real mediaSrc, found by walking every
+    // folder's own items[] (appState.folders is the same flat, account-wide map findAllSourceFolders/
+    // renderSourcesList's own comments already establish this fact for). mediaSrc is what makes it
+    // an actual uploaded/attached file rather than an empty media card still waiting for one
+    // (triggerMediaUpload/setMediaFromLink both only set it once real content lands). Title prefers
+    // mediaName (the original filename — only ever set for the PDF/EPUB upload path,
+    // uploadDocumentToStorage) since that's the one case with a real user-chosen name to show;
+    // everything else falls back to a plain type label. Sorted current-canvas-first, same "onCanvas"
+    // convention renderSourcesList's own rows already use, though the underlying relationship here
+    // is simpler — a media item only ever lives in exactly one folder directly, no separate linking
+    // item the way a source can appear on canvases other than its own.
+    function renderFilesList(query) {
+        const input = document.getElementById('files-panel-search');
+        const q = (query !== undefined ? query : (input ? input.value : '')).trim().toLowerCase();
+        const mediaTypeLabel = { video: 'Video', pdf: 'PDF', epub: 'EPUB' };
+        const rows = [];
+        Object.values(appState.folders).forEach(f => {
+            (f.items || []).forEach(it => {
+                if (it.kind !== 'media' || !it.mediaSrc) return;
+                rows.push({
+                    id: it.id,
+                    folderId: f.id,
+                    itemId: it.id,
+                    title: it.mediaName || mediaTypeLabel[it.mediaType] || 'Image',
+                    onCanvas: f.id === appState.currentFolderId,
+                });
+            });
+        });
+        const filtered = rows
+            .filter(r => !q || r.title.toLowerCase().includes(q))
+            .sort((a, b) => (b.onCanvas === a.onCanvas ? 0 : b.onCanvas ? 1 : -1));
+        window.__setFilesList({ rows: filtered, query: q });
     }
     // Hamburger menu's Chats panel — every saved Dotbot conversation belonging to this user, most
     // recently updated first. Same fresh-fetch-every-open pattern as renderWaypointsList right
@@ -505,7 +541,7 @@ import { deleteCanvasCollabsForFolder, deleteWaypointCardEverywhere, expandWaypo
     }
     drawSettings.addEventListener('click', (e) => e.stopPropagation());
 
-export { backToHubCollabMain, clearListPanelSelection, dispatchListPanelDelete, goToWaypointCard, handleOwnedHubCollabRowClick, hmenuAction, openHubCollabRequestsView, openSavedChat, renderChatsList, renderHubCollabList, renderSourcesList, renderWaypointsList, resolveSharedFolderChain, respondToHubCollabRequest };
+export { backToHubCollabMain, clearListPanelSelection, dispatchListPanelDelete, goToWaypointCard, handleOwnedHubCollabRowClick, hmenuAction, openHubCollabRequestsView, openSavedChat, renderChatsList, renderFilesList, renderHubCollabList, renderSourcesList, renderWaypointsList, resolveSharedFolderChain, respondToHubCollabRequest };
 
 // React → vanilla bridge — used by WaypointsListPanel.jsx/HubCollabListPanel.jsx/
 // ChatsListPanel.jsx (app/dotto/), which can't import these directly since public/dotto/*.js

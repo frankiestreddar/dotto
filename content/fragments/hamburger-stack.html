@@ -117,15 +117,40 @@
     </div>
     <!-- Files (was ITSELF called Snippets — renamed per explicit request; id/wiring kept as
          'snippets' under the hood, same convention as Essentials/Queries staying #btn-add/
-         #rail-btn-ai). Not to be confused with the separate, newer Snippets button above
-         (#btn-snippets2/#snippets2-panel) — two different buttons that briefly shared an icon too
-         until Files got its own files.png (top-bar.html), per explicit request. Rail icon (group
-         6, top-bar.html, alongside Sources/Snippets). Behavior/content not decided yet;
-         a bare shell wired into the shared openRailView mechanism (see
-         wireRailIcon('snippets', ...), panels-hamburger.js) just so #btn-snippets has a panel to
-         open. -->
+         #rail-btn-ai — #snippets-panel/#btn-snippets/wireRailIcon('snippets', ...) below are all
+         still that same original outer id, untouched). Not to be confused with the separate, newer
+         Snippets button above (#btn-snippets2/#snippets2-panel) — two different buttons that
+         briefly shared an icon too until Files got its own files.png (top-bar.html), per explicit
+         request. Rail icon (group 6, top-bar.html, alongside Sources/Snippets).
+         Built as a structural, like-for-like copy of #sources-panel (per explicit request: "copy
+         the sources panel to the files panel so it's consistent") — same .panel-hero-block/
+         .panel-search-header/.panel-search-wrap/.panel-search-input/.panel-search-hint/
+         .panel-history-list classes (globals.css), same shape, just this panel's own text and
+         (since the OUTER panel id stays 'snippets' per the paragraph above, unlike Sources whose
+         outer id already matched its own name) fresh 'files-panel-*' ids for these new INNER
+         elements — there was no pre-existing inner id here to preserve, so these follow Sources'
+         own naming convention instead. #files-panel-search DOES filter live
+         (oninput="handleFilesSearch(...)", panels-hamburger.js/renderFilesList, hamburger-
+         collab.js), matching Sources' own working-search convention. No "+ new file" button
+         (unlike Sources' own #sources-new-btn) — per explicit request this panel just LISTS
+         "any uploaded files across a user's entire canvas" (renderFilesList's own comment,
+         hamburger-collab.js — every kind:'media' item account-wide with a real mediaSrc); there's
+         no equivalent "create a blank one" action a file can start from the way a source can.
+         #files-panel-content lists them as real React rows (FilesListPanel.jsx), same
+         .outline-item/.search-history-icon/.outline-label row shape every other sidebar list uses,
+         since it shares that same .panel-history-list class. -->
     <div id="snippets-panel" class="hmenu-panel hub-subpanel" onclick="event.stopPropagation()">
-        <div id="snippets-panel-content"></div>
+        <div class="panel-hero-block">
+            <h2 class="search-panel-heading">Files</h2>
+            <p class="search-panel-desc">Uploaded files across your canvases.</p>
+        </div>
+        <div id="files-panel-header" class="panel-search-header">
+            <div id="files-panel-search-wrap" class="panel-search-wrap">
+                <input id="files-panel-search" class="panel-search-input" type="text" placeholder="" autocomplete="off" oninput="handleFilesSearch(this.value)">
+                <span id="files-panel-search-hint" class="panel-search-hint">Enter</span>
+            </div>
+        </div>
+        <div id="files-panel-content" class="hub-subpanel-list panel-history-list"></div>
     </div>
     <!-- AI search — moved here from its own standalone modal overlay (content/fragments/
          search-overlay.html, now empty/unused) now that it shares this permanent rail shell (see

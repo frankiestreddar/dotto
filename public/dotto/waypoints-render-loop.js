@@ -4,7 +4,7 @@ import { setupDraggingAndClicking } from './drag-drop-chat.js';
 import { ensureDrawings, makeLayerSVG } from './drawing-connections.js';
 import { refreshCanvasCollabForCurrentFolder, renderCollabPill, syncCanvasCollabTitle } from './friends-presence.js';
 import { closeGameOptionsPanel, openGameOptionsPanel } from './games-flashcard-typeright.js';
-import { renderSourcesList } from './hamburger-collab.js';
+import { renderFilesList, renderSourcesList } from './hamburger-collab.js';
 import { applyTransform, ensureSwTicking, saveSnapshot, scheduleWorkspaceSave, updateContextMenuPosition } from './history-autosave.js';
 import { broadcastEditingState, miniLabelForItem, placeCaretEnd, renderRealCardPreview, repositionAllRemoteCursors, syncColorPicker } from './live-presence.js';
 import { findNextFreeSlot, setupResizing } from './resize-shortcuts-init.js';
@@ -557,6 +557,11 @@ import { applyConnections, renderConnectionsLayer } from './srs-connections-core
         // panel-open/search-input, same reasoning as renderBreadcrumbMapPanel/renderTabsPanel just
         // above.
         renderSourcesList();
+        // Files rail panel (FilesListPanel.jsx) — every uploaded kind:'media' item account-wide
+        // (current-canvas ones sorted first), same reasoning/pattern as renderSourcesList just
+        // above (see renderFilesList's own comment, hamburger-collab.js) — copied from it per
+        // explicit request, including this call site.
+        renderFilesList();
         // Outline rail panel (shared-canvases-outline.js) — per explicit request that it reflect
         // whatever page navigation just landed on, and any rename that just happened anywhere on
         // the canvas, without needing to be closed and reopened first. Same unconditional-on-every-

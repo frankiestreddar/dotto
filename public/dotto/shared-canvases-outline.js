@@ -772,3 +772,7 @@ window.__addTab = addTab;
 window.__switchTab = switchTab;
 window.__closeTab = closeTab;
 window.__reorderTab = reorderTab;
+// React → vanilla bridge — used by FilesListPanel.jsx (app/dotto/) to navigate to (and flash) a
+// file's own canvas card on click, same primitive the Outline tree's own non-source rows already
+// use for every other card kind.
+window.__goToOutlineItem = goToOutlineItem;

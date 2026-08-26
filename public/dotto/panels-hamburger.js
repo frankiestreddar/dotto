@@ -1,7 +1,7 @@
 import { refreshAiPanel, resetAiSearchState } from './ai-assistant-suggestions.js';
 import { appState } from './core-state.js';
 import { closeCollabPanel } from './friends-presence.js';
-import { clearListPanelSelection, renderHubCollabList, renderSourcesList, renderWaypointsList } from './hamburger-collab.js';
+import { clearListPanelSelection, renderFilesList, renderHubCollabList, renderSourcesList, renderWaypointsList } from './hamburger-collab.js';
 import { buildOutline } from './shared-canvases-outline.js';
 import { closeSourceAddMenu } from './source-buttons-cursor-mode.js';
 
@@ -147,13 +147,14 @@ import { closeSourceAddMenu } from './source-buttons-cursor-mode.js';
     // own module top level, which would risk a circular-import timing issue (panels-hamburger.js
     // also imports from that file). A function reference used only inside a later event-listener
     // callback carries no such risk.
-    // #inbox-panel/#search-panel/#snippets-panel/#snippets2-panel have no content/refresh logic of
-    // their own yet (see their own comments, hamburger-stack.html) — no onOpen callback needed
-    // until that's designed.
+    // #inbox-panel/#search-panel/#snippets2-panel have no content/refresh logic of their own yet
+    // (see their own comments, hamburger-stack.html) — no onOpen callback needed until that's
+    // designed. #snippets-panel (Files) is no longer one of these — see renderFilesList's own
+    // comment, hamburger-collab.js.
     wireRailIcon('inbox', appState.btnInbox, appState.inboxPanel, null);
     wireRailIcon('search', appState.btnSearch, appState.searchPanel, null);
     wireRailIcon('sources', appState.btnSources, appState.sourcesPanel, () => renderSourcesList(''));
-    wireRailIcon('snippets', appState.btnSnippets, appState.snippetsPanel, null);
+    wireRailIcon('snippets', appState.btnSnippets, appState.snippetsPanel, () => renderFilesList(''));
     wireRailIcon('snippets2', appState.btnSnippets2, appState.snippets2Panel, null);
     wireRailIcon('ai', appState.railBtnAi, appState.aiPanel, refreshAiPanel);
     wireRailIcon('outline', appState.hamburgerBtn, appState.outlineMenu, buildOutline);
@@ -163,5 +164,6 @@ import { closeSourceAddMenu } from './source-buttons-cursor-mode.js';
     function handleWaypointsSearch(v) { renderWaypointsList(v); }
     function handleHubCollabSearch(v) { renderHubCollabList(v); }
     function handleSourcesSearch(v) { renderSourcesList(v); }
+    function handleFilesSearch(v) { renderFilesList(v); }
 
-export { closeAllPanels, closeRailView, handleHubCollabSearch, handleSourcesSearch, handleWaypointsSearch, isAnyUiPanelOpen, openRailView, pinOnInsideClick, scheduleHoverClose, wireRailIcon };
+export { closeAllPanels, closeRailView, handleFilesSearch, handleHubCollabSearch, handleSourcesSearch, handleWaypointsSearch, isAnyUiPanelOpen, openRailView, pinOnInsideClick, scheduleHoverClose, wireRailIcon };
