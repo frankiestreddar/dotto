@@ -148,11 +148,22 @@
        shifted by, so the box's right edge lands exactly at the true window edge again; JS still
        needs telling to recompute column widths off this new, correct container size, since toggling
        a panel is a pure CSS change with no resize event of its own — see the transitionend
-       listener on #canvas, source-buttons-cursor-mode.js. */
-    .item.static-table{position:fixed;top:0;left:0;width:100vw;height:100vh;background:var(--paper);border:none;border-radius:0;box-shadow:none;padding:96px 16px 16px 16px;z-index:1;display:block;overflow:hidden;}
+       listener on #canvas, source-buttons-cursor-mode.js.
+
+       That override below only ever subtracted --hmenu-width, though — the base rule here still
+       used a flat 100vw, never subtracting --rail-width for the PERMANENT rail's own always-there
+       shift. By this same comment's own math, that left the box's right edge sitting --rail-width
+       (56px) past the true window edge at all times, even with no panel open — the table (and
+       whichever of its rightmost content, e.g. a 2nd column, landed in that band) was silently
+       unreachable, clipped by html/body's own overflow:hidden with no way to scroll to it. Fixed,
+       confirmed via a headless-Chrome screenshot of the real compiled CSS reproducing the
+       #world-transform containing-block quirk, by giving the base rule the same --rail-width
+       subtraction #canvas's own base rule already has, and adding that same subtraction to the
+       override below (which only had --hmenu-width, on top of the same missing --rail-width). */
+    .item.static-table{position:fixed;top:0;left:0;width:calc(100vw - var(--rail-width));height:100vh;background:var(--paper);border:none;border-radius:0;box-shadow:none;padding:96px 16px 16px 16px;z-index:1;display:block;overflow:hidden;}
     /* :not([data-sidebar-mode="overlay"]) — same Sidebar Display Mode gating as #canvas's own
        identical override above; see its comment. */
-    body:has(#hamburger-stack.open):not([data-sidebar-mode="overlay"]) .item.static-table{width:calc(100vw - var(--hmenu-width));}
+    body:has(#hamburger-stack.open):not([data-sidebar-mode="overlay"]) .item.static-table{width:calc(100vw - var(--rail-width) - var(--hmenu-width));}
     .item.table.static-table .static-table-wrap{width:100%;height:auto;max-width:calc(100vw - 32px);display:flex;flex-direction:column;}
     .item.table.static-table .static-table-row{width:100%;height:auto;flex:0 1 auto;min-height:0;overflow:visible;}
     /* Horizontal scrolling now happens once, on the shared .static-table-hscroll ancestor.
