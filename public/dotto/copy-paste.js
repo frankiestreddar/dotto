@@ -86,6 +86,16 @@ import { render, renderSelectedOutlines } from './waypoints-render-loop.js';
     function removePlacementGhost() {
         if (appState.placementGhost) { appState.placementGhost.remove(); appState.placementGhost = null; }
     }
+    // Shared by showPlacementGhost's own initial placement and the pointermove handler just below
+    // — same grid-snapped, viewport-to-world conversion either way, just fed a different (clientX,
+    // clientY) source.
+    function placementGhostWorldPos(clientX, clientY, kind) {
+        const rect = canvas.getBoundingClientRect();
+        const { w, h } = kindSize(kind);
+        const x = Math.round((((clientX - rect.left - appState.tx) / appState.scale) - w / 2) / 28) * 28;
+        const y = Math.round((((clientY - rect.top - appState.ty) / appState.scale) - h / 2) / 28) * 28;
+        return { x, y };
+    }
     function showPlacementGhost(kind) {
         removePlacementGhost();
         const { w, h } = kindSize(kind);
@@ -99,15 +109,28 @@ import { render, renderSelectedOutlines } from './waypoints-render-loop.js';
         appState.placementGhost.style.pointerEvents = 'none';
         appState.placementGhost.style.zIndex = '999';
         world.appendChild(appState.placementGhost);
-        appState.placementGhost.style.left = '-9999px';
-        appState.placementGhost.style.top = '-9999px';
+        // Per explicit bug report: a keyboard-triggered placement (the 'a'-chord, srs-connections-
+        // core.js) never moves the mouse at all, so parking the ghost off-screen until the next
+        // real pointermove left it (and the crosshair cursor feedback with it) invisible until the
+        // user deliberately jiggled the mouse. lastPointerClientX/Y (live-presence.js) already
+        // tracks the cursor's real screen position on every canvas pointermove regardless of what
+        // triggered this — reusing it here means the ghost renders at the CURRENT cursor position
+        // immediately, with the exact same math the live pointermove handler below already uses, no
+        // movement required. Only falls back to off-screen in the (practically unreachable, since
+        // the cursor has to be somewhere on the canvas to have triggered any of this in the first
+        // place) case that no pointermove has ever fired yet this session.
+        if (appState.lastPointerClientX != null && appState.lastPointerClientY != null) {
+            const { x, y } = placementGhostWorldPos(appState.lastPointerClientX, appState.lastPointerClientY, kind);
+            appState.placementGhost.style.left = x + 'px';
+            appState.placementGhost.style.top = y + 'px';
+        } else {
+            appState.placementGhost.style.left = '-9999px';
+            appState.placementGhost.style.top = '-9999px';
+        }
     }
     canvas.addEventListener('pointermove', (e) => {
         if (!appState.addingKind || !appState.placementGhost) return;
-        const rect = canvas.getBoundingClientRect();
-        const { w, h } = kindSize(appState.addingKind);
-        const x = Math.round((((e.clientX - rect.left - appState.tx) / appState.scale) - w / 2) / 28) * 28;
-        const y = Math.round((((e.clientY - rect.top - appState.ty) / appState.scale) - h / 2) / 28) * 28;
+        const { x, y } = placementGhostWorldPos(e.clientX, e.clientY, appState.addingKind);
         appState.placementGhost.style.left = x + 'px';
         appState.placementGhost.style.top = y + 'px';
     });
