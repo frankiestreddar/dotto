@@ -377,7 +377,16 @@ import { render } from './waypoints-render-loop.js';
         getCachedEpubBook(it.mediaSrc).then(book => {
             // scrolled-doc: one continuous scroll, not paginated — sidesteps needing our own
             // page-turn UI (see buildPdfViewer's nav) inside an already-small canvas card.
-            const rendition = book.renderTo(container, { width: '100%', height: '100%', flow: 'scrolled-doc' });
+            // overflow:'auto' is NOT implied by flow:'scrolled-doc' alone — epub.js's own internal
+            // ContentManager only honors an explicitly-passed `overflow` setting; without one it
+            // falls back to a value that reads as effectively non-scrollable for this flow (per
+            // explicit bug report that EPUB cards weren't scrolling at all). epub.js applies this as
+            // a real inline overflow-y/overflow-x style directly on the internal `.epub-container`
+            // div IT creates inside our own #container — a plain CSS rule targeting that class
+            // couldn't have overridden it either way, since inline styles always win regardless of
+            // stylesheet specificity, which is exactly why this needs to be set through the API
+            // options here rather than in globals.css.
+            const rendition = book.renderTo(container, { width: '100%', height: '100%', flow: 'scrolled-doc', overflow: 'auto' });
             rendition.display(it.epubLocation || undefined);
             rendition.on('relocated', (location) => {
                 it.epubLocation = location.start.cfi;
