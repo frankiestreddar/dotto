@@ -2409,7 +2409,12 @@
        width as .outline-icon so labels still line up whichever kind of row precedes them, just
        text-align:center/muted colour instead of an image. */
     .outline-item-number{flex:0 0 auto;width:18px;text-align:center;color:var(--ink-soft);font-size:12px;font-variant-numeric:tabular-nums;}
-    .outline-label{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0;}
+    /* outline:none — only actually matters once a Sources-panel row's label is mid-rename
+       (contentEditable, startRenameFolderCardTitle) and picks up the browser's default focus
+       ring; a no-op everywhere else .outline-label is used (Outline/Waypoints/Chats/etc rows are
+       never focusable), same as .breadcrumb-pill-current/.folder-card-title's own identical rule
+       for the exact same contentEditable-focus-ring reason. */
+    .outline-label{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0;outline:none;}
     /* Sources panel rows only (SourcesListPanel.jsx) — a source's global id, same monospace/faint
        language as .global-id-pill (the on-canvas source block used to show this directly; per
        explicit request it no longer does, this is the only place left to see it). Hidden by
