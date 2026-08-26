@@ -320,6 +320,21 @@
        making a revealed button behind it hard or impossible to actually reach and click. */
     #nav-arrows-pill{display:flex;align-items:center;gap:2px;justify-self:end;max-width:0;opacity:0;overflow:hidden;transition:max-width .3s ease,opacity .2s ease;}
     #top-bar-center:hover #nav-arrows-pill{max-width:80px;opacity:1;}
+    /* Right-side grid item (mirrors #nav-arrows-pill's own role on the left), holding #collab-bubble
+       and #tab-add-btn (top-bar.html) as two flex siblings — per explicit request to group the "add
+       tab" button with the collaborator button rather than leave it inside #breadcrumb-pill's own
+       row. justify-self:start (moved here from #collab-bubble directly, now that it's this wrapper's
+       child instead of #top-bar-center's) is what keeps the grid's 1fr/auto/1fr mirroring intact
+       (see #top-bar-center's own comment) — the GRID still only ever sees three items
+       (#nav-arrows-pill/#breadcrumb-pill/this), regardless of how many flex children live inside
+       this one. No max-width/opacity collapse of its own — unlike #nav-arrows-pill and #collab-bubble
+       it has no "closed" size to grow from; #collab-bubble keeps its own independent collapse
+       (0-width at rest, unaffected by living inside this wrapper now), and #tab-add-btn is a plain
+       display:none/flex toggle (its own rule, below) — this wrapper itself just sizes to whichever
+       of its children currently take up space, which is exactly what the "no collab button on this
+       canvas" case needs: #collab-bubble alone stays width:0 forever there, and #tab-add-btn still
+       shows on its own without needing anything from its sibling. */
+    #right-actions-pill{display:flex;align-items:center;gap:2px;justify-self:start;}
     /* Sits in the exact same fixed top:12px/centred slot as #top-bar-center, off-screen (slid up,
        faded out) at rest — see its own markup comment, top-bar.html, for why it's static rather
        than fully React-rendered. Sized like a .bubble (same background/border/radius/shadow/
@@ -437,9 +452,12 @@
        next to the breadcrumb adds a new tab; the active tab shows the full "…/parent/current" trail
        (.tab-pill-active, still using the .breadcrumb-pill-* classes just below — unchanged from
        before tabs existed, just now scoped to one tab's own pill instead of this whole element
-       directly), every other tab shows just its own current-folder label (.tab-pill-label). gap:10px
-       between whole TABS now (was 4px, tuned back when this only ever held one trail's own
-       ellipsis/parent/sep/current — that inner spacing moved to .tab-pill's own gap below).
+       directly), every other tab shows just its own current-folder label (.tab-pill-label). gap:4px
+       between whole TABS now (was 10px, itself tightened down from an original 4px back when this
+       only ever held one trail's own ellipsis/parent/sep/current — that inner spacing moved to
+       .tab-pill's own gap below — then loosened to 10px once real multi-tab spacing needed its own
+       breathing room, and tightened back to 4px per a later explicit request for a smaller gap
+       between tabs).
        max-width:280px/overflow:hidden removed — those capped a single trail's own text; with
        multiple tab pills now, each one caps its own label instead (.tab-pill-label/
        .breadcrumb-pill-current below) rather than the whole row.
@@ -459,7 +477,7 @@
        from the merged pill's true left/right edges — gap:10px (below) only ever separated tab
        pills FROM EACH OTHER, never from those outer edges, so the first/last pill's own inset is
        now just that shared 4px rather than 4px+16px. */
-    #breadcrumb-pill{display:flex;align-items:center;padding:0;gap:10px;font-family:'Space Grotesk', sans-serif;}
+    #breadcrumb-pill{display:flex;align-items:center;padding:0;gap:4px;font-family:'Space Grotesk', sans-serif;}
     /* One tab's own pill. Not itself clickable when active (only its own ellipsis/parent/current
        segments, below, carry their own click behavior, same as before tabs existed) —
        TabsBar.jsx only attaches an onClick (window.__switchTab) to the non-active ones.
@@ -564,22 +582,28 @@
        untouched — the button still exists and still works, it's just never visible right now. */
     .tab-pill-close{display:none;align-items:center;justify-content:center;width:14px;height:14px;border-radius:4px;border:none;background:none;color:var(--ink-soft);font-size:12px;line-height:1;cursor:pointer;padding:0;flex:0 0 auto;}
     .tab-pill-close:hover{background:var(--hover-bg);color:var(--ink);}
-    /* Sits after every tab pill, inside #breadcrumb-pill's own row — adds a new tab bookmarked to
-       wherever the currently active one already is (addTab, shared-canvases-outline.js), per
-       explicit request. Small icon-only button, same minimal border-radius/hover-background
-       language as most other icon buttons in this file (e.g. #profile-settings-btn) rather than a
-       filled/bordered "add" affordance like #collab-add-btn's dashed circle — this one sits inline
-       in a text-heavy row, not floating alone in its own panel.
-       Hidden until #breadcrumb-pill itself is hovered — per a later explicit request. Gated on
-       #breadcrumb-pill's OWN :hover (not the whole #top-bar-center pill's, the way
-       #nav-arrows-pill/#collab-bubble's reveals are — see #top-bar-center's own comment for why
-       THOSE needed that) since this button is a normal DESCENDANT of #breadcrumb-pill itself
-       (TabsBar.jsx portals it in as the last child, alongside the tab pills), not a sibling
-       section outside it — moving the pointer from a tab pill onto this button never leaves
-       #breadcrumb-pill's own bounds, so a literal :hover here can't suffer the "reveal collapses
-       before you can reach it" problem that trigger avoided. */
+    /* Was a descendant of #breadcrumb-pill itself (last child of the tab row) — moved out per
+       explicit request to instead sit grouped with the collaborator button, inside the new
+       #right-actions-pill wrapper (top-bar.html/#top-bar-center's own comment, both below) so it
+       reads as its own action next to #collab-bubble rather than as part of the tab row. Adds a new
+       tab bookmarked to wherever the currently active one already is (addTab, shared-canvases-
+       outline.js), per an earlier explicit request. Small icon-only button, same minimal
+       border-radius/hover-background language as most other icon buttons in this file (e.g.
+       #profile-settings-btn) rather than a filled/bordered "add" affordance like #collab-add-btn's
+       dashed circle.
+       Now a plain sibling of #collab-bubble rather than a descendant of #breadcrumb-pill, so it can
+       no longer rely on a literal :hover on its own old parent — gated on #top-bar-center's own
+       :hover instead, same trigger (and same reasoning — see that rule's own comment) as
+       #nav-arrows-pill/#collab-bubble's reveals now that this is a sibling *section*, not a normal
+       descendant of the one place a literal :hover would've still worked. Deliberately its own
+       plain display:none/flex toggle rather than #collab-bubble's animated max-width grow — it has
+       no variable-width content of its own to animate growing into, and staying independent of
+       #collab-bubble's OWN `.show` gating (below) is exactly why it isn't simply a child of that
+       element: per explicit request, it still needs to show on its own even on a canvas with no
+       collaborator button at all (#collab-bubble never gets `.show` there, and so never expands),
+       not just alongside one. */
     #tab-add-btn{display:none;align-items:center;justify-content:center;width:20px;height:20px;border-radius:6px;border:none;background:none;color:var(--ink-soft);font-size:14px;line-height:1;cursor:pointer;padding:0;flex:0 0 auto;}
-    #breadcrumb-pill:hover #tab-add-btn{display:flex;}
+    #top-bar-center:hover #tab-add-btn{display:flex;}
     #tab-add-btn:hover{background:var(--hover-bg);color:var(--ink);}
     #breadcrumb-pill .breadcrumb-pill-ellipsis,
     #breadcrumb-pill .breadcrumb-pill-parent{color:var(--ink);font-weight:400;font-size:13px;cursor:pointer;white-space:nowrap;flex:0 0 auto;}
@@ -889,8 +913,12 @@
        explicit request that this only show once the breadcrumb (the only thing left visible at
        rest) is hovered, on top of the pre-existing .show condition (there being a canvas context
        for collaborators to exist at all). Both must hold: .show alone (hover-independent) no longer
-       grows it by itself. */
-    #collab-bubble{position:relative;display:flex;align-items:center;cursor:pointer;justify-self:start;max-width:0;padding:0;opacity:0;overflow:hidden;transition:max-width .3s ease,padding .3s ease,opacity .2s ease;}
+       grows it by itself.
+       No longer carries justify-self:start directly — that moved to the new #right-actions-pill
+       wrapper (below) once #tab-add-btn joined it as a sibling here, per explicit request to group
+       the two; this element is now that wrapper's flex child rather than a #top-bar-center grid item
+       itself. Its own max-width/opacity collapse is untouched by that move. */
+    #collab-bubble{position:relative;display:flex;align-items:center;cursor:pointer;max-width:0;padding:0;opacity:0;overflow:hidden;transition:max-width .3s ease,padding .3s ease,opacity .2s ease;}
     #top-bar-center:hover #collab-bubble.show{max-width:220px;padding:0 10px;opacity:1;overflow:visible;}
     .collab-avatars{display:flex;align-items:center;}
     /* No border-radius — only the top-bar button avatar (#btn-profile/.profile-avatar-sm) keeps

@@ -225,6 +225,11 @@ function TabRow({ tab, isActive, canClose, dragX, isDragging, tabRef, onDragStar
 export default function TabsBar() {
   const { tabs, activeTabId } = useSyncExternalStore(tabsStore.subscribe, tabsStore.getSnapshot, () => EMPTY_TABS);
   const portalNode = usePortalNode("breadcrumb-pill");
+  // "+" button now portals separately, into #right-actions-pill's own #tab-add-slot (top-bar.html)
+  // alongside #collab-bubble, rather than being the tab row's own last child — per explicit request
+  // to group it with the collaborator button instead. See #tab-add-btn's own comment, globals.css,
+  // for why it needed its own portal target rather than just living inside #collab-bubble itself.
+  const addBtnPortalNode = usePortalNode("tab-add-slot");
 
   // Drag-to-reorder — see TabRow's own comment for why this is plain pointer tracking rather than
   // native HTML5 DnD, and why the actual reorder is computed once on release rather than live.
@@ -262,28 +267,33 @@ export default function TabsBar() {
     return wasDragging;
   };
 
-  if (!portalNode || !tabs.length) return null;
+  if (!tabs.length) return null;
 
-  return createPortal(
+  return (
     <>
-      {tabs.map((tab) => (
-        <TabRow
-          key={tab.id}
-          tab={tab}
-          isActive={tab.id === activeTabId}
-          canClose={tabs.length > 1}
-          isDragging={tab.id === drag.id}
-          dragX={drag.x}
-          tabRef={(el) => { tabRefs.current[tab.id] = el; }}
-          onDragStart={handleDragStart}
-          onDragMove={handleDragMove}
-          onDragEnd={handleDragEnd}
-        />
-      ))}
-      <button type="button" id="tab-add-btn" title="New tab" onClick={(e) => { e.stopPropagation(); window.__addTab(); }}>
-        +
-      </button>
-    </>,
-    portalNode,
+      {portalNode && createPortal(
+        tabs.map((tab) => (
+          <TabRow
+            key={tab.id}
+            tab={tab}
+            isActive={tab.id === activeTabId}
+            canClose={tabs.length > 1}
+            isDragging={tab.id === drag.id}
+            dragX={drag.x}
+            tabRef={(el) => { tabRefs.current[tab.id] = el; }}
+            onDragStart={handleDragStart}
+            onDragMove={handleDragMove}
+            onDragEnd={handleDragEnd}
+          />
+        )),
+        portalNode,
+      )}
+      {addBtnPortalNode && createPortal(
+        <button type="button" id="tab-add-btn" title="New tab" onClick={(e) => { e.stopPropagation(); window.__addTab(); }}>
+          +
+        </button>,
+        addBtnPortalNode,
+      )}
+    </>
   );
 }

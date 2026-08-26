@@ -203,22 +203,30 @@
      pill's :hover rather than #breadcrumb-pill's specifically.
      #breadcrumb-pill itself — despite the id, kept unchanged rather than renamed to avoid touching
      the CSS Grid machinery above that depends on it as the fixed-centre column — now holds a row of
-     TAB pills (per a later explicit request: a "+" button next to the breadcrumb that adds a tab;
-     the active tab shows the full "…/parent/current" trail, every other tab shows just its own
-     current segment, and a new tab starts at the same location as whichever tab was active when it
-     was created), not a single breadcrumb trail directly — see TabsBar.jsx and its own
-     ActiveTabTrail sub-component (which is what still renders that full trail, now scoped to just
-     the active tab's own pill) for the actual rendering, and .tab-pill/#tab-add-btn (globals.css)
-     for the new styling this needed. -->
+     TAB pills (per a later explicit request: a "+" button that adds a tab; the active tab shows the
+     full "…/parent/current" trail, every other tab shows just its own current segment, and a new tab
+     starts at the same location as whichever tab was active when it was created), not a single
+     breadcrumb trail directly — see TabsBar.jsx and its own ActiveTabTrail sub-component (which is
+     what still renders that full trail, now scoped to just the active tab's own pill) for the actual
+     rendering, and .tab-pill (globals.css) for the new styling this needed.
+     #right-actions-pill — per a later explicit request, that "+" button (#tab-add-btn, TabsBar.jsx —
+     still the same component, just portaling into #tab-add-slot below instead of into
+     #breadcrumb-pill now) moved out of the tab row to sit grouped with #collab-bubble instead, as two
+     flex siblings inside this new wrapper; see its own comment, globals.css, for why a wrapper (the
+     #top-bar-center grid only ever sees three top-level items) and how #tab-add-btn still shows on
+     its own even when #collab-bubble has no collaborator context to grow into. -->
 <div id="top-bar-center" class="bubble">
     <div id="nav-arrows-pill">
         <button id="btn-back" class="btn" title="Back">←</button>
         <button id="btn-forward" class="btn" title="Forward">→</button>
     </div>
     <div id="breadcrumb-pill"></div>
-    <div id="collab-bubble">
-        <div id="collab-content"></div>
-        <div class="collab-tooltip" id="collab-tooltip"></div>
+    <div id="right-actions-pill">
+        <div id="collab-bubble">
+            <div id="collab-content"></div>
+            <div class="collab-tooltip" id="collab-tooltip"></div>
+        </div>
+        <div id="tab-add-slot"></div>
     </div>
 </div>
 <!-- Sits in the exact same fixed top:20px/centred slot as #top-bar-center, off-screen (slid up,
