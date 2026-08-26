@@ -35,6 +35,15 @@ const RESIZE_MS = 250;
 // source cards) — see waypoints-render-loop.js's own comment on that function. A plain {folderId}
 // stands in for the `it` object those callers pass; there's no real `.id`/canvas item behind a
 // breadcrumb segment, so the 3rd arg (editingClass) is inert here.
+//
+// Every segment's own onPointerDown stops propagation before it reaches TabRow's — TabRow's
+// setPointerCapture call (its own onPointerDown, below) redirects every subsequent pointer event
+// for that pointer, INCLUDING the synthesized `click`, to the CAPTURING element (the whole
+// .tab-pill) rather than wherever the pointer actually landed — the exact same reason
+// .tab-pill-close already needs (and has) this same guard on its own onPointerDown. Without it,
+// clicking any of these segments would silently fire the pill's own onClick instead (undefined
+// for the active tab, since it isn't itself clickable — see TabRow's own comment), never reaching
+// the handlers below at all.
 function ActiveTabTrail({ bc }) {
   const currentRef = useRef(null);
 
@@ -46,6 +55,7 @@ function ActiveTabTrail({ bc }) {
         <>
           <span
             className="breadcrumb-pill-ellipsis"
+            onPointerDown={(e) => e.stopPropagation()}
             onClick={(e) => { e.stopPropagation(); window.__breadcrumbMapRowClick(bc.root.folderId, bc.root.isSyntheticRoot); }}
           >
             …
@@ -57,6 +67,7 @@ function ActiveTabTrail({ bc }) {
         <>
           <span
             className="breadcrumb-pill-parent"
+            onPointerDown={(e) => e.stopPropagation()}
             onClick={(e) => { e.stopPropagation(); window.__breadcrumbMapRowClick(bc.parent.folderId, bc.parent.isSyntheticRoot); }}
           >
             {bc.parent.label}
@@ -67,6 +78,7 @@ function ActiveTabTrail({ bc }) {
       <span
         ref={currentRef}
         className="breadcrumb-pill-current"
+        onPointerDown={(e) => e.stopPropagation()}
         onClick={(e) => { e.stopPropagation(); window.__startRenameFolderCardTitle(currentRef.current, { folderId: bc.current.folderId }, "breadcrumb-pill-current"); }}
       >
         {bc.current.label}
