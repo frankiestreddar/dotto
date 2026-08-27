@@ -548,3 +548,6 @@ window.pushNotification = pushNotification;
 // just re-confirms whatever the direct patch already showed, never fights or reverts it.
 window.__swFormatTime = swFormatTime;
 window.__swCurrentElapsedMs = swCurrentElapsedMs;
+// Used by app/dotto/canvasItemBehavior.js's setupDraggingAndClicking (Phase 3's second relocated
+// piece), same reasoning as window.__getAppState (core-state.js).
+window.__addCardsToSearchContext = addCardsToSearchContext;

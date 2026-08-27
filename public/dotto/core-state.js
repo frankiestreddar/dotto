@@ -529,3 +529,7 @@ export { addMenu, appState, bringCardToFront, btnAdd, btnBack, btnForward, canva
 // reference every call (appState is mutated in place, never replaced — see this file's own
 // comment on why), so callers always see the current value with no separate sync mechanism needed.
 window.__getAppState = () => appState;
+// Used by app/dotto/canvasItemBehavior.js's setupDraggingAndClicking (Phase 3's second relocated
+// piece), same reasoning as window.__getAppState just above.
+window.__bringCardToFront = bringCardToFront;
+window.__effectiveMode = effectiveMode;

@@ -1,6 +1,5 @@
 import { clearSearch } from './ai-assistant-suggestions.js';
 import { appState, btnAdd, btnBack, btnForward, canvas, canvasViewportCenterX, contextMenu, supabase, world, zoomControl } from './core-state.js';
-import { setupDraggingAndClicking } from './drag-drop-chat.js';
 import { ensureDrawings, makeLayerSVG } from './drawing-connections.js';
 import { refreshCanvasCollabForCurrentFolder, renderCollabPill, syncCanvasCollabTitle } from './friends-presence.js';
 import { closeGameOptionsPanel, openGameOptionsPanel } from './games-flashcard-typeright.js';
@@ -161,8 +160,8 @@ import { applyConnections, renderConnectionsLayer } from './srs-connections-core
         // this runs on every render() call (WaypointCard's own layout effect has no dependency
         // array, matching every converted kind) — a plain addEventListener here would stack a
         // duplicate hover/drag-expand listener per call instead of replacing the old one. Same
-        // AbortController fix as setupDraggingAndClicking (drag-drop-chat.js), kept under its own
-        // key since a waypoint card carries both.
+        // AbortController fix as setupDraggingAndClicking (app/dotto/canvasItemBehavior.js), kept
+        // under its own key since a waypoint card carries both.
         el.__waypointListenerAbort?.abort();
         const { signal: waypointSignal } = (el.__waypointListenerAbort = new AbortController());
         el.addEventListener('mouseenter', () => {
@@ -803,7 +802,7 @@ import { applyConnections, renderConnectionsLayer } from './srs-connections-core
                 pill.style.display = 'flex';
                 pill.querySelectorAll('button').forEach(btn => btn.classList.toggle('active', btn.dataset.align === (it.textAlign || 'left')));
             };
-        setupDraggingAndClicking(el, it);
+        window.__setupDraggingAndClicking(el, it);
     }
 
     // Click-to-edit contentEditable lifecycle for the watermark card's body — mechanically lifted
@@ -1019,3 +1018,8 @@ window.__attachFolderCardClick = attachFolderCardClick;
 window.__attachWaypointCardBody = attachWaypointCardBody;
 window.__attachSourceCardClick = attachSourceCardClick;
 window.__openFolder = openFolder;
+// Used by app/dotto/canvasItemBehavior.js's setupDraggingAndClicking (Phase 3's second relocated
+// piece), same reasoning as window.__getAppState (core-state.js).
+window.__performMerge = performMerge;
+window.__render = render;
+window.__renderSelectedOutlines = renderSelectedOutlines;

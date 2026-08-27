@@ -1395,3 +1395,9 @@ export { add, applyConnections, applyFilterToRows, calculateSM2, cancelAddingKin
 // reachable from app/dotto/.
 window.__applyFilterToRows = applyFilterToRows;
 window.__collectAvailableFilterTags = collectAvailableFilterTags;
+// Used by app/dotto/canvasItemBehavior.js's setupDraggingAndClicking (Phase 3's second relocated
+// piece), same reasoning as window.__getAppState (core-state.js).
+window.__deepCloneItem = deepCloneItem;
+window.__deleteClonedItemFolders = deleteClonedItemFolders;
+window.__handlePenPointerDown = handlePenPointerDown;
+window.__startConnectionDrag = startConnectionDrag;

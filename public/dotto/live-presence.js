@@ -1466,3 +1466,7 @@ window.__placeCaretEnd = placeCaretEnd;
 // Used by app/dotto/canvasItemBehavior.js's setupResizing, same reasoning as
 // window.__getAppState (core-state.js).
 window.__broadcastItemResize = broadcastItemResize;
+// Used by app/dotto/canvasItemBehavior.js's setupDraggingAndClicking (Phase 3's second relocated
+// piece), same reasoning as window.__getAppState (core-state.js).
+window.__broadcastItemDragPositions = broadcastItemDragPositions;
+window.__findItemById = findItemById;

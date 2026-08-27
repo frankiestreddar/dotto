@@ -616,3 +616,6 @@ export { applyTransform, deleteContextColumn, deleteContextRow, ensureSwTicking,
 // reasoning as window.__getAppState (core-state.js).
 window.__saveSnapshot = saveSnapshot;
 window.__scheduleWorkspaceSave = scheduleWorkspaceSave;
+// Used by app/dotto/canvasItemBehavior.js's setupDraggingAndClicking (Phase 3's second relocated
+// piece), same reasoning as window.__getAppState (core-state.js).
+window.__applyTransform = applyTransform;
