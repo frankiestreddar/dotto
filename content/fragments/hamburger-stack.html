@@ -308,7 +308,11 @@
              clicked into, to view its description + inline-canvas preview. -->
         <div id="item-detail-view">
             <div id="item-detail-header">
-                <div id="item-detail-title" contenteditable="true" data-placeholder="Untitled Draft" oninput="onItemDetailFieldChange()" onblur="commitItemDetailTitle()"></div>
+                <!-- Real React component now (ItemDetailTitle.jsx) — CONTRIBUTING.md's "contentEditable
+                     fields" category. display:contents on this portal target means the ACTUAL
+                     #item-detail-title div (rendered inside it) is the effective flex child of
+                     #item-detail-header, matching the original flat markup exactly. -->
+                <div id="item-detail-title-root" style="display:contents"></div>
                 <input type="text" id="item-detail-price" placeholder="$4.99" oninput="onItemDetailFieldChange()">
             </div>
             <div class="detail-scroll-area" id="item-detail-scroll">
@@ -323,7 +327,9 @@
              tagline before actually publishing. -->
         <div id="publish-flow-view">
             <div id="publish-flow-header">
-                <div id="publish-flow-name" contenteditable="true" onmousedown="event.preventDefault(); focusPublishFlowName()" onblur="blurPublishFlowName()"></div>
+                <!-- Real React component now (PublishFlowName.jsx) — same reasoning as
+                     #item-detail-title-root above. -->
+                <div id="publish-flow-name-root" style="display:contents"></div>
                 <input type="text" id="publish-flow-price" placeholder="$4.99">
             </div>
             <div class="detail-scroll-area" id="publish-flow-scroll">

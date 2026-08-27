@@ -58,6 +58,7 @@ import FilesListPanel from "./dotto/FilesListPanel";
 import HubCollabListPanel from "./dotto/HubCollabListPanel";
 import ImageResultPanel from "./dotto/ImageResultPanel";
 import ItemDetailFooter from "./dotto/ItemDetailFooter";
+import ItemDetailTitle from "./dotto/ItemDetailTitle";
 import LibraryPanel from "./dotto/LibraryPanel";
 import MarketDetailPanel from "./dotto/MarketDetailPanel";
 import MarketDiscoverPanel from "./dotto/MarketDiscoverPanel";
@@ -69,6 +70,7 @@ import PricingOverlay from "./dotto/PricingOverlay";
 import ProfileAvatarSm from "./dotto/ProfileAvatarSm";
 import ProfileIdentity from "./dotto/ProfileIdentity";
 import ProfileLevelPill from "./dotto/ProfileLevelPill";
+import PublishFlowName from "./dotto/PublishFlowName";
 import RecommendedSearchesPanel from "./dotto/RecommendedSearchesPanel";
 import SearchSuggestionsPanel from "./dotto/SearchSuggestionsPanel";
 import SelectionToolbar from "./dotto/SelectionToolbar";
@@ -348,6 +350,8 @@ export default function DottoApp({ sections, currentUser }) {
       <ErrorBoundary name="MarketDetailPanel"><MarketDetailPanel /></ErrorBoundary>
       <ErrorBoundary name="LibraryPanel"><LibraryPanel /></ErrorBoundary>
       <ErrorBoundary name="ItemDetailFooter"><ItemDetailFooter /></ErrorBoundary>
+      <ErrorBoundary name="ItemDetailTitle"><ItemDetailTitle /></ErrorBoundary>
+      <ErrorBoundary name="PublishFlowName"><PublishFlowName /></ErrorBoundary>
       <ErrorBoundary name="CollabPill"><CollabPill /></ErrorBoundary>
       <ErrorBoundary name="TabsBar"><TabsBar /></ErrorBoundary>
       <ErrorBoundary name="MsgConvo"><MsgConvo /></ErrorBoundary>
