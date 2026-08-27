@@ -13,6 +13,10 @@
 # testing
 /coverage
 
+# Claude Code browser-testing setup (Playwright scripts + saved auth state/test credentials) —
+# local-only tooling for interactive verification, not part of the app itself.
+/.claude-testing
+
 # next.js
 /.next/
 /out/
