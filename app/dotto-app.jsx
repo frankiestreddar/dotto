@@ -43,7 +43,7 @@ import {
 } from "./dotto/bridges";
 import AchievementsGrid from "./dotto/AchievementsGrid";
 import AddToSourcePopup from "./dotto/AddToSourcePopup";
-import { renderConnectionsLayer, setupDraggingAndClicking, setupResizing } from "./dotto/canvasItemBehavior";
+import { attachStaticTableHoverZones, layoutSourceTableColumns, renderConnectionsLayer, renderStaticTableHTML, setupDraggingAndClicking, setupResizing } from "./dotto/canvasItemBehavior";
 import CanvasItemsLayer from "./dotto/CanvasItemsLayer";
 import CellTagPickerList from "./dotto/CellTagPickerList";
 import ChatsListPanel from "./dotto/ChatsListPanel";
@@ -141,21 +141,28 @@ if (typeof window !== "undefined" && !window.__dottoSupabase) {
 }
 
 // Phase 3 of the vanilla->React consolidation: setupResizing/setupDraggingAndClicking/
-// renderConnectionsLayer now live in app/dotto/canvasItemBehavior.js instead of
-// public/dotto/resize-shortcuts-init.js, public/dotto/drag-drop-chat.js, and
-// public/dotto/srs-connections-core.js — every already-React card component that owns a resize
-// handle (TableCard.jsx, FlashcardCard.jsx, MediaCard.jsx, TypeRightCard.jsx) imports setupResizing
-// directly now, no bridge needed. The remaining vanilla callers (attachNoteBody's own call to
-// setupResizing, attachUniversalItemBehavior's own call to setupDraggingAndClicking, and render()'s
-// own call to renderConnectionsLayer — all waypoints-render-loop.js, the first two each reached via
-// a component's own layout effect) still need these bridges — same "set during module eval, not an
-// effect" timing as window.__dottoSupabase above: either of the first two vanilla calls can fire
-// from another component's OWN layout effect during the very first commit, before this component's
-// own (passive) useEffect below would otherwise get a chance to assign them.
+// renderConnectionsLayer/renderStaticTableHTML/attachStaticTableHoverZones/
+// layoutSourceTableColumns now live in app/dotto/canvasItemBehavior.js instead of
+// public/dotto/resize-shortcuts-init.js, public/dotto/drag-drop-chat.js,
+// public/dotto/srs-connections-core.js, and public/dotto/source-table.js — every already-React
+// card component that owns a resize handle (TableCard.jsx, FlashcardCard.jsx, MediaCard.jsx,
+// TypeRightCard.jsx) imports setupResizing directly now, no bridge needed. The remaining vanilla
+// callers (attachNoteBody's own call to setupResizing, attachUniversalItemBehavior's own call to
+// setupDraggingAndClicking, render()'s own calls to renderConnectionsLayer/renderStaticTableHTML/
+// attachStaticTableHoverZones/layoutSourceTableColumns, and relayoutSourceTableIfVisible's own
+// call to layoutSourceTableColumns — waypoints-render-loop.js and
+// source-buttons-cursor-mode.js, some reached via a component's own layout effect) still need
+// these bridges — same "set during module eval, not an effect" timing as window.__dottoSupabase
+// above: several of these vanilla calls can fire from another component's OWN layout effect
+// during the very first commit, before this component's own (passive) useEffect below would
+// otherwise get a chance to assign them.
 if (typeof window !== "undefined") {
   window.__setupResizing = setupResizing;
   window.__setupDraggingAndClicking = setupDraggingAndClicking;
   window.__renderConnectionsLayer = renderConnectionsLayer;
+  window.__renderStaticTableHTML = renderStaticTableHTML;
+  window.__attachStaticTableHoverZones = attachStaticTableHoverZones;
+  window.__layoutSourceTableColumns = layoutSourceTableColumns;
 }
 
 // Phase 2 increment 1: the pricing overlay is the first subsystem converted to real React state

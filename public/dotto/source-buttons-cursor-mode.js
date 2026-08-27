@@ -6,7 +6,6 @@ import { hideCanvasContextMenu } from './history-autosave.js';
 import { findItemById } from './live-presence.js';
 import { closeAllPanels } from './panels-hamburger.js';
 import { deleteSelectedCards } from './resize-shortcuts-init.js';
-import { layoutSourceTableColumns } from './source-table.js';
 import { closeCellTagPicker } from './source-tags-ai.js';
 import { clearDataLinkPending } from './srs-connections-core.js';
 
@@ -216,7 +215,7 @@ import { clearDataLinkPending } from './srs-connections-core.js';
         if (!folderObj || !folderObj.isSource) return;
         const tableItem = folderObj.items.find(i => i.kind === 'table');
         const el = document.querySelector('.item.static-table');
-        if (tableItem && el) layoutSourceTableColumns(tableItem, el);
+        if (tableItem && el) window.__layoutSourceTableColumns(tableItem, el);
     }
     window.addEventListener('resize', relayoutSourceTableIfVisible);
     // Fires once #canvas's own left/width transition (see its body:has(#hamburger-stack.open)

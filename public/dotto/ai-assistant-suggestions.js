@@ -868,3 +868,8 @@ window.__buildLiveSuggestionsRows = buildLiveSuggestionsRows;
 window.__updateChatThread = updateChatThread;
 window.__scrollChatThreadToBottom = scrollChatThreadToBottom;
 window.__typewriterRevealSegments = typewriterRevealSegments;
+// Used by app/dotto/canvasItemBehavior.js's renderStaticTableHTML (Phase 3's fourth relocated
+// piece — the Source database page's own rendering/hover-zone geometry), same reasoning as
+// window.__getAppState (core-state.js).
+window.__escapeHtml = escapeHtml;
+window.__stripHtml = stripHtml;

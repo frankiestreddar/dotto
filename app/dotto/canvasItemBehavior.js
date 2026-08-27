@@ -5,24 +5,29 @@
 // vanilla modules and into app/dotto/ so far: setupResizing (from
 // public/dotto/resize-shortcuts-init.js), setupDraggingAndClicking (from
 // public/dotto/drag-drop-chat.js — the single riskiest closure in the app, done second on
-// purpose, once this pattern was proven safe on the smaller one first), and
+// purpose, once this pattern was proven safe on the smaller one first),
 // renderConnectionsLayer/startConnectionDrag (from public/dotto/srs-connections-core.js — SVG
-// connection-line rendering + drag-to-link, done third). All relocations, not rewrites — logic
-// unchanged byte-for-byte from the originals. Every already-React card component that owns a
-// resize handle (TableCard.jsx, FlashcardCard.jsx, MediaCard.jsx, TypeRightCard.jsx) calls
-// setupResizing directly now — no bridge needed, both sides are in app/dotto/ — and
-// setupDraggingAndClicking calls startConnectionDrag directly too, for the same reason (its own
-// only caller now lives in this same file). The vanilla callers that still need a bridge
-// (attachNoteBody's own call to setupResizing, attachUniversalItemBehavior's own call to
-// setupDraggingAndClicking, and render()'s own call to renderConnectionsLayer — all
-// waypoints-render-loop.js) reach these via window.__setupResizing/
-// window.__setupDraggingAndClicking/window.__renderConnectionsLayer — bridges whose OWNERSHIP
-// flipped: assigned here (see app/dotto-app.jsx) instead of in their old vanilla modules, with
-// vanilla as the caller instead of React. Every OTHER vanilla dependency any of these functions
-// still needs (appState, saveSnapshot, render, findItemById, makeLayerSVG, isValidConnection, and
-// so on) is reached via its own window.__ bridge (see each one's own comment, in the
-// public/dotto/*.js file it actually lives in) since public/dotto/*.js isn't reachable from
-// app/dotto/ the other way.
+// connection-line rendering + drag-to-link, done third), and
+// renderStaticTableHTML/attachStaticTableHoverZones/layoutSourceTableColumns (from
+// public/dotto/source-table.js — the Source database page's own rendering/hover-zone geometry,
+// done fourth — see that section's own comment further down for why it merges what looked like
+// two separate checklist items). All relocations, not rewrites — logic unchanged byte-for-byte
+// from the originals. Every already-React card component that owns a resize handle
+// (TableCard.jsx, FlashcardCard.jsx, MediaCard.jsx, TypeRightCard.jsx) calls setupResizing
+// directly now — no bridge needed, both sides are in app/dotto/ — and setupDraggingAndClicking
+// calls startConnectionDrag directly too, for the same reason (its own only caller now lives in
+// this same file). The vanilla callers that still need a bridge (attachNoteBody's own call to
+// setupResizing, attachUniversalItemBehavior's own call to setupDraggingAndClicking, render()'s
+// own calls to renderConnectionsLayer/renderStaticTableHTML/attachStaticTableHoverZones/
+// layoutSourceTableColumns, and relayoutSourceTableIfVisible's own call to
+// layoutSourceTableColumns — waypoints-render-loop.js and source-buttons-cursor-mode.js) reach
+// these via their own window.__ bridge — bridges whose OWNERSHIP flipped: assigned here (see
+// app/dotto-app.jsx) instead of in their old vanilla modules, with vanilla as the caller instead
+// of React. Every OTHER vanilla dependency any of these functions still needs (appState,
+// saveSnapshot, render, findItemById, makeLayerSVG, isValidConnection, escapeHtml,
+// openRowTagPicker, and so on) is reached via its own window.__ bridge (see each one's own
+// comment, in the public/dotto/*.js file it actually lives in) since public/dotto/*.js isn't
+// reachable from app/dotto/ the other way.
 
 // Correct minimum for one axis (width or height) of a table whose column/row split might be
 // UNEVEN — dragging one divider rewrites the WHOLE colWidths/rowHeights array (see
@@ -671,4 +676,399 @@ function startConnectionDrag(e, it, el) {
   };
   window.addEventListener("pointermove", move);
   window.addEventListener("pointerup", up);
+}
+
+// ---------- Source database page: rendering + hover-zone geometry ----------
+// Moved here from public/dotto/source-table.js — Phase 3's fourth relocated piece (the Source
+// database page's own rendering/hover-zone geometry, previously listed as two separate-looking
+// checklist items — "connection-dragging"'s own SVG rendering and Phase 4's "Source database
+// page's own rendering" — that turned out to name the exact same code, merged into one pass here).
+// Unlike the first three pieces, none of this is reached via React at all: render()
+// (waypoints-render-loop.js, still vanilla, untouched) builds this whole page as one big
+// `document.createElement('div')` appended straight to #world when the current folder isSource,
+// completely bypassing CanvasItemsLayer.jsx (it explicitly calls window.__renderCanvasItems([])
+// right after — see that call site's own comment). Logic unchanged byte-for-byte.
+//
+// cellActionsHTML/buildHeaderPillsHTML/tableCellHTML are pure HTML-string builders used only by
+// renderStaticTableHTML just below; their inline onclick/oninput/onkeydown attribute strings
+// (addTableCol/updateTableCell/handleTableKeydown/etc.) still resolve exactly as before against
+// plain window.fnName globals (window-bridge.js) at click time, regardless of which module built
+// the string — moving the STRING BUILDER doesn't touch how the resulting HTML behaves once
+// parsed, which is what makes this piece markedly lower-risk than setupDraggingAndClicking despite
+// being comparable in size.
+function cellActionsHTML(itemId, r, c) {
+  return `<div class="cell-actions" onmousedown="event.stopPropagation()">
+                            <button class="cell-icon-btn cell-add-btn" onclick="event.stopPropagation(); openCellAddMenu(${itemId}, ${r}, ${c}, this)" title="Add image or audio"><img src="assets/icons/add-btn.png" alt=""></button>
+                        </div>`;
+}
+
+// Renders a source table's column-name pill row (`colOptsFn(ci)` returns
+// `{ oninput, onkeydown? }` for column `ci`).
+function buildHeaderPillsHTML(colNames, colOptsFn) {
+  return colNames
+    .map((name, ci) => {
+      const { oninput, onkeydown = "" } = colOptsFn(ci);
+      return `
+            <div class="col-name-slot" data-c="${ci}">
+                <div class="col-name-pill">
+                    <input type="text" class="col-name-input" data-c="${ci}" value="${window.__escapeHtml(window.__stripHtml(name || ""))}" placeholder="Column ${ci + 1}" oninput="${oninput}"${onkeydown ? ` onkeydown="${onkeydown}"` : ""}>
+                </div>
+            </div>`;
+    })
+    .join("");
+}
+
+// Renders one plain-text source-table cell (cell-inner/cell-text/cell-tags-actions-wrap).
+function tableCellHTML(cell, r, c, opts) {
+  const { originTableId, oninput, onkeydown = "", onfocus = "", onblur = "", oncontextmenu = "", tagsAndActionsHTML = "" } = opts;
+  return `<td data-origin-table="${originTableId}" data-r="${r}" data-c="${c}"${oncontextmenu ? ` oncontextmenu="${oncontextmenu}"` : ""}>
+                    <div class="cell-inner">
+                        <div class="cell-text" contenteditable="true" data-r="${r}" data-c="${c}" onmousedown="handleCellMouseDown(event)" oninput="${oninput}"${onkeydown ? ` onkeydown="${onkeydown}"` : ""}${onfocus ? ` onfocus="${onfocus}"` : ""}${onblur ? ` onblur="${onblur}"` : ""}>${cell}</div>
+                        ${tagsAndActionsHTML}
+                    </div>
+                </td>`;
+}
+
+// `folderId` param kept for callers, though nothing in here needs it anymore now that
+// source-to-source merging is gone — a source's rows only ever aggregate elsewhere now, via a
+// Stack card (see CardStreamIO.shelf) reading its 'sourceRows' output.
+export function renderStaticTableHTML(it, folderId) {
+  const numCols = it.tableData[0].length;
+  const cg = window.__colgroupHTML(numCols);
+  const headerPills = buildHeaderPillsHTML(it.tableData[0], (ci) => ({
+    oninput: `renameTableColumn(${it.id}, ${ci}, this.value)`,
+    onkeydown: `handleColNameKeydown(event, ${it.id}, ${ci})`,
+  }));
+  const rows = it.tableData
+    .slice(1)
+    .map((row, dataIdx) => {
+      const ri = dataIdx + 1;
+      return `<tr data-origin-table="${it.id}">${row
+        .map((cell, ci) =>
+          tableCellHTML(cell, ri, ci, {
+            originTableId: it.id,
+            oninput: `updateTableCell(${it.id}, ${ri}, ${ci}, this)`,
+            onkeydown: `handleTableKeydown(event, ${it.id}, ${ri}, ${ci})`,
+            onfocus: `setLastFocusedCell(${it.id}, ${ri}, ${ci}); broadcastEditingState(true, '#item-${it.id} .cell-text[data-r=&quot;${ri}&quot;][data-c=&quot;${ci}&quot;]')`,
+            onblur: `broadcastEditingState(false)`,
+            oncontextmenu: `openTableCellContextMenu(event, ${it.id}, ${ri}, ${ci})`,
+            tagsAndActionsHTML: ci === 0 ? `<div class="cell-tags-actions-wrap"><div class="cell-tags">${window.__tagPillsHTML(it, ri)}</div>${cellActionsHTML(it.id, ri, ci)}</div>` : cellActionsHTML(it.id, ri, ci),
+          }),
+        )
+        .join("")}</tr>`;
+    })
+    .join("");
+  return `<div class="static-table-wrap" style="--cell-align:${it.textAlign || "left"}">
+                <div class="static-table-header-overlay">
+                    <div class="static-table-header-fade"></div>
+                    <button class="static-table-upload-btn" onclick="event.stopPropagation(); triggerSourceUpload()" title="Import a file (CSV, Anki deck, ...) — new rows are merged into this table"><img src="assets/icons/upload-btn.png" alt=""></button>
+                </div>
+                <div class="static-table-scroller-row">
+                    <div class="static-table-hscroll">
+                        <div class="static-table-header-track">${headerPills}</div>
+                        <div class="static-table-row">
+                            <div class="table-rounded"><table class="item-table">${cg}<tbody>${rows}</tbody></table></div>
+                        </div>
+                    </div>
+                    <div class="static-table-row-tag-strip-wrap">
+                        <div class="row-tag-strip" onmousedown="event.stopPropagation()" title="Tags"><div class="add-btn"><img src="assets/icons/tag-button.png" alt=""></div></div>
+                    </div>
+                    <div class="static-table-col-strip-wrap">
+                        <div class="add-col-strip" onmousedown="event.stopPropagation()" onclick="addTableCol(${it.id})" title="Add column"><div class="add-btn">+</div></div>
+                    </div>
+                </div>
+                <div class="add-row-strip" onmousedown="event.stopPropagation()">
+                    <div class="add-row-btn" onclick="addTableRow(${it.id})" title="Add row"><div class="add-btn">+</div></div>
+                </div>
+            </div>`;
+}
+
+// Sizes every column (the header pill slots and the table's own <col>s) to an identical width
+// derived from the container's (viewport-based) rendered width: with 2 or fewer columns they
+// simply divide up the full width, but past 2 columns each column is pinned to
+// containerWidth/VISIBLE_COLS regardless of how many there are, so 2 full columns plus roughly a
+// fifth of the next one show at once and the table scrolls horizontally — was 3 columns before it
+// scrolled, tightened to 2 per explicit request that 2 columns fit the screen and anything past
+// that scroll instead.
+// Each header pill's *slot* always gets the exact same width as its table column, and slots sit
+// flush against each other with no gap/margin of their own — that's what keeps the header
+// perfectly aligned with the table no matter how many columns exist. The visible pill inside each
+// slot is simply drawn narrower (by GAP px) than its slot, which is what creates the gap between
+// pills without ever touching their positions. This also sizes and shows/hides the fixed
+// upload-button overlay and its fade-out.
+export function layoutSourceTableColumns(it, el, reserve) {
+  const appState = window.__getAppState();
+  const wrap = el.querySelector(".static-table-wrap");
+  const table = el.querySelector(".item-table");
+  const tableRounded = el.querySelector(".table-rounded");
+  const headerTrack = el.querySelector(".static-table-header-track");
+  const headerOverlay = el.querySelector(".static-table-header-overlay");
+  const headerFade = el.querySelector(".static-table-header-fade");
+  const colStripWrap = el.querySelector(".static-table-col-strip-wrap");
+  const rowTagStripWrap = el.querySelector(".static-table-row-tag-strip-wrap");
+  if (!wrap || !table || !headerTrack) return;
+  const numCols = (it.tableData[0] || []).length;
+  if (!numCols) return;
+  const fullContainerWidth = wrap.clientWidth;
+  if (!fullContainerWidth || fullContainerWidth <= 0) return;
+  const overflowing = numCols > 2;
+
+  // The header pill row always sizes itself off the FULL container width — it never reacts to
+  // `reserve`. The add-column hover shrink is meant to only nudge the table's own cells out of
+  // the way for the floating button, not the name pills above them.
+  const headerColWidth = fullContainerWidth / (overflowing ? appState.STATIC_TABLE_VISIBLE_COLS : numCols);
+  const headerTotalWidth = headerColWidth * numCols;
+  headerTrack.style.width = headerTotalWidth + "px";
+  const headerSlots = headerTrack.querySelectorAll(".col-name-slot");
+  headerSlots.forEach((slot, i) => {
+    // The slot itself always stays exactly the width of its table column (for alignment) — only
+    // the *visible pill* inside it is drawn narrower, both for the normal inter-pill gap and, on
+    // the rightmost one, permanently reserving extra room so the fixed upload button never sits
+    // on top of its text.
+    slot.style.width = headerColWidth + "px";
+    const isLast = i === headerSlots.length - 1;
+    const pill = slot.querySelector(".col-name-pill");
+    if (pill) pill.style.width = Math.max(headerColWidth - appState.STATIC_HEADER_PILL_GAP - (isLast ? appState.STATIC_TABLE_UPLOAD_BTN_RESERVE : 0), 24) + "px";
+  });
+
+  // `reserve` (px) is how much room to genuinely give up on the right — used while the
+  // add-column button is hovered/revealed and the table is scrolled all the way to its right
+  // edge, so the table body redraws narrower and shows its own right border in the gap, rather
+  // than just having that sliver of content silently scrolled out of view underneath the button.
+  // Every column but the last always uses the same width as the header pills
+  // (fullContainerWidth-based, never reserve-adjusted) — only the *last* column gets narrowed by
+  // the flat `reserve` amount. That keeps the shrink a constant number of pixels no matter how
+  // many columns the table has, instead of scaling up with column count.
+  const colWidth = fullContainerWidth / (overflowing ? appState.STATIC_TABLE_VISIBLE_COLS : numCols);
+  const totalWidth = colWidth * numCols;
+  const shrink = reserve || 0;
+  table.style.width = totalWidth - shrink + "px";
+  const cols = table.querySelectorAll(":scope > colgroup > col");
+  cols.forEach((col, i) => {
+    const isLast = i === cols.length - 1;
+    col.style.width = (isLast ? Math.max(colWidth - shrink, 24) : colWidth) + "px";
+  });
+  // table-rounded gets the same explicit total width as the table itself, so it never has any
+  // horizontal overflow of its own to clip (see the CSS note above on why that matters) — the
+  // *outer* .static-table-hscroll is what actually scrolls it.
+  if (tableRounded) tableRounded.style.width = totalWidth - shrink + "px";
+
+  // The table body's max-height is computed precisely off the real header height (rather than a
+  // rough guess), so it expands to fill the available space — leaving a fixed
+  // STATIC_TABLE_BOTTOM_MARGIN gap below it — before it needs to start scrolling.
+  if (tableRounded) {
+    const availableWrapHeight = window.innerHeight - appState.STATIC_TABLE_PAGE_PADDING_TOP - appState.STATIC_TABLE_PAGE_PADDING_BOTTOM - appState.STATIC_TABLE_BOTTOM_MARGIN;
+    const maxTableHeight = Math.max(0, availableWrapHeight - headerTrack.offsetHeight - appState.STATIC_TABLE_ROW_GAP);
+    tableRounded.style.maxHeight = maxTableHeight + "px";
+  }
+
+  // The overlay doesn't scroll, so it just needs to match the header row's own height once (not
+  // per column) to sit correctly over it.
+  if (headerOverlay) headerOverlay.style.height = headerTrack.offsetHeight + "px";
+  // The fade under the upload button is now always on, regardless of column count.
+  if (headerFade) headerFade.classList.add("visible");
+  // Keep the add-column overlay confined to the body's vertical span only — it starts right below
+  // the header track (offset by the hscroll's own column-gap) so it can never sit on top of, or
+  // intercept clicks/hover on, the header pill row above it.
+  if (colStripWrap) colStripWrap.style.top = headerTrack.offsetHeight + appState.STATIC_TABLE_ROW_GAP + "px";
+  // Same vertical confinement as the add-column overlay, so the row-tag button can never appear
+  // over (or intercept hover on) the header pill row above it either.
+  if (rowTagStripWrap) rowTagStripWrap.style.top = headerTrack.offsetHeight + appState.STATIC_TABLE_ROW_GAP + "px";
+}
+
+export function attachStaticTableHoverZones(container, tableItem) {
+  const appState = window.__getAppState();
+  const wrap = container.querySelector(".static-table-wrap");
+  const rowStrip = container.querySelector(".add-row-strip");
+  const tableRounded = container.querySelector(".table-rounded");
+  const colStripWrap = container.querySelector(".static-table-col-strip-wrap");
+  const colBtn = container.querySelector(".add-col-strip");
+  const rowBtn = container.querySelector(".add-row-btn");
+  const hscroll = container.querySelector(".static-table-hscroll");
+  const rowTagStripWrap = container.querySelector(".static-table-row-tag-strip-wrap");
+  const rowTagBtn = container.querySelector(".row-tag-strip");
+  if (!wrap || !rowStrip || !tableRounded) return;
+  const THRESH = 60;
+  const BTN_SIZE = 28;
+  const COL_SHRINK_AMOUNT = 35; // flat px the table narrows by — see layoutSourceTableColumns
+  const SCROLL_END_BUFFER = 25; // how close to the true right edge counts as "there"
+  const SCROLL_START_BUFFER = 30; // how close to the true left edge counts as "there" (for the row-tag indent)
+  let colHoverActive = false;
+  // Unlike colHoverActive above, this tracks *which row* (its <tr>), not just a boolean — the
+  // row-tag button's position is only ever recomputed when this reference changes (a different
+  // row is now under the cursor), never on every mousemove tick, which is what keeps it "static"
+  // rather than continuously trailing the cursor like the add-column button does.
+  let hoveredRowEl = null;
+  // The one `.cell-inner` (first cell of whichever row) currently shifted to make room for the
+  // tag button, if any — tracked so it can be un-shifted the moment the hovered row changes or
+  // the table scrolls away from its left edge.
+  let indentedInner = null;
+  const updateRowTagBtnPos = () => {
+    if (!hoveredRowEl || !rowTagBtn || !rowTagStripWrap) return;
+    const rRect = hoveredRowEl.getBoundingClientRect();
+    const stripRect = rowTagStripWrap.getBoundingClientRect();
+    const top = Math.max(0, Math.min(rRect.top - stripRect.top + rRect.height / 2 - BTN_SIZE / 2, stripRect.height - BTN_SIZE));
+    rowTagBtn.style.top = top + "px";
+  };
+  // The table only actually shrinks (rather than just having the button float over the top of
+  // it) once it's scrolled all the way to its right edge — shrinking it while scrolled elsewhere
+  // would move content the user isn't even looking at, for no benefit.
+  const isScrolledToRightEdge = () => !hscroll || hscroll.scrollLeft + hscroll.clientWidth >= hscroll.scrollWidth - SCROLL_END_BUFFER;
+  // Mirror of the above for the row-tag button on the left: the hovered row's first cell only
+  // actually makes room (shifts its content in from the left) once the table is scrolled all the
+  // way to ITS left edge. Scrolled anywhere else, that column isn't necessarily even the leftmost
+  // thing on screen, so the button just floats over the top of whatever's currently visible there
+  // instead.
+  const isScrolledToLeftEdge = () => !hscroll || hscroll.scrollLeft <= SCROLL_START_BUFFER;
+  const updateColShrink = () => {
+    if (tableItem) layoutSourceTableColumns(tableItem, container, colHoverActive && isScrolledToRightEdge() ? COL_SHRINK_AMOUNT : 0);
+  };
+  // Applies (or removes) the "make room" shift on the hovered row's first cell only, re-evaluating
+  // both which row is hovered and the current scroll position each time.
+  const updateRowIndent = () => {
+    if (indentedInner) {
+      indentedInner.classList.remove("row-tag-shift");
+      indentedInner = null;
+    }
+    if (hoveredRowEl && isScrolledToLeftEdge()) {
+      const firstCell = hoveredRowEl.querySelector('td[data-c="0"]');
+      const inner = firstCell && firstCell.querySelector(".cell-inner");
+      if (inner) {
+        inner.classList.add("row-tag-shift");
+        indentedInner = inner;
+      }
+    }
+  };
+  const onMove = (e) => {
+    // Frozen entirely while ANY row-tag picker on this page is open — the tagged row's
+    // button/indent must stay exactly as they were until the picker closes, not chase the cursor
+    // onto whatever other row it happens to pass over in the meantime.
+    if (appState.activeTagRow) return;
+    // "Add column" needs to react to the *visible* right edge of the table area (wrap's own
+    // rect), not table-rounded's actual content edge — once a table has more than 2 columns,
+    // table-rounded is wider than the viewport, so its real edge can be scrolled far off-screen.
+    // Vertical bounds still come from table-rounded since its height always matches what's
+    // actually on screen.
+    //
+    // The hotspot that *triggers* the zone only ever starts right at (or past) the table's true
+    // right edge — never inside it — since the last column already has its own per-cell "add"
+    // button, and the two shouldn't compete for the same hover real estate. But the strip/button,
+    // once shown, still visually sits inside that edge (see layoutSourceTableColumns' `reserve`),
+    // so moving the cursor onto the button itself is checked for separately below and treated as
+    // "still in the zone" regardless — otherwise it'd vanish the instant you tried to reach it.
+    const wRect = wrap.getBoundingClientRect();
+    const tRect = tableRounded.getBoundingClientRect();
+    const hoveredEl = document.elementFromPoint(e.clientX, e.clientY);
+    const overColStrip = !!(hoveredEl && colStripWrap && colStripWrap.contains(hoveredEl));
+    const strictlyPastRightEdge = e.clientY >= tRect.top && e.clientY <= tRect.bottom && e.clientX >= wRect.right && e.clientX <= wRect.right + THRESH;
+    const nearRight = strictlyPastRightEdge || overColStrip;
+    const nearBottom = e.clientX >= tRect.left && e.clientX <= tRect.right && e.clientY >= tRect.bottom && e.clientY <= tRect.bottom + THRESH;
+    wrap.classList.toggle("show-col", nearRight);
+    rowStrip.classList.toggle("show-row", nearBottom);
+    // The table only actually needs to redraw narrower right when the hover state flips (not on
+    // every pixel of mouse movement), so this only re-runs the column layout on that transition —
+    // shrinking the last column's width by a flat COL_SHRINK_AMOUNT (only when already scrolled
+    // to the right edge) so the table visibly gets out of the way and shows its own right border
+    // in the gap. Otherwise the button just slides in over the top of the table's existing
+    // content. Restores back to full width the moment the cursor leaves the zone.
+    if (nearRight !== colHoverActive) {
+      colHoverActive = nearRight;
+      updateColShrink();
+    }
+    // Keep each "+" button tracking the cursor along whichever axis it slides within — top for
+    // the column button (it moves up/down the right edge), left for the row button (it moves
+    // left/right along the bottom edge) — so it always sits right where the cursor is, the whole
+    // time that edge is hovered.
+    if (nearRight && colBtn && colStripWrap) {
+      const csRect = colStripWrap.getBoundingClientRect();
+      const top = Math.max(0, Math.min(e.clientY - csRect.top - BTN_SIZE / 2, csRect.height - BTN_SIZE));
+      colBtn.style.top = top + "px";
+    }
+    if (nearBottom && rowBtn) {
+      const rsRect = rowStrip.getBoundingClientRect();
+      const left = Math.max(0, Math.min(e.clientX - rsRect.left - BTN_SIZE / 2, rsRect.width - BTN_SIZE));
+      rowBtn.style.left = left + "px";
+    }
+    // Row-tag button: figure out which data row (if any) the cursor is currently over — via the
+    // actual element under the pointer (already looked up above) rather than a fixed geometric
+    // zone, since "any cell of the row" (not just its left edge) should trigger it. Only acts
+    // when that row actually changes, so the button doesn't jitter or chase the cursor while it
+    // stays within the same row. Once revealed, the button itself floats (as a positioned
+    // overlay) on top of the table's own left edge, so once the cursor moves onto it,
+    // elementFromPoint no longer returns a <td> at all — it returns the button. Without this
+    // check that read as "cursor left every row" and hid the button out from under itself the
+    // instant you tried to reach it. Treat hovering the strip/button as "still on whichever row
+    // was last active" instead of re-deriving anything from it.
+    const onRowTagStrip = hoveredEl && rowTagStripWrap && rowTagStripWrap.contains(hoveredEl);
+    if (!onRowTagStrip) {
+      const rowTd = hoveredEl && hoveredEl.closest ? hoveredEl.closest("td[data-r]") : null;
+      const rowEl = rowTd && tableRounded.contains(rowTd) ? rowTd.closest("tr") : null;
+      if (rowEl !== hoveredRowEl) {
+        hoveredRowEl = rowEl;
+        wrap.classList.toggle("show-row-tag", !!rowEl);
+        if (rowEl && rowTagBtn) {
+          const r = Number(rowTd.dataset.r);
+          const originTableId = rowTd.dataset.originTable ? Number(rowTd.dataset.originTable) : tableItem.id;
+          rowTagBtn.onclick = (ev) => {
+            ev.stopPropagation();
+            window.__openRowTagPicker(originTableId, r, rowTagBtn);
+          };
+          updateRowTagBtnPos();
+        }
+        updateRowIndent();
+      }
+    }
+  };
+  // Dismisses the row-tag button and un-indents its cell outright — used both when the cursor
+  // leaves the table entirely and (see the scroll listeners below) the instant any scrolling
+  // happens, rather than trying to keep the button/indent alive and just repositioning them: a
+  // row sliding around under a now-stale button is more confusing than the button just going away
+  // until you hover a row again.
+  const dismissRowTagHover = () => {
+    // Stays put while this table's row-tag picker is open (see openRowTagPicker/
+    // closeCellTagPicker) — the cursor leaving the table to go interact with the picker's popover
+    // shouldn't un-indent the row it's currently tagging.
+    if (appState.activeTagRow && appState.activeTagRow.id === tableItem.id) return;
+    if (hoveredRowEl) {
+      hoveredRowEl = null;
+      wrap.classList.remove("show-row-tag");
+      updateRowIndent();
+    }
+  };
+  // Exposed so closeCellTagPicker can force a reset the moment the picker closes, rather than
+  // waiting for a mousemove that may not come for a while if it was closed by clicking elsewhere
+  // on the canvas. A plain property on the DOM node itself, not a module export — works
+  // unmodified regardless of which module this function lives in (closeCellTagPicker,
+  // source-tags-ai.js, still vanilla, calls it via container._resetRowTagHover(), same as always).
+  container._resetRowTagHover = () => {
+    hoveredRowEl = null;
+    wrap.classList.remove("show-row-tag");
+    updateRowIndent();
+  };
+  const onLeave = () => {
+    wrap.classList.remove("show-col");
+    rowStrip.classList.remove("show-row");
+    if (colHoverActive) {
+      colHoverActive = false;
+      updateColShrink();
+    }
+    dismissRowTagHover();
+  };
+  container.addEventListener("mousemove", onMove);
+  container.addEventListener("mouseleave", onLeave);
+  // If the user scrolls the table horizontally while the "add column" zone is still engaged (e.g.
+  // they scroll to the end while hovering there), re-check whether it should shrink now rather
+  // than waiting for the next hover-state transition. Any horizontal scroll also immediately
+  // dismisses the row-tag button/indent.
+  if (hscroll)
+    hscroll.addEventListener("scroll", () => {
+      if (colHoverActive) updateColShrink();
+      dismissRowTagHover();
+    });
+  // Any vertical scroll (inside table-rounded) also immediately dismisses the row-tag
+  // button/indent, rather than trying to keep tracking the row that moved under it.
+  if (tableRounded)
+    tableRounded.addEventListener("scroll", () => {
+      dismissRowTagHover();
+    });
 }

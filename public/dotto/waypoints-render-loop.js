@@ -9,7 +9,6 @@ import { broadcastEditingState, miniLabelForItem, placeCaretEnd, renderRealCardP
 import { findNextFreeSlot } from './resize-shortcuts-init.js';
 import { buildOutline, ensureSharedFolderLoaded, renderBreadcrumbMapPanel, renderTabsPanel, sharedFolderKey, stripSharedFolderIds } from './shared-canvases-outline.js';
 import { closeSourceAddMenu } from './source-buttons-cursor-mode.js';
-import { attachStaticTableHoverZones, layoutSourceTableColumns, renderStaticTableHTML } from './source-table.js';
 import { closeCellTagPicker } from './source-tags-ai.js';
 import { applyConnections } from './srs-connections-core.js';
 
@@ -594,10 +593,10 @@ import { applyConnections } from './srs-connections-core.js';
             const el = document.createElement('div');
             el.className = 'item table static-table';
             el.id = 'item-' + tableItem.id;
-            el.innerHTML = renderStaticTableHTML(tableItem, appState.currentFolderId);
+            el.innerHTML = window.__renderStaticTableHTML(tableItem, appState.currentFolderId);
             world.appendChild(el);
-            attachStaticTableHoverZones(el, tableItem);
-            layoutSourceTableColumns(tableItem, el);
+            window.__attachStaticTableHoverZones(el, tableItem);
+            window.__layoutSourceTableColumns(tableItem, el);
             btnBack.disabled = appState.historyIndex === 0; btnForward.disabled = appState.historyIndex === appState.historyStack.length - 1;
             // isSource folders never reach the real item list below — #items-layer must be told
             // there's nothing to show, or it would keep showing whatever the previous folder had.

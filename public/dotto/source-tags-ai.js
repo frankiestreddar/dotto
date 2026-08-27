@@ -305,3 +305,7 @@ window.__toggleCellTag = toggleCellTag;
 window.__openTagContextMenu = openTagContextMenu;
 window.__handleTagRenameKeydown = handleTagRenameKeydown;
 window.__commitTagRename = commitTagRename;
+// Used by app/dotto/canvasItemBehavior.js's renderStaticTableHTML/attachStaticTableHoverZones
+// (Phase 3's fourth relocated piece), same reasoning as window.__getAppState (core-state.js).
+window.__openRowTagPicker = openRowTagPicker;
+window.__tagPillsHTML = tagPillsHTML;
