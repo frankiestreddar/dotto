@@ -2,7 +2,7 @@ import { kindLabel, kindSize } from './add-menu.js';
 import { openSearchOverlay, stripHtml } from './ai-assistant-suggestions.js';
 import { prepareAdd, removePlacementGhost } from './copy-paste.js';
 import { appState, btnAdd, canvas, canvasViewportCenterX, drawBackBtn, drawColorInput, drawEraserBtn, drawFrontBtn, drawPenBtn, drawSettings, drawSizeInput, effectiveMode, world, zoomTrack } from './core-state.js';
-import { computeConnectorPoints, createConnection, ensureConnections, ensureDrawings, findLinkedTable, findTableById, itemRect, makeLayerSVG, pathNearPoint, penPointsToPath, pointsToLinePath, pointsToPath } from './drawing-connections.js';
+import { createConnection, ensureConnections, ensureDrawings, findLinkedTable, findTableById, makeLayerSVG, pathNearPoint, penPointsToPath, pointsToPath } from './drawing-connections.js';
 import { defaultFlashcardDeck } from './games-flashcard-typeright.js';
 import { generateGlobalId } from './global-ids.js';
 import { applyTransform, saveSnapshot, scheduleApplyTransform } from './history-autosave.js';
@@ -413,120 +413,18 @@ import { render, renderSelectedOutlines, startBoxSelection, syncWaypointToDb } f
         propagateCanvasStreams(folderObj);
     }
 
-    function renderConnectionsLayer(folderObj, currentItems) {
-        const layer = makeLayerSVG(1);
-        layer.classList.add('connections-layer');
-        const validIds = new Set(currentItems.map(i => i.id));
-        const conns = ensureConnections(folderObj);
-        folderObj.connections = conns.filter(c => validIds.has(c.fromId) && validIds.has(c.toId));
-        folderObj.connections.forEach(c => {
-            const fromItem = currentItems.find(i => i.id === c.fromId);
-            const toItem = currentItems.find(i => i.id === c.toId);
-            if (!fromItem || !toItem) return;
-            const obstacles = currentItems.filter(i => i.id !== fromItem.id && i.id !== toItem.id).map(itemRect);
-            const points = computeConnectorPoints(fromItem, toItem, true, obstacles);
-            const d = pointsToLinePath(points);
-
-            const visible = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-            visible.setAttribute('d', d);
-            visible.setAttribute('stroke', 'var(--brand)');
-            visible.setAttribute('stroke-width', '2');
-            visible.setAttribute('fill', 'none');
-            visible.setAttribute('stroke-linejoin', 'round');
-            visible.style.pointerEvents = 'none';
-
-            const hit = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-            hit.setAttribute('d', d);
-            hit.setAttribute('stroke', 'transparent');
-            hit.setAttribute('stroke-width', '14');
-            hit.setAttribute('fill', 'none');
-            hit.style.pointerEvents = 'stroke';
-            hit.style.cursor = 'pointer';
-            const title = document.createElementNS('http://www.w3.org/2000/svg', 'title');
-            title.textContent = 'Click to remove this connection';
-            hit.appendChild(title);
-            hit.addEventListener('pointerdown', (e) => e.stopPropagation());
-            hit.addEventListener('click', (e) => {
-                e.stopPropagation();
-                saveSnapshot();
-                folderObj.connections = folderObj.connections.filter(x => x.id !== c.id);
-                render();
-            });
-
-            layer.appendChild(visible);
-            layer.appendChild(hit);
-        });
-        return layer;
-    }
-
-    // Drag-to-link: in Data mode (or with X held), dragging from a card draws a
-    // live preview line to the pointer; dropping on another card creates a persistent
-    // connection between them.
-    function startConnectionDrag(e, it, el) {
-        saveSnapshot();
-        const downX = e.clientX, downY = e.clientY;
-        let moved = false;
-        const rect = canvas.getBoundingClientRect();
-        const previewSvg = makeLayerSVG(500);
-        const previewPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-        previewPath.setAttribute('stroke', 'var(--brand)');
-        previewPath.setAttribute('stroke-width', '2');
-        previewPath.setAttribute('stroke-dasharray', '6 4');
-        previewPath.setAttribute('fill', 'none');
-        previewPath.setAttribute('stroke-linejoin', 'round');
-        previewPath.style.pointerEvents = 'none';
-        previewSvg.appendChild(previewPath);
-        world.appendChild(previewSvg);
-
-        let hoveredTarget = null;
-        const allItems = appState.folders[appState.currentFolderId] ? appState.folders[appState.currentFolderId].items : [];
-        const updatePreview = (clientX, clientY) => {
-            const wx = (clientX - rect.left - appState.tx) / appState.scale, wy = (clientY - rect.top - appState.ty) / appState.scale;
-            const obstacles = allItems.filter(i => i.id !== it.id && i.id !== hoveredTarget).map(itemRect);
-            const points = computeConnectorPoints(it, { x: wx, y: wy }, false, obstacles);
-            previewPath.setAttribute('d', pointsToLinePath(points));
-        };
-        updatePreview(e.clientX, e.clientY);
-
-        const move = (me) => {
-            if (Math.abs(me.clientX - downX) > 3 || Math.abs(me.clientY - downY) > 3) moved = true;
-            document.querySelectorAll('.item.link-target-hover, .item.link-target-invalid').forEach(x => x.classList.remove('link-target-hover', 'link-target-invalid'));
-            const under = document.elementFromPoint(me.clientX, me.clientY);
-            const cardEl = under && under.closest && under.closest('.item');
-            const id = cardEl ? parseInt(cardEl.id.replace('item-', '')) : NaN;
-            const candidate = (!isNaN(id) && id !== it.id) ? id : null;
-            // Only ever treat a hovered card as a droppable target if the link would actually
-            // be allowed (rules 1-3 below); otherwise flag it so the user gets live feedback
-            // that dropping here won't do anything, instead of silently doing nothing on drop.
-            hoveredTarget = candidate != null && isValidConnection(it.id, candidate) ? candidate : null;
-            if (cardEl && candidate != null) cardEl.classList.add(hoveredTarget != null ? 'link-target-hover' : 'link-target-invalid');
-            updatePreview(me.clientX, me.clientY);
-        };
-        const up = () => {
-            window.removeEventListener('pointermove', move);
-            window.removeEventListener('pointerup', up);
-            previewSvg.remove();
-            document.querySelectorAll('.item.link-target-hover, .item.link-target-invalid').forEach(x => x.classList.remove('link-target-hover', 'link-target-invalid'));
-            if (hoveredTarget != null && isValidConnection(it.id, hoveredTarget)) {
-                const conns = ensureConnections(appState.folders[appState.currentFolderId]);
-                createConnection(conns, it.id, hoveredTarget);
-                render();
-            } else if (!moved) {
-                // No real drag happened — this was a plain click, so hand off to the
-                // click-to-link flow instead of just discarding the gesture (see
-                // handleDataModeClick). The speculative snapshot taken at the top of this
-                // function was only for a potential drag that didn't happen;
-                // handleDataModeClick takes its own snapshot, only at the moment it actually
-                // creates a connection.
-                appState.undoStack.pop();
-                handleDataModeClick(it, el);
-            } else {
-                appState.undoStack.pop();
-            }
-        };
-        window.addEventListener('pointermove', move);
-        window.addEventListener('pointerup', up);
-    }
+    // renderConnectionsLayer/startConnectionDrag moved to app/dotto/canvasItemBehavior.js (Phase 3
+    // of the vanilla->React consolidation — see the migration plan) — the third "canvas core"
+    // piece to live inside app/dotto/, following the same pattern setupResizing/
+    // setupDraggingAndClicking already proved out. window.__renderConnectionsLayer (assigned in
+    // app/dotto-app.jsx) is render()'s own remaining bridge to it (waypoints-render-loop.js);
+    // startConnectionDrag has no bridge at all anymore — its only caller
+    // (setupDraggingAndClicking) now lives in the same file, so it's just a plain function call.
+    // isValidConnection/handleDataModeClick just below stay here — both have vanilla-side callers
+    // of their own (isValidConnection: drawing-connections.js's own linkSelectedCards, this file's
+    // own handleDataModeClick; handleDataModeClick: the click-to-link fallback, still reached from
+    // the relocated startConnectionDrag's own up() handler via window.__handleDataModeClick) — see
+    // each one's own bridge comment further down.
 
 
     function cancelAddingKind() {
@@ -1388,7 +1286,7 @@ import { render, renderSelectedOutlines, startBoxSelection, syncWaypointToDb } f
         },
     };
 
-export { add, applyConnections, applyFilterToRows, calculateSM2, cancelAddingKind, clearDataLinkPending, collectAvailableFilterTags, createNewSource, deepCloneItem, defaultSrsState, deleteClonedItemFolders, diffRatings, finishPenPolyline, handlePenPointerDown, isValidConnection, renderConnectionsLayer, startConnectionDrag, updateDrawLayerBtns, viewportCenterWorldPoint };
+export { add, applyConnections, applyFilterToRows, calculateSM2, cancelAddingKind, clearDataLinkPending, collectAvailableFilterTags, createNewSource, deepCloneItem, defaultSrsState, deleteClonedItemFolders, diffRatings, finishPenPolyline, handleDataModeClick, handlePenPointerDown, isValidConnection, updateDrawLayerBtns, viewportCenterWorldPoint };
 
 // React → vanilla bridge (see the identical pattern/comment in cards-misc.js) — used by
 // FilterCard.jsx (app/dotto/), which can't import these directly since public/dotto/*.js isn't
@@ -1400,4 +1298,9 @@ window.__collectAvailableFilterTags = collectAvailableFilterTags;
 window.__deepCloneItem = deepCloneItem;
 window.__deleteClonedItemFolders = deleteClonedItemFolders;
 window.__handlePenPointerDown = handlePenPointerDown;
-window.__startConnectionDrag = startConnectionDrag;
+// Used by app/dotto/canvasItemBehavior.js's startConnectionDrag (Phase 3's third relocated piece
+// — connection-dragging), same reasoning as window.__getAppState (core-state.js). Both stay
+// vanilla themselves (isValidConnection has its own vanilla-side callers; handleDataModeClick is
+// the click-to-link fallback startConnectionDrag's own up() handler falls back to).
+window.__isValidConnection = isValidConnection;
+window.__handleDataModeClick = handleDataModeClick;

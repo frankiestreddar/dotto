@@ -43,7 +43,7 @@ import {
 } from "./dotto/bridges";
 import AchievementsGrid from "./dotto/AchievementsGrid";
 import AddToSourcePopup from "./dotto/AddToSourcePopup";
-import { setupDraggingAndClicking, setupResizing } from "./dotto/canvasItemBehavior";
+import { renderConnectionsLayer, setupDraggingAndClicking, setupResizing } from "./dotto/canvasItemBehavior";
 import CanvasItemsLayer from "./dotto/CanvasItemsLayer";
 import CellTagPickerList from "./dotto/CellTagPickerList";
 import ChatsListPanel from "./dotto/ChatsListPanel";
@@ -140,20 +140,22 @@ if (typeof window !== "undefined" && !window.__dottoSupabase) {
   window.__dottoSupabase = createClient();
 }
 
-// Phase 3 of the vanilla->React consolidation: setupResizing/setupDraggingAndClicking now live in
-// app/dotto/canvasItemBehavior.js instead of public/dotto/resize-shortcuts-init.js and
-// public/dotto/drag-drop-chat.js — every already-React card component that owns a resize handle
-// (TableCard.jsx, FlashcardCard.jsx, MediaCard.jsx, TypeRightCard.jsx) imports setupResizing
+// Phase 3 of the vanilla->React consolidation: setupResizing/setupDraggingAndClicking/
+// renderConnectionsLayer now live in app/dotto/canvasItemBehavior.js instead of
+// public/dotto/resize-shortcuts-init.js, public/dotto/drag-drop-chat.js, and
+// public/dotto/srs-connections-core.js — every already-React card component that owns a resize
+// handle (TableCard.jsx, FlashcardCard.jsx, MediaCard.jsx, TypeRightCard.jsx) imports setupResizing
 // directly now, no bridge needed. The remaining vanilla callers (attachNoteBody's own call to
-// setupResizing, and attachUniversalItemBehavior's own call to setupDraggingAndClicking — both
-// waypoints-render-loop.js, each itself reached via a component's own layout effect) still need
-// these bridges — same "set during module eval, not an effect" timing as window.__dottoSupabase
-// above: either vanilla call can fire from another component's OWN layout effect during the very
-// first commit, before this component's own (passive) useEffect below would otherwise get a
-// chance to assign them.
+// setupResizing, attachUniversalItemBehavior's own call to setupDraggingAndClicking, and render()'s
+// own call to renderConnectionsLayer — all waypoints-render-loop.js, the first two each reached via
+// a component's own layout effect) still need these bridges — same "set during module eval, not an
+// effect" timing as window.__dottoSupabase above: either of the first two vanilla calls can fire
+// from another component's OWN layout effect during the very first commit, before this component's
+// own (passive) useEffect below would otherwise get a chance to assign them.
 if (typeof window !== "undefined") {
   window.__setupResizing = setupResizing;
   window.__setupDraggingAndClicking = setupDraggingAndClicking;
+  window.__renderConnectionsLayer = renderConnectionsLayer;
 }
 
 // Phase 2 increment 1: the pricing overlay is the first subsystem converted to real React state

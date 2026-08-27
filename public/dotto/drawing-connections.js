@@ -242,3 +242,12 @@ export { computeConnectorPoints, createConnection, ensureConnections, ensureDraw
 // ShelfCard.jsx (app/dotto/), which can't import this directly since public/dotto/*.js isn't
 // reachable from app/dotto/.
 window.__folderTitleForConnectedSource = folderTitleForConnectedSource;
+// Used by app/dotto/canvasItemBehavior.js's renderConnectionsLayer/startConnectionDrag (Phase 3's
+// third relocated piece — connection-dragging), same reasoning as window.__getAppState
+// (core-state.js).
+window.__makeLayerSVG = makeLayerSVG;
+window.__ensureConnections = ensureConnections;
+window.__createConnection = createConnection;
+window.__itemRect = itemRect;
+window.__computeConnectorPoints = computeConnectorPoints;
+window.__pointsToLinePath = pointsToLinePath;

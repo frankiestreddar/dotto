@@ -11,7 +11,7 @@ import { buildOutline, ensureSharedFolderLoaded, renderBreadcrumbMapPanel, rende
 import { closeSourceAddMenu } from './source-buttons-cursor-mode.js';
 import { attachStaticTableHoverZones, layoutSourceTableColumns, renderStaticTableHTML } from './source-table.js';
 import { closeCellTagPicker } from './source-tags-ai.js';
-import { applyConnections, renderConnectionsLayer } from './srs-connections-core.js';
+import { applyConnections } from './srs-connections-core.js';
 
 
     // ---------- Waypoint card expand/collapse ----------
@@ -632,7 +632,7 @@ import { applyConnections, renderConnectionsLayer } from './srs-connections-core
         // frontLayer after it.
         const itemsLayer = document.getElementById('items-layer');
         world.insertBefore(backLayer, itemsLayer);
-        world.insertBefore(renderConnectionsLayer(folderObj, currentItems), itemsLayer);
+        world.insertBefore(window.__renderConnectionsLayer(folderObj, currentItems), itemsLayer);
 
         // React (app/dotto/CanvasItemsLayer.jsx) owns creating/keying/removing each item's wrapper
         // <div id="item-{id}"> inside #items-layer — see the canvas-items-react plan in
