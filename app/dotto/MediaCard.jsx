@@ -1,6 +1,7 @@
 "use client";
 
 import { useLayoutEffect, useRef } from "react";
+import { setupResizing } from "./canvasItemBehavior";
 
 // Ported from the old inline media branch in renderLegacyCardBody (public/dotto/waypoints-render-
 // loop.js, logic itself in public/dotto/media-pdf-epub.js). buildPdfViewer/buildEpubViewer build a
@@ -37,7 +38,7 @@ export default function MediaCard({ it }) {
       // reads/writes el.style.width/height and el.offsetWidth/Height directly, so it needs the
       // actual sized .item wrapper, not this unstyled mount point.
       const el = document.getElementById("item-" + it.id);
-      if (el) window.__setupResizing(el, it);
+      if (el) setupResizing(el, it);
     }
     // `it` itself (not just the fields below) is deliberately left out of the deps list — this
     // component only ever renders one keyed item for its whole lifetime (key={it.id} in

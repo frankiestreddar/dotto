@@ -891,3 +891,7 @@ export { addTableCol, addTableRow, attachStaticTableHoverZones, colgroupHTML, di
 // reachable from app/dotto/.
 window.__distributeTableSizing = distributeTableSizing;
 window.__mergeTableCells = mergeTableCells;
+// Used by app/dotto/canvasItemBehavior.js's setupResizing (a table's first-ever resize rebuilds
+// its body via this legacy string-renderer before switching to userSized layout — see that
+// function's own comment), same reasoning as window.__getAppState (core-state.js).
+window.__renderTableHTML = renderTableHTML;

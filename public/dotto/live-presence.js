@@ -1463,3 +1463,6 @@ window.__renderMsgSnapshotCard = renderMsgSnapshotCard;
 window.__openSharedCanvasView = openSharedCanvasView;
 window.__miniLabelForItem = miniLabelForItem;
 window.__placeCaretEnd = placeCaretEnd;
+// Used by app/dotto/canvasItemBehavior.js's setupResizing, same reasoning as
+// window.__getAppState (core-state.js).
+window.__broadcastItemResize = broadcastItemResize;

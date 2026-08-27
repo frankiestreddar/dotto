@@ -7,7 +7,7 @@ import { closeGameOptionsPanel, openGameOptionsPanel } from './games-flashcard-t
 import { renderFilesList, renderSourcesList } from './hamburger-collab.js';
 import { applyTransform, ensureSwTicking, saveSnapshot, scheduleWorkspaceSave, updateContextMenuPosition } from './history-autosave.js';
 import { broadcastEditingState, miniLabelForItem, placeCaretEnd, renderRealCardPreview, repositionAllRemoteCursors, syncColorPicker } from './live-presence.js';
-import { findNextFreeSlot, setupResizing } from './resize-shortcuts-init.js';
+import { findNextFreeSlot } from './resize-shortcuts-init.js';
 import { buildOutline, ensureSharedFolderLoaded, renderBreadcrumbMapPanel, renderTabsPanel, sharedFolderKey, stripSharedFolderIds } from './shared-canvases-outline.js';
 import { closeSourceAddMenu } from './source-buttons-cursor-mode.js';
 import { attachStaticTableHoverZones, layoutSourceTableColumns, renderStaticTableHTML } from './source-table.js';
@@ -746,7 +746,7 @@ import { applyConnections, renderConnectionsLayer } from './srs-connections-core
             if (appState.currentEditingEl !== el) saveSnapshot();
             el.classList.add('editing'); if (!b.isContentEditable) { b.contentEditable = true; placeCaretEnd(b); broadcastEditingState(true, '#item-' + it.id); } appState.currentEditingEl = el;
         };
-        setupResizing(el, it);
+        window.__setupResizing(el, it);
     }
 
     // Reflects the note body's current bold/italic/underline/strikethrough state at the caret (or

@@ -1,6 +1,7 @@
 "use client";
 
 import { useLayoutEffect, useRef } from "react";
+import { setupResizing } from "./canvasItemBehavior";
 import GameOptionsPanel from "./GameOptionsPanel";
 
 // Ported from the old renderFlashcardHTML (public/dotto/games-flashcard-typeright.js — kept there,
@@ -10,11 +11,11 @@ import GameOptionsPanel from "./GameOptionsPanel";
 // resolveGameFace/renderGameFaceBlocksHTML got new bridges (see that file's own comment) since
 // this component calls them directly, not just its GameOptionsPanel.
 //
-// window.__setupResizing (resize-shortcuts-init.js) still owns the resize handle — called
-// directly here via a layout effect, same as attachWatermarkBody/attachUniversalItemBehavior; it's
-// idempotent now (AbortController fix, resize-shortcuts-init.js) specifically so calling it on
-// every render() call here — this effect has no dependency array, matching every other converted
-// kind — doesn't stack duplicate pointerdown listeners on the persistent .resize handle.
+// setupResizing (canvasItemBehavior.js) still owns the resize handle — called directly here via a
+// layout effect, same as attachWatermarkBody/attachUniversalItemBehavior; it's idempotent
+// (AbortController fix) specifically so calling it on every render() call here — this effect has
+// no dependency array, matching every other converted kind — doesn't stack duplicate pointerdown
+// listeners on the persistent .resize handle.
 //
 // fcFlip deliberately does NOT go through this component's own re-render to animate the flip — it
 // directly toggles the .fc-card/.fc-flip-btn/.fc-rate-row DOM (see its own comment) rather than
@@ -27,7 +28,7 @@ export default function FlashcardCard({ it }) {
   const ref = useRef(null);
 
   useLayoutEffect(() => {
-    if (ref.current) window.__setupResizing(ref.current, it);
+    if (ref.current) setupResizing(ref.current, it);
   });
 
   const title = "Flashcards";

@@ -43,6 +43,7 @@ import {
 } from "./dotto/bridges";
 import AchievementsGrid from "./dotto/AchievementsGrid";
 import AddToSourcePopup from "./dotto/AddToSourcePopup";
+import { setupResizing } from "./dotto/canvasItemBehavior";
 import CanvasItemsLayer from "./dotto/CanvasItemsLayer";
 import CellTagPickerList from "./dotto/CellTagPickerList";
 import ChatsListPanel from "./dotto/ChatsListPanel";
@@ -137,6 +138,19 @@ import CanvasContextMenu from "./dotto/sections/CanvasContextMenu";
 // `window` for it to use, alongside the signed-in user's profile.
 if (typeof window !== "undefined" && !window.__dottoSupabase) {
   window.__dottoSupabase = createClient();
+}
+
+// Phase 3 of the vanilla->React consolidation: setupResizing itself now lives in
+// app/dotto/canvasItemBehavior.js instead of public/dotto/resize-shortcuts-init.js — every
+// already-React card component that owns a resize handle (TableCard.jsx, FlashcardCard.jsx,
+// MediaCard.jsx, TypeRightCard.jsx) imports it directly now, no bridge needed. The ONE remaining
+// vanilla caller (attachNoteBody, waypoints-render-loop.js, itself reached via NoteCard.jsx's own
+// layout effect) still needs this bridge — same "set during module eval, not an effect" timing as
+// window.__dottoSupabase above: that vanilla call can fire from another component's OWN layout
+// effect during the very first commit, before this component's own (passive) useEffect below
+// would otherwise get a chance to assign it.
+if (typeof window !== "undefined") {
+  window.__setupResizing = setupResizing;
 }
 
 // Phase 2 increment 1: the pricing overlay is the first subsystem converted to real React state

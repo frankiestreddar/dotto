@@ -1,6 +1,7 @@
 "use client";
 
 import { useLayoutEffect } from "react";
+import { setupResizing } from "./canvasItemBehavior";
 
 // Ported from the old renderTableHTML (public/dotto/source-table.js — kept there, not deleted:
 // renderStaticTableHTML, the much larger Source database-page renderer, shares colgroupHTML with
@@ -89,7 +90,7 @@ export default function TableCard({ it }) {
       el.classList.add("sized");
       requestAnimationFrame(() => window.__distributeTableSizing(it, el));
     }
-    window.__setupResizing(el, it);
+    setupResizing(el, it);
     window.__setupTableGridResizing(el, it);
   });
 

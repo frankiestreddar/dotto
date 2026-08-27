@@ -521,3 +521,11 @@
     }
 
 export { addMenu, appState, bringCardToFront, btnAdd, btnBack, btnForward, canvas, canvasContextMenu, canvasViewportCenterX, contextMenu, cursorOverlay, dotLayer, drawBackBtn, drawColorInput, drawEraserBtn, drawFrontBtn, drawPenBtn, drawSettings, drawSizeInput, effectiveMode, recomputeTopCardZIndex, supabase, world, zoomControl, zoomFill, zoomThumb, zoomTrack };
+
+// React → vanilla bridge — used by app/dotto/canvasItemBehavior.js's setupResizing (the first
+// piece of "canvas core" to move into app/dotto/, see CONTRIBUTING.md/the migration plan's Phase
+// 3), which needs to read live camera state (appState.scale, mid-drag) but can't import appState
+// directly since public/dotto/*.js isn't reachable from app/dotto/. Returns the SAME live object
+// reference every call (appState is mutated in place, never replaced — see this file's own
+// comment on why), so callers always see the current value with no separate sync mechanism needed.
+window.__getAppState = () => appState;

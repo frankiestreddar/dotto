@@ -1,14 +1,15 @@
 "use client";
 
 import { useLayoutEffect, useRef } from "react";
+import { setupResizing } from "./canvasItemBehavior";
 import GameOptionsPanel from "./GameOptionsPanel";
 
 // Ported from the old renderTypeRightHTML (public/dotto/games-flashcard-typeright.js — kept there,
 // not deleted: live-presence.js's mini previews still call it). See FlashcardCard.jsx for the
-// general pattern (game logic/SM-2 stays vanilla, reached via window bridges;
-// window.__setupResizing owns the resize handle from this component's own layout effect, safe to
+// general pattern (game logic/SM-2 stays vanilla, reached via window bridges; setupResizing
+// (canvasItemBehavior.js) owns the resize handle from this component's own layout effect, safe to
 // call on every render() call — no dependency array, matching every converted kind — because of
-// the AbortController fix that PR made).
+// the AbortController fix that function has).
 //
 // The answer input is a real controlled value (value={it.trInput}), unlike Checklist's date field
 // — trNext/trToggleMode reset it to '' and DO call render(), so a fresh render needs to actually
@@ -20,7 +21,7 @@ export default function TypeRightCard({ it }) {
   const ref = useRef(null);
 
   useLayoutEffect(() => {
-    if (ref.current) window.__setupResizing(ref.current, it);
+    if (ref.current) setupResizing(ref.current, it);
   });
 
   if (!it.cards || !it.cards.length) {

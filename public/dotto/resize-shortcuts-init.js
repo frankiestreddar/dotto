@@ -2,141 +2,28 @@ import { appState, btnBack, btnForward, contextMenu } from './core-state.js';
 import { refreshCanvasCollabForCurrentFolder, refreshFriendsData, renderCollabPill } from './friends-presence.js';
 import { fcFlip, fcRate, trNext } from './games-flashcard-typeright.js';
 import { applyTransform, loadWorkspace, saveSnapshot, scheduleWorkspaceSave } from './history-autosave.js';
-import { broadcastItemResize, findItemById } from './live-presence.js';
+import { findItemById } from './live-presence.js';
 import { isAnyUiPanelOpen } from './panels-hamburger.js';
 import { refreshDotbotUsage } from './profile-achievements-pricing.js';
 import { announceEnteredCollaboration, jumpToHistoryIndex } from './shared-canvases-outline.js';
 import { applyCursorMode } from './source-buttons-cursor-mode.js';
-import { distributeTableSizing, renderTableHTML } from './source-table.js';
+import { distributeTableSizing } from './source-table.js';
 import { updateDrawLayerBtns } from './srs-connections-core.js';
 import { cascadeDeleteFolderContents, centerOnContent, deleteWaypointFromDb, render, renderSelectedOutlines } from './waypoints-render-loop.js';
 
 
-    // Correct minimum for one axis (width or height) of a table whose column/row split might be
-    // UNEVEN — dragging one divider rewrites the WHOLE colWidths/rowHeights array (see
-    // startTableColResize/startTableRowResize below), and a freshly added column/row's own
-    // "average of existing" default (see growGridSizingForNewEntry, source-table.js) can leave
-    // the split uneven even without any single entry being individually dragged. Just checking
-    // count*unitMinPx (assuming every entry gets an equal share) isn't enough on its own: if one
-    // entry's percentage share is smaller than that assumption, the table-wide total could already
-    // be at that naive floor while THAT one entry is still below its own minimum — invisibly, if
-    // it's an empty cell with no text content pushing back against the too-small height the
-    // browser would otherwise silently honor (a non-empty cell's own text needing more room masks
-    // exactly this, which is why it only ever showed up on empty ones). Solving
-    // "smallestSharePct/100 * axisTotal >= unitMinPx" for axisTotal gives the true floor: whatever
-    // axisTotal makes the SMALLEST-share entry exactly hit its own minimum is the binding
-    // constraint for the whole axis, since every other (larger-share) entry is automatically well
-    // above its own minimum at that same total.
-    function tableAxisMinPx(percentages, count, unitMinPx) {
-        if (!count) return unitMinPx;
-        const arr = (Array.isArray(percentages) && percentages.length === count) ? percentages : new Array(count).fill(100 / count);
-        const minPct = Math.min(...arr);
-        return minPct > 0 ? (unitMinPx * 100) / minPct : count * unitMinPx;
-    }
-
-    // ---------- Element Resize System ----------
-    // Called every time a card's body is (re)built — including, for a Component-owned kind (see
-    // CARD_KIND_COMPONENTS, app/dotto/CanvasItemsLayer.jsx), on every render() call, since that
-    // kind's own layout effect has no dependency array (see the canvas-items-react plan,
-    // PHASE2_ROADMAP.md). A plain addEventListener would stack a duplicate pointerdown listener on
-    // the same persistent .resize handle each time instead of replacing it — same fix as
-    // setupDraggingAndClicking (drag-drop-chat.js): abort the previous listener before attaching a
-    // fresh one, a no-op on first call.
-    function setupResizing(el, it) {
-        const handle = el.querySelector('.resize');
-        if(!handle) return;
-        handle.__resizeListenerAbort?.abort();
-        const { signal } = (handle.__resizeListenerAbort = new AbortController());
-        handle.addEventListener('pointerdown', (e) => {
-            e.stopPropagation();
-            // stopPropagation alone only stops the drag system's own listener from firing — it
-            // does nothing to the browser's own native default action for a mousedown-and-drag,
-            // which for a media card is "start a text selection" if the drag happens to sweep
-            // near/across the invisible PDF text layer sitting nearby. preventDefault suppresses
-            // that native default outright, so dragging this handle is only ever a resize.
-            e.preventDefault();
-            saveSnapshot();
-            if (it.kind === 'table' && !it.userSized) {
-                it.w = el.offsetWidth; it.h = el.offsetHeight;
-                it.userSized = true;
-                el.classList.add('sized');
-                el.style.width = it.w + 'px'; el.style.height = it.h + 'px';
-                el.innerHTML = renderTableHTML(it);
-                setupResizing(el, it);
-                distributeTableSizing(it, el);
-            }
-            let sx = e.clientX, sy = e.clientY, sw = it.w, sh = it.h;
-            const minSize = it.kind === 'table' ? 56 : 112;
-            // A table's real minimum width/height isn't a flat constant the way every other
-            // kind's is — it depends on how many columns/rows it actually has (every column needs
-            // at least TABLE_COL_MIN_PX, every row at least TABLE_ROW_MIN_PX, the exact same
-            // floors the per-column/row divider drag already enforces) AND, since that split can
-            // be uneven, on how the CURRENT colWidths/rowHeights actually divide up the space —
-            // see tableAxisMinPx's own comment above for why a plain count*unitMinPx isn't enough
-            // on its own once the split isn't perfectly even. The flat 56px minSize above didn't
-            // account for any of that: shrinking a 5-column table's OVERALL width down to 56px
-            // asked every column to fit in ~11px, far under their own CSS min-width:40px — the
-            // cells refused to actually shrink that far (browsers don't let a cell go below its
-            // own min-width), but the WRAPPER did, so the now-too-small wrapper's own
-            // overflow:hidden clipped whatever of the (still full-sized) cells stuck out past it —
-            // including, for whichever cell that clip cut through, its own border. Flooring
-            // it.w/it.h at the table's actual per-column/row space requirement means the wrapper
-            // can never ask for less room than the cells genuinely need, so there's nothing left
-            // for it to clip.
-            const tableMinW = it.kind === 'table' ? tableAxisMinPx(it.colWidths, (it.tableData[0] || []).length, TABLE_COL_MIN_PX) : minSize;
-            const tableMinH = it.kind === 'table' ? tableAxisMinPx(it.rowHeights, (it.tableData || []).length, TABLE_ROW_MIN_PX) : minSize;
-            // Media cards (image/video/PDF/EPUB) resize proportionally, preserving their content's
-            // real aspect ratio, instead of each axis independently the way table/flashcard do (or
-            // width-only the way note does, just below) — locked to the PDF page's own true ratio
-            // if it's known yet (see renderPage's it.docAspectRatio), otherwise whatever ratio the
-            // card is currently at (correct
-            // already for images/video, since computeMediaCardSize set w/h from the media's own
-            // natural dimensions; an arbitrary starting point for EPUB, which has no fixed "page"
-            // shape to lock to, but still scales proportionally from wherever it starts).
-            const aspectRatio = it.kind === 'media' ? (it.docAspectRatio || (sw / sh)) : null;
-            const move = (me) => {
-                const dx = (me.clientX - sx) / appState.scale, dy = (me.clientY - sy) / appState.scale;
-                if (aspectRatio) {
-                    // Follow whichever axis the cursor moved more along; derive the other from
-                    // the locked ratio rather than letting both drift independently.
-                    let newW, newH;
-                    if (Math.abs(dx) >= Math.abs(dy)) { newW = sw + dx; newH = newW / aspectRatio; }
-                    else { newH = sh + dy; newW = newH * aspectRatio; }
-                    it.w = Math.max(minSize, Math.round(newW / 28) * 28);
-                    it.h = Math.max(minSize, Math.round(newH / 28) * 28);
-                    el.style.width = it.w + 'px'; el.style.height = it.h + 'px';
-                } else if (it.kind === 'note') {
-                    // Width only — dy is ignored entirely. Height is never set here (or anywhere
-                    // else for notes): it's always automatic, driven by plain CSS auto-sizing at
-                    // whatever width this drag lands on (see .item.note/.body, globals.css) —
-                    // the browser reflows the text and resizes the wrapper on its own, live, with
-                    // no JS measurement needed on every pointermove.
-                    it.w = Math.max(minSize, Math.round((sw + dx) / 28) * 28);
-                    el.style.width = it.w + 'px';
-                } else {
-                    it.w = Math.max(tableMinW, Math.round((sw + dx) / 28) * 28);
-                    it.h = Math.max(tableMinH, Math.round((sh + dy) / 28) * 28);
-                    el.style.width = it.w + 'px'; el.style.height = it.h + 'px';
-                }
-                if (it.kind === 'table') distributeTableSizing(it, el);
-                // Live visual streaming while dragging — see handleRemoteItemResize/broadcastItemResize.
-                // Purely DOM-only on the receiving end, same as item-drag; the real w/h is only
-                // committed once scheduleWorkspaceSave below runs on release. For notes, it.h at
-                // this point is whatever attachNoteBody's ResizeObserver last measured — close
-                // enough mid-drag, and it settles exactly once that observer's next callback fires.
-                broadcastItemResize(it.id, it.w, it.h);
-            };
-            // Previously never called scheduleWorkspaceSave() at all — a resize wasn't synced live
-            // to collaborators OR promptly persisted; it only ever reached the DB once some
-            // unrelated later action happened to trigger a save.
-            const up = () => { window.removeEventListener('pointermove', move); window.removeEventListener('pointerup', up); scheduleWorkspaceSave(); };
-            window.addEventListener('pointermove', move); window.addEventListener('pointerup', up);
-        }, { signal });
-    }
+    // setupResizing/tableAxisMinPx moved to app/dotto/canvasItemBehavior.js (Phase 3 of the
+    // vanilla->React consolidation — see the migration plan) — the first "canvas core" piece to
+    // live inside app/dotto/ instead of being reached via a global-bridge module. window.__
+    // TABLE_COL_MIN_PX/TABLE_ROW_MIN_PX just below are its own bridge to the two constants
+    // startTableColResize/startTableRowResize (further down this file) still need to stay in
+    // agreement with, now that both copies can't just share one const via a same-module import —
+    // see setupResizing's own comment on why that agreement matters.
 
     // ---------- Table grid resizing (drag an internal column/row divider) ----------
-    // Separate from setupResizing's corner handle just above (which still resizes the WHOLE
-    // table) — these resize one column or row at a time, redistributing the dragged distance
+    // Separate from setupResizing's corner handle (app/dotto/canvasItemBehavior.js, moved out of
+    // this file — which still resizes the WHOLE table) — these resize one column or row at a
+    // time, redistributing the dragged distance
     // to/from its immediate neighbor only, so the table's own overall width/height (it.w/it.h)
     // never changes from dragging an internal divider, only from the corner handle. Percentage-
     // based (it.colWidths/it.rowHeights, each summing to 100) rather than pixel-based, so they
@@ -234,6 +121,13 @@ import { cascadeDeleteFolderContents, centerOnContent, deleteWaypointFromDb, ren
     });
     const TABLE_COL_MIN_PX = 40;
     const TABLE_ROW_MIN_PX = 28;
+    // React → vanilla bridges — app/dotto/canvasItemBehavior.js's setupResizing needs these same
+    // two floors to stay in exact agreement with startTableColResize/startTableRowResize just
+    // below (see setupResizing's own comment on why), but can no longer share them via a
+    // same-module const now that it's moved out of this file — plain constant bridges, not
+    // functions, same convention as window.__ACHIEVEMENTS (profile-achievements-pricing.js).
+    window.__TABLE_COL_MIN_PX = TABLE_COL_MIN_PX;
+    window.__TABLE_ROW_MIN_PX = TABLE_ROW_MIN_PX;
     // The resize affordance (purple highlight + col/row-resize cursor, both driven by the .armed
     // class — see globals.css) only shows once the cursor has rested on a divider for this long,
     // not the instant it merely passes over — and dragging is only actually possible once armed
@@ -486,11 +380,10 @@ import { cascadeDeleteFolderContents, centerOnContent, deleteWaypointFromDb, ren
 
 
 
-export { deleteSelectedCards, findNextFreeSlot, setTableAlign, setupResizing, setupTableGridResizing };
+export { deleteSelectedCards, findNextFreeSlot, setTableAlign, setupTableGridResizing };
 
-// React → vanilla bridge (see the identical pattern/comment in cards-misc.js) — used by
-// FlashcardCard.jsx directly (a converted kind's own layout effect, same as
-// attachWatermarkBody/attachUniversalItemBehavior), not just from renderLegacyCardBody's own
-// still-legacy table/media/typeright/note branches.
-window.__setupResizing = setupResizing;
+// window.__setupResizing is now assigned from app/dotto-app.jsx instead (setupResizing itself
+// moved to app/dotto/canvasItemBehavior.js — see this file's own comment further up) — the
+// bridge's direction flipped along with its implementation, but vanilla code that still needs it
+// (attachNoteBody, waypoints-render-loop.js) calls it exactly the same way as before.
 window.__setupTableGridResizing = setupTableGridResizing;

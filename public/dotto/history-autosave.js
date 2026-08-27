@@ -611,3 +611,8 @@ import { centerOnContent, render } from './waypoints-render-loop.js';
     }
 
 export { applyTransform, deleteContextColumn, deleteContextRow, ensureSwTicking, hideCanvasContextMenu, highlightContextColumn, highlightContextRow, loadWorkspace, openTableCellContextMenu, redo, saveSnapshot, saveWorkspaceNow, scheduleApplyTransform, scheduleWorkspaceSave, smoothPanTo, undo, updateContextMenuPosition };
+
+// React → vanilla bridge — used by app/dotto/canvasItemBehavior.js's setupResizing, same
+// reasoning as window.__getAppState (core-state.js).
+window.__saveSnapshot = saveSnapshot;
+window.__scheduleWorkspaceSave = scheduleWorkspaceSave;
