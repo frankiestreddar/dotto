@@ -29,6 +29,7 @@ import {
   msgConvoStore,
   msgListStore,
   notificationStore,
+  outlineStore,
   pricingOverlayStore,
   profileLevelStore,
   recommendedSearchesStore,
@@ -63,6 +64,7 @@ import MarketDiscoverPanel from "./dotto/MarketDiscoverPanel";
 import MessagesListPanel from "./dotto/MessagesListPanel";
 import MsgConvo from "./dotto/MsgConvo";
 import NotificationBar from "./dotto/NotificationBar";
+import OutlinePanel from "./dotto/OutlinePanel";
 import PricingOverlay from "./dotto/PricingOverlay";
 import ProfileAvatarSm from "./dotto/ProfileAvatarSm";
 import ProfileIdentity from "./dotto/ProfileIdentity";
@@ -198,6 +200,12 @@ if (typeof window !== "undefined") {
   // renderAddToSourcePopup immediately after this, which looks the div up by id and needs it to
   // already exist in the DOM.
   window.__setAddToSourcePopupOpen = (state) => flushSync(() => addToSourcePopupStore.set(state));
+  // Hamburger menu's Outline panel (see app/dotto/OutlinePanel.jsx, shared-canvases-outline.js's
+  // buildOutline/handleOutlineSearch) — MUST be flushSync: buildOutline's own scrollTop restore,
+  // and toggleHamburgerMenu's setOutlineActive(0) call right after buildOutline() returns, both
+  // need OutlinePanel.jsx's real DOM (and its own layout effect, which calls
+  // window.__syncOutlineRows) already committed.
+  window.__setOutlineState = (state) => flushSync(() => outlineStore.set(state));
   // Hamburger menu's Waypoints panel (see app/dotto/WaypointsListPanel.jsx,
   // hamburger-collab.js's renderWaypointsList) — a plain store.set, not flushSync'd: the fetch
   // it follows is async (a real network round-trip), so there's no synchronous DOM read racing
@@ -328,6 +336,7 @@ export default function DottoApp({ sections, currentUser }) {
       <ErrorBoundary name="SearchSuggestionsPanel"><SearchSuggestionsPanel /></ErrorBoundary>
       <ErrorBoundary name="ChatThread"><ChatThread /></ErrorBoundary>
       <ErrorBoundary name="AddToSourcePopup"><AddToSourcePopup /></ErrorBoundary>
+      <ErrorBoundary name="OutlinePanel"><OutlinePanel /></ErrorBoundary>
       <ErrorBoundary name="WaypointsListPanel"><WaypointsListPanel /></ErrorBoundary>
       <ErrorBoundary name="SourcesListPanel"><SourcesListPanel /></ErrorBoundary>
       <ErrorBoundary name="FilesListPanel"><FilesListPanel /></ErrorBoundary>

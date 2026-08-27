@@ -1,4 +1,4 @@
-import { clearSearch, escapeHtml, findParentFolderId, stripHtml } from './ai-assistant-suggestions.js';
+import { clearSearch, findParentFolderId, stripHtml } from './ai-assistant-suggestions.js';
 import { shortUrl } from './cards-misc.js';
 import { appState, canvasViewportCenterX, supabase } from './core-state.js';
 import { applyTransform, smoothPanTo } from './history-autosave.js';
@@ -426,9 +426,6 @@ import { applyFolderView, centerOnContent, expandWaypointCard, openFolder, rende
         const url = `/assets/icons/${kindIconFile(kind, level)}`;
         return `<span class="${extraClass} icon-mask" style="mask-image:url(${url});-webkit-mask-image:url(${url})"></span>`;
     }
-    function outlineIcon(kind, level) {
-        return kindIconHTML(kind, level, 'outline-icon');
-    }
     // Hover-revealed action-button overlay shared by every sidebar list row — see .outline-item-
     // actions' own comment, globals.css, and RowActions.jsx (the React equivalent every OTHER
     // panel's rows use — this file's own rows are still plain HTML strings, so it needs its own
@@ -465,8 +462,11 @@ import { applyFolderView, centerOnContent, expandWaypointCard, openFolder, rende
    // 30 grid squares — beyond this, a card isn't near enough to any heading to join it directly
   // 10 grid squares — but it still joins whatever heading a nearby (already-grouped) card belongs to
 
-    // Renders `folder`'s own items — leaf cards, plus child folders/sources — at the given depth.
-    // Every row (whether it's a canvas, a source, or a plain card) uses the exact same
+    // Computes `folder`'s own items — leaf cards, plus child folders/sources — at the given depth,
+    // as a flat array of row descriptors pushed onto `rows` (React owns the actual DOM now — see
+    // OutlinePanel.jsx, app/dotto/ — this function only computes what to show, same "compute then
+    // push" shape renderSourcesList/renderFilesList already use, hamburger-collab.js). Every row
+    // (whether it's a canvas, a source, or a plain card) is rendered with the exact same
     // .outline-item styling — there is no header/row visual distinction of any kind by design.
     // A child FOLDER's own contents are recursed into immediately after its row (one level
     // deeper), up to OUTLINE_MAX_DEPTH; a child SOURCE is always a dead-end row — its internal
@@ -485,8 +485,12 @@ import { applyFolderView, centerOnContent, expandWaypointCard, openFolder, rende
     // instead of a hard cutoff at exactly 30 squares from the heading itself). Anything left
     // over after that — including every card when the folder has no headings at all — is
     // rendered flat, ungrouped, same as before headings existed.
-    // Returns true if anything was rendered, for the "nothing here yet" empty state.
-    function renderOutlineFolderContents(container, folder, depth, visited) {
+    // `rows` is a shared accumulator, appended to in display order (including by the recursive
+    // call for a nested folder) — the caller (buildOutline/handleOutlineSearch) checks
+    // rows.length for the "nothing here yet" empty state, exactly equivalent to the old boolean
+    // return value since every one of titles/others/childFolders/childSources becomes exactly one
+    // pushed row.
+    function computeOutlineRows(folder, depth, visited, rows) {
         const items = folder.items || [];
         const titles = items.filter(i => i.kind === 'title');
         const childFolders = items.filter(i => i.kind === 'folder');
@@ -554,27 +558,24 @@ import { applyFolderView, centerOnContent, expandWaypointCard, openFolder, rende
         headingGroups.forEach(group => sortByProximity(group));
         sortByProximity(unassigned);
 
+        // rowKind distinguishes a source row (click enters it directly via goToOutlineSource,
+        // OutlinePanel.jsx) from every other item kind (click lands on the card within its own
+        // parent via goToOutlineItem — never drilling into a canvas via the menu itself), matching
+        // the old inline onclick's own if/else exactly. targetFolderId only means something for a
+        // rowKind:'source' row (the source's own folder id, to open); parentFolderId (`folder.id`,
+        // the containing folder this row belongs to) is what goToOutlineItem needs for every other
+        // kind.
         function makeRow(item, subIndent) {
-            const row = document.createElement('div');
-            row.className = 'outline-item';
-            row.style.setProperty('--outline-indent', ((depth + subIndent) * 14) + 'px');
-            row.innerHTML = `${outlineIcon(item.kind, item.level)}<span class="outline-label">${escapeHtml(outlineLabel(item))}</span>${rowActionsHTML()}`;
-            row.onclick = (e) => {
-                e.stopPropagation();
-                if (item.kind === 'source') {
-                    // Sources are entered directly (they just show a table) rather than centered
-                    // on as a card — unlike every other item kind, including canvases.
-                    if (appState.currentFolderId !== item.folderId) openFolder(item.folderId);
-                    closeRailView();
-                } else {
-                    // Canvas cards and leaf cards alike: land on this item within its OWN direct
-                    // parent (`folder`, the containing folder this row belongs to) — never
-                    // drilling into a canvas via the menu itself.
-                    goToOutlineItem(folder.id, item.id);
-                }
-            };
-            container.appendChild(row);
-            appState.outlineRows.push({ el: row });
+            rows.push({
+                id: item.id,
+                rowKind: item.kind === 'source' ? 'source' : 'item',
+                itemKind: item.kind,
+                level: item.level,
+                indent: (depth + subIndent) * 14,
+                label: outlineLabel(item),
+                parentFolderId: folder.id,
+                targetFolderId: item.folderId,
+            });
         }
 
         // A non-heading card's own row, plus (for folders) recursing into its nested contents —
@@ -583,7 +584,7 @@ import { applyFolderView, centerOnContent, expandWaypointCard, openFolder, rende
             makeRow(item, subIndent);
             if (item.kind === 'folder' && depth < appState.OUTLINE_MAX_DEPTH && item.folderId && appState.folders[item.folderId] && !visited.has(item.folderId)) {
                 visited.add(item.folderId);
-                renderOutlineFolderContents(container, appState.folders[item.folderId], depth + 1, visited);
+                computeOutlineRows(appState.folders[item.folderId], depth + 1, visited, rows);
             }
         }
 
@@ -635,27 +636,40 @@ import { applyFolderView, centerOnContent, expandWaypointCard, openFolder, rende
     // way goToOutlineItem does — there's no canvas to pan on a source page, it's a fixed full-
     // viewport table, and focusing the cell already scrolls it into view within .table-rounded's own
     // scroll container for free.
-    function renderSourceOutline(container, folder) {
+    function computeSourceOutlineRows(folder) {
         const tableItem = folder.items.find(i => i.kind === 'table');
-        if (!tableItem) return false;
+        if (!tableItem) return [];
         const dataRows = tableItem.tableData.slice(1);
-        dataRows.forEach((row, dataIdx) => {
+        return dataRows.map((row, dataIdx) => {
             const ri = dataIdx + 1;
-            const label = stripHtml(row[0]) || 'Untitled';
-            const rowEl = document.createElement('div');
-            rowEl.className = 'outline-item';
-            rowEl.innerHTML = `<span class="outline-item-number">${ri}</span><span class="outline-label">${escapeHtml(label)}</span>${rowActionsHTML()}`;
-            rowEl.onclick = (e) => {
-                e.stopPropagation();
-                focusTableCell(tableItem.id, ri, 0);
-                closeRailView();
-            };
-            container.appendChild(rowEl);
-            appState.outlineRows.push({ el: rowEl });
+            return { id: `${tableItem.id}-row-${ri}`, rowKind: 'sourceRow', number: ri, label: stripHtml(row[0]) || 'Untitled', tableItemId: tableItem.id };
         });
-        return dataRows.length > 0;
+    }
+    // Row click targets, extracted from the old inline onclick bodies (this file's own
+    // computeOutlineRows/computeSourceOutlineRows, formerly renderOutlineFolderContents/
+    // renderSourceOutline, built plain DOM with the click logic inline) — OutlinePanel.jsx
+    // (app/dotto/, can't import this module directly — public/dotto/*.js isn't reachable from
+    // app/dotto/) calls these by row kind instead, same reasoning as window.__goToOutlineItem.
+    function goToOutlineSource(folderId) {
+        if (appState.currentFolderId !== folderId) openFolder(folderId);
+        closeRailView();
+    }
+    function goToOutlineSourceRow(tableItemId, rowNumber) {
+        focusTableCell(tableItemId, rowNumber, 0);
+        closeRailView();
     }
 
+    // Computes the full, unfiltered row set for whichever folder is current — shared by
+    // buildOutline and handleOutlineSearch (both need "everything buildOutline itself would show,
+    // fresh" as their starting point) rather than duplicating the isSource branch in both places.
+    function computeCurrentOutlineRows() {
+        const rootFolder = appState.folders[appState.currentFolderId];
+        if (!rootFolder) return [];
+        if (rootFolder.isSource) return computeSourceOutlineRows(rootFolder);
+        const rows = [];
+        computeOutlineRows(rootFolder, 0, new Set([rootFolder.id]), rows);
+        return rows;
+    }
     // preserveState (per explicit request) is what lets render() call this unconditionally on
     // every navigation/rename/etc — see its own call site's comment, waypoints-render-loop.js —
     // without also constantly resetting an already-open panel's scroll position or blowing away
@@ -663,63 +677,47 @@ import { applyFolderView, centerOnContent, expandWaypointCard, openFolder, rende
     // — toggleHamburgerMenu's own panel-open callback, the outline search input's own Enter-to-
     // refocus flow if any) keeps the original always-start-fresh behavior, which is exactly what a
     // just-opened panel should do.
+    // Pushes into outlineStore (window.__setOutlineState, app/dotto-app.jsx — MUST be flushSync:
+    // this function's own scrollTop restore below, and toggleHamburgerMenu's setOutlineActive(0)
+    // call right after this returns, both need OutlinePanel.jsx's real DOM already committed) —
+    // React owns the row markup now (see OutlinePanel.jsx), this function only computes what to
+    // show and hands it off, same shape renderSourcesList/renderFilesList already use.
     function buildOutline(preserveState) {
         const container = document.getElementById('hmenu-outline-container');
         if (!container) return;
         const savedScrollTop = preserveState ? container.scrollTop : 0;
         const savedQuery = (preserveState && appState.outlineSearchInput) ? appState.outlineSearchInput.value : '';
-        container.innerHTML = '';
-        appState.outlineRows = []; appState.outlineActiveIndex = -1;
         // Fresh open only — clear any search term left over from a previous visit so the input
         // doesn't lie about what's actually showing. A preserveState rebuild instead re-applies
         // savedQuery (below, after the tree exists again) so an in-progress search survives.
         if (!preserveState && appState.outlineSearchInput) appState.outlineSearchInput.value = '';
 
-        const rootFolder = appState.folders[appState.currentFolderId];
-        const any = rootFolder
-            ? (rootFolder.isSource ? renderSourceOutline(container, rootFolder) : renderOutlineFolderContents(container, rootFolder, 0, new Set([rootFolder.id])))
-            : false;
-
-        if (!any) {
-            const empty = document.createElement('div');
-            empty.className = 'outline-empty';
-            empty.textContent = 'Nothing here yet.';
-            container.appendChild(empty);
-        }
+        window.__setOutlineState({ rows: computeCurrentOutlineRows(), query: '' });
 
         if (preserveState) {
             if (savedQuery) handleOutlineSearch(savedQuery);
             container.scrollTop = savedScrollTop;
         }
     }
-    // Plain post-render filter over the already-built tree (appState.outlineRows, populated by
-    // buildOutline/makeRow above) rather than a rebuild with the query baked in — the tree's own
-    // grouping/proximity-sort logic (headings, nested folders, rescue-distance grouping) is complex
-    // enough that re-deriving "does this subtree contain a match" through all of it isn't worth it
-    // for what's really just a flat text filter; a plain substring match against each row's own
-    // already-rendered label, shown/hidden independently, is the same simple approach
-    // renderWaypointsList's own search (hamburger-collab.js) already uses. "All your blocks" here
-    // means everything buildOutline itself already reaches — the current canvas and its nested
-    // folders/sources, up to OUTLINE_MAX_DEPTH — not a cross-canvas search.
+    // Recomputes the full row set fresh (computeCurrentOutlineRows above), then filters it down to
+    // whatever matches `query` — simpler than the old plain post-render DOM-visibility filter now
+    // that rows are plain data rather than already-rendered elements: a fresh compute is cheap
+    // (this is all already-in-memory data, no re-derivation of the grouping/proximity-sort logic
+    // itself needed, the same "compute then push" shape renderSourcesList/renderFilesList already
+    // use for their own search). A plain substring match against each row's own label, independent
+    // per row, is the same simple approach renderWaypointsList's own search (hamburger-collab.js)
+    // already uses. "All your blocks" here means everything buildOutline itself already reaches —
+    // the current canvas and its nested folders/sources, up to OUTLINE_MAX_DEPTH — not a
+    // cross-canvas search.
+    // Note: unlike the old DOM-visibility-toggle version, this resets which row is arrow-key-active
+    // on every keystroke (OutlinePanel.jsx's syncOutlineRows effect re-runs whenever the row list
+    // changes) rather than only when the visible set actually changes — a minor, accepted behavior
+    // change (see the migration plan's own "decide + confirm" note).
     function handleOutlineSearch(query) {
         const q = (query || '').trim().toLowerCase();
-        const container = document.getElementById('hmenu-outline-container');
-        if (!container) return;
-        let anyVisible = false;
-        appState.outlineRows.forEach(({ el }) => {
-            const label = el.querySelector('.outline-label');
-            const match = !q || (label && label.textContent.toLowerCase().includes(q));
-            el.classList.toggle('outline-row-hidden', !match);
-            if (match) anyVisible = true;
-        });
-        const existingEmpty = container.querySelector('.outline-empty');
-        if (existingEmpty) existingEmpty.remove();
-        if (q && !anyVisible) {
-            const empty = document.createElement('div');
-            empty.className = 'outline-empty';
-            empty.textContent = 'No matching blocks.';
-            container.appendChild(empty);
-        }
+        const rows = computeCurrentOutlineRows();
+        const filtered = q ? rows.filter(r => r.label.toLowerCase().includes(q)) : rows;
+        window.__setOutlineState({ rows: filtered, query: q });
     }
 
     // Navigates the live canvas to a card's containing folder and centers on it. Used for every
@@ -748,6 +746,16 @@ import { applyFolderView, centerOnContent, expandWaypointCard, openFolder, rende
         row.el.classList.add('active');
         row.el.scrollIntoView({ block: 'nearest' });
     }
+    // Feeds real DOM nodes from the React-rendered tree (OutlinePanel.jsx's own useLayoutEffect on
+    // its row list, app/dotto/) back into appState.outlineRows, in the same order they're
+    // displayed — srs-connections-core.js's own ArrowUp/ArrowDown/Enter keyboard-nav block
+    // (untouched, needs zero edits) doesn't care who owns the nodes, only that r.el is a real
+    // element it can classList.add('active')/scrollIntoView/click() — exactly what it already got
+    // from makeRow's own appState.outlineRows.push({ el: row }) before this tree became React.
+    function syncOutlineRows(elements) {
+        appState.outlineRows = Array.from(elements).map(el => ({ el }));
+        appState.outlineActiveIndex = -1;
+    }
     // "M" keyboard shortcut (srs-connections-core.js) — routes through the same shared rail
     // mechanism the outline's own icon uses (openRailView/closeRailView, panels-hamburger.js)
     // rather than toggling classes directly, so it correctly closes whichever OTHER rail view
@@ -757,10 +765,16 @@ import { applyFolderView, centerOnContent, expandWaypointCard, openFolder, rende
         else { openRailView('outline', appState.outlineMenu, appState.hamburgerBtn, () => { buildOutline(); setOutlineActive(0); }, true); }
     }
 
-export { addTab, announceEnteredCollaboration, breadcrumbMapRowClick, buildOutline, closeTab, ensurePublicFolderLoaded, ensureSharedFolderLoaded, goToOutlineItem, handleOutlineSearch, jumpToHistoryIndex, kindIconFile, kindIconHTML, namespacePublicFolderIds, namespaceSharedFolderIds, openPublicCanvas, openSharedCanvas, parsePublicFolderKey, parseSharedFolderKey, publicFolderKey, renderBreadcrumbMapPanel, renderTabsPanel, reorderTab, resolveReferenceFolderKey, rowActionsHTML, setOutlineActive, sharedFolderKey, stripSharedFolderIds, switchTab, toggleHamburgerMenu };
+export { addTab, announceEnteredCollaboration, breadcrumbMapRowClick, buildOutline, closeTab, ensurePublicFolderLoaded, ensureSharedFolderLoaded, goToOutlineItem, goToOutlineSource, goToOutlineSourceRow, handleOutlineSearch, jumpToHistoryIndex, kindIconFile, kindIconHTML, namespacePublicFolderIds, namespaceSharedFolderIds, openPublicCanvas, openSharedCanvas, parsePublicFolderKey, parseSharedFolderKey, publicFolderKey, renderBreadcrumbMapPanel, renderTabsPanel, reorderTab, resolveReferenceFolderKey, rowActionsHTML, setOutlineActive, sharedFolderKey, stripSharedFolderIds, switchTab, syncOutlineRows, toggleHamburgerMenu };
 
 window.__kindIconFile = kindIconFile;
 window.__openSharedCanvas = openSharedCanvas;
+// React → vanilla bridges — used by OutlinePanel.jsx (app/dotto/), which can't import this module
+// directly since public/dotto/*.js isn't reachable from app/dotto/. Same reasoning as
+// window.__goToOutlineItem below.
+window.__goToOutlineSource = goToOutlineSource;
+window.__goToOutlineSourceRow = goToOutlineSourceRow;
+window.__syncOutlineRows = syncOutlineRows;
 
 // React → vanilla bridge — used by TabsBar.jsx's ActiveTabTrail (app/dotto/), which can't import
 // this directly since public/dotto/*.js isn't reachable from app/dotto/.

@@ -151,6 +151,16 @@ export const addToSourcePopupStore = createStore({ isOpen: false, left: 0, top: 
 // state message ("No waypoints yet." vs "No matching waypoints."), matching the original.
 export const waypointsListStore = createStore({ rows: [], query: "" });
 
+// Hamburger menu's Outline panel (public/dotto/shared-canvases-outline.js's buildOutline/
+// handleOutlineSearch) — { rows, query }, one row per canvas card/heading/nested-canvas/source (or,
+// on a source page, one row per data row — see computeOutlineRows/computeSourceOutlineRows for the
+// row shapes). Genuine JSX rows (see OutlinePanel.jsx), same "no natural content-parameter
+// boundary" case CONTRIBUTING.md names as this migration's Phase 1 — the first vanilla list panel
+// converted where the existing keyboard-nav (srs-connections-core.js's ArrowUp/ArrowDown/Enter
+// block) still needs real DOM nodes handed back to it (see syncOutlineRows/window.__syncOutlineRows,
+// called from OutlinePanel.jsx's own layout effect) rather than owning that DOM itself.
+export const outlineStore = createStore({ rows: [], query: "" });
+
 // Hamburger menu's Sources panel (public/dotto/hamburger-collab.js's renderSourcesList) —
 // { rows: [{id, folderId, title, globalId, onCanvas, active}] , query }, one row per source folder
 // account-wide (current-canvas ones sorted first). Genuine JSX rows (see SourcesListPanel.jsx),

@@ -2430,9 +2430,6 @@
        borders actually touch instead of sitting 2px apart. */
     .outline-item-selected + .outline-item-selected{border-top:none;border-top-left-radius:0;border-top-right-radius:0;margin-top:0;}
     .outline-item-selected:has(+ .outline-item-selected){border-bottom:none;border-bottom-left-radius:0;border-bottom-right-radius:0;}
-    /* Toggled by handleOutlineSearch (shared-canvases-outline.js) — a plain post-render filter over
-       the already-built tree (see appState.outlineRows), not a rebuild with the query baked in. */
-    .outline-item.outline-row-hidden{display:none;}
     .outline-empty{padding:12px;color:var(--ink-soft);font-size:12px;text-align:center;}
     /* No explicit color — inherits currentColor from .outline-item (grey normally, white on
        hover/active per the rules above), so the icon-mask tints along with the row's own text
