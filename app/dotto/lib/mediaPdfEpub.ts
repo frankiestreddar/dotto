@@ -286,10 +286,12 @@ function loadPdfjs(): Promise<PdfjsLib> {
     // literal import() specifier as a real module reference to resolve, the way webpackIgnore
     // does for the equivalent case under webpack).
     // @ts-expect-error -- see comment above
-    appState.pdfjsLibPromise = import(/* turbopackIgnore: true */ "/vendor/pdfjs/pdf.min.mjs").then((lib) => {
-      (lib as PdfjsLib).GlobalWorkerOptions.workerSrc = "/vendor/pdfjs/pdf.worker.min.mjs";
-      return lib as PdfjsLib;
-    });
+    appState.pdfjsLibPromise = import(/* turbopackIgnore: true */ "/vendor/pdfjs/pdf.min.mjs").then(
+      (lib) => {
+        (lib as PdfjsLib).GlobalWorkerOptions.workerSrc = "/vendor/pdfjs/pdf.worker.min.mjs";
+        return lib as PdfjsLib;
+      },
+    );
   }
   return appState.pdfjsLibPromise;
 }
