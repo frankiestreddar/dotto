@@ -3,13 +3,16 @@
 ## Status
 
 - **Phase 4.0 — tooling & safety net: done.** See checklist below.
-- **Phase 4.1 — leaf-first vanilla→React port: in progress.** 3 of the original ~20-file candidate
-  list ported so far (`rail-tooltip-expand.js`, `sidebar-mode-toggle.js`,
-  `dotbot-schedule-notifications.js` — the last one required first extracting its one blocking
-  dependency, `dateKey`, out of `messages-schedule.js`) — see its own section below for why the
-  real safe set is much smaller than originally scoped, and why extraction sometimes has to happen
-  file-by-file rather than waiting for Phase 4.2.
-- **Phase 4.2 — utility extraction from hub files: not started.**
+- **Phase 4.1 — leaf-first vanilla→React port: paused for now, real safe set exhausted.** 3 files
+  ported (`rail-tooltip-expand.js`, `sidebar-mode-toggle.js`, `dotbot-schedule-notifications.js`).
+  Every other candidate in the original ~20-file list was checked and confirmed genuinely blocked
+  by deep hub dependencies (not just their own fan-in) — see its own section below. Revisit
+  individual files as their blocking hub dependency lands in a later phase, but don't keep
+  grinding on this phase in isolation; Phase 4.2 is the actual next productive step.
+- **Phase 4.2 — utility extraction from hub files: in progress.** SM-2 (`calculateSM2`/
+  `defaultSrsState`/`diffRatings`) extracted from `srs-connections-core.js` into
+  `public/dotto/srs-algorithm.js`, with real Vitest unit tests (zero coverage before this). See
+  its own section below for a real correction to how this phase was originally scoped.
 - **Phase 4.3 — split multi-concern files: not started.**
 - **Phase 4.4 — port split-out concerns + remaining DOM-heavy files: not started.**
 - **Phase 4.5 — architectural/hub files: not started.**
@@ -246,12 +249,51 @@ and others with zero/near-zero DOM touches.
    check before porting, and many will naturally become portable only once their blocking hub
    dependency lands in a later phase (or, per `dateKey`'s own precedent, once whatever small pure
    sliver is actually blocking them gets extracted on its own).
-2. **Phase 4.2 — utility extraction** (zero-risk, unblocks downstream): pull
-   `escapeHtml`/`stripHtml`/`truncateCenter` out of `ai-assistant-suggestions.js`,
-   `calculateSM2`/`defaultSrsState`/`diffRatings` out of `srs-connections-core.js` (write real
-   Vitest unit tests here — zero coverage today), achievement-scoring out of
-   `profile-achievements-pricing.js`. Each keeps a vanilla-side re-export so existing callers keep
-   working until they're themselves ported.
+
+   **Exhaustive check of the rest of the original candidate list** (before moving on to Phase 4.2):
+   every remaining zero-or-low-fan-in file was individually checked against the two-sided rule and
+   confirmed genuinely blocked — `drag-drop-chat.js` (depends on `core-state.js`/
+   `friends-presence.js`/`history-autosave.js`/`live-presence.js`, all real function calls, not
+   just appState reads), `extensions-panel.js` (calls `wireRailIcon`, `panels-hamburger.js`),
+   `search-panel-history.js` (`escapeHtml`/`rowActionsHTML`, both still multi-caller hub exports),
+   `add-menu.js`/`theme-toggle.js`/`upload-popup.js` (each has real external vanilla importers of
+   their own, never were fan-in 0 to begin with — an error in the original audit). The
+   `command-parser.js`/`command-target-lookup.js`/`command-verbs.js`/`command-palette.js` cluster
+   looked promising (`command-palette.js` is their only shared consumer) until `command-verbs.js`
+   itself turned out to depend on FIVE separate hub files directly (`render()`/`openFolder` from
+   `waypoints-render-loop.js`, `deepCloneItem`/`viewportCenterWorldPoint` from
+   `srs-connections-core.js`, `openPublicCanvas`/`openSharedCanvas` from
+   `shared-canvases-outline.js`, `saveSnapshot` from `history-autosave.js`,
+   `resolveUsernameToUserId` from `friends-presence.js`) — nothing like `dateKey`'s single tiny
+   blocker, genuinely Phase 4.4/4.5 territory. **Conclusion: Phase 4.1's low-hanging fruit is
+   genuinely exhausted for now** — stop trying to force more leaf-file ports and move to Phase 4.2
+   (or later phases) instead; individual Phase 4.1 candidates will keep becoming portable
+   organically as their blockers land.
+2. **Phase 4.2 — utility extraction.** **Real correction to the original plan text below**: it
+   said extracted functions move straight to `app/dotto/lib/*.ts` with "a vanilla-side re-export so
+   existing callers keep working" — that doesn't actually work when multiple vanilla files still
+   import the original directly (`escapeHtml` alone has ~16 vanilla callers), since vanilla can't
+   import from `app/` at all, re-export or not. The re-export pattern only works
+   vanilla-side-to-vanilla-side: extract into a NEW, smaller, more focused **vanilla** file, and
+   have the original hub file `import`+re-`export` from it, so every existing
+   `from './original-hub-file.js'` caller keeps working completely unchanged. This doesn't make
+   the extracted code reachable from `app/` yet (that still requires every remaining vanilla
+   caller to be ported first, same as any other file) — its real, immediate value is a smaller,
+   independently testable module and real unit-test coverage now, with the extracted piece ready
+   to move wholesale to `app/dotto/lib` the moment nothing vanilla needs it directly anymore. First
+   extraction done this way: `calculateSM2`/`defaultSrsState`/`diffRatings` pulled out of
+   `srs-connections-core.js` into `public/dotto/srs-algorithm.js` (genuinely pure, zero imports of
+   its own — `srs-connections-core.js` still re-exports all three so
+   `games-flashcard-typeright.js`/`stopwatch-search-notifications.js`'s existing imports are
+   untouched), with 14 new Vitest unit tests (`test/vanilla/srs-algorithm.test.ts` — kept OUT of
+   `public/dotto/` itself despite colocating with source being the usual convention, since
+   Next.js serves everything under `public/` as a real static asset in production; a `.test.ts`
+   file there would be publicly fetchable for no reason. Vitest itself isn't bound by the
+   "`public/` can't be imported by `app/`" convention either — that's a browser-runtime constraint
+   for the real app, not a test-tooling one — so a plain relative import straight into
+   `public/dotto/` from the test file works fine). Remaining Phase 4.2 targets:
+   `escapeHtml`/`stripHtml`/`truncateCenter` out of `ai-assistant-suggestions.js`, achievement-
+   scoring out of `profile-achievements-pricing.js` — same vanilla-to-vanilla extraction pattern.
 3. **Phase 4.3 — split multi-concern files** (mechanical, no logic change, structurally verified):
    `shared-canvases-outline.js` → outline-tree / tab-management / split-pane-management /
    shared-and-public-canvas-loading; `resize-shortcuts-init.js` → its 3 concerns;
@@ -360,3 +402,17 @@ interval (not mocked) — confirmed `lastStatsDayKey` initializes correctly agai
 recomputed expected value, forced a stale key, waited up to 65s for the real `setInterval` to
 detect the crossing, and confirmed both the notification's exact text and the key update — not
 just that the module loaded without error. Zero page errors.
+
+**Phase 4.2 (SM-2 extraction)**: `node --check`/`eslint` on both touched vanilla files, a full
+clean `typecheck`/`format:check`/`build` pass, and 14 new Vitest unit tests
+(`test/vanilla/srs-algorithm.test.ts`) covering `defaultSrsState`'s initial shape,
+`calculateSM2`'s full branch set (incorrect-answer reset, first/second/third+ correct-answer
+interval progression, the 1.3 ease-factor floor, a perfect-quality ease increase, and the
+interval-days-ahead `dueDate` math), and `diffRatings`' key-diffing including missing-key and
+null/undefined-input edge cases — all passing. This is a purely mechanical extraction (the same
+code moved verbatim, not rewritten), so a full UI-driven flashcard-grading Playwright test was
+judged disproportionate to the actual risk here — real unit tests exercising the exact algorithm
+plus a clean zero-error app load (confirming the import chain resolves at runtime, the one thing
+a mechanical move could plausibly break) is the right verification weight for this kind of change,
+unlike the two Phase 4.1 ports above (genuine new wiring/timing, appropriately verified with real
+browser interaction).
