@@ -28,7 +28,6 @@ import './dotto/waypoints-render-loop.js';
 import './dotto/shared-and-public-canvas-loading.js';
 import './dotto/outline-tree.js';
 import './dotto/tab-management.js';
-import './dotto/split-pane-management.js';
 import './dotto/drag-drop-chat.js';
 import './dotto/marketplace.js';
 import './dotto/library-publish.js';

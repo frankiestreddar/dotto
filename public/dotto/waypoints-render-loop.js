@@ -1214,6 +1214,8 @@ window.__attachFolderCardClick = attachFolderCardClick;
 window.__attachWaypointCardBody = attachWaypointCardBody;
 window.__attachSourceCardClick = attachSourceCardClick;
 window.__openFolder = openFolder;
+// Used by app/dotto/lib/splitPaneManagement.ts's splitPaneWithTab (Phase 4.4).
+window.__applyFolderView = applyFolderView;
 // Used by app/dotto/canvasItemBehavior.js's setupDraggingAndClicking (Phase 3's second relocated
 // piece), same reasoning as window.__getAppState (core-state.js).
 window.__performMerge = performMerge;

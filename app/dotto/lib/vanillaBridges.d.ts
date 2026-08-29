@@ -50,5 +50,38 @@ declare global {
     // both call these instead of a local function now.
     __swFormatTime?: (ms: number) => string;
     __swCurrentElapsedMs?: (it: Record<string, unknown>) => number;
+    // core-state.js — swaps which pane's fields are the live appState.<field> ones.
+    __switchActivePane?: (paneId: number) => void;
+    // core-state.js — resets a freshly-split pane's camera/selection/history to fresh defaults.
+    __initializeNewPane?: (paneId: number, folderId: string) => void;
+    // waypoints-render-loop.js — re-navigates the canvas to a folder (used by
+    // app/dotto/lib/splitPaneManagement.ts's splitPaneWithTab).
+    __applyFolderView?: (folderId: string) => void;
+    // app/dotto/lib/tabManagement.ts (still tab-management.js as of this writing) — pushes
+    // appState.tabs/activeTabId into React; called after a tab-bookkeeping mutation that doesn't
+    // itself trigger a render().
+    __renderTabsPanel?: () => void;
+    // app/dotto/bridges.js (via app/dotto-app.jsx) — pane-layout-tree helpers, all already
+    // React-callable bridges before any Phase 4.4 port needed them.
+    __countPanes?: () => number;
+    __listPaneIds?: () => number[];
+    __splitPaneInLayout?: (
+      targetPaneId: number,
+      newPaneId: number,
+      edge: "left" | "right" | "top" | "bottom",
+    ) => void;
+    __closePaneInLayout?: (paneId: number) => void;
+    __removePaneItemsStore?: (paneId: number) => void;
+    __removePaneTabsStore?: (paneId: number) => void;
+    // app/dotto/lib/splitPaneManagement.ts (Phase 4.4 port — was split-pane-management.js) —
+    // vanilla -> React bridges: TabsBar.jsx's drag-to-split gesture and PaneTopBar.jsx's close
+    // button already called these as globals before the port.
+    __splitPaneWithTab?: (
+      tabId: string,
+      targetPaneId: number,
+      edge: "left" | "right" | "top" | "bottom",
+      sourcePaneId?: number,
+    ) => void;
+    __closePane?: (paneId: number) => void;
   }
 }

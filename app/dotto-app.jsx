@@ -60,6 +60,12 @@ import {
 } from "./dotto/canvasItemBehavior";
 import { wireDayChangeAndAdNotifications } from "./dotto/lib/dayChangeAndAdNotifications";
 import { wireNotifications } from "./dotto/lib/notificationsStore";
+// Side-effect only — sets window.__splitPaneWithTab/__closePane at module-eval time (no wireX()
+// needed, unlike the two imports above: nothing here needs a live DOM/appState read at wire time,
+// just the bridge assignment itself). Imported here, not from any specific component, since
+// TabsBar.jsx/PaneTopBar.jsx are bridge CONSUMERS (call window.__splitPaneWithTab/__closePane),
+// not producers — this needs to run unconditionally, same as bridges.js's own pane helpers below.
+import "./dotto/lib/splitPaneManagement";
 import BlocksPanel from "./dotto/BlocksPanel";
 import CellTagPickerList from "./dotto/CellTagPickerList";
 import ChatsListPanel from "./dotto/ChatsListPanel";
@@ -224,7 +230,7 @@ if (typeof window !== "undefined") {
     flushSync(() => paneLayoutStore.set(closeLeafInTree(paneLayoutStore.getSnapshot(), paneId)));
   // Drops a closed pane's own items/tabs/breadcrumb stores (see createPaneKeyedStore's own
   // comment, bridges.js) so they don't just leak forever once closePane
-  // (split-pane-management.js) actually closes a pane.
+  // (app/dotto/lib/splitPaneManagement.ts) actually closes a pane.
   window.__removePaneItemsStore = (paneId) => canvasItemsStore.remove(paneId);
   window.__removePaneTabsStore = (paneId) => {
     tabsStore.remove(paneId);

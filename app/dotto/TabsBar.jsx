@@ -454,7 +454,7 @@ export default function TabsBar({ paneId }) {
     // direction as that existing split, used to be allowed and produced 3+ panes side by side
     // instead of quartering — only the perpendicular edges may ever show a zone now, growing
     // strictly toward a clean 2x2). Capped: once 4 panes already exist, no edge zone can activate
-    // at all (window.__countPanes, split-pane-management.js is the actual authority; this just
+    // at all (window.__countPanes, app/dotto/lib/splitPaneManagement.ts is the actual authority; this just
     // avoids showing a drop-zone that a drop would immediately be rejected against) — redundant
     // with allowedEdgesForPane's own depth-2 case in practice (a clean 2x2 always hits 4 panes
     // exactly when every leaf is at depth 2), kept as an explicit belt-and-suspenders check.

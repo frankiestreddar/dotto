@@ -137,7 +137,7 @@ export function computeSplitDividers(tree, rect = { x: 0, y: 0, w: 1, h: 1 }) {
 }
 
 // Every currently-open paneId, in no particular order — used for the 4-pane cap check
-// (split-pane-management.js) and nowhere else, so a plain array beats bothering with an object.
+// (app/dotto/lib/splitPaneManagement.ts) and nowhere else, so a plain array beats bothering with an object.
 export function listPaneIds(tree) {
   return tree.type === "leaf"
     ? [tree.paneId]

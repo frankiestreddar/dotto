@@ -101,6 +101,17 @@
   `history-autosave.js`'s `ensureSwTicking`/`swTick` (a 1s `.sw-time`-patching interval, unchanged)
   both call them by name. `window-bridge.js`'s now-dead `swTogglePause`/`swToggleRun`
   import+assignments removed (StopwatchCard.jsx no longer needs them as globals).
+  `split-pane-management.js` (77 lines) ported next to `app/dotto/lib/splitPaneManagement.ts` —
+  the cleanest Phase 4.4 port so far: nothing vanilla ever imported it directly (only via the
+  already React-callable `window.__splitPaneWithTab`/`__closePane` bridges TabsBar.jsx/
+  PaneTopBar.jsx already used), so zero vanilla caller updates were needed anywhere else, just the
+  bridge's own source flipping from vanilla to TS. Every one of its own dependencies was already
+  bridged except `applyFolderView`, which got one new bridge (`window.__applyFolderView`,
+  `waypoints-render-loop.js`). Since the module has no `wireX()` function (its only job is setting
+  2 bridges at load time, no live DOM/appState read needed at wire time), it's imported as a plain
+  side-effect import directly in `app/dotto-app.jsx` rather than called from a specific owning
+  component — the same reasoning `wireNotifications`/`wireDayChangeAndAdNotifications` are called
+  from there, just without a wire function of its own to invoke.
 - **Phase 4.5 — architectural/hub files: not started.**
 - **Phase 4.6 — delete the bridge layer: not started.**
 - **Phase 4.7 — final cleanup & professionalization close-out: not started.**
@@ -692,3 +703,20 @@ UI-tested — it calls the identical `window.__swFormatTime`/`__swCurrentElapsed
 confirmed live by the checks above, and the zero-error result across the whole run is strong
 evidence nothing there broke; judged proportionate the same way Phase 4.2's SM-2 extraction judged
 a full UI test unnecessary for a verbatim-logic move.
+
+**Phase 4.4 (`split-pane-management.js` → `app/dotto/lib/splitPaneManagement.ts`)**:
+`node --check` on all touched vanilla files, `eslint` clean (zero errors or warnings), a full
+clean `rm -rf .next next-env.d.ts tsconfig.tsbuildinfo && npm run typecheck && npm run build` pass
+(clean on the first attempt this time — no cast errors, unlike the stopwatch port, since this
+file's own state is entirely bridge-mediated rather than touching a typed interface directly),
+`npm run format:check` clean, all 32 Vitest tests still green. Real Playwright verification
+against a fresh dev server: confirmed both `window.__splitPaneWithTab`/`window.__closePane`
+bridges are live functions on load, then round-tripped the real pane count through a genuine
+`splitPaneWithTab` → `closePane` cycle via the actual bridges (not calling the TS functions
+directly) — count went from whatever the shared test account's baseline was (2, itself leftover
+split-screen state) to 3 after the split and back to 2 after closing, matching the identical round
+trip the `shared-canvases-outline.js` split verification already exercised, just now proving the
+NEW TS-sourced bridge behaves identically to the old vanilla one it replaced. Zero console/page
+errors. Re-checked the account afterward to confirm the transient tab created during the test
+never got persisted (no `scheduleWorkspaceSave` was triggered or waited for) — tab/pane counts
+matched the pre-test baseline exactly.

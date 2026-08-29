@@ -63,7 +63,7 @@
         // now); panes holds every OTHER (inactive) pane's own saved snapshot, keyed by paneId —
         // the active pane deliberately has no entry here, its values just ARE the live ones.
         // nextPaneId is a plain incrementing counter for generating each new pane's id (Stage 5+,
-        // splitPaneWithTab — split-pane-management.js) — same shape as appState.nextTabId, just
+        // splitPaneWithTab — app/dotto/lib/splitPaneManagement.ts) — same shape as appState.nextTabId, just
         // for panes instead of tabs.
         activePaneId: 0, panes: {}, nextPaneId: 1,
         // Core data mapping of our multiple folder structures

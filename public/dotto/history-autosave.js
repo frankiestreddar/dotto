@@ -385,7 +385,7 @@ import { centerOnContent, render } from './waypoints-render-loop.js';
         // regardless of which paneId happened to be visited last by the loop.
         switchActivePane(savedActivePaneId);
         render();
-        // Keeps a future real split (splitPaneWithTab, split-pane-management.js) from minting a
+        // Keeps a future real split (splitPaneWithTab, app/dotto/lib/splitPaneManagement.ts) from minting a
         // paneId that collides with one just restored.
         appState.nextPaneId = Math.max(typeof saved.nextPaneId === 'number' ? saved.nextPaneId : 0, maxPaneId + 1);
     }
