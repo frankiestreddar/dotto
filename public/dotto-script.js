@@ -24,7 +24,6 @@ import './dotto/search-panel-history.js';
 import './dotto/mnemonic-search-matching.js';
 import './dotto/search-orchestration-selection.js';
 import './dotto/waypoints-render-loop.js';
-import './dotto/shared-and-public-canvas-loading.js';
 import './dotto/outline-tree.js';
 import './dotto/drag-drop-chat.js';
 import './dotto/marketplace.js';

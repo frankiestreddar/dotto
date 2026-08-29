@@ -2,7 +2,6 @@ import { appState } from './core-state.js';
 import { refreshCanvasCollabForCurrentFolder, refreshFriendsData, renderCollabPill } from './friends-presence.js';
 import { applyTransform, loadWorkspace } from './history-autosave.js';
 import { refreshDotbotUsage } from './profile-achievements-pricing.js';
-import { announceEnteredCollaboration } from './shared-and-public-canvas-loading.js';
 import { applyCursorMode } from './source-buttons-cursor-mode.js';
 import { updateDrawLayerBtns } from './srs-connections-core.js';
 import { centerOnContent, render } from './waypoints-render-loop.js';
@@ -31,7 +30,7 @@ applyCursorMode();
     // logic) reads the same as freshly entering it from the user's point of view — the one-time
     // "Collaborating on..." notification should still fire, not just for the in-session entry
     // points (openSharedCanvas/goToWaypointCard).
-    if (appState.folders[appState.currentFolderId] && appState.folders[appState.currentFolderId].isSharedView) announceEnteredCollaboration(appState.currentFolderId);
+    if (appState.folders[appState.currentFolderId] && appState.folders[appState.currentFolderId].isSharedView) window.__announceEnteredCollaboration(appState.currentFolderId);
 })();
 refreshFriendsData().then(() => renderCollabPill());
 refreshDotbotUsage();

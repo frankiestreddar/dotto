@@ -7,7 +7,6 @@ import { renderFilesList, renderSourcesList } from './hamburger-collab.js';
 import { applyTransform, ensureSwTicking, saveSnapshot, scheduleWorkspaceSave, updateContextMenuPosition } from './history-autosave.js';
 import { broadcastEditingState, miniLabelForItem, placeCaretEnd, renderRealCardPreview, repositionAllRemoteCursors, syncColorPicker } from './live-presence.js';
 import { findNextFreeSlot } from './card-shortcuts.js';
-import { ensureSharedFolderLoaded, sharedFolderKey, stripSharedFolderIds } from './shared-and-public-canvas-loading.js';
 import { buildOutline } from './outline-tree.js';
 import { closeSourceAddMenu } from './source-buttons-cursor-mode.js';
 import { closeCellTagPicker } from './source-tags-ai.js';
@@ -251,10 +250,10 @@ import { applyConnections } from './srs-connections-core.js';
     // user's current view to a canvas they weren't looking at.
     async function deleteWaypointCardEverywhere(ownerId, folderId, itemId) {
         const isOwn = ownerId === appState.currentUser.id;
-        const localKey = isOwn ? folderId : sharedFolderKey(ownerId, folderId);
+        const localKey = isOwn ? folderId : window.__sharedFolderKey(ownerId, folderId);
         if (!appState.folders[localKey]) {
             if (isOwn) { await deleteWaypointFromDb(localKey, itemId); return; }
-            if (!(await ensureSharedFolderLoaded(localKey))) {
+            if (!(await window.__ensureSharedFolderLoaded(localKey))) {
                 // Access revoked or the canvas itself is gone — nothing to patch, just drop the
                 // stale global pointer directly (deleteWaypointFromDb needs a loaded folderObj to
                 // derive owner/folder from, which we don't have here).
@@ -275,7 +274,7 @@ import { applyConnections } from './srs-connections-core.js';
             scheduleWorkspaceSave();
         } else {
             const { isSharedView, sharedOwnerId, sharedRemoteFolderId, id, ...folderData } = folderObj;
-            folderData.items = stripSharedFolderIds(folderData.items);
+            folderData.items = window.__stripSharedFolderIds(folderData.items);
             const { error } = await supabase.rpc('update_shared_folder', {
                 p_owner_id: sharedOwnerId, p_folder_id: sharedRemoteFolderId, p_new_folder_data: folderData,
             });
@@ -1102,7 +1101,7 @@ import { applyConnections } from './srs-connections-core.js';
     // every existing call site already just fires this without awaiting it (a normal click
     // handler), which still works fine now that it's async.
     async function openFolder(folderId) {
-        if (folderId.startsWith('shared:') && !appState.folders[folderId] && !(await ensureSharedFolderLoaded(folderId))) return;
+        if (folderId.startsWith('shared:') && !appState.folders[folderId] && !(await window.__ensureSharedFolderLoaded(folderId))) return;
         appState.historyStack = appState.historyStack.slice(0, appState.historyIndex + 1);
         appState.historyStack.push(folderId);
         appState.historyIndex++;
@@ -1213,6 +1212,9 @@ window.__attachFolderCardClick = attachFolderCardClick;
 window.__attachWaypointCardBody = attachWaypointCardBody;
 window.__attachSourceCardClick = attachSourceCardClick;
 window.__openFolder = openFolder;
+// Used by app/dotto/lib/sharedAndPublicCanvasLoading.ts's openSharedCanvas/openPublicCanvas/
+// exitSharedCanvasToRoot (Phase 4.4).
+window.__centerOnContent = centerOnContent;
 // Used by app/dotto/lib/splitPaneManagement.ts's splitPaneWithTab (Phase 4.4).
 window.__applyFolderView = applyFolderView;
 // Used by app/dotto/canvasItemBehavior.js's setupDraggingAndClicking (Phase 3's second relocated

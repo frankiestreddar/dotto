@@ -70,6 +70,10 @@ import "./dotto/lib/splitPaneManagement";
 // Side-effect only, same reasoning as splitPaneManagement above — sets window.__addTab/__switchTab/
 // etc at module-eval time; TabsBar.jsx/PaneTopBar.jsx are bridge consumers, not producers.
 import "./dotto/lib/tabManagement";
+// Side-effect only, same reasoning as splitPaneManagement/tabManagement above — sets
+// window.__openSharedCanvas/__ensureSharedFolderLoaded/etc at module-eval time for the 6
+// still-vanilla callers that used to import these directly.
+import "./dotto/lib/sharedAndPublicCanvasLoading";
 import BlocksPanel from "./dotto/BlocksPanel";
 import CellTagPickerList from "./dotto/CellTagPickerList";
 import ChatsListPanel from "./dotto/ChatsListPanel";

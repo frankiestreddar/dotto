@@ -146,6 +146,20 @@
   before. No `wireX()` needed (same reasoning as `splitPaneManagement.ts` — every function here is
   called later via bridge, nothing needs a live DOM/appState read right at import time), so it's a
   plain side-effect import in `app/dotto-app.jsx` alongside `splitPaneManagement`'s own.
+  `shared-and-public-canvas-loading.js` (265 lines) ported next to `app/dotto/lib/
+  sharedAndPublicCanvasLoading.ts` — fetching a live-shared or public canvas into this client's
+  own `folders` map under a namespaced key. The most-depended-upon Phase 4.4 port so far: 6 real
+  vanilla callers (`app-init.js`, `command-verbs.js`, `hamburger-collab.js`, `history-autosave.js`,
+  `live-presence.js`, `waypoints-render-loop.js`), all switched from direct imports to window
+  bridges — 7 new outbound bridges added on top of the 3 that already existed
+  (`__openSharedCanvas`/`__resolveReferenceFolderKey`/`__exitSharedCanvasToRoot`). First port to
+  touch real Supabase RPC calls from TS: reused the ALREADY-EXISTING `window.__dottoSupabase`
+  bridge (set by `dotto-app.jsx` at module-eval time, previously untyped since only vanilla code
+  had read it) rather than inventing a new one — added a real `SupabaseClient` type import from
+  `@supabase/supabase-js` to `vanillaBridges.d.ts` for it. The `.rpc()` calls themselves typechecked
+  cleanly with no casts needed. `window.__centerOnContent` added as a 1-off new bridge
+  (`waypoints-render-loop.js`). Same plain-side-effect-import pattern as `splitPaneManagement.ts`/
+  `tabManagement.ts` (no `wireX()` needed).
 - **Phase 4.5 — architectural/hub files: not started.**
 - **Phase 4.6 — delete the bridge layer: not started.**
 - **Phase 4.7 — final cleanup & professionalization close-out: not started.**
@@ -793,3 +807,28 @@ bridge and confirmed it landed back on `currentFolderId === 'root'` — a genuin
 `buildAncestorChain`'s structural-parent walk, not just a bridge-existence check. Zero console/page
 errors across both runs. Re-checked the account afterward to confirm the mock nested folder, its
 card, and the extra tab were all cleaned up with no residue.
+
+**Phase 4.4 (`shared-and-public-canvas-loading.js` → `app/dotto/lib/sharedAndPublicCanvasLoading.ts`)**:
+`node --check` on all 6 touched vanilla caller files, `eslint` clean (zero errors or warnings), a
+full clean `rm -rf .next next-env.d.ts tsconfig.tsbuildinfo && npm run typecheck && npm run build`
+pass — typecheck caught 3 real "bridge exists but was never declared" errors on the first pass
+(`__applyTransform`, plus `__openSharedCanvas`/`__resolveReferenceFolderKey`, which this file both
+reads and writes so needed declaring even though they'd existed as plain vanilla assignments for
+phases already); notably the real `SupabaseClient.rpc()` calls typechecked cleanly with zero casts
+needed, `npm run format:check` clean, all 32 Vitest tests still green. Real Playwright verification
+against a fresh dev server — this is a single-account test setup, so the real cross-account RPC
+flows (`openSharedCanvas`/`openPublicCanvas`/`ensureSharedFolderLoaded` actually fetching another
+user's canvas) can't be exercised end-to-end here, same limitation the original Phase 4.3 split
+verification of this exact file had; covered instead: confirmed all 10 bridges live within 500ms
+of load; the pure key-transform functions (`sharedFolderKey`/`parseSharedFolderKey`/
+`stripSharedFolderIds`/`namespaceSharedFolderIds`) produced correct output against real input data;
+`ensureSharedFolderLoaded`'s already-loaded fast path correctly short-circuited to `true` without
+attempting an RPC call; `resolveReferenceFolderKey`'s own-folder fast path correctly resolved
+without a fetch; and `exitSharedCanvasToRoot` — simulating a `shared:`/`public:` state entirely in
+`appState` rather than via a real fetch — correctly removed both namespaced folders, cleared
+`preSharedViewState`, and restored `currentFolderId`/`historyStack` to root. One real test-script
+bug caught and fixed along the way: `window.__getAppState` intermittently wasn't ready between
+rapid-fire `page.evaluate` calls with no wait between them, fixed by adding small waits — a
+test-script timing issue, not an app bug (the same functions worked correctly once given time to
+settle). Zero console/page errors on the final clean run. Re-checked the account afterward to
+confirm zero residual fake shared/public folder entries and a cleared `preSharedViewState`.

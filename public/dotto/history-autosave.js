@@ -6,7 +6,6 @@ import { resolveSharedFolderChain } from './hamburger-collab.js';
 import { broadcastCursorPositionThrottled, closeSharedCanvasView, ensureCanvasPresenceChannel, findItemById, queueSyncDiff, repositionAllRemoteCursors } from './live-presence.js';
 import { closeAllPanels } from './panels-hamburger.js';
 import { closeDotbotUpgradeModal, closePricingOverlay } from './profile-achievements-pricing.js';
-import { stripSharedFolderIds } from './shared-and-public-canvas-loading.js';
 import { closeCellTagPicker } from './source-tags-ai.js';
 import { cancelAddingKind, finishPenPolyline } from './srs-connections-core.js';
 import { closeSearchCardsModal } from './shelf-search.js';
@@ -90,7 +89,7 @@ import { centerOnContent, render } from './waypoints-render-loop.js';
         // one is open, the "resume here" fields also fall back to wherever this user's own
         // navigation was just before entering it (preSharedViewState), not the shared key itself,
         // since that key wouldn't mean anything on a fresh load without re-fetching. public:
-        // entries (openPublicCanvas, shared-and-public-canvas-loading.js) get the same exclusion but for a
+        // entries (openPublicCanvas, app/dotto/lib/sharedAndPublicCanvasLoading.ts) get the same exclusion but for a
         // stronger reason: there's no update_public_folder counterpart at all to patch one back
         // to — a public view is read-only and never persisted anywhere, so it must never even be
         // attempted here. media-view-*: entries (window.__openMediaViewerTab,
@@ -201,7 +200,7 @@ import { centerOnContent, render } from './waypoints-render-loop.js';
             const { error: globalItemsErr } = await supabase.rpc('register_global_items', { p_items: globalItems });
             // Spelled out explicitly rather than logging the PostgrestError object directly — its
             // own useful fields (message/code/details/hint) don't reliably show up that way, see
-            // ensureSharedFolderLoaded's identical comment (shared-and-public-canvas-loading.js). A "does
+            // ensureSharedFolderLoaded's identical comment (app/dotto/lib/sharedAndPublicCanvasLoading.ts). A "does
             // not exist" message here almost always means the 20260812_add_global_items.sql
             // migration hasn't been applied to the actual Supabase project yet, not a real bug.
             if (globalItemsErr) console.error(`[global-ids] registration failed: message=${globalItemsErr.message} code=${globalItemsErr.code} details=${globalItemsErr.details} hint=${globalItemsErr.hint}`);
@@ -216,7 +215,7 @@ import { centerOnContent, render } from './waypoints-render-loop.js';
             // local folders dict's shared: wrapping (see injectSharedFolder) must never leak back
             // into it, or it compounds into a permanently corrupt double-wrapped id on the next
             // fetch (see namespaceSharedFolderIds/stripSharedFolderIds).
-            folderData.items = stripSharedFolderIds(folderData.items);
+            folderData.items = window.__stripSharedFolderIds(folderData.items);
             const { error: sharedErr } = await supabase.rpc('update_shared_folder', {
                 p_owner_id: sharedOwnerId, p_folder_id: sharedRemoteFolderId, p_new_folder_data: folderData,
             });

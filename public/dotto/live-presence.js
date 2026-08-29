@@ -10,7 +10,6 @@ import { saveSnapshot, smoothPanTo } from './history-autosave.js';
 import { renderMediaHTML } from './media-pdf-epub.js';
 import { closeMessagesPanel } from './messages-schedule.js';
 import { awardUserPoints, renderAvatarInto } from './profile-achievements-pricing.js';
-import { namespaceSharedFolderIds, parseSharedFolderKey, stripSharedFolderIds } from './shared-and-public-canvas-loading.js';
 import { kindIconHTML } from './outline-tree.js';
 import { renderTableHTML } from './source-table.js';
 import { renderStopwatchHTML } from './stopwatch.js';
@@ -47,7 +46,7 @@ import { render } from './waypoints-render-loop.js';
     // exact same real canvas computes the identical channel name independently.
     function resolvePresenceFolderKey() {
         if (appState.currentFolderId.startsWith('shared:')) {
-            const { ownerId, remoteFolderId } = parseSharedFolderKey(appState.currentFolderId);
+            const { ownerId, remoteFolderId } = window.__parseSharedFolderKey(appState.currentFolderId);
             return { ownerId, folderId: remoteFolderId };
         }
         return { ownerId: appState.currentUser.id, folderId: appState.currentFolderId };
@@ -83,7 +82,7 @@ import { render } from './waypoints-render-loop.js';
     // they're the owner or a collaborator, and so the wrapping itself never gets diffed as if it
     // were a real content change.
     function canonicalItem(it) {
-        return stripSharedFolderIds([it])[0];
+        return window.__stripSharedFolderIds([it])[0];
     }
     function snapshotFolderForBroadcast(folderObj) {
         const items = new Map();
@@ -771,7 +770,7 @@ import { render } from './waypoints-render-loop.js';
             // same local-only wrapping every other item here already has (see
             // namespaceSharedFolderIds) to stay internally consistent; the owner's own view uses
             // the canonical form directly.
-            const remoteItem = folderObj.isSharedView ? namespaceSharedFolderIds(folderObj.sharedOwnerId, [canonicalRemoteItem])[0] : canonicalRemoteItem;
+            const remoteItem = folderObj.isSharedView ? window.__namespaceSharedFolderIds(folderObj.sharedOwnerId, [canonicalRemoteItem])[0] : canonicalRemoteItem;
             const idx = folderObj.items.findIndex(it => it.id === remoteItem.id);
             if (idx === -1) folderObj.items.push(remoteItem);
             else folderObj.items[idx] = remoteItem;

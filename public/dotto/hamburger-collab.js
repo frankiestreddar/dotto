@@ -6,7 +6,6 @@ import { findItemById } from './live-presence.js';
 import { flashCanvasElement } from './mnemonic-search-matching.js';
 import { closeRailView } from './panels-hamburger.js';
 import { closeProfilePanel, openPricingOverlay } from './profile-achievements-pricing.js';
-import { announceEnteredCollaboration, ensureSharedFolderLoaded, sharedFolderKey } from './shared-and-public-canvas-loading.js';
 import { goToOutlineItem } from './outline-tree.js';
 import { deleteCanvasCollabsForFolder, deleteWaypointCardEverywhere, expandWaypointCard, folderGlobalId, openFolder, render } from './waypoints-render-loop.js';
 
@@ -36,7 +35,7 @@ import { deleteCanvasCollabsForFolder, deleteWaypointCardEverywhere, expandWaypo
                 .eq('status', 'accepted'),
         ]);
         // message/code/details/hint spelled out explicitly (same convention as command-verbs.js,
-        // shared-and-public-canvas-loading.js, etc.) rather than logging the PostgrestError object
+        // app/dotto/lib/sharedAndPublicCanvasLoading.ts, etc.) rather than logging the PostgrestError object
         // directly — its actual fields aren't enumerable in a way every console/error-overlay
         // serializer picks up, so a raw `console.error(..., error)` can print as an unhelpful {}.
         if (sharedWithMeRes.error) {
@@ -132,12 +131,12 @@ import { deleteCanvasCollabsForFolder, deleteWaypointCardEverywhere, expandWaypo
         // the owner's own next panel render is what actually cleans up their row.
         const sharedCandidates = appState.acceptedCanvasCollaborations.filter(c => !q || c.folderTitle.toLowerCase().includes(q));
         const sharedStillExists = await Promise.all(sharedCandidates.map(async (c) => {
-            if (appState.folders[sharedFolderKey(c.ownerId, c.folderId)]) return true; // already loaded locally this session
+            if (appState.folders[window.__sharedFolderKey(c.ownerId, c.folderId)]) return true; // already loaded locally this session
             const { data, error } = await supabase.rpc('get_shared_folder', { p_owner_id: c.ownerId, p_folder_id: c.folderId });
             return !error && data != null;
         }));
         const sharedShown = sharedCandidates.filter((c, i) => sharedStillExists[i]).map(c => {
-            const sharedKey = sharedFolderKey(c.ownerId, c.folderId);
+            const sharedKey = window.__sharedFolderKey(c.ownerId, c.folderId);
             return { ...c, liveTitle: (appState.folders[sharedKey] && appState.folders[sharedKey].title) || c.folderTitle };
         });
         window.__setHubCollabList({ view: 'main', requestsCount: appState.incomingCanvasRequests.length, ownedShown, sharedShown, query: q });
@@ -372,8 +371,8 @@ import { deleteCanvasCollabsForFolder, deleteWaypointCardEverywhere, expandWaypo
         if (error || !chain || !chain.length) { console.error('[collab] failed to resolve shared folder path:', error); return null; }
         const localKeys = [];
         for (const fid of chain) {
-            const key = sharedFolderKey(ownerId, fid);
-            if (!(await ensureSharedFolderLoaded(key))) return null;
+            const key = window.__sharedFolderKey(ownerId, fid);
+            if (!(await window.__ensureSharedFolderLoaded(key))) return null;
             localKeys.push(key);
         }
         return localKeys;
@@ -394,7 +393,7 @@ import { deleteCanvasCollabsForFolder, deleteWaypointCardEverywhere, expandWaypo
         appState.historyStack = localKeys;
         appState.historyIndex = localKeys.length - 1;
         render();
-        if (isFreshEntry) announceEnteredCollaboration(localKeys[0]);
+        if (isFreshEntry) window.__announceEnteredCollaboration(localKeys[0]);
         const it = appState.folders[appState.currentFolderId] && appState.folders[appState.currentFolderId].items.find(i => String(i.id) === String(itemId));
         if (it) peekWaypointCard(appState.currentFolderId, it);
     }

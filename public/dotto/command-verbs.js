@@ -4,7 +4,6 @@ import { generateGlobalId } from './global-ids.js';
 import { saveSnapshot } from './history-autosave.js';
 import { openFolder, render } from './waypoints-render-loop.js';
 import { CARD_KINDS } from './card-kinds.js';
-import { openPublicCanvas, openSharedCanvas } from './shared-and-public-canvas-loading.js';
 import { deepCloneItem, viewportCenterWorldPoint } from './srs-connections-core.js';
 
 // Executes the 'obtain' verb for an already-resolved command target (see
@@ -16,8 +15,8 @@ import { deepCloneItem, viewportCenterWorldPoint } from './srs-connections-core.
 function obtainTarget(target) {
     if (!target) return;
     if (target.access === 'owner') { openFolder(target.folder_id); return; }
-    if (target.access === 'collaborator') { openSharedCanvas(target.owner_id, target.folder_id, target.title); return; }
-    if (target.access === 'public') { openPublicCanvas(target.owner_id, target.folder_id, target.title); return; }
+    if (target.access === 'collaborator') { window.__openSharedCanvas(target.owner_id, target.folder_id, target.title); return; }
+    if (target.access === 'public') { window.__openPublicCanvas(target.owner_id, target.folder_id, target.title); return; }
 }
 
 // 'set public'/'set private' — checked against target.access here rather than just leaving it to
@@ -78,7 +77,7 @@ async function removeUser(target, username) {
 
 // 'place' — drops a read-only reference card (kind: 'reference', ReferenceCard.jsx) at the center
 // of the current viewport, pointing at the resolved target by (owner_id, folder_id) rather than
-// copying any content — see resolveReferenceFolderKey's own comment (shared-and-public-canvas-loading.js)
+// copying any content — see resolveReferenceFolderKey's own comment (app/dotto/lib/sharedAndPublicCanvasLoading.ts)
 // for how that card finds/loads the live data every time it (re)mounts, refetched fresh rather
 // than cached. Valid for a target you own, a target shared with you, or a public one — obtaining
 // isn't required first, "place" is its own independent way to reach something. refTitle/

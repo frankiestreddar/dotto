@@ -2,10 +2,17 @@
 // code back to whatever vanilla still owns each piece — see CONTRIBUTING.md's own bridge
 // convention. Grows as more Phase 4.x ports need to reach a still-vanilla function; only declares
 // bridges actually consumed by real .ts code so far, not a speculative full inventory.
+import type { SupabaseClient } from "@supabase/supabase-js";
+
 export {};
 
 declare global {
   interface Window {
+    // app/dotto-app.jsx — the real Supabase browser client, set once during module eval (same
+    // "set during module eval, not an effect" timing dotto-app.jsx's own comment describes) —
+    // already an established React -> vanilla bridge (core-state.js reads it as
+    // `window.__dottoSupabase || null`) before any .ts file needed it typed.
+    __dottoSupabase?: SupabaseClient;
     // core-state.js — returns the live, mutated-in-place appState singleton (Phase 3's universal
     // bridge). Loosely typed (not the full appState shape) since only a handful of fields are
     // read/written from ported code so far; widen as more fields are actually touched.
@@ -114,7 +121,7 @@ declare global {
     // ai-assistant-suggestions.js — structural (real canvas hierarchy) parent lookup, used by
     // app/dotto/lib/tabManagement.ts's buildAncestorChain.
     __findParentFolderId?: (folderId: string) => string | undefined;
-    // public/dotto/shared-and-public-canvas-loading.js (still vanilla) — leaves a live-shared/public canvas tree
+    // app/dotto/lib/sharedAndPublicCanvasLoading.ts — leaves a live-shared/public canvas tree
     // and lands on the user's own real root, used by app/dotto/lib/tabManagement.ts's
     // breadcrumbMapRowClick for its synthetic Root row.
     __exitSharedCanvasToRoot?: () => void;
@@ -153,5 +160,35 @@ declare global {
     __openMediaViewerTab?: (item: { id: number; mediaName?: string }, paneId?: number) => void;
     __renderNavArrows?: (paneId?: number) => void;
     __renderBreadcrumbMapPanel?: (paneId?: number) => void;
+    // waypoints-render-loop.js — pans/zooms to fit the current folder's content.
+    __centerOnContent?: () => void;
+    // app/dotto/lib/sharedAndPublicCanvasLoading.ts (Phase 4.4 port — was
+    // shared-and-public-canvas-loading.js) — vanilla -> React bridges: app-init.js,
+    // command-verbs.js, hamburger-collab.js, history-autosave.js, live-presence.js, and
+    // waypoints-render-loop.js all previously imported these directly.
+    __announceEnteredCollaboration?: (localKey: string) => Promise<void>;
+    __openPublicCanvas?: (ownerId: string, folderId: string, title?: string) => Promise<void>;
+    __ensureSharedFolderLoaded?: (localKey: string) => Promise<boolean>;
+    __sharedFolderKey?: (ownerId: string, folderId: string) => string;
+    __stripSharedFolderIds?: (
+      items: Record<string, unknown>[] | undefined,
+    ) => Record<string, unknown>[];
+    __namespaceSharedFolderIds?: (
+      ownerId: string,
+      items: Record<string, unknown>[] | undefined,
+    ) => Record<string, unknown>[];
+    __parseSharedFolderKey?: (key: string) => { ownerId: string; remoteFolderId: string };
+    // history-autosave.js — reapplies appState.tx/ty/scale to the canvas transform.
+    __applyTransform?: () => void;
+    // Set from app/dotto/lib/sharedAndPublicCanvasLoading.ts itself — declared here because that
+    // file both reads and writes these two (self-referential bridge, same as every other
+    // vanilla -> React entry in this file), unlike a plain vanilla assignment which needed no type.
+    __openSharedCanvas?: (
+      ownerId: string,
+      folderId: string,
+      title?: string,
+      ownerName?: string,
+    ) => Promise<void>;
+    __resolveReferenceFolderKey?: (ownerId: string, folderId: string) => Promise<string | null>;
   }
 }

@@ -152,11 +152,12 @@ export function wireNotifications(): () => void {
 }
 
 // Not an inline-HTML onclick target (see window-bridge.js's own header comment for why those live
-// there instead) — plain vanilla-callable bridges for the ~8 still-vanilla files that push/query
+// there instead) — plain vanilla-callable bridges for the ~7 still-vanilla files that push/query
 // notifications (command-verbs.js, command-palette.js, hamburger-collab.js, friends-presence.js,
-// profile-achievements-pricing.js, shared-and-public-canvas-loading.js, srs-connections-core.js,
-// card-shortcuts.js) plus app/dotto/lib/dayChangeAndAdNotifications.ts and PricingOverlay.jsx,
-// which already called window.pushNotification even before this port (see vanillaBridges.d.ts).
+// profile-achievements-pricing.js, srs-connections-core.js, card-shortcuts.js) plus
+// app/dotto/lib/dayChangeAndAdNotifications.ts, app/dotto/lib/sharedAndPublicCanvasLoading.ts, and
+// PricingOverlay.jsx, which already called window.pushNotification even before this port (see
+// vanillaBridges.d.ts).
 window.pushNotification = (config) => useNotificationsStore.getState().pushNotification(config);
 // card-shortcuts.js's hover-scoped game-card/PDF-page-turn shortcuts gate on this — "its own
 // Enter/Escape handling should win, not compete" — same reasoning the keydown handler above uses.
