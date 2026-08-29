@@ -1509,3 +1509,6 @@ window.__broadcastItemResize = broadcastItemResize;
 // piece), same reasoning as window.__getAppState (core-state.js).
 window.__broadcastItemDragPositions = broadcastItemDragPositions;
 window.__findItemById = findItemById;
+// Used by app/dotto/lib/marketplace.ts's packageSelectedAsTemplate (Phase 4.4).
+window.__snapshotItem = snapshotItem;
+window.__sanitizeFlashcardSnapshot = sanitizeFlashcardSnapshot;

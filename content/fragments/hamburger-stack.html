@@ -262,7 +262,7 @@
     </div>
     <!-- Marketplace (Discover) — moved here from its own standalone floating card (content/
          fragments/cart-panel.html, now empty/unused) now that it shares this permanent rail shell
-         (see refreshCartPanel/wireRailIcon, marketplace.js). Used to also contain a Library tab
+         (see refreshCartPanel/wireRailIcon, app/dotto/lib/marketplace.ts). Used to also contain a Library tab
          (Discover/Library tab-switcher) — Library is a fully separate rail icon/panel now (see
          #library-panel below), so this is Discover-browsing only. -->
     <div id="cart-panel" class="hmenu-panel hub-subpanel" onclick="event.stopPropagation()">
@@ -333,7 +333,7 @@
          (library-publish.js's own DOM lookups were retargeted to match — see its own comments). -->
     <div id="add-menu" class="hmenu-panel hub-subpanel" onclick="event.stopPropagation()">
         <!-- Dynamic Drop Box Overlay on Active Template Building Drag — packaging cards you drag
-             onto this panel into a new draft (packageSelectedAsTemplate, marketplace.js) lands in
+             onto this panel into a new draft (packageSelectedAsTemplate, app/dotto/lib/marketplace.ts) lands in
              My Creations. -->
         <div id="library-dropzone-overlay">
             <div class="dropzone-box">

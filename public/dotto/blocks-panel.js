@@ -1,7 +1,6 @@
 import { addMenu, appState, btnAdd, canvas } from './core-state.js';
 import { deleteMyCreationItem, openItemDetail } from './library-publish.js';
 import { importSharedCardsAtScreenPoint } from './live-presence.js';
-import { refreshMyLibrary } from './marketplace.js';
 import { closeRailView, wireRailIcon } from './panels-hamburger.js';
 import { applyCursorMode } from './source-buttons-cursor-mode.js';
 
@@ -131,7 +130,7 @@ async function refreshBlocksPanel() {
     const input = document.getElementById('add-menu-search-input');
     if (input) input.value = '';
     pushBlocksView();
-    await refreshMyLibrary();
+    await window.__refreshMyLibrary();
     pushBlocksView();
 }
 

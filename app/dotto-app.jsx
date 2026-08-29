@@ -60,6 +60,7 @@ import {
 } from "./dotto/canvasItemBehavior";
 import { wireCopyPaste } from "./dotto/lib/copyPaste";
 import { wireDayChangeAndAdNotifications } from "./dotto/lib/dayChangeAndAdNotifications";
+import { wireMarketplace } from "./dotto/lib/marketplace";
 import { wireNotifications } from "./dotto/lib/notificationsStore";
 // Side-effect only — sets window.__splitPaneWithTab/__closePane at module-eval time (no wireX()
 // needed, unlike the two imports above: nothing here needs a live DOM/appState read at wire time,
@@ -341,10 +342,10 @@ if (typeof window !== "undefined") {
   // friends-presence.js's renderCollabList) — same reasoning: real async Supabase calls.
   window.__setCollabList = collabListStore.set;
   // Marketplace Discover tab's trending list (see app/dotto/MarketDiscoverPanel.jsx,
-  // marketplace.js's renderMarketplaceDiscover) — a plain store.set, no synchronous DOM read
-  // follows it.
+  // app/dotto/lib/marketplace.ts's renderMarketplaceDiscover) — a plain store.set, no synchronous
+  // DOM read follows it.
   window.__setMarketDiscover = marketDiscoverStore.set;
-  // Marketplace item detail view (see app/dotto/MarketDetailPanel.jsx, marketplace.js's
+  // Marketplace item detail view (see app/dotto/MarketDetailPanel.jsx, app/dotto/lib/marketplace.ts's
   // openMarketDetail/closeMarketDetail) — a plain store.set, no synchronous DOM read follows it.
   window.__setMarketDetail = marketDetailStore.set;
   // Blocks panel's list content (see app/dotto/BlocksPanel.jsx, blocks-panel.js's
@@ -432,6 +433,10 @@ export default function DottoApp({ sections, currentUser }) {
   // — see wireCopyPaste's own comment, app/dotto/lib/copyPaste.ts, for why this needs to poll for
   // window.__getCanvasEl rather than a single readiness check.
   useEffect(() => wireCopyPaste(), []);
+  // Phase 4.4: the Marketplace rail icon's click/hover/pin wiring — see wireMarketplace's own
+  // comment, app/dotto/lib/marketplace.ts, for why this needs to poll for
+  // window.__wireRailIcon/appState.btnCart/appState.cartPanel rather than a single readiness check.
+  useEffect(() => wireMarketplace(), []);
 
   return (
     <>

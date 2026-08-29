@@ -160,6 +160,25 @@
   cleanly with no casts needed. `window.__centerOnContent` added as a 1-off new bridge
   (`waypoints-render-loop.js`). Same plain-side-effect-import pattern as `splitPaneManagement.ts`/
   `tabManagement.ts` (no `wireX()` needed).
+  `marketplace.js` (232 lines) ported next to `app/dotto/lib/marketplace.ts` — Discover-tab
+  browsing, the purchase flow, and packaging a canvas selection into a draft. Introduced a genuinely
+  new pattern beyond every earlier Phase 4.4 port: the original called `wireRailIcon(...)` at plain
+  module-load time to register the Marketplace rail icon's click/hover/pin behavior directly
+  against real DOM elements (`appState.btnCart`/`appState.cartPanel`) — ported as `wireMarketplace`
+  with the same bridge-readiness poll `wireCopyPaste`/`wireDayChangeAndAdNotifications` established,
+  since `window.__wireRailIcon` and those two DOM elements might not exist yet when DottoApp's own
+  mount effect runs. 6 new bridges added (`__getAddMenuEl`/`__getBtnAddEl` for two more separate
+  module-level DOM bindings core-state.js exports — same category as `__getCanvasEl`/`__getWorldEl`,
+  not appState properties; `__wireRailIcon`/`__openRailView`; `__snapshotItem`/
+  `__sanitizeFlashcardSnapshot`). Untangled a real vanilla-to-vanilla circular import
+  (`library-publish.js` imports `openItemDetail` from... itself calling back into
+  `refreshMyLibrary`, which lived in this file — both directions now go through bridges). 3 of the
+  4 window-bridge.js assignments this file used to feed are genuine inline-onclick targets
+  (`handleMarketplaceSearch`/`closeMarketDetail`/`purchaseCurrentMarketItem`, confirmed against
+  `hamburger-stack.html`) and kept their plain non-`__` names, now set from the TS file itself; the
+  4th (`window.deployPurchasedTemplate`, no `__` prefix) was genuinely dead — only
+  `window.__deployPurchasedTemplate` was ever actually called (ItemDetailFooter.jsx) — dropped
+  rather than recreated.
 - **Phase 4.5 — architectural/hub files: not started.**
 - **Phase 4.6 — delete the bridge layer: not started.**
 - **Phase 4.7 — final cleanup & professionalization close-out: not started.**
@@ -832,3 +851,25 @@ rapid-fire `page.evaluate` calls with no wait between them, fixed by adding smal
 test-script timing issue, not an app bug (the same functions worked correctly once given time to
 settle). Zero console/page errors on the final clean run. Re-checked the account afterward to
 confirm zero residual fake shared/public folder entries and a cleared `preSharedViewState`.
+
+**Phase 4.4 (`marketplace.js` → `app/dotto/lib/marketplace.ts`)**: `node --check` on all touched
+vanilla files, `eslint` clean (zero errors or warnings), a full clean `rm -rf .next next-env.d.ts
+tsconfig.tsbuildinfo && npm run typecheck && npm run build` pass — typecheck caught 4 real errors
+on the first pass, all the same "interface too strict to pass through a `Record<string, unknown>`
+bridge parameter" class already seen with `StopwatchItem`, fixed the same way (an index signature
+on `MarketplaceItem`, not loosening the bridge's own type), `npm run format:check` clean, all 32
+Vitest tests still green. Real Playwright verification against a fresh dev server — deliberately
+scoped to avoid real Supabase writes against the shared test account (`purchaseCurrentMarketItem`/
+`packageSelectedAsTemplate`'s own insert paths weren't exercised, same "mechanical port, verified
+by typecheck + zero-error load" tier used for untestable RPC paths in the previous port): confirmed
+all 11 bridges live within 500ms of load; a **real click on `#btn-cart`** (not a direct function
+call) correctly opened the cart panel (`.open` class + `.active` on the button) via the
+`wireRailIcon` binding `wireMarketplace`'s readiness-poll set up, and its `onOpen` callback
+(`refreshCartPanel`) genuinely ran a real Supabase read (`trendingCount: 0`, confirming the query
+executed against the real test-project schema rather than erroring silently); real typed search
+input correctly updated `marketplaceSearchQuery`; `openMarketDetail`/`closeMarketDetail` correctly
+toggled `selectedMarketItem` and the two view panels' classes; `deployPurchasedTemplate` (read-only
+against an already-cached library entry, no write) correctly spawned a real canvas card with the
+right content. Zero console/page errors. Re-checked the account afterward to confirm the spawned
+card, the mock purchased-library entry, and `selectedMarketItem` were all cleaned up with no
+residue.

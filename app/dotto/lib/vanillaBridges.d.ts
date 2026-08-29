@@ -190,5 +190,53 @@ declare global {
       ownerName?: string,
     ) => Promise<void>;
     __resolveReferenceFolderKey?: (ownerId: string, folderId: string) => Promise<string | null>;
+    // core-state.js — the single, never-reassigned #add-menu/#btn-add elements (separate
+    // module-level bindings, not appState properties — same reasoning as __getCanvasEl/
+    // __getWorldEl above).
+    __getAddMenuEl?: () => HTMLElement | undefined;
+    __getBtnAddEl?: () => HTMLElement | undefined;
+    // panels-hamburger.js
+    __wireRailIcon?: (
+      key: string,
+      btn: HTMLElement,
+      viewEl: HTMLElement,
+      onOpen: () => void,
+    ) => void;
+    __openRailView?: (
+      key: string,
+      viewEl: HTMLElement,
+      btn: HTMLElement,
+      onOpen: () => void,
+      pin: boolean,
+    ) => void;
+    // live-presence.js — used by app/dotto/lib/marketplace.ts's packageSelectedAsTemplate.
+    __snapshotItem?: (it: Record<string, unknown>) => Record<string, unknown>;
+    __sanitizeFlashcardSnapshot?: (
+      snapshot: Record<string, unknown>,
+      batchItemIds: number[],
+    ) => Record<string, unknown>;
+    // app/dotto-app.jsx (via app/dotto/bridges.js's marketDiscoverStore/marketDetailStore) —
+    // React-facing setters, plain store.set (no flushSync — nothing reads their DOM synchronously
+    // right after).
+    __setMarketDiscover?: (items: Record<string, unknown>[]) => void;
+    __setMarketDetail?: (item: Record<string, unknown> | null) => void;
+    // blocks-panel.js
+    __refreshBlocksPanel?: () => void;
+    // library-publish.js
+    __openItemDetail?: (item: Record<string, unknown>, folder: string) => void;
+    // app/dotto/lib/marketplace.ts (Phase 4.4 port — was marketplace.js) — vanilla -> React
+    // bridges: MarketDiscoverPanel.jsx/ItemDetailFooter.jsx already called
+    // __openMarketDetail/__deployPurchasedTemplate/__packageSelectedAsTemplate as globals before
+    // the port; canvasItemBehavior.js's setupDraggingAndClicking already called
+    // __packageSelectedAsTemplate too. handleMarketplaceSearch/closeMarketDetail/
+    // purchaseCurrentMarketItem are real inline onclick targets (hamburger-stack.html), same
+    // plain (non-`__`) global shape window.pushNotification/window.prepareAdd use.
+    __openMarketDetail?: (item: Record<string, unknown>) => void;
+    __deployPurchasedTemplate?: (id: string) => void;
+    __packageSelectedAsTemplate?: (targetIt: Record<string, unknown>) => void;
+    handleMarketplaceSearch?: (val: string) => void;
+    closeMarketDetail?: () => void;
+    purchaseCurrentMarketItem?: () => Promise<void>;
+    __refreshMyLibrary?: () => Promise<void>;
   }
 }

@@ -26,7 +26,6 @@ import './dotto/search-orchestration-selection.js';
 import './dotto/waypoints-render-loop.js';
 import './dotto/outline-tree.js';
 import './dotto/drag-drop-chat.js';
-import './dotto/marketplace.js';
 import './dotto/library-publish.js';
 import './dotto/blocks-panel.js';
 import './dotto/extensions-panel.js';

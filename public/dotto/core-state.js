@@ -851,6 +851,12 @@ window.__switchActivePane = switchActivePane;
 // every call, so callers always see whichever pane is active right now with no separate sync step.
 window.__getCanvasEl = () => canvas;
 window.__getWorldEl = () => world;
+// Used by app/dotto/lib/marketplace.ts's openBlocksAfterPurchase (Phase 4.4) — addMenu/btnAdd
+// are the same "single, never-reassigned #add-menu/#btn-add elements" as contextMenu etc, not
+// per-pane like canvas/world above, but still separate module-level bindings (not appState
+// properties) that a still-vanilla `import` can no longer reach from app/dotto/.
+window.__getAddMenuEl = () => addMenu;
+window.__getBtnAddEl = () => btnAdd;
 // Used by app/dotto/lib/copyPaste.ts's setupPlacementGhostTracking (Phase 4.4) to re-attach its
 // pointermove listener to every future pane's own canvas element, same reasoning as every other
 // registered setup — see this function's own comment above.

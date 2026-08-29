@@ -171,3 +171,7 @@ export { closeAllPanels, closeRailView, handleFilesSearch, handleHubCollabSearch
 
 // Used by app/dotto/lib/copyPaste.ts's prepareAdd (Phase 4.4).
 window.__closeRailView = closeRailView;
+// Used by app/dotto/lib/marketplace.ts (Phase 4.4) — wireMarketplace's own module-load-time
+// wireRailIcon call, and openBlocksAfterPurchase's openRailView call.
+window.__wireRailIcon = wireRailIcon;
+window.__openRailView = openRailView;

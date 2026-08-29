@@ -1,6 +1,5 @@
 import { addMenu, appState, btnAdd, supabase } from './core-state.js';
 import { renderInlineCanvas } from './live-presence.js';
-import { refreshMyLibrary } from './marketplace.js';
 
 
     // ---------- Blocks panel: Item Detail View (Purchased / My Creations = drafts+published) ----------
@@ -133,7 +132,7 @@ import { refreshMyLibrary } from './marketplace.js';
         if (!appState.detailItem || appState.detailSourceFolder !== 'published') return;
         const { error } = await supabase.from('marketplace_listings').update({ status: 'draft', published_at: null }).eq('id', appState.detailItem.id);
         if (error) { console.error('[marketplace] failed to unpublish:', error); return; }
-        await refreshMyLibrary();
+        await window.__refreshMyLibrary();
         closeItemDetail();
         window.__refreshBlocksPanel();
     }
@@ -229,7 +228,7 @@ import { refreshMyLibrary } from './marketplace.js';
         appState.publishFlowItem = null;
         document.getElementById('publish-flow-view').classList.remove('active');
         document.getElementById('view-library').classList.add('active');
-        await refreshMyLibrary();
+        await window.__refreshMyLibrary();
         window.__refreshBlocksPanel();
     }
 
