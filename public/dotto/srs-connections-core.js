@@ -1296,3 +1296,6 @@ window.__handlePenPointerDown = handlePenPointerDown;
 // the click-to-link fallback startConnectionDrag's own up() handler falls back to).
 window.__isValidConnection = isValidConnection;
 window.__handleDataModeClick = handleDataModeClick;
+// Used by app/dotto/lib/stopwatch.ts's swToggleRun (Phase 4.4) to archive a finished session's
+// rating deltas — public/dotto/*.js isn't reachable from app/dotto/ even for a pure function.
+window.__diffRatings = diffRatings;

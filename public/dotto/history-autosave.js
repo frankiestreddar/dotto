@@ -10,7 +10,6 @@ import { closeDotbotUpgradeModal, closePricingOverlay } from './profile-achievem
 import { stripSharedFolderIds } from './shared-and-public-canvas-loading.js';
 import { closeCellTagPicker } from './source-tags-ai.js';
 import { cancelAddingKind, finishPenPolyline } from './srs-connections-core.js';
-import { swCurrentElapsedMs, swFormatTime } from './stopwatch.js';
 import { closeSearchCardsModal } from './shelf-search.js';
 import { closeUploadPopup } from './upload-popup.js';
 import { centerOnContent, render } from './waypoints-render-loop.js';
@@ -40,7 +39,7 @@ import { centerOnContent, render } from './waypoints-render-loop.js';
             if (it.kind === 'stopwatch' && it.swRunning) {
                 const el = findItemEl(it.id);
                 const timeEl = el && el.querySelector('.sw-time');
-                if (timeEl) timeEl.textContent = swFormatTime(swCurrentElapsedMs(it));
+                if (timeEl) timeEl.textContent = window.__swFormatTime(window.__swCurrentElapsedMs(it));
             }
         });
         // Don't yank focus away from whatever text the user is editing — a full render() would

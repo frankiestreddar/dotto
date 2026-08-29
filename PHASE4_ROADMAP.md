@@ -85,6 +85,22 @@
   because exactly one vanilla file read it directly and that read was easy to re-point at a
   bridge. `NOTIFICATION_MAX_VISIBLE`/`NOTIFICATION_DEFAULT_DURATION_MS`/`notificationQueue`/
   `visibleNotifications` removed from `core-state.js`'s `appState` object literal entirely.
+  `stopwatch.js`'s `swFormatTime`/`swCurrentElapsedMs`/`swToggleRun`/`swTogglePause` ported next —
+  **not** a Zustand store this time: a stopwatch card's own fields live on the same `it` object
+  every other canvas item does, inside `appState.folders`, which stays the single source of truth
+  until Phase 4.5's own `core-state.js` migration (dual-write). This is the plain Phase 4.1-style
+  port instead — pure logic moved to `app/dotto/lib/stopwatch.ts`, reaching the still-vanilla item/
+  render/save/diff dependencies through `window.__findItemById`/`__saveSnapshot`/`__render`/a new
+  `__diffRatings` bridge (added to `srs-connections-core.js`). `renderStopwatchHTML` itself stays
+  vanilla in `stopwatch.js` (`live-presence.js`'s mini inline-canvas previews still call it
+  directly) — rewritten to call the new `window.__swFormatTime`/`__swCurrentElapsedMs` bridges
+  instead of local functions. `StopwatchCard.jsx` switched from calling
+  `window.swToggleRun`/`window.swTogglePause`/`window.__swFormatTime`/`window.__swCurrentElapsedMs`
+  to real same-tree imports; those 4 globals are still set (now from the TS file, reversed
+  direction) since `renderStopwatchHTML`'s own `onclick="swToggleRun(...)"` string and
+  `history-autosave.js`'s `ensureSwTicking`/`swTick` (a 1s `.sw-time`-patching interval, unchanged)
+  both call them by name. `window-bridge.js`'s now-dead `swTogglePause`/`swToggleRun`
+  import+assignments removed (StopwatchCard.jsx no longer needs them as globals).
 - **Phase 4.5 — architectural/hub files: not started.**
 - **Phase 4.6 — delete the bridge layer: not started.**
 - **Phase 4.7 — final cleanup & professionalization close-out: not started.**
@@ -647,3 +663,32 @@ a test script calling the bridge directly) correctly reached through `window.pus
 the new Zustand store and rendered for real, confirming the vanilla → React bridge direction
 actually works end-to-end, not just React's own internal state. Zero console/page errors (the
 same known stray PDF fixture noise as earlier Phase 4.3 verifications, filtered out as unrelated).
+Confirmed green in real GitHub Actions (run 33267814620).
+
+**Phase 4.4 (`stopwatch.js` → `app/dotto/lib/stopwatch.ts`)**: `node --check` on all touched
+vanilla files, `eslint` clean (zero errors or warnings — the first Phase 4.4 file with neither),
+a full clean `rm -rf .next next-env.d.ts tsconfig.tsbuildinfo && npm run typecheck && npm run
+build` pass — typecheck caught 3 real type errors on the first pass (an unsafe direct cast from
+`window.__findItemById`'s loosely-typed return to the new `StopwatchItem` interface, twice, plus
+a bridge-assignment type mismatch), all fixed by routing the casts through `unknown` first rather
+than loosening the interface itself, `npm run format:check` clean, all 32 Vitest tests still
+green. Real Playwright verification against a fresh dev server, specifically targeting the
+bridge-readiness race class of bug this port's own comment flags as a risk (React module-eval
+setting `window.swToggleRun` etc. only once something imports `stopwatch.ts` — unlike the OLD
+vanilla file, which set these bridges unconditionally at `dotto-script.js` load time): confirmed
+all 4 bridges (`swToggleRun`/`swTogglePause`/`__swFormatTime`/`__swCurrentElapsedMs`) were already
+real functions within 500ms of page load, well before any interaction — CanvasItemsLayer.jsx's
+own always-mounted import graph (which includes StopwatchCard.jsx) evaluates during React's
+initial bundle parse, ahead of the vanilla `afterInteractive` script, so there's no actual race in
+practice. Then drove a real mock stopwatch card through genuine DOM button clicks (not calling the
+ported functions directly, which would only prove the TS code runs, not that the wiring through
+StopwatchCard.jsx's real `onClick` handlers is correct): Start → confirmed `swRunning`/
+`swSessionActive` flipped true; Pause → confirmed `swPaused` true; Resume (same button) → confirmed
+`swPaused` false again; Stop → confirmed `swRunning` false, `swElapsedMs` reset to 0, and a real
+session got archived into `swSessions` (length 1); confirmed the rendered `.sw-time` text used
+`swFormatTime`'s real `mm:ss` format, not a stale/placeholder value. Zero console/page errors.
+`renderStopwatchHTML`'s own still-vanilla path (live-presence.js's mini previews) wasn't separately
+UI-tested — it calls the identical `window.__swFormatTime`/`__swCurrentElapsedMs` bridges already
+confirmed live by the checks above, and the zero-error result across the whole run is strong
+evidence nothing there broke; judged proportionate the same way Phase 4.2's SM-2 extraction judged
+a full UI test unnecessary for a verbatim-logic move.
