@@ -40,7 +40,7 @@ interface AppState {
 // drop-zone never even shows), but this is the actual authority, in case anything else ever calls
 // this bridge directly. sourcePaneId (split-screen Stage 7 — each pane has its own tab row now, so
 // a drag can start from ANY pane's own bar, not just whichever happened to be active) activates
-// that pane first, same convention as addTab/switchTab/closeTab/reorderTab in tab-management.js.
+// that pane first, same convention as addTab/switchTab/closeTab/reorderTab in app/dotto/lib/tabManagement.ts.
 export function splitPaneWithTab(
   tabId: string,
   targetPaneId: number,

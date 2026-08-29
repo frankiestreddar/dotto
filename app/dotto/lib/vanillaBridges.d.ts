@@ -63,10 +63,9 @@ declare global {
     // waypoints-render-loop.js — re-navigates the canvas to a folder (used by
     // app/dotto/lib/splitPaneManagement.ts's splitPaneWithTab).
     __applyFolderView?: (folderId: string) => void;
-    // app/dotto/lib/tabManagement.ts (still tab-management.js as of this writing) — pushes
-    // appState.tabs/activeTabId into React; called after a tab-bookkeeping mutation that doesn't
-    // itself trigger a render().
-    __renderTabsPanel?: () => void;
+    // app/dotto/lib/tabManagement.ts — pushes appState.tabs/activeTabId into React; called after a
+    // tab-bookkeeping mutation that doesn't itself trigger a render().
+    __renderTabsPanel?: (paneId?: number) => void;
     // app/dotto/bridges.js (via app/dotto-app.jsx) — pane-layout-tree helpers, all already
     // React-callable bridges before any Phase 4.4 port needed them.
     __countPanes?: () => number;
@@ -110,5 +109,49 @@ declare global {
     pasteClipboardCards?: () => void;
     removePlacementGhost?: () => void;
     prepareAdd?: (kind: string, statKind?: string | null) => void;
+    // waypoints-render-loop.js — the global folder-navigation entry point.
+    __openFolder?: (folderId: string) => void;
+    // ai-assistant-suggestions.js — structural (real canvas hierarchy) parent lookup, used by
+    // app/dotto/lib/tabManagement.ts's buildAncestorChain.
+    __findParentFolderId?: (folderId: string) => string | undefined;
+    // public/dotto/shared-and-public-canvas-loading.js (still vanilla) — leaves a live-shared/public canvas tree
+    // and lands on the user's own real root, used by app/dotto/lib/tabManagement.ts's
+    // breadcrumbMapRowClick for its synthetic Root row.
+    __exitSharedCanvasToRoot?: () => void;
+    // app/dotto-app.jsx (via app/dotto/bridges.js's pane-keyed stores) — React-facing setters,
+    // called from vanilla/TS with fresh data on every navigation; not flushSync'd (no synchronous
+    // DOM read races them the way canvasItemsStore's own setter has to guard against).
+    __setBreadcrumbMap?: (
+      paneId: number,
+      state: {
+        hasMore: boolean;
+        root: { label: string; folderId: string; isSyntheticRoot: boolean } | null;
+        parent: { label: string; folderId: string; isSyntheticRoot: boolean } | null;
+        current: { label: string; folderId: string; isSyntheticRoot: boolean } | null;
+      },
+    ) => void;
+    __setTabs?: (
+      paneId: number,
+      state: { tabs: { id: string; folderId: string; label: string }[]; activeTabId: string },
+    ) => void;
+    __setNavHistory?: (
+      paneId: number,
+      state: { canGoBack: boolean; canGoForward: boolean },
+    ) => void;
+    // app/dotto/lib/tabManagement.ts (Phase 4.4 port — was tab-management.js) — vanilla -> React
+    // bridges: TabsBar.jsx/PaneTopBar.jsx already called these as globals before the port; only
+    // __renderBreadcrumbMapPanel is new (waypoints-render-loop.js's render() was the one real
+    // remaining direct-import caller, switched to this bridge as part of the port).
+    __breadcrumbMapRowClick?: (folderId: string, isSyntheticRoot: boolean, paneId?: number) => void;
+    __addTab?: (paneId?: number) => void;
+    __switchTab?: (tabId: string, paneId?: number) => void;
+    __closeTab?: (tabId: string, paneId?: number) => void;
+    __reorderTab?: (tabId: string, toIndex: number, paneId?: number) => void;
+    __jumpToHistoryIndex?: (newIndex: number, paneId?: number) => void;
+    __navBack?: (paneId?: number) => void;
+    __navForward?: (paneId?: number) => void;
+    __openMediaViewerTab?: (item: { id: number; mediaName?: string }, paneId?: number) => void;
+    __renderNavArrows?: (paneId?: number) => void;
+    __renderBreadcrumbMapPanel?: (paneId?: number) => void;
   }
 }

@@ -132,6 +132,20 @@
   (`__getCanvasEl`/`__getWorldEl`/`__renderSelectedOutlines`) for bridges that already existed but
   had never been touched by a real `.ts` file before — `canvasItemBehavior.js` (Phase 3) is a
   plain `.js` file that never needed them declared.
+  `tab-management.js` (263 lines) ported next to `app/dotto/lib/tabManagement.ts` — PaneTopBar's
+  whole per-pane breadcrumb/tabs/back-forward navigation surface. Only one real vanilla importer
+  (`waypoints-render-loop.js`'s `render()`, needing `renderBreadcrumbMapPanel`/`renderNavArrows`/
+  `renderTabsPanel` directly — switched to a new `window.__renderBreadcrumbMapPanel` bridge plus
+  the 2 that already existed); every other consumer (TabsBar.jsx, PaneTopBar.jsx) already used the
+  `window.__addTab`/`__switchTab`/etc bridges this file itself used to set, so those callers needed
+  zero changes — only the bridges' own source flipped from vanilla to TS. 2 new outbound bridges
+  added (`__findParentFolderId` for `buildAncestorChain`'s structural-parent walk,
+  `__exitSharedCanvasToRoot` for the synthetic breadcrumb Root row) plus 3 retroactive
+  declarations for React-facing setters (`__setBreadcrumbMap`/`__setTabs`/`__setNavHistory`) that
+  already existed in `dotto-app.jsx` but had never been typed since no `.ts` file had called them
+  before. No `wireX()` needed (same reasoning as `splitPaneManagement.ts` — every function here is
+  called later via bridge, nothing needs a live DOM/appState read right at import time), so it's a
+  plain side-effect import in `app/dotto-app.jsx` alongside `splitPaneManagement`'s own.
 - **Phase 4.5 — architectural/hub files: not started.**
 - **Phase 4.6 — delete the bridge layer: not started.**
 - **Phase 4.7 — final cleanup & professionalization close-out: not started.**
@@ -760,3 +774,22 @@ time via the new `__registerPaneCanvasListenerSetup` bridge — is genuinely liv
 in the bundle; `removePlacementGhost` correctly removed the DOM node and nulled `appState.
 placementGhost`. Zero console/page errors. Re-checked the account afterward to confirm zero
 residual mock items, an empty clipboard, and `addingKind` back to `null`.
+
+**Phase 4.4 (`tab-management.js` → `app/dotto/lib/tabManagement.ts`)**: `node --check` on all
+touched vanilla files, `eslint` clean (only pre-existing `<img>` warnings, zero errors), a full
+clean `rm -rf .next next-env.d.ts tsconfig.tsbuildinfo && npm run typecheck && npm run build` pass
+(clean on the first attempt), `npm run format:check` clean (after fixing a real self-introduced
+mistake caught during this pass — an ambient-type comment claiming `shared-and-public-canvas-
+loading.js` had already been ported to `app/dotto/lib/`, which it hasn't; corrected before
+committing), all 32 Vitest tests still green. Real Playwright verification against a fresh dev
+server: confirmed all 8 bridges live within 500ms of load; round-tripped the real tab count/active-
+tab-id through `addTab`/`switchTab`/`closeTab` via the actual bridges; confirmed `navBack`/
+`navForward` run without error against real `historyStack` state. The breadcrumb path
+(`buildAncestorChain`/`renderBreadcrumbMapPanel`/`breadcrumbMapRowClick`) needed a real nested
+folder to exercise meaningfully — the shared test account's root had none, so a second, separate
+verification run created one, navigated into it via `window.__openFolder`, confirmed
+`currentFolderId` updated, then clicked back to root via the real `window.__breadcrumbMapRowClick`
+bridge and confirmed it landed back on `currentFolderId === 'root'` — a genuine exercise of
+`buildAncestorChain`'s structural-parent walk, not just a bridge-existence check. Zero console/page
+errors across both runs. Re-checked the account afterward to confirm the mock nested folder, its
+card, and the extra tab were all cleaned up with no residue.

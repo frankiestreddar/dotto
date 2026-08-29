@@ -67,6 +67,9 @@ import { wireNotifications } from "./dotto/lib/notificationsStore";
 // TabsBar.jsx/PaneTopBar.jsx are bridge CONSUMERS (call window.__splitPaneWithTab/__closePane),
 // not producers — this needs to run unconditionally, same as bridges.js's own pane helpers below.
 import "./dotto/lib/splitPaneManagement";
+// Side-effect only, same reasoning as splitPaneManagement above — sets window.__addTab/__switchTab/
+// etc at module-eval time; TabsBar.jsx/PaneTopBar.jsx are bridge consumers, not producers.
+import "./dotto/lib/tabManagement";
 import BlocksPanel from "./dotto/BlocksPanel";
 import CellTagPickerList from "./dotto/CellTagPickerList";
 import ChatsListPanel from "./dotto/ChatsListPanel";
@@ -358,7 +361,7 @@ if (typeof window !== "undefined") {
   window.__setCollabPill = (paneId, state) =>
     flushSync(() => collabPillStore.storeFor(paneId).set(state));
   // Back/forward enabled-state, one per pane (see app/dotto/PaneTopBar.jsx,
-  // tab-management.js's renderNavArrows) — pane-keyed for the same reason. A plain
+  // app/dotto/lib/tabManagement.ts's renderNavArrows) — pane-keyed for the same reason. A plain
   // store.set, no synchronous DOM read follows it.
   window.__setNavHistory = (paneId, state) => navHistoryStore.storeFor(paneId).set(state);
   // Which pane is active (see app/dotto/PaneZoomBar.jsx) — pushed by switchActivePane
@@ -369,12 +372,12 @@ if (typeof window !== "undefined") {
   // same reason as __setNavHistory above. A plain store.set, no synchronous DOM read follows it.
   window.__setMediaViewerZoom = (paneId, state) => mediaViewerZoomStore.storeFor(paneId).set(state);
   // Breadcrumb pill — the compact "…/parent/current" trail for one pane's own active tab (see
-  // app/dotto/TabsBar.jsx, tab-management.js's renderBreadcrumbMapPanel, called from
+  // app/dotto/TabsBar.jsx, app/dotto/lib/tabManagement.ts's renderBreadcrumbMapPanel, called from
   // every render()) — pane-keyed since split-screen Stage 7 (each pane gets its own breadcrumb
   // pill now), so this takes the paneId explicitly rather than being tabsStore.set directly. A
   // plain store.set, no synchronous DOM read follows it.
   window.__setBreadcrumbMap = (paneId, state) => breadcrumbMapStore.storeFor(paneId).set(state);
-  // Canvas tabs (see app/dotto/TabsBar.jsx, tab-management.js's renderTabsPanel, called
+  // Canvas tabs (see app/dotto/TabsBar.jsx, app/dotto/lib/tabManagement.ts's renderTabsPanel, called
   // from every render() alongside the breadcrumb map above) — pane-keyed for the same reason. A
   // plain store.set, no synchronous DOM read follows it.
   window.__setTabs = (paneId, state) => tabsStore.storeFor(paneId).set(state);

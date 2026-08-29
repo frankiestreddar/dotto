@@ -94,7 +94,7 @@ import { centerOnContent, render } from './waypoints-render-loop.js';
         // stronger reason: there's no update_public_folder counterpart at all to patch one back
         // to — a public view is read-only and never persisted anywhere, so it must never even be
         // attempted here. media-view-*: entries (window.__openMediaViewerTab,
-        // tab-management.js) are a synthetic, session-local wrapper around a real canvas
+        // app/dotto/lib/tabManagement.ts) are a synthetic, session-local wrapper around a real canvas
         // item (folderObj.mediaItem) — not real user content of their own, so persisting them would
         // both bloat every save and go stale (mediaItem is a captured reference, not re-resolved on
         // load). A tab that happened to bookmark one when the page was closed just won't resolve
@@ -286,7 +286,7 @@ import { centerOnContent, render } from './waypoints-render-loop.js';
             }
         }
 
-        // Tabs (public/dotto/tab-management.js's addTab/switchTab/closeTab) — per explicit
+        // Tabs (app/dotto/lib/tabManagement.ts's addTab/switchTab/closeTab) — per explicit
         // request that they survive a reload. Validated against appState.folders as it stands
         // AFTER the shared-canvas resume block above (not right after the plain `data.data.folders`
         // assignment near the top) so a tab pointing into an actively-resumed shared chain still

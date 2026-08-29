@@ -24,7 +24,7 @@ const PROXIMITY_PX = 100;
 // tab), mounted once per pane from PaneCanvasArea.jsx at that pane's own centred position — see
 // .pane-breadcrumb-pill's own comment, globals.css, for the full CSS side of this.
 //
-// Back/forward (window.__navBack/__navForward, tab-management.js) and the tab-add button
+// Back/forward (window.__navBack/__navForward, app/dotto/lib/tabManagement.ts) and the tab-add button
 // (window.__addTab) both activate this pane first if it wasn't already active, same convention
 // every other per-pane control in this codebase follows — they're plain vanilla functions, not
 // duplicated here. The collaborator bubble is the one piece with real shared state behind it (a

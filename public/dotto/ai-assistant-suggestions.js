@@ -872,3 +872,5 @@ window.__typewriterRevealSegments = typewriterRevealSegments;
 // window.__getAppState (core-state.js).
 window.__escapeHtml = escapeHtml;
 window.__stripHtml = stripHtml;
+// Used by app/dotto/lib/tabManagement.ts's buildAncestorChain (Phase 4.4).
+window.__findParentFolderId = findParentFolderId;

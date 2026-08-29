@@ -49,7 +49,7 @@
         contextMenuTagId: null, // tag the right-click context menu (rename/delete) is currently targeting
         cellAudioRecorder: null, cellAudioChunks: [],
         historyStack: ['root'], historyIndex: 0, currentFolderId: 'root',
-        // Canvas tabs (public/dotto/tab-management.js's addTab/switchTab/closeTab, see
+        // Canvas tabs (app/dotto/lib/tabManagement.ts's addTab/switchTab/closeTab, see
         // their own comments) — each a lightweight bookmark of a folder location, NOT an
         // independent history/camera context: back/forward (historyStack/historyIndex above) and
         // pan/zoom stay global/shared across all tabs. Starts with exactly one tab pointing at the
@@ -584,9 +584,9 @@
         // the tab bar showing whichever pane's tabs it last rendered until something UNRELATED
         // happened to call render() afterward. A real, previously-undiscovered gap: Stage 4/5 never
         // exercised switching back and forth between two pre-existing panes without an intervening
-        // navigation in between. window.__renderTabsPanel (tab-management.js) is called via
+        // navigation in between. window.__renderTabsPanel (app/dotto/lib/tabManagement.ts) is called via
         // a window bridge rather than a direct import — core-state.js is imported BY
-        // tab-management.js, so importing back would be circular.
+        // app/dotto/lib/tabManagement.ts, so importing back would be circular.
         if (window.__renderTabsPanel) window.__renderTabsPanel();
         // Same reasoning, split-screen Stage 8 — the newly-active pane's own back/forward buttons
         // and collaborator bubble (PaneTopBar.jsx) shouldn't have to wait for the next render()

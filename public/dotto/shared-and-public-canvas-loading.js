@@ -233,7 +233,7 @@ import { centerOnContent, render } from './waypoints-render-loop.js';
     // Leaves the WHOLE shared tree (not just its top level) and lands on the user's own ACTUAL
     // root — not wherever they happened to be right before entering (that distinction used to
     // matter when this was reachable via the breadcrumb "..", but the breadcrumb map's "Root" row
-    // (see renderBreadcrumbMapPanel, tab-management.js) is specifically meant as an unconditional
+    // (see renderBreadcrumbMapPanel, app/dotto/lib/tabManagement.ts) is specifically meant as an unconditional
     // "take me home" affordance, always available regardless of how deep into someone else's
     // canvas you are).
     function exitSharedCanvasToRoot() {
@@ -260,3 +260,5 @@ export { announceEnteredCollaboration, ensurePublicFolderLoaded, ensureSharedFol
 
 window.__openSharedCanvas = openSharedCanvas;
 window.__resolveReferenceFolderKey = resolveReferenceFolderKey;
+// Used by app/dotto/lib/tabManagement.ts's breadcrumbMapRowClick (Phase 4.4).
+window.__exitSharedCanvasToRoot = exitSharedCanvasToRoot;

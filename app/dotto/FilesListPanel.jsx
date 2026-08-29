@@ -63,7 +63,7 @@ function clearDropHighlights() {
 // RowActions' onOpen (open.png, per explicit request — corrected from an initial window.open()
 // browser-tab version: "i didnt mean a new browser tab, i meant a new tab in the app, with the
 // file full screen and scrollable") opens the file in a real tab of THIS app's own tab bar
-// (window.__openMediaViewerTab, tab-management.js) — a synthetic folder wrapping the item
+// (window.__openMediaViewerTab, app/dotto/lib/tabManagement.ts) — a synthetic folder wrapping the item
 // (isMediaViewer:true), rendered full-screen/scrollable by a dedicated branch in render()
 // (waypoints-render-loop.js), riding the exact same tab/pane machinery every other tab already
 // uses. window.__findItemById resolves the row's own itemId back to the real, live item object

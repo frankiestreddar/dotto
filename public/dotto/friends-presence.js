@@ -215,7 +215,7 @@ import { bumpAchievementStat } from './profile-achievements-pricing.js';
     // Avatar.jsx-based reasoning as CollabListPanel. Pane-keyed since split-screen Stage 8 (each
     // pane renders its own bubble now — was a single shared trigger for whichever pane happened to
     // be active). paneId defaults to the live active pane, same reasoning as renderTabsPanel/
-    // renderBreadcrumbMapPanel (tab-management.js) — this always reads the LIVE
+    // renderBreadcrumbMapPanel (app/dotto/lib/tabManagement.ts) — this always reads the LIVE
     // appState.currentFolderId/folders/friends, so it's only ever meaningful for whichever pane is
     // currently active; called every render() frame for that pane (so a background pane's own store
     // stays exactly as it was the instant it went inactive, matching what its canvas actually
@@ -585,7 +585,7 @@ window.__collabBubblePaneMouseEnter = collabBubblePaneMouseEnter;
 window.__collabBubblePaneMouseLeave = collabBubblePaneMouseLeave;
 // Called from switchActivePane (core-state.js) via this bridge, not a direct import — that
 // function is imported BY this file, so the reverse would be circular (same reasoning as
-// window.__renderTabsPanel, tab-management.js).
+// window.__renderTabsPanel, app/dotto/lib/tabManagement.ts).
 window.__renderCollabPill = renderCollabPill;
 
 // No window.__initials bridge — Avatar.jsx (app/dotto/) reimplements this directly instead (see

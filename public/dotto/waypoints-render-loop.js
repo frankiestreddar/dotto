@@ -9,7 +9,6 @@ import { broadcastEditingState, miniLabelForItem, placeCaretEnd, renderRealCardP
 import { findNextFreeSlot } from './card-shortcuts.js';
 import { ensureSharedFolderLoaded, sharedFolderKey, stripSharedFolderIds } from './shared-and-public-canvas-loading.js';
 import { buildOutline } from './outline-tree.js';
-import { renderBreadcrumbMapPanel, renderNavArrows, renderTabsPanel } from './tab-management.js';
 import { closeSourceAddMenu } from './source-buttons-cursor-mode.js';
 import { closeCellTagPicker } from './source-tags-ai.js';
 import { applyConnections } from './srs-connections-core.js';
@@ -557,15 +556,15 @@ import { applyConnections } from './srs-connections-core.js';
         const folderOwnerId = folderObj.isSharedView ? folderObj.sharedOwnerId : appState.currentUser.id;
         const currentItems = folderObj.items.filter(it => it.kind !== 'waypoint' || (it.creatorId || folderOwnerId) === appState.currentUser.id);
         // Location/wayfinding lives in the top-bar tabs bar (see renderBreadcrumbMapPanel,
-        // tab-management.js, and TabsBar.jsx). The current-folder segment's rename
+        // app/dotto/lib/tabManagement.ts, and TabsBar.jsx). The current-folder segment's rename
         // click reuses startRenameFolderCardTitle below, the same flow folder/source cards already
         // use.
-        renderBreadcrumbMapPanel();
+        window.__renderBreadcrumbMapPanel();
         // Keeps the active tab's own bookmarked folderId (and its displayed label) in sync with
         // wherever navigation just landed — see renderTabsPanel's own comment,
-        // tab-management.js, for why this needs to run after literally every navigation,
+        // app/dotto/lib/tabManagement.ts, for why this needs to run after literally every navigation,
         // not just ones that went through addTab/switchTab/closeTab directly.
-        renderTabsPanel();
+        window.__renderTabsPanel();
         // Sources rail panel (SourcesListPanel.jsx) — every source account-wide (current-canvas
         // ones sorted first), per explicit request; see renderSourcesList's own comment,
         // hamburger-collab.js, for why it's called unconditionally here rather than only on
@@ -593,7 +592,7 @@ import { applyConnections } from './srs-connections-core.js';
         renderCollabPill();
 
         // A file opened full-screen in its own tab (window.__openMediaViewerTab,
-        // tab-management.js, explicit request/correction — "a new tab in the app... full
+        // app/dotto/lib/tabManagement.ts, explicit request/correction — "a new tab in the app... full
         // screen and scrollable") — same "a folder that renders something completely different from
         // the normal item canvas" shape folderObj.isSource already established just below, reusing
         // that exact same toolbar-hiding/identity-camera setup. Appended directly to `canvas` (not
@@ -626,7 +625,7 @@ import { applyConnections } from './srs-connections-core.js';
             // sync, render()'s own wrapper) doesn't silently reset a zoom the user already set.
             viewer.style.setProperty('--viewer-zoom', folderObj.viewerZoom || 1);
             canvas.appendChild(viewer);
-            renderNavArrows();
+            window.__renderNavArrows();
             renderMediaViewerZoom(appState.activePaneId);
             window.__renderCanvasItems([], appState.activePaneId);
             return;
@@ -655,7 +654,7 @@ import { applyConnections } from './srs-connections-core.js';
             world.appendChild(el);
             window.__attachStaticTableHoverZones(el, tableItem);
             window.__layoutSourceTableColumns(tableItem, el);
-            renderNavArrows();
+            window.__renderNavArrows();
             // isSource folders never reach the real item list below — #items-layer must be told
             // there's nothing to show, or it would keep showing whatever the previous folder had.
             window.__renderCanvasItems([], appState.activePaneId);
@@ -703,7 +702,7 @@ import { applyConnections } from './srs-connections-core.js';
 
         world.appendChild(frontLayer);
         if (appState.addingKind && appState.placementGhost) world.appendChild(appState.placementGhost);
-        renderNavArrows();
+        window.__renderNavArrows();
 
         // Sync visual selected outlines state
         renderSelectedOutlines();

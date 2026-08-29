@@ -1146,7 +1146,7 @@ body:has(#hamburger-stack.open):not([data-sidebar-mode="overlay"]) .item.static-
        the common browser-tab convention of only showing a close control on the tab the pointer is
        actually over). The hover-reveal rule that used to sit here is removed rather than commented
        out to keep this a real, buildable no-op; re-add `.tab-pill:hover .tab-pill-close{display:
-       inline-flex;}` to bring it back. TabsBar.jsx/closeTab (tab-management.js) are
+       inline-flex;}` to bring it back. TabsBar.jsx/closeTab (app/dotto/lib/tabManagement.ts) are
        untouched — the button still exists and still works, it's just never visible right now. */
 .tab-pill-close {
   display: none;
@@ -1169,7 +1169,7 @@ body:has(#hamburger-stack.open):not([data-sidebar-mode="overlay"]) .item.static-
   color: var(--ink);
 }
 /* Adds a new tab bookmarked to wherever the currently active one already is (addTab,
-       tab-management.js). Small icon-only button, same minimal border-radius/hover-
+       app/dotto/lib/tabManagement.ts). Small icon-only button, same minimal border-radius/hover-
        background language as most other icon buttons in this file (e.g. #profile-settings-btn)
        rather than a filled/bordered "add" affordance like .pane-collab-add-btn's dashed circle.
        One per pane now (split-screen Stage 8 — was #tab-add-btn, a single instance grouped with
@@ -8038,7 +8038,7 @@ td:hover .cell-actions {
 }
 
 /* A file opened full-screen in its own app tab (window.__openMediaViewerTab,
-       tab-management.js — explicit request/correction: "a new tab in the app... full
+       app/dotto/lib/tabManagement.ts — explicit request/correction: "a new tab in the app... full
        screen and scrollable", not a raw browser tab). Direct child of `canvas`/`.pane-canvas`
        itself (position:absolute;inset:0), not `world` — #canvas already has real, explicit,
        split-screen-aware sizing (PaneCanvasArea.jsx/globals.css's own #canvas rule) that `world`
