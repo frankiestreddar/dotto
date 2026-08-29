@@ -1,0 +1,22 @@
+.next
+node_modules
+next-env.d.ts
+public/dotto
+public/dotto-script.js
+content/fragments
+package-lock.json
+
+# Third-party vendored libraries — never our code, never reformatted.
+public/vendor
+
+# Reference-only historical artifacts kept for diffing against the pre-migration original — their
+# exact original formatting IS the point, see their own header comments.
+content/dotto-markup.html
+content/dotto-original.css
+
+# Markdown docs — excluded from Prettier's scope. Its default markdown formatter doesn't just
+# touch whitespace: it re-indents multi-line list-item continuations and can shift them out of the
+# list item's content block entirely (confirmed by testing it against CONTRIBUTING.md, reverted),
+# which risks silently changing how a doc renders, not just its source formatting. Not worth that
+# risk for prose docs — Prettier's real value here is JS/TS/JSON, not markdown.
+*.md

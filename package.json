@@ -6,7 +6,14 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:e2e": "playwright test",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "supabase": "supabase"
   },
   "dependencies": {
     "@google/genai": "^2.13.0",
@@ -23,11 +30,23 @@
     "sharp": "^0.34.5"
   },
   "devDependencies": {
+    "@playwright/test": "^1.62.1",
     "@tailwindcss/postcss": "^4",
+    "@testing-library/jest-dom": "^7.0.1",
+    "@testing-library/react": "^16.3.3",
+    "@types/node": "^26.4.0",
+    "@types/react": "^19.2.18",
+    "@types/react-dom": "^19.2.5",
     "eslint": "^9",
     "eslint-config-next": "16.2.10",
+    "eslint-config-prettier": "^10.1.8",
+    "jsdom": "^30.0.1",
     "playwright": "^1.62.1",
-    "tailwindcss": "^4"
+    "prettier": "^3.9.6",
+    "supabase": "^2.116.0",
+    "tailwindcss": "^4",
+    "typescript": "^6.0.3",
+    "vitest": "^4.1.11"
   },
   "overrides": {
     "@xmldom/xmldom": "^0.9.0"

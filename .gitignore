@@ -12,6 +12,11 @@
 
 # testing
 /coverage
+/playwright-report
+/test-results
+# Saved authenticated session state for e2e specs (e2e/global-setup.ts writes here) — contains a
+# real session token for whichever Supabase test account it logged in as, never committed.
+/e2e/.auth
 
 # Claude Code browser-testing setup (Playwright scripts + saved auth state/test credentials) —
 # local-only tooling for interactive verification, not part of the app itself.
@@ -36,9 +41,13 @@ yarn-error.log*
 
 # env files (can opt-in for committing if needed)
 .env*
+!.env.example
 
 # vercel
 .vercel
+
+# supabase CLI local project-link cache (created by `supabase link`) — machine-local, not shared.
+/supabase/.temp
 
 # typescript
 *.tsbuildinfo

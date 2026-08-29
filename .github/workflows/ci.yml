@@ -1,8 +1,11 @@
 name: CI
 
-# Automated floor for every push/PR — see PHASE2_ROADMAP.md Phase 0. This can't catch a
-# behavioral regression in public/dotto-script.js (no test infra exists yet for that), but it
-# catches syntax errors, ESLint violations, and a broken Next.js build before anything merges.
+# Automated floor for every push/PR — see PHASE4_ROADMAP.md Phase 4.0. lint/typecheck/test/build
+# catch syntax errors, ESLint violations, TypeScript errors, unit-test failures, and a broken
+# Next.js build before anything merges. test:e2e runs against the dedicated "dotto-test" Supabase
+# project (see supabase/migrations/ — kept schema-identical to production, see
+# PHASE4_ROADMAP.md's own notes on how that project was provisioned) via 4 repo secrets:
+# TEST_SUPABASE_URL, TEST_SUPABASE_ANON_KEY, E2E_TEST_EMAIL, E2E_TEST_PASSWORD.
 on:
   push:
     branches: [main]
@@ -20,6 +23,9 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run lint
+      - run: npm run typecheck
+      - run: npm run format:check
+      - run: npm run test
       - run: npm run build
         env:
           # Dummy values so `next build` can complete — no route is actually hit at build time,
@@ -28,5 +34,17 @@ jobs:
           # than lazily missing. Real values live only in Vercel's env config, never in CI.
           NEXT_PUBLIC_SUPABASE_URL: https://placeholder.supabase.co
           NEXT_PUBLIC_SUPABASE_ANON_KEY: placeholder-anon-key
+          GROQ_API_KEY: placeholder
+          HUGGINGFACE_API_KEY: placeholder
+      - run: npx playwright install --with-deps chrome
+      - run: npm run test:e2e
+        env:
+          # Real test-project reachability needed here (unlike the build step above) — this runs
+          # both the unauthenticated e2e/smoke.spec.ts AND the "authenticated" project (see
+          # playwright.config.ts), whose e2e/global-setup.ts logs into this project for real.
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.TEST_SUPABASE_URL }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.TEST_SUPABASE_ANON_KEY }}
+          E2E_TEST_EMAIL: ${{ secrets.E2E_TEST_EMAIL }}
+          E2E_TEST_PASSWORD: ${{ secrets.E2E_TEST_PASSWORD }}
           GROQ_API_KEY: placeholder
           HUGGINGFACE_API_KEY: placeholder
