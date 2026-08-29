@@ -30,5 +30,7 @@ import './dotto/marketplace.js';
 import './dotto/library-publish.js';
 import './dotto/blocks-panel.js';
 import './dotto/extensions-panel.js';
-import './dotto/resize-shortcuts-init.js';
+import './dotto/table-grid-resize.js';
+import './dotto/card-shortcuts.js';
+import './dotto/app-init.js';
 import './dotto/window-bridge.js';

@@ -97,7 +97,7 @@ import { render } from './waypoints-render-loop.js';
         }
     }
     // Even split by default — unless it.rowHeights (set by dragging an individual row divider,
-    // see startTableRowResize/resize-shortcuts-init.js) holds one real percentage per row, in
+    // see startTableRowResize/table-grid-resize.js) holds one real percentage per row, in
     // which case each row gets that percentage of the table's current rendered height instead.
     // Recomputing this off the CURRENT wrap.clientHeight every call (rather than caching pixel
     // heights) is what lets a custom row split scale for free whenever the corner handle later

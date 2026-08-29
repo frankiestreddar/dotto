@@ -500,7 +500,7 @@ import { calculateSM2, defaultSrsState, diffRatings } from './srs-algorithm.js';
         // predates this block and already works. None of these reuse a
         // letter that already means something else globally (checked against every existing
         // e.key === '<letter>' in this codebase before picking). 'F' (Files, was Snippets) used to
-        // collide with resize-shortcuts-init.js's hover-scoped flip-flashcard shortcut (only while
+        // collide with card-shortcuts.js's hover-scoped flip-flashcard shortcut (only while
         // hovering a flashcard, but still a real collision since that handler isn't gated on
         // !anyPanelOpen) — resolved per explicit request by moving flip-flashcard to Space
         // instead, freeing 'F' up cleanly. Sources was 'S' with no prior collision, then

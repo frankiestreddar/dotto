@@ -104,7 +104,7 @@ export default function TableCard({ it, paneId }) {
   // trying to preserve old customization across it) — same fallback shape distributeTableSizing
   // (source-table.js) already uses for rows. Only ever WRITTEN to it.colWidths/it.rowHeights by
   // actually dragging a divider (see startTableColResize/startTableRowResize,
-  // resize-shortcuts-init.js); this fallback is purely a render-time computation, nothing here
+  // table-grid-resize.js); this fallback is purely a render-time computation, nothing here
   // persists it.
   const colWidths =
     Array.isArray(it.colWidths) && it.colWidths.length === numCols

@@ -19,7 +19,17 @@
   correction to how this phase was originally scoped, and a real importability gotcha
   (`core-state.js`'s module-level DOM lookups breaking Vitest imports) caught while doing the
   second extraction.
-- **Phase 4.3 — split multi-concern files: not started.**
+- **Phase 4.3 — split multi-concern files: in progress.** `resize-shortcuts-init.js` (333 lines, 3
+  bundled concerns) done: split into `table-grid-resize.js` (internal column/row divider drag),
+  `card-shortcuts.js` (Option-held tracking, Backspace multi-delete, hover-scoped game-card and
+  PDF-page-turn keyboard shortcuts), and `app-init.js` (the one-time bootstrap sequence — pure
+  side-effect module, no exports). 4 real cross-file imports fixed (`copy-paste.js`,
+  `source-buttons-cursor-mode.js`, `window-bridge.js`, `waypoints-render-loop.js`), 10 stale
+  comment references to the old filename fixed across 8 files (a further 6 references left as-is —
+  either genuinely historical/past-tense provenance notes, or pre-existing staleness pointing at
+  `setupResizing` that predates this split and belongs to Phase 3's `canvasItemBehavior.js`
+  instead, out of scope here). `shared-canvases-outline.js` and
+  `stopwatch-search-notifications.js` splits not yet started.
 - **Phase 4.4 — port split-out concerns + remaining DOM-heavy files: not started.**
 - **Phase 4.5 — architectural/hub files: not started.**
 - **Phase 4.6 — delete the bridge layer: not started.**
@@ -488,3 +498,31 @@ and overall score-to-level monotonicity across an irregular sampling of scores �
 the two earlier extractions, all still green). Also manually cross-checked the vanilla duplicate's
 5 constants (`LEVEL_NAMES`/`SUB_RANKS_PER_TIER`/`LEVEL_GROWTH_RATE`/`LEVEL_BASE_POINTS`,
 `core-state.js`) against `lib/leveling.js`'s own — byte-identical, zero drift found.
+
+**Phase 4.3 (`resize-shortcuts-init.js` split)**: `node --check` on all 11 touched/new vanilla
+files, `eslint` clean (vanilla files plus `TableCard.jsx`/`NoteCard.jsx`/`canvasItemBehavior.js`,
+whose comments referenced the old filename), a full clean `rm -rf .next next-env.d.ts
+tsconfig.tsbuildinfo && npm run typecheck && npm run build` pass, `npm run format:check` clean, and
+all 32 existing Vitest tests still green (no new ones needed — this is a mechanical file split, no
+logic changed, same as Phase 4.2's SM-2 extraction). Real Playwright verification against a fresh
+dev server, self-cleaning against the shared test account (every mock item it creates is tagged and
+removed again in a `finally` block, with a 2.5s wait for `scheduleWorkspaceSave`'s 800ms debounce
+plus its async Supabase write to actually persist before the browser closes — an earlier version of
+this cleanup closed the browser too soon and silently lost the cleanup on the next reload, caught
+by re-checking the account afterward rather than trusting the script's own "removed N" log):
+confirmed `app-init.js`'s bootstrap sequence actually populates `appState.folders` +
+`currentFolderId` on load; `card-shortcuts.js`'s global Option-held `body.option-held` class
+toggles on keydown and clears on keyup; a real column-divider drag on a `userSized` table
+(`table-grid-resize.js`'s `armDividerOnHover`/`startTableColResize`) correctly arms after the
+300ms hover delay and mutates `it.colWidths`; and `card-shortcuts.js`'s Backspace-to-delete
+(`deleteSelectedCards`) correctly removes the selected card from `appState`. Zero console/page
+errors (one unrelated pre-existing stray media card in the shared test account, pointing at a dead
+`https://example.com/test.pdf` fixture URL, logs CORS noise on every page load regardless of what's
+under test — confirmed unrelated to this split, filtered out of the pass/fail check). One
+test-script-only gotcha worth flagging for future Phase 4.3/4.4 verification scripts: a 2x2 mock
+table's single row-divider and column-divider handles geometrically cross at the table's midpoint,
+so clicking dead-center via real screen coordinates (`page.mouse`) hits whichever one happens to be
+stacked on top rather than reliably hitting the one under test — dispatching `mouseenter`/
+`pointerdown`/`pointermove`/`pointerup` directly at the target element (bypassing screen-coordinate
+hit-testing) sidesteps this while still exercising the real listener chain
+(`armDividerOnHover`'s hover-arm timer through to the actual resize).

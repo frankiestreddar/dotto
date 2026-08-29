@@ -6,7 +6,7 @@ import { closeGameOptionsPanel, openGameOptionsPanel } from './games-flashcard-t
 import { renderFilesList, renderSourcesList } from './hamburger-collab.js';
 import { applyTransform, ensureSwTicking, saveSnapshot, scheduleWorkspaceSave, updateContextMenuPosition } from './history-autosave.js';
 import { broadcastEditingState, miniLabelForItem, placeCaretEnd, renderRealCardPreview, repositionAllRemoteCursors, syncColorPicker } from './live-presence.js';
-import { findNextFreeSlot } from './resize-shortcuts-init.js';
+import { findNextFreeSlot } from './card-shortcuts.js';
 import { buildOutline, ensureSharedFolderLoaded, renderBreadcrumbMapPanel, renderNavArrows, renderTabsPanel, sharedFolderKey, stripSharedFolderIds } from './shared-canvases-outline.js';
 import { closeSourceAddMenu } from './source-buttons-cursor-mode.js';
 import { closeCellTagPicker } from './source-tags-ai.js';
@@ -872,7 +872,7 @@ import { applyConnections } from './srs-connections-core.js';
                 el.appendChild(badge);
             }
             // Per-card right-click menu: table cards get the shared #context-menu align-pill
-            // (Delete is keyboard-only — see deleteSelectedCards, resize-shortcuts-init.js — not a
+            // (Delete is keyboard-only — see deleteSelectedCards, card-shortcuts.js — not a
             // menu item here); flashcard/typeright game cards instead slide their own in-card
             // options panel into
             // view (see openGameOptionsPanel/renderGameOptionsHTML) — only these two kinds have a

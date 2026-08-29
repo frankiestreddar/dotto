@@ -3,7 +3,7 @@ import { appState, canvas, registerPaneCanvasListenerSetup, world } from './core
 import { saveSnapshot } from './history-autosave.js';
 import { findItemById } from './live-presence.js';
 import { closeRailView } from './panels-hamburger.js';
-import { deleteSelectedCards } from './resize-shortcuts-init.js';
+import { deleteSelectedCards } from './card-shortcuts.js';
 import { applyCursorMode } from './source-buttons-cursor-mode.js';
 import { render, renderSelectedOutlines } from './waypoints-render-loop.js';
 

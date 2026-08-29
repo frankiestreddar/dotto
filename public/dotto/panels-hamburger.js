@@ -42,7 +42,7 @@ import { closeSourceAddMenu } from './source-buttons-cursor-mode.js';
     }
     // Any panel that owns its own keyboard input while open — same set closeAllPanels() knows
     // about, plus the search dropdown — should win over any OTHER global single-key shortcut
-    // (game-card shortcuts in resize-shortcuts-init.js, the Space/"/"/m/n shortcuts in
+    // (game-card shortcuts in card-shortcuts.js, the Space/"/"/m/n shortcuts in
     // srs-connections-core.js) even when nothing inside that panel happens to be focused yet.
     // Without this, typing a normal sentence while e.g. the Waypoints panel is open (cursor
     // resting on the panel, no input actually clicked into) would silently do nothing for most

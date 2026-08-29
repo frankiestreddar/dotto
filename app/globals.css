@@ -7292,7 +7292,7 @@ body:has(#collab-panel.open) .pane-collab-bubble:hover .collab-tooltip {
   position: relative;
 }
 /* Per-column/row divider drag handles (see TableCard.jsx/setupTableGridResizing,
-       resize-shortcuts-init.js) — the plain canvas Table card only, not source/static tables
+       table-grid-resize.js) — the plain canvas Table card only, not source/static tables
        (those already have their own auto-width column system, unrelated to userSized/colWidths).
        Positioned as a % of .table-rounded's own box, centered on the boundary itself (see the
        transform). The HOVERABLE hit area (9px — the handle itself) is deliberately wider than the
@@ -7304,7 +7304,7 @@ body:has(#collab-panel.open) .pane-collab-bubble:hover .collab-tooltip {
        elsewhere on the web, just made explicit here via a pseudo-element instead of relying on
        padding (which .item-table td's own padding conventions would complicate).
        Invisible at rest, a soft brand-indigo highlight once .armed (see armDividerOnHover,
-       resize-shortcuts-init.js — JS-driven, not a plain :hover, since the highlight/cursor/actual
+       table-grid-resize.js — JS-driven, not a plain :hover, since the highlight/cursor/actual
        drag-ability are all deliberately delayed until the cursor has rested on the boundary for a
        moment, not shown the instant it merely passes over). No cursor at rest either (falls back
        to whatever the underlying cell would show) — col-resize/row-resize only once armed, same
@@ -7367,7 +7367,7 @@ body:has(#collab-panel.open) .pane-collab-bubble:hover .collab-tooltip {
        hit-zone/3px visible-line split as .table-col-resize-handle/.table-row-resize-handle above
        (a little "near enough" tolerance around the exact 1px line), but red instead of
        purple/indigo — a color that reads as "delete", not "resize" — and only interactive at all
-       while body.option-held is set (see resize-shortcuts-init.js's global keydown/keyup
+       while body.option-held is set (see card-shortcuts.js's global keydown/keyup
        tracking), never reachable by an accidental hover otherwise. z-index above both the divider
        handles (3) and the focus/hover cell-border ring (4), so it's unambiguous which mode is
        active on the rare frame they'd otherwise overlap. */

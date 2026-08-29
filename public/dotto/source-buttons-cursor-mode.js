@@ -5,7 +5,7 @@ import { dispatchListPanelDelete } from './hamburger-collab.js';
 import { hideCanvasContextMenu } from './history-autosave.js';
 import { findItemById } from './live-presence.js';
 import { closeAllPanels } from './panels-hamburger.js';
-import { deleteSelectedCards } from './resize-shortcuts-init.js';
+import { deleteSelectedCards } from './card-shortcuts.js';
 import { closeCellTagPicker } from './source-tags-ai.js';
 import { clearDataLinkPending } from './srs-connections-core.js';
 
