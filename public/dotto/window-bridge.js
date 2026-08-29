@@ -33,7 +33,9 @@ import { openCellAddMenu } from './source-buttons-cursor-mode.js';
 import { addTableCol, addTableRow, handleCellMouseDown, handleColNameKeydown, handleTableKeydown, renameTableColumn, setLastFocusedCell, startCellAudioRecording, stopCellAudioRecording, triggerCellAudioUpload, triggerCellImageUpload, updateTableCell } from './source-table.js';
 import { closeCellTagPicker, closeTagContextMenu, commitTagRename, createTagFromCellPicker, deleteActiveTag, handleTagRenameKeydown, openTagContextMenu, startRenameActiveTag, toggleCellTag, triggerSourceUpload } from './source-tags-ai.js';
 import { createNewSource } from './srs-connections-core.js';
-import { clearSearchCardContext, closeSearchCardsModal, filterShelfRows, handleShelfSourceRowClick, openSearchCardsModal, runNotificationAction, setFilterMode, shelfSelectSession, startRenameShelfName, startRenameShelfSourceRow, swTogglePause, swToggleRun, toggleFilterTag } from './stopwatch-search-notifications.js';
+import { swTogglePause, swToggleRun } from './stopwatch.js';
+import { runNotificationAction } from './notifications.js';
+import { clearSearchCardContext, closeSearchCardsModal, filterShelfRows, handleShelfSourceRowClick, openSearchCardsModal, setFilterMode, shelfSelectSession, startRenameShelfName, startRenameShelfSourceRow, toggleFilterTag } from './shelf-search.js';
 
 window.addGameColumnSlot = addGameColumnSlot;
 window.addTableCol = addTableCol;

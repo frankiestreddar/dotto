@@ -9,7 +9,7 @@ import { dateKey } from "./dateKey";
 // Phase 4.1 port — its three external dependencies were dateKey (extracted alongside this, see
 // dateKey.ts's own comment — messages-schedule.js itself stays vanilla, it has real hub
 // dependencies of its own), and pushNotification/openPricingOverlay, both already reachable via
-// existing plain window bridges (window.pushNotification, set in stopwatch-search-notifications.js;
+// existing plain window bridges (window.pushNotification, set in notifications.js;
 // window.openPricingOverlay, set in window-bridge.js) without needing either of those files
 // ported first. appState.lastStatsDayKey is a dynamically-added field (never pre-declared in
 // core-state.js's own appState object literal — see this function's own note below), read/written

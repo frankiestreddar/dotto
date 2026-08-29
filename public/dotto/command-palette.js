@@ -2,7 +2,7 @@ import { appState } from './core-state.js';
 import { copyTarget, inviteUser, obtainTarget, placeTarget, removeUser, setVisibility } from './command-verbs.js';
 import { parseCommandInput } from './command-parser.js';
 import { GLOBAL_ID_SHAPE, resolveCommandTarget, searchAccessibleByNameAll, searchOwnTreeByNameAll } from './command-target-lookup.js';
-import { pushNotification } from './stopwatch-search-notifications.js';
+import { pushNotification } from './notifications.js';
 
 // ---------- Slash-command suggestions panel (see command-parser.js/command-target-lookup.js/
 // command-verbs.js — orchestration lives here since it's the one place that needs all three) ----------

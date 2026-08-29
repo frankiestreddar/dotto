@@ -233,7 +233,7 @@ export function closeLeafInTree(tree, paneId) {
 // push existing down") — NotificationBar.jsx now owns the whole stack (position, per-card measured-
 // height stacking, slide/shift animation, hover-reveal close button), not just a portal into
 // otherwise-vanilla-owned markup; the old vanilla queue/sequencing engine
-// (stopwatch-search-notifications.js's pushNotification/showNotification/
+// (notifications.js's pushNotification/showNotification/
 // dismissNotification) still owns WHEN a notification appears/times out and calls
 // window.__setNotifications with the updated array — genuinely multiple notifications can be
 // visible at once now, so there's no single "current" one and no artificial gap between showing

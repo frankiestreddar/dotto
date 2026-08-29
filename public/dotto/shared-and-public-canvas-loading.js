@@ -1,7 +1,7 @@
 import { appState, supabase } from './core-state.js';
 import { applyTransform } from './history-autosave.js';
 import { closeRailView } from './panels-hamburger.js';
-import { pushNotification } from './stopwatch-search-notifications.js';
+import { pushNotification } from './notifications.js';
 import { centerOnContent, render } from './waypoints-render-loop.js';
 
 // Phase 4.3 split (was part of shared-canvases-outline.js, see PHASE4_ROADMAP.md) — the

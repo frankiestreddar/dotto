@@ -6,7 +6,7 @@ import { openFolder, render } from './waypoints-render-loop.js';
 import { CARD_KINDS } from './card-kinds.js';
 import { openPublicCanvas, openSharedCanvas } from './shared-and-public-canvas-loading.js';
 import { deepCloneItem, viewportCenterWorldPoint } from './srs-connections-core.js';
-import { pushNotification } from './stopwatch-search-notifications.js';
+import { pushNotification } from './notifications.js';
 
 // Executes the 'obtain' verb for an already-resolved command target (see
 // command-target-lookup.js's resolveCommandTarget) — navigates in for your own or shared-with-you

@@ -1,6 +1,6 @@
 import { appState, supabase } from './core-state.js';
 import { closeAllPanels, closeRailView, wireRailIcon } from './panels-hamburger.js';
-import { pushNotification } from './stopwatch-search-notifications.js';
+import { pushNotification } from './notifications.js';
 
 
     // ---------- Profile Panel Controls ----------

@@ -419,7 +419,7 @@
         aiListView: document.getElementById('ai-list-view'),
         aiListHeader: document.getElementById('ai-list-header'),
         // Notification stack, bottom-left (see pushNotification/showNotification/
-        // dismissNotification, stopwatch-search-notifications.js, and app/dotto/NotificationBar.jsx,
+        // dismissNotification, notifications.js, and app/dotto/NotificationBar.jsx,
         // which owns the entire rendering surface now — no static markup node left to reach via
         // appState; explicit redesign, was a single top-center pill swapping places with
         // #top-bar-center).

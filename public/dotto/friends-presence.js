@@ -4,7 +4,7 @@ import { ensureCanvasPresenceChannel, openConvo, renderConvoBody } from './live-
 import { openMessagesPanel } from './messages-schedule.js';
 import { closeAllPanels, pinOnInsideClick, scheduleHoverClose } from './panels-hamburger.js';
 import { bumpAchievementStat } from './profile-achievements-pricing.js';
-import { pushNotification } from './stopwatch-search-notifications.js';
+import { pushNotification } from './notifications.js';
 
 
 

@@ -10,7 +10,8 @@ import { closeDotbotUpgradeModal, closePricingOverlay } from './profile-achievem
 import { stripSharedFolderIds } from './shared-and-public-canvas-loading.js';
 import { closeCellTagPicker } from './source-tags-ai.js';
 import { cancelAddingKind, finishPenPolyline } from './srs-connections-core.js';
-import { closeSearchCardsModal, swCurrentElapsedMs, swFormatTime } from './stopwatch-search-notifications.js';
+import { swCurrentElapsedMs, swFormatTime } from './stopwatch.js';
+import { closeSearchCardsModal } from './shelf-search.js';
 import { closeUploadPopup } from './upload-popup.js';
 import { centerOnContent, render } from './waypoints-render-loop.js';
 

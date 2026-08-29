@@ -5,7 +5,7 @@ import { saveSnapshot, scheduleWorkspaceSave } from './history-autosave.js';
 import { findItemById } from './live-presence.js';
 import { commenceSearchOrMnemonic } from './mnemonic-search-matching.js';
 import { closeAllPanels, closeRailView, openRailView } from './panels-hamburger.js';
-import { autoGrowSearchInput } from './stopwatch-search-notifications.js';
+import { autoGrowSearchInput } from './shelf-search.js';
 // Phase 4.2 extraction — see text-utils.js's own comment. Re-exported below (not just used
 // internally) so every other file's existing `from './ai-assistant-suggestions.js'` import keeps
 // working unchanged. isLatinScriptText stayed here (not extracted alongside these two) — see

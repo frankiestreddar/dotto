@@ -19,7 +19,7 @@
   correction to how this phase was originally scoped, and a real importability gotcha
   (`core-state.js`'s module-level DOM lookups breaking Vitest imports) caught while doing the
   second extraction.
-- **Phase 4.3 — split multi-concern files: in progress.** `resize-shortcuts-init.js` (333 lines, 3
+- **Phase 4.3 — split multi-concern files: done.** `resize-shortcuts-init.js` (333 lines, 3
   bundled concerns) done: split into `table-grid-resize.js` (internal column/row divider drag),
   `card-shortcuts.js` (Option-held tracking, Backspace multi-delete, hover-scoped game-card and
   PDF-page-turn keyboard shortcuts), and `app-init.js` (the one-time bootstrap sequence — pure
@@ -44,7 +44,22 @@
   `app/dotto-app.jsx`'s
   `renderMediaViewerZoom`/`setMediaViewerZoom` mention, which actually lives in
   `waypoints-render-loop.js` and never was in `shared-canvases-outline.js`, predates this split and
-  is out of scope here). `stopwatch-search-notifications.js` split not yet started.
+  is out of scope here). `stopwatch-search-notifications.js` (509 lines) also done: split into
+  `stopwatch.js` (the Stopwatch card's start/stop/pause timer + session-archiving into a connected
+  Shelf/Stack), `notifications.js` (the bottom-left notification stack engine), and `shelf-search.js`
+  (the Shelf/Stack card's own row search, the small Filter card's tag-toggling, and the top AI
+  search bar's autogrow + drag-cards-in-as-context popup — every "search"-flavored piece the
+  original filename's own name pointed at, kept together since none of it is stopwatch or
+  notifications). These 3 new files needed zero cross-imports between each other (unlike the
+  4-way split above) — genuinely independent concerns. 15 real cross-file imports fixed across 12
+  caller files, roughly 20 stale comment references fixed across 16 files (all 3 new files' own
+  Phase 4.3 provenance comments left as-is, matching convention). One pre-existing circular import
+  between `live-presence.js` and `shelf-search.js` carried over unchanged from the original single
+  file (both already imported from each other before this split; ES modules tolerate it fine as
+  long as the circularly-imported binding is only used inside function bodies, never at
+  module-evaluation time — confirmed via a clean `npm run build`, which would have failed on a
+  genuine resolution problem). **Phase 4.3 is now fully done** — all 3 originally-scoped
+  multi-concern files split.
 - **Phase 4.4 — port split-out concerns + remaining DOM-heavy files: not started.**
 - **Phase 4.5 — architectural/hub files: not started.**
 - **Phase 4.6 — delete the bridge layer: not started.**
@@ -568,3 +583,26 @@ to fetch; covered instead by the mechanical-move verification tier (clean typech
 console errors on a full app load that itself calls `announceEnteredCollaboration` via
 `app-init.js` on every boot) — same reasoning Phase 4.2's SM-2 extraction used for skipping a
 full UI-driven test on a verbatim code move.
+
+**Phase 4.3 (`stopwatch-search-notifications.js` split — closes out Phase 4.3)**: `node --check`
+on all touched/new vanilla files, `eslint` clean (only pre-existing `<img>`-vs-`next/image`
+warnings, zero errors), a full clean `rm -rf .next next-env.d.ts tsconfig.tsbuildinfo && npm run
+typecheck && npm run build` pass (the build in particular matters here — it's what would have
+surfaced a genuine problem with the `live-presence.js`↔`shelf-search.js` circular import if the
+split had actually broken it, not just carried it forward unchanged), `npm run format:check`
+clean, all 32 existing Vitest tests still green. Real Playwright verification against a fresh dev
+server, using the same tagged-mock-item + `finally`-block cleanup pattern as the earlier two
+Phase 4.3 verifications: `notifications.js`'s `pushNotification`/`__dismissNotification` correctly
+round-tripped `visibleNotifications`; `stopwatch.js`'s `swToggleRun`/`swTogglePause` correctly
+drove a mock Stopwatch card through start → pause → resume → stop, confirming a session got
+archived into `it.swSessions` on stop; `shelf-search.js`'s `toggleFilterTag`/`setFilterMode`
+correctly round-tripped a mock Filter card's tag set and AND/OR mode; and `autoGrowSearchInput`
+correctly grew `#search-input`'s real height (34px → 74px) after typing a long query into the AI
+search box once opened via `#rail-btn-ai` (not `#btn-search`, which opens the unrelated
+search-history panel — a real selector mistake caught and fixed during this verification, not a
+finding about the app itself). Zero console/page errors on the final clean run — an earlier run
+using the wrong search button logged 15 unrelated 404s, which disappeared entirely once the
+correct button was used, confirming they were a test-script artifact (some fetch triggered by
+the wrong panel opening), not a real regression. Re-checked the account afterward to confirm the
+`finally` cleanup actually removed every mock item (stopwatch, filter) and notification, leaving
+zero residue.

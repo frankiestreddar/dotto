@@ -1,6 +1,6 @@
 "use client";
 
-// Ported from the old renderShelfHTML (public/dotto/stopwatch-search-notifications.js — kept
+// Ported from the old renderShelfHTML (public/dotto/shelf-search.js — kept
 // there, not deleted). Every handler here was already window-bridged for the original inline
 // event attributes (startRenameShelfName/startRenameShelfSourceRow/handleShelfSourceRowClick/
 // filterShelfRows/shelfSelectSession) — `this` in those original attributes becomes

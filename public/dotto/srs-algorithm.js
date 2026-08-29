@@ -3,7 +3,7 @@
 // DOM touch), but srs-connections-core.js itself still has real vanilla hub dependents of its own
 // (see its own import list), so this can't fully move to app/dotto/lib yet either — that file
 // keeps re-exporting these three names so its own existing callers (games-flashcard-typeright.js,
-// stopwatch-search-notifications.js) keep working unchanged. This extraction's own value right
+// stopwatch.js) keep working unchanged. This extraction's own value right
 // now is real test coverage (see srs-algorithm.test.ts) for logic that had zero coverage before,
 // and a smaller, focused module ready to move wholesale to app/dotto/lib once nothing vanilla
 // needs it directly anymore.

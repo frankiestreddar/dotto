@@ -8,7 +8,7 @@ import { commenceSearchOrMnemonic } from './mnemonic-search-matching.js';
 import { bumpAchievementStat, openDotbotUpgradeModal, refreshDotbotUsage } from './profile-achievements-pricing.js';
 import { colgroupHTML } from './source-table.js';
 import { applyAiAddRowsToSource, createSourceFromAI } from './source-tags-ai.js';
-import { autoGrowSearchInput } from './stopwatch-search-notifications.js';
+import { autoGrowSearchInput } from './shelf-search.js';
 import { render } from './waypoints-render-loop.js';
 
 
@@ -468,7 +468,7 @@ export { commenceDotbotSearch, openAddToSourcePopup, selectionToolbarLookUp, sho
 
 // Not inline-HTML onclick targets (see window-bridge.js's own header comment for why those live
 // there instead) — app/dotto/SelectionToolbar.jsx's two buttons call these directly, same
-// rationale as pushNotification's bridge in stopwatch-search-notifications.js (Phase 2
+// rationale as pushNotification's bridge in notifications.js (Phase 2
 // increment 1).
 window.selectionToolbarLookUp = selectionToolbarLookUp;
 window.openAddToSourcePopup = openAddToSourcePopup;

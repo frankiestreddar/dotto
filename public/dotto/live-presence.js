@@ -13,7 +13,8 @@ import { awardUserPoints, renderAvatarInto } from './profile-achievements-pricin
 import { namespaceSharedFolderIds, parseSharedFolderKey, stripSharedFolderIds } from './shared-and-public-canvas-loading.js';
 import { kindIconHTML } from './outline-tree.js';
 import { renderTableHTML } from './source-table.js';
-import { renderShelfHTML, renderStopwatchHTML } from './stopwatch-search-notifications.js';
+import { renderStopwatchHTML } from './stopwatch.js';
+import { renderShelfHTML } from './shelf-search.js';
 import { render } from './waypoints-render-loop.js';
 
 

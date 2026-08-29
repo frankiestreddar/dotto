@@ -752,7 +752,7 @@ body:has(#hamburger-stack.open):not([data-sidebar-mode="overlay"]) .item.static-
 }
 /* The only button besides the hover-revealed close one — its label already ends in an
        enter-arrow glyph (see NotificationCard, NotificationBar.jsx) reinforcing that Enter also
-       activates it (see the notification keydown handler, stopwatch-search-notifications.js). */
+       activates it (see the notification keydown handler, notifications.js). */
 .notification-action {
   display: flex;
   margin-top: 8px;

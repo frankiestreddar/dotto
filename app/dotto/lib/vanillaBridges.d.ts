@@ -10,7 +10,7 @@ declare global {
     // bridge). Loosely typed (not the full appState shape) since only a handful of fields are
     // read/written from ported code so far; widen as more fields are actually touched.
     __getAppState?: () => Record<string, unknown>;
-    // stopwatch-search-notifications.js
+    // notifications.js
     pushNotification?: (config: {
       type: string;
       message: string;

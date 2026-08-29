@@ -1,6 +1,6 @@
 "use client";
 
-// Ported from the old renderFilterHTML (public/dotto/stopwatch-search-notifications.js — kept
+// Ported from the old renderFilterHTML (public/dotto/shelf-search.js — kept
 // there, not deleted: it's still exported alongside its siblings and cheap to leave). setFilterMode/
 // toggleFilterTag were already window-bridged for the original inline onclick attributes.
 // applyFilterToRows/collectAvailableFilterTags (srs-connections-core.js) are real filtering logic,

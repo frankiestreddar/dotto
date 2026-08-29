@@ -63,7 +63,7 @@ const PRICING_FEATURE_ROWS = [
 
 function startPlanUpgrade(planId) {
   pricingOverlayStore.set(false);
-  // pushNotification still lives in public/dotto/stopwatch-search-notifications.js (not migrated
+  // pushNotification still lives in public/dotto/notifications.js (not migrated
   // yet) — window-bridged for exactly this call, see public/dotto/window-bridge.js.
   window.pushNotification({
     type: "upgrade_unavailable",

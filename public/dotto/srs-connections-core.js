@@ -10,12 +10,12 @@ import { broadcastEditingState } from './live-presence.js';
 import { isAnyUiPanelOpen } from './panels-hamburger.js';
 import { awardUserPoints, bumpAchievementStat, showProfileSettingsView } from './profile-achievements-pricing.js';
 import { setOutlineActive, toggleHamburgerMenu } from './outline-tree.js';
-import { pushNotification } from './stopwatch-search-notifications.js';
+import { pushNotification } from './notifications.js';
 import { toggleTheme } from './theme-toggle.js';
 import { toggleUploadPopup } from './upload-popup.js';
 import { render, renderSelectedOutlines, startBoxSelection, syncWaypointToDb } from './waypoints-render-loop.js';
 // Phase 4.2 extraction — see srs-algorithm.js's own comment. Re-exported below (not just used
-// internally) so games-flashcard-typeright.js/stopwatch-search-notifications.js's existing
+// internally) so games-flashcard-typeright.js/stopwatch.js's existing
 // `from './srs-connections-core.js'` imports keep working unchanged.
 import { calculateSM2, defaultSrsState, diffRatings } from './srs-algorithm.js';
 

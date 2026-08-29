@@ -162,7 +162,7 @@ export default function NotificationBar() {
     setHeights((prev) => (prev[id] === h ? prev : { ...prev, [id]: h }));
   };
 
-  // list[0] is newest (see showNotification, stopwatch-search-notifications.js) — it gets the
+  // list[0] is newest (see showNotification, notifications.js) — it gets the
   // anchor position, every older entry after it accumulates upward from there. Exiting cards are
   // NOT part of this pass — they keep the frozen position captured when they left `list` (below),
   // independent of however the remaining real entries reflow. Computed unconditionally (even when

@@ -1,6 +1,6 @@
 "use client";
 
-// Ported from the old renderStopwatchHTML (public/dotto/stopwatch-search-notifications.js — kept
+// Ported from the old renderStopwatchHTML (public/dotto/stopwatch.js — kept
 // there, not deleted: live-presence.js's mini inline-canvas previews still call it directly).
 // swToggleRun/swTogglePause/swFormatTime/swCurrentElapsedMs all stay vanilla, reached via
 // window.swToggleRun/window.swTogglePause (already bridged for the original inline onclick=
