@@ -34,7 +34,6 @@ import { addTableCol, addTableRow, handleCellMouseDown, handleColNameKeydown, ha
 import { closeCellTagPicker, closeTagContextMenu, commitTagRename, createTagFromCellPicker, deleteActiveTag, handleTagRenameKeydown, openTagContextMenu, startRenameActiveTag, toggleCellTag, triggerSourceUpload } from './source-tags-ai.js';
 import { createNewSource } from './srs-connections-core.js';
 import { swTogglePause, swToggleRun } from './stopwatch.js';
-import { runNotificationAction } from './notifications.js';
 import { clearSearchCardContext, closeSearchCardsModal, filterShelfRows, handleShelfSourceRowClick, openSearchCardsModal, setFilterMode, shelfSelectSession, startRenameShelfName, startRenameShelfSourceRow, toggleFilterTag } from './shelf-search.js';
 
 window.addGameColumnSlot = addGameColumnSlot;
@@ -102,7 +101,6 @@ window.redo = redo;
 window.removeGameColumnSlot = removeGameColumnSlot;
 window.removeTask = removeTask;
 window.renameTableColumn = renameTableColumn;
-window.runNotificationAction = runNotificationAction;
 window.sendMsg = sendMsg;
 window.setFilterMode = setFilterMode;
 window.setGameColumnSlot = setGameColumnSlot;

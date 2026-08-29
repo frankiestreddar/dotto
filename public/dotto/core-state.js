@@ -418,26 +418,11 @@
         aiChatView: document.getElementById('ai-chat-view'),
         aiListView: document.getElementById('ai-list-view'),
         aiListHeader: document.getElementById('ai-list-header'),
-        // Notification stack, bottom-left (see pushNotification/showNotification/
-        // dismissNotification, notifications.js, and app/dotto/NotificationBar.jsx,
-        // which owns the entire rendering surface now — no static markup node left to reach via
-        // appState; explicit redesign, was a single top-center pill swapping places with
-        // #top-bar-center).
-        NOTIFICATION_DEFAULT_DURATION_MS: 5000,
-        // At most this many visible at once (explicit request) — showNotification drops the
-        // oldest (the last entry in visibleNotifications below) once a new arrival would exceed
-        // this, rather than growing the stack unbounded. NotificationBar.jsx plays a real
-        // slide-out exit animation for whichever entry actually leaves the array this way, rather
-        // than it just vanishing — see its own comment.
-        NOTIFICATION_MAX_VISIBLE: 3,
-        // Notifications pushed while the tab isn't visible wait here (see pushNotification) rather
-        // than showing immediately unseen — flushed as a batch (each becomes its own real,
-        // independently-timed notification, no artificial stagger) once the tab is visible again.
-        notificationQueue: [],
-        // Every CURRENTLY visible notification, newest first — {id, config}[], capped at
-        // NOTIFICATION_MAX_VISIBLE. Genuinely multiple can be up at once (explicit request:
-        // "remove the delay between notifications"), so there's no single "current" one any more.
-        visibleNotifications: [],
+        // Notification stack, bottom-left — fully ported to a real Zustand store now (Phase 4.4,
+        // app/dotto/lib/notificationsStore.ts; was appState.visibleNotifications/notificationQueue/
+        // NOTIFICATION_MAX_VISIBLE/NOTIFICATION_DEFAULT_DURATION_MS here). Still-vanilla callers
+        // reach it via window.pushNotification/window.__hasVisibleNotifications — see that file's
+        // own comment.
         searchCardContext: [],
         searchCardConnections: [],
         NON_LATIN_SCRIPT_RE: new RegExp("[^\u0000-\u024F\u1E00-\u1EFF\u2000-\u206F\s\d]"),

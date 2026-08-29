@@ -2,7 +2,6 @@ import { appState } from './core-state.js';
 import { copyTarget, inviteUser, obtainTarget, placeTarget, removeUser, setVisibility } from './command-verbs.js';
 import { parseCommandInput } from './command-parser.js';
 import { GLOBAL_ID_SHAPE, resolveCommandTarget, searchAccessibleByNameAll, searchOwnTreeByNameAll } from './command-target-lookup.js';
-import { pushNotification } from './notifications.js';
 
 // ---------- Slash-command suggestions panel (see command-parser.js/command-target-lookup.js/
 // command-verbs.js — orchestration lives here since it's the one place that needs all three) ----------
@@ -101,7 +100,7 @@ async function selectCommandRow(row) {
     }
     if (row.type === 'id') {
         const target = await resolveCommandTarget(row.kind, row.globalId);
-        if (!target) { pushNotification({ type: 'command_error', message: `No ${row.kind} found for that id.` }); return; }
+        if (!target) { window.pushNotification({ type: 'command_error', message: `No ${row.kind} found for that id.` }); return; }
         obtainTarget(target);
     }
 }
@@ -115,7 +114,7 @@ async function executeCurrentCommand(value) {
     const parsed = parseCommandInput(value);
     if (!parsed || parsed.stage !== 'target' || !parsed.targetRaw) return;
     const target = await resolveCommandTarget(parsed.kind, parsed.targetRaw);
-    if (!target) { pushNotification({ type: 'command_error', message: `No ${parsed.kind} found matching "${parsed.targetRaw}".` }); return; }
+    if (!target) { window.pushNotification({ type: 'command_error', message: `No ${parsed.kind} found matching "${parsed.targetRaw}".` }); return; }
     if (parsed.verb === 'obtain') { obtainTarget(target); return; }
     if (parsed.verb === 'set') { setVisibility(target, parsed.arg); return; }
     if (parsed.verb === 'invite') { inviteUser(target, parsed.arg); return; }

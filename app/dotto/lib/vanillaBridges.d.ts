@@ -10,7 +10,9 @@ declare global {
     // bridge). Loosely typed (not the full appState shape) since only a handful of fields are
     // read/written from ported code so far; widen as more fields are actually touched.
     __getAppState?: () => Record<string, unknown>;
-    // notifications.js
+    // app/dotto/lib/notificationsStore.ts (Phase 4.4 port — was notifications.js) — a vanilla ->
+    // React bridge now, not React -> vanilla like every other entry here: still-vanilla callers
+    // reach the ported notification engine through this, same call shape as before the port.
     pushNotification?: (config: {
       type: string;
       message: string;
@@ -20,6 +22,9 @@ declare global {
       sticky?: boolean;
       durationMs?: number;
     }) => void;
+    // app/dotto/lib/notificationsStore.ts — card-shortcuts.js's hover-scoped game-card/PDF-page-
+    // turn shortcuts gate on this so a notification's own Enter/Escape handling wins instead.
+    __hasVisibleNotifications?: () => boolean;
     // profile-achievements-pricing.js
     openPricingOverlay?: () => void;
   }

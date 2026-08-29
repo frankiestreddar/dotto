@@ -6,7 +6,6 @@ import { openFolder, render } from './waypoints-render-loop.js';
 import { CARD_KINDS } from './card-kinds.js';
 import { openPublicCanvas, openSharedCanvas } from './shared-and-public-canvas-loading.js';
 import { deepCloneItem, viewportCenterWorldPoint } from './srs-connections-core.js';
-import { pushNotification } from './notifications.js';
 
 // Executes the 'obtain' verb for an already-resolved command target (see
 // command-target-lookup.js's resolveCommandTarget) — navigates in for your own or shared-with-you
@@ -28,14 +27,14 @@ function obtainTarget(target) {
 // as a confusing, unrelated failure).
 async function setVisibility(target, visibility) {
     if (!target) return;
-    if (target.access !== 'owner') { pushNotification({ type: 'command_error', message: `You can only change visibility on your own ${target.kind}.` }); return; }
+    if (target.access !== 'owner') { window.pushNotification({ type: 'command_error', message: `You can only change visibility on your own ${target.kind}.` }); return; }
     const { error } = await supabase.rpc('set_global_item_visibility', { p_folder_id: target.folder_id, p_visibility: visibility });
     if (error) {
         console.error(`[commands] set_global_item_visibility failed: message=${error.message} code=${error.code} details=${error.details} hint=${error.hint}`);
-        pushNotification({ type: 'command_error', message: `Couldn't set "${target.title}" to ${visibility}.` });
+        window.pushNotification({ type: 'command_error', message: `Couldn't set "${target.title}" to ${visibility}.` });
         return;
     }
-    pushNotification({ type: 'command_success', message: `"${target.title}" is now ${visibility}.` });
+    window.pushNotification({ type: 'command_success', message: `"${target.title}" is now ${visibility}.` });
 }
 
 // 'invite <username>' — same owner-only guard as setVisibility. Deliberately calls
@@ -47,16 +46,16 @@ async function setVisibility(target, visibility) {
 // entirely in that panel's own UI, not in the RPC itself.
 async function inviteUser(target, username) {
     if (!target) return;
-    if (target.access !== 'owner') { pushNotification({ type: 'command_error', message: `You can only invite people to your own ${target.kind}.` }); return; }
+    if (target.access !== 'owner') { window.pushNotification({ type: 'command_error', message: `You can only invite people to your own ${target.kind}.` }); return; }
     const userId = await resolveUsernameToUserId(username);
-    if (!userId) { pushNotification({ type: 'command_error', message: `No user found with username "${username}".` }); return; }
+    if (!userId) { window.pushNotification({ type: 'command_error', message: `No user found with username "${username}".` }); return; }
     const { error } = await supabase.rpc('invite_canvas_collaborator', { p_folder_id: target.folder_id, p_folder_title: target.title, p_collaborator_id: userId });
     if (error) {
         console.error(`[commands] invite_canvas_collaborator failed: message=${error.message} code=${error.code} details=${error.details} hint=${error.hint}`);
-        pushNotification({ type: 'command_error', message: `Couldn't invite ${username}.` });
+        window.pushNotification({ type: 'command_error', message: `Couldn't invite ${username}.` });
         return;
     }
-    pushNotification({ type: 'command_success', message: `Invited ${username} to "${target.title}".` });
+    window.pushNotification({ type: 'command_success', message: `Invited ${username} to "${target.title}".` });
 }
 
 // 'remove <username>' — removes an accepted collaborator, or cancels a still-pending invite to
@@ -65,16 +64,16 @@ async function inviteUser(target, username) {
 // pending-invite case, which previously had no way to reach it at all).
 async function removeUser(target, username) {
     if (!target) return;
-    if (target.access !== 'owner') { pushNotification({ type: 'command_error', message: `You can only remove people from your own ${target.kind}.` }); return; }
+    if (target.access !== 'owner') { window.pushNotification({ type: 'command_error', message: `You can only remove people from your own ${target.kind}.` }); return; }
     const userId = await resolveUsernameToUserId(username);
-    if (!userId) { pushNotification({ type: 'command_error', message: `No user found with username "${username}".` }); return; }
+    if (!userId) { window.pushNotification({ type: 'command_error', message: `No user found with username "${username}".` }); return; }
     const { error } = await supabase.rpc('revoke_canvas_collaboration', { p_folder_id: target.folder_id, p_collaborator_id: userId });
     if (error) {
         console.error(`[commands] revoke_canvas_collaboration failed: message=${error.message} code=${error.code} details=${error.details} hint=${error.hint}`);
-        pushNotification({ type: 'command_error', message: `Couldn't remove ${username}.` });
+        window.pushNotification({ type: 'command_error', message: `Couldn't remove ${username}.` });
         return;
     }
-    pushNotification({ type: 'command_success', message: `Removed ${username} from "${target.title}".` });
+    window.pushNotification({ type: 'command_success', message: `Removed ${username} from "${target.title}".` });
 }
 
 // 'place' — drops a read-only reference card (kind: 'reference', ReferenceCard.jsx) at the center
@@ -158,7 +157,7 @@ async function copyTarget(target) {
         clonedFolderId = clone.folderId;
     } else {
         const result = await cloneRemoteFolder(target.owner_id, target.folder_id, target.access);
-        if (!result) { pushNotification({ type: 'command_error', message: `Couldn't copy "${target.title}" — it may no longer be accessible.` }); return; }
+        if (!result) { window.pushNotification({ type: 'command_error', message: `Couldn't copy "${target.title}" — it may no longer be accessible.` }); return; }
         clonedFolderId = result.folderId;
     }
     const kind = target.kind === 'source' ? 'source' : 'folder';
@@ -170,7 +169,7 @@ async function copyTarget(target) {
         kind, folderId: clonedFolderId,
     });
     render();
-    pushNotification({ type: 'command_success', message: `Copied "${target.title}".` });
+    window.pushNotification({ type: 'command_success', message: `Copied "${target.title}".` });
 }
 
 export { copyTarget, inviteUser, obtainTarget, placeTarget, removeUser, setVisibility };

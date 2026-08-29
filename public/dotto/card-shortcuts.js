@@ -96,7 +96,7 @@ document.addEventListener('keydown', (e) => {
     const isEditingText = active && (active.isContentEditable || active.tagName === 'INPUT' || active.tagName === 'SELECT' || active.tagName === 'TEXTAREA');
     if (isEditingText) return;
     if (isAnyUiPanelOpen()) return;
-    if (appState.visibleNotifications.length) return; // its own Enter/Escape handling should win, not compete
+    if (window.__hasVisibleNotifications()) return; // its own Enter/Escape handling should win, not compete
     const it = hoveredGameCard();
     if (!it) return;
     if (it.kind === 'flashcard') {
@@ -135,7 +135,7 @@ document.addEventListener('keydown', (e) => {
     const isEditingText = active && (active.isContentEditable || active.tagName === 'INPUT' || active.tagName === 'SELECT' || active.tagName === 'TEXTAREA');
     if (isEditingText) return;
     if (isAnyUiPanelOpen()) return;
-    if (appState.visibleNotifications.length) return;
+    if (window.__hasVisibleNotifications()) return;
     const hovered = hoveredPdfCard();
     if (!hovered) return;
     // Reuses buildPdfViewer's own prevBtn/nextBtn click handlers directly (bounds-checking,

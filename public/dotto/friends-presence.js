@@ -4,7 +4,6 @@ import { ensureCanvasPresenceChannel, openConvo, renderConvoBody } from './live-
 import { openMessagesPanel } from './messages-schedule.js';
 import { closeAllPanels, pinOnInsideClick, scheduleHoverClose } from './panels-hamburger.js';
 import { bumpAchievementStat } from './profile-achievements-pricing.js';
-import { pushNotification } from './notifications.js';
 
 
 
@@ -319,7 +318,7 @@ import { pushNotification } from './notifications.js';
             appState.incomingRequests.forEach(r => {
                 if (appState.seenIncomingFriendRequestIds.has(r.id)) return;
                 appState.seenIncomingFriendRequestIds.add(r.id);
-                pushNotification({
+                window.pushNotification({
                     type: 'friend_request',
                     message: `@${r.requester.username} sent you a friend request`,
                     actionLabel: 'Accept',
@@ -499,16 +498,16 @@ import { pushNotification } from './notifications.js';
         appState.friendPresenceLastStatus.set(friendshipId, nowStatus);
         if (prev === undefined) return; // first sync since subscribing — baseline only, not a real transition
         if (nowStatus === 'online') {
-            pushNotification({
+            window.pushNotification({
                 type: 'friend_online',
                 message: `${live.displayName} is online`,
                 actionLabel: 'Chat',
                 onAction: () => { openMessagesPanel(true); openConvo(live.id); },
             }); // one button, auto-dismisses — no dismiss function
         } else if (nowStatus === null) {
-            pushNotification({ type: 'friend_offline', message: `${live.displayName} logged off` }); // no buttons, auto-dismisses — no dismiss function
+            window.pushNotification({ type: 'friend_offline', message: `${live.displayName} logged off` }); // no buttons, auto-dismisses — no dismiss function
         } else if (nowStatus === 'afk') {
-            pushNotification({ type: 'friend_afk', message: `${live.displayName} is away` }); // no buttons, auto-dismisses — no dismiss function
+            window.pushNotification({ type: 'friend_afk', message: `${live.displayName} is away` }); // no buttons, auto-dismisses — no dismiss function
         }
     }
 
@@ -551,7 +550,7 @@ import { pushNotification } from './notifications.js';
                         if (appState.messagesPanel.classList.contains('open') && appState.msgView === 'main') {
                             renderMsgList(appState.msgSearchInput.value);
                         }
-                        pushNotification({
+                        window.pushNotification({
                             type: 'chat',
                             message: `${live.displayName}: ${(m.body || '').trim().slice(0, 80) || 'New message'}`,
                             actionLabel: 'Reply',

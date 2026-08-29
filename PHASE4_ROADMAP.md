@@ -59,8 +59,32 @@
   long as the circularly-imported binding is only used inside function bodies, never at
   module-evaluation time — confirmed via a clean `npm run build`, which would have failed on a
   genuine resolution problem). **Phase 4.3 is now fully done** — all 3 originally-scoped
-  multi-concern files split.
-- **Phase 4.4 — port split-out concerns + remaining DOM-heavy files: not started.**
+  multi-concern files split. All 3 commits (`86fc151`, `c8a182f`, `50e9f00`) confirmed green in
+  real GitHub Actions.
+- **Phase 4.4 — port split-out concerns + remaining DOM-heavy files: in progress.**
+  `notifications.js` (Phase 4.3's own split, 122 lines) ported first: `app/dotto/lib/
+  notificationsStore.ts` — the codebase's first real **Zustand** store (per the Phase 4 plan's
+  locked-in decision, installed as a real dependency here since nothing had adopted it yet;
+  every other existing `bridges.js` `createStore` stays untouched for now, migrating individually
+  as its own owning file gets ported, same incremental approach as every other Phase 4 step).
+  `NotificationBar.jsx` now reads the store directly (`useNotificationsStore` hook) instead of
+  `useSyncExternalStore` against `bridges.js`'s old `notificationsStore`, and calls
+  `dismissNotification`/`runNotificationAction` as real imported actions instead of through
+  `window.__dismissNotification`/`window.runNotificationAction` — those two bridges are gone
+  entirely (confirmed unused elsewhere first). `window.pushNotification` and a new
+  `window.__hasVisibleNotifications` stay as vanilla-facing bridges (the reverse direction from
+  every other bridge in `vanillaBridges.d.ts`) since ~9 still-vanilla files call them: 7 callers
+  switched from `import { pushNotification } from './notifications.js'` to
+  `window.pushNotification(...)` (a mechanical `pushNotification(` → `window.pushNotification(`
+  swap across ~28 call sites — first attempted with a `\b`-anchored `sed` pattern that silently
+  matched nothing on BSD/macOS `sed`, caught by re-grepping afterward rather than assuming it
+  worked), and `card-shortcuts.js`'s 2 direct `appState.visibleNotifications.length` reads (its
+  hover-scoped game-card/PDF shortcuts gate on this) switched to the new
+  `window.__hasVisibleNotifications()` bridge, since that state no longer lives on `appState` at
+  all — moving it fully into the Zustand store (rather than dual-writing to both) was possible
+  because exactly one vanilla file read it directly and that read was easy to re-point at a
+  bridge. `NOTIFICATION_MAX_VISIBLE`/`NOTIFICATION_DEFAULT_DURATION_MS`/`notificationQueue`/
+  `visibleNotifications` removed from `core-state.js`'s `appState` object literal entirely.
 - **Phase 4.5 — architectural/hub files: not started.**
 - **Phase 4.6 — delete the bridge layer: not started.**
 - **Phase 4.7 — final cleanup & professionalization close-out: not started.**
@@ -606,3 +630,20 @@ correct button was used, confirming they were a test-script artifact (some fetch
 the wrong panel opening), not a real regression. Re-checked the account afterward to confirm the
 `finally` cleanup actually removed every mock item (stopwatch, filter) and notification, leaving
 zero residue.
+
+**Phase 4.4 (`notifications.js` → `notificationsStore.ts` — first real Zustand port)**:
+`node --check` on all touched vanilla files, `eslint` clean (only pre-existing `<img>` warnings,
+zero errors), a full clean `rm -rf .next next-env.d.ts tsconfig.tsbuildinfo && npm run typecheck
+&& npm run build` pass (typecheck in particular matters here — it's the first real `.ts` file with
+actual application logic and Zustand's own generic types, not just ambient declarations), `npm
+run format:check` clean, all 32 existing Vitest tests still green. Real Playwright verification
+against a fresh dev server: `window.pushNotification()` correctly rendered a real
+`.notification-card` with the right text; a real click on `.notification-action` fired the
+`onAction` callback AND dismissed the card; a real click on `.notification-close-btn` dismissed a
+different card; a real `Escape` keydown dismissed a third; `window.__hasVisibleNotifications()`
+correctly reported `false`/`true` across a push; and — the more important check — a genuinely
+**vanilla** code path (srs-connections-core.js's own "N" debug-notification keyboard shortcut, not
+a test script calling the bridge directly) correctly reached through `window.pushNotification` to
+the new Zustand store and rendered for real, confirming the vanilla → React bridge direction
+actually works end-to-end, not just React's own internal state. Zero console/page errors (the
+same known stray PDF fixture noise as earlier Phase 4.3 verifications, filtered out as unrelated).

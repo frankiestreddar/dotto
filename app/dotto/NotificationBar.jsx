@@ -1,11 +1,7 @@
 "use client";
 
-import { useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore } from "react";
-import { notificationsStore } from "./bridges";
-
-// Module-level, not inline — see CanvasItemsLayer.jsx's identical EMPTY_ITEMS comment for why a
-// fresh array literal as the getServerSnapshot fallback trips React's "should be cached" warning.
-const EMPTY_LIST = [];
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useNotificationsStore } from "./lib/notificationsStore";
 
 const GAP_PX = 10;
 const BOTTOM_PX = 20;
@@ -39,6 +35,8 @@ const EXIT_MS = 320;
 function NotificationCard({ entry, bottom, exiting, onMeasure }) {
   const ref = useRef(null);
   const [entered, setEntered] = useState(false);
+  const dismissNotification = useNotificationsStore((s) => s.dismissNotification);
+  const runNotificationAction = useNotificationsStore((s) => s.runNotificationAction);
 
   // No dependency array — re-measures on every render (e.g. content changing), not just mount.
   // Guarded to a no-op by onMeasure's own "same height, don't bother re-rendering" check
@@ -69,7 +67,7 @@ function NotificationCard({ entry, bottom, exiting, onMeasure }) {
         title="Close"
         onClick={(e) => {
           e.stopPropagation();
-          window.__dismissNotification(entry.id);
+          dismissNotification(entry.id);
         }}
       >
         <img src="/assets/icons/close.png" alt="" />
@@ -82,7 +80,7 @@ function NotificationCard({ entry, bottom, exiting, onMeasure }) {
           className="notification-action"
           onClick={(e) => {
             e.stopPropagation();
-            window.runNotificationAction(entry.id);
+            runNotificationAction(entry.id);
           }}
         >
           {config.actionLabel} ↵
@@ -93,8 +91,8 @@ function NotificationCard({ entry, bottom, exiting, onMeasure }) {
 }
 
 // Notification stack, bottom-left — explicit redesign (was a single top-center pill, one at a
-// time, swapping places with #top-bar-center — see notificationsStore's own comment, bridges.js,
-// for the full "before" picture and why; briefly a top-right stack sliding in from the right
+// time, swapping places with #top-bar-center — see notificationsStore.ts's own comment for
+// the full "before" picture and why; briefly a top-right stack sliding in from the right
 // before an earlier follow-up remirrored it to bottom-left, sliding from the left — same
 // underlying store/engine, just repositioned). Fully React-owned: no portal into static markup,
 // this component renders its own fixed-position stack directly.
@@ -108,11 +106,7 @@ function NotificationCard({ entry, bottom, exiting, onMeasure }) {
 // own MEASURED height (via NotificationCard's own useLayoutEffect + onMeasure below) rather than
 // an assumed fixed row height, which would either clip content or leave uneven gaps.
 export default function NotificationBar() {
-  const list = useSyncExternalStore(
-    notificationsStore.subscribe,
-    notificationsStore.getSnapshot,
-    () => EMPTY_LIST,
-  );
+  const list = useNotificationsStore((s) => s.visibleNotifications);
   const [heights, setHeights] = useState({});
   // Entries that have already left `list` (evicted past NOTIFICATION_MAX_VISIBLE, dismissed, or
   // auto-expired — the reason doesn't matter, they all exit the same way) but are still playing
@@ -162,7 +156,7 @@ export default function NotificationBar() {
     setHeights((prev) => (prev[id] === h ? prev : { ...prev, [id]: h }));
   };
 
-  // list[0] is newest (see showNotification, notifications.js) — it gets the
+  // list[0] is newest (see showNotification, notificationsStore.ts) — it gets the
   // anchor position, every older entry after it accumulates upward from there. Exiting cards are
   // NOT part of this pass — they keep the frozen position captured when they left `list` (below),
   // independent of however the remaining real entries reflow. Computed unconditionally (even when

@@ -1,7 +1,6 @@
 import { appState, supabase } from './core-state.js';
 import { applyTransform } from './history-autosave.js';
 import { closeRailView } from './panels-hamburger.js';
-import { pushNotification } from './notifications.js';
 import { centerOnContent, render } from './waypoints-render-loop.js';
 
 // Phase 4.3 split (was part of shared-canvases-outline.js, see PHASE4_ROADMAP.md) — the
@@ -132,7 +131,7 @@ import { centerOnContent, render } from './waypoints-render-loop.js';
             if (!error) othersCount = (rows || []).filter(r => r.collaborator_id !== appState.currentUser.id).length;
         }
         if (!appState.folders[localKey]) return; // navigated away again before this resolved
-        pushNotification({
+        window.pushNotification({
             type: 'entered_collaboration',
             message: `Collaborating on "${folderObj.title}" with ${ownerName}${othersCount > 0 ? ` and ${othersCount} ${othersCount === 1 ? 'other' : 'others'}` : ''}.`,
         });

@@ -225,21 +225,6 @@ export function closeLeafInTree(tree, paneId) {
   return tree;
 }
 
-// Notification stack, top-right — explicit redesign (was a single top-center pill swapping places
-// with #top-bar-center, one notification at a time with an enforced gap between them): "should
-// appear in the top right, sliding in from the right... if another notification appears, existing
-// ones smoothly shift down, then the new notification slides in. remove the delay between
-// notifications." A plain array of `{id, config}`, newest first (index 0 = topmost, per "new ones
-// push existing down") — NotificationBar.jsx now owns the whole stack (position, per-card measured-
-// height stacking, slide/shift animation, hover-reveal close button), not just a portal into
-// otherwise-vanilla-owned markup; the old vanilla queue/sequencing engine
-// (notifications.js's pushNotification/showNotification/
-// dismissNotification) still owns WHEN a notification appears/times out and calls
-// window.__setNotifications with the updated array — genuinely multiple notifications can be
-// visible at once now, so there's no single "current" one and no artificial gap between showing
-// consecutive ones.
-export const notificationsStore = createStore([]);
-
 // Search-dropdown result panels (public/dotto/mnemonic-search-matching.js) — each a single-owner
 // static container (#search-translation/#search-dictionary/etc.), unlike searchSuggestionsStore
 // below, which is shared by multiple producers and needs its own discriminated-union design.
@@ -252,7 +237,8 @@ export const notificationsStore = createStore([]);
 // same as before, just triggered by React state instead of a direct DOM write.
 //
 // All six __set* bridges for these (app/dotto-app.jsx) wrap their store.set in flushSync, unlike
-// notificationsStore above — updateSearchDropdown (ai-assistant-suggestions.js)
+// the ported notification stack (app/dotto/lib/notificationsStore.ts, a plain Zustand store
+// rather than a flushSync'd bridge like these) — updateSearchDropdown (ai-assistant-suggestions.js)
 // reads each panel's real DOM node's style.display SYNCHRONOUSLY right after calling its
 // render*Panel function (see renderOrchestrateResult in search-orchestration-selection.js, which
 // calls several of these back-to-back and then updateSearchDropdown once at the end) — without
@@ -308,8 +294,9 @@ export const commandPaletteStore = createStore(null);
 // #search-suggestions — shared by 5 different producers across 3 files (live AI suggestions, the
 // mnemonic story/loading/error trio, and an orchestrate error), so this holds a small discriminated
 // union ({kind, ...}) rather than one plain value —
-// only ONE of them is ever shown at a time, unlike notificationsStore above, which is a genuine
-// multi-item stack. See renderMnemonicResultCard's own comment in mnemonic-search-matching.js
+// only ONE of them is ever shown at a time, unlike the ported notification stack
+// (app/dotto/lib/notificationsStore.ts), which is a genuine multi-item stack. See
+// renderMnemonicResultCard's own comment in mnemonic-search-matching.js
 // for the full producer list, and SearchSuggestionsPanel.jsx for how each kind is built. Unlike
 // commandPaletteStore above, this one is NOT a portal (every kind's content stays 100%
 // vanilla-built, mounted the same "return null, mutate in an effect" way as

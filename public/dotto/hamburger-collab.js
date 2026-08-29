@@ -8,7 +8,6 @@ import { closeRailView } from './panels-hamburger.js';
 import { closeProfilePanel, openPricingOverlay } from './profile-achievements-pricing.js';
 import { announceEnteredCollaboration, ensureSharedFolderLoaded, sharedFolderKey } from './shared-and-public-canvas-loading.js';
 import { goToOutlineItem } from './outline-tree.js';
-import { pushNotification } from './notifications.js';
 import { deleteCanvasCollabsForFolder, deleteWaypointCardEverywhere, expandWaypointCard, folderGlobalId, openFolder, render } from './waypoints-render-loop.js';
 
 
@@ -62,7 +61,7 @@ import { deleteCanvasCollabsForFolder, deleteWaypointCardEverywhere, expandWaypo
             appState.incomingCanvasRequests.forEach(r => {
                 if (appState.seenIncomingCanvasRequestIds.has(r.id)) return;
                 appState.seenIncomingCanvasRequestIds.add(r.id);
-                pushNotification({
+                window.pushNotification({
                     type: 'collab_request',
                     message: `${r.ownerName} invited you to collaborate on "${r.folderTitle}"`,
                     actionLabel: 'Accept',

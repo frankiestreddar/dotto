@@ -1,6 +1,5 @@
 import { appState, supabase } from './core-state.js';
 import { closeAllPanels, closeRailView, wireRailIcon } from './panels-hamburger.js';
-import { pushNotification } from './notifications.js';
 
 
     // ---------- Profile Panel Controls ----------
@@ -45,7 +44,7 @@ import { pushNotification } from './notifications.js';
         renderProfileLevel();
         const newLevel = calculateUserLevel(appState.currentUser.totalScore);
         if (newLevel.absoluteLevel > oldLevel.absoluteLevel) {
-            pushNotification({ type: 'level_up', message: `Level up! You're now ${newLevel.displayName}` }); // no buttons, auto-dismisses — no dismiss function
+            window.pushNotification({ type: 'level_up', message: `Level up! You're now ${newLevel.displayName}` }); // no buttons, auto-dismisses — no dismiss function
         }
         return { ok: true, totalScore: data };
     }
@@ -121,8 +120,8 @@ import { pushNotification } from './notifications.js';
         if (row && row.newly_unlocked) {
             appState.unlockedAchievementIds.add(def.id);
             renderSpriteGrid();
-            pushNotification({ type: 'achievement_unlock', message: `Achievement unlocked! (${def.name})` });
-            pushNotification({ type: 'achievement_unlock', message: `Sprite ${def.spriteIndex} will spawn soon` });
+            window.pushNotification({ type: 'achievement_unlock', message: `Achievement unlocked! (${def.name})` });
+            window.pushNotification({ type: 'achievement_unlock', message: `Sprite ${def.spriteIndex} will spawn soon` });
         }
     }
 
@@ -247,7 +246,7 @@ import { pushNotification } from './notifications.js';
         if (searchExpired) appState.searchUsageWarned = false;
         if (!appState.searchUsageWarned && searchUsedPct >= 75) {
             appState.searchUsageWarned = true;
-            pushNotification({ type: 'usage_update', message: `75% of your search limit used. Resets at ${formatResetTime(nextSearchReset)}`, actionLabel: 'Upgrade', onAction: openDotbotUpgradeModal });
+            window.pushNotification({ type: 'usage_update', message: `75% of your search limit used. Resets at ${formatResetTime(nextSearchReset)}`, actionLabel: 'Upgrade', onAction: openDotbotUpgradeModal });
         }
 
         const monthMs = 30 * 24 * 60 * 60 * 1000;
@@ -261,7 +260,7 @@ import { pushNotification } from './notifications.js';
         if (genExpired) appState.genUsageWarned = false;
         if (!appState.genUsageWarned && genUsedPct >= 75) {
             appState.genUsageWarned = true;
-            pushNotification({ type: 'usage_update', message: `75% of your generation limit used. Resets ${formatResetDate(nextGenReset)}`, actionLabel: 'Upgrade', onAction: openDotbotUpgradeModal });
+            window.pushNotification({ type: 'usage_update', message: `75% of your generation limit used. Resets ${formatResetDate(nextGenReset)}`, actionLabel: 'Upgrade', onAction: openDotbotUpgradeModal });
         }
 
         const blocksUsed = totalBlocksUsed();

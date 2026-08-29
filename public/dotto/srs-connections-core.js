@@ -10,7 +10,6 @@ import { broadcastEditingState } from './live-presence.js';
 import { isAnyUiPanelOpen } from './panels-hamburger.js';
 import { awardUserPoints, bumpAchievementStat, showProfileSettingsView } from './profile-achievements-pricing.js';
 import { setOutlineActive, toggleHamburgerMenu } from './outline-tree.js';
-import { pushNotification } from './notifications.js';
 import { toggleTheme } from './theme-toggle.js';
 import { toggleUploadPopup } from './upload-popup.js';
 import { render, renderSelectedOutlines, startBoxSelection, syncWaypointToDb } from './waypoints-render-loop.js';
@@ -490,7 +489,7 @@ import { calculateSM2, defaultSrsState, diffRatings } from './srs-algorithm.js';
         if (!isEditingText && (e.key === 'o' || e.key === 'O')) { e.preventDefault(); toggleHamburgerMenu(); return; }
         // Debug shortcut for tweaking the notification entrance/exit animation — fires a plain
         // notification with no buttons on every press. Remove once done tweaking.
-        if (!isEditingText && !anyPanelOpen && (e.key === 'n' || e.key === 'N')) { e.preventDefault(); pushNotification({ type: 'debug', message: 'this is an example notification' }); return; }
+        if (!isEditingText && !anyPanelOpen && (e.key === 'n' || e.key === 'N')) { e.preventDefault(); window.pushNotification({ type: 'debug', message: 'this is an example notification' }); return; }
         // One-letter shortcuts for the rest of the rail (see each icon's own .rail-tooltip-key,
         // top-bar.html) — .click() re-triggers the exact same wireRailIcon listener (panels-
         // hamburger.js) a real click would, open/switch/close toggle included, rather than

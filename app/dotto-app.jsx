@@ -34,7 +34,6 @@ import {
   msgConvoStore,
   msgListStore,
   navHistoryStore,
-  notificationsStore,
   outlineStore,
   paneLayoutStore,
   splitLeafInTree,
@@ -60,6 +59,7 @@ import {
   setupResizing,
 } from "./dotto/canvasItemBehavior";
 import { wireDayChangeAndAdNotifications } from "./dotto/lib/dayChangeAndAdNotifications";
+import { wireNotifications } from "./dotto/lib/notificationsStore";
 import BlocksPanel from "./dotto/BlocksPanel";
 import CellTagPickerList from "./dotto/CellTagPickerList";
 import ChatsListPanel from "./dotto/ChatsListPanel";
@@ -247,14 +247,11 @@ if (typeof window !== "undefined") {
     window.__initializeNewPane(1, "root");
     window.__render();
   };
-  // Notification stack (see app/dotto/NotificationBar.jsx, public/dotto/stopwatch-search-
-  // notifications.js's pushNotification/dismissNotification) — a plain store.set is fine here,
-  // unlike __renderCanvasItems: nothing reads the notification stack's DOM synchronously right
-  // after calling pushNotification.
-  window.__setNotifications = notificationsStore.set;
   // Search-dropdown result panels (see app/dotto/TranslationPanel.jsx and friends,
-  // public/dotto/mnemonic-search-matching.js). Unlike __setNotifications above, these DO
-  // need flushSync — updateSearchDropdown (ai-assistant-suggestions.js) reads
+  // public/dotto/mnemonic-search-matching.js). Unlike the notification stack (app/dotto/lib/
+  // notificationsStore.ts — a plain Zustand store now, React reads it directly with no
+  // window-bridge write needed at all), these DO need flushSync — updateSearchDropdown
+  // (ai-assistant-suggestions.js) reads
   // each panel's real DOM node's style.display synchronously right after calling its
   // render*Panel function (see renderOrchestrateResult, search-orchestration-selection.js, which
   // calls several of these back-to-back and then updateSearchDropdown once at the end) — without
@@ -413,6 +410,10 @@ export default function DottoApp({ sections, currentUser }) {
   // ping, one-time paid-tier ad nudge) — see wireDayChangeAndAdNotifications' own comment for why
   // this needs to poll for window.__getAppState rather than a single readiness check.
   useEffect(() => wireDayChangeAndAdNotifications(), []);
+  // Phase 4.4: the notification stack's global keydown (Enter/Escape act on the topmost
+  // notification) and visibilitychange (flush anything queued while backgrounded) listeners — see
+  // wireNotifications' own comment, app/dotto/lib/notificationsStore.ts.
+  useEffect(() => wireNotifications(), []);
 
   return (
     <>
