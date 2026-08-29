@@ -10,7 +10,7 @@ import usePortalNode from "./usePortalNode";
 // fresh object literal as the getServerSnapshot fallback trips React's "should be cached" warning.
 const EMPTY_STATE = { rows: [], query: "" };
 
-// Same mask-image icon shape kindIconHTML (shared-canvases-outline.js) already builds for every
+// Same mask-image icon shape kindIconHTML (outline-tree.js) already builds for every
 // other outline-icon use — window.__kindIconFile resolves the kind(+level)->filename mapping,
 // bridged since that lookup table lives in public/dotto/*.js, not reachable from app/dotto/.
 function OutlineIcon({ kind, level }) {
@@ -25,7 +25,7 @@ function OutlineIcon({ kind, level }) {
 
 // Collapse toggle (explicit request) — only rendered for a heading (title kind) row that actually
 // has something nested under it (r.hasChildren, computed by renderHeadingSubtree,
-// shared-canvases-outline.js: a grouped item OR a child heading). Sits in the same slot as
+// outline-tree.js: a grouped item OR a child heading). Sits in the same slot as
 // OutlineIcon and only shows on row hover, swapping places with it via CSS (.has-children:hover) —
 // same mechanism/reasoning as the Blocks panel's own folder-collapse toggle, BlocksPanel.jsx.
 function OutlineCollapseToggle({ id, collapsed }) {
@@ -45,7 +45,7 @@ function OutlineCollapseToggle({ id, collapsed }) {
 }
 
 // Three row shapes, computed by computeOutlineRows/computeSourceOutlineRows
-// (shared-canvases-outline.js) — see their own comments for the full field meanings:
+// (outline-tree.js) — see their own comments for the full field meanings:
 //   - rowKind 'item': any non-source card/heading/nested-canvas row. Click lands on it within its
 //     own parent folder (window.__goToOutlineItem) — never drills into a nested canvas from here.
 //   - rowKind 'source': a source-linking item. Click enters it directly (window.__goToOutlineSource)
@@ -111,7 +111,7 @@ export default function OutlinePanel() {
   const portalNode = usePortalNode("hmenu-outline-container");
 
   useLayoutEffect(() => {
-    // This can run before public/dotto/shared-canvases-outline.js has loaded (it's an
+    // This can run before public/dotto/outline-tree.js has loaded (it's an
     // afterInteractive <Script>, so it runs after React hydration, not before) — only ever a
     // problem for this component's very first, EMPTY_STATE render: real rows can only ever reach
     // outlineStore via buildOutline/handleOutlineSearch, both themselves vanilla functions, so by

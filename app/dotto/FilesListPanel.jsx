@@ -50,7 +50,7 @@ function clearDropHighlights() {
 // file's name is its own mediaName/upload, not something renamed from here), no Option-held id
 // reveal (files don't have a global id concept the way sources do), and no delayed-click-vs-
 // dblclick dance as a result — a plain single click is enough.
-// Click reuses window.__goToOutlineItem (goToOutlineItem, shared-canvases-outline.js) — navigates
+// Click reuses window.__goToOutlineItem (goToOutlineItem, outline-tree.js) — navigates
 // to the file's own containing folder if not already there, then pans/centers on and flashes its
 // canvas card — the same primitive the Outline tree's own non-source rows already use for every
 // other card kind, rather than a source's own "enter it directly" behavior (a file is a normal
@@ -63,7 +63,7 @@ function clearDropHighlights() {
 // RowActions' onOpen (open.png, per explicit request — corrected from an initial window.open()
 // browser-tab version: "i didnt mean a new browser tab, i meant a new tab in the app, with the
 // file full screen and scrollable") opens the file in a real tab of THIS app's own tab bar
-// (window.__openMediaViewerTab, shared-canvases-outline.js) — a synthetic folder wrapping the item
+// (window.__openMediaViewerTab, tab-management.js) — a synthetic folder wrapping the item
 // (isMediaViewer:true), rendered full-screen/scrollable by a dedicated branch in render()
 // (waypoints-render-loop.js), riding the exact same tab/pane machinery every other tab already
 // uses. window.__findItemById resolves the row's own itemId back to the real, live item object

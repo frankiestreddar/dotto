@@ -137,7 +137,7 @@ export function computeSplitDividers(tree, rect = { x: 0, y: 0, w: 1, h: 1 }) {
 }
 
 // Every currently-open paneId, in no particular order — used for the 4-pane cap check
-// (shared-canvases-outline.js) and nowhere else, so a plain array beats bothering with an object.
+// (split-pane-management.js) and nowhere else, so a plain array beats bothering with an object.
 export function listPaneIds(tree) {
   return tree.type === "leaf"
     ? [tree.paneId]
@@ -337,7 +337,7 @@ export const addToSourcePopupStore = createStore({ isOpen: false, left: 0, top: 
 // state message ("No waypoints yet." vs "No matching waypoints."), matching the original.
 export const waypointsListStore = createStore({ rows: [], query: "" });
 
-// Hamburger menu's Outline panel (public/dotto/shared-canvases-outline.js's buildOutline/
+// Hamburger menu's Outline panel (public/dotto/outline-tree.js's buildOutline/
 // handleOutlineSearch) — { rows, query }, one row per canvas card/heading/nested-canvas/source (or,
 // on a source page, one row per data row — see computeOutlineRows/computeSourceOutlineRows for the
 // row shapes). Genuine JSX rows (see OutlinePanel.jsx), same "no natural content-parameter
@@ -489,7 +489,7 @@ export const collabPillStore = createPaneKeyedStore(() => ({
 }));
 
 // Back/forward enabled-state, one per pane (split-screen Stage 8) — { canGoBack, canGoForward },
-// pushed by public/dotto/shared-canvases-outline.js's renderNavArrows(paneId) (called from
+// pushed by public/dotto/tab-management.js's renderNavArrows(paneId) (called from
 // render()'s per-frame loop for the active pane, and from jumpToHistoryIndex/switchActivePane for
 // immediate feedback). Replaces the old singular #btn-back/#btn-forward .disabled assignments
 // (waypoints-render-loop.js) now that PaneTopBar.jsx renders its own back/forward buttons per pane.
@@ -508,7 +508,7 @@ export const activePaneIdStore = createStore(0);
 
 // Media-viewer full-screen zoom, one per pane (mirrors navHistoryStore/collabPillStore's own
 // per-pane reasoning) — { show, zoom }. show is true only while that pane's own CURRENT folder is a
-// synthetic isMediaViewer one (window.__openMediaViewerTab, shared-canvases-outline.js); zoom is a
+// synthetic isMediaViewer one (window.__openMediaViewerTab, tab-management.js); zoom is a
 // plain multiplier (1 = 100%, i.e. the document at exactly the window's own width — explicit spec).
 // Pushed by renderMediaViewerZoom(paneId)/setMediaViewerZoom (waypoints-render-loop.js). zoom itself
 // actually lives on the synthetic folder object (folderObj.viewerZoom), not here — this store is
@@ -517,7 +517,7 @@ export const activePaneIdStore = createStore(0);
 export const mediaViewerZoomStore = createPaneKeyedStore(() => ({ show: false, zoom: 1 }));
 
 // Compact "…/parent/current" breadcrumb trail for a pane's own active tab (see
-// app/dotto/TabsBar.jsx's ActiveTabTrail, public/dotto/shared-canvases-outline.js's
+// app/dotto/TabsBar.jsx's ActiveTabTrail, public/dotto/tab-management.js's
 // renderBreadcrumbMapPanel) — { hasMore, root, parent, current }, each of `root`/`parent`/
 // `current` either null or {label, folderId, isSyntheticRoot}. Pane-keyed since split-screen Stage
 // 7 (each pane gets its own breadcrumb pill now, explicit request — was a single shared store,
@@ -532,7 +532,7 @@ export const breadcrumbMapStore = createPaneKeyedStore(() => ({
 }));
 
 // Canvas tabs, next to each pane's own breadcrumb pill (see app/dotto/TabsBar.jsx,
-// public/dotto/shared-canvases-outline.js's renderTabsPanel/addTab/switchTab/closeTab) —
+// public/dotto/tab-management.js's renderTabsPanel/addTab/switchTab/closeTab) —
 // { tabs: [{id, folderId, label}], activeTabId }. Each tab is a lightweight bookmark of a folder
 // location, not an independent history/camera context — see renderTabsPanel's own comment for why.
 // Pane-keyed since split-screen Stage 7, same reasoning as breadcrumbMapStore just above — each

@@ -4,7 +4,7 @@ import { generateGlobalId } from './global-ids.js';
 import { saveSnapshot } from './history-autosave.js';
 import { openFolder, render } from './waypoints-render-loop.js';
 import { CARD_KINDS } from './card-kinds.js';
-import { openPublicCanvas, openSharedCanvas } from './shared-canvases-outline.js';
+import { openPublicCanvas, openSharedCanvas } from './shared-and-public-canvas-loading.js';
 import { deepCloneItem, viewportCenterWorldPoint } from './srs-connections-core.js';
 import { pushNotification } from './stopwatch-search-notifications.js';
 
@@ -79,7 +79,7 @@ async function removeUser(target, username) {
 
 // 'place' — drops a read-only reference card (kind: 'reference', ReferenceCard.jsx) at the center
 // of the current viewport, pointing at the resolved target by (owner_id, folder_id) rather than
-// copying any content — see resolveReferenceFolderKey's own comment (shared-canvases-outline.js)
+// copying any content — see resolveReferenceFolderKey's own comment (shared-and-public-canvas-loading.js)
 // for how that card finds/loads the live data every time it (re)mounts, refetched fresh rather
 // than cached. Valid for a target you own, a target shared with you, or a public one — obtaining
 // isn't required first, "place" is its own independent way to reach something. refTitle/

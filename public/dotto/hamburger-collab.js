@@ -6,7 +6,8 @@ import { findItemById } from './live-presence.js';
 import { flashCanvasElement } from './mnemonic-search-matching.js';
 import { closeRailView } from './panels-hamburger.js';
 import { closeProfilePanel, openPricingOverlay } from './profile-achievements-pricing.js';
-import { announceEnteredCollaboration, ensureSharedFolderLoaded, goToOutlineItem, sharedFolderKey } from './shared-canvases-outline.js';
+import { announceEnteredCollaboration, ensureSharedFolderLoaded, sharedFolderKey } from './shared-and-public-canvas-loading.js';
+import { goToOutlineItem } from './outline-tree.js';
 import { pushNotification } from './stopwatch-search-notifications.js';
 import { deleteCanvasCollabsForFolder, deleteWaypointCardEverywhere, expandWaypointCard, folderGlobalId, openFolder, render } from './waypoints-render-loop.js';
 
@@ -36,7 +37,7 @@ import { deleteCanvasCollabsForFolder, deleteWaypointCardEverywhere, expandWaypo
                 .eq('status', 'accepted'),
         ]);
         // message/code/details/hint spelled out explicitly (same convention as command-verbs.js,
-        // shared-canvases-outline.js, etc.) rather than logging the PostgrestError object
+        // shared-and-public-canvas-loading.js, etc.) rather than logging the PostgrestError object
         // directly — its actual fields aren't enumerable in a way every console/error-overlay
         // serializer picks up, so a raw `console.error(..., error)` can print as an unhelpful {}.
         if (sharedWithMeRes.error) {
@@ -284,7 +285,7 @@ import { deleteCanvasCollabsForFolder, deleteWaypointCardEverywhere, expandWaypo
     // before this field existed falls back to its own mediaSrc (still a real, if less explicit,
     // per-upload identity — two cards genuinely pointing at the same storage URL/data: URI ARE the
     // same file either way). Deliberately NOT applied to the Outline panel (computeOutlineRows,
-    // shared-canvases-outline.js, which has no dedup logic of its own and isn't touched here) — per
+    // outline-tree.js, which has no dedup logic of its own and isn't touched here) — per
     // explicit request, Outline should keep listing every individual card instance on the canvas,
     // only the Files sidebar collapses them down to one.
     function renderFilesList(query) {

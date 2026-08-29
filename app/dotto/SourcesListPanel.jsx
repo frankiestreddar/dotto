@@ -21,7 +21,7 @@ const EMPTY_STATE = { rows: [], query: "" };
 // r.active (whichever source's own folder IS the current canvas — computed in renderSourcesList,
 // hamburger-collab.js, so it stays correct across navigation without this component needing its
 // own currentFolderId subscription) reuses the exact same .outline-item.active rule the Outline
-// panel already applies to its own current-folder row (shared-canvases-outline.js) — a permanent
+// panel already applies to its own current-folder row (outline-tree.js) — a permanent
 // version of the same highlight :hover gives every row, per explicit request.
 // r.globalId's own display is Option/Alt-gated (see SourcesListPanel's own comment below on why
 // SourceCard.jsx no longer shows it directly on the canvas block) — always rendered, but hidden by

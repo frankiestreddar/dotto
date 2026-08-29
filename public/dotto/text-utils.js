@@ -4,7 +4,7 @@
 // its own, so these can't fully move to app/dotto/lib yet either — that file keeps re-exporting
 // both so its own existing callers (games-flashcard-typeright.js, live-presence.js,
 // media-pdf-epub.js, search-panel-history.js, search-orchestration-selection.js,
-// source-tags-ai.js, stopwatch-search-notifications.js, shared-canvases-outline.js,
+// source-tags-ai.js, stopwatch-search-notifications.js, outline-tree.js,
 // srs-connections-core.js) keep working unchanged. This extraction's own value right now is real
 // test coverage (see text-utils.test.ts) for logic that had zero coverage before, and a smaller,
 // focused module ready to move wholesale to app/dotto/lib once nothing vanilla needs it directly

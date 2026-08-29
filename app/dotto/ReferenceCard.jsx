@@ -7,7 +7,7 @@ import { useLayoutEffect, useRef, useState } from "react";
 // own nested-folder preview (window.__buildFolderInlineCanvas), just pointed at whichever local
 // key currently represents the referenced item (own/shared:/public:) instead of a plain local
 // folderId. That key is re-resolved fresh every time this component (re)mounts — see
-// resolveReferenceFolderKey's own comment in shared-canvases-outline.js for why it's never
+// resolveReferenceFolderKey's own comment in shared-and-public-canvas-loading.js for why it's never
 // trusted stale — which doubles as "refetch on canvas open" for free: navigating away and back
 // unmounts/remounts this card along with the rest of that canvas's items (see CanvasItemsLayer.jsx).
 // No click-to-open-and-edit of its own (attachFolderCardClick isn't wired here) — genuinely

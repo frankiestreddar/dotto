@@ -7,7 +7,9 @@ import { renderFilesList, renderSourcesList } from './hamburger-collab.js';
 import { applyTransform, ensureSwTicking, saveSnapshot, scheduleWorkspaceSave, updateContextMenuPosition } from './history-autosave.js';
 import { broadcastEditingState, miniLabelForItem, placeCaretEnd, renderRealCardPreview, repositionAllRemoteCursors, syncColorPicker } from './live-presence.js';
 import { findNextFreeSlot } from './card-shortcuts.js';
-import { buildOutline, ensureSharedFolderLoaded, renderBreadcrumbMapPanel, renderNavArrows, renderTabsPanel, sharedFolderKey, stripSharedFolderIds } from './shared-canvases-outline.js';
+import { ensureSharedFolderLoaded, sharedFolderKey, stripSharedFolderIds } from './shared-and-public-canvas-loading.js';
+import { buildOutline } from './outline-tree.js';
+import { renderBreadcrumbMapPanel, renderNavArrows, renderTabsPanel } from './tab-management.js';
 import { closeSourceAddMenu } from './source-buttons-cursor-mode.js';
 import { closeCellTagPicker } from './source-tags-ai.js';
 import { applyConnections } from './srs-connections-core.js';
@@ -555,13 +557,13 @@ import { applyConnections } from './srs-connections-core.js';
         const folderOwnerId = folderObj.isSharedView ? folderObj.sharedOwnerId : appState.currentUser.id;
         const currentItems = folderObj.items.filter(it => it.kind !== 'waypoint' || (it.creatorId || folderOwnerId) === appState.currentUser.id);
         // Location/wayfinding lives in the top-bar tabs bar (see renderBreadcrumbMapPanel,
-        // shared-canvases-outline.js, and TabsBar.jsx). The current-folder segment's rename
+        // tab-management.js, and TabsBar.jsx). The current-folder segment's rename
         // click reuses startRenameFolderCardTitle below, the same flow folder/source cards already
         // use.
         renderBreadcrumbMapPanel();
         // Keeps the active tab's own bookmarked folderId (and its displayed label) in sync with
         // wherever navigation just landed — see renderTabsPanel's own comment,
-        // shared-canvases-outline.js, for why this needs to run after literally every navigation,
+        // tab-management.js, for why this needs to run after literally every navigation,
         // not just ones that went through addTab/switchTab/closeTab directly.
         renderTabsPanel();
         // Sources rail panel (SourcesListPanel.jsx) — every source account-wide (current-canvas
@@ -575,14 +577,14 @@ import { applyConnections } from './srs-connections-core.js';
         // above (see renderFilesList's own comment, hamburger-collab.js) — copied from it per
         // explicit request, including this call site.
         renderFilesList();
-        // Outline rail panel (shared-canvases-outline.js) — per explicit request that it reflect
+        // Outline rail panel (outline-tree.js) — per explicit request that it reflect
         // whatever page navigation just landed on, and any rename that just happened anywhere on
         // the canvas, without needing to be closed and reopened first. Same unconditional-on-every-
         // render() reasoning as the three calls just above, but buildOutline itself needed a
         // preserveState param first (true here) — unlike those three, its own from-scratch build
         // used to always reset the panel's scroll position and blow away any in-progress search
         // text, which was fine for a fresh panel-OPEN (still is — see buildOutline's own comment,
-        // shared-canvases-outline.js, and toggleHamburgerMenu's own call, which passes no argument)
+        // outline-tree.js, and toggleHamburgerMenu's own call, which passes no argument)
         // but would otherwise re-fire on every one of this function's many other callers too,
         // constantly yanking focus/scroll out from under someone actively browsing or searching an
         // already-open outline.
@@ -591,7 +593,7 @@ import { applyConnections } from './srs-connections-core.js';
         renderCollabPill();
 
         // A file opened full-screen in its own tab (window.__openMediaViewerTab,
-        // shared-canvases-outline.js, explicit request/correction — "a new tab in the app... full
+        // tab-management.js, explicit request/correction — "a new tab in the app... full
         // screen and scrollable") — same "a folder that renders something completely different from
         // the normal item canvas" shape folderObj.isSource already established just below, reusing
         // that exact same toolbar-hiding/identity-camera setup. Appended directly to `canvas` (not

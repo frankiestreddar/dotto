@@ -9,7 +9,7 @@ import { applyTransform, saveSnapshot, scheduleApplyTransform } from './history-
 import { broadcastEditingState } from './live-presence.js';
 import { isAnyUiPanelOpen } from './panels-hamburger.js';
 import { awardUserPoints, bumpAchievementStat, showProfileSettingsView } from './profile-achievements-pricing.js';
-import { setOutlineActive, toggleHamburgerMenu } from './shared-canvases-outline.js';
+import { setOutlineActive, toggleHamburgerMenu } from './outline-tree.js';
 import { pushNotification } from './stopwatch-search-notifications.js';
 import { toggleTheme } from './theme-toggle.js';
 import { toggleUploadPopup } from './upload-popup.js';

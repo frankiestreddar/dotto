@@ -2,7 +2,7 @@ import { appState } from './core-state.js';
 import { refreshCanvasCollabForCurrentFolder, refreshFriendsData, renderCollabPill } from './friends-presence.js';
 import { applyTransform, loadWorkspace } from './history-autosave.js';
 import { refreshDotbotUsage } from './profile-achievements-pricing.js';
-import { announceEnteredCollaboration } from './shared-canvases-outline.js';
+import { announceEnteredCollaboration } from './shared-and-public-canvas-loading.js';
 import { applyCursorMode } from './source-buttons-cursor-mode.js';
 import { updateDrawLayerBtns } from './srs-connections-core.js';
 import { centerOnContent, render } from './waypoints-render-loop.js';

@@ -168,7 +168,7 @@ function ActiveTabTrail({ bc, paneId }) {
 // own click behavior); every other tab is a plain clickable label that switches to it
 // (window.__switchTab). The close button is shown on both kinds whenever there's more than one tab
 // — mirrors real browser tab bars, where every tab (including the active one) can be closed as
-// long as it isn't the only one left (closeTab itself, shared-canvases-outline.js, already no-ops
+// long as it isn't the only one left (closeTab itself, tab-management.js, already no-ops
 // on a single remaining tab as a second layer of defense).
 //
 // The "switch tabs: pause, then the old text flies upward out of the tab, then it grows, then the
@@ -364,7 +364,7 @@ function TabRow({
 // #pane-breadcrumb-pill-{paneId}) instead of the single static #breadcrumb-pill — used to portal a
 // single breadcrumb trail directly (BreadcrumbPill.jsx, now folded into ActiveTabTrail above), then
 // a shared row of tab pills, now one row per pane. New tabs start at the same location as whichever
-// tab is currently active in THIS pane (see addTab's own comment, shared-canvases-outline.js) —
+// tab is currently active in THIS pane (see addTab's own comment, tab-management.js) —
 // this component has no say in where a new tab starts, it just renders whatever this pane's own
 // tabsStore slot already reflects.
 export default function TabsBar({ paneId }) {
@@ -454,7 +454,7 @@ export default function TabsBar({ paneId }) {
     // direction as that existing split, used to be allowed and produced 3+ panes side by side
     // instead of quartering — only the perpendicular edges may ever show a zone now, growing
     // strictly toward a clean 2x2). Capped: once 4 panes already exist, no edge zone can activate
-    // at all (window.__countPanes, shared-canvases-outline.js is the actual authority; this just
+    // at all (window.__countPanes, split-pane-management.js is the actual authority; this just
     // avoids showing a drop-zone that a drop would immediately be rejected against) — redundant
     // with allowedEdgesForPane's own depth-2 case in practice (a clean 2x2 always hits 4 panes
     // exactly when every leaf is at depth 2), kept as an explicit belt-and-suspenders check.

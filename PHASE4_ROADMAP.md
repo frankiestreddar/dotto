@@ -28,8 +28,23 @@
   comment references to the old filename fixed across 8 files (a further 6 references left as-is —
   either genuinely historical/past-tense provenance notes, or pre-existing staleness pointing at
   `setupResizing` that predates this split and belongs to Phase 3's `canvasItemBehavior.js`
-  instead, out of scope here). `shared-canvases-outline.js` and
-  `stopwatch-search-notifications.js` splits not yet started.
+  instead, out of scope here). `shared-canvases-outline.js` (983 lines, 4 bundled concerns) also
+  done: split into `shared-and-public-canvas-loading.js` (fetching a live-shared or public canvas
+  into this client's own `folders` map under a namespaced key, plus the resume-state bookkeeping
+  for leaving it), `outline-tree.js` (the hamburger menu's canvas outline builder + its "O"
+  shortcut/rail-icon toggle), `tab-management.js` (PaneTopBar's whole per-pane navigation surface —
+  breadcrumb trail, tabs, back/forward history — deliberately kept together since all three read/
+  write the same live per-pane state), and `split-pane-management.js` (the actual pane-tree
+  surgery behind TabsBar's drag-to-split gesture and a pane's close button, kept separate from
+  tab-management.js since it's a different concern: splitting/closing panes themselves rather than
+  navigating within however many currently exist). 15 real cross-file imports fixed across 10
+  caller files (some needed splitting into 2-3 import lines, since a single caller sometimes
+  pulled from what are now different new files), roughly 45 stale comment references to the old
+  filename fixed across 19 files (1 pre-existing, already-wrong reference left alone —
+  `app/dotto-app.jsx`'s
+  `renderMediaViewerZoom`/`setMediaViewerZoom` mention, which actually lives in
+  `waypoints-render-loop.js` and never was in `shared-canvases-outline.js`, predates this split and
+  is out of scope here). `stopwatch-search-notifications.js` split not yet started.
 - **Phase 4.4 — port split-out concerns + remaining DOM-heavy files: not started.**
 - **Phase 4.5 — architectural/hub files: not started.**
 - **Phase 4.6 — delete the bridge layer: not started.**
@@ -526,3 +541,30 @@ stacked on top rather than reliably hitting the one under test — dispatching `
 `pointerdown`/`pointermove`/`pointerup` directly at the target element (bypassing screen-coordinate
 hit-testing) sidesteps this while still exercising the real listener chain
 (`armDividerOnHover`'s hover-arm timer through to the actual resize).
+
+**Phase 4.3 (`shared-canvases-outline.js` split)**: `node --check` on all touched/new vanilla
+files, `eslint` clean (vanilla files plus every touched `.jsx` file — only pre-existing, unrelated
+`<img>`-vs-`next/image` warnings, zero errors), a full clean `rm -rf .next next-env.d.ts
+tsconfig.tsbuildinfo && npm run typecheck && npm run build` pass, `npm run format:check` clean, and
+all 32 existing Vitest tests still green (mechanical split, no logic changed, same as the
+`resize-shortcuts-init.js` split above and Phase 4.2's SM-2 extraction — no new tests needed for a
+verbatim code move). Real Playwright verification against a fresh dev server: opening the hamburger
+menu (`#btn-menu`) correctly builds and shows the outline tree (`outline-tree.js`'s `buildOutline`,
+143 real rows against this account's actual canvas content) and its search correctly narrows the
+row set (`handleOutlineSearch`, a nonsense query correctly zeroed the rows); `tab-management.js`'s
+`addTab`/`switchTab`/`closeTab` round-tripped the tab count and active-tab id exactly as expected;
+`navBack`/`navForward` exercised without error against real `historyStack` state; and
+`split-pane-management.js`'s `splitPaneWithTab`/`closePane` round-tripped the real pane count
+(+1 then back to baseline) via `window.__countPanes()` — verified against whatever the shared test
+account's pane count actually was at the time (2, itself leftover split-screen state from earlier
+sessions), not a hardcoded assumption of 1. Re-checked the account's persisted `tabs`/pane count
+after the run to confirm the tab-management/split-pane round trips left no residue. Zero
+console/page errors (same known stray `https://example.com/test.pdf` fixture noise as the
+`resize-shortcuts-init.js` verification above, filtered out as unrelated). Not separately verified
+in this pass: `shared-and-public-canvas-loading.js`'s actual live-collaboration/public-canvas RPC
+paths (`openSharedCanvas`/`openPublicCanvas`/`ensureSharedFolderLoaded`/`ensurePublicFolderLoaded`)
+— this is a single-account test setup with no second account to collaborate with or public canvas
+to fetch; covered instead by the mechanical-move verification tier (clean typecheck/build, zero
+console errors on a full app load that itself calls `announceEnteredCollaboration` via
+`app-init.js` on every boot) — same reasoning Phase 4.2's SM-2 extraction used for skipping a
+full UI-driven test on a verbatim code move.

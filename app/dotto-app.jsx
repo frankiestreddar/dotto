@@ -224,7 +224,7 @@ if (typeof window !== "undefined") {
     flushSync(() => paneLayoutStore.set(closeLeafInTree(paneLayoutStore.getSnapshot(), paneId)));
   // Drops a closed pane's own items/tabs/breadcrumb stores (see createPaneKeyedStore's own
   // comment, bridges.js) so they don't just leak forever once closePane
-  // (shared-canvases-outline.js) actually closes a pane.
+  // (split-pane-management.js) actually closes a pane.
   window.__removePaneItemsStore = (paneId) => canvasItemsStore.remove(paneId);
   window.__removePaneTabsStore = (paneId) => {
     tabsStore.remove(paneId);
@@ -287,7 +287,7 @@ if (typeof window !== "undefined") {
   // renderAddToSourcePopup immediately after this, which looks the div up by id and needs it to
   // already exist in the DOM.
   window.__setAddToSourcePopupOpen = (state) => flushSync(() => addToSourcePopupStore.set(state));
-  // Hamburger menu's Outline panel (see app/dotto/OutlinePanel.jsx, shared-canvases-outline.js's
+  // Hamburger menu's Outline panel (see app/dotto/OutlinePanel.jsx, outline-tree.js's
   // buildOutline/handleOutlineSearch) — MUST be flushSync: buildOutline's own scrollTop restore,
   // and toggleHamburgerMenu's setOutlineActive(0) call right after buildOutline() returns, both
   // need OutlinePanel.jsx's real DOM (and its own layout effect, which calls
@@ -354,7 +354,7 @@ if (typeof window !== "undefined") {
   window.__setCollabPill = (paneId, state) =>
     flushSync(() => collabPillStore.storeFor(paneId).set(state));
   // Back/forward enabled-state, one per pane (see app/dotto/PaneTopBar.jsx,
-  // shared-canvases-outline.js's renderNavArrows) — pane-keyed for the same reason. A plain
+  // tab-management.js's renderNavArrows) — pane-keyed for the same reason. A plain
   // store.set, no synchronous DOM read follows it.
   window.__setNavHistory = (paneId, state) => navHistoryStore.storeFor(paneId).set(state);
   // Which pane is active (see app/dotto/PaneZoomBar.jsx) — pushed by switchActivePane
@@ -365,12 +365,12 @@ if (typeof window !== "undefined") {
   // same reason as __setNavHistory above. A plain store.set, no synchronous DOM read follows it.
   window.__setMediaViewerZoom = (paneId, state) => mediaViewerZoomStore.storeFor(paneId).set(state);
   // Breadcrumb pill — the compact "…/parent/current" trail for one pane's own active tab (see
-  // app/dotto/TabsBar.jsx, shared-canvases-outline.js's renderBreadcrumbMapPanel, called from
+  // app/dotto/TabsBar.jsx, tab-management.js's renderBreadcrumbMapPanel, called from
   // every render()) — pane-keyed since split-screen Stage 7 (each pane gets its own breadcrumb
   // pill now), so this takes the paneId explicitly rather than being tabsStore.set directly. A
   // plain store.set, no synchronous DOM read follows it.
   window.__setBreadcrumbMap = (paneId, state) => breadcrumbMapStore.storeFor(paneId).set(state);
-  // Canvas tabs (see app/dotto/TabsBar.jsx, shared-canvases-outline.js's renderTabsPanel, called
+  // Canvas tabs (see app/dotto/TabsBar.jsx, tab-management.js's renderTabsPanel, called
   // from every render() alongside the breadcrumb map above) — pane-keyed for the same reason. A
   // plain store.set, no synchronous DOM read follows it.
   window.__setTabs = (paneId, state) => tabsStore.storeFor(paneId).set(state);

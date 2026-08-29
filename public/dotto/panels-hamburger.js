@@ -2,7 +2,7 @@ import { refreshAiPanel, resetAiSearchState } from './ai-assistant-suggestions.j
 import { appState } from './core-state.js';
 import { closeCollabPanel } from './friends-presence.js';
 import { clearListPanelSelection, renderFilesList, renderHubCollabList, renderSourcesList, renderWaypointsList } from './hamburger-collab.js';
-import { buildOutline } from './shared-canvases-outline.js';
+import { buildOutline } from './outline-tree.js';
 import { closeSourceAddMenu } from './source-buttons-cursor-mode.js';
 
 

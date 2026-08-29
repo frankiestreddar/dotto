@@ -1146,7 +1146,7 @@ body:has(#hamburger-stack.open):not([data-sidebar-mode="overlay"]) .item.static-
        the common browser-tab convention of only showing a close control on the tab the pointer is
        actually over). The hover-reveal rule that used to sit here is removed rather than commented
        out to keep this a real, buildable no-op; re-add `.tab-pill:hover .tab-pill-close{display:
-       inline-flex;}` to bring it back. TabsBar.jsx/closeTab (shared-canvases-outline.js) are
+       inline-flex;}` to bring it back. TabsBar.jsx/closeTab (tab-management.js) are
        untouched — the button still exists and still works, it's just never visible right now. */
 .tab-pill-close {
   display: none;
@@ -1169,7 +1169,7 @@ body:has(#hamburger-stack.open):not([data-sidebar-mode="overlay"]) .item.static-
   color: var(--ink);
 }
 /* Adds a new tab bookmarked to wherever the currently active one already is (addTab,
-       shared-canvases-outline.js). Small icon-only button, same minimal border-radius/hover-
+       tab-management.js). Small icon-only button, same minimal border-radius/hover-
        background language as most other icon buttons in this file (e.g. #profile-settings-btn)
        rather than a filled/bordered "add" affordance like .pane-collab-add-btn's dashed circle.
        One per pane now (split-screen Stage 8 — was #tab-add-btn, a single instance grouped with
@@ -6910,7 +6910,7 @@ body:has(#collab-panel.open) .pane-collab-bubble:hover .collab-tooltip {
 .outline-item.has-children:hover .outline-collapse-toggle {
   display: flex;
 }
-/* Source-page outline rows (renderSourceOutline, shared-canvases-outline.js) use this in place
+/* Source-page outline rows (renderSourceOutline, outline-tree.js) use this in place
        of .outline-icon — a plain row NUMBER (1/2/3/...) rather than a kind icon, since every row on
        that tree is the same kind (a table row) so an icon would carry no information. Same 18px
        width as .outline-icon so labels still line up whichever kind of row precedes them, just
@@ -8038,7 +8038,7 @@ td:hover .cell-actions {
 }
 
 /* A file opened full-screen in its own app tab (window.__openMediaViewerTab,
-       shared-canvases-outline.js — explicit request/correction: "a new tab in the app... full
+       tab-management.js — explicit request/correction: "a new tab in the app... full
        screen and scrollable", not a raw browser tab). Direct child of `canvas`/`.pane-canvas`
        itself (position:absolute;inset:0), not `world` — #canvas already has real, explicit,
        split-screen-aware sizing (PaneCanvasArea.jsx/globals.css's own #canvas rule) that `world`

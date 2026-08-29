@@ -53,7 +53,7 @@ const collapsedBlocksFolders = new Set();
 // the folder is collapsed — unless a live search query is active, in which case collapse is
 // ignored entirely so a match hidden under a collapsed folder still surfaces (same "search
 // overrides collapse" behavior the Outline panel's own headings get, see toggleOutlineCollapse's
-// own comment, shared-canvases-outline.js). A folder only shows its collapse toggle at all when it
+// own comment, outline-tree.js). A folder only shows its collapse toggle at all when it
 // actually has items (BlocksPanel.jsx checks row.count > 0) — an empty folder has nothing to hide.
 function pushFolderSection(rows, key, label, deletable, itemRows, q) {
     if (q && !itemRows.length) return;

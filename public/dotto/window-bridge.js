@@ -28,7 +28,7 @@ import { clearMedia, setMediaFromLink, triggerMediaUpload } from './media-pdf-ep
 import { handleFilesSearch, handleHubCollabSearch, handleSourcesSearch, handleWaypointsSearch } from './panels-hamburger.js';
 import { closeDotbotUpgradeModal, closePricingOverlay, openPricingOverlay, showProfileMainView, showProfileSettingsView } from './profile-achievements-pricing.js';
 import { setTableAlign } from './card-shortcuts.js';
-import { handleOutlineSearch } from './shared-canvases-outline.js';
+import { handleOutlineSearch } from './outline-tree.js';
 import { openCellAddMenu } from './source-buttons-cursor-mode.js';
 import { addTableCol, addTableRow, handleCellMouseDown, handleColNameKeydown, handleTableKeydown, renameTableColumn, setLastFocusedCell, startCellAudioRecording, stopCellAudioRecording, triggerCellAudioUpload, triggerCellImageUpload, updateTableCell } from './source-table.js';
 import { closeCellTagPicker, closeTagContextMenu, commitTagRename, createTagFromCellPicker, deleteActiveTag, handleTagRenameKeydown, openTagContextMenu, startRenameActiveTag, toggleCellTag, triggerSourceUpload } from './source-tags-ai.js';
