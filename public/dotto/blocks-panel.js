@@ -2,7 +2,6 @@ import { addMenu, appState, btnAdd, canvas } from './core-state.js';
 import { deleteMyCreationItem, openItemDetail } from './library-publish.js';
 import { importSharedCardsAtScreenPoint } from './live-presence.js';
 import { closeRailView, wireRailIcon } from './panels-hamburger.js';
-import { applyCursorMode } from './source-buttons-cursor-mode.js';
 
 // ---------- Blocks panel (was Essentials/the Add menu; also absorbed "browse your own library
 // content" — Purchased/drafts+published/custom folders — from Library, now Plugins, when the two
@@ -117,7 +116,7 @@ function pushBlocksView() {
 // takes. The second push (after refreshMyLibrary resolves) is what brings Purchased/My Creations
 // up to date; Essentials/custom folders just re-render identically that second time.
 async function refreshBlocksPanel() {
-    if (appState.cardMode === 'pen') { appState.cardMode = 'normal'; applyCursorMode(); }
+    if (appState.cardMode === 'pen') { appState.cardMode = 'normal'; window.__applyCursorMode(); }
     // Reset back to the row list, same as the old Library's own resetLibraryPanelView did —
     // without this, reopening Blocks after having clicked into an item's detail view (or a
     // publish flow) left the panel stuck showing that sub-view instead of the list, since

@@ -423,7 +423,7 @@ import { calculateSM2, defaultSrsState, diffRatings } from './srs-algorithm.js';
     // existing precedent elsewhere in the app to reuse.
     // addChordArmed/addChordTimer are plain module-level state, not appState — purely ephemeral
     // input state with nothing else in the app needing to read it, same reasoning
-    // modePopupSafeZoneActive (source-buttons-cursor-mode.js) stays a local closure too rather than
+    // modePopupSafeZoneActive (app/dotto/lib/sourceButtonsCursorMode.ts) stays a local closure too rather than
     // living on shared state.
     const ADD_CHORD_TIMEOUT_MS = 1000;
     const ADD_CHORD_KEYS = { n: 'note', h: 'title' };
@@ -581,7 +581,7 @@ import { calculateSM2, defaultSrsState, diffRatings } from './srs-algorithm.js';
         if (!isEditingText && (e.key === 'u' || e.key === 'U')) { e.preventDefault(); toggleUploadPopup(); return; }
         // Finishes an in-progress point-by-point pen line without leaving pen mode (unlike
         // Escape, which also switches back to Normal mode via the separate tap/hold override
-        // logic in source-buttons-cursor-mode.js) — lets you place the next line right away.
+        // logic in app/dotto/lib/sourceButtonsCursorMode.ts) — lets you place the next line right away.
         if (!isEditingText && effectiveMode() === 'pen' && appState.penPolyline && e.key === 'Enter') {
             e.preventDefault();
             finishPenPolyline();
@@ -648,7 +648,7 @@ import { calculateSM2, defaultSrsState, diffRatings } from './srs-algorithm.js';
 
     // ---------- Pen tool: point-by-point line ----------
     // Reworked from the old Add-menu "Drawing" toggle (setDrawMode/appState.drawMode) into a real
-    // cursor mode — see applyCursorMode, source-buttons-cursor-mode.js, for how pen mode itself is
+    // cursor mode — see applyCursorMode, app/dotto/lib/sourceButtonsCursorMode.ts, for how pen mode itself is
     // entered/exited now (appState.cardMode === 'pen', same mechanism data/select already use).
     // Each point is {x, y, handleOut} — handleOut (world coords, or null) is the Illustrator-style
     // bezier handle a click-DRAG pulls out when placing the 2nd point onwards (see
@@ -683,7 +683,7 @@ import { calculateSM2, defaultSrsState, diffRatings } from './srs-algorithm.js';
     // the saveSnapshot from startPenPolyline since nothing was actually drawn) — called on Enter
     // (stays in pen mode, see the keydown handler below), Escape (history-autosave.js's global
     // handler — pen mode itself is exited separately, by the pre-existing
-    // Escape-tap-switches-to-normal-mode logic in source-buttons-cursor-mode.js), double-click
+    // Escape-tap-switches-to-normal-mode logic in app/dotto/lib/sourceButtonsCursorMode.ts), double-click
     // (below), and whenever the pen/eraser/layer toolbar buttons switch mid-line (above).
     function finishPenPolyline() {
         if (!appState.penPolyline) return;
@@ -1297,3 +1297,5 @@ window.__handleDataModeClick = handleDataModeClick;
 // Used by app/dotto/lib/stopwatch.ts's swToggleRun (Phase 4.4) to archive a finished session's
 // rating deltas — public/dotto/*.js isn't reachable from app/dotto/ even for a pure function.
 window.__diffRatings = diffRatings;
+// Used by app/dotto/lib/sourceButtonsCursorMode.ts's applyCursorMode (Phase 4.4).
+window.__clearDataLinkPending = clearDataLinkPending;

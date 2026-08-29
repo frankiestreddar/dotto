@@ -2,7 +2,6 @@ import { refreshAiPanel, resetAiSearchState } from './ai-assistant-suggestions.j
 import { appState } from './core-state.js';
 import { closeCollabPanel } from './friends-presence.js';
 import { clearListPanelSelection, renderFilesList, renderHubCollabList, renderSourcesList, renderWaypointsList } from './hamburger-collab.js';
-import { closeSourceAddMenu } from './source-buttons-cursor-mode.js';
 
 
     // ---------- Hover/Pin Panel Helper ----------
@@ -37,7 +36,7 @@ import { closeSourceAddMenu } from './source-buttons-cursor-mode.js';
     function closeAllPanels(except) {
         if (except !== 'rail') closeRailView();
         if (except !== 'collab') closeCollabPanel();
-        if (except !== 'sourceAdd') closeSourceAddMenu();
+        if (except !== 'sourceAdd') window.__closeSourceAddMenu();
     }
     // Any panel that owns its own keyboard input while open — same set closeAllPanels() knows
     // about, plus the search dropdown — should win over any OTHER global single-key shortcut
@@ -174,3 +173,5 @@ window.__closeRailView = closeRailView;
 // wireRailIcon call, and openBlocksAfterPurchase's openRailView call.
 window.__wireRailIcon = wireRailIcon;
 window.__openRailView = openRailView;
+// Used by app/dotto/lib/sourceButtonsCursorMode.ts's openCellAddMenu (Phase 4.4).
+window.__closeAllPanels = closeAllPanels;

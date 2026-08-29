@@ -546,7 +546,7 @@ import { deleteCanvasCollabsForFolder, deleteWaypointCardEverywhere, expandWaypo
         clearListPanelSelection();
         renderHubCollabList(appState.hubCollabSearchInput ? appState.hubCollabSearchInput.value : '');
     }
-    // Routed from the shared Backspace handler (source-buttons-cursor-mode.js) — dispatches to
+    // Routed from the shared Backspace handler (app/dotto/lib/sourceButtonsCursorMode.ts) — dispatches to
     // whichever of the three panels the current selection actually belongs to.
     function dispatchListPanelDelete(panel, ids) {
         if (panel === 'chats') { deleteSelectedChats(ids); return; }
@@ -582,3 +582,5 @@ window.__openHubCollabRequestsView = openHubCollabRequestsView;
 window.__backToHubCollabMain = backToHubCollabMain;
 window.__handleOwnedHubCollabRowClick = handleOwnedHubCollabRowClick;
 window.__respondToHubCollabRequest = respondToHubCollabRequest;
+// Used by app/dotto/lib/sourceButtonsCursorMode.ts's Backspace shortcut (Phase 4.4).
+window.__dispatchListPanelDelete = dispatchListPanelDelete;

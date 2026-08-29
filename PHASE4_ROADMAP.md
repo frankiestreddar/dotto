@@ -225,6 +225,32 @@
   via `OutlinePanel.jsx`, since Phase 1 — only `search-panel-history.js` still builds a plain HTML
   string via `rowActionsHTML()`) — both rewritten to state what's actually true now, not just
   repointed.
+  `source-buttons-cursor-mode.js` (264 lines) ported next to
+  `app/dotto/lib/sourceButtonsCursorMode.ts` — two genuinely unrelated concerns that happened to
+  share a file (kept bundled here too, matching the original's own reasoning): a source page's
+  per-cell Add/Upload/Tags button popovers, and the cursor-mode toolbar (normal/data/select/pen)
+  with its D/Escape/Shift tap-vs-hold keyboard overrides. 7 real vanilla callers
+  (`app-init.js`, `blocks-panel.js`, `panels-hamburger.js`, `source-table.js`, `source-tags-ai.js`,
+  `window-bridge.js`, `waypoints-render-loop.js`) all switched to bridges. `openCellAddMenu` is a
+  real inline `onclick="..."` target (`canvasItemBehavior.js`'s cell markup) — kept its exact plain
+  (non-`__`) name, now set from the TS file itself instead of through `window-bridge.js`'s old
+  indirection, same convention `marketplace.ts`/`shelfSearch.ts`/`outlineTree.ts` established. 11
+  new outbound bridges added for still-vanilla dependencies with no bridge yet
+  (`__getContextMenuEl`/`__getDrawSettingsEl` — `contextMenu`/`drawSettings` join `addMenu`/
+  `btnAdd` as the 3rd/4th pair of separate, never-reassigned module-level DOM bindings
+  `core-state.js` exposes this way — plus `__effectiveMode`/`__layoutSourceTableColumns`/
+  `__linkSelectedCards`/`__closeCollabPanel`/`__dispatchListPanelDelete`/`__hideCanvasContextMenu`/
+  `__closeCellTagPicker`/`__clearDataLinkPending`/`__closeAllPanels`). Genuinely new architectural
+  pattern beyond every earlier Phase 4.4 port: this file's whole second half (mode-toolbar
+  clicks/hover, global keydown/keyup/blur/resize, `window.onclick`, the canvas transitionend hook)
+  is real module-load-time DOM wiring against already-existing elements, not just function exports
+  — ported as `wireSourceButtonsCursorMode()` with the same bridge-readiness poll
+  `wireDayChangeAndAdNotifications`/`wireCopyPaste`/`wireMarketplace` established. One caller-fix
+  regex miss caught by a routine post-sed re-grep (not the stale-reference sweep this time): the
+  bare `s/([^_.])applyCursorMode(/.../g` pattern requires a character before the call, so
+  `app-init.js`'s own `applyCursorMode();` sitting at the very start of a line was skipped by the
+  automated pass — caught immediately by re-grepping the 7 caller files right after, before moving
+  on to verification.
 - **Phase 4.5 — architectural/hub files: not started.**
 - **Phase 4.6 — delete the bridge layer: not started.**
 - **Phase 4.7 — final cleanup & professionalization close-out: not started.**
@@ -971,3 +997,24 @@ pre-existing Media cards) and the already-documented dead `test.pdf` CORS noise.
 account afterward to confirm both tagged mock items were fully removed with no residue. The
 stale-reference sweep this time caught two comments asserting something no longer true, not just a
 stale filename — see the status section entry above.
+
+**Phase 4.4 (`source-buttons-cursor-mode.js` → `app/dotto/lib/sourceButtonsCursorMode.ts`)**:
+`node --check` on all 7 touched vanilla files, `eslint` clean (zero errors or warnings), `npm run
+typecheck` clean on the first pass, `npm run format:check` clean after a `prettier --write` pass,
+`rm -rf .next && npm run build` clean, all 32 Vitest tests still green. Real Playwright verification
+against a fresh dev server: confirmed all 3 bridges present; a real hover on `#mode-toolbar`
+expanded the mode popup, and clicking its Select row set `cardMode`/toggled the canvas's real
+`mode-select` class; the D/Escape/Shift keyboard overrides were driven with real `keydown`/`keyup`
+timing against `MODE_HOLD_THRESHOLD_MS` (180ms) — a quick Shift tap (50ms) stuck to select mode, a
+quick Escape tap reverted to normal, and holding D past the threshold (300ms) correctly produced
+the ORIGINAL vanilla file's own real quirk carried over verbatim (not a port bug): `effectiveMode()`
+maps a held 'd' override to `'data'`, not `'pen'`, even though a quick tap of the same key sticks to
+`'pen'` on release — confirmed via both `window.__effectiveMode()` and the canvas's real
+`mode-data` class while held, and that raw `cardMode` correctly stayed `'normal'` after releasing
+(no stick, since the hold exceeded the threshold). A tagged mock card was deleted for real via a
+genuine Backspace keypress (`__dispatchListPanelDelete`/`__deleteSelectedCards` routing). A tagged
+mock table cell's real `openCellAddMenu`/`closeSourceAddMenu` cycle opened/closed `#source-add-menu`
+and toggled `panelPinned.sourceAdd` correctly. Zero unexpected console/page errors (the same two
+known, pre-existing, unrelated noise sources as the `outline-tree.js` port were filtered). Re-checked
+the account afterward to confirm zero residual mock cards and `cardMode`/`selectedCardIds` both
+reset to their clean defaults.

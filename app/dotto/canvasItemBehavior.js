@@ -20,7 +20,7 @@
 // setupResizing, attachUniversalItemBehavior's own call to setupDraggingAndClicking, render()'s
 // own calls to renderConnectionsLayer/renderStaticTableHTML/attachStaticTableHoverZones/
 // layoutSourceTableColumns, and relayoutSourceTableIfVisible's own call to
-// layoutSourceTableColumns — waypoints-render-loop.js and source-buttons-cursor-mode.js) reach
+// layoutSourceTableColumns — waypoints-render-loop.js and app/dotto/lib/sourceButtonsCursorMode.ts) reach
 // these via their own window.__ bridge — bridges whose OWNERSHIP flipped: assigned here (see
 // app/dotto-app.jsx) instead of in their old vanilla modules, with vanilla as the caller instead
 // of React. Every OTHER vanilla dependency any of these functions still needs (appState,

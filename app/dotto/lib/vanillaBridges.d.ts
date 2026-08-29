@@ -98,7 +98,7 @@ declare global {
     __closePane?: (paneId: number) => void;
     // panels-hamburger.js
     __closeRailView?: () => void;
-    // source-buttons-cursor-mode.js
+    // app/dotto/lib/sourceButtonsCursorMode.ts
     __applyCursorMode?: () => void;
     // add-menu.js — a card kind's default {w, h} for the placement ghost.
     __kindSize?: (kind: string) => { w: number; h: number };
@@ -334,5 +334,40 @@ declare global {
     // (OutlinePanel.jsx's own useLayoutEffect syncs real DOM nodes back via __syncOutlineRows
     // synchronously right after, so the commit must already be flushed).
     __setOutlineState?: (state: { rows: unknown[]; query: string }) => void;
+    // core-state.js — the single, never-reassigned #context-menu/#draw-settings elements, same
+    // "not appState properties" category as __getAddMenuEl/__getBtnAddEl above.
+    __getContextMenuEl?: () => HTMLElement | undefined;
+    __getDrawSettingsEl?: () => HTMLElement | undefined;
+    // core-state.js — resolves the cursor mode actually in effect right now (accounting for a
+    // temporary D/Escape/Shift keyboard override on top of the persistent cardMode).
+    __effectiveMode?: () => string;
+    // app/dotto/canvasItemBehavior.js (via app/dotto-app.jsx) — recomputes a source table's column
+    // widths/scroll affordance against its container's current rendered width.
+    __layoutSourceTableColumns?: (
+      it: Record<string, unknown>,
+      el: HTMLElement,
+      reserve?: number,
+    ) => void;
+    // drawing-connections.js
+    __linkSelectedCards?: () => void;
+    // friends-presence.js
+    __closeCollabPanel?: () => void;
+    // hamburger-collab.js
+    __dispatchListPanelDelete?: (panel: string, ids: number[]) => void;
+    // history-autosave.js
+    __hideCanvasContextMenu?: () => void;
+    // source-tags-ai.js
+    __closeCellTagPicker?: () => void;
+    // srs-connections-core.js
+    __clearDataLinkPending?: () => void;
+    // panels-hamburger.js
+    __closeAllPanels?: (except?: string) => void;
+    // app/dotto/lib/sourceButtonsCursorMode.ts (Phase 4.4 port — was
+    // source-buttons-cursor-mode.js) — vanilla -> React bridge: panels-hamburger.js/source-table.js/
+    // waypoints-render-loop.js/source-tags-ai.js all previously imported this directly.
+    __closeSourceAddMenu?: () => void;
+    // Real inline onclick target (canvasItemBehavior.js's cell markup) — plain global, no
+    // underscore, same shape window.handleOutlineSearch/window.pushNotification use.
+    openCellAddMenu?: (id: number, r: number, c: number, btnEl: HTMLElement) => void;
   }
 }

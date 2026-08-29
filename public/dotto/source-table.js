@@ -2,7 +2,6 @@ import { appState, itemElId } from './core-state.js';
 import { resolveTableForEdit } from './drawing-connections.js';
 import { saveSnapshot, scheduleWorkspaceSave } from './history-autosave.js';
 import { findItemById, placeCaretEnd } from './live-presence.js';
-import { closeSourceAddMenu } from './source-buttons-cursor-mode.js';
 import { render } from './waypoints-render-loop.js';
 
 
@@ -79,7 +78,7 @@ import { render } from './waypoints-render-loop.js';
     }
     // tableCellHTML/renderStaticTableHTML/layoutSourceTableColumns also moved (see the comment
     // above colgroupHTML) — layoutSourceTableColumns' own other caller
-    // (relayoutSourceTableIfVisible, source-buttons-cursor-mode.js) now reaches it via
+    // (relayoutSourceTableIfVisible, app/dotto/lib/sourceButtonsCursorMode.ts) now reaches it via
     // window.__layoutSourceTableColumns too.
     function renameTableColumn(id, colIndex, value) {
         const it = findItemById(id); if (!it) return;
@@ -357,7 +356,7 @@ import { render } from './waypoints-render-loop.js';
         }
     }
     function triggerCellImageUpload() {
-        closeSourceAddMenu();
+        window.__closeSourceAddMenu();
         const input = document.createElement('input');
         input.type = 'file'; input.accept = 'image/*';
         input.onchange = () => {
@@ -369,7 +368,7 @@ import { render } from './waypoints-render-loop.js';
         input.click();
     }
     function triggerCellAudioUpload() {
-        closeSourceAddMenu();
+        window.__closeSourceAddMenu();
         const input = document.createElement('input');
         input.type = 'file'; input.accept = 'audio/*';
         input.onchange = () => {
@@ -381,7 +380,7 @@ import { render } from './waypoints-render-loop.js';
         input.click();
     }
     function startCellAudioRecording() {
-        closeSourceAddMenu();
+        window.__closeSourceAddMenu();
         if (!appState.lastFocusedCell || !findItemById(appState.lastFocusedCell.id)) { alert('Click into a cell first, then use Audio > Record.'); return; }
         if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) { alert('Microphone recording isn\'t supported in this browser.'); return; }
         navigator.mediaDevices.getUserMedia({ audio: true }).then(stream => {
@@ -538,7 +537,7 @@ window.__colgroupHTML = colgroupHTML;
 // window.__layoutSourceTableColumns/window.__renderStaticTableHTML/
 // window.__attachStaticTableHoverZones are assigned from app/dotto-app.jsx instead (all three
 // moved there — see the comment above colgroupHTML) — vanilla callers
-// (relayoutSourceTableIfVisible, source-buttons-cursor-mode.js; render(),
+// (relayoutSourceTableIfVisible, app/dotto/lib/sourceButtonsCursorMode.ts; render(),
 // waypoints-render-loop.js) reach them exactly the same way as before, just via a bridge now.
 // Used by app/dotto/lib/outlineTree.ts's goToOutlineSourceRow (Phase 4.4).
 window.__focusTableCell = focusTableCell;

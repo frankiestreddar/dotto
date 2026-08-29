@@ -7,7 +7,6 @@ import { renderFilesList, renderSourcesList } from './hamburger-collab.js';
 import { applyTransform, ensureSwTicking, saveSnapshot, scheduleWorkspaceSave, updateContextMenuPosition } from './history-autosave.js';
 import { broadcastEditingState, miniLabelForItem, placeCaretEnd, renderRealCardPreview, repositionAllRemoteCursors, syncColorPicker } from './live-presence.js';
 import { findNextFreeSlot } from './card-shortcuts.js';
-import { closeSourceAddMenu } from './source-buttons-cursor-mode.js';
 import { closeCellTagPicker } from './source-tags-ai.js';
 import { applyConnections } from './srs-connections-core.js';
 
@@ -662,7 +661,7 @@ import { applyConnections } from './srs-connections-core.js';
         btnAdd.style.display = 'flex';
         appState.modeToolbar.style.display = '';
         zoomControl.style.display = '';
-        closeSourceAddMenu(); closeCellTagPicker();
+        window.__closeSourceAddMenu(); closeCellTagPicker();
 
         applyConnections(folderObj);
 

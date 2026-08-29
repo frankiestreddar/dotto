@@ -2,7 +2,6 @@ import { appState } from './core-state.js';
 import { refreshCanvasCollabForCurrentFolder, refreshFriendsData, renderCollabPill } from './friends-presence.js';
 import { applyTransform, loadWorkspace } from './history-autosave.js';
 import { refreshDotbotUsage } from './profile-achievements-pricing.js';
-import { applyCursorMode } from './source-buttons-cursor-mode.js';
 import { updateDrawLayerBtns } from './srs-connections-core.js';
 import { centerOnContent, render } from './waypoints-render-loop.js';
 
@@ -12,7 +11,7 @@ import { centerOnContent, render } from './waypoints-render-loop.js';
 // needs to be, since everything it calls must already be wired up).
 
 updateDrawLayerBtns();
-applyCursorMode();
+window.__applyCursorMode();
 // Waits for any saved workspace before the first render, so a returning user's real content shows
 // immediately instead of flashing the built-in starter folders first. loadWorkspace() no-ops
 // instantly if there's no signed-in user or nothing saved yet.

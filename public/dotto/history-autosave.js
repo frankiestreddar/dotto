@@ -739,3 +739,5 @@ window.__layoutDotLayer = layoutDotLayer;
 // Used by app/dotto/canvasItemBehavior.js's setupDraggingAndClicking (Phase 3's second relocated
 // piece), same reasoning as window.__getAppState (core-state.js).
 window.__applyTransform = applyTransform;
+// Used by app/dotto/lib/sourceButtonsCursorMode.ts's window.onclick handler (Phase 4.4).
+window.__hideCanvasContextMenu = hideCanvasContextMenu;

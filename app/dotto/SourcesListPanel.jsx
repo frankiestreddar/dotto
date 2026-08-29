@@ -97,7 +97,7 @@ function SourceRow({ r, altHeld }) {
 // altHeld tracks the Option/Alt key globally (keydown/keyup, both scoped to this component's own
 // mount rather than a permanently-attached vanilla listener — this state is only ever relevant
 // while the Sources panel can actually be seen) — reset on window blur too, same convention
-// source-buttons-cursor-mode.js's own mode-override system uses, so alt-tabbing away never leaves
+// app/dotto/lib/sourceButtonsCursorMode.ts's own mode-override system uses, so alt-tabbing away never leaves
 // this "stuck" thinking the key is still held once focus returns. Per explicit request: source
 // blocks on the canvas itself (SourceCard.jsx) no longer show their global id pill directly — it's
 // only reachable here now, by holding Option and hovering a row, which swaps that row's name for

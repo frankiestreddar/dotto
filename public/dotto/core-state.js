@@ -467,7 +467,7 @@
     appState.modeButtons = Array.from(appState.modeToolbar.querySelectorAll('.mode-btn'));
     // The separate popup-panel rows (top-bar.html) — a different, new element from .mode-btn
     // above, deliberately not sharing that class (see the panel's own comment there); kept in
-    // sync alongside modeButtons by the same updateModeToolbarUI (source-buttons-cursor-mode.js).
+    // sync alongside modeButtons by the same updateModeToolbarUI (app/dotto/lib/sourceButtonsCursorMode.ts).
     appState.modePopupRows = Array.from(appState.modeToolbar.querySelectorAll('.mode-popup-row'));
     // Every panel-style rail view, in the same order as their icons top-to-bottom in #dotto-rail
     // (see openRailView/closeRailView, panels-hamburger.js) — replaces the old hubSubpanels (just
@@ -859,6 +859,10 @@ window.__getWorldEl = () => world;
 // properties) that a still-vanilla `import` can no longer reach from app/dotto/.
 window.__getAddMenuEl = () => addMenu;
 window.__getBtnAddEl = () => btnAdd;
+// Used by app/dotto/lib/sourceButtonsCursorMode.ts (Phase 4.4) — same "single, never-reassigned
+// element" category as addMenu/btnAdd above.
+window.__getContextMenuEl = () => contextMenu;
+window.__getDrawSettingsEl = () => drawSettings;
 // Used by app/dotto/lib/copyPaste.ts's setupPlacementGhostTracking (Phase 4.4) to re-attach its
 // pointermove listener to every future pane's own canvas element, same reasoning as every other
 // registered setup — see this function's own comment above.

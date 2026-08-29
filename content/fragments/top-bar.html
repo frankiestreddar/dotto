@@ -111,7 +111,7 @@
          all three). Its popup opens upward again (.mode-popup's bottom:-6px, was top:0 — see that
          rule's own comment, globals.css) now that it's at the very bottom of the rail with no room
          below it, rather than near the top with room below. No button-specific tightened-hitbox
-         treatment — the safe-zone polygon (modePopupSafeZone, source-buttons-cursor-mode.js)
+         treatment — the safe-zone polygon (modePopupSafeZone, app/dotto/lib/sourceButtonsCursorMode.ts)
          covers the general case (including this one, even with Profile now a guaranteed-adjacent
          neighbor below it again) on its own, same as every position this selector has sat in
          before. -->
@@ -127,10 +127,10 @@
              styling). Rows stay in this fixed DOM order always — an earlier version sorted the
              active mode to the top, removed per explicit follow-up request — the active mode just
              gets a highlighted/outlined .active state instead (see appState.modePopupRows,
-             core-state.js, and its own click wiring in source-buttons-cursor-mode.js, mirroring
+             core-state.js, and its own click wiring in app/dotto/lib/sourceButtonsCursorMode.ts, mirroring
              appState.modeButtons' click handler). Moving the pointer from the button toward a row
              further from it without closing the popup early is handled by a JS "safe zone" polygon
-             (modePopupSafeZone/handleModePopupSafeMove, source-buttons-cursor-mode.js) rather than
+             (modePopupSafeZone/handleModePopupSafeMove, app/dotto/lib/sourceButtonsCursorMode.ts) rather than
              any DOM element here. -->
         <div id="mode-toolbar">
             <button class="rail-btn mode-btn mode-visible active" data-mode="normal">
@@ -144,7 +144,7 @@
             </button>
             <!-- Drawing — was "Pen mode" before an explicit rename request; still internally the
                  'pen' cardMode/data-mode value throughout (applyCursorMode/handlePenPointerDown,
-                 source-buttons-cursor-mode.js/srs-connections-core.js), same "id stays, display
+                 app/dotto/lib/sourceButtonsCursorMode.ts/srs-connections-core.js), same "id stays, display
                  name changes" convention as every other rename in this file. Tap/hold 'D' now
                  enters it (beginModeOverride/endModeOverride('d', 'pen')) — that same request moved
                  it here from 'P' (freed up in turn for Profile's own rail shortcut, which moved off

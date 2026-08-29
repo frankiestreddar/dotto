@@ -253,3 +253,5 @@ window.__computeConnectorPoints = computeConnectorPoints;
 window.__pointsToLinePath = pointsToLinePath;
 // Used by app/dotto/lib/shelfSearch.ts's handleShelfSourceRowClick/startRenameShelfSourceRow (Phase 4.4).
 window.__folderIdForConnectedSource = folderIdForConnectedSource;
+// Used by app/dotto/lib/sourceButtonsCursorMode.ts's Shift+X shortcut (Phase 4.4).
+window.__linkSelectedCards = linkSelectedCards;

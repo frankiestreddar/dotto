@@ -62,6 +62,7 @@ import { wireCopyPaste } from "./dotto/lib/copyPaste";
 import { wireDayChangeAndAdNotifications } from "./dotto/lib/dayChangeAndAdNotifications";
 import { wireMarketplace } from "./dotto/lib/marketplace";
 import { wireNotifications } from "./dotto/lib/notificationsStore";
+import { wireSourceButtonsCursorMode } from "./dotto/lib/sourceButtonsCursorMode";
 // Side-effect only — sets window.__splitPaneWithTab/__closePane at module-eval time (no wireX()
 // needed, unlike the two imports above: nothing here needs a live DOM/appState read at wire time,
 // just the bridge assignment itself). Imported here, not from any specific component, since
@@ -189,7 +190,7 @@ if (typeof window !== "undefined" && !window.__dottoSupabase) {
 // setupDraggingAndClicking, render()'s own calls to renderConnectionsLayer/renderStaticTableHTML/
 // attachStaticTableHoverZones/layoutSourceTableColumns, and relayoutSourceTableIfVisible's own
 // call to layoutSourceTableColumns — waypoints-render-loop.js and
-// source-buttons-cursor-mode.js, some reached via a component's own layout effect) still need
+// app/dotto/lib/sourceButtonsCursorMode.ts, some reached via a component's own layout effect) still need
 // these bridges — same "set during module eval, not an effect" timing as window.__dottoSupabase
 // above: several of these vanilla calls can fire from another component's OWN layout effect
 // during the very first commit, before this component's own (passive) useEffect below would
@@ -446,6 +447,11 @@ export default function DottoApp({ sections, currentUser }) {
   // comment, app/dotto/lib/marketplace.ts, for why this needs to poll for
   // window.__wireRailIcon/appState.btnCart/appState.cartPanel rather than a single readiness check.
   useEffect(() => wireMarketplace(), []);
+  // Phase 4.4: the cursor-mode toolbar's click/hover/keyboard-override wiring plus window.onclick
+  // — see wireSourceButtonsCursorMode's own comment, app/dotto/lib/sourceButtonsCursorMode.ts, for
+  // why this needs to poll for window.__getAppState/appState.modeToolbar rather than a single
+  // readiness check.
+  useEffect(() => wireSourceButtonsCursorMode(), []);
 
   return (
     <>

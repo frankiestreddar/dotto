@@ -4,7 +4,6 @@ import { appState, canvasViewportCenterX, findItemEl } from './core-state.js';
 import { resolveTableForEdit } from './drawing-connections.js';
 import { saveSnapshot, scheduleWorkspaceSave } from './history-autosave.js';
 import { closeAllPanels } from './panels-hamburger.js';
-import { closeSourceAddMenu } from './source-buttons-cursor-mode.js';
 import { importDelimitedIntoSource } from './source-table.js';
 import { add } from './srs-connections-core.js';
 import { render } from './waypoints-render-loop.js';
@@ -94,7 +93,7 @@ import { render } from './waypoints-render-loop.js';
     }
 
     function triggerSourceUpload() {
-        closeSourceAddMenu(); closeCellTagPicker();
+        window.__closeSourceAddMenu(); closeCellTagPicker();
         const input = document.createElement('input');
         // Extensions alone are greyed out by some OS file pickers unless matching MIME types
         // are also listed (extension-only matching isn't reliably honoured everywhere) — so
@@ -159,7 +158,7 @@ import { render } from './waypoints-render-loop.js';
         const it = resolveTableForEdit(id); if (!it) return;
         // 'rail' — a click on a row's own tag button is exactly the kind of "clicked elsewhere on
         // the canvas" interaction that must no longer close an open rail panel (see
-        // window.onclick's own comment, source-buttons-cursor-mode.js).
+        // window.onclick's own comment, app/dotto/lib/sourceButtonsCursorMode.ts).
         closeAllPanels('rail');
         appState.activeTagRow = { id, r };
         appState.renamingTagId = null;
@@ -309,3 +308,5 @@ window.__commitTagRename = commitTagRename;
 // (Phase 3's fourth relocated piece), same reasoning as window.__getAppState (core-state.js).
 window.__openRowTagPicker = openRowTagPicker;
 window.__tagPillsHTML = tagPillsHTML;
+// Used by app/dotto/lib/sourceButtonsCursorMode.ts's openCellAddMenu/window.onclick (Phase 4.4).
+window.__closeCellTagPicker = closeCellTagPicker;

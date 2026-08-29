@@ -589,6 +589,8 @@ window.__collabBubblePaneMouseLeave = collabBubblePaneMouseLeave;
 window.__renderCollabPill = renderCollabPill;
 // Used by app/dotto/lib/shelfSearch.ts's startRenameShelfSourceRow (Phase 4.4).
 window.__syncCanvasCollabTitle = syncCanvasCollabTitle;
+// Used by app/dotto/lib/sourceButtonsCursorMode.ts's window.onclick handler (Phase 4.4).
+window.__closeCollabPanel = closeCollabPanel;
 
 // No window.__initials bridge — Avatar.jsx (app/dotto/) reimplements this directly instead (see
 // its own comment for why: plain string logic with no vanilla-only dependency, and needing it to
