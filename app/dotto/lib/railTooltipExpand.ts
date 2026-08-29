@@ -31,13 +31,8 @@
 // single live read of appState.activeRailView, reached here via the existing universal
 // window.__getAppState() bridge (established in Phase 3) rather than needing core-state.js
 // itself to be ported first — the same "live read, no bridge needed for the whole hub" pattern
-// canvasItemBehavior.js already uses throughout.
-
-declare global {
-  interface Window {
-    __getAppState?: () => { activeRailView?: unknown };
-  }
-}
+// canvasItemBehavior.js already uses throughout. See vanillaBridges.d.ts for the bridge's shared
+// ambient type declaration.
 
 const EXPAND_DELAY_MS = 2000;
 const EXPANDED_WIDTH_PX = 220;

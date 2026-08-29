@@ -3,9 +3,12 @@
 ## Status
 
 - **Phase 4.0 — tooling & safety net: done.** See checklist below.
-- **Phase 4.1 — leaf-first vanilla→React port: in progress.** 2 of the original ~20-file candidate
-  list ported so far (`rail-tooltip-expand.js`, `sidebar-mode-toggle.js`) — see its own section
-  below for why the real safe set is much smaller than originally scoped.
+- **Phase 4.1 — leaf-first vanilla→React port: in progress.** 3 of the original ~20-file candidate
+  list ported so far (`rail-tooltip-expand.js`, `sidebar-mode-toggle.js`,
+  `dotbot-schedule-notifications.js` — the last one required first extracting its one blocking
+  dependency, `dateKey`, out of `messages-schedule.js`) — see its own section below for why the
+  real safe set is much smaller than originally scoped, and why extraction sometimes has to happen
+  file-by-file rather than waiting for Phase 4.2.
 - **Phase 4.2 — utility extraction from hub files: not started.**
 - **Phase 4.3 — split multi-concern files: not started.**
 - **Phase 4.4 — port split-out concerns + remaining DOM-heavy files: not started.**
@@ -216,10 +219,33 @@ and others with zero/near-zero DOM touches.
    moved to `app/dotto/lib/sidebarModeToggle.ts`) — both wired in via a `useEffect` in their
    respective shell component (`TopBar.jsx`/`HamburgerMenu.jsx`), same imperative-DOM-wiring
    pattern `canvasItemBehavior.js` already established, not the portal+store pattern (neither file
-   renders new markup, both just attach behavior to existing static HTML). Original Batch A/B/C
-   grouping (kept below for reference) should be treated as a first-pass sketch, not a queue — each
-   remaining candidate needs the same two-sided dependency check before porting, and many will
-   naturally become portable only once their blocking hub dependency lands in a later phase.
+   renders new markup, both just attach behavior to existing static HTML).
+   Third file, `dotbot-schedule-notifications.js` (2 generic app-lifetime timers: 3am day-change
+   ping, one-time paid-tier ad nudge) — its 3 deps were `pushNotification`/`openPricingOverlay`
+   (already reachable via existing plain `window.*` bridges, no new bridge needed) and `dateKey`
+   (a genuinely blocking dependency — but `dateKey` turned out to be a 3-line pure helper with
+   exactly one caller inside `messages-schedule.js`, a file that otherwise stays vanilla for now
+   — so it was extracted on its own into `app/dotto/lib/dateKey.ts`, same "extract the pure sliver,
+   leave the rest of the hub file alone" technique Phase 4.2 uses for the bigger hub files, just
+   applied here first since it was the one thing blocking this specific port). Wired into
+   `app/dotto-app.jsx`'s own mount effect (global, not scoped to one shell component) — and unlike
+   the previous two files' lazy, on-hover `window.__getAppState()` reads, this one needs appState
+   available immediately at wire time (to seed `lastStatsDayKey`), which genuinely races the
+   vanilla `afterInteractive` bundle's own load time (the same class of race a Phase 1 bug already
+   surfaced for a different component) — solved with a short readiness poll
+   (`wireDayChangeAndAdNotifications`'s own comment) rather than a single check-and-skip, since
+   there's no later store update that would naturally retry a skipped wire-up the way the outline
+   panel's own self-healing case has. New `app/dotto/lib/vanillaBridges.d.ts` centralizes the
+   `window.__*`/`window.*` ambient type declarations these ports need, rather than each file
+   re-declaring its own — grows as more Phase 4.x ports need to reach a still-vanilla bridge.
+   Verified with real Playwright browser testing using the REAL 60-second interval (not mocked/
+   fast-forwarded) — forced a stale `lastStatsDayKey`, waited up to 65s, confirmed the interval
+   fired, called `pushNotification` correctly, and updated the key — not just checked
+   initialization. Original Batch A/B/C grouping (kept below for reference) should be treated as a
+   first-pass sketch, not a queue — each remaining candidate needs the same two-sided dependency
+   check before porting, and many will naturally become portable only once their blocking hub
+   dependency lands in a later phase (or, per `dateKey`'s own precedent, once whatever small pure
+   sliver is actually blocking them gets extracted on its own).
 2. **Phase 4.2 — utility extraction** (zero-risk, unblocks downstream): pull
    `escapeHtml`/`stripHtml`/`truncateCenter` out of `ai-assistant-suggestions.js`,
    `calculateSM2`/`defaultSrsState`/`diffRatings` out of `srs-connections-core.js` (write real
@@ -327,3 +353,10 @@ element hit-testing quirk, not a real app bug; worked around by dispatching clic
 `element.click()` in `page.evaluate()` instead of `page.click()`. Worth reusing this workaround for
 any future Phase 4.x verification script that hits the same "Element is not visible" /
 "intercepts pointer events" symptom against a dev-mode page.
+
+**Phase 4.1 (second file — `dotbot-schedule-notifications.js`)**: same clean-state
+typecheck/build/lint pass as above, plus real Playwright verification using the actual 60-second
+interval (not mocked) — confirmed `lastStatsDayKey` initializes correctly against an independently
+recomputed expected value, forced a stale key, waited up to 65s for the real `setInterval` to
+detect the crossing, and confirmed both the notification's exact text and the key update — not
+just that the module loaded without error. Zero page errors.

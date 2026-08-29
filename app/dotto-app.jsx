@@ -59,6 +59,7 @@ import {
   setupDraggingAndClicking,
   setupResizing,
 } from "./dotto/canvasItemBehavior";
+import { wireDayChangeAndAdNotifications } from "./dotto/lib/dayChangeAndAdNotifications";
 import BlocksPanel from "./dotto/BlocksPanel";
 import CellTagPickerList from "./dotto/CellTagPickerList";
 import ChatsListPanel from "./dotto/ChatsListPanel";
@@ -407,6 +408,11 @@ export default function DottoApp({ sections, currentUser }) {
   useEffect(() => {
     document.title = `Dotto | @${currentUser.username}`;
   }, [currentUser]);
+
+  // Phase 4.1: dotbot-schedule-notifications.js's two generic app-lifetime timers (3am day-change
+  // ping, one-time paid-tier ad nudge) — see wireDayChangeAndAdNotifications' own comment for why
+  // this needs to poll for window.__getAppState rather than a single readiness check.
+  useEffect(() => wireDayChangeAndAdNotifications(), []);
 
   return (
     <>

@@ -26,11 +26,4 @@ import { closeRailView, openRailView, wireRailIcon } from './panels-hamburger.js
     }
     wireRailIcon('messages', appState.messagesBtn, appState.messagesPanel, refreshMessagesPanel);
 
-    // ---------- Shared date-key helper ----------
-    // Originally written for the (now-removed) Schedule feature, kept here since
-    // dotbot-schedule-notifications.js's statsDayKey (the "day changed at 3am" tracker, a generic
-    // notification unrelated to scheduling) still calls dateKey for its own, unrelated purpose.
-    function pad2(n) { return String(n).padStart(2, '0'); }
-    function dateKey(d) { return d.getFullYear() + '-' + pad2(d.getMonth() + 1) + '-' + pad2(d.getDate()); }
-
-export { closeMessagesPanel, dateKey, openMessagesPanel };
+export { closeMessagesPanel, openMessagesPanel };
