@@ -2,7 +2,6 @@ import { kindLabel, kindSize } from './add-menu.js';
 import { openSearchOverlay, stripHtml } from './ai-assistant-suggestions.js';
 import { appState, btnAdd, canvas, canvasViewportCenterX, drawBackBtn, drawColorInput, drawEraserBtn, drawFrontBtn, drawPenBtn, drawSettings, drawSizeInput, effectiveMode, findItemEl, registerPaneCanvasListenerSetup, switchActivePane, world, zoomTrack } from './core-state.js';
 import { createConnection, ensureConnections, ensureDrawings, findLinkedTable, findTableById, makeLayerSVG, pathNearPoint, penPointsToPath, pointsToPath } from './drawing-connections.js';
-import { defaultFlashcardDeck } from './games-flashcard-typeright.js';
 import { generateGlobalId } from './global-ids.js';
 import { applyTransform, saveSnapshot, scheduleApplyTransform } from './history-autosave.js';
 import { broadcastEditingState } from './live-presence.js';
@@ -11,9 +10,13 @@ import { awardUserPoints, bumpAchievementStat, showProfileSettingsView } from '.
 import { toggleTheme } from './theme-toggle.js';
 import { toggleUploadPopup } from './upload-popup.js';
 import { render, renderSelectedOutlines, startBoxSelection, syncWaypointToDb } from './waypoints-render-loop.js';
-// Phase 4.2 extraction — see srs-algorithm.js's own comment. Re-exported below (not just used
-// internally) so games-flashcard-typeright.js/stopwatch.js's existing
-// `from './srs-connections-core.js'` imports keep working unchanged.
+// Phase 4.2 extraction — see srs-algorithm.js's own comment. calculateSM2/defaultSrsState no
+// longer have a real vanilla caller (app/dotto/lib/gamesFlashcardTyperight.ts, their last one,
+// ported in Phase 4.4 — reaches these via window.__calculateSM2/__defaultSrsState instead, set
+// below); kept imported/re-exported here anyway for now, same low-priority final-sweep cleanup as
+// every other now-unused vanilla export this migration leaves for Phase 4.7 rather than chasing
+// down individually. diffRatings is still real (window.__diffRatings, used by
+// app/dotto/lib/stopwatch.ts's swToggleRun).
 import { calculateSM2, defaultSrsState, diffRatings } from './srs-algorithm.js';
 
 
@@ -348,7 +351,7 @@ import { calculateSM2, defaultSrsState, diffRatings } from './srs-algorithm.js';
             });
             if (!stillFed) {
                 if (it.kind === 'flashcard') {
-                    it.cards = defaultFlashcardDeck();
+                    it.cards = window.__defaultFlashcardDeck();
                     it.fcOrder = [];
                     it.fcIndex = 0;
                     it.fcFlipped = false;
@@ -961,7 +964,7 @@ import { calculateSM2, defaultSrsState, diffRatings } from './srs-algorithm.js';
         else if (kind === 'checklist') { base.tasks = []; } // no longer creatable, kept for existing cards — see kindLabel
         else if (kind === 'embed') { base.embedUrl = ''; }
         else if (kind === 'watermark') { base.html = ''; }
-        else if (kind === 'flashcard') { base.cards = defaultFlashcardDeck(); base.fcMode = 'shuffle'; base.fcOrder = []; base.fcIndex = 0; base.fcFlipped = false; base.fcStats = {}; base.fcSeenCount = 0; }
+        else if (kind === 'flashcard') { base.cards = window.__defaultFlashcardDeck(); base.fcMode = 'shuffle'; base.fcOrder = []; base.fcIndex = 0; base.fcFlipped = false; base.fcStats = {}; base.fcSeenCount = 0; }
         else if (kind === 'typeright') { base.cards = []; base.trMode = 'shuffle'; base.trOrder = []; base.trIndex = 0; base.trInput = ''; base.trChecked = false; base.trStats = {}; base.trSeenCount = 0; }
         else if (kind === 'statcard') { base.statKind = statKind || 'progress'; base.streamCache = {}; }
         else if (kind === 'stopwatch') {
@@ -1297,5 +1300,9 @@ window.__handleDataModeClick = handleDataModeClick;
 // Used by app/dotto/lib/stopwatch.ts's swToggleRun (Phase 4.4) to archive a finished session's
 // rating deltas — public/dotto/*.js isn't reachable from app/dotto/ even for a pure function.
 window.__diffRatings = diffRatings;
+// Used by app/dotto/lib/gamesFlashcardTyperight.ts's fcRate/trCheck (Phase 4.4) — same reasoning
+// as __diffRatings above, re-exported from srs-algorithm.js.
+window.__calculateSM2 = calculateSM2;
+window.__defaultSrsState = defaultSrsState;
 // Used by app/dotto/lib/sourceButtonsCursorMode.ts's applyCursorMode (Phase 4.4).
 window.__clearDataLinkPending = clearDataLinkPending;

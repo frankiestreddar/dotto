@@ -15,7 +15,6 @@ import './dotto/source-table.js';
 import './dotto/source-tags-ai.js';
 import './dotto/media-pdf-epub.js';
 import './dotto/cards-misc.js';
-import './dotto/games-flashcard-typeright.js';
 import './dotto/stopwatch.js';
 import './dotto/ai-assistant-suggestions.js';
 import './dotto/search-panel-history.js';

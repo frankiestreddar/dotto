@@ -835,6 +835,8 @@ window.__effectiveMode = effectiveMode;
 // Used by every React card component (CanvasCard.jsx, NoteCard.jsx, etc.) to look up its own
 // mounted DOM element by item id — see itemElId/findItemEl/parseItemId's own comment above.
 window.__findItemEl = findItemEl;
+// Used by app/dotto/lib/gamesFlashcardTyperight.ts's document-level pointerdown listener (Phase 4.4).
+window.__parseItemId = parseItemId;
 // Used by app/dotto/lib/outlineTree.ts's computeOutlineRows/goToOutlineItem (Phase 4.4).
 window.__canvasViewportCenterX = canvasViewportCenterX;
 window.__itemElId = itemElId;

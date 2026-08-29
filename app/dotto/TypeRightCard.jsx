@@ -3,10 +3,24 @@
 import { useLayoutEffect, useRef } from "react";
 import { setupResizing } from "./canvasItemBehavior";
 import GameOptionsPanel from "./GameOptionsPanel";
+import {
+  renderGameFaceBlocksHTML,
+  resolveGameFace,
+  trCheck,
+  trCurrentCard,
+  trFocusInput,
+  trNext,
+  trPlayableCards,
+  trToggleMode,
+  trUpdateInput,
+} from "./lib/gamesFlashcardTyperight";
 
-// Ported from the old renderTypeRightHTML (public/dotto/games-flashcard-typeright.js — kept there,
-// not deleted: live-presence.js's mini previews still call it). See FlashcardCard.jsx for the
-// general pattern (game logic/SM-2 stays vanilla, reached via window bridges; setupResizing
+// Ported from the old renderTypeRightHTML (now app/dotto/lib/gamesFlashcardTyperight.ts, Phase
+// 4.4 — live-presence.js's mini previews still call it, now via window.__renderTypeRightHTML;
+// this component reaches the same logic as real ES imports instead, both files living in the same
+// app/dotto/ tree). window.broadcastEditingState/window.__itemElId below are unrelated to this
+// port — they still belong to live-presence.js/core-state.js, genuinely still vanilla. See
+// FlashcardCard.jsx for the general pattern (setupResizing
 // (canvasItemBehavior.js) owns the resize handle from this component's own layout effect, safe to
 // call on every render() call — no dependency array, matching every converted kind — because of
 // the AbortController fix that function has).
@@ -40,7 +54,7 @@ export default function TypeRightCard({ it, paneId }) {
     );
   }
 
-  const playable = window.__trPlayableCards(it);
+  const playable = trPlayableCards(it);
   if (!playable.length) {
     return (
       <>
@@ -57,16 +71,13 @@ export default function TypeRightCard({ it, paneId }) {
     );
   }
 
-  const card = window.__trCurrentCard(it, playable);
-  const promptHTML = card
-    ? window.__renderGameFaceBlocksHTML(window.__resolveGameFace(it, card, "front"))
-    : "";
+  const card = trCurrentCard(it, playable);
+  const promptHTML = card ? renderGameFaceBlocksHTML(resolveGameFace(it, card, "front")) : "";
   const total = it.trOrder.length;
   const pos = total ? it.trIndex + 1 : 0;
   const checked = !!it.trChecked;
   const correctAnswer = card
-    ? window
-        .__resolveGameFace(it, card, "back")
+    ? resolveGameFace(it, card, "back")
         .map((b) => b.text)
         .join(" ")
     : "";
@@ -75,14 +86,14 @@ export default function TypeRightCard({ it, paneId }) {
 
   return (
     <>
-      <div className="item-face" ref={ref} onMouseEnter={() => window.trFocusInput(it.id)}>
+      <div className="item-face" ref={ref} onMouseEnter={() => trFocusInput(it.id)}>
         <div className="tr-top" onMouseDown={(e) => e.stopPropagation()}>
           <div className="tr-title">Typeright</div>
           <div className="fc-top-right">
             <button
               type="button"
               className="fc-mode-btn"
-              onClick={() => window.trToggleMode(it.id)}
+              onClick={() => trToggleMode(it.id)}
               title="Toggle shuffle / ordered"
             >
               {it.trMode === "shuffle" ? "Shuffle ON" : "Shuffle OFF"}
@@ -103,12 +114,12 @@ export default function TypeRightCard({ it, paneId }) {
             className={inputClassName}
             placeholder="Type the answer…"
             value={it.trInput || ""}
-            onChange={(e) => window.trUpdateInput(it.id, e.target.value)}
+            onChange={(e) => trUpdateInput(it.id, e.target.value)}
             onKeyDown={(e) => {
               if (e.key === "Enter") {
                 e.preventDefault();
-                if (checked) window.trNext(it.id);
-                else window.trCheck(it.id);
+                if (checked) trNext(it.id);
+                else trCheck(it.id);
               }
             }}
             onFocus={() =>
@@ -118,11 +129,11 @@ export default function TypeRightCard({ it, paneId }) {
             disabled={checked}
           />
           {checked ? (
-            <button type="button" className="tr-next-btn" onClick={() => window.trNext(it.id)}>
+            <button type="button" className="tr-next-btn" onClick={() => trNext(it.id)}>
               Next
             </button>
           ) : (
-            <button type="button" className="tr-check-btn" onClick={() => window.trCheck(it.id)}>
+            <button type="button" className="tr-check-btn" onClick={() => trCheck(it.id)}>
               Check
             </button>
           )}

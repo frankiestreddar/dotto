@@ -251,6 +251,37 @@
   `app-init.js`'s own `applyCursorMode();` sitting at the very start of a line was skipped by the
   automated pass — caught immediately by re-grepping the 7 caller files right after, before moving
   on to verification.
+  `games-flashcard-typeright.js` (657 lines) ported next to
+  `app/dotto/lib/gamesFlashcardTyperight.ts` — the shared front/back column configuration
+  (right-click "Options" face) for every game card kind, plus the Flashcard and Typeright apps
+  built on top of it. Unlike every earlier Phase 4.4 port, most of this file's exports were
+  already React->vanilla bridges before this port (`FlashcardCard.jsx`/`TypeRightCard.jsx`/
+  `GameOptionsPanel.jsx` — all real React components from an earlier phase — already called
+  `window.__cellContentType`/`__fcCurrentRow`/`__resolveGameFace`/etc); this port also upgraded
+  those 3 same-tree callers from window bridges to real ES imports (matching the precedent
+  `StopwatchCard.jsx` already established for `stopwatch.ts`), keeping the bridges themselves only
+  for genuinely still-vanilla callers (`live-presence.js`'s mini previews, `card-shortcuts.js`'s
+  keyboard shortcuts). 5 real vanilla callers fixed (`card-shortcuts.js`, `live-presence.js`,
+  `srs-connections-core.js`, `window-bridge.js`, `waypoints-render-loop.js`); 11 real inline
+  onclick/oninput targets (`setGameColumnSlot`/`addGameColumnSlot`/`removeGameColumnSlot`/
+  `fcFlip`/`fcRate`/`fcToggleMode`/`trUpdateInput`/`trFocusInput`/`trCheck`/`trNext`/
+  `trToggleMode`) moved off `window-bridge.js`'s old centralized indirection onto direct plain-
+  global assignment from the new file, same convention `marketplace.ts`/`shelfSearch.ts`/
+  `outlineTree.ts`/`sourceButtonsCursorMode.ts` established. 3 new outbound bridges added for
+  still-vanilla dependencies with no bridge yet (`__parseItemId`, `__awardUserPoints`/
+  `__bumpAchievementStat`, `__calculateSM2`/`__defaultSrsState` — the latter two re-exported from
+  `srs-algorithm.js`, a genuinely pure Phase 4.2 extraction that had sat completely un-bridged
+  until this port needed it), plus 9 more that already existed at runtime but had never been typed
+  (the pre-existing React->vanilla set named above). Real Playwright verification surfaced a
+  genuine cross-module interaction, not a port bug: `srs-connections-core.js`'s
+  `propagateCanvasStreams` runs a real "orphaned source-of-truth" integrity sweep on every
+  `render()` that collapses a flashcard/typeright deck back to its placeholder the instant
+  `card.srs` looks real (which `fcRate`/`trCheck` set unconditionally) but the card isn't fed by
+  an actual connected source — exactly what a disconnected mock card is. Verified by stubbing
+  `window.__render` for the one click that would otherwise trigger it (isolating this port's own
+  logic), then restoring and re-triggering a real render to confirm the still-vanilla sweep
+  correctly observes and acts on this port's data shape afterward — a real, useful end-to-end
+  proof, not a workaround.
 - **Phase 4.5 — architectural/hub files: not started.**
 - **Phase 4.6 — delete the bridge layer: not started.**
 - **Phase 4.7 — final cleanup & professionalization close-out: not started.**
@@ -1018,3 +1049,31 @@ and toggled `panelPinned.sourceAdd` correctly. Zero unexpected console/page erro
 known, pre-existing, unrelated noise sources as the `outline-tree.js` port were filtered). Re-checked
 the account afterward to confirm zero residual mock cards and `cardMode`/`selectedCardIds` both
 reset to their clean defaults.
+
+**Phase 4.4 (`games-flashcard-typeright.js` → `app/dotto/lib/gamesFlashcardTyperight.ts`)**:
+`node --check` on all 5 touched vanilla files, `eslint` clean (zero errors or warnings), `npm run
+typecheck` clean after fixing 2 real `??`/`||`-mixing syntax errors and adding the 9 pre-existing
+React->vanilla bridges this port's own `??` fixes exposed as still-untyped, `npm run format:check`
+clean after a `prettier --write` pass, `rm -rf .next && npm run build` clean, all 32 Vitest tests
+still green. Real Playwright verification against a fresh dev server: confirmed all 24
+bridges/plain-globals present; pure-function sanity for `cellContentType`/`normalizeGameSlot`
+(including its legacy-number and legacy-`{cloze:true}` migration paths)/`defaultFlashcardDeck`;
+`renderFlashcardHTML`/`renderTypeRightHTML`'s own still-string-built mini-preview path (used by
+`live-presence.js`) produced correct markup. Real DOM flow: a tagged mock flashcard rendered via
+the real `FlashcardCard.jsx` (now a direct ES import of this port, not a bridge — see above), a
+real click flipped it, a real click on "Easy" correctly rated it (verified via a `window.__render`
+stub isolating this port's own logic from the real, correct "orphaned SRS" integrity sweep it
+triggers — see the status section entry above for the full explanation — then restored to confirm
+that sweep's own collapse behavior afterward), and a real click toggled shuffle mode. Same pattern
+for a tagged typeright card via `TypeRightCard.jsx`: a real typed answer ("apple") was graded
+`'correct'` by a real Check click (`.fill()` used instead of per-keystroke `.type()` — this
+controlled input's value is a plain mutated field, not React state, which made per-keystroke typing
+genuinely racy against this shared account's own background renders, unrelated to what this test
+verifies), and a second card's `window.trNext` call was verified directly (real UI interaction
+wasn't reachable for it either, same disconnected-mock/integrity-sweep interaction) then confirmed
+against a real subsequent render showing the correct next-question DOM. Cloze/`GameOptionsPanel.jsx`
+flow: a real right-click (`oncontextmenu`) opened the Options panel, a real `[bracket]`-containing
+column showed its Blank/`[...]` optgroup, and selecting Blank via the real `<select>` correctly
+re-rendered the card's shown front face to `"...[...] ..."`. Zero unexpected console/page errors
+(the same two known, pre-existing, unrelated noise sources as prior Phase 4.4 ports were filtered).
+Re-checked the account afterward to confirm zero residual mock cards.

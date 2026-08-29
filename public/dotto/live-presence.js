@@ -5,7 +5,6 @@ import { renderChecklistHTML, renderStatcardHTML, shortUrl } from './cards-misc.
 import { appState, canvas, canvasViewportCenterX, cursorOverlay, findItemEl, registerPaneCanvasListenerSetup, supabase } from './core-state.js';
 import { ensureConnections } from './drawing-connections.js';
 import { closeCollabPanel, initials, renderMsgList } from './friends-presence.js';
-import { defaultFlashcardDeck, renderFlashcardHTML, renderTypeRightHTML } from './games-flashcard-typeright.js';
 import { saveSnapshot, smoothPanTo } from './history-autosave.js';
 import { renderMediaHTML } from './media-pdf-epub.js';
 import { closeMessagesPanel } from './messages-schedule.js';
@@ -902,7 +901,7 @@ import { render } from './waypoints-render-loop.js';
         });
         if (!sourceComesToo) {
             if (snapshot.kind === 'flashcard') {
-                snapshot.cards = defaultFlashcardDeck();
+                snapshot.cards = window.__defaultFlashcardDeck();
                 snapshot.fcOrder = [];
                 snapshot.fcIndex = 0;
                 snapshot.fcFlipped = false;
@@ -974,9 +973,9 @@ import { render } from './waypoints-render-loop.js';
         } else if (it.kind === 'watermark') {
             el.innerHTML = `<div class="body watermark-text">${it.html || ''}</div>`;
         } else if (it.kind === 'flashcard') {
-            el.innerHTML = renderFlashcardHTML(it);
+            el.innerHTML = window.__renderFlashcardHTML(it);
         } else if (it.kind === 'typeright') {
-            el.innerHTML = renderTypeRightHTML(it);
+            el.innerHTML = window.__renderTypeRightHTML(it);
         } else if (it.kind === 'statcard') {
             el.innerHTML = renderStatcardHTML(it);
         } else if (it.kind === 'stopwatch') {

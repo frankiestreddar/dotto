@@ -3,13 +3,22 @@
 import { useLayoutEffect, useRef } from "react";
 import { setupResizing } from "./canvasItemBehavior";
 import GameOptionsPanel from "./GameOptionsPanel";
+import {
+  fcCurrentRow,
+  fcFlip,
+  fcPlayableCards,
+  fcRate,
+  fcToggleMode,
+  renderGameFaceBlocksHTML,
+  resolveGameFace,
+} from "./lib/gamesFlashcardTyperight";
 
-// Ported from the old renderFlashcardHTML (public/dotto/games-flashcard-typeright.js — kept there,
-// not deleted: fcFlip/fcRate/fcToggleMode/fcPlayableCards/etc. are real game logic + SM-2 scoring,
-// not rendering, and stay vanilla regardless). fcFlip/fcRate/fcToggleMode were already
-// window-bridged for the original inline onclick attributes; fcCurrentRow/fcPlayableCards/
-// resolveGameFace/renderGameFaceBlocksHTML got new bridges (see that file's own comment) since
-// this component calls them directly, not just its GameOptionsPanel.
+// Ported from the old renderFlashcardHTML — the underlying game logic + SM-2 scoring
+// (fcFlip/fcRate/fcToggleMode/fcPlayableCards/etc.) now lives in
+// app/dotto/lib/gamesFlashcardTyperight.ts (Phase 4.4), reached here as real ES imports since both
+// files live in the same app/dotto/ tree — window.fcFlip/window.fcRate/window.fcToggleMode still
+// exist too, but only because they're also real inline onclick targets for the still-string-built
+// preview HTML (live-presence.js's mini previews) and card-shortcuts.js's keyboard shortcuts.
 //
 // setupResizing (canvasItemBehavior.js) still owns the resize handle — called directly here via a
 // layout effect, same as attachWatermarkBody/attachUniversalItemBehavior; it's idempotent
@@ -49,7 +58,7 @@ export default function FlashcardCard({ it }) {
     );
   }
 
-  const playable = window.__fcPlayableCards(it);
+  const playable = fcPlayableCards(it);
   if (!playable.length) {
     return (
       <>
@@ -66,13 +75,11 @@ export default function FlashcardCard({ it }) {
     );
   }
 
-  const row = window.__fcCurrentRow(it, playable);
+  const row = fcCurrentRow(it, playable);
   const front = row
-    ? window.__renderGameFaceBlocksHTML(window.__resolveGameFace(it, row, "front"))
+    ? renderGameFaceBlocksHTML(resolveGameFace(it, row, "front"))
     : "(no data rows)";
-  const back = row
-    ? window.__renderGameFaceBlocksHTML(window.__resolveGameFace(it, row, "back"))
-    : "";
+  const back = row ? renderGameFaceBlocksHTML(resolveGameFace(it, row, "back")) : "";
   const total = it.fcOrder.length;
   const pos = total ? it.fcIndex + 1 : 0;
 
@@ -85,7 +92,7 @@ export default function FlashcardCard({ it }) {
             <button
               type="button"
               className="fc-mode-btn"
-              onClick={() => window.fcToggleMode(it.id)}
+              onClick={() => fcToggleMode(it.id)}
               title="Toggle shuffle / ordered"
             >
               {it.fcMode === "shuffle" ? "Shuffle ON" : "Shuffle OFF"}
@@ -98,7 +105,7 @@ export default function FlashcardCard({ it }) {
         <div
           className={"fc-card" + (it.fcFlipped ? " flipped" : "")}
           onMouseDown={(e) => e.stopPropagation()}
-          onClick={() => window.fcFlip(it.id)}
+          onClick={() => fcFlip(it.id)}
         >
           <div
             className="fc-face fc-front"
@@ -114,7 +121,7 @@ export default function FlashcardCard({ it }) {
             type="button"
             className="fc-flip-btn"
             style={{ display: it.fcFlipped ? "none" : "flex" }}
-            onClick={() => window.fcFlip(it.id)}
+            onClick={() => fcFlip(it.id)}
           >
             Flip
           </button>
@@ -122,28 +129,28 @@ export default function FlashcardCard({ it }) {
             <button
               type="button"
               className="fc-rate-btn fc-rate-noclue"
-              onClick={() => window.fcRate(it.id, "noclue")}
+              onClick={() => fcRate(it.id, "noclue")}
             >
               Not a clue
             </button>
             <button
               type="button"
               className="fc-rate-btn fc-rate-wrong"
-              onClick={() => window.fcRate(it.id, "wrong")}
+              onClick={() => fcRate(it.id, "wrong")}
             >
               Got it wrong
             </button>
             <button
               type="button"
               className="fc-rate-btn fc-rate-hard"
-              onClick={() => window.fcRate(it.id, "hard")}
+              onClick={() => fcRate(it.id, "hard")}
             >
               Had to think
             </button>
             <button
               type="button"
               className="fc-rate-btn fc-rate-easy"
-              onClick={() => window.fcRate(it.id, "easy")}
+              onClick={() => fcRate(it.id, "easy")}
             >
               Easy
             </button>

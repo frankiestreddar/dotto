@@ -1,17 +1,27 @@
 "use client";
 
-// Ported from the old renderGameOptionsHTML (public/dotto/games-flashcard-typeright.js — kept
-// there, not deleted: renderTypeRightHTML still depends on the string-building version until
-// Typeright converts too, see PHASE2_ROADMAP.md's Game options/cloze entry). Shared by
-// FlashcardCard.jsx and (once it converts) TypeRightCard.jsx, same as the vanilla version was
-// shared by both kinds' own render functions.
+import {
+  addGameColumnSlot,
+  cellContentType,
+  colHasAnyCloze,
+  normalizeGameSlot,
+  removeGameColumnSlot,
+  setGameColumnSlot,
+} from "./lib/gamesFlashcardTyperight";
+
+// Ported from the old renderGameOptionsHTML — a separate, still-string-building copy of that
+// function now lives internally in app/dotto/lib/gamesFlashcardTyperight.ts (Phase 4.4), kept
+// there rather than deleted: renderFlashcardHTML/renderTypeRightHTML in that same file still
+// depend on it for live-presence.js's mini previews, which build a real HTML string rather than
+// mounting this component (see PHASE2_ROADMAP.md's Game options/cloze entry). Shared by
+// FlashcardCard.jsx and TypeRightCard.jsx, same as the vanilla version was shared by both kinds'
+// own render functions.
 //
-// cellContentType/colHasAnyCloze/normalizeGameSlot stay vanilla — real parsing/migration logic
-// (normalizeGameSlot specifically handles slot formats saved by older, since-removed versions of
-// this feature), not boilerplate worth duplicating across the app/public boundary — reached via
-// the window.__cellContentType/__colHasAnyCloze/__normalizeGameSlot bridges (cards-misc.js
-// established the pattern). setGameColumnSlot/addGameColumnSlot/removeGameColumnSlot were already
-// window-bridged for the original inline onclick/onchange attributes.
+// cellContentType/colHasAnyCloze/normalizeGameSlot/setGameColumnSlot/addGameColumnSlot/
+// removeGameColumnSlot are real ES imports now that both this component and their real
+// implementation (app/dotto/lib/gamesFlashcardTyperight.ts) live in the same app/dotto/ tree — the
+// window.__cellContentType/etc bridges these previously went through (cards-misc.js established
+// the pattern) still exist too, only because still-vanilla callers elsewhere need them.
 function optionsForSlot(it, colCount, headers, slot) {
   const options = [];
   for (let i = 0; i < colCount; i++) {
@@ -21,7 +31,7 @@ function optionsForSlot(it, colCount, headers, slot) {
         {name}
       </option>,
     );
-    if (window.__colHasAnyCloze(it, i)) {
+    if (colHasAnyCloze(it, i)) {
       options.push(
         <optgroup key={i + "-cloze"} label={`${name} — cloze`}>
           <option value={`${i}:blank`}>Blank</option>
@@ -39,7 +49,7 @@ function GameOptionsSide({ it, label, side, slots, colCount, headers, sampleRow 
       <div className="game-options-side-label">{label}</div>
       {slots.map((slot, slotIndex) => {
         const cellHtml = ((sampleRow && sampleRow.cells) || [])[slot.col] || "";
-        const type = sampleRow ? window.__cellContentType(cellHtml) : "text";
+        const type = sampleRow ? cellContentType(cellHtml) : "text";
         const glyph =
           type === "image" ? "🖼" : type === "audio" ? "🔊" : slot.mode !== "plain" ? "[…]" : "Aa";
         const selectValue = slot.mode === "plain" ? String(slot.col) : `${slot.col}:${slot.mode}`;
@@ -52,7 +62,7 @@ function GameOptionsSide({ it, label, side, slots, colCount, headers, sampleRow 
             <select
               className="game-options-select"
               value={selectValue}
-              onChange={(e) => window.setGameColumnSlot(it.id, side, slotIndex, e.target.value)}
+              onChange={(e) => setGameColumnSlot(it.id, side, slotIndex, e.target.value)}
             >
               {optionsForSlot(it, colCount, headers, slot)}
             </select>
@@ -63,7 +73,7 @@ function GameOptionsSide({ it, label, side, slots, colCount, headers, sampleRow 
               <button
                 type="button"
                 className="game-options-remove-slot"
-                onClick={() => window.removeGameColumnSlot(it.id, side, slotIndex)}
+                onClick={() => removeGameColumnSlot(it.id, side, slotIndex)}
                 title="Remove"
               >
                 ×
@@ -76,7 +86,7 @@ function GameOptionsSide({ it, label, side, slots, colCount, headers, sampleRow 
         type="button"
         className="game-options-add-slot"
         onMouseDown={(e) => e.stopPropagation()}
-        onClick={() => window.addGameColumnSlot(it.id, side)}
+        onClick={() => addGameColumnSlot(it.id, side)}
       >
         + Add column
       </button>
@@ -101,12 +111,12 @@ export default function GameOptionsPanel({ it }) {
   const cfg = it.gameConfig || {};
   const frontCols = (
     cfg.frontCols && cfg.frontCols.length ? cfg.frontCols : [{ col: 0, mode: "plain" }]
-  ).map(window.__normalizeGameSlot);
+  ).map(normalizeGameSlot);
   const backCols = (
     cfg.backCols && cfg.backCols.length
       ? cfg.backCols
       : [{ col: colCount > 1 ? 1 : 0, mode: "plain" }]
-  ).map(window.__normalizeGameSlot);
+  ).map(normalizeGameSlot);
 
   return (
     <>

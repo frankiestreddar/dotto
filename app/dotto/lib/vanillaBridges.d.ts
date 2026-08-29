@@ -369,5 +369,76 @@ declare global {
     // Real inline onclick target (canvasItemBehavior.js's cell markup) — plain global, no
     // underscore, same shape window.handleOutlineSearch/window.pushNotification use.
     openCellAddMenu?: (id: number, r: number, c: number, btnEl: HTMLElement) => void;
+    // core-state.js — extracts an item's id out of its DOM element (the inverse of __itemElId).
+    __parseItemId?: (el: HTMLElement) => number;
+    // profile-achievements-pricing.js
+    __awardUserPoints?: (
+      actionType: string,
+      points: number,
+    ) => Promise<{ ok: boolean; reason?: string; totalScore?: number }>;
+    __bumpAchievementStat?: (
+      achievementId: string,
+      delta?: number,
+      absolute?: boolean,
+    ) => Promise<void>;
+    // srs-algorithm.js (re-exported from srs-connections-core.js, same reasoning as __diffRatings
+    // above) — used by app/dotto/lib/gamesFlashcardTyperight.ts's fcRate/trCheck.
+    __calculateSM2?: (card: Record<string, unknown>, quality: number) => Record<string, unknown>;
+    __defaultSrsState?: () => Record<string, unknown>;
+    // app/dotto/lib/gamesFlashcardTyperight.ts (Phase 4.4 port — was games-flashcard-typeright.js)
+    // — React -> vanilla bridges pre-dating this port (FlashcardCard.jsx/TypeRightCard.jsx now
+    // import these directly instead, being in the same app/dotto/ tree; GameOptionsPanel.jsx does
+    // too — these stay declared/assigned since still-vanilla live-presence.js's mini previews
+    // reach cellContentType/colHasAnyCloze indirectly through renderFlashcardHTML/
+    // renderTypeRightHTML, not directly, so kept for parity/safety rather than proven-unused).
+    __cellContentType?: (html: string) => "text" | "image" | "audio";
+    __colHasAnyCloze?: (it: Record<string, unknown>, i: number) => boolean;
+    __normalizeGameSlot?: (entry: unknown) => { col: number; mode: "plain" | "blank" | "extract" };
+    __fcCurrentRow?: (
+      it: Record<string, unknown>,
+      playable: Record<string, unknown>[],
+    ) => Record<string, unknown> | null;
+    __fcPlayableCards?: (it: Record<string, unknown>) => Record<string, unknown>[];
+    __renderGameFaceBlocksHTML?: (
+      blocks:
+        { col: number; type: "text" | "image" | "audio"; text: string; html: string }[] | undefined,
+    ) => string;
+    __resolveGameFace?: (
+      it: Record<string, unknown>,
+      row: Record<string, unknown>,
+      side: "front" | "back",
+    ) => { col: number; type: "text" | "image" | "audio"; text: string; html: string }[];
+    __trCurrentCard?: (
+      it: Record<string, unknown>,
+      playable: Record<string, unknown>[],
+    ) => Record<string, unknown> | null;
+    __trPlayableCards?: (it: Record<string, unknown>) => Record<string, unknown>[];
+    // Vanilla -> React bridges: waypoints-render-loop.js/
+    // live-presence.js/srs-connections-core.js all previously imported these directly.
+    __openGameOptionsPanel?: (id: number) => void;
+    __closeGameOptionsPanel?: (id: number) => void;
+    __defaultFlashcardDeck?: () => Record<string, unknown>[];
+    __renderFlashcardHTML?: (it: Record<string, unknown>) => string;
+    __renderTypeRightHTML?: (it: Record<string, unknown>) => string;
+    // Plain (non-`__`) globals — real inline onclick/oninput/onmouseenter targets built into
+    // gamesFlashcardTyperight.ts's own HTML strings, same shape window.pushNotification/
+    // window.handleMarketplaceSearch use. Formerly re-exported through window-bridge.js's own
+    // centralized inline-handler list.
+    setGameColumnSlot?: (
+      id: number,
+      side: "front" | "back",
+      slotIndex: number,
+      value: string,
+    ) => void;
+    addGameColumnSlot?: (id: number, side: "front" | "back") => void;
+    removeGameColumnSlot?: (id: number, side: "front" | "back", slotIndex: number) => void;
+    fcFlip?: (id: number) => void;
+    fcRate?: (id: number, rating: string) => void;
+    fcToggleMode?: (id: number) => void;
+    trUpdateInput?: (id: number, value: string) => void;
+    trFocusInput?: (id: number) => void;
+    trCheck?: (id: number) => void;
+    trNext?: (id: number) => void;
+    trToggleMode?: (id: number) => void;
   }
 }

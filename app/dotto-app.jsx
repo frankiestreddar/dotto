@@ -63,6 +63,11 @@ import { wireDayChangeAndAdNotifications } from "./dotto/lib/dayChangeAndAdNotif
 import { wireMarketplace } from "./dotto/lib/marketplace";
 import { wireNotifications } from "./dotto/lib/notificationsStore";
 import { wireSourceButtonsCursorMode } from "./dotto/lib/sourceButtonsCursorMode";
+// Side-effect only, same reasoning as splitPaneManagement/tabManagement above — sets
+// window.__openGameOptionsPanel/fcFlip/etc at module-eval time for the 5 still-vanilla callers
+// that used to import these directly, plus the React->vanilla bridges FlashcardCard.jsx/
+// TypeRightCard.jsx/GameOptionsPanel.jsx already called before this port.
+import "./dotto/lib/gamesFlashcardTyperight";
 // Side-effect only — sets window.__splitPaneWithTab/__closePane at module-eval time (no wireX()
 // needed, unlike the two imports above: nothing here needs a live DOM/appState read at wire time,
 // just the bridge assignment itself). Imported here, not from any specific component, since

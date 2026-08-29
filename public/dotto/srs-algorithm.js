@@ -2,9 +2,12 @@
 // vanilla->React consolidation, see PHASE4_ROADMAP.md). Genuinely pure (no imports, no appState/
 // DOM touch), but srs-connections-core.js itself still has real vanilla hub dependents of its own
 // (see its own import list), so this can't fully move to app/dotto/lib yet either — that file
-// keeps re-exporting these three names so its own existing callers (games-flashcard-typeright.js,
-// stopwatch.js) keep working unchanged. This extraction's own value right
-// now is real test coverage (see srs-algorithm.test.ts) for logic that had zero coverage before,
+// keeps re-exporting these three names — calculateSM2/defaultSrsState no longer have a real
+// vanilla caller as of Phase 4.4 (both now reached via window.__calculateSM2/__defaultSrsState
+// from app/dotto/lib/gamesFlashcardTyperight.ts instead), diffRatings still does
+// (app/dotto/lib/stopwatch.ts's swToggleRun, via window.__diffRatings). This extraction's own
+// value right now is real test coverage (see srs-algorithm.test.ts) for logic that had zero
+// coverage before,
 // and a smaller, focused module ready to move wholesale to app/dotto/lib once nothing vanilla
 // needs it directly anymore.
 

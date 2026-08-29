@@ -301,3 +301,6 @@ export { awardUserPoints, bumpAchievementStat, closeDotbotUpgradeModal, closePri
 // which are store setters for the parts that actually vary.
 window.__ACHIEVEMENTS = appState.ACHIEVEMENTS;
 window.__SPRITE_TOTAL_COUNT = appState.SPRITE_TOTAL_COUNT;
+// Used by app/dotto/lib/gamesFlashcardTyperight.ts's fcFlip/trCheck (Phase 4.4).
+window.__awardUserPoints = awardUserPoints;
+window.__bumpAchievementStat = bumpAchievementStat;

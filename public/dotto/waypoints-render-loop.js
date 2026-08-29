@@ -2,7 +2,6 @@ import { clearSearch } from './ai-assistant-suggestions.js';
 import { appState, btnAdd, canvas, canvasViewportCenterX, contextMenu, itemElId, mirrorItemToSiblingPanes, otherPanesViewingFolder, paneElId, parseItemId, supabase, switchActivePane, world, zoomControl } from './core-state.js';
 import { ensureDrawings, makeLayerSVG } from './drawing-connections.js';
 import { refreshCanvasCollabForCurrentFolder, renderCollabPill, syncCanvasCollabTitle } from './friends-presence.js';
-import { closeGameOptionsPanel, openGameOptionsPanel } from './games-flashcard-typeright.js';
 import { renderFilesList, renderSourcesList } from './hamburger-collab.js';
 import { applyTransform, ensureSwTicking, saveSnapshot, scheduleWorkspaceSave, updateContextMenuPosition } from './history-autosave.js';
 import { broadcastEditingState, miniLabelForItem, placeCaretEnd, renderRealCardPreview, repositionAllRemoteCursors, syncColorPicker } from './live-presence.js';
@@ -881,7 +880,7 @@ import { applyConnections } from './srs-connections-core.js';
             el.oncontextmenu = (e) => {
                 e.preventDefault(); e.stopPropagation();
                 if (it.kind === 'flashcard' || it.kind === 'typeright') {
-                    if (it.optionsOpen) closeGameOptionsPanel(it.id); else openGameOptionsPanel(it.id);
+                    if (it.optionsOpen) window.__closeGameOptionsPanel(it.id); else window.__openGameOptionsPanel(it.id);
                     return;
                 }
                 if (it.kind !== 'table') return;

@@ -1,5 +1,4 @@
 import { appState, contextMenu, parseItemId } from './core-state.js';
-import { fcFlip, fcRate, trNext } from './games-flashcard-typeright.js';
 import { saveSnapshot } from './history-autosave.js';
 import { findItemById } from './live-presence.js';
 import { isAnyUiPanelOpen } from './panels-hamburger.js';
@@ -100,13 +99,13 @@ document.addEventListener('keydown', (e) => {
     const it = hoveredGameCard();
     if (!it) return;
     if (it.kind === 'flashcard') {
-        if (e.key === ' ') { e.preventDefault(); fcFlip(it.id); return; }
+        if (e.key === ' ') { e.preventDefault(); window.fcFlip(it.id); return; }
         if (it.fcFlipped && (e.key === '1' || e.key === '2' || e.key === '3' || e.key === '4')) {
             e.preventDefault();
-            fcRate(it.id, ['noclue', 'wrong', 'hard', 'easy'][Number(e.key) - 1]);
+            window.fcRate(it.id, ['noclue', 'wrong', 'hard', 'easy'][Number(e.key) - 1]);
         }
     } else if (it.kind === 'typeright') {
-        if (e.key === 'Enter' && it.trChecked) { e.preventDefault(); trNext(it.id); }
+        if (e.key === 'Enter' && it.trChecked) { e.preventDefault(); window.trNext(it.id); }
     }
 });
 
