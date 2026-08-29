@@ -6,7 +6,6 @@ import { appState, canvas, canvasViewportCenterX, cursorOverlay, findItemEl, reg
 import { ensureConnections } from './drawing-connections.js';
 import { closeCollabPanel, initials, renderMsgList } from './friends-presence.js';
 import { saveSnapshot, smoothPanTo } from './history-autosave.js';
-import { renderMediaHTML } from './media-pdf-epub.js';
 import { closeMessagesPanel } from './messages-schedule.js';
 import { awardUserPoints, renderAvatarInto } from './profile-achievements-pricing.js';
 import { renderTableHTML } from './source-table.js';
@@ -961,7 +960,7 @@ import { render } from './waypoints-render-loop.js';
             el.innerHTML = renderTableHTML(it);
             if (it.userSized) el.classList.add('sized');
         } else if (it.kind === 'media') {
-            el.innerHTML = renderMediaHTML(it);
+            el.innerHTML = window.__renderMediaHTML(it);
         } else if (it.kind === 'embed') {
             // Static placeholder, not a live iframe — this renders into mini inline-canvas
             // previews (folder cards, chat/marketplace snapshots) where several might be on

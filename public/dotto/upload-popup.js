@@ -1,5 +1,4 @@
 import { appState } from './core-state.js';
-import { processMediaFile } from './media-pdf-epub.js';
 import { add, viewportCenterWorldPoint } from './srs-connections-core.js';
 
 // Independent floating popup toggled by U — not part of the #hamburger-stack rail-panel system
@@ -60,9 +59,9 @@ appState.uploadDropzone.addEventListener('drop', (e) => {
 
 // ---------- Place: creates the canvas item only now, once a file's actually been picked ----------
 // Creates a blank 'media' item at the current viewport center, then hands the already-picked file
-// straight to processMediaFile (media-pdf-epub.js) — the same FileReader/Supabase-storage pipeline
-// the Media card's own "Upload" button uses (via triggerMediaUpload, a thin wrapper around that
-// same function for ITS OWN picker-then-process flow), not a reimplementation.
+// straight to processMediaFile (app/dotto/lib/mediaPdfEpub.ts) — the same FileReader/Supabase-
+// storage pipeline the Media card's own "Upload" button uses (via triggerMediaUpload, a thin
+// wrapper around that same function for ITS OWN picker-then-process flow), not a reimplementation.
 // add() (srs-connections-core.js) doesn't return the item it creates, but it's synchronous and
 // always pushes onto the end of the current folder's items array, so the last entry right after
 // calling it is guaranteed to be the one just added.
@@ -71,7 +70,7 @@ appState.uploadPopupBtn.addEventListener('click', () => {
     const { x, y } = viewportCenterWorldPoint();
     add('media', x, y);
     const items = appState.folders[appState.currentFolderId].items;
-    processMediaFile(items[items.length - 1].id, pendingFile);
+    window.__processMediaFile(items[items.length - 1].id, pendingFile);
     closeUploadPopup();
 });
 

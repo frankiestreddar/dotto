@@ -862,7 +862,7 @@ import { calculateSM2, defaultSrsState, diffRatings } from './srs-algorithm.js';
             const bodyEl = e.target.closest && e.target.closest('.item.note .body');
             if (bodyEl && bodyEl.scrollHeight > bodyEl.clientHeight) return;
             // EPUB cards render as one continuous scroll (epub.js's 'scrolled-doc' flow,
-            // buildEpubViewer, media-pdf-epub.js) — per explicit request, scrolling over one should
+            // buildEpubViewer, app/dotto/lib/mediaPdfEpub.ts) — per explicit request, scrolling over one should
             // scroll the book itself, not pan the canvas underneath it. Unlike the note-body check just
             // above, this doesn't verify actual overflow first: epub.js renders each chapter inside its
             // own same-origin iframe (see buildEpubViewer's own comment on why — CSS isolation), so the

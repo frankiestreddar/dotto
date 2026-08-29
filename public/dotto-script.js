@@ -13,7 +13,6 @@ import './dotto/friends-presence.js';
 import './dotto/live-presence.js';
 import './dotto/source-table.js';
 import './dotto/source-tags-ai.js';
-import './dotto/media-pdf-epub.js';
 import './dotto/cards-misc.js';
 import './dotto/stopwatch.js';
 import './dotto/ai-assistant-suggestions.js';

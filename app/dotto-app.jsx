@@ -68,6 +68,11 @@ import { wireSourceButtonsCursorMode } from "./dotto/lib/sourceButtonsCursorMode
 // that used to import these directly, plus the React->vanilla bridges FlashcardCard.jsx/
 // TypeRightCard.jsx/GameOptionsPanel.jsx already called before this port.
 import "./dotto/lib/gamesFlashcardTyperight";
+// Side-effect only, same reasoning as splitPaneManagement/tabManagement above — sets
+// window.__renderMediaHTML/setMediaFromLink/etc at module-eval time for the 3 still-vanilla
+// callers that used to import these directly, plus the React->vanilla bridges MediaCard.jsx
+// itself now imports directly instead (live-presence.js's mini previews still need the bridges).
+import "./dotto/lib/mediaPdfEpub";
 // Side-effect only — sets window.__splitPaneWithTab/__closePane at module-eval time (no wireX()
 // needed, unlike the two imports above: nothing here needs a live DOM/appState read at wire time,
 // just the bridge assignment itself). Imported here, not from any specific component, since

@@ -471,3 +471,6 @@ export { commenceDotbotSearch, openAddToSourcePopup, selectionToolbarLookUp, sho
 // increment 1).
 window.selectionToolbarLookUp = selectionToolbarLookUp;
 window.openAddToSourcePopup = openAddToSourcePopup;
+// Used by app/dotto/lib/mediaPdfEpub.ts's buildEpubViewer (Phase 4.4) to feed the same
+// "select text -> Add to source"/"Look up" flow from inside an EPUB's own same-origin iframe.
+window.__showSelectionToolbarFor = showSelectionToolbarFor;

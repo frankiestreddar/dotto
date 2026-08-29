@@ -171,7 +171,7 @@ import { centerOnContent, render } from './waypoints-render-loop.js';
         // formatter reliably expands, and some failure modes (e.g. a request that never reaches
         // Postgres at all — a payload too large for a proxy/CDN hop, a network drop) don't produce
         // a real PostgrestError to begin with. Logging those fields explicitly, plus the actual
-        // payload size (a large embedded image/video — media-pdf-epub.js still stores those as
+        // payload size (a large embedded image/video — app/dotto/lib/mediaPdfEpub.ts still stores those as
         // inline data: URLs rather than routing them to real Storage the way PDF/EPUB uploads
         // already do, see uploadDocumentToStorage's own comment there — is the prime suspect for a
         // save that starts failing without anything else about the workspace having changed),

@@ -111,7 +111,7 @@ document.addEventListener('keydown', (e) => {
 
 // Left/Right arrow keys turn the page while hovering a PDF card — per explicit request. EPUB is
 // deliberately NOT included here: it renders as one continuous scroll (epub.js's 'scrolled-doc'
-// flow, see buildEpubViewer's own comment, media-pdf-epub.js) rather than discrete pages, so
+// flow, see buildEpubViewer's own comment, app/dotto/lib/mediaPdfEpub.ts) rather than discrete pages, so
 // there's no page concept for arrow keys to move between — extending this to EPUB would mean
 // switching it to a paginated flow first, which wasn't asked for here. Same :hover-based lookup
 // as hoveredGameCard above, for the same reason (render() rebuilds every .item element from

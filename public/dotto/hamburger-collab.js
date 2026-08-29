@@ -261,7 +261,7 @@ import { deleteCanvasCollabsForFolder, deleteWaypointCardEverywhere, expandWaypo
     // Files panel (SourcesListPanel's own structure copied — see #snippets-panel's own comment,
     // hamburger-stack.html — then edited to list a different underlying thing) — every uploaded
     // file across the user's ENTIRE account, not just the current canvas, per explicit request:
-    // every kind:'media' item (media-pdf-epub.js) with a real mediaSrc, found by walking every
+    // every kind:'media' item (app/dotto/lib/mediaPdfEpub.ts) with a real mediaSrc, found by walking every
     // folder's own items[] (appState.folders is the same flat, account-wide map findAllSourceFolders/
     // renderSourcesList's own comments already establish this fact for). mediaSrc is what makes it
     // an actual uploaded/attached file rather than an empty media card still waiting for one
@@ -277,7 +277,7 @@ import { deleteCanvasCollabsForFolder, deleteWaypointCardEverywhere, expandWaypo
     // second card pointing at the exact same underlying file, which used to show up as a second,
     // seemingly-duplicate row here. it.mediaFileId (a real crypto.randomUUID(), assigned once per
     // upload — see setMediaFromLink/processMediaFile/uploadDocumentToStorage's own comments,
-    // media-pdf-epub.js, for why a real UUID rather than appState.idCounter: "not just a unique
+    // app/dotto/lib/mediaPdfEpub.ts, for why a real UUID rather than appState.idCounter: "not just a unique
     // code for the user... unique across the platform") is the dedupe key; a legacy item from
     // before this field existed falls back to its own mediaSrc (still a real, if less explicit,
     // per-upload identity — two cards genuinely pointing at the same storage URL/data: URI ARE the
@@ -308,7 +308,7 @@ import { deleteCanvasCollabsForFolder, deleteWaypointCardEverywhere, expandWaypo
                     onCanvas,
                     // The file's own real, directly-openable URL (a Supabase Storage public URL,
                     // or occasionally a data: URI for a not-yet-uploaded local preview — see
-                    // media-pdf-epub.js's own it.mediaSrc assignments) — used by FilesListPanel.jsx's
+                    // app/dotto/lib/mediaPdfEpub.ts's own it.mediaSrc assignments) — used by FilesListPanel.jsx's
                     // "open in a new tab" row action; every browser already knows how to render an
                     // image/video/PDF navigated to directly, so no special per-type handling is
                     // needed here.

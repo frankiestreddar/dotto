@@ -440,5 +440,28 @@ declare global {
     trCheck?: (id: number) => void;
     trNext?: (id: number) => void;
     trToggleMode?: (id: number) => void;
+    // search-orchestration-selection.js — used by app/dotto/lib/mediaPdfEpub.ts's buildEpubViewer
+    // to feed the "select text -> Add to source"/"Look up" flow from inside an EPUB's own
+    // same-origin iframe.
+    __showSelectionToolbarFor?: (
+      range: Range,
+      host: HTMLElement,
+      rectOverride?: { left: number; top: number; width: number; height: number },
+    ) => void;
+    // app/dotto/lib/mediaPdfEpub.ts (Phase 4.4 port — was media-pdf-epub.js) — React -> vanilla
+    // bridges pre-dating this port (MediaCard.jsx now imports these directly instead, being in the
+    // same app/dotto/ tree — kept declared/assigned since live-presence.js's mini previews still
+    // need them) plus vanilla -> React bridges: live-presence.js/window-bridge.js/upload-popup.js
+    // all previously imported these directly.
+    __renderMediaHTML?: (it: Record<string, unknown>) => string;
+    __buildPdfViewer?: (it: Record<string, unknown>) => HTMLElement;
+    __buildEpubViewer?: (it: Record<string, unknown>) => HTMLElement;
+    __processMediaFile?: (id: number, file: File | undefined | null) => void;
+    // Plain (non-`__`) globals — real inline onclick targets built into
+    // mediaPdfEpub.ts's renderMediaHTML output, same shape window.pushNotification/
+    // window.handleMarketplaceSearch use.
+    setMediaFromLink?: (id: number) => void;
+    triggerMediaUpload?: (id: number) => void;
+    clearMedia?: (id: number) => void;
   }
 }

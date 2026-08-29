@@ -282,6 +282,37 @@
   logic), then restoring and re-triggering a real render to confirm the still-vanilla sweep
   correctly observes and acts on this port's data shape afterward — a real, useful end-to-end
   proof, not a workaround.
+  `media-pdf-epub.js` (441 lines) ported next to `app/dotto/lib/mediaPdfEpub.ts` — the Media card
+  (image/video/PDF/EPUB upload + link + clear) plus the live pdf.js/epub.js viewers built on top of
+  it. `MediaCard.jsx` upgraded from window bridges to real ES imports (same precedent as
+  `stopwatch.ts`/`gamesFlashcardTyperight.ts`), bridges kept only for `live-presence.js`'s mini
+  previews. 3 real vanilla callers fixed (`live-presence.js`, `window-bridge.js`,
+  `upload-popup.js`); 3 real inline onclick targets (`setMediaFromLink`/`triggerMediaUpload`/
+  `clearMedia`) moved off `window-bridge.js`'s indirection onto direct plain-global assignment,
+  same convention as every recent Phase 4.4 port. 1 new outbound bridge
+  (`__showSelectionToolbarFor`, added to `search-orchestration-selection.js`, needed by
+  `buildEpubViewer`'s selection-toolbar hook). Hit a real, build-breaking issue neither `tsc` nor
+  any earlier port surfaced: `loadPdfjs`'s dynamic `import('/vendor/pdfjs/pdf.min.mjs')` (a public-
+  served, unbundled vendor build the original vanilla file loaded the exact same way) made
+  Turbopack try to statically resolve and bundle that literal path at build time and fail —
+  `webpackIgnore` (Turbopack isn't webpack) didn't help; `turbopackIgnore` — a real, Next-16-
+  supported magic comment, undocumented enough that it isn't mentioned anywhere in this repo's own
+  history — fixed it cleanly, confirmed both by a clean production build AND a real end-to-end
+  Playwright PDF upload actually rendering. Real Playwright verification against a fresh dev
+  server: a real click on Link + a real browser `prompt()` dialog rendered a genuine `<img>`; a
+  real click on the remove button correctly cleared it back to empty; a real OS-file-chooser
+  upload (an actual small PNG, via Playwright's `filechooser` event) round-tripped through the
+  real `processMediaFile` → FileReader → `<img>` pipeline; and — the highest-risk, most novel code
+  in this port — a real, valid tiny PDF uploaded through the real Supabase Storage pipeline
+  (`uploadDocumentToStorage`) correctly produced a live pdf.js viewer: a real rendered `<canvas>`
+  and a real "1 / 1" page-nav label, confirming the dynamic `import()`/`turbopackIgnore` fix works
+  correctly at runtime, not just at build time. EPUB's own viewer (`buildEpubViewer`) was
+  deliberately not end-to-end tested with a real file — generating/uploading a valid EPUB is
+  substantially heavier for marginal additional coverage, since it shares the exact same
+  Storage-upload pipeline and script-loading pattern (arguably simpler than pdf.js's dynamic
+  `import()`, the one part with genuine build-breaking risk) already proven correct by the PDF
+  test above. Zero unexpected console/page errors. Re-checked the account afterward to confirm
+  zero residual mock cards.
 - **Phase 4.5 — architectural/hub files: not started.**
 - **Phase 4.6 — delete the bridge layer: not started.**
 - **Phase 4.7 — final cleanup & professionalization close-out: not started.**
@@ -1077,3 +1108,25 @@ column showed its Blank/`[...]` optgroup, and selecting Blank via the real `<sel
 re-rendered the card's shown front face to `"...[...] ..."`. Zero unexpected console/page errors
 (the same two known, pre-existing, unrelated noise sources as prior Phase 4.4 ports were filtered).
 Re-checked the account afterward to confirm zero residual mock cards.
+
+**Phase 4.4 (`media-pdf-epub.js` → `app/dotto/lib/mediaPdfEpub.ts`)**: `node --check` on all 4
+touched vanilla files, `eslint` clean (zero errors or warnings), `npm run typecheck` clean after
+suppressing one genuine `tsc`-can't-resolve error on the vendored pdf.js path (`@ts-expect-error`,
+same reasoning as every dynamic-import-of-an-unbundled-vendor-file case), `npm run format:check`
+clean after a `prettier --write` pass, all 32 Vitest tests still green. `rm -rf .next && npm run
+build` failed on the FIRST attempt — a real, previously-unencountered Turbopack build error on the
+same vendored pdf.js dynamic import (`Module not found: Can't resolve '/vendor/pdfjs/pdf.min.mjs'`,
+since Turbopack tries to statically bundle any literal-string `import()` specifier by default);
+fixed with a `turbopackIgnore` magic comment (confirmed real and Next-16-supported by grepping
+`node_modules/next`'s own dist output — `webpackIgnore` does nothing under Turbopack), after which
+the build passed clean. Real Playwright verification against a fresh dev server, going further than
+a typical Phase 4.4 port specifically because this file's PDF-viewer code was the riskiest, most
+novel thing this specific build fix needed to prove actually works at runtime, not just at build
+time: a real click on Link plus a real browser `prompt()` dialog produced a genuine `<img>`; a real
+click on the remove button cleared it back to empty; a real OS file-chooser upload (an actual small
+PNG) round-tripped through the real `processMediaFile`/FileReader pipeline; and a real, valid tiny
+PDF uploaded through the real Supabase Storage pipeline (`uploadDocumentToStorage`) produced a live
+pdf.js viewer with a real rendered `<canvas>` and a real "1 / 1" page-nav label. EPUB's own viewer
+was verified by bridge presence and code review only, not a real file upload — see the status
+section entry above for why that tradeoff was made. Zero console/page errors. Re-checked the
+account afterward to confirm zero residual mock cards.

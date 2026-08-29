@@ -2,12 +2,16 @@
 
 import { useLayoutEffect, useRef } from "react";
 import { setupResizing } from "./canvasItemBehavior";
+import { buildEpubViewer, buildPdfViewer, renderMediaHTML } from "./lib/mediaPdfEpub";
 
 // Ported from the old inline media branch in renderLegacyCardBody (public/dotto/waypoints-render-
-// loop.js, logic itself in public/dotto/media-pdf-epub.js). buildPdfViewer/buildEpubViewer build a
-// whole live DOM subtree (pdf.js/epub.js need real canvas/iframe elements, not an HTML string) —
-// same "vanilla function builds live DOM, React just mounts it" pattern as CanvasCard's
-// buildFolderInlineCanvas. This wrapper div uses display:contents so it doesn't participate in
+// loop.js, logic itself now in app/dotto/lib/mediaPdfEpub.ts, Phase 4.4 — reached here as real ES
+// imports since both files live in the same app/dotto/ tree; window.__buildPdfViewer/etc still
+// exist too, but only because live-presence.js's mini previews still need them as bridges).
+// buildPdfViewer/buildEpubViewer build a whole live DOM subtree (pdf.js/epub.js need real canvas/
+// iframe elements, not an HTML string) — same "vanilla function builds live DOM, React just mounts
+// it" pattern as CanvasCard's buildFolderInlineCanvas. This wrapper div uses display:contents so it
+// doesn't participate in
 // layout itself — the mounted content (.pdf-viewer/.epub-viewer/img/video) sizes itself via
 // width/height:100%, which per spec resolves against the nearest ANCESTOR that generates a box
 // once this wrapper is display:contents — i.e. the .item wrapper itself, exactly matching the
@@ -28,11 +32,11 @@ export default function MediaCard({ it, paneId }) {
     if (!mount) return;
     mount.innerHTML = "";
     if (it.mediaSrc && it.mediaType === "pdf") {
-      mount.appendChild(window.__buildPdfViewer(it));
+      mount.appendChild(buildPdfViewer(it));
     } else if (it.mediaSrc && it.mediaType === "epub") {
-      mount.appendChild(window.__buildEpubViewer(it));
+      mount.appendChild(buildEpubViewer(it));
     } else {
-      mount.innerHTML = window.__renderMediaHTML(it);
+      mount.innerHTML = renderMediaHTML(it);
       // A no-op until there's real content to resize (the empty/uploading states have no .resize
       // handle yet — see setupResizing's own early return). `el`, not `mount` — setupResizing
       // reads/writes el.style.width/height and el.offsetWidth/Height directly, so it needs the

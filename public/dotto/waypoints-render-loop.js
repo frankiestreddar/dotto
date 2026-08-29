@@ -594,7 +594,7 @@ import { applyConnections } from './srs-connections-core.js';
         // that exact same toolbar-hiding/identity-camera setup. Appended directly to `canvas` (not
         // `world`, unlike isSource's own static-table div) since it needs to fill the pane's own
         // real, explicitly-sized canvas box — see .media-viewer-fullscreen's own comment,
-        // globals.css. window.__buildEpubViewer is a bridge (media-pdf-epub.js) rather than a direct
+        // globals.css. window.__buildEpubViewer is a bridge (app/dotto/lib/mediaPdfEpub.ts) rather than a direct
         // import — that file already imports render() FROM this one, so importing back would be
         // circular.
         if (folderObj.isMediaViewer) {
