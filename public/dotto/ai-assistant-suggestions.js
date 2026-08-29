@@ -6,6 +6,13 @@ import { findItemById } from './live-presence.js';
 import { commenceSearchOrMnemonic } from './mnemonic-search-matching.js';
 import { closeAllPanels, closeRailView, openRailView } from './panels-hamburger.js';
 import { autoGrowSearchInput } from './stopwatch-search-notifications.js';
+// Phase 4.2 extraction — see text-utils.js's own comment. Re-exported below (not just used
+// internally) so every other file's existing `from './ai-assistant-suggestions.js'` import keeps
+// working unchanged. isLatinScriptText stayed here (not extracted alongside these two) — see
+// text-utils.js's own comment on why: it needs appState, and importing appState here transitively
+// runs core-state.js's own module-level DOM lookups, which a standalone text-utils.js has no
+// other reason to depend on.
+import { escapeHtml, stripHtml } from './text-utils.js';
 import { render } from './waypoints-render-loop.js';
 
 
@@ -51,11 +58,6 @@ import { render } from './waypoints-render-loop.js';
         tick();
     })();
 
-    function stripHtml(html) {
-        const div = document.createElement('div');
-        div.innerHTML = html || '';
-        return (div.textContent || '').trim();
-    }
     // "Entries" for a source card's count badge: data rows only (tableData[0] is the column-name
     // header row, never a real entry), only rows with at least one non-blank cell.
     function countSourceEntries(folderId) {
@@ -77,9 +79,6 @@ import { render } from './waypoints-render-loop.js';
             if ((f.items || []).some(it => (it.kind === 'folder' || it.kind === 'source') && it.folderId === folderId)) return fid;
         }
         return null;
-    }
-    function escapeHtml(s) {
-        return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
     }
     // True when `s` is entirely Latin-script (+ digits/whitespace/common punctuation) -- used to
     // suppress a dictionary/example transliteration line even if the model returns one anyway.

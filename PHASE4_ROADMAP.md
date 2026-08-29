@@ -9,10 +9,13 @@
   by deep hub dependencies (not just their own fan-in) — see its own section below. Revisit
   individual files as their blocking hub dependency lands in a later phase, but don't keep
   grinding on this phase in isolation; Phase 4.2 is the actual next productive step.
-- **Phase 4.2 — utility extraction from hub files: in progress.** SM-2 (`calculateSM2`/
-  `defaultSrsState`/`diffRatings`) extracted from `srs-connections-core.js` into
-  `public/dotto/srs-algorithm.js`, with real Vitest unit tests (zero coverage before this). See
-  its own section below for a real correction to how this phase was originally scoped.
+- **Phase 4.2 — utility extraction from hub files: in progress.** 2 of 3 original targets done:
+  SM-2 (`calculateSM2`/`defaultSrsState`/`diffRatings`, from `srs-connections-core.js` into
+  `public/dotto/srs-algorithm.js`) and `escapeHtml`/`stripHtml` (from `ai-assistant-suggestions.js`
+  into `public/dotto/text-utils.js`), 21 new Vitest unit tests total (zero coverage before this).
+  See its own section below for a real correction to how this phase was originally scoped, and a
+  real importability gotcha (`core-state.js`'s module-level DOM lookups) caught while doing the
+  second extraction. Remaining: achievement-scoring out of `profile-achievements-pricing.js`.
 - **Phase 4.3 — split multi-concern files: not started.**
 - **Phase 4.4 — port split-out concerns + remaining DOM-heavy files: not started.**
 - **Phase 4.5 — architectural/hub files: not started.**
@@ -291,9 +294,34 @@ and others with zero/near-zero DOM touches.
    file there would be publicly fetchable for no reason. Vitest itself isn't bound by the
    "`public/` can't be imported by `app/`" convention either — that's a browser-runtime constraint
    for the real app, not a test-tooling one — so a plain relative import straight into
-   `public/dotto/` from the test file works fine). Remaining Phase 4.2 targets:
-   `escapeHtml`/`stripHtml`/`truncateCenter` out of `ai-assistant-suggestions.js`, achievement-
-   scoring out of `profile-achievements-pricing.js` — same vanilla-to-vanilla extraction pattern.
+   `public/dotto/` from the test file works fine).
+
+   Second extraction: `escapeHtml`/`stripHtml` out of `ai-assistant-suggestions.js` into
+   `public/dotto/text-utils.js`, with 7 new Vitest unit tests
+   (`test/vanilla/text-utils.test.ts`) and a real Playwright integration check (typed a
+   `<script>` tag into the search-history box, confirmed the rendered row has it HTML-escaped, not
+   executed). **Real finding**: `isLatinScriptText` — defined right alongside these two in the
+   original file, and just as self-contained-*looking* — was deliberately left where it was rather
+   than joining the extraction. It reads `appState.NON_LATIN_SCRIPT_RE`, and importing `appState`
+   from `core-state.js` turned out to transitively run core-state.js's own module-level DOM
+   lookups (e.g. `appState.modeToolbar.querySelectorAll(...)`), which throw under Vitest's jsdom
+   environment with no real app markup mounted — breaking importability for the WHOLE module,
+   including `escapeHtml`/`stripHtml` which don't even touch `appState`. Caught by actually running
+   the tests, not just reasoning about purity in the abstract. `truncateCenter`, also defined
+   alongside these two, was left out for an unrelated reason: a full grep found zero callers
+   anywhere in the codebase — genuinely dead code, not worth extracting; flagged for a future
+   deletion pass instead. **General lesson for future Phase 4.2/4.3 extractions**: "no DOM/appState
+   *mutation*" isn't the same as "safe to extract into a Vitest-testable module" — a single
+   read-only `appState` import can still drag in `core-state.js`'s heavy module-level side effects
+   transitively; verify importability with a real test run, don't assume from reading the function
+   body alone. This is also useful signal for Phase 4.5's own eventual `core-state.js` work: its
+   module-level DOM lookups already make it fragile to import in isolation today, so decoupling
+   that (or making those lookups defensive/deferred) is worth keeping in mind as part of that
+   phase's own scope, not just "move `appState` into a store."
+
+   Remaining Phase 4.2 target: achievement-scoring out of `profile-achievements-pricing.js` — same
+   vanilla-to-vanilla extraction pattern, same importability check needed before assuming it's
+   test-friendly.
 3. **Phase 4.3 — split multi-concern files** (mechanical, no logic change, structurally verified):
    `shared-canvases-outline.js` → outline-tree / tab-management / split-pane-management /
    shared-and-public-canvas-loading; `resize-shortcuts-init.js` → its 3 concerns;
@@ -416,3 +444,12 @@ plus a clean zero-error app load (confirming the import chain resolves at runtim
 a mechanical move could plausibly break) is the right verification weight for this kind of change,
 unlike the two Phase 4.1 ports above (genuine new wiring/timing, appropriately verified with real
 browser interaction).
+
+**Phase 4.2 (text-utils extraction)**: `node --check`/`eslint` clean, 7 new Vitest unit tests
+(escaping all 5 HTML-significant characters, non-string coercion, nested-tag stripping,
+empty/null/undefined handling, whitespace trimming) plus the 14 SM-2 ones still passing (21
+total), a full clean `typecheck`/`format:check`/`build` pass, and — since this one DOES get real
+UI exposure (`escapeHtml` feeds directly into `search-panel-history.js`'s rendered rows) — a real
+Playwright test: typed a literal `<script>alert(1)</script>` into the search-history box, pressed
+Enter, and confirmed the rendered row has it HTML-escaped (`&lt;script&gt;`), not present as
+executable markup, with zero page errors.
