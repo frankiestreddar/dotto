@@ -284,3 +284,8 @@ before pushing the fix. **Lesson for future phases**: prefer testing CI-critical
 freshly-scrubbed local state (or the real CI run itself) over trusting a repeatedly-reused local
 working directory, which accumulates exactly this kind of "artifacts my own earlier commands
 created" false confidence.
+
+**Confirmed green in real GitHub Actions** (run 33259037962, commit `1b9c43d`): every step —
+`lint`, `typecheck`, `format:check`, `test`, `build`, `playwright install`, and `test:e2e` (against
+the real `TEST_SUPABASE_URL`/`TEST_SUPABASE_ANON_KEY`/`E2E_TEST_EMAIL`/`E2E_TEST_PASSWORD` repo
+secrets) — passed. Phase 4.0 is fully done: no remaining open items.
