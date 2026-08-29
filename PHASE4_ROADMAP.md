@@ -3,7 +3,9 @@
 ## Status
 
 - **Phase 4.0 — tooling & safety net: done.** See checklist below.
-- **Phase 4.1 — leaf-first vanilla→React port: not started.**
+- **Phase 4.1 — leaf-first vanilla→React port: in progress.** 2 of the original ~20-file candidate
+  list ported so far (`rail-tooltip-expand.js`, `sidebar-mode-toggle.js`) — see its own section
+  below for why the real safe set is much smaller than originally scoped.
 - **Phase 4.2 — utility extraction from hub files: not started.**
 - **Phase 4.3 — split multi-concern files: not started.**
 - **Phase 4.4 — port split-out concerns + remaining DOM-heavy files: not started.**
@@ -196,10 +198,28 @@ and others with zero/near-zero DOM touches.
 
 ## Suggested migration order
 
-1. **Phase 4.1 — leaf-first** (fan-in 0–1): Batch A pure-logic files move straight into
-   `app/dotto/lib/*.ts`, no bridge needed. Batch B small leaf DOM widgets become real `.tsx`
-   components following the `OutlinePanel.jsx` pattern. Batch C heavier-but-self-contained leaves
-   (`library-publish.js`, `mnemonic-search-matching.js`, `source-tags-ai.js`, `command-palette.js`).
+1. **Phase 4.1 — leaf-first.** **Real finding (corrects the original Batch A/B/C sketch below):**
+   "fan-in 0–1" (no other FILE imports this one's exports) turned out to be necessary but not
+   sufficient. A file is only safely portable RIGHT NOW if BOTH (a) nothing else vanilla imports
+   its exports, AND (b) its OWN imports are either nonexistent, already-ported (`app/`), or reach
+   a still-vanilla hub only via a live `appState` read through the existing
+   `window.__getAppState()` bridge (fine — matches the established `canvasItemBehavior.js`
+   pattern) rather than calling an actual still-vanilla FUNCTION (not fine — that function isn't
+   reachable from `app/` without either porting it too or adding a new bridge, which defeats "no
+   bridge needed"). Checking the original ~20-file candidate list against this stricter rule, most
+   turned out to still depend on later-phase hub files (`core-state.js`, `live-presence.js`,
+   `history-autosave.js`, `panels-hamburger.js`'s `wireRailIcon`, etc.) even though nothing else
+   imports THEM — e.g. `extensions-panel.js` has zero importers of its own but itself calls
+   `wireRailIcon` (`panels-hamburger.js`, Phase 4.5), so it can't move yet either. Real safe set so
+   far: `rail-tooltip-expand.js` (only external dep was a single `appState.activeRailView` read,
+   moved to `app/dotto/lib/railTooltipExpand.ts`), `sidebar-mode-toggle.js` (zero imports at all,
+   moved to `app/dotto/lib/sidebarModeToggle.ts`) — both wired in via a `useEffect` in their
+   respective shell component (`TopBar.jsx`/`HamburgerMenu.jsx`), same imperative-DOM-wiring
+   pattern `canvasItemBehavior.js` already established, not the portal+store pattern (neither file
+   renders new markup, both just attach behavior to existing static HTML). Original Batch A/B/C
+   grouping (kept below for reference) should be treated as a first-pass sketch, not a queue — each
+   remaining candidate needs the same two-sided dependency check before porting, and many will
+   naturally become portable only once their blocking hub dependency lands in a later phase.
 2. **Phase 4.2 — utility extraction** (zero-risk, unblocks downstream): pull
    `escapeHtml`/`stripHtml`/`truncateCenter` out of `ai-assistant-suggestions.js`,
    `calculateSM2`/`defaultSrsState`/`diffRatings` out of `srs-connections-core.js` (write real
@@ -289,3 +309,21 @@ created" false confidence.
 `lint`, `typecheck`, `format:check`, `test`, `build`, `playwright install`, and `test:e2e` (against
 the real `TEST_SUPABASE_URL`/`TEST_SUPABASE_ANON_KEY`/`E2E_TEST_EMAIL`/`E2E_TEST_PASSWORD` repo
 secrets) — passed. Phase 4.0 is fully done: no remaining open items.
+
+**Phase 4.1 (first wave — `rail-tooltip-expand.js`/`sidebar-mode-toggle.js`)**: `node --check` on
+`dotto-script.js` (its import list changed), `eslint`+`npm run typecheck` clean on both new
+`.ts` files and the two touched section components, a full clean `rm -rf .next
+next-env.d.ts tsconfig.tsbuildinfo && npm run typecheck && npm run build` pass (see Phase 4.0's own
+lesson above — verified from a genuinely scrubbed state, not a warm directory), and real Playwright
+browser verification against a fresh dev server: the sidebar-mode dropdown (open/select
+overlay/confirm `body[data-sidebar-mode]`+label+localStorage all update/Escape closes it) and the
+rail-tooltip hold-to-expand animation (rest state → 2s hold → width 220px + typing text reveals
+progressively → mouse-leave fully resets), both with zero page errors. One real, non-obvious
+Playwright quirk hit and worked around during this verification: Next.js dev mode's
+`<nextjs-portal>` error-overlay custom element intercepts Playwright's own click-actionability
+check even when `document.elementFromPoint` resolves correctly and nothing is visually blocking
+the target — confirmed via direct `elementFromPoint` inspection that this was a Playwright↔custom-
+element hit-testing quirk, not a real app bug; worked around by dispatching clicks via
+`element.click()` in `page.evaluate()` instead of `page.click()`. Worth reusing this workaround for
+any future Phase 4.x verification script that hits the same "Element is not visible" /
+"intercepts pointer events" symptom against a dev-mode page.

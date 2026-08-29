@@ -173,7 +173,7 @@ body.dragging * {
        own separate override, since it's position:fixed and ignores #canvas's box entirely.
        :not([data-sidebar-mode="overlay"]) — per explicit request, this "push" behavior (the
        default, hence a NOT-overlay check rather than an explicit "push" one) is now the ON state
-       of the Sidebar Display Mode switch in #profile-settings-view (sidebar-mode-toggle.js sets/clears
+       of the Sidebar Display Mode switch in #profile-settings-view (app/dotto/lib/sidebarModeToggle.ts sets/clears
        this attribute on <body>, mirroring how theme-toggle.js owns data-theme on <html>) — flipped
        off, panels go back to the original overlay-the-canvas behavior this app had before that
        change. */
@@ -1440,13 +1440,13 @@ body:has(#hamburger-stack.open):not([data-sidebar-mode="overlay"]) .item.static-
        button's. */
 /* Base/small-pill state: width/height auto (shrink-to-fit just .rail-tooltip-row's content —
        .rail-tooltip-desc starts with NO text node at all, not just visually hidden text, so it
-       contributes zero intrinsic width/height here; rail-tooltip-expand.js only ever inserts
+       contributes zero intrinsic width/height here; app/dotto/lib/railTooltipExpand.ts only ever inserts
        characters into it once the 2s hold-to-expand actually fires, see that file's own comment).
        overflow:hidden is required, not cosmetic — width/height both get pinned to explicit px
        values by that same script while animating, and without clipping, description text START
        overflowing the box before the height transition below catches up to it each tick.
        transition only covers opacity here (plain, instant-both-ways, exactly like a native
-       tooltip) — width/height are animated by rail-tooltip-expand.js setting inline styles once
+       tooltip) — width/height are animated by app/dotto/lib/railTooltipExpand.ts setting inline styles once
        expansion begins, with their OWN transition declared in the .expanding rule below, since
        animating them here-at-all-times would fight that script's per-frame inline-style updates
        with an unwanted transition on the FIRST (JS-computed starting width/height) write too. */
@@ -1478,7 +1478,7 @@ body:has(#hamburger-stack.open):not([data-sidebar-mode="overlay"]) .item.static-
        icon behaves a little differently" cues consistent with each other. Plain opacity 0->1 on
        hover, unchanged for as long as the hover lasts (including through the whole widen-then-
        typewriter sequence below) — there's no second element to hand off to anymore, so nothing
-       here ever needs to fade back out on its own; rail-tooltip-expand.js resets everything the
+       here ever needs to fade back out on its own; app/dotto/lib/railTooltipExpand.ts resets everything the
        instant the pointer actually leaves (see its own comment), at which point this rule simply
        stops matching and the base rule's opacity transition takes it back to 0. */
 .rail-btn:not(.active):hover .rail-tooltip {
@@ -1497,7 +1497,7 @@ body:has(#hamburger-stack.open):not([data-sidebar-mode="overlay"]) .item.static-
 .rail-btn.tooltip-hold-hidden:hover .rail-tooltip {
   opacity: 0;
 }
-/* Set by rail-tooltip-expand.js right as it starts animating width toward its expanded
+/* Set by app/dotto/lib/railTooltipExpand.ts right as it starts animating width toward its expanded
        target (see its own comment) — width's OWN transition lives here rather than on the base
        rule above specifically so the very first inline-style write (locking in the CURRENT
        small-pill width as an explicit px value, the necessary starting point for any width
@@ -1510,7 +1510,7 @@ body:has(#hamburger-stack.open):not([data-sidebar-mode="overlay"]) .item.static-
     opacity 0.15s,
     width 0.25s ease;
 }
-/* Added by rail-tooltip-expand.js right as typing starts (after .expanding's own width
+/* Added by app/dotto/lib/railTooltipExpand.ts right as typing starts (after .expanding's own width
        transition has already finished) — height's own transition lives here for the same reason
        width's lives on .expanding above (the per-character inline-style writes that follow need
        an already-active transition to animate against, and .15s here matches this file's usual
@@ -1553,14 +1553,14 @@ body:has(#hamburger-stack.open):not([data-sidebar-mode="overlay"]) .item.static-
   color: var(--ink);
 }
 /* Empty (no text node) at rest — see .rail-tooltip's own comment on why that matters for the
-       small pill's own width/height. rail-tooltip-expand.js fills this in one character at a time
+       small pill's own width/height. app/dotto/lib/railTooltipExpand.ts fills this in one character at a time
        ("typerighting", per explicit request) only once .rail-tooltip's own width-grow transition
        (the FIRST stage of the animation — "smoothly gets wider, with the name and shortcut
        indicator separating", both per explicit request; justify-content:space-between on
        .rail-tooltip-row above is what visibly separates them as the parent grows past the row's
        own small-pill content width) has finished. margin-top only actually shows up once real text
        exists here — an empty block contributes nothing visible either way. */
-/* white-space:pre-line (not plain normal) — rail-tooltip-expand.js inserts a real \n before a
+/* white-space:pre-line (not plain normal) — app/dotto/lib/railTooltipExpand.ts inserts a real \n before a
        word that won't fit on the current line, per explicit request (so it starts fresh on the
        next line from its first character rather than visibly jumping there once it grows too
        long) — pre-line is what makes that \n actually break the line while still wrapping
@@ -3887,7 +3887,7 @@ body:has(#collab-panel.open) .pane-collab-bubble:hover .collab-tooltip {
        display), just anchored below-right of the trigger (top:calc(100% + 4px);right:0) instead
        of flush right of a rail icon, since this lives inline in a settings row rather than the
        rail. outline:none on the trigger/rows per explicit follow-up request (no native focus
-       ring) — sidebar-mode-toggle.js owns open/close, the trigger's own displayed label, and each
+       ring) — app/dotto/lib/sidebarModeToggle.ts owns open/close, the trigger's own displayed label, and each
        row's .active highlight. */
 .settings-dropdown {
   position: relative;

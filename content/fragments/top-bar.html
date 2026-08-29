@@ -18,7 +18,7 @@
      removed per explicit request); every icon is a fixed 32px square with a hover tooltip only,
      same as before that feature existed. Most icons' .rail-tooltip holds a .rail-tooltip-row
      (name + shortcut key, always visible on hover) plus an initially-empty .rail-tooltip-desc
-     (a data-desc attribute carries its full text) — rail-tooltip-expand.js is what turns that into
+     (a data-desc attribute carries its full text) — app/dotto/lib/railTooltipExpand.ts is what turns that into
      the full hold-to-expand animation per explicit request (widen + separate the name/key, then
      type the description out character by character while the panel grows to fit it), once a
      button's been continuously hovered for 2s; see that file's own comment for the whole sequence.
