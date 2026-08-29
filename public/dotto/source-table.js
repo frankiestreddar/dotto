@@ -540,3 +540,5 @@ window.__colgroupHTML = colgroupHTML;
 // moved there — see the comment above colgroupHTML) — vanilla callers
 // (relayoutSourceTableIfVisible, source-buttons-cursor-mode.js; render(),
 // waypoints-render-loop.js) reach them exactly the same way as before, just via a bridge now.
+// Used by app/dotto/lib/outlineTree.ts's goToOutlineSourceRow (Phase 4.4).
+window.__focusTableCell = focusTableCell;

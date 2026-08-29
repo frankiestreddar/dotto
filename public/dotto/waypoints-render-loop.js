@@ -7,7 +7,6 @@ import { renderFilesList, renderSourcesList } from './hamburger-collab.js';
 import { applyTransform, ensureSwTicking, saveSnapshot, scheduleWorkspaceSave, updateContextMenuPosition } from './history-autosave.js';
 import { broadcastEditingState, miniLabelForItem, placeCaretEnd, renderRealCardPreview, repositionAllRemoteCursors, syncColorPicker } from './live-presence.js';
 import { findNextFreeSlot } from './card-shortcuts.js';
-import { buildOutline } from './outline-tree.js';
 import { closeSourceAddMenu } from './source-buttons-cursor-mode.js';
 import { closeCellTagPicker } from './source-tags-ai.js';
 import { applyConnections } from './srs-connections-core.js';
@@ -575,18 +574,18 @@ import { applyConnections } from './srs-connections-core.js';
         // above (see renderFilesList's own comment, hamburger-collab.js) — copied from it per
         // explicit request, including this call site.
         renderFilesList();
-        // Outline rail panel (outline-tree.js) — per explicit request that it reflect
+        // Outline rail panel (app/dotto/lib/outlineTree.ts) — per explicit request that it reflect
         // whatever page navigation just landed on, and any rename that just happened anywhere on
         // the canvas, without needing to be closed and reopened first. Same unconditional-on-every-
         // render() reasoning as the three calls just above, but buildOutline itself needed a
         // preserveState param first (true here) — unlike those three, its own from-scratch build
         // used to always reset the panel's scroll position and blow away any in-progress search
         // text, which was fine for a fresh panel-OPEN (still is — see buildOutline's own comment,
-        // outline-tree.js, and toggleHamburgerMenu's own call, which passes no argument)
+        // app/dotto/lib/outlineTree.ts, and toggleHamburgerMenu's own call, which passes no argument)
         // but would otherwise re-fire on every one of this function's many other callers too,
         // constantly yanking focus/scroll out from under someone actively browsing or searching an
         // already-open outline.
-        buildOutline(true);
+        window.__buildOutline(true);
 
         renderCollabPill();
 
@@ -1221,6 +1220,8 @@ window.__applyFolderView = applyFolderView;
 // piece), same reasoning as window.__getAppState (core-state.js).
 window.__performMerge = performMerge;
 window.__render = render;
+// Used by app/dotto/lib/outlineTree.ts's goToOutlineItem (Phase 4.4).
+window.__expandWaypointCard = expandWaypointCard;
 window.__renderSelectedOutlines = renderSelectedOutlines;
 // React → vanilla bridge — used by FilesListPanel.jsx's drag-onto-canvas gesture.
 window.__spawnMediaItemAt = spawnMediaItemAt;

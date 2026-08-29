@@ -2,7 +2,6 @@ import { refreshAiPanel, resetAiSearchState } from './ai-assistant-suggestions.j
 import { appState } from './core-state.js';
 import { closeCollabPanel } from './friends-presence.js';
 import { clearListPanelSelection, renderFilesList, renderHubCollabList, renderSourcesList, renderWaypointsList } from './hamburger-collab.js';
-import { buildOutline } from './outline-tree.js';
 import { closeSourceAddMenu } from './source-buttons-cursor-mode.js';
 
 
@@ -158,7 +157,7 @@ import { closeSourceAddMenu } from './source-buttons-cursor-mode.js';
     wireRailIcon('snippets2', appState.btnSnippets2, appState.snippets2Panel, null);
     wireRailIcon('servers', appState.btnServers, appState.serversPanel, null);
     wireRailIcon('ai', appState.railBtnAi, appState.aiPanel, refreshAiPanel);
-    wireRailIcon('outline', appState.hamburgerBtn, appState.outlineMenu, buildOutline);
+    wireRailIcon('outline', appState.hamburgerBtn, appState.outlineMenu, window.__buildOutline);
     wireRailIcon('waypoints', appState.railBtnWaypoints, appState.waypointsPanel, () => renderWaypointsList(''));
     wireRailIcon('collab', appState.railBtnCollab, appState.hubCollabPanel, () => { appState.hubCollabView = 'main'; renderHubCollabList(''); });
 

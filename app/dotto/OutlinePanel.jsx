@@ -10,9 +10,9 @@ import usePortalNode from "./usePortalNode";
 // fresh object literal as the getServerSnapshot fallback trips React's "should be cached" warning.
 const EMPTY_STATE = { rows: [], query: "" };
 
-// Same mask-image icon shape kindIconHTML (outline-tree.js) already builds for every
+// Same mask-image icon shape kindIconHTML (app/dotto/lib/outlineTree.ts) already builds for every
 // other outline-icon use — window.__kindIconFile resolves the kind(+level)->filename mapping,
-// bridged since that lookup table lives in public/dotto/*.js, not reachable from app/dotto/.
+// bridged since kindIconFile is also called from vanilla files (live-presence.js and others).
 function OutlineIcon({ kind, level }) {
   const url = `/assets/icons/${window.__kindIconFile(kind, level)}`;
   return (
@@ -25,7 +25,7 @@ function OutlineIcon({ kind, level }) {
 
 // Collapse toggle (explicit request) — only rendered for a heading (title kind) row that actually
 // has something nested under it (r.hasChildren, computed by renderHeadingSubtree,
-// outline-tree.js: a grouped item OR a child heading). Sits in the same slot as
+// app/dotto/lib/outlineTree.ts: a grouped item OR a child heading). Sits in the same slot as
 // OutlineIcon and only shows on row hover, swapping places with it via CSS (.has-children:hover) —
 // same mechanism/reasoning as the Blocks panel's own folder-collapse toggle, BlocksPanel.jsx.
 function OutlineCollapseToggle({ id, collapsed }) {
@@ -45,7 +45,7 @@ function OutlineCollapseToggle({ id, collapsed }) {
 }
 
 // Three row shapes, computed by computeOutlineRows/computeSourceOutlineRows
-// (outline-tree.js) — see their own comments for the full field meanings:
+// (app/dotto/lib/outlineTree.ts) — see their own comments for the full field meanings:
 //   - rowKind 'item': any non-source card/heading/nested-canvas row. Click lands on it within its
 //     own parent folder (window.__goToOutlineItem) — never drills into a nested canvas from here.
 //   - rowKind 'source': a source-linking item. Click enters it directly (window.__goToOutlineSource)
@@ -111,12 +111,11 @@ export default function OutlinePanel() {
   const portalNode = usePortalNode("hmenu-outline-container");
 
   useLayoutEffect(() => {
-    // This can run before public/dotto/outline-tree.js has loaded (it's an
-    // afterInteractive <Script>, so it runs after React hydration, not before) — only ever a
-    // problem for this component's very first, EMPTY_STATE render: real rows can only ever reach
-    // outlineStore via buildOutline/handleOutlineSearch, both themselves vanilla functions, so by
-    // the time state.rows is ever non-empty the vanilla bundle has necessarily already loaded.
-    // Skipping an unready sync here is always safe — there's nothing real to hand back yet either.
+    // window.__syncOutlineRows is set by app/dotto/lib/outlineTree.ts's own side-effect import
+    // (app/dotto-app.jsx), evaluated as part of the same module graph as this component — always
+    // ready by the time this effect runs. The guard stays purely defensive: real rows can only
+    // ever reach outlineStore via buildOutline/handleOutlineSearch (both in that same file), so
+    // there's nothing real to hand back on the EMPTY_STATE first render regardless.
     if (!portalNode || typeof window.__syncOutlineRows !== "function") return;
     window.__syncOutlineRows(portalNode.querySelectorAll(".outline-item"));
   }, [state.rows, portalNode]);

@@ -18,9 +18,9 @@
 // stopPropagation()s so it doesn't also trigger whatever click handler the row underneath has (open
 // a waypoint, switch a chat, open item detail, etc).
 //
-// The vanilla-rendered rows (Outline tree/source-page outline, outline-tree.js; search
-// history, search-panel-history.js — imports rowActionsHTML from there) can't use this component
-// directly, since they build plain HTML strings — rowActionsHTML() is their equivalent, kept as a
+// The still-vanilla-rendered rows (search history, search-panel-history.js — calls
+// window.__rowActionsHTML) can't use this component directly, since they build plain HTML
+// strings — rowActionsHTML() (app/dotto/lib/outlineTree.ts) is their equivalent, kept as a
 // literal copy of this same markup (share button only — none of those vanilla rows are deletable or
 // openable yet, so rowActionsHTML() didn't need the same onDelete/onOpen extension). Keep both in
 // sync if this ever changes.

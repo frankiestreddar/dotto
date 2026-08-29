@@ -79,6 +79,11 @@ import "./dotto/lib/sharedAndPublicCanvasLoading";
 // window.startRenameShelfName/setFilterMode/etc at module-eval time for the 5 still-vanilla
 // callers that used to import these directly.
 import "./dotto/lib/shelfSearch";
+// Side-effect only, same reasoning as splitPaneManagement/tabManagement above — sets
+// window.__buildOutline/__kindIconFile/etc at module-eval time for the 7 still-vanilla callers
+// that used to import these directly, plus the React->vanilla bridges OutlinePanel.jsx/
+// FilesListPanel.jsx already called before this port.
+import "./dotto/lib/outlineTree";
 import BlocksPanel from "./dotto/BlocksPanel";
 import CellTagPickerList from "./dotto/CellTagPickerList";
 import ChatsListPanel from "./dotto/ChatsListPanel";
@@ -303,7 +308,7 @@ if (typeof window !== "undefined") {
   // renderAddToSourcePopup immediately after this, which looks the div up by id and needs it to
   // already exist in the DOM.
   window.__setAddToSourcePopupOpen = (state) => flushSync(() => addToSourcePopupStore.set(state));
-  // Hamburger menu's Outline panel (see app/dotto/OutlinePanel.jsx, outline-tree.js's
+  // Hamburger menu's Outline panel (see app/dotto/OutlinePanel.jsx, app/dotto/lib/outlineTree.ts's
   // buildOutline/handleOutlineSearch) — MUST be flushSync: buildOutline's own scrollTop restore,
   // and toggleHamburgerMenu's setOutlineActive(0) call right after buildOutline() returns, both
   // need OutlinePanel.jsx's real DOM (and its own layout effect, which calls

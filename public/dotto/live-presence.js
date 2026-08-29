@@ -10,7 +10,6 @@ import { saveSnapshot, smoothPanTo } from './history-autosave.js';
 import { renderMediaHTML } from './media-pdf-epub.js';
 import { closeMessagesPanel } from './messages-schedule.js';
 import { awardUserPoints, renderAvatarInto } from './profile-achievements-pricing.js';
-import { kindIconHTML } from './outline-tree.js';
 import { renderTableHTML } from './source-table.js';
 import { renderStopwatchHTML } from './stopwatch.js';
 import { render } from './waypoints-render-loop.js';
@@ -951,7 +950,7 @@ import { render } from './waypoints-render-loop.js';
         } else if (it.kind === 'source') {
             const f = appState.folders[it.folderId];
             const count = countSourceEntries(it.folderId);
-            el.innerHTML = `${kindIconHTML('source', null, 'source-card-icon')}
+            el.innerHTML = `${window.__kindIconHTML('source', null, 'source-card-icon')}
             <div class="source-card-info">
                 <span class="source-card-title">${f ? f.title : ''}</span>
                 <span class="source-card-count">${count} ${count === 1 ? 'entry' : 'entries'}</span>

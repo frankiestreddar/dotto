@@ -862,3 +862,5 @@ window.__buildMnemonicResultCard = buildMnemonicResultCard;
 window.__startMnemonicResultReveal = startMnemonicResultReveal;
 window.__buildMnemonicLoadingEl = buildMnemonicLoadingEl;
 window.__buildMnemonicErrorEl = buildMnemonicErrorEl;
+// Used by app/dotto/lib/outlineTree.ts's goToOutlineItem (Phase 4.4).
+window.__flashCanvasElement = flashCanvasElement;

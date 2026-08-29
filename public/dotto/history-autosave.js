@@ -724,6 +724,8 @@ export { applyTransform, deleteContextColumn, deleteContextRow, ensureSwTicking,
 // React → vanilla bridge — used by app/dotto/canvasItemBehavior.js's setupResizing, same
 // reasoning as window.__getAppState (core-state.js).
 window.__saveSnapshot = saveSnapshot;
+// Used by app/dotto/lib/outlineTree.ts's goToOutlineItem (Phase 4.4).
+window.__smoothPanTo = smoothPanTo;
 window.__scheduleWorkspaceSave = scheduleWorkspaceSave;
 // Used by initializeNewPane (core-state.js) via this bridge rather than a direct import — that
 // file is imported BY this one, so importing back would be circular. A freshly split pane's own

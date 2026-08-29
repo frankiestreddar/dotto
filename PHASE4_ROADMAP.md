@@ -202,6 +202,29 @@
   silently called `undefined` at runtime — caught only by grepping for leftover references to the
   old filename across the repo and finding these two still-real imports, not by any automated
   check.
+  `outline-tree.js` (423 lines) ported next to `app/dotto/lib/outlineTree.ts` — the hamburger
+  menu's canvas outline builder (proximity-grouped under headings, with collapse/search/arrow-key
+  nav), a source page's own row-per-table-row outline, plus the small kind→icon mapping and
+  hover-revealed row-actions markup shared with `RowActions.jsx`/`search-panel-history.js`. All 12
+  exports were real callers across 7 vanilla files (`hamburger-collab.js`, `live-presence.js`,
+  `search-panel-history.js`, `panels-hamburger.js`, `window-bridge.js`,
+  `waypoints-render-loop.js`, `srs-connections-core.js`) — every one switched to a `window.__*`
+  bridge; `OutlinePanel.jsx` (this migration's own original reference port from Phase 1) already
+  called every React→vanilla bridge this port needed, unchanged. 5 new outbound bridges added for
+  still-vanilla dependencies with no bridge yet (`__canvasViewportCenterX`/`__smoothPanTo`/
+  `__flashCanvasElement`/`__focusTableCell`/`__expandWaypointCard`), plus 3 more that already
+  existed at runtime but had never been typed (`__stripHtml`/`__shortUrl`/`__findItemEl`).
+  `handleOutlineSearch` is a real inline `oninput="..."` target (`hamburger-stack.html`) — kept its
+  exact plain (non-`__`) name, now set from the TS file itself instead of re-exported through
+  `window-bridge.js`'s old indirection, same convention `marketplace.ts`/`shelfSearch.ts`
+  established. The stale-reference sweep this time also caught two comments asserting something
+  no longer true rather than just a stale filename: `OutlinePanel.jsx`'s own loading-race comment
+  (used to describe a real `afterInteractive <Script>` race that no longer exists now that
+  `outlineTree.ts` is a plain side-effect import in the same module graph) and `RowActions.jsx`'s
+  own comment claiming the Outline tree's rows were still vanilla-rendered (they've been React,
+  via `OutlinePanel.jsx`, since Phase 1 — only `search-panel-history.js` still builds a plain HTML
+  string via `rowActionsHTML()`) — both rewritten to state what's actually true now, not just
+  repointed.
 - **Phase 4.5 — architectural/hub files: not started.**
 - **Phase 4.6 — delete the bridge layer: not started.**
 - **Phase 4.7 — final cleanup & professionalization close-out: not started.**
@@ -924,3 +947,27 @@ established back in the very first Phase 4.3 split) surfaced that `live-presence
 files still had real, now-broken imports pointing at functions with no bridge. Zero console/page
 errors on the final run. Re-checked the account afterward to confirm zero residual mock Shelf/
 Filter cards and an empty `searchCardContext`.
+
+**Phase 4.4 (`outline-tree.js` → `app/dotto/lib/outlineTree.ts`)**: `node --check` on all 7 touched
+vanilla files, `eslint` clean (zero errors or warnings), `npm run typecheck` clean on the first
+pass (no missing-bridge errors this time — all 8 dependencies this port needed were either already
+typed or added up front before writing the file), `npm run format:check` clean after a `prettier
+--write` pass, `rm -rf .next && npm run build` clean, all 32 Vitest tests still green. Real
+Playwright verification against a fresh dev server: confirmed all 12 bridges present; `kindIconFile`
+returned the right heading-level filenames and a safe fallback for an unknown kind; `kindIconHTML`/
+`rowActionsHTML` produced correct HTML strings. Real DOM flow: seeded a tagged heading + tagged
+note directly into `appState` (this shared test account already carries 140+ items from earlier
+sessions' runs, which made simulating the 'a'-chord + click-to-place unreliable for picking out
+"the fresh card" — seeding is still real data through the real data model, just not
+screen-coordinate-dependent), opened the panel via the real 'o' keyboard shortcut, and confirmed
+both rows rendered with correct labels; collapsed/expanded the heading's real hover-revealed
+collapse toggle and confirmed the grouped note row actually disappeared/reappeared; live search
+filtered correctly plus a real empty state; arrow-key nav set `.active`; clicking the note row
+navigated (exercising `__canvasViewportCenterX`/`__smoothPanTo`/`__flashCanvasElement` under the
+hood) and closed the panel. Zero unexpected console/page errors — two known, pre-existing,
+unrelated noise sources were filtered: a missing `public/assets/icons/media.png` asset (a
+already-accepted gap per `kindIconFile`'s own comment, surfaced only because this account has real
+pre-existing Media cards) and the already-documented dead `test.pdf` CORS noise. Re-checked the
+account afterward to confirm both tagged mock items were fully removed with no residue. The
+stale-reference sweep this time caught two comments asserting something no longer true, not just a
+stale filename — see the status section entry above.

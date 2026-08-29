@@ -8,7 +8,6 @@ import { applyTransform, saveSnapshot, scheduleApplyTransform } from './history-
 import { broadcastEditingState } from './live-presence.js';
 import { isAnyUiPanelOpen } from './panels-hamburger.js';
 import { awardUserPoints, bumpAchievementStat, showProfileSettingsView } from './profile-achievements-pricing.js';
-import { setOutlineActive, toggleHamburgerMenu } from './outline-tree.js';
 import { toggleTheme } from './theme-toggle.js';
 import { toggleUploadPopup } from './upload-popup.js';
 import { render, renderSelectedOutlines, startBoxSelection, syncWaypointToDb } from './waypoints-render-loop.js';
@@ -456,8 +455,8 @@ import { calculateSM2, defaultSrsState, diffRatings } from './srs-algorithm.js';
         }
 
         if (!isEditingText && appState.outlineMenu.classList.contains('open')) {
-            if (e.key === 'ArrowDown') { e.preventDefault(); setOutlineActive(appState.outlineActiveIndex + 1); return; }
-            if (e.key === 'ArrowUp') { e.preventDefault(); setOutlineActive(appState.outlineActiveIndex - 1); return; }
+            if (e.key === 'ArrowDown') { e.preventDefault(); window.__setOutlineActive(appState.outlineActiveIndex + 1); return; }
+            if (e.key === 'ArrowUp') { e.preventDefault(); window.__setOutlineActive(appState.outlineActiveIndex - 1); return; }
             if (e.key === 'Enter') {
                 e.preventDefault();
                 const row = appState.outlineRows[appState.outlineActiveIndex] || appState.outlineRows[0];
@@ -485,7 +484,7 @@ import { calculateSM2, defaultSrsState, diffRatings } from './srs-algorithm.js';
         // Explain panel is already open still works exactly as before, this was only ever about
         // the global keyboard shortcut.
         if (!isEditingText && !anyPanelOpen && (e.key === 'q' || e.key === 'Q')) { e.preventDefault(); openSearchOverlay(); return; }
-        if (!isEditingText && (e.key === 'o' || e.key === 'O')) { e.preventDefault(); toggleHamburgerMenu(); return; }
+        if (!isEditingText && (e.key === 'o' || e.key === 'O')) { e.preventDefault(); window.__toggleHamburgerMenu(); return; }
         // Debug shortcut for tweaking the notification entrance/exit animation — fires a plain
         // notification with no buttons on every press. Remove once done tweaking.
         if (!isEditingText && !anyPanelOpen && (e.key === 'n' || e.key === 'N')) { e.preventDefault(); window.pushNotification({ type: 'debug', message: 'this is an example notification' }); return; }
@@ -494,7 +493,7 @@ import { calculateSM2, defaultSrsState, diffRatings } from './srs-algorithm.js';
         // hamburger.js) a real click would, open/switch/close toggle included, rather than
         // duplicating that logic here per icon. 'o' above (Outline, was 'm' before a follow-up
         // request reassigned it) is the one pre-existing exception, going through
-        // toggleHamburgerMenu() directly instead — left as-is rather than converted, since it
+        // window.__toggleHamburgerMenu() directly instead — left as-is rather than converted, since it
         // predates this block and already works. None of these reuse a
         // letter that already means something else globally (checked against every existing
         // e.key === '<letter>' in this codebase before picking). 'F' (Files, was Snippets) used to

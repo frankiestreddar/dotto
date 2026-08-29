@@ -50,7 +50,7 @@ function clearDropHighlights() {
 // file's name is its own mediaName/upload, not something renamed from here), no Option-held id
 // reveal (files don't have a global id concept the way sources do), and no delayed-click-vs-
 // dblclick dance as a result — a plain single click is enough.
-// Click reuses window.__goToOutlineItem (goToOutlineItem, outline-tree.js) — navigates
+// Click reuses window.__goToOutlineItem (goToOutlineItem, app/dotto/lib/outlineTree.ts) — navigates
 // to the file's own containing folder if not already there, then pans/centers on and flashes its
 // canvas card — the same primitive the Outline tree's own non-source rows already use for every
 // other card kind, rather than a source's own "enter it directly" behavior (a file is a normal

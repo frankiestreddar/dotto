@@ -281,5 +281,58 @@ declare global {
     __addCardsToSearchContext?: (ids: number[]) => void;
     __autoGrowSearchInput?: () => void;
     __renderShelfHTML?: (it: Record<string, unknown>) => string;
+    // text-utils.js / cards-misc.js / core-state.js — already-existing bridges, untyped until
+    // app/dotto/lib/outlineTree.ts became the first .ts file to reach them.
+    __stripHtml?: (html: string) => string;
+    __shortUrl?: (url: string) => string;
+    __findItemEl?: (itemId: number, paneId?: number) => HTMLElement | null;
+    // core-state.js — center of the visible canvas viewport in screen-space X (accounts for the
+    // hamburger/rail sidebars eating into the left/right edges), used to invert screen->canvas
+    // coordinates the same way smoothPanTo/centerOnContent already do.
+    __canvasViewportCenterX?: () => number;
+    // history-autosave.js — animates tx/ty/scale to the given target over durationMs (default
+    // 450ms).
+    __smoothPanTo?: (
+      targetTx: number,
+      targetTy: number,
+      targetScale: number,
+      durationMs?: number,
+    ) => void;
+    // mnemonic-search-matching.js — brief highlight flash on a canvas element, used to draw the
+    // eye after a jump-to-item navigation (outline row click, search result click, etc).
+    __flashCanvasElement?: (el: HTMLElement | undefined) => void;
+    // source-table.js — moves keyboard focus (and starts editing on Enter-driven nav) to a
+    // specific table cell; pos is an optional caret-position hint for text inputs.
+    __focusTableCell?: (id: number, r: number, c: number, pos?: unknown) => void;
+    // waypoints-render-loop.js — expands (or, with opts.editable, opens for rename) a waypoint
+    // card's DOM in place.
+    __expandWaypointCard?: (
+      el: HTMLElement,
+      it: Record<string, unknown>,
+      opts?: { editable?: boolean },
+    ) => void;
+    // app/dotto/lib/outlineTree.ts (Phase 4.4 port — was outline-tree.js) — React -> vanilla
+    // bridges used by OutlinePanel.jsx/FilesListPanel.jsx (already established before this port,
+    // just now typed) plus vanilla -> React bridges used by hamburger-collab.js/live-presence.js/
+    // search-panel-history.js/panels-hamburger.js/window-bridge.js/waypoints-render-loop.js/
+    // srs-connections-core.js, which all previously imported these directly.
+    __kindIconFile?: (kind: string, level?: number) => string;
+    __goToOutlineSource?: (folderId: string) => void;
+    __goToOutlineSourceRow?: (tableItemId: number, rowNumber: number) => void;
+    __syncOutlineRows?: (elements: ArrayLike<HTMLElement>) => void;
+    __goToOutlineItem?: (folderId: string, itemId: number) => void;
+    __toggleOutlineCollapse?: (id: number) => void;
+    __buildOutline?: (preserveState?: boolean) => void;
+    __kindIconHTML?: (kind: string, level: number | undefined, extraClass: string) => string;
+    __rowActionsHTML?: () => string;
+    // Real inline oninput target (hamburger-stack.html) — plain global, no underscore, same shape
+    // handleMarketplaceSearch/closeMarketDetail use.
+    handleOutlineSearch?: (query: string) => void;
+    __setOutlineActive?: (idx: number) => void;
+    __toggleHamburgerMenu?: () => void;
+    // app/dotto-app.jsx (via app/dotto/bridges.js's outlineStore) — React-facing setter, flushSync'd
+    // (OutlinePanel.jsx's own useLayoutEffect syncs real DOM nodes back via __syncOutlineRows
+    // synchronously right after, so the commit must already be flushed).
+    __setOutlineState?: (state: { rows: unknown[]; query: string }) => void;
   }
 }

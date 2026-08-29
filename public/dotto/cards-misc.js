@@ -5,7 +5,7 @@ import { render } from './waypoints-render-loop.js';
 
 
     // Shared by embed's own card (below) and its outline/mini-preview labels elsewhere
-    // (outline-tree.js, live-presence.js) — used to be Bookmark's too, before that card
+    // (app/dotto/lib/outlineTree.ts via window.__shortUrl, live-presence.js) — used to be Bookmark's too, before that card
     // kind was removed as redundant with waypoints/other menus.
     function shortUrl(url) {
         try { return new URL(url).hostname; } catch (e) { return url.slice(0, 24); }
