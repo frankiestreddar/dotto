@@ -50,13 +50,21 @@ export default function ChecklistCard({ it }) {
               onMouseDown={(e) => e.stopPropagation()}
               onChange={(e) => window.updateTaskDeadline(it.id, t.id, e.currentTarget)}
             />
-            <span className="checklist-remove" onMouseDown={(e) => e.stopPropagation()} onClick={() => window.removeTask(it.id, t.id)}>
+            <span
+              className="checklist-remove"
+              onMouseDown={(e) => e.stopPropagation()}
+              onClick={() => window.removeTask(it.id, t.id)}
+            >
               ✕
             </span>
           </div>
         ))}
       </div>
-      <div className="checklist-add" onMouseDown={(e) => e.stopPropagation()} onClick={() => window.addTask(it.id)}>
+      <div
+        className="checklist-add"
+        onMouseDown={(e) => e.stopPropagation()}
+        onClick={() => window.addTask(it.id)}
+      >
         + Add task
       </div>
     </>

@@ -12,7 +12,9 @@ export default function FilterCard({ it }) {
     return (
       <>
         <div className="filter-header">Filter</div>
-        <div className="filter-empty">Connect a source (or another filter) to see its tags here.</div>
+        <div className="filter-empty">
+          Connect a source (or another filter) to see its tags here.
+        </div>
       </>
     );
   }

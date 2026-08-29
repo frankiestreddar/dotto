@@ -1,5 +1,5 @@
 import { escapeHtml } from './ai-assistant-suggestions.js';
-import { appState } from './core-state.js';
+import { appState, itemElId } from './core-state.js';
 import { ensureConnections, folderIdForConnectedSource, folderTitleForConnectedSource } from './drawing-connections.js';
 import { syncCanvasCollabTitle } from './friends-presence.js';
 import { saveSnapshot, scheduleWorkspaceSave } from './history-autosave.js';
@@ -163,7 +163,7 @@ import { openFolder, render } from './waypoints-render-loop.js';
             nameEl.textContent = fullTitle;
         }
         nameEl.contentEditable = true;
-        broadcastEditingState(true, `#item-${it.id} .shelf-header`);
+        broadcastEditingState(true, `#${itemElId(it.id)} .shelf-header`);
         nameEl.focus();
         const placeCaretAtEnd = () => {
             const range = document.createRange();
@@ -272,17 +272,15 @@ import { openFolder, render } from './waypoints-render-loop.js';
     // ---------- Search & AI Gen ----------
 
     // ---------- Notifications ----------
-    // Generic engine — notifications queue up and are shown one at a time as a pill sliding down
-    // into the top bar's own slot (top:20px, centered), while #top-bar-center (breadcrumb/back-
-    // forward/collaborators) slides up and out of view to make room for it — the two swap places
-    // via one shared .notif-active class (see #notification-pill/#top-bar-center.notif-active,
-    // globals.css). Optional action button triggerable by click OR Enter. Non-sticky ones
-    // auto-dismiss after `durationMs`; sticky ones need an explicit dismiss (Escape, or the action
-    // button itself).
-    //
-    // No notification has a visible dismiss button — Escape always dismisses whatever's showing
-    // (see the notification keydown handler below), so even a sticky one always has a way out
-    // without needing its own dedicated button for it.
+    // Generic engine — explicit redesign of what used to be a single top-center pill shown one at
+    // a time with an enforced gap between them (swapping places with #top-bar-center, which no
+    // longer even renders any content of its own — see that element's own comment, globals.css).
+    // Now a real STACK, top-right: every notification pushed gets its own id and stays visible
+    // (independently) until its own timer/dismissal, genuinely simultaneously with any others —
+    // "remove the delay between notifications" — no queue, no gap, no single "current" one.
+    // window.__setNotifications(list) (app/dotto-app.jsx) pushes the whole array to
+    // notificationsStore (bridges.js); NotificationBar.jsx owns the actual stacking/slide/shift
+    // animation and the hover-reveal close button — this file only owns WHEN one appears/expires.
     //
     // pushNotification({
     //   type,             // string id for the notification kind (e.g. 'chat', 'friend_request') —
@@ -290,13 +288,12 @@ import { openFolder, render } from './waypoints-render-loop.js';
     //   message,          // main text
     //   imageUrl,         // optional
     //   actionLabel,      // optional — shows the primary button (its rendered text gets an enter-
-    //                     // arrow glyph appended, see showNotification); click or Enter activates it
+    //                     // arrow glyph appended, see NotificationBar.jsx); click activates it
     //   onAction,         // called when the primary button is activated
-    //   sticky,           // default false — no auto-dismiss timer at all; needs actionLabel or
-    //                     // Escape to ever go away
-    //   durationMs,       // default 5000 (5 seconds) — how long the pill stays fully visible
-    //                     // before it starts sliding away (the slide itself, NOTIF_SLIDE_MS, comes
-    //                     // on top of this, not carved out of it)
+    //   sticky,           // default false — no auto-dismiss timer at all; needs actionLabel, its
+    //                     // own hover-close button, or Escape to ever go away
+    //   durationMs,       // default 5000 (5 seconds) — how long before this SPECIFIC notification
+    //                     // auto-dismisses
     // })
     //
     // The only notification type from the original list with nothing behind it now is platform
@@ -307,117 +304,74 @@ import { openFolder, render } from './waypoints-render-loop.js';
     // real trigger (see the pushNotification call sites in refreshCanvasCollabData/
     // refreshFriendsData/subscribeToAllFriendMessages/handleFriendPresenceSync/awardUserPoints/
     // refreshDotbotUsage/the day-change interval/the ad timer/bumpAchievementStat below).
-    // No per-call sequence guard needed here (unlike the old search-box version of this) —
-    // tryShowNextNotification's own currentNotification check already makes showNotification
-    // uncallable while one's already displaying, and dismissCurrentNotification nulls
-    // currentNotification synchronously as its very first act, so a second concurrent call (e.g.
-    // Escape landing the same tick the auto-dismiss timer fires) is already a clean no-op via that
-    // same guard.
 
+    let nextNotificationId = 1;
+    function pushNotifications(list) { window.__setNotifications(list); }
+    // Held (queued, not shown) while the tab isn't actually visible (another tab/app, backgrounded,
+    // screen lock) — the visibilitychange listener below flushes them the moment it's visible
+    // again, same "don't show something nobody's there to see" guarantee the old one-at-a-time
+    // engine had, just applied to the whole pending batch instead of a single item.
     function pushNotification(config) {
-        appState.notificationQueue.push(config);
-        tryShowNextNotification();
-    }
-    function tryShowNextNotification() {
-        if (appState.currentNotification || !appState.notificationQueue.length) return;
-        // Held while the tab isn't actually visible (another tab/app, backgrounded, screen
-        // locked) — retried by the visibilitychange listener below the moment it's visible
-        // again, so queued notifications come through one at a time from there rather than
-        // firing unseen while away.
-        if (document.visibilityState !== 'visible') return;
-        if (appState.lastNotificationCloseTime) {
-            const elapsed = Date.now() - appState.lastNotificationCloseTime;
-            if (elapsed < appState.NOTIFICATION_QUEUE_GAP_MS) {
-                // Re-checks everything above (visibility, remaining gap) once it fires, rather
-                // than assuming this is still the right moment — self-correcting if the tab gets
-                // backgrounded or the gap gets pushed out again in the meantime.
-                setTimeout(tryShowNextNotification, appState.NOTIFICATION_QUEUE_GAP_MS - elapsed);
-                return;
-            }
+        if (document.visibilityState !== 'visible') {
+            appState.notificationQueue.push(config);
+            return;
         }
-        showNotification(appState.notificationQueue.shift());
+        showNotification(config);
     }
-    // #top-bar-center starts sliding away immediately; #notification-pill doesn't start sliding in
-    // until it's fully gone PLUS a small pause (NOTIF_SLIDE_MS + NOTIF_STAGGER_MS) — the two never
-    // cross paths mid-transition, one fully leaves before the other arrives.
     function showNotification(config) {
-        appState.currentNotification = config;
-        // Content itself is real React state now (see app/dotto/NotificationBar.jsx) — the
-        // enter-arrow suffix on a configured action label is built there, not here.
-        window.__setNotificationContent(config);
-        clearTimeout(appState.notificationStageTimer);
-        clearTimeout(appState.notificationTimer);
-        appState.topBarCenter.classList.add('notif-active');
-        appState.notificationStageTimer = setTimeout(() => {
-            appState.notificationPill.classList.add('notif-active');
-        }, appState.NOTIF_SLIDE_MS + appState.NOTIF_STAGGER_MS);
+        const id = nextNotificationId++;
+        const entry = { id, config };
+        // Newest first — "new ones push existing down" (NotificationBar.jsx renders top to bottom
+        // in array order). Sliced to NOTIFICATION_MAX_VISIBLE — dropping whichever entry falls off
+        // the end (the oldest, per explicit request) rather than growing the stack unbounded;
+        // NotificationBar.jsx detects that drop and plays a real slide-out exit for it instead of
+        // it just vanishing.
+        appState.visibleNotifications = [entry, ...appState.visibleNotifications].slice(0, appState.NOTIFICATION_MAX_VISIBLE);
+        pushNotifications(appState.visibleNotifications);
         if (!config.sticky) {
             const durationMs = config.durationMs || appState.NOTIFICATION_DEFAULT_DURATION_MS;
-            // Counted from this call, not from whenever the pill actually finishes sliding in —
-            // durationMs is a budget for the whole show, same convention entrance/exit already
-            // used before the stagger existed; wide enough margin (default 5s vs. under 1s of
-            // total entrance animation) that the pill still reads as "on screen for durationMs".
-            appState.notificationTimer = setTimeout(dismissCurrentNotification, durationMs);
+            setTimeout(() => dismissNotification(id), durationMs);
         }
     }
-    // Click OR Enter (see the keydown handler below) — a no-op if this notification has no
-    // action configured, so a stray Enter press can't dismiss a sticky plain notification.
-    function runNotificationAction() {
-        if (!appState.currentNotification || !appState.currentNotification.actionLabel) return;
-        const cb = appState.currentNotification.onAction;
-        dismissCurrentNotification();
+    // Click (NotificationBar.jsx's own action button onClick) or Enter (see the keydown handler
+    // below, which always targets the TOPMOST/newest notification) — id-scoped so triggering one
+    // notification's action can never accidentally dismiss a DIFFERENT one still in the stack.
+    function runNotificationAction(id) {
+        const entry = appState.visibleNotifications.find(n => n.id === id);
+        if (!entry || !entry.config.actionLabel) return;
+        const cb = entry.config.onAction;
+        dismissNotification(id);
         if (cb) cb();
     }
-    // Reverse of showNotification, same staggered swap: #notification-pill starts sliding away
-    // immediately, #top-bar-center doesn't start sliding back in until the pill's fully gone plus
-    // the same small pause. Only once #top-bar-center itself has finished settling (a further
-    // NOTIF_SLIDE_MS after that) is the queue allowed to advance, so a back-to-back pair never
-    // overlaps or snaps between each other mid-animation.
-    function dismissCurrentNotification() {
-        if (!appState.currentNotification) return;
-        clearTimeout(appState.notificationTimer);
-        clearTimeout(appState.notificationStageTimer);
-        appState.currentNotification = null;
-        appState.notificationPill.classList.remove('notif-active');
-        appState.notificationStageTimer = setTimeout(() => {
-            appState.topBarCenter.classList.remove('notif-active');
-        }, appState.NOTIF_SLIDE_MS + appState.NOTIF_STAGGER_MS);
-        setTimeout(() => {
-            appState.lastNotificationCloseTime = Date.now();
-            tryShowNextNotification();
-        }, appState.NOTIF_SLIDE_MS * 2 + appState.NOTIF_STAGGER_MS);
+    function dismissNotification(id) {
+        const next = appState.visibleNotifications.filter(n => n.id !== id);
+        if (next.length === appState.visibleNotifications.length) return; // already gone
+        appState.visibleNotifications = next;
+        pushNotifications(next);
     }
     document.addEventListener('keydown', (e) => {
-        if (!appState.currentNotification) return;
+        if (!appState.visibleNotifications.length) return;
         const active = document.activeElement;
         // Some OTHER field being actively edited (a waypoint rename, a table cell, etc.) wins —
         // Enter/Escape apply to that as usual rather than surprise-triggering the notification
-        // sitting in the background.
+        // stack sitting in the background.
         const isEditingText = active && (active.isContentEditable || active.tagName === 'INPUT' || active.tagName === 'SELECT' || active.tagName === 'TEXTAREA');
         if (isEditingText) return;
-        if (e.key === 'Enter') { e.preventDefault(); runNotificationAction(); }
-        // No dismiss button exists, so this is the only way to close a notification without
-        // triggering its action — always just hides it, no callback (dismissCurrentNotification
-        // itself never calls one), which is exactly what every real notification wants here.
-        else if (e.key === 'Escape') { e.preventDefault(); dismissCurrentNotification(); }
+        // Always the topmost (newest) notification — the one visually/logically "in front".
+        const topId = appState.visibleNotifications[0].id;
+        if (e.key === 'Enter') { e.preventDefault(); runNotificationAction(topId); }
+        else if (e.key === 'Escape') { e.preventDefault(); dismissNotification(topId); }
     });
-    // Notifications only ever DISPLAY while the tab is actually visible (see
-    // tryShowNextNotification) — this is what makes that true both ways: hides/holds new ones the
-    // instant the tab is backgrounded (another tab, another app, screen lock, ...), and freezes
-    // the CURRENTLY showing one's auto-dismiss timer too, so nothing can silently finish counting
-    // down while nobody's there to see it. Coming back re-arms it at its full duration (not
-    // whatever was left) and then tries to advance the queue, so anything that piled up while away
-    // still comes through one at a time from here rather than all at once.
+    // Notifications only ever DISPLAY while the tab is actually visible — this is what makes that
+    // true: anything pushed while backgrounded (another tab/app, screen lock) queued up in
+    // notificationQueue instead of showing immediately (see pushNotification above); coming back
+    // flushes that whole queue at once (each becomes its own real, independently-timed
+    // notification — no artificial stagger between them, per explicit request).
     document.addEventListener('visibilitychange', () => {
         if (document.visibilityState === 'visible') {
-            if (appState.currentNotification && !appState.currentNotification.sticky) {
-                const durationMs = appState.currentNotification.durationMs || appState.NOTIFICATION_DEFAULT_DURATION_MS;
-                clearTimeout(appState.notificationTimer);
-                appState.notificationTimer = setTimeout(dismissCurrentNotification, durationMs);
-            }
-            tryShowNextNotification();
-        } else {
-            clearTimeout(appState.notificationTimer);
+            const queued = appState.notificationQueue;
+            appState.notificationQueue = [];
+            queued.forEach(showNotification);
         }
     });
 
@@ -529,7 +483,7 @@ import { openFolder, render } from './waypoints-render-loop.js';
         document.getElementById('search-cards-modal-overlay').classList.remove('open');
     }
 
-export { addCardsToSearchContext, autoGrowSearchInput, clearSearchCardContext, closeSearchCardsModal, filterShelfRows, handleShelfSourceRowClick, openSearchCardsModal, pushNotification, renderShelfHTML, renderStopwatchHTML, runNotificationAction, setFilterMode, shelfSelectSession, startRenameShelfName, startRenameShelfSourceRow, swCurrentElapsedMs, swFormatTime, swTogglePause, swToggleRun, toggleFilterTag };
+export { addCardsToSearchContext, autoGrowSearchInput, clearSearchCardContext, closeSearchCardsModal, dismissNotification, filterShelfRows, handleShelfSourceRowClick, openSearchCardsModal, pushNotification, renderShelfHTML, renderStopwatchHTML, runNotificationAction, setFilterMode, shelfSelectSession, startRenameShelfName, startRenameShelfSourceRow, swCurrentElapsedMs, swFormatTime, swTogglePause, swToggleRun, toggleFilterTag };
 
 // Not an inline-HTML onclick target (see window-bridge.js's own header comment for why those
 // live there instead) — this is the first real React component (app/dotto/PricingOverlay.jsx,
@@ -538,6 +492,8 @@ export { addCardsToSearchContext, autoGrowSearchInput, clearSearchCardContext, c
 // other direction — see app/dotto-app.jsx). More of these will likely accumulate here as more
 // subsystems migrate to React while still depending on notifications.
 window.pushNotification = pushNotification;
+// Same reasoning — used by NotificationBar.jsx's own hover-reveal close button.
+window.__dismissNotification = dismissNotification;
 
 // Same React → vanilla bridge, `__`-prefixed per the convention established in cards-misc.js
 // (shortUrl/toEmbeddableUrl) once more than one of these existed — used by StopwatchCard.jsx.

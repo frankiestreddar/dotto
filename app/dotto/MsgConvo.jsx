@@ -53,7 +53,11 @@ function MsgItem({ m, isMine }) {
 // flex-direction:column-reverse (see globals.css), that's what pins the view to the bottom
 // (newest message) exactly like the original insertBefore-prepending did.
 export default function MsgConvo() {
-  const state = useSyncExternalStore(msgConvoStore.subscribe, msgConvoStore.getSnapshot, () => null);
+  const state = useSyncExternalStore(
+    msgConvoStore.subscribe,
+    msgConvoStore.getSnapshot,
+    () => null,
+  );
   const avatarNode = usePortalNode("msg-convo-avatar");
   const titleNode = usePortalNode("msg-convo-title");
   const bodyNode = usePortalNode("msg-convo-body");
@@ -76,7 +80,14 @@ export default function MsgConvo() {
 
   return (
     <>
-      {createPortal(<Avatar bare avatar={{ id: state.avatarId, url: state.avatarUrl }} name={state.displayName} />, avatarNode)}
+      {createPortal(
+        <Avatar
+          bare
+          avatar={{ id: state.avatarId, url: state.avatarUrl }}
+          name={state.displayName}
+        />,
+        avatarNode,
+      )}
       {createPortal(state.displayName, titleNode)}
       {createPortal(
         reversed.length === 0 ? (

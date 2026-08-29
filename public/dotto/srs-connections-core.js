@@ -1,7 +1,7 @@
 import { kindLabel, kindSize } from './add-menu.js';
 import { openSearchOverlay, stripHtml } from './ai-assistant-suggestions.js';
 import { prepareAdd, removePlacementGhost } from './copy-paste.js';
-import { appState, btnAdd, canvas, canvasViewportCenterX, drawBackBtn, drawColorInput, drawEraserBtn, drawFrontBtn, drawPenBtn, drawSettings, drawSizeInput, effectiveMode, world, zoomTrack } from './core-state.js';
+import { appState, btnAdd, canvas, canvasViewportCenterX, drawBackBtn, drawColorInput, drawEraserBtn, drawFrontBtn, drawPenBtn, drawSettings, drawSizeInput, effectiveMode, findItemEl, registerPaneCanvasListenerSetup, switchActivePane, world, zoomTrack } from './core-state.js';
 import { createConnection, ensureConnections, ensureDrawings, findLinkedTable, findTableById, makeLayerSVG, pathNearPoint, penPointsToPath, pointsToPath } from './drawing-connections.js';
 import { defaultFlashcardDeck } from './games-flashcard-typeright.js';
 import { generateGlobalId } from './global-ids.js';
@@ -285,7 +285,7 @@ import { render, renderSelectedOutlines, startBoxSelection, syncWaypointToDb } f
     // nothing is pending.
     function clearDataLinkPending() {
         if (appState.dataLinkPendingId != null) {
-            const prevEl = document.getElementById('item-' + appState.dataLinkPendingId);
+            const prevEl = findItemEl(appState.dataLinkPendingId);
             if (prevEl) prevEl.classList.remove('link-source-armed');
         }
         appState.dataLinkPendingId = null;
@@ -444,7 +444,9 @@ import { render, renderSelectedOutlines, startBoxSelection, syncWaypointToDb } f
         waypoints: 'waypoints-search',
         collab: 'hub-collab-search',
         marketplace: 'market-search',
-        library: 'library-search',
+        // 'library' (was 'library-search') removed — Extensions (was Library) is a flat list of
+        // installed-extension pills with no search box of its own, same as Profile never having
+        // had one; Enter is simply a no-op for it now, per this handler's own comment below.
         messages: 'msg-search',
         add: 'add-menu-search-input',
         search: 'search-panel-search',
@@ -455,8 +457,8 @@ import { render, renderSelectedOutlines, startBoxSelection, syncWaypointToDb } f
 
     // 'a'-prefix add-block chord — pressing 'a' then a second letter within ADD_CHORD_TIMEOUT_MS
     // arms a placement ghost for that block kind (prepareAdd, copy-paste.js — the exact same
-    // click-to-place flow the Add menu's own tiles use, e.g. newSourceClicked -> prepareAdd
-    // ('source')), letting the next canvas click choose where it lands, rather than dropping it at
+    // click-to-place flow the Blocks panel's own rows use, handleBlockItemClick -> prepareAdd),
+    // letting the next canvas click choose where it lands, rather than dropping it at
     // the viewport centre immediately — per explicit follow-up request. "Just to test" the idea per
     // the original explicit request — only 'n' (note) and 'h' (heading) are wired up so far; add
     // more entries to ADD_CHORD_KEYS as they're decided. A leader-key chord like this has no
@@ -543,9 +545,10 @@ import { render, renderSelectedOutlines, startBoxSelection, syncWaypointToDb } f
         // instead, freeing 'F' up cleanly. Sources was 'S' with no prior collision, then
         // reassigned to 'K' (also no prior collision) once 'S' was wanted for the newer, separate
         // Snippets button (appState.btnSnippets2, distinct from appState.btnSnippets/Files). 'J'
-        // (Friends) is free again — the Friends rail button/panel it opened was removed entirely
+        // (Friends) was free again — the Friends rail button/panel it opened was removed entirely
         // per explicit request (a never-implemented stub, unrelated to the real friend-list/
-        // friend-request data model friends-presence.js still provides for Collaborations/Messages).
+        // friend-request data model friends-presence.js still provides for Collaborations/Messages)
+        // — now reused for Servers (see that shortcut's own line, below).
         // Collaborations is 'C' (was 'G', reassigned per explicit request — the bare 'c'/'C'
         // copy-selected-cards shortcut that used to collide with it was removed from
         // history-autosave.js at the same time, specifically to free this letter up cleanly, no
@@ -553,10 +556,11 @@ import { render, renderSelectedOutlines, startBoxSelection, syncWaypointToDb } f
         // ids/appState fields stayed btnInbox/inboxPanel, same convention as every other rename
         // this session, e.g. Files staying #btn-snippets under the hood) is 'R' (was 'I', freed up
         // by the rename), Messages is 'M' (freed up once Outline moved to 'O' above), Marketplace
-        // is 'H' (was ';', reassigned per explicit request) and Search is '/'
-        // — the latter isn't gated on !isEditingText's usual letter-shortcut companion since it
-        // isn't a letter, but still needs the isEditingText check itself (typing "/" in a normal
-        // text field must never hijack focus away).
+        // is 'H' (was ';', reassigned per explicit request) and Search is 'Tab' (was '/',
+        // reassigned per explicit request — swapped with Profile/You below, which moved off Tab in
+        // the same request, since renamed onto 'Y'). Note this does mean Tab no longer moves focus between elements
+        // anywhere outside a text field (isEditingText only guards contentEditable/INPUT/SELECT/
+        // TEXTAREA, not e.g. a focused button) — an explicit tradeoff, not an oversight.
         // Deliberately NOT gated on !anyPanelOpen (unlike 'n' above, and unlike an earlier version
         // of these same lines) — these are meant to jump straight from one open panel to another,
         // not just open one from a clean slate. openRailView (via .click(), same as
@@ -564,45 +568,55 @@ import { render, renderSelectedOutlines, startBoxSelection, syncWaypointToDb } f
         // before opening the new one, so switching panels this way is already safe; isEditingText
         // alone is enough to stop them firing while actually typing in a focused field.
         if (!isEditingText && (e.key === 'r' || e.key === 'R')) { e.preventDefault(); appState.btnInbox.click(); return; }
-        if (!isEditingText && e.key === '/') { e.preventDefault(); appState.btnSearch.click(); return; }
+        if (!isEditingText && e.key === 'Tab') { e.preventDefault(); appState.btnSearch.click(); return; }
         // Not a panel, and no longer even a rail button — the theme toggle moved into a "Colour
         // Theme" switch inside #profile-settings-view (per explicit request, formerly
         // #settings-panel before Settings' own rail icon was removed), so this calls
         // theme-toggle.js's own toggleTheme() directly instead of .click()-ing an element that no
         // longer exists.
         if (!isEditingText && e.key === '\\') { e.preventDefault(); toggleTheme(); return; }
-        // Was 'p'/'P' — reassigned to Tab per explicit request, freeing 'p' up for Pen mode
-        // (source-buttons-cursor-mode.js's own beginModeOverride/endModeOverride pair). Note this
-        // does mean Tab no longer moves focus between elements anywhere outside a text field
-        // (isEditingText only guards contentEditable/INPUT/SELECT/TEXTAREA, not e.g. a focused
-        // button) — an explicit tradeoff, not an oversight.
-        if (!isEditingText && e.key === 'Tab') { e.preventDefault(); appState.profileBtn.click(); return; }
+        // Was 'P' — reassigned to 'Y' per explicit request (Profile itself renamed "You" in the
+        // same request), freeing 'P' back up in turn for Plugins (was Extensions/Library, below).
+        if (!isEditingText && (e.key === 'y' || e.key === 'Y')) { e.preventDefault(); appState.profileBtn.click(); return; }
         if (!isEditingText && (e.key === 'w' || e.key === 'W')) { e.preventDefault(); appState.railBtnWaypoints.click(); return; }
         if (!isEditingText && (e.key === 'c' || e.key === 'C')) { e.preventDefault(); appState.railBtnCollab.click(); return; }
+        // Was 'J' (Friends) — reassigned to 'S' per explicit request, freeing 'S' back up in turn
+        // for Snippets2's own move to 'X' below (delete/cut, history-autosave.js's bare 'X', is
+        // guarded off whenever something's selected — see that shortcut's own comment for why).
+        if (!isEditingText && (e.key === 's' || e.key === 'S')) { e.preventDefault(); appState.btnServers.click(); return; }
         if (!isEditingText && (e.key === 'h' || e.key === 'H')) { e.preventDefault(); appState.btnCart.click(); return; }
-        if (!isEditingText && (e.key === 'l' || e.key === 'L')) { e.preventDefault(); appState.libraryBtn.click(); return; }
+        // Was 'L' (Library), then 'E' (Extensions) — reassigned to 'P' when Extensions was renamed
+        // back to Plugins per explicit follow-up request, reusing the 'P' that Profile's own
+        // rename to "You" (moving to 'Y', above) just freed up; 'E'/'L' are both unbound now.
+        if (!isEditingText && (e.key === 'p' || e.key === 'P')) { e.preventDefault(); appState.libraryBtn.click(); return; }
         if (!isEditingText && (e.key === 'm' || e.key === 'M')) { e.preventDefault(); appState.messagesBtn.click(); return; }
-        if (!isEditingText && (e.key === 'e' || e.key === 'E')) { e.preventDefault(); btnAdd.click(); return; }
+        // Was 'E' (Essentials) — reassigned to 'B' when Essentials was renamed Blocks per explicit
+        // request. 'E' was reused above for Extensions for a while, then freed up again once that
+        // panel reverted to Plugins/'P' (above) — currently unbound.
+        if (!isEditingText && (e.key === 'b' || e.key === 'B')) { e.preventDefault(); btnAdd.click(); return; }
         // Sources was 'S' (reassigned to 'K' per explicit request, freeing 'S' up for the newer,
         // separate Snippets button below).
         if (!isEditingText && (e.key === 'k' || e.key === 'K')) { e.preventDefault(); appState.btnSources.click(); return; }
         if (!isEditingText && (e.key === 'f' || e.key === 'F')) { e.preventDefault(); appState.btnSnippets.click(); return; }
         // appState.btnSnippets2 is the newer, separate Snippets button (see its own comment,
-        // core-state.js) — not appState.btnSnippets, which is actually Files under the hood.
-        if (!isEditingText && (e.key === 's' || e.key === 'S')) { e.preventDefault(); appState.btnSnippets2.click(); return; }
-        // Bare 'z'/'Z' only — Cmd/Ctrl+Z (undo/redo) is a separate, differently-gated handler
-        // (history-autosave.js, requires e.metaKey||e.ctrlKey). The comment here used to claim
-        // that alone was enough to keep the two from colliding, but preventDefault() on THIS
-        // listener does nothing to stop history-autosave.js's own keydown listener from also
-        // firing on the same Cmd/Ctrl+Z press — this handler needed its own !e.metaKey/!e.ctrlKey
-        // guard to actually stay out of undo's way, per explicit bug report that Cmd+Z was opening
-        // Settings. Settings is no longer its own rail icon (moved into a sub-view of the Profile
-        // panel, per explicit request) — this now opens Profile and jumps straight to that sub-view
-        // in one step (profileBtn's own click handler, via wireRailIcon, runs synchronously —
-        // refreshProfilePanel resets to the main view first, and showProfileSettingsView right
-        // after switches it back to settings before anything paints) rather than requiring a
-        // second click once there.
-        if (!isEditingText && !e.metaKey && !e.ctrlKey && (e.key === 'z' || e.key === 'Z')) { e.preventDefault(); appState.profileBtn.click(); showProfileSettingsView(); return; }
+        // core-state.js) — not appState.btnSnippets, which is actually Files under the hood. Was
+        // 'S' (freed up per explicit request for Servers, above) — reassigned to 'X', which
+        // collides with the bare delete/cut shortcut (history-autosave.js, fires whenever
+        // selectedCardIds is non-empty) whenever something's actually selected; resolved the same
+        // way the Z/Cmd+Z collision below was — this handler backs off and lets cut own the key
+        // exactly when cut is live (something selected), only opening Snippets otherwise.
+        if (!isEditingText && appState.selectedCardIds.length === 0 && (e.key === 'x' || e.key === 'X')) { e.preventDefault(); appState.btnSnippets2.click(); return; }
+        // Was bare 'z'/'Z', then briefly Cmd/Ctrl+, (matching the Preferences/Settings convention
+        // most other apps use) — simplified to bare ',' per a follow-up explicit request. No
+        // collision to guard against: nothing else in this codebase binds a bare ',' key, and
+        // Cmd/Ctrl+Z (undo/redo, history-autosave.js) no longer overlaps with this shortcut at all
+        // now that Z itself is free of it too. Settings is no longer its own rail icon (moved into
+        // a sub-view of the Profile panel, per an earlier explicit request) — this opens Profile
+        // and jumps straight to that sub-view in one step (profileBtn's own click handler, via
+        // wireRailIcon, runs synchronously — refreshProfilePanel resets to the main view first, and
+        // showProfileSettingsView right after switches it back to settings before anything paints)
+        // rather than requiring a second click once there.
+        if (!isEditingText && e.key === ',') { e.preventDefault(); appState.profileBtn.click(); showProfileSettingsView(); return; }
         // Not a rail icon (see upload-popup.js) — toggleUploadPopup() is a plain classList toggle
         // on its own independent #upload-popup, not an openRailView('...', ...).click() call like
         // every shortcut above it.
@@ -826,78 +840,96 @@ import { render, renderSelectedOutlines, startBoxSelection, syncWaypointToDb } f
         };
         window.addEventListener('pointermove', move); window.addEventListener('pointerup', up);
     }
-    // Second click of the double-click already added its own point via the pointerdown handler
-    // above (landing at, or very near, the finish location) — accepted as the tradeoff most
-    // polyline-editor UIs make rather than special-casing it away.
-    canvas.addEventListener('dblclick', () => { if (appState.penPolyline) finishPenPolyline(); });
-    canvas.addEventListener('pointerdown', (e) => {
-        if (e.target !== canvas) return;
-        if (appState.folders[appState.currentFolderId] && appState.folders[appState.currentFolderId].isSource) return;
+    // Canvas-level (not item-level) interaction listeners — pen-polyline finish, box-select/pan/
+    // add-placement pointerdown, wheel pan/zoom — wrapped in a reusable setup function (split-
+    // screen Stage 4: see registerPaneCanvasListenerSetup, core-state.js) so every pane's own
+    // canvas element gets them, not just pane 0's. switchActivePane(paneId) is each handler's own
+    // first line rather than trusting appState.activePaneId ambiently — none of these are
+    // pointerdown-gated the way item-level gestures are (wheel especially: it never goes through
+    // the capture-phase pointerdown router at all), so a user interacting with an inactive pane
+    // needs this call to correctly redirect appState.tx/etc to THIS pane before anything else here
+    // reads or writes them. canvasEl (not the ambient `canvas` binding) is used for geometry/
+    // identity checks specific to this pane (e.target/getBoundingClientRect/classList) — after
+    // switchActivePane runs, `canvas` and `canvasEl` refer to the same element anyway, but using
+    // canvasEl directly avoids depending on that being true yet.
+    function setupCanvasLevelInteractionListeners(canvasEl, paneId) {
+        // Second click of the double-click already added its own point via the pointerdown handler
+        // above (landing at, or very near, the finish location) — accepted as the tradeoff most
+        // polyline-editor UIs make rather than special-casing it away.
+        canvasEl.addEventListener('dblclick', () => { switchActivePane(paneId); if (appState.penPolyline) finishPenPolyline(); });
+        canvasEl.addEventListener('pointerdown', (e) => {
+            if (e.target !== canvasEl) return;
+            switchActivePane(paneId);
+            if (appState.folders[appState.currentFolderId] && appState.folders[appState.currentFolderId].isSource) return;
 
-        // Clicking blank canvas cancels a click-to-link gesture in progress (see
-        // handleDataModeClick) rather than leaving it armed indefinitely.
-        if (appState.dataLinkPendingId != null) clearDataLinkPending();
+            // Clicking blank canvas cancels a click-to-link gesture in progress (see
+            // handleDataModeClick) rather than leaving it armed indefinitely.
+            if (appState.dataLinkPendingId != null) clearDataLinkPending();
 
-        if (effectiveMode() === 'pen') { handlePenPointerDown(e); return; }
+            if (effectiveMode() === 'pen') { handlePenPointerDown(e); return; }
 
-        if (appState.addingKind) {
-            const rect = canvas.getBoundingClientRect();
-            const { w, h } = kindSize(appState.addingKind);
-            const x = Math.round((((e.clientX - rect.left - appState.tx) / appState.scale) - w / 2) / 28) * 28;
-            const y = Math.round((((e.clientY - rect.top - appState.ty) / appState.scale) - h / 2) / 28) * 28;
-            add(appState.addingKind, x, y, appState.addingStatKind);
-            appState.addingKind = null; appState.addingStatKind = null; canvas.classList.remove('crosshair');
-            removePlacementGhost();
-            return;
-        }
-        if(appState.currentEditingEl) { appState.currentEditingEl.classList.remove('editing'); appState.currentEditingEl.querySelector('.body').contentEditable = false; appState.currentEditingEl = null; broadcastEditingState(false); }
-        
-        // Multi-selection: Shift+drag (or Select mode) on empty canvas draws a selection window instead of panning
-        if (e.shiftKey || effectiveMode() === 'select') {
-            startBoxSelection(e);
-            return;
-        }
-        appState.selectedCardIds = [];
-        renderSelectedOutlines();
+            if (appState.addingKind) {
+                const rect = canvasEl.getBoundingClientRect();
+                const { w, h } = kindSize(appState.addingKind);
+                const x = Math.round((((e.clientX - rect.left - appState.tx) / appState.scale) - w / 2) / 28) * 28;
+                const y = Math.round((((e.clientY - rect.top - appState.ty) / appState.scale) - h / 2) / 28) * 28;
+                add(appState.addingKind, x, y, appState.addingStatKind);
+                appState.addingKind = null; appState.addingStatKind = null; canvasEl.classList.remove('crosshair');
+                removePlacementGhost();
+                return;
+            }
+            if(appState.currentEditingEl) { appState.currentEditingEl.classList.remove('editing'); appState.currentEditingEl.querySelector('.body').contentEditable = false; appState.currentEditingEl = null; broadcastEditingState(false); }
 
-        let startX = e.clientX - appState.tx, startY = e.clientY - appState.ty;
-        document.body.classList.add('dragging');
-        const move = (me) => { appState.tx = me.clientX - startX; appState.ty = me.clientY - startY; applyTransform(); };
-        const up = () => { document.body.classList.remove('dragging'); window.removeEventListener('pointermove', move); window.removeEventListener('pointerup', up); };
-        window.addEventListener('pointermove', move); window.addEventListener('pointerup', up);
-    });
+            // Multi-selection: Shift+drag (or Select mode) on empty canvas draws a selection window instead of panning
+            if (e.shiftKey || effectiveMode() === 'select') {
+                startBoxSelection(e);
+                return;
+            }
+            appState.selectedCardIds = [];
+            renderSelectedOutlines();
 
-    canvas.addEventListener('wheel', (e) => {
-        if (appState.folders[appState.currentFolderId] && appState.folders[appState.currentFolderId].isSource) return;
-        const bodyEl = e.target.closest && e.target.closest('.item.note .body');
-        if (bodyEl && bodyEl.scrollHeight > bodyEl.clientHeight) return;
-        // EPUB cards render as one continuous scroll (epub.js's 'scrolled-doc' flow,
-        // buildEpubViewer, media-pdf-epub.js) — per explicit request, scrolling over one should
-        // scroll the book itself, not pan the canvas underneath it. Unlike the note-body check just
-        // above, this doesn't verify actual overflow first: epub.js renders each chapter inside its
-        // own same-origin iframe (see buildEpubViewer's own comment on why — CSS isolation), so the
-        // element that actually scrolls is somewhere inside that iframe's own document, not
-        // reliably measurable as a plain scrollHeight/clientHeight check on .epub-viewer-container
-        // from here. A book is essentially always going to have more content than fits in a small
-        // canvas card anyway, so unconditionally deferring to the book's own native scroll — worst
-        // case, a wheel over a book so short it needed no scrolling now just does nothing, instead
-        // of the previous behavior of unexpectedly panning the whole canvas — is an acceptable
-        // simplification over fragile cross-frame overflow probing.
-        if (e.target.closest && e.target.closest('.epub-viewer')) return;
-        e.preventDefault();
-        if (e.ctrlKey) {
-            const factor = Math.pow(1.1, -e.deltaY / 60);
-            const mouseX = e.clientX - appState.tx, mouseY = e.clientY - appState.ty;
-            const newScale = Math.min(Math.max(appState.scale * factor, appState.ZOOM_MIN), appState.ZOOM_MAX);
-            appState.tx = e.clientX - (mouseX * (newScale / appState.scale));
-            appState.ty = e.clientY - (mouseY * (newScale / appState.scale));
-            appState.scale = newScale;
-        } else {
-            appState.tx -= e.deltaX;
-            appState.ty -= e.deltaY;
-        }
-        scheduleApplyTransform();
-    }, { passive: false });
+            let startX = e.clientX - appState.tx, startY = e.clientY - appState.ty;
+            document.body.classList.add('dragging');
+            const move = (me) => { appState.tx = me.clientX - startX; appState.ty = me.clientY - startY; applyTransform(); };
+            const up = () => { document.body.classList.remove('dragging'); window.removeEventListener('pointermove', move); window.removeEventListener('pointerup', up); };
+            window.addEventListener('pointermove', move); window.addEventListener('pointerup', up);
+        });
+
+        canvasEl.addEventListener('wheel', (e) => {
+            switchActivePane(paneId);
+            if (appState.folders[appState.currentFolderId] && appState.folders[appState.currentFolderId].isSource) return;
+            const bodyEl = e.target.closest && e.target.closest('.item.note .body');
+            if (bodyEl && bodyEl.scrollHeight > bodyEl.clientHeight) return;
+            // EPUB cards render as one continuous scroll (epub.js's 'scrolled-doc' flow,
+            // buildEpubViewer, media-pdf-epub.js) — per explicit request, scrolling over one should
+            // scroll the book itself, not pan the canvas underneath it. Unlike the note-body check just
+            // above, this doesn't verify actual overflow first: epub.js renders each chapter inside its
+            // own same-origin iframe (see buildEpubViewer's own comment on why — CSS isolation), so the
+            // element that actually scrolls is somewhere inside that iframe's own document, not
+            // reliably measurable as a plain scrollHeight/clientHeight check on .epub-viewer-container
+            // from here. A book is essentially always going to have more content than fits in a small
+            // canvas card anyway, so unconditionally deferring to the book's own native scroll — worst
+            // case, a wheel over a book so short it needed no scrolling now just does nothing, instead
+            // of the previous behavior of unexpectedly panning the whole canvas — is an acceptable
+            // simplification over fragile cross-frame overflow probing.
+            if (e.target.closest && e.target.closest('.epub-viewer')) return;
+            e.preventDefault();
+            if (e.ctrlKey) {
+                const factor = Math.pow(1.1, -e.deltaY / 60);
+                const mouseX = e.clientX - appState.tx, mouseY = e.clientY - appState.ty;
+                const newScale = Math.min(Math.max(appState.scale * factor, appState.ZOOM_MIN), appState.ZOOM_MAX);
+                appState.tx = e.clientX - (mouseX * (newScale / appState.scale));
+                appState.ty = e.clientY - (mouseY * (newScale / appState.scale));
+                appState.scale = newScale;
+            } else {
+                appState.tx -= e.deltaX;
+                appState.ty -= e.deltaY;
+            }
+            scheduleApplyTransform();
+        }, { passive: false });
+    }
+    setupCanvasLevelInteractionListeners(canvas, 0);
+    registerPaneCanvasListenerSetup(setupCanvasLevelInteractionListeners);
 
     function setZoomFromClientY(clientY) {
         const rect = zoomTrack.getBoundingClientRect();

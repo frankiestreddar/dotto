@@ -20,7 +20,7 @@ import { setupResizing } from "./canvasItemBehavior";
 // describe WHAT to render change, not on every unrelated render() call (same reasoning as the
 // Shelf/stopwatch-tick fix — without this, a running Stopwatch elsewhere on the canvas would tear
 // down and rebuild every PDF card once a second).
-export default function MediaCard({ it }) {
+export default function MediaCard({ it, paneId }) {
   const mountRef = useRef(null);
 
   useLayoutEffect(() => {
@@ -37,7 +37,7 @@ export default function MediaCard({ it }) {
       // handle yet — see setupResizing's own early return). `el`, not `mount` — setupResizing
       // reads/writes el.style.width/height and el.offsetWidth/Height directly, so it needs the
       // actual sized .item wrapper, not this unstyled mount point.
-      const el = document.getElementById("item-" + it.id);
+      const el = window.__findItemEl(it.id, paneId);
       if (el) setupResizing(el, it);
     }
     // `it` itself (not just the fields below) is deliberately left out of the deps list — this

@@ -17,11 +17,22 @@ function CollabRow({ r }) {
 
   return (
     <div className="collab-row">
-      <Avatar className="collab-row-avatar" avatar={{ id: r.avatarId, url: r.avatarUrl }} name={r.displayName} />
+      <Avatar
+        className="collab-row-avatar"
+        avatar={{ id: r.avatarId, url: r.avatarUrl }}
+        name={r.displayName}
+      />
       <div className="collab-row-meta">
         <div
           className={nameClass}
-          onClick={r.isPresent ? (e) => { e.stopPropagation(); window.__goToCollaboratorCursor(r.id); } : undefined}
+          onClick={
+            r.isPresent
+              ? (e) => {
+                  e.stopPropagation();
+                  window.__goToCollaboratorCursor(r.id);
+                }
+              : undefined
+          }
         >
           {r.displayName}
           {r.isPresent && <span className="collab-row-live-dot" />}
@@ -30,7 +41,10 @@ function CollabRow({ r }) {
       <button
         className={"collab-add-btn" + (r.added ? " added" : "") + (r.pending ? " pending" : "")}
         disabled={r.pending}
-        onClick={(e) => { e.stopPropagation(); window.__handleCollabAddRemoveClick(r.id, r.added, r.pending, r.query); }}
+        onClick={(e) => {
+          e.stopPropagation();
+          window.__handleCollabAddRemoveClick(r.id, r.added, r.pending, r.query);
+        }}
       >
         {label}
       </button>
@@ -41,7 +55,11 @@ function CollabRow({ r }) {
 // Portals into #collab-list (content/fragments/collab-panel.html) — a plain flex-item container,
 // safe to portal into directly, same as #waypoints-list/#hub-collab-list/#msg-list.
 export default function CollabListPanel() {
-  const state = useSyncExternalStore(collabListStore.subscribe, collabListStore.getSnapshot, () => EMPTY_STATE);
+  const state = useSyncExternalStore(
+    collabListStore.subscribe,
+    collabListStore.getSnapshot,
+    () => EMPTY_STATE,
+  );
   const portalNode = usePortalNode("collab-list");
 
   if (!portalNode) return null;

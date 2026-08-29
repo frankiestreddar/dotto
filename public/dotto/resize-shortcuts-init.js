@@ -1,11 +1,11 @@
-import { appState, btnBack, btnForward, contextMenu } from './core-state.js';
+import { appState, contextMenu, findItemEl, parseItemId } from './core-state.js';
 import { refreshCanvasCollabForCurrentFolder, refreshFriendsData, renderCollabPill } from './friends-presence.js';
 import { fcFlip, fcRate, trNext } from './games-flashcard-typeright.js';
 import { applyTransform, loadWorkspace, saveSnapshot, scheduleWorkspaceSave } from './history-autosave.js';
 import { findItemById } from './live-presence.js';
 import { isAnyUiPanelOpen } from './panels-hamburger.js';
 import { refreshDotbotUsage } from './profile-achievements-pricing.js';
-import { announceEnteredCollaboration, jumpToHistoryIndex } from './shared-canvases-outline.js';
+import { announceEnteredCollaboration } from './shared-canvases-outline.js';
 import { applyCursorMode } from './source-buttons-cursor-mode.js';
 import { distributeTableSizing } from './source-table.js';
 import { updateDrawLayerBtns } from './srs-connections-core.js';
@@ -55,70 +55,13 @@ import { cascadeDeleteFolderContents, centerOnContent, deleteWaypointFromDb, ren
     document.addEventListener('keydown', (e) => { if (e.altKey) document.body.classList.add('option-held'); });
     document.addEventListener('keyup', (e) => { if (!e.altKey) document.body.classList.remove('option-held'); });
     window.addEventListener('blur', () => document.body.classList.remove('option-held'));
-    // Expands the top-bar pill (#top-bar-center — arrows/collaborator/add-tab sections) whenever the
-    // cursor is ANYWHERE within TOP_BAR_PROXIMITY_PX of its own rendered box, not just while
-    // literally hovering it — per explicit request — with one carve-out, also per explicit request:
-    // once the cursor has actually touched the pill itself and then moved back off it, the pill
-    // collapses straight away and STAYS collapsed for the rest of that zone visit (drifting back and
-    // forth nearby doesn't re-open it) — it only expands again by touching the pill directly once
-    // more, or by leaving the zone entirely and re-entering it, which resets everything back to the
-    // plain "open anywhere in the zone" default. CSS alone has no "within N px of an element," so
-    // this is a plain mousemove listener toggling a class (.pill-proximity) that every
-    // #top-bar-center:hover-gated rule also matches on (see #nav-arrows-pill's own comment,
-    // globals.css) — real :hover stays as an independent, unmodified second trigger in those same
-    // rules, harmless overlap with the state machine below since both agree in every case that
-    // matters.
-    // pillExpanded/pillZoneUsed/pillWasOverPill are this listener's own state, updated once per move:
-    //  - overPill (distance 0 — the point is already inside the rect): always expands. Touching the
-    //    pill is always able to (re-)open it, even after pillZoneUsed has "used up" the plain
-    //    proximity trigger for this zone visit.
-    //  - !inZone: always collapses and resets pillZoneUsed to false — leaving the zone entirely is
-    //    the other way (besides touching the pill) back to a fresh visit.
-    //  - inZone, not over the pill, but WAS over the pill last tick: the cursor just left the pill's
-    //    own box while still in the wider zone — collapse immediately and set pillZoneUsed, so the
-    //    plain "in zone" rule below stops re-opening it for the remainder of this visit.
-    //  - inZone, not over the pill, wasn't over it last tick either: the plain default — expanded
-    //    unless pillZoneUsed says this visit's proximity trigger has already been spent.
-    // Recomputed against the pill's CURRENT getBoundingClientRect() every move rather than a cached
-    // box, so the zone itself tracks the pill's own live size as it expands/collapses.
-    const TOP_BAR_PROXIMITY_PX = 100;
-    let pillExpanded = false;
-    let pillZoneUsed = false;
-    let pillWasOverPill = false;
-    function distanceToRect(x, y, rect) {
-        const dx = Math.max(rect.left - x, 0, x - rect.right);
-        const dy = Math.max(rect.top - y, 0, y - rect.bottom);
-        return Math.hypot(dx, dy);
-    }
-    document.addEventListener('mousemove', (e) => {
-        if (!appState.topBarCenter) return;
-        const rect = appState.topBarCenter.getBoundingClientRect();
-        const dist = distanceToRect(e.clientX, e.clientY, rect);
-        const overPill = dist === 0;
-        const inZone = dist <= TOP_BAR_PROXIMITY_PX;
-        if (overPill) {
-            pillExpanded = true;
-        } else if (!inZone) {
-            pillExpanded = false;
-            pillZoneUsed = false;
-        } else if (pillWasOverPill) {
-            pillExpanded = false;
-            pillZoneUsed = true;
-        } else {
-            pillExpanded = !pillZoneUsed;
-        }
-        pillWasOverPill = overPill;
-        appState.topBarCenter.classList.toggle('pill-proximity', pillExpanded);
-    });
-    // No further mousemove ever fires once the cursor leaves the window, which could otherwise
-    // leave the pill stuck expanded — same "clear on blur" safety net .option-held above already
-    // uses for the identical class of problem.
-    window.addEventListener('blur', () => {
-        pillExpanded = false;
-        pillZoneUsed = false;
-        pillWasOverPill = false;
-        if (appState.topBarCenter) appState.topBarCenter.classList.remove('pill-proximity');
-    });
+    // The top-bar proximity-hover-expand mechanism that used to live here (a single global
+    // mousemove listener toggling .pill-proximity on the one shared #top-bar-center) moved to
+    // PaneTopBar.jsx (split-screen Stage 8, explicit request that each pane's own pill "expands
+    // individually") — every pane now owns its own independent instance of the same
+    // distance-to-rect/touch-then-leave-stays-collapsed state machine, scoped to its own pill
+    // element instead of one global DOM node. See that component's own comment for the exact same
+    // logic, just React-`useEffect`-owned per instance now.
     const TABLE_COL_MIN_PX = 40;
     const TABLE_ROW_MIN_PX = 28;
     // React → vanilla bridges — app/dotto/canvasItemBehavior.js's setupResizing needs these same
@@ -175,7 +118,7 @@ import { cascadeDeleteFolderContents, centerOnContent, deleteWaypointFromDb, ren
             const a = Math.max(minPct, Math.min(pairTotal - minPct, startA + dxPct));
             widths[i] = a; widths[i + 1] = pairTotal - a;
             it.colWidths = widths;
-            const el2 = document.getElementById('item-' + it.id);
+            const el2 = findItemEl(it.id);
             if (!el2) return;
             const cols = el2.querySelectorAll('.item-table > colgroup > col');
             if (cols[i]) cols[i].style.width = widths[i] + '%';
@@ -208,7 +151,7 @@ import { cascadeDeleteFolderContents, centerOnContent, deleteWaypointFromDb, ren
             const a = Math.max(minPct, Math.min(pairTotal - minPct, startA + dyPct));
             heights[i] = a; heights[i + 1] = pairTotal - a;
             it.rowHeights = heights;
-            const el2 = document.getElementById('item-' + it.id);
+            const el2 = findItemEl(it.id);
             if (!el2) return;
             distributeTableSizing(it, el2);
             const handles = el2.querySelectorAll('.table-row-resize-handle');
@@ -283,7 +226,7 @@ import { cascadeDeleteFolderContents, centerOnContent, deleteWaypointFromDb, ren
     function hoveredGameCard() {
         const el = document.querySelector('.item.flashcard:hover, .item.typeright:hover');
         if (!el) return null;
-        const it = findItemById(Number(el.id.replace('item-', '')));
+        const it = findItemById(parseItemId(el));
         return it && (it.kind === 'flashcard' || it.kind === 'typeright') ? it : null;
     }
     document.addEventListener('keydown', (e) => {
@@ -297,7 +240,7 @@ import { cascadeDeleteFolderContents, centerOnContent, deleteWaypointFromDb, ren
         const isEditingText = active && (active.isContentEditable || active.tagName === 'INPUT' || active.tagName === 'SELECT' || active.tagName === 'TEXTAREA');
         if (isEditingText) return;
         if (isAnyUiPanelOpen()) return;
-        if (appState.currentNotification) return; // its own Enter/Escape handling should win, not compete
+        if (appState.visibleNotifications.length) return; // its own Enter/Escape handling should win, not compete
         const it = hoveredGameCard();
         if (!it) return;
         if (it.kind === 'flashcard') {
@@ -326,7 +269,7 @@ import { cascadeDeleteFolderContents, centerOnContent, deleteWaypointFromDb, ren
     function hoveredPdfCard() {
         const el = document.querySelector('.item.media:hover');
         if (!el) return null;
-        const it = findItemById(Number(el.id.replace('item-', '')));
+        const it = findItemById(parseItemId(el));
         return (it && it.kind === 'media' && it.mediaType === 'pdf') ? { it, el } : null;
     }
     document.addEventListener('keydown', (e) => {
@@ -336,7 +279,7 @@ import { cascadeDeleteFolderContents, centerOnContent, deleteWaypointFromDb, ren
         const isEditingText = active && (active.isContentEditable || active.tagName === 'INPUT' || active.tagName === 'SELECT' || active.tagName === 'TEXTAREA');
         if (isEditingText) return;
         if (isAnyUiPanelOpen()) return;
-        if (appState.currentNotification) return;
+        if (appState.visibleNotifications.length) return;
         const hovered = hoveredPdfCard();
         if (!hovered) return;
         // Reuses buildPdfViewer's own prevBtn/nextBtn click handlers directly (bounds-checking,
@@ -350,8 +293,9 @@ import { cascadeDeleteFolderContents, centerOnContent, deleteWaypointFromDb, ren
     });
 
 
-    btnBack.onclick = () => { if(appState.historyIndex > 0) jumpToHistoryIndex(appState.historyIndex - 1); };
-    btnForward.onclick = () => { if(appState.historyIndex < appState.historyStack.length - 1) jumpToHistoryIndex(appState.historyIndex + 1); };
+    // Back/forward click wiring moved to PaneTopBar.jsx (split-screen Stage 8 — each pane now
+    // renders its own back/forward buttons, calling window.__jumpToHistoryIndex(idx, paneId)
+    // directly, replacing the single shared #btn-back/#btn-forward pair this used to own).
 
     updateDrawLayerBtns();
     applyCursorMode();

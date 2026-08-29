@@ -26,19 +26,30 @@ function MarketItemRow({ item }) {
 // Portals into #market-list-container (content/fragments/hamburger-stack.html, #cart-panel) — a
 // plain flex-item container, safe to portal into directly, same as #waypoints-list and friends.
 export default function MarketDiscoverPanel() {
-  const items = useSyncExternalStore(marketDiscoverStore.subscribe, marketDiscoverStore.getSnapshot, () => EMPTY_ITEMS);
+  const items = useSyncExternalStore(
+    marketDiscoverStore.subscribe,
+    marketDiscoverStore.getSnapshot,
+    () => EMPTY_ITEMS,
+  );
   const portalNode = usePortalNode("market-list-container");
 
   if (!portalNode) return null;
 
   if (!items.length) {
-    return createPortal(<div className="text-xs text-neutral-500 text-center py-6 font-mono">No matching templates.</div>, portalNode);
+    return createPortal(
+      <div className="text-xs text-neutral-500 text-center py-6 font-mono">
+        No matching templates.
+      </div>,
+      portalNode,
+    );
   }
 
   return createPortal(
     <>
       <div className="waypoint-folder-header !px-1">Trending</div>
-      {items.map((item) => <MarketItemRow key={item.id} item={item} />)}
+      {items.map((item) => (
+        <MarketItemRow key={item.id} item={item} />
+      ))}
     </>,
     portalNode,
   );

@@ -1,23 +1,29 @@
-import { appState, supabase } from './core-state.js';
+import { addMenu, appState, btnAdd, supabase } from './core-state.js';
 import { renderInlineCanvas } from './live-presence.js';
-import { refreshMyLibrary, renderLibrary, switchLibraryFolder } from './marketplace.js';
+import { refreshMyLibrary } from './marketplace.js';
 
 
-    // ---------- Library Item Detail View (drafts / published / purchased) ----------
+    // ---------- Blocks panel: Item Detail View (Purchased / My Creations = drafts+published) ----------
+    // Was Library's item detail view — relocated here (DOM moved into #add-menu,
+    // content/fragments/hamburger-stack.html) along with the rest of "browse your own library
+    // content" when Library was repurposed into Plugins. refreshBlocksPanel/createBlocksFolder/etc.
+    // (blocks-panel.js) are called via window.__refreshBlocksPanel rather than imported directly —
+    // blocks-panel.js itself imports openItemDetail from this file, so a direct import back here
+    // would be circular.
 
     function openItemDetail(item, sourceFolder) {
         appState.detailItem = item;
         appState.detailSourceFolder = sourceFolder;
         appState.detailOriginal = { title: item.title, description: item.description || '', price: item.price || '' };
 
-        // Keep the Library panel open (pinned) while the detail page is showing — Library shares
-        // the one rail-wide pinned flag now (see appState.panelPinned.rail, core-state.js). Both
-        // callers (a library row click, or packageSelectedAsTemplate's drag-drop) only ever reach
-        // this while the Library panel is already the open rail view, so this is just making that
-        // state explicit rather than actually switching panels.
+        // Keep the Blocks panel open (pinned) while the detail page is showing — it shares the one
+        // rail-wide pinned flag now (see appState.panelPinned.rail, core-state.js). Both callers (a
+        // Blocks row click, or packageSelectedAsTemplate's drag-drop) only ever reach this while
+        // the Blocks panel is already the open rail view, so this is just making that state
+        // explicit rather than actually switching panels.
         appState.panelPinned.rail = true;
-        appState.libraryPanel.classList.add('open');
-        appState.libraryBtn.classList.add('active');
+        addMenu.classList.add('open');
+        btnAdd.classList.add('active');
 
         document.getElementById('view-library').classList.remove('active');
         document.getElementById('publish-flow-view').classList.remove('active');
@@ -129,23 +135,41 @@ import { refreshMyLibrary, renderLibrary, switchLibraryFolder } from './marketpl
         if (error) { console.error('[marketplace] failed to unpublish:', error); return; }
         await refreshMyLibrary();
         closeItemDetail();
-        switchLibraryFolder('drafts');
+        window.__refreshBlocksPanel();
+    }
+
+    // Core delete, shared by deleteDetailDraft (the detail view's own button, drafts only, ItemDetailFooter.jsx's
+    // existing gating) and deleteMyCreationItem (blocks-panel.js's new row-level hover delete button, which can
+    // target either a draft OR a published item — My Creations is drafts+published combined).
+    async function deleteMarketplaceListing(id, folderKey) {
+        const { error } = await supabase.from('marketplace_listings').delete().eq('id', id);
+        if (error) { console.error('[marketplace] failed to delete listing:', error); return false; }
+        appState.userLibrary[folderKey] = appState.userLibrary[folderKey].filter(x => x.id !== id);
+        return true;
     }
 
     async function deleteDetailDraft() {
         if (!appState.detailItem || appState.detailSourceFolder !== 'drafts') return;
-        const { error } = await supabase.from('marketplace_listings').delete().eq('id', appState.detailItem.id);
-        if (error) { console.error('[marketplace] failed to delete draft:', error); return; }
-        appState.userLibrary.drafts = appState.userLibrary.drafts.filter(x => x.id !== appState.detailItem.id);
+        const ok = await deleteMarketplaceListing(appState.detailItem.id, 'drafts');
+        if (!ok) return;
         closeItemDetail();
-        renderLibrary();
+        window.__refreshBlocksPanel();
+    }
+
+    // Row-level delete (Blocks panel's hover delete button on a My Creations item, not gated on
+    // appState.detailItem/detailSourceFolder the way deleteDetailDraft is — this is called directly
+    // from a list row, no need to have clicked into the item detail view first). folderKey is
+    // 'drafts' or 'published', resolved by the caller via resolveItemStatus (blocks-panel.js).
+    async function deleteMyCreationItem(item, folderKey) {
+        const ok = await deleteMarketplaceListing(item.id, folderKey);
+        if (ok) window.__refreshBlocksPanel();
     }
 
     function closeItemDetail() {
         appState.detailItem = null; appState.detailSourceFolder = null; appState.detailOriginal = null;
         document.getElementById('item-detail-view').classList.remove('active');
         document.getElementById('view-library').classList.add('active');
-        renderLibrary();
+        window.__refreshBlocksPanel();
     }
 
     // ---------- Publish Flow (draft -> published, no native alert()/prompt() popups) ----------
@@ -206,13 +230,15 @@ import { refreshMyLibrary, renderLibrary, switchLibraryFolder } from './marketpl
         document.getElementById('publish-flow-view').classList.remove('active');
         document.getElementById('view-library').classList.add('active');
         await refreshMyLibrary();
-        switchLibraryFolder('published');
+        window.__refreshBlocksPanel();
     }
 
-export { blurPublishFlowName, commitItemDetailDesc, commitItemDetailTitle, confirmPublishFlow, deleteDetailDraft, focusPublishFlowName, onItemDetailFieldChange, openItemDetail, startPublishFlow, unpublishDetailItem, updateDetailItem };
+export { blurPublishFlowName, commitItemDetailDesc, commitItemDetailTitle, confirmPublishFlow, deleteDetailDraft, deleteMyCreationItem, focusPublishFlowName, onItemDetailFieldChange, openItemDetail, startPublishFlow, unpublishDetailItem, updateDetailItem };
 
-// React → vanilla bridges — used by LibraryPanel.jsx/ItemDetailFooter.jsx (app/dotto/), which
-// can't import this directly since public/dotto/*.js isn't reachable from app/dotto/.
+// React → vanilla bridges — used by ItemDetailFooter.jsx (app/dotto/), which can't import this
+// directly since public/dotto/*.js isn't reachable from app/dotto/. openItemDetail/
+// deleteMyCreationItem are imported directly by blocks-panel.js instead (a plain vanilla-to-vanilla
+// import, no circularity in that direction), not bridged here.
 window.__openItemDetail = openItemDetail;
 window.__deleteDetailDraft = deleteDetailDraft;
 window.__startPublishFlow = startPublishFlow;

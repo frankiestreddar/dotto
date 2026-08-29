@@ -67,8 +67,12 @@ export default function FlashcardCard({ it }) {
   }
 
   const row = window.__fcCurrentRow(it, playable);
-  const front = row ? window.__renderGameFaceBlocksHTML(window.__resolveGameFace(it, row, "front")) : "(no data rows)";
-  const back = row ? window.__renderGameFaceBlocksHTML(window.__resolveGameFace(it, row, "back")) : "";
+  const front = row
+    ? window.__renderGameFaceBlocksHTML(window.__resolveGameFace(it, row, "front"))
+    : "(no data rows)";
+  const back = row
+    ? window.__renderGameFaceBlocksHTML(window.__resolveGameFace(it, row, "back"))
+    : "";
   const total = it.fcOrder.length;
   const pos = total ? it.fcIndex + 1 : 0;
 
@@ -78,7 +82,12 @@ export default function FlashcardCard({ it }) {
         <div className="fc-top" onMouseDown={(e) => e.stopPropagation()}>
           <div className="fc-title">{title}</div>
           <div className="fc-top-right">
-            <button type="button" className="fc-mode-btn" onClick={() => window.fcToggleMode(it.id)} title="Toggle shuffle / ordered">
+            <button
+              type="button"
+              className="fc-mode-btn"
+              onClick={() => window.fcToggleMode(it.id)}
+              title="Toggle shuffle / ordered"
+            >
               {it.fcMode === "shuffle" ? "Shuffle ON" : "Shuffle OFF"}
             </button>
             <div className="fc-progress">
@@ -86,31 +95,68 @@ export default function FlashcardCard({ it }) {
             </div>
           </div>
         </div>
-        <div className={"fc-card" + (it.fcFlipped ? " flipped" : "")} onMouseDown={(e) => e.stopPropagation()} onClick={() => window.fcFlip(it.id)}>
-          <div className="fc-face fc-front" dangerouslySetInnerHTML={{ __html: front || "(empty)" }} />
-          <div className="fc-face fc-back" dangerouslySetInnerHTML={{ __html: back || "(empty)" }} />
+        <div
+          className={"fc-card" + (it.fcFlipped ? " flipped" : "")}
+          onMouseDown={(e) => e.stopPropagation()}
+          onClick={() => window.fcFlip(it.id)}
+        >
+          <div
+            className="fc-face fc-front"
+            dangerouslySetInnerHTML={{ __html: front || "(empty)" }}
+          />
+          <div
+            className="fc-face fc-back"
+            dangerouslySetInnerHTML={{ __html: back || "(empty)" }}
+          />
         </div>
         <div className="fc-actions" onMouseDown={(e) => e.stopPropagation()}>
-          <button type="button" className="fc-flip-btn" style={{ display: it.fcFlipped ? "none" : "flex" }} onClick={() => window.fcFlip(it.id)}>
+          <button
+            type="button"
+            className="fc-flip-btn"
+            style={{ display: it.fcFlipped ? "none" : "flex" }}
+            onClick={() => window.fcFlip(it.id)}
+          >
             Flip
           </button>
           <div className="fc-rate-row" style={{ display: it.fcFlipped ? "flex" : "none" }}>
-            <button type="button" className="fc-rate-btn fc-rate-noclue" onClick={() => window.fcRate(it.id, "noclue")}>
+            <button
+              type="button"
+              className="fc-rate-btn fc-rate-noclue"
+              onClick={() => window.fcRate(it.id, "noclue")}
+            >
               Not a clue
             </button>
-            <button type="button" className="fc-rate-btn fc-rate-wrong" onClick={() => window.fcRate(it.id, "wrong")}>
+            <button
+              type="button"
+              className="fc-rate-btn fc-rate-wrong"
+              onClick={() => window.fcRate(it.id, "wrong")}
+            >
               Got it wrong
             </button>
-            <button type="button" className="fc-rate-btn fc-rate-hard" onClick={() => window.fcRate(it.id, "hard")}>
+            <button
+              type="button"
+              className="fc-rate-btn fc-rate-hard"
+              onClick={() => window.fcRate(it.id, "hard")}
+            >
               Had to think
             </button>
-            <button type="button" className="fc-rate-btn fc-rate-easy" onClick={() => window.fcRate(it.id, "easy")}>
+            <button
+              type="button"
+              className="fc-rate-btn fc-rate-easy"
+              onClick={() => window.fcRate(it.id, "easy")}
+            >
               Easy
             </button>
           </div>
         </div>
         <div className="resize">
-          <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
+          <svg
+            viewBox="0 0 12 12"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.5"
+            strokeLinecap="round"
+          >
             <path d="M10 2L2 10M10 6L6 10M10 10L10 10" />
           </svg>
         </div>

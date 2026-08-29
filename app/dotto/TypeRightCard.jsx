@@ -17,7 +17,7 @@ import GameOptionsPanel from "./GameOptionsPanel";
 // clear on the same persistent input node. Typing itself never calls render() (trUpdateInput only
 // schedules an autosave, to avoid a render mid-keystroke) — safe either way, per the same "mutate
 // in place, next real render reads current data" reasoning as the rest of this migration.
-export default function TypeRightCard({ it }) {
+export default function TypeRightCard({ it, paneId }) {
   const ref = useRef(null);
 
   useLayoutEffect(() => {
@@ -58,11 +58,18 @@ export default function TypeRightCard({ it }) {
   }
 
   const card = window.__trCurrentCard(it, playable);
-  const promptHTML = card ? window.__renderGameFaceBlocksHTML(window.__resolveGameFace(it, card, "front")) : "";
+  const promptHTML = card
+    ? window.__renderGameFaceBlocksHTML(window.__resolveGameFace(it, card, "front"))
+    : "";
   const total = it.trOrder.length;
   const pos = total ? it.trIndex + 1 : 0;
   const checked = !!it.trChecked;
-  const correctAnswer = card ? window.__resolveGameFace(it, card, "back").map((b) => b.text).join(" ") : "";
+  const correctAnswer = card
+    ? window
+        .__resolveGameFace(it, card, "back")
+        .map((b) => b.text)
+        .join(" ")
+    : "";
   const grade = checked ? it.trLastGrade : null;
   const inputClassName = "tr-input" + (grade ? ` tr-input-${grade}` : "");
 
@@ -72,7 +79,12 @@ export default function TypeRightCard({ it }) {
         <div className="tr-top" onMouseDown={(e) => e.stopPropagation()}>
           <div className="tr-title">Typeright</div>
           <div className="fc-top-right">
-            <button type="button" className="fc-mode-btn" onClick={() => window.trToggleMode(it.id)} title="Toggle shuffle / ordered">
+            <button
+              type="button"
+              className="fc-mode-btn"
+              onClick={() => window.trToggleMode(it.id)}
+              title="Toggle shuffle / ordered"
+            >
               {it.trMode === "shuffle" ? "Shuffle ON" : "Shuffle OFF"}
             </button>
             <div className="fc-progress">
@@ -80,7 +92,11 @@ export default function TypeRightCard({ it }) {
             </div>
           </div>
         </div>
-        <div className="tr-prompt" onMouseDown={(e) => e.stopPropagation()} dangerouslySetInnerHTML={{ __html: promptHTML || "(empty)" }} />
+        <div
+          className="tr-prompt"
+          onMouseDown={(e) => e.stopPropagation()}
+          dangerouslySetInnerHTML={{ __html: promptHTML || "(empty)" }}
+        />
         <div className="tr-answer-row" onMouseDown={(e) => e.stopPropagation()}>
           <input
             type="text"
@@ -95,7 +111,9 @@ export default function TypeRightCard({ it }) {
                 else window.trCheck(it.id);
               }
             }}
-            onFocus={() => window.broadcastEditingState(true, `#item-${it.id} .tr-input`)}
+            onFocus={() =>
+              window.broadcastEditingState(true, `#${window.__itemElId(it.id, paneId)} .tr-input`)
+            }
             onBlur={() => window.broadcastEditingState(false)}
             disabled={checked}
           />
@@ -109,9 +127,17 @@ export default function TypeRightCard({ it }) {
             </button>
           )}
         </div>
-        {checked && grade !== "correct" && <div className="tr-answer-reveal">Answer: {correctAnswer}</div>}
+        {checked && grade !== "correct" && (
+          <div className="tr-answer-reveal">Answer: {correctAnswer}</div>
+        )}
         <div className="resize">
-          <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
+          <svg
+            viewBox="0 0 12 12"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.5"
+            strokeLinecap="round"
+          >
             <path d="M10 2L2 10M10 6L6 10M10 10L10 10" />
           </svg>
         </div>

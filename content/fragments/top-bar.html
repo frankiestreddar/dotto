@@ -1,8 +1,9 @@
 <!-- The permanent rail (#dotto-rail) replaces the old single #btn-menu button — a full-height
      strip of icons, each opening its own view inside #hamburger-stack (see openRailView,
      panels-hamburger.js) via click-only open/switch/close (no hover preview). Back/forward live in
-     #top-bar-center instead (see #nav-arrows-pill below) — they're page-navigation, not
-     rail-icon-style view triggers, and read better beside the breadcrumb they actually move.
+     each pane's own top-bar pill instead (see app/dotto/PaneTopBar.jsx, below) — they're
+     page-navigation, not rail-icon-style view triggers, and read better beside the breadcrumb they
+     actually move.
      Icons are grouped into .rail-group wrappers (see globals.css) — a fixed 10px gap between
      buttons WITHIN a group. Profile and the cursor-mode selector are pinned to the very bottom of
      the rail (cursor-mode selector directly above Profile), per explicit request — the inverse of
@@ -25,8 +26,8 @@
      descriptive sentence rather than a short name a description panel would add much to. -->
 
 <div id="dotto-rail">
-    <!-- Groups 2-6 (Search+Queries, Routes/Waypoints/Outline, Essentials/Library/
-         Marketplace, Collaborations/Messages, Files/Sources/Snippets) pack at the TOP of the rail
+    <!-- Groups 2-6 (Search+Queries, Blocks/Plugins/Marketplace, Outline/Waypoints/Routes,
+         Messages/Collaborations/Servers, Files/Sources/Snippets) pack at the TOP of the rail
          now, per explicit request (justify-content:flex-start, #dotto-rail-middle, globals.css) —
          the inverse of an earlier layout where Profile and the cursor-mode selector sat pinned up
          here instead and these centered in the space below them. Those two are now the LAST two
@@ -41,34 +42,50 @@
          comment) — #rail-btn-ai/#ai-panel keep their internal id unchanged, same convention as
          every other rename/relocation this session. -->
     <div class="rail-group">
-        <button id="btn-search" class="rail-btn"><img class="rail-icon-img" src="/assets/icons/search.png" alt=""><span class="rail-tooltip"><span class="rail-tooltip-row"><span class="rail-tooltip-name">Search</span><span class="rail-tooltip-key">/</span></span><span class="rail-tooltip-desc" data-desc="Search across everything on this canvas."></span></span></button>
-        <button id="rail-btn-ai" class="rail-btn"><img class="rail-icon-img" src="/assets/icons/dotbot.png" alt=""><span class="rail-tooltip"><span class="rail-tooltip-row"><span class="rail-tooltip-name">Queries</span><span class="rail-tooltip-key">Q</span></span><span class="rail-tooltip-desc" data-desc="Ask Dotbot questions about this canvas."></span></span></button>
+        <button id="btn-search" class="rail-btn"><img class="rail-icon-img" src="/assets/icons/search.png" alt=""><span class="rail-tooltip"><span class="rail-tooltip-row"><span class="rail-tooltip-name">Search</span><span class="rail-tooltip-key">Tab</span></span><span class="rail-tooltip-desc" data-desc="Search across everything on this canvas."></span></span></button>
+        <button id="rail-btn-ai" class="rail-btn"><img class="rail-icon-img" src="/assets/icons/queries.png" alt=""><span class="rail-tooltip"><span class="rail-tooltip-row"><span class="rail-tooltip-name">Queries</span><span class="rail-tooltip-key">Q</span></span><span class="rail-tooltip-desc" data-desc="Ask Dotbot questions about this canvas."></span></span></button>
     </div>
-    <!-- Group 3: Routes, Waypoints, Outline tree (reordered per explicit request — was Outline
-         tree, Waypoints, Routes; before that, Routes, outline tree, Waypoints; before that,
-         Search, outline tree, Waypoints, swapped with Group 2's own Routes per an earlier explicit
-         request). Routes (was Inbox, renamed per an earlier explicit request; id/wiring kept as
-         'inbox'/#btn-inbox/#inbox-panel under the hood, same convention as every other rename this
-         session, e.g. Files staying #btn-snippets) is a bare shell for now — behavior/content not
-         yet decided, wired into the shared openRailView mechanism (see wireRailIcon('inbox', ...),
-         panels-hamburger.js) so the icon has somewhere to open. -->
+    <!-- Group 3 (was Group 5 — moved here, directly below Search/Queries, per explicit request):
+         Blocks (was Essentials, was Basics before that — renamed per explicit request; #btn-add
+         keeps its internal id), Plugins (was Library, then Extensions, now back to Plugins per
+         explicit follow-up — #btn-library keeps its internal id throughout, shows installed
+         marketplace extensions rather than your own drafts/published/purchased items, see
+         BlocksPanel.jsx for where those moved), Marketplace. Plugins' own shortcut is P (freed up
+         once Profile's own shortcut moved to Y in the same request — see #btn-profile below). -->
     <div class="rail-group rail-group-divider">
-        <button id="btn-inbox" class="rail-btn"><img class="rail-icon-img" src="/assets/icons/routes.png" alt=""><span class="rail-tooltip"><span class="rail-tooltip-row"><span class="rail-tooltip-name">Routes</span><span class="rail-tooltip-key">R</span></span><span class="rail-tooltip-desc" data-desc="Routes and destinations you've saved."></span></span></button>
+        <button id="btn-add" class="rail-btn"><img class="rail-icon-img" src="/assets/icons/blocks.png" alt=""><span class="rail-tooltip"><span class="rail-tooltip-row"><span class="rail-tooltip-name">Blocks</span><span class="rail-tooltip-key">B</span></span><span class="rail-tooltip-desc" data-desc="Add a note, heading, table, template, or other block to the canvas."></span></span></button>
+        <button id="btn-library" class="rail-btn"><img class="rail-icon-img" src="/assets/icons/library.png" alt=""><span class="rail-tooltip"><span class="rail-tooltip-row"><span class="rail-tooltip-name">Plugins</span><span class="rail-tooltip-key">P</span></span><span class="rail-tooltip-desc" data-desc="Plugins installed from the marketplace."></span></span></button>
+        <button id="btn-cart" class="rail-btn"><img class="rail-icon-img" src="/assets/icons/marketplace.png" alt=""><span class="rail-tooltip"><span class="rail-tooltip-row"><span class="rail-tooltip-name">Marketplace</span><span class="rail-tooltip-key">H</span></span><span class="rail-tooltip-desc" data-desc="Discover and buy templates and canvases from other creators."></span></span></button>
+    </div>
+    <!-- Group 4 (was Group 5 — swapped with the Messages/Collaborations/Servers group below per
+         explicit request): Outline tree, Waypoints, Routes (Routes/Outline swapped per a later
+         explicit request — was Routes, Waypoints, Outline). Routes (was Inbox, renamed per an
+         earlier explicit request; id/wiring kept as 'inbox'/#btn-inbox/#inbox-panel under the hood,
+         same convention as every other rename this session, e.g. Files staying #btn-snippets) is a
+         bare shell for now — behavior/content not yet decided, wired into the shared openRailView
+         mechanism (see wireRailIcon('inbox', ...), panels-hamburger.js) so the icon has somewhere
+         to open. -->
+    <div class="rail-group rail-group-divider">
+        <button id="btn-menu" class="rail-btn"><img class="rail-icon-img" src="/assets/icons/outline.png" alt=""><span class="rail-tooltip"><span class="rail-tooltip-row"><span class="rail-tooltip-name">Outline</span><span class="rail-tooltip-key">O</span></span><span class="rail-tooltip-desc" data-desc="A collapsible tree of every block on this canvas."></span></span></button>
         <button id="rail-btn-waypoints" class="rail-btn"><img class="rail-icon-img" src="/assets/icons/waypoint.png" alt=""><span class="rail-tooltip"><span class="rail-tooltip-row"><span class="rail-tooltip-name">Waypoints</span><span class="rail-tooltip-key">W</span></span><span class="rail-tooltip-desc" data-desc="Saved locations on this canvas, sorted by distance from where you are now."></span></span></button>
-        <button id="btn-menu" class="rail-btn"><img class="rail-icon-img" src="/assets/icons/menu-btn.png" alt=""><span class="rail-tooltip"><span class="rail-tooltip-row"><span class="rail-tooltip-name">Outline</span><span class="rail-tooltip-key">O</span></span><span class="rail-tooltip-desc" data-desc="A collapsible tree of every block on this canvas."></span></span></button>
+        <button id="btn-inbox" class="rail-btn"><img class="rail-icon-img" src="/assets/icons/routes.png" alt=""><span class="rail-tooltip"><span class="rail-tooltip-row"><span class="rail-tooltip-name">Routes</span><span class="rail-tooltip-key">R</span></span><span class="rail-tooltip-desc" data-desc="Routes and destinations you've saved."></span></span></button>
     </div>
-    <!-- Group 4: Essentials (was Basics — renamed per explicit request; #btn-add keeps its
-         internal id), Library, Marketplace. -->
+    <!-- Group 5 (was Group 4 — swapped with the Routes/Waypoints/Outline group above per explicit
+         request): Messages, Collaborations (was Collaborations, then Messages — swapped per an
+         earlier explicit request), Servers. Friends (#btn-friends/#friends-panel) — a
+         never-implemented bare-shell stub, same as most of the icons here — removed entirely per
+         explicit request; the real friend-list/friend-request data model (friends-presence.js)
+         that Collaborations/Messages themselves depend on is untouched, only this dead rail icon/
+         panel went. Servers (#btn-servers/#servers-panel, hamburger-stack.html) added below
+         Messages/Collaborations per explicit request — a bare shell for now, same as most of this
+         rail (behavior/content not yet decided), wired into the shared openRailView mechanism (see
+         wireRailIcon('servers', ...), panels-hamburger.js) so the icon has somewhere to open. -->
     <div class="rail-group rail-group-divider">
-        <button id="btn-add" class="rail-btn"><img class="rail-icon-img" src="/assets/icons/add-btn.png" alt=""><span class="rail-tooltip"><span class="rail-tooltip-row"><span class="rail-tooltip-name">Essentials</span><span class="rail-tooltip-key">E</span></span><span class="rail-tooltip-desc" data-desc="Add a note, heading, table, or other block to the canvas."></span></span></button>
-        <!-- Own drafts/published/purchased items — used to be a Library tab sharing #cart-panel with
-             Discover; now a fully separate rail icon/panel (see wireRailIcon('library', ...),
-             marketplace.js). -->
-        <button id="btn-library" class="rail-btn"><img class="rail-icon-img" src="/assets/icons/library.png" alt=""><span class="rail-tooltip"><span class="rail-tooltip-row"><span class="rail-tooltip-name">Library</span><span class="rail-tooltip-key">L</span></span><span class="rail-tooltip-desc" data-desc="Your own drafts, published items, and purchases."></span></span></button>
-        <button id="btn-cart" class="rail-btn"><img class="rail-icon-img" src="/assets/icons/market-button.png" alt=""><span class="rail-tooltip"><span class="rail-tooltip-row"><span class="rail-tooltip-name">Marketplace</span><span class="rail-tooltip-key">H</span></span><span class="rail-tooltip-desc" data-desc="Discover and buy templates and canvases from other creators."></span></span></button>
+        <button id="btn-messages" class="rail-btn"><img class="rail-icon-img" src="/assets/icons/messages.png" alt=""><span class="rail-tooltip"><span class="rail-tooltip-row"><span class="rail-tooltip-name">Messages</span><span class="rail-tooltip-key">M</span></span><span class="rail-tooltip-desc" data-desc="Direct messages and conversations."></span></span></button>
+        <button id="rail-btn-collab" class="rail-btn"><img class="rail-icon-img" src="/assets/icons/collaboration.png" alt=""><span class="rail-tooltip"><span class="rail-tooltip-row"><span class="rail-tooltip-name">Collaborations</span><span class="rail-tooltip-key">C</span></span><span class="rail-tooltip-desc" data-desc="People collaborating with you on this canvas."></span></span></button>
+        <button id="btn-servers" class="rail-btn"><img class="rail-icon-img" src="/assets/icons/servers.png" alt=""><span class="rail-tooltip"><span class="rail-tooltip-row"><span class="rail-tooltip-name">Servers</span><span class="rail-tooltip-key">S</span></span><span class="rail-tooltip-desc" data-desc="Servers you belong to."></span></span></button>
     </div>
-    <!-- Group 5 (was Group 6 — swapped with the Friends/Collaborations/Messages group below per
-         explicit request): Files, Sources, Snippets. Documents briefly existed here again
+    <!-- Group 6: Files, Sources, Snippets. Documents briefly existed here again
          (re-added after an earlier deletion, per a request specifying group order) but was removed
          again right after per an explicit follow-up correction, along with clarifying the intended
          order is Files first, then Sources, then Snippets — not Documents at all. Files (was ITSELF
@@ -85,16 +102,6 @@
         <button id="btn-snippets" class="rail-btn"><img class="rail-icon-img" src="/assets/icons/files.png" alt=""><span class="rail-tooltip"><span class="rail-tooltip-row"><span class="rail-tooltip-name">Files</span><span class="rail-tooltip-key">F</span></span><span class="rail-tooltip-desc" data-desc="Files and snippets you've saved."></span></span></button>
         <button id="btn-sources" class="rail-btn"><img class="rail-icon-img" src="/assets/icons/sources.png" alt=""><span class="rail-tooltip"><span class="rail-tooltip-row"><span class="rail-tooltip-name">Sources</span><span class="rail-tooltip-key">K</span></span><span class="rail-tooltip-desc" data-desc="Structured source tables you can reference and query."></span></span></button>
         <button id="btn-snippets2" class="rail-btn"><img class="rail-icon-img" src="/assets/icons/snippets.png" alt=""><span class="rail-tooltip"><span class="rail-tooltip-row"><span class="rail-tooltip-name">Snippets</span><span class="rail-tooltip-key">S</span></span><span class="rail-tooltip-desc" data-desc="Reusable snippets you can drop onto any canvas."></span></span></button>
-    </div>
-    <!-- Group 6 (was Group 5 — swapped with the Files/Sources/Snippets group above per explicit
-         request): Collaborations, Messages. Friends (#btn-friends/#friends-panel) — a never-
-         implemented bare-shell stub, same as most of the icons here — removed entirely per explicit
-         request; the real friend-list/friend-request data model (friends-presence.js) that
-         Collaborations/Messages themselves depend on is untouched, only this dead rail icon/panel
-         went. -->
-    <div class="rail-group rail-group-divider">
-        <button id="rail-btn-collab" class="rail-btn"><img class="rail-icon-img" src="/assets/icons/collaboration.png" alt=""><span class="rail-tooltip"><span class="rail-tooltip-row"><span class="rail-tooltip-name">Collaborations</span><span class="rail-tooltip-key">C</span></span><span class="rail-tooltip-desc" data-desc="People collaborating with you on this canvas."></span></span></button>
-        <button id="btn-messages" class="rail-btn"><img class="rail-icon-img" src="/assets/icons/chats-btn.png" alt=""><span class="rail-tooltip"><span class="rail-tooltip-row"><span class="rail-tooltip-name">Messages</span><span class="rail-tooltip-key">M</span></span><span class="rail-tooltip-desc" data-desc="Direct messages and conversations."></span></span></button>
     </div>
     </div>
     <!-- Cursor-mode selector, alone — pinned to the bottom of the rail, directly above Profile
@@ -135,18 +142,22 @@
             <button class="rail-btn mode-btn" data-mode="select">
                 <img class="rail-icon-img" src="/assets/icons/select-cursor.png" alt="">
             </button>
-            <!-- Pen mode — reworked from the old Add-menu "Drawing" toggle (setDrawMode) into a
-                 real cursor mode, see applyCursorMode/handlePenPointerDown (source-buttons-cursor-
-                 mode.js/srs-connections-core.js). Tap/hold 'P' now enters it (beginModeOverride/
-                 endModeOverride('p', 'pen')) — freed up from its old use as Profile's own rail
-                 shortcut, which moved to Tab per explicit request. -->
+            <!-- Drawing — was "Pen mode" before an explicit rename request; still internally the
+                 'pen' cardMode/data-mode value throughout (applyCursorMode/handlePenPointerDown,
+                 source-buttons-cursor-mode.js/srs-connections-core.js), same "id stays, display
+                 name changes" convention as every other rename in this file. Tap/hold 'D' now
+                 enters it (beginModeOverride/endModeOverride('d', 'pen')) — that same request moved
+                 it here from 'P' (freed up in turn for Profile's own rail shortcut, which moved off
+                 Tab), and took 'D' away from Data mode, which has no shortcut of its own anymore. -->
             <button class="rail-btn mode-btn" data-mode="pen">
                 <img class="rail-icon-img" src="/assets/icons/pen.png" alt="">
             </button>
             <!-- Each row's .mode-popup-row-key badge mirrors the tap/hold keyboard shortcut that
                  also switches to that mode (see the keydown/keyup listeners, source-buttons-cursor-
                  mode.js) — Escape for Move & select since that's its own dedicated key, not a
-                 letter. Per explicit request the CURRENTLY ACTIVE mode's row hides its own badge
+                 letter. Data mode's row has no badge at all (see Drawing's own comment just above)
+                 — its own toolbar button/row click still switch to it, just not a keyboard shortcut
+                 anymore. Per explicit request the CURRENTLY ACTIVE mode's row hides its own badge
                  (redundant to show the shortcut for the mode you're already in) — handled purely in
                  CSS off the same .active class this JS already toggles per-row above, no separate
                  JS needed (.mode-popup-row.active .mode-popup-row-key{display:none}, globals.css). -->
@@ -159,7 +170,6 @@
                 <button class="mode-popup-row" data-mode="data">
                     <img class="rail-icon-img" src="/assets/icons/data-cursor.png" alt="">
                     <span class="mode-popup-row-name">Data mode</span>
-                    <span class="mode-popup-row-key">D</span>
                 </button>
                 <button class="mode-popup-row" data-mode="select">
                     <img class="rail-icon-img" src="/assets/icons/select-cursor.png" alt="">
@@ -168,76 +178,43 @@
                 </button>
                 <button class="mode-popup-row" data-mode="pen">
                     <img class="rail-icon-img" src="/assets/icons/pen.png" alt="">
-                    <span class="mode-popup-row-name">Pen mode</span>
-                    <span class="mode-popup-row-key">P</span>
+                    <span class="mode-popup-row-name">Drawing</span>
+                    <span class="mode-popup-row-key">D</span>
                 </button>
             </div>
         </div>
     </div>
-    <!-- Profile, alone — pinned to the very bottom of the rail (last child of #dotto-rail), per
-         explicit request that it and the cursor-mode selector above it move here from the top,
-         swapping places with every other icon (now packed at the top instead, see
-         #dotto-rail-middle's own comment above). -->
+    <!-- You (was Profile, renamed per explicit request — #btn-profile keeps its internal id, same
+         "id stays, display name changes" convention as every other rename in this file), alone —
+         pinned to the very bottom of the rail (last child of #dotto-rail), per explicit request
+         that it and the cursor-mode selector above it move here from the top, swapping places with
+         every other icon (now packed at the top instead, see #dotto-rail-middle's own comment
+         above). Shortcut moved to Y in the same rename request, freeing P back up for Plugins
+         (above). -->
     <div class="rail-group">
         <!-- Content is React-owned (see app/dotto/ProfileAvatarSm.jsx). Click-only open/close, same
              as every other rail icon (see wireRailIcon('profile', ...),
              profile-achievements-pricing.js). -->
         <button id="btn-profile" class="rail-btn">
             <div class="profile-avatar-sm" id="profile-avatar-sm"></div>
-            <span class="rail-tooltip"><span class="rail-tooltip-row"><span class="rail-tooltip-name">Profile</span><span class="rail-tooltip-key">P</span></span><span class="rail-tooltip-desc" data-desc="Your account, achievements, and pricing."></span></span>
+            <span class="rail-tooltip"><span class="rail-tooltip-row"><span class="rail-tooltip-name">You</span><span class="rail-tooltip-key">Y</span></span><span class="rail-tooltip-desc" data-desc="Your account, achievements, and pricing."></span></span>
         </button>
     </div>
 </div>
 <!-- Dead centre of the viewport (position:fixed, left:50% + translateX(-50%), see globals.css) —
-     independent of the rail's own left offset. Back/forward (history navigation, see
-     jumpToHistoryIndex, resize-shortcuts-init.js), the tabs bar (see app/dotto/TabsBar.jsx,
-     breadcrumbMapStore/tabsStore), and the per-canvas "add a collaborator" flyout are all sections
-     of ONE merged pill now (#top-bar-center itself carries .bubble, per explicit request — used to
-     be three separately-chromed .bubble elements sitting side by side with a gap between them, see
-     globals.css for the full merge). #collab-bubble grows/shrinks smoothly when it appears/
-     disappears (CollabPill.jsx toggling its own .show class) rather than snapping in — also per
-     explicit request, see that rule's own comment, globals.css.
-     #nav-arrows-pill/#collab-bubble are both collapsed at rest and only reveal on hover now too,
-     per a later explicit request that they only show once the breadcrumb is hovered — see
-     #top-bar-center's own comment, globals.css, for the mechanism and why it's keyed off the whole
-     pill's :hover rather than #breadcrumb-pill's specifically.
-     #breadcrumb-pill itself — despite the id, kept unchanged rather than renamed to avoid touching
-     the CSS Grid machinery above that depends on it as the fixed-centre column — now holds a row of
-     TAB pills (per a later explicit request: a "+" button that adds a tab; the active tab shows the
-     full "…/parent/current" trail, every other tab shows just its own current segment, and a new tab
-     starts at the same location as whichever tab was active when it was created), not a single
-     breadcrumb trail directly — see TabsBar.jsx and its own ActiveTabTrail sub-component (which is
-     what still renders that full trail, now scoped to just the active tab's own pill) for the actual
-     rendering, and .tab-pill (globals.css) for the new styling this needed.
-     #right-actions-pill — per a later explicit request, that "+" button (#tab-add-btn, TabsBar.jsx —
-     still the same component, just portaling into #tab-add-slot below instead of into
-     #breadcrumb-pill now) moved out of the tab row to sit grouped with #collab-bubble instead, as two
-     flex siblings inside this new wrapper; see its own comment, globals.css, for why a wrapper (the
-     #top-bar-center grid only ever sees three top-level items) and how #tab-add-btn still shows on
-     its own even when #collab-bubble has no collaborator context to grow into. -->
-<div id="top-bar-center" class="bubble">
-    <div id="nav-arrows-pill">
-        <button id="btn-back" class="btn" title="Back">←</button>
-        <button id="btn-forward" class="btn" title="Forward">→</button>
-    </div>
-    <div id="breadcrumb-pill"></div>
-    <div id="right-actions-pill">
-        <div id="collab-bubble">
-            <div id="collab-content"></div>
-            <div class="collab-tooltip" id="collab-tooltip"></div>
-        </div>
-        <div id="tab-add-slot"></div>
-    </div>
-</div>
-<!-- Sits in the exact same fixed top:20px/centred slot as #top-bar-center, off-screen (slid up,
-     faded out) at rest — the two swap places via one shared .notif-active class, both toggled
-     together by showNotification/dismissCurrentNotification (public/dotto/stopwatch-search-
-     notifications.js). Static here rather than fully React-rendered, unlike its own content
-     (#notification-root, portaled into by app/dotto/NotificationBar.jsx) — the vanilla engine
-     needs a stable, always-present node to toggle classes on directly. -->
-<div id="notification-pill">
-    <div id="notification-root"></div>
-</div>
+     independent of the rail's own left offset. Used to hold back/forward, the tabs bar, and the
+     per-canvas "add a collaborator" flyout trigger as three sections of one merged pill, shared by
+     whichever pane happened to be active. Split-screen Stage 8, explicit correction: every pane now
+     renders its OWN full copy of all three (nav-arrows/tab row/collab bubble/add-tab button
+     together — see app/dotto/PaneTopBar.jsx, mounted per pane from PaneCanvasArea.jsx), each
+     independently hover-expanding, so there's nothing left for a single shared element to show.
+     #top-bar-center itself survives as an empty, fully inert div only because removing it outright
+     would mean re-touching every pane-qualified selector that assumes #dotto-rail/#top-bar-center
+     share the same base z-index tier (see #dotto-rail's own comment) for no real behavioural gain
+     — see globals.css. Notifications no longer swap places with it (moved to their own independent
+     top-right stack, fully React-rendered — see app/dotto/NotificationBar.jsx, .notification-stack
+     in globals.css); there's no static notification markup left in this file at all. -->
+<div id="top-bar-center"></div>
 <!-- File-upload popup — U toggles it open/closed. Not a #hamburger-stack railViewEls/railIconBtns
      entry (no rail icon triggers it, only the U shortcut) — a small rounded-corner floating box
      near the rail's bottom-left, per explicit follow-up request that it NOT be a sidebar panel (a

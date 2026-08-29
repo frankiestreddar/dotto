@@ -1,6 +1,6 @@
 <!-- Hamburger Panels (stacked) — each is now its own rail icon's view (see #dotto-rail, top-bar.html,
      and openRailView/wireRailIcon, panels-hamburger.js), not reached via an account-menu row
-     anymore. Waypoints/Collaborations/Marketplace/Library/Messages/Add/Profile/AI-search all share
+     anymore. Waypoints/Collaborations/Marketplace/Plugins/Messages/Blocks/You/AI-search all share
      this one shell, swapping which section is .open. -->
 <div id="hamburger-stack">
     <div id="outline-menu" class="hmenu-panel">
@@ -86,7 +86,7 @@
          that same .panel-history-list class.
          #sources-new-btn ("+", per explicit request) creates a new source and drops it at the
          current viewport centre immediately (createNewSource, srs-connections-core.js) rather than
-         the Add-menu's own "New Source" row's click-to-place flow (newSourceClicked ->
+         the Blocks panel's own Source row's click-to-place flow (handleBlockItemClick ->
          prepareAdd('source')) — both ultimately call the same add('source', x, y). Sits inside the
          search header's own row via .panel-search-header-row (globals.css, a small addition on top
          of .panel-search-header — #search-panel/#ai-panel's own headers don't carry it, so they're
@@ -114,6 +114,14 @@
          just so #btn-snippets2 has a panel to open. -->
     <div id="snippets2-panel" class="hmenu-panel hub-subpanel" onclick="event.stopPropagation()">
         <div id="snippets2-panel-content"></div>
+    </div>
+    <!-- Servers — rail icon (group 3, top-bar.html, below Messages), per explicit request that the
+         Collaborations/Messages group move up beneath Search/Queries and gain a Servers button.
+         Behavior/content not decided yet; a bare shell wired into the shared openRailView
+         mechanism (see wireRailIcon('servers', ...), panels-hamburger.js) just so #btn-servers has
+         a panel to open — same pattern as #snippets2-panel just above. -->
+    <div id="servers-panel" class="hmenu-panel hub-subpanel" onclick="event.stopPropagation()">
+        <div id="servers-panel-content"></div>
     </div>
     <!-- Files (was ITSELF called Snippets — renamed per explicit request; id/wiring kept as
          'snippets' under the hood, same convention as Essentials/Queries staying #btn-add/
@@ -277,14 +285,56 @@
             </div>
         </div>
     </div>
-    <!-- Library — your own drafts/published/purchased items. Used to be a tab sharing #cart-panel
-         with Discover; now a fully separate rail icon/panel (see wireRailIcon('library', ...),
-         marketplace.js) since browsing your own items and browsing others' listings are different
-         enough tasks to warrant their own icon rather than a tab click to switch between them. -->
+    <!-- Plugins (was Library, then Extensions — renamed back to Plugins per explicit follow-up
+         request). Library's own role (your own drafts/published/purchased items) moved to the
+         Blocks panel (#add-menu, below) as part of the original Blocks/Extensions repurposing.
+         Plugins is a much simpler panel: a flat list of installed marketplace extensions
+         (rectangular pills, not item cards — see ExtensionsPanel.jsx, whose own name/internal
+         "extension" vocabulary is unchanged, only the user-facing text renamed here). Internal id/
+         wiring stays #library-panel/#btn-library, same "id stays, display name changes" convention
+         as every other rename in this file. -->
     <div id="library-panel" class="hmenu-panel hub-subpanel" onclick="event.stopPropagation()">
+        <div id="extensions-list-container"></div>
+    </div>
+    <!-- Messages — moved here from its own standalone floating card (content/fragments/
+         messages-panel.html, now empty/unused) now that it shares this permanent rail shell (see
+         refreshMessagesPanel/wireRailIcon, messages-schedule.js). Internal conversation-list vs.
+         open-conversation view-toggling is all unchanged from before. -->
+    <div id="messages-panel" class="hmenu-panel hub-subpanel" onclick="event.stopPropagation()">
+        <div id="msg-search-wrap">
+            <input id="msg-search" type="text" placeholder="Search chats or find a username..." oninput="handleMsgSearch(this.value)">
+        </div>
+        <div id="msg-list"></div>
+        <div id="msg-convo">
+            <div id="msg-convo-header">
+                <button id="msg-convo-back" onclick="closeConvo()">←</button>
+                <div class="msg-avatar" id="msg-convo-avatar"></div>
+                <div id="msg-convo-title"></div>
+            </div>
+            <div id="msg-convo-body"></div>
+            <div id="msg-convo-input-wrap">
+                <input id="msg-convo-input" type="text" placeholder="Message..." onkeydown="if(event.key==='Enter')sendMsg();">
+                <button id="msg-convo-send" onclick="sendMsg()"><img class="msg-convo-send-icon" src="/assets/icons/send.png" alt=""></button>
+            </div>
+        </div>
+    </div>
+    <!-- Blocks — was Essentials (was Basics before that), and the Add menu under the hood the
+         whole time (id/wiring stays #btn-add/#add-menu, same "id stays, display name changes"
+         convention as every other rename in this file). Overhauled (explicit request) from a flat
+         grid of block-type tiles into a folder-tree list, styled like the Outline panel — see
+         BlocksPanel.jsx/blocks-panel.js. It absorbed the "browse your own library content" half of
+         what the Library panel (now Plugins, see #library-panel above) used to do: an Essentials
+         folder (every block type, with Canvas/Source folded in as its own first two ordinary items
+         instead of the two specially-styled pinned rows this used to have), a Purchased folder,
+         a My Creations folder (drafts + published — no separate Published folder), and any number
+         of user-created folders you can drag blocks into. Item Detail/Publish Flow views and the
+         "drag canvas selection here to create a new draft" dropzone all moved here from
+         #library-panel too, since that's where Purchased/My Creations items are browsed from now
+         (library-publish.js's own DOM lookups were retargeted to match — see its own comments). -->
+    <div id="add-menu" class="hmenu-panel hub-subpanel" onclick="event.stopPropagation()">
         <!-- Dynamic Drop Box Overlay on Active Template Building Drag — packaging cards you drag
              onto this panel into a new draft (packageSelectedAsTemplate, marketplace.js) lands in
-             your own Library, so this lives here now rather than on Marketplace/Discover. -->
+             My Creations. -->
         <div id="library-dropzone-overlay">
             <div class="dropzone-box">
                 <div class="dropzone-title">Drop cards here to create new draft</div>
@@ -292,20 +342,20 @@
             </div>
         </div>
 
-        <!-- Library View -->
         <div class="cart-view active" id="view-library">
-            <div class="library-search-wrap">
-                <input class="marketplace-search" id="library-search" type="text" placeholder="Search your library..." oninput="handleLibrarySearch(this.value)">
+            <div class="hub-subpanel-search-wrap">
+                <input id="add-menu-search-input" class="hub-subpanel-search" type="text" placeholder="Search blocks..." oninput="handleBlocksSearchInput(this.value)">
+                <span class="hub-subpanel-search-hint">Enter</span>
             </div>
-            <div class="library-back-row" id="library-back-row" onclick="switchLibraryFolder(null)">
-                <span>←</span><span id="library-back-label">Back to folders</span>
-            </div>
-            <div class="library-list" id="library-list-container"></div>
+            <!-- Built fresh every time the panel opens (see refreshBlocksPanel, blocks-panel.js) —
+                 folders + their contents, indented below each, all always shown at once (no
+                 drill-down navigation the way Library's old folder-picker/items views worked). -->
+            <div id="blocks-list-container"></div>
         </div>
 
-        <!-- Item Detail View: shown after dropping cards into the library (an already-saved
-             draft, ready to edit) and whenever a drafts/published/purchased library item is
-             clicked into, to view its description + inline-canvas preview. -->
+        <!-- Item Detail View: shown after dropping cards here to create a new draft (ready to
+             edit) and whenever a Purchased/My Creations item is clicked into, to view its
+             description + inline-canvas preview. -->
         <div id="item-detail-view">
             <div id="item-detail-header">
                 <!-- Real React component now (ItemDetailTitle.jsx) — CONTRIBUTING.md's "contentEditable
@@ -341,54 +391,6 @@
                 <button class="btn-buy" onclick="confirmPublishFlow()">Publish</button>
             </div>
         </div>
-    </div>
-    <!-- Messages — moved here from its own standalone floating card (content/fragments/
-         messages-panel.html, now empty/unused) now that it shares this permanent rail shell (see
-         refreshMessagesPanel/wireRailIcon, messages-schedule.js). Internal conversation-list vs.
-         open-conversation view-toggling is all unchanged from before. -->
-    <div id="messages-panel" class="hmenu-panel hub-subpanel" onclick="event.stopPropagation()">
-        <div id="msg-search-wrap">
-            <input id="msg-search" type="text" placeholder="Search chats or find a username..." oninput="handleMsgSearch(this.value)">
-        </div>
-        <div id="msg-list"></div>
-        <div id="msg-convo">
-            <div id="msg-convo-header">
-                <button id="msg-convo-back" onclick="closeConvo()">←</button>
-                <div class="msg-avatar" id="msg-convo-avatar"></div>
-                <div id="msg-convo-title"></div>
-            </div>
-            <div id="msg-convo-body"></div>
-            <div id="msg-convo-input-wrap">
-                <input id="msg-convo-input" type="text" placeholder="Message..." onkeydown="if(event.key==='Enter')sendMsg();">
-                <button id="msg-convo-send" onclick="sendMsg()"><img class="msg-convo-send-icon" src="/assets/icons/send.png" alt=""></button>
-            </div>
-        </div>
-    </div>
-    <!-- Add — moved here from its own free-floating popover beside the rail (content/fragments/
-         add-menu.html, now deleted) now that it shares this permanent rail shell (see
-         wireRailIcon('add', ...), add-menu.js). Every block type across every ADD_MENU_DATA
-         category is one flat scrollable grid of square tiles (see #add-menu-grid), two per row —
-         no tabs, no per-category grouping. New Canvas/New Source (formerly two circular buttons
-         floating outside the panel) are plain rows pinned above the grid, always visible
-         regardless of the search box's current query. -->
-    <div id="add-menu" class="hmenu-panel hub-subpanel" onclick="event.stopPropagation()">
-        <div class="hub-subpanel-search-wrap">
-            <input id="add-menu-search-input" class="hub-subpanel-search" type="text" placeholder="Search blocks..." oninput="handleAddMenuSearchInput(this.value)">
-            <span class="hub-subpanel-search-hint">Enter</span>
-        </div>
-        <div id="add-menu-quick-actions">
-            <div class="add-menu-row" onclick="prepareAdd('folder')">
-                <img class="add-menu-row-icon" src="/assets/icons/canvas.png" alt="">
-                <div class="add-menu-row-name">New Canvas</div>
-            </div>
-            <div class="add-menu-row" onclick="newSourceClicked()">
-                <img class="add-menu-row-icon" src="/assets/icons/source.png" alt="">
-                <div class="add-menu-row-name">New Source</div>
-            </div>
-        </div>
-        <!-- Built once from appState.ADD_MENU_DATA (see initAddGrid, add-menu.js) — search filters
-             which tiles are visible in place (handleAddMenuSearchInput), never rebuilds them. -->
-        <div id="add-menu-grid"></div>
     </div>
     <!-- Profile — moved here from its own standalone floating card (content/fragments/
          profile-panel.html, now empty/unused) now that it shares this permanent rail shell (see

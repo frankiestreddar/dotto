@@ -1,5 +1,5 @@
 import { updateCommandPalette } from './command-palette.js';
-import { appState, canvas } from './core-state.js';
+import { appState, canvas, itemElId } from './core-state.js';
 import { renderChatsList } from './hamburger-collab.js';
 import { saveSnapshot, scheduleWorkspaceSave } from './history-autosave.js';
 import { findItemById } from './live-presence.js';
@@ -821,7 +821,7 @@ import { render } from './waypoints-render-loop.js';
         const table = findItemById(tableId);
         if (!table || !table.tableData || !table.tableData[r] || table.tableData[r][c] == null) return false;
         saveSnapshot();
-        const cellEl = document.querySelector(`#item-${tableId} .cell-text[data-r="${r}"][data-c="${c}"]`);
+        const cellEl = document.querySelector(`#${itemElId(tableId)} .cell-text[data-r="${r}"][data-c="${c}"]`);
         if (cellEl) {
             cellEl.insertAdjacentHTML('beforeend', imgHtml);
             table.tableData[r][c] = cellEl.innerHTML;

@@ -1,5 +1,5 @@
 import { clearSearch } from './ai-assistant-suggestions.js';
-import { appState, supabase } from './core-state.js';
+import { appState, supabase, switchActivePane } from './core-state.js';
 import { ensureCanvasPresenceChannel, openConvo, renderConvoBody } from './live-presence.js';
 import { openMessagesPanel } from './messages-schedule.js';
 import { closeAllPanels, pinOnInsideClick, scheduleHoverClose } from './panels-hamburger.js';
@@ -35,17 +35,42 @@ import { pushNotification } from './stopwatch-search-notifications.js';
         positionCollabPanel();
         if (pin) { appState.panelPinned.collab = true; }
     }
-    appState.collabBubble.addEventListener('click', (e) => {
-        e.stopPropagation();
+    // Split-screen Stage 8 — each pane now renders its own collaborator bubble (PaneTopBar.jsx)
+    // instead of one shared #collab-bubble, but there's still only ONE flyout panel/#collab-panel;
+    // these three wrappers retarget appState.collabBubble (a plain, reassignable object property —
+    // see its own comment, core-state.js — unlike canvas/world/etc's `let` bindings) to whichever
+    // pane's own bubble element triggered the interaction, activating that pane first if it wasn't
+    // already (same "clicking/hovering a pane's own UI focuses that pane" convention every other
+    // per-pane interaction in this codebase follows), then reuses openCollabPanel/closeCollabPanel/
+    // positionCollabPanel completely unchanged — they only ever read appState.collabBubble, never a
+    // literal #collab-bubble id, so no changes were needed inside them at all. React (PaneTopBar.jsx)
+    // calls these directly via the window.__ bridges below instead of this module attaching its own
+    // listeners to a single static element the way it used to.
+    function collabBubblePaneClick(paneId, bubbleEl) {
+        if (paneId !== appState.activePaneId) switchActivePane(paneId);
+        appState.collabBubble = bubbleEl;
         if (appState.panelPinned.collab) { closeCollabPanel(); }
         else { openCollabPanel(true); }
-    });
-    appState.collabBubble.addEventListener('mouseenter', () => {
+    }
+    function collabBubblePaneMouseEnter(paneId, bubbleEl) {
+        if (paneId !== appState.activePaneId) switchActivePane(paneId);
+        appState.collabBubble = bubbleEl;
         // Only auto-open on hover when there are no collaborators yet (the "+" affordance);
         // once collaborators exist, hover just reveals the tooltip and click opens the panel.
         if (getCurrentCollaboratorIds().length === 0 && !appState.collabPanel.classList.contains('open')) openCollabPanel(false);
-    });
-    appState.collabBubble.addEventListener('mouseleave', () => scheduleHoverClose('collab', [appState.collabBubble, appState.collabPanel], closeCollabPanel));
+    }
+    function collabBubblePaneMouseLeave(bubbleEl) {
+        scheduleHoverClose('collab', [bubbleEl, appState.collabPanel], closeCollabPanel);
+    }
+    // A pane's own collaborator bubble element (PaneTopBar.jsx) is the only thing
+    // appState.collabBubble can point to now that every pane renders its own (no more static
+    // #collab-bubble) — found by pane id rather than a fixed id. For callers that need to open the
+    // ACTIVE pane's own collab panel from somewhere other than a real click/hover on that bubble
+    // (e.g. handleOwnedHubCollabRowClick, hamburger-collab.js, which navigates then opens the panel
+    // programmatically) rather than duplicating this query at each such call site.
+    function activePaneCollabBubbleEl() {
+        return document.querySelector('#pane-breadcrumb-pill-' + appState.activePaneId + ' .pane-collab-bubble');
+    }
     appState.collabPanel.addEventListener('mouseleave', () => scheduleHoverClose('collab', [appState.collabBubble, appState.collabPanel], closeCollabPanel));
     pinOnInsideClick('collab', [appState.collabPanel]);
 
@@ -187,13 +212,19 @@ import { pushNotification } from './stopwatch-search-notifications.js';
     }
     function handleCollabSearch(v) { renderCollabList(v); }
 
-    // Real React state now (see app/dotto/CollabPill.jsx, collabPillStore) — genuine JSX, same
-    // Avatar.jsx-based reasoning as CollabListPanel. #collab-bubble's own `.show` class and
-    // #collab-tooltip's text are synced imperatively by that component (plain sibling/ancestor
-    // nodes it doesn't portal into) — see collabPillStore's own comment in bridges.js for why this
-    // needs flushSync (openCollabPanel, right below, reads collabBubble's `.show` class
-    // synchronously right after a caller in hamburger-collab.js calls this).
-    function renderCollabPill() {
+    // Real React state now (see app/dotto/PaneTopBar.jsx, collabPillStore) — genuine JSX, same
+    // Avatar.jsx-based reasoning as CollabListPanel. Pane-keyed since split-screen Stage 8 (each
+    // pane renders its own bubble now — was a single shared trigger for whichever pane happened to
+    // be active). paneId defaults to the live active pane, same reasoning as renderTabsPanel/
+    // renderBreadcrumbMapPanel (shared-canvases-outline.js) — this always reads the LIVE
+    // appState.currentFolderId/folders/friends, so it's only ever meaningful for whichever pane is
+    // currently active; called every render() frame for that pane (so a background pane's own store
+    // stays exactly as it was the instant it went inactive, matching what its canvas actually
+    // showed), and once more immediately after switchActivePane's own swap (that function's own
+    // comment) so the newly active pane's pill doesn't wait a frame to refresh. MUST be flushSync'd
+    // (see app/dotto-app.jsx): openCollabPanel, right below, reads collabBubble's `.show` class
+    // synchronously right after a caller in hamburger-collab.js calls this.
+    function renderCollabPill(paneId = appState.activePaneId) {
         const folderObj = appState.folders[appState.currentFolderId];
         // The root canvas is always private to the user, so no collaborators indicator there —
         // checked by identity (currentFolderId === 'root'), not historyIndex === 0. Those used to
@@ -204,13 +235,13 @@ import { pushNotification } from './stopwatch-search-notifications.js';
         // A canvas someone else shared with you isn't yours to invite further collaborators on.
         if (!folderObj || appState.currentFolderId === 'root' || folderObj.isSharedView) {
             closeCollabPanel();
-            window.__setCollabPill({ show: false, collabs: [], moreCount: 0 });
+            window.__setCollabPill(paneId, { show: false, collabs: [], moreCount: 0 });
             return;
         }
         const collabIds = folderObj.collaborators || [];
         const collabs = collabIds.map(id => appState.friends.find(f => f.id === id)).filter(Boolean);
         const shown = collabs.slice(0, 3).map(f => ({ id: f.id, avatarId: f.avatarId ?? 0, avatarUrl: f.avatarUrl || null, displayName: f.displayName }));
-        window.__setCollabPill({ show: true, collabs: shown, moreCount: Math.max(0, collabs.length - 3) });
+        window.__setCollabPill(paneId, { show: true, collabs: shown, moreCount: Math.max(0, collabs.length - 3) });
     }
 
     // `friends` / incoming / outgoing requests are loaded from Supabase
@@ -536,9 +567,9 @@ import { pushNotification } from './stopwatch-search-notifications.js';
         });
     }
 
-export { backToMsgMain, closeCollabPanel, handleAddFriendClick, handleCollabAddRemoveClick, handleCollabSearch, handleMsgSearch, initials, openCollabPanel, openMsgRequestsView, refreshCanvasCollabForCurrentFolder, refreshFriendsData, renderCollabPill, renderMsgList, resolveUsernameToUserId, respondToMsgRequest, syncCanvasCollabTitle };
+export { activePaneCollabBubbleEl, backToMsgMain, closeCollabPanel, collabBubblePaneClick, collabBubblePaneMouseEnter, collabBubblePaneMouseLeave, handleAddFriendClick, handleCollabAddRemoveClick, handleCollabSearch, handleMsgSearch, initials, openCollabPanel, openMsgRequestsView, refreshCanvasCollabForCurrentFolder, refreshFriendsData, renderCollabPill, renderMsgList, resolveUsernameToUserId, respondToMsgRequest, syncCanvasCollabTitle };
 
-// React → vanilla bridge — used by MessagesListPanel.jsx/CollabListPanel.jsx/CollabPill.jsx
+// React → vanilla bridge — used by MessagesListPanel.jsx/CollabListPanel.jsx/PaneTopBar.jsx
 // (app/dotto/), which can't import these directly since public/dotto/*.js isn't reachable from
 // app/dotto/.
 window.__openMsgRequestsView = openMsgRequestsView;
@@ -547,6 +578,16 @@ window.__handleAddFriendClick = handleAddFriendClick;
 window.__handleCollabAddRemoveClick = handleCollabAddRemoveClick;
 window.__respondToMsgRequest = respondToMsgRequest;
 window.__openCollabPanel = openCollabPanel;
+// PaneTopBar.jsx's own collaborator bubble onClick/onMouseEnter/onMouseLeave — see
+// collabBubblePaneClick's own comment above for why these replace the old singular
+// appState.collabBubble.addEventListener(...) wiring this file used to attach itself.
+window.__collabBubblePaneClick = collabBubblePaneClick;
+window.__collabBubblePaneMouseEnter = collabBubblePaneMouseEnter;
+window.__collabBubblePaneMouseLeave = collabBubblePaneMouseLeave;
+// Called from switchActivePane (core-state.js) via this bridge, not a direct import — that
+// function is imported BY this file, so the reverse would be circular (same reasoning as
+// window.__renderTabsPanel, shared-canvases-outline.js).
+window.__renderCollabPill = renderCollabPill;
 
 // No window.__initials bridge — Avatar.jsx (app/dotto/) reimplements this directly instead (see
 // its own comment for why: plain string logic with no vanilla-only dependency, and needing it to

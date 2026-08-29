@@ -10,7 +10,7 @@ import { useLayoutEffect, useRef } from "react";
 // its own auto-fit zoom/pan math (see buildFolderInlineCanvas's own comment), not worth re-deriving
 // in JSX, and the title's click-to-rename lifecycle is coupled to appState/broadcastEditingState the
 // same way Title/Note/Watermark's bodies are.
-export default function CanvasCard({ it }) {
+export default function CanvasCard({ it, paneId }) {
   const titleRef = useRef(null);
   const previewWrapRef = useRef(null);
 
@@ -28,7 +28,7 @@ export default function CanvasCard({ it }) {
   // derived via closest('.item') — see attachWatermarkBody/attachTitleBody's comments for why
   // closest() breaks on first mount (child-before-parent layout effect ordering).
   useLayoutEffect(() => {
-    const el = document.getElementById("item-" + it.id);
+    const el = window.__findItemEl(it.id, paneId);
     if (el && titleRef.current) window.__attachFolderCardClick(el, it, titleRef.current);
   });
 

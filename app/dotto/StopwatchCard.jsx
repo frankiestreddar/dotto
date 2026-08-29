@@ -13,10 +13,19 @@
 export default function StopwatchCard({ it }) {
   return (
     <div className="sw-row" onMouseDown={(e) => e.stopPropagation()}>
-      <button className="sw-btn sw-startstop" onClick={() => window.swToggleRun(it.id)} title={it.swRunning ? "Stop" : "Start"}>
+      <button
+        className="sw-btn sw-startstop"
+        onClick={() => window.swToggleRun(it.id)}
+        title={it.swRunning ? "Stop" : "Start"}
+      >
         {it.swRunning ? "⏹" : "▶"}
       </button>
-      <button className="sw-btn sw-pauseplay" onClick={() => window.swTogglePause(it.id)} disabled={!it.swRunning} title={it.swPaused ? "Resume" : "Pause"}>
+      <button
+        className="sw-btn sw-pauseplay"
+        onClick={() => window.swTogglePause(it.id)}
+        disabled={!it.swRunning}
+        title={it.swPaused ? "Resume" : "Pause"}
+      >
         {it.swPaused ? "▶" : "⏸"}
       </button>
       <div className="sw-time">{window.__swFormatTime(window.__swCurrentElapsedMs(it))}</div>

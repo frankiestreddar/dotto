@@ -48,8 +48,12 @@ function sanitizeAlignment(a) {
   return a
     .map((p) => {
       if (!p || typeof p !== "object") return null;
-      const sourcePhrase = String(p.sourcePhrase || "").trim().slice(0, MAX_ALIGNMENT_PHRASE_LEN);
-      const targetPhrase = String(p.targetPhrase || "").trim().slice(0, MAX_ALIGNMENT_PHRASE_LEN);
+      const sourcePhrase = String(p.sourcePhrase || "")
+        .trim()
+        .slice(0, MAX_ALIGNMENT_PHRASE_LEN);
+      const targetPhrase = String(p.targetPhrase || "")
+        .trim()
+        .slice(0, MAX_ALIGNMENT_PHRASE_LEN);
       if (!sourcePhrase || !targetPhrase) return null;
       return { sourcePhrase, targetPhrase };
     })
@@ -66,7 +70,9 @@ function sanitizeAlignment(a) {
 // no separate script-detection is needed there.
 function sanitizeSentence(s) {
   if (!s || typeof s !== "object") return null;
-  const text = String(s.text || "").trim().slice(0, MAX_DEF_LEN);
+  const text = String(s.text || "")
+    .trim()
+    .slice(0, MAX_DEF_LEN);
   if (!text) return null;
   return {
     text,
@@ -87,14 +93,17 @@ function sanitizeSentence(s) {
 function sanitizeInlineMarkers(text, { dictEntryCount, exampleCount, hasTranslation }) {
   if (!text) return text;
   let count = 0;
-  return text.replace(/\{\{(dictionary|example):(\d+)\}\}|\{\{translation\}\}/g, (match, kind, idxStr) => {
-    if (++count > MAX_INLINE_MARKERS) return "";
-    if (match === "{{translation}}") return hasTranslation ? match : "";
-    const idx = parseInt(idxStr, 10);
-    if (kind === "dictionary") return idx < dictEntryCount ? match : "";
-    if (kind === "example") return idx < exampleCount ? match : "";
-    return "";
-  });
+  return text.replace(
+    /\{\{(dictionary|example):(\d+)\}\}|\{\{translation\}\}/g,
+    (match, kind, idxStr) => {
+      if (++count > MAX_INLINE_MARKERS) return "";
+      if (match === "{{translation}}") return hasTranslation ? match : "";
+      const idx = parseInt(idxStr, 10);
+      if (kind === "dictionary") return idx < dictEntryCount ? match : "";
+      if (kind === "example") return idx < exampleCount ? match : "";
+      return "";
+    },
+  );
 }
 
 // One query's contents, appended as the final user turn after any prior conversation history
@@ -105,7 +114,15 @@ function sanitizeInlineMarkers(text, { dictEntryCount, exampleCount, hasTranslat
 // and appends them as a labeled block the prompt tells the model how to use. Returns a plain
 // string (the user message's content) rather than Gemini's {role,parts} contents array, since
 // Groq's chat completion API takes a flat OpenAI-style messages array instead.
-function buildContents(query, canvasMatches, cardContext, cardConnections, sourceContext, existingSummary, existingMemory) {
+function buildContents(
+  query,
+  canvasMatches,
+  cardContext,
+  cardConnections,
+  sourceContext,
+  existingSummary,
+  existingMemory,
+) {
   const contextLine =
     canvasMatches && canvasMatches.length
       ? `Canvas matches found: ${JSON.stringify(canvasMatches)}`
@@ -131,8 +148,11 @@ function buildContents(query, canvasMatches, cardContext, cardConnections, sourc
     if (cards.length) {
       cardBlock += `\n\nCards attached to this query:\n${cards.map((c, i) => `${i + 1}. ${c}`).join("\n")}`;
       if (Array.isArray(cardConnections) && cardConnections.length) {
-        const conns = cardConnections.filter((c) => typeof c === "string" && c.trim()).slice(0, MAX_CARD_CONTEXT);
-        if (conns.length) cardBlock += `\n\nData links between attached cards:\n${conns.join("\n")}`;
+        const conns = cardConnections
+          .filter((c) => typeof c === "string" && c.trim())
+          .slice(0, MAX_CARD_CONTEXT);
+        if (conns.length)
+          cardBlock += `\n\nData links between attached cards:\n${conns.join("\n")}`;
       }
       // Numbered to match the card list just above (both built client-side from the same
       // searchCardContext array, in the same order — see describeCardForAI's caller in
@@ -218,7 +238,11 @@ async function loadConversationHistory(supabase, conversationId) {
       .eq("conversation_id", conversationId)
       .order("created_at", { ascending: true })
       .order("role", { ascending: false }),
-    supabase.from("dotbot_conversations").select("conversation_summary").eq("id", conversationId).single(),
+    supabase
+      .from("dotbot_conversations")
+      .select("conversation_summary")
+      .eq("id", conversationId)
+      .single(),
   ]);
   const { data, error, count } = messagesRes;
   if (error) {
@@ -228,11 +252,16 @@ async function loadConversationHistory(supabase, conversationId) {
   const messages = (data || [])
     .slice(-MAX_HISTORY_MESSAGES)
     .map((m) => {
-      const content = m.role === "user" ? String((m.content && m.content.query) || "").trim() : summarizeAssistantContent(m.content);
+      const content =
+        m.role === "user"
+          ? String((m.content && m.content.query) || "").trim()
+          : summarizeAssistantContent(m.content);
       return content ? { role: m.role, content } : null;
     })
     .filter(Boolean);
-  const summary = conversationRes.error ? null : (conversationRes.data && conversationRes.data.conversation_summary) || null;
+  const summary = conversationRes.error
+    ? null
+    : (conversationRes.data && conversationRes.data.conversation_summary) || null;
   return { messages, summary, truncated: (count || 0) > MAX_HISTORY_MESSAGES };
 }
 
@@ -253,8 +282,12 @@ function buildPanels(parsed, hasCanvasMatches) {
   const entries = dictArr
     .map((d) => {
       if (!d || typeof d !== "object") return null;
-      const word = String(d.word || "").trim().slice(0, MAX_WORD_LEN);
-      const definition = String(d.definition || "").trim().slice(0, MAX_DEF_LEN);
+      const word = String(d.word || "")
+        .trim()
+        .slice(0, MAX_WORD_LEN);
+      const definition = String(d.definition || "")
+        .trim()
+        .slice(0, MAX_DEF_LEN);
       if (!word || !definition) return null;
       const grammarTags = Array.isArray(d.grammarTags)
         ? d.grammarTags
@@ -264,8 +297,15 @@ function buildPanels(parsed, hasCanvasMatches) {
         : [];
       return {
         word,
-        transliteration: d.transliteration ? String(d.transliteration).trim().slice(0, MAX_WORD_LEN) : "",
-        ipa: d.ipa ? String(d.ipa).trim().replace(/^\/+|\/+$/g, "").slice(0, MAX_IPA_LEN) : "",
+        transliteration: d.transliteration
+          ? String(d.transliteration).trim().slice(0, MAX_WORD_LEN)
+          : "",
+        ipa: d.ipa
+          ? String(d.ipa)
+              .trim()
+              .replace(/^\/+|\/+$/g, "")
+              .slice(0, MAX_IPA_LEN)
+          : "",
         language: d.language ? String(d.language).trim().slice(0, MAX_WORD_LEN) : "",
         grammarTags,
         definition,
@@ -279,10 +319,18 @@ function buildPanels(parsed, hasCanvasMatches) {
   // only for direct translation-style queries, see lib/dotbot.js.
   const tr = parsed.translation;
   if (tr && typeof tr === "object") {
-    const sourceWord = String(tr.sourceWord || "").trim().slice(0, MAX_WORD_LEN);
-    const targetWord = String(tr.targetWord || "").trim().slice(0, MAX_WORD_LEN);
-    const sourceLanguage = String(tr.sourceLanguage || "").trim().slice(0, MAX_WORD_LEN);
-    const targetLanguage = String(tr.targetLanguage || "").trim().slice(0, MAX_WORD_LEN);
+    const sourceWord = String(tr.sourceWord || "")
+      .trim()
+      .slice(0, MAX_WORD_LEN);
+    const targetWord = String(tr.targetWord || "")
+      .trim()
+      .slice(0, MAX_WORD_LEN);
+    const sourceLanguage = String(tr.sourceLanguage || "")
+      .trim()
+      .slice(0, MAX_WORD_LEN);
+    const targetLanguage = String(tr.targetLanguage || "")
+      .trim()
+      .slice(0, MAX_WORD_LEN);
     if (sourceWord && targetWord && sourceLanguage && targetLanguage) {
       panels.push({ type: "translation", sourceWord, sourceLanguage, targetWord, targetLanguage });
     }
@@ -293,7 +341,9 @@ function buildPanels(parsed, hasCanvasMatches) {
   // their own sentences (see above).
   const ex = parsed.examples;
   if (ex && typeof ex === "object") {
-    const sentences = Array.isArray(ex.sentences) ? ex.sentences.map(sanitizeSentence).filter(Boolean).slice(0, MAX_LIST_LEN) : [];
+    const sentences = Array.isArray(ex.sentences)
+      ? ex.sentences.map(sanitizeSentence).filter(Boolean).slice(0, MAX_LIST_LEN)
+      : [];
     if (sentences.length) {
       const panel = { type: "examples", sentences };
       // Powers each sentence's own TTS button client-side (see buildExamplesCard) — falls back
@@ -309,7 +359,9 @@ function buildPanels(parsed, hasCanvasMatches) {
   // sanitizeInlineMarkers.
   const markerContext = {
     dictEntryCount: entries.length,
-    exampleCount: panels.some((p) => p.type === "examples") ? panels.find((p) => p.type === "examples").sentences.length : 0,
+    exampleCount: panels.some((p) => p.type === "examples")
+      ? panels.find((p) => p.type === "examples").sentences.length
+      : 0,
     hasTranslation: panels.some((p) => p.type === "translation"),
   };
 
@@ -325,11 +377,18 @@ function buildPanels(parsed, hasCanvasMatches) {
       .map((b) => {
         if (!b || typeof b !== "object") return null;
         if (b.type === "text") {
-          const content = sanitizeInlineMarkers(String(b.content || "").trim().slice(0, MAX_BLOCK_TEXT_LEN), markerContext);
+          const content = sanitizeInlineMarkers(
+            String(b.content || "")
+              .trim()
+              .slice(0, MAX_BLOCK_TEXT_LEN),
+            markerContext,
+          );
           return content ? { type: "text", content } : null;
         }
         if (b.type === "example") {
-          const bText = String(b.text || "").trim().slice(0, MAX_DEF_LEN);
+          const bText = String(b.text || "")
+            .trim()
+            .slice(0, MAX_DEF_LEN);
           if (!bText) return null;
           return {
             type: "example",
@@ -360,9 +419,10 @@ function buildPanels(parsed, hasCanvasMatches) {
     // guidance on "recommendedIntro". Falls back to a generic label if the model omits it (or for
     // panels persisted before this field existed — see ChatTurn, app/dotto/ChatThread.jsx) rather
     // than rendering with no lead-in text at all.
-    const intro = typeof parsed.recommendedIntro === "string" && parsed.recommendedIntro.trim()
-      ? parsed.recommendedIntro.trim().slice(0, MAX_RECOMMENDED_INTRO_LEN)
-      : "Next, I could:";
+    const intro =
+      typeof parsed.recommendedIntro === "string" && parsed.recommendedIntro.trim()
+        ? parsed.recommendedIntro.trim().slice(0, MAX_RECOMMENDED_INTRO_LEN)
+        : "Next, I could:";
     if (queries.length) panels.push({ type: "recommended_searches", intro, queries });
   }
 
@@ -391,8 +451,10 @@ function buildPanels(parsed, hasCanvasMatches) {
       : [];
     if (rows.length) {
       const panel = { type: "source_action", action: sa.type, columns, rows };
-      if (sa.type === "add_rows") panel.targetIndex = Number.isFinite(sa.targetIndex) ? sa.targetIndex : 1;
-      if (sa.type === "create_source") panel.title = sa.title ? String(sa.title).trim().slice(0, 80) : "New Source";
+      if (sa.type === "add_rows")
+        panel.targetIndex = Number.isFinite(sa.targetIndex) ? sa.targetIndex : 1;
+      if (sa.type === "create_source")
+        panel.title = sa.title ? String(sa.title).trim().slice(0, 80) : "New Source";
       panels.push(panel);
     }
   }
@@ -430,7 +492,11 @@ export async function POST(request) {
   // appState.currentConversationId, public/dotto/search-orchestration-selection.js) vs. a fresh
   // one. RLS-scoped read, so a stale/foreign id just resolves to no history rather than a leak —
   // treated the same as starting fresh in that case.
-  const { messages: history, summary: existingSummary, truncated } = await loadConversationHistory(supabase, requestedConversationId);
+  const {
+    messages: history,
+    summary: existingSummary,
+    truncated,
+  } = await loadConversationHistory(supabase, requestedConversationId);
 
   // Gates the cross-conversation memory tier (see DOTBOT_USER_MEMORY_INSTRUCTIONS) — a single
   // cheap profiles lookup, fails closed to "free"/no memory rather than blocking the request.
@@ -502,8 +568,16 @@ export async function POST(request) {
     // real panel type, these are invisible to the user) — extracted here, capped defensively the
     // same way every other field in buildPanels is, regardless of the prompt's own length
     // guidance. Empty after trim = "the model had nothing new to add," treated as absent.
-    const conversationSummary = truncated ? String(parsed.conversationSummary || "").trim().slice(0, MAX_CONVERSATION_SUMMARY_LEN) || null : null;
-    const userMemoryUpdate = isProOrPolyglot ? String(parsed.userMemoryUpdate || "").trim().slice(0, MAX_USER_MEMORY_LEN) || null : null;
+    const conversationSummary = truncated
+      ? String(parsed.conversationSummary || "")
+          .trim()
+          .slice(0, MAX_CONVERSATION_SUMMARY_LEN) || null
+      : null;
+    const userMemoryUpdate = isProOrPolyglot
+      ? String(parsed.userMemoryUpdate || "")
+          .trim()
+          .slice(0, MAX_USER_MEMORY_LEN) || null
+      : null;
     return { panels: buildPanels(parsed, hasCanvasMatches), conversationSummary, userMemoryUpdate };
   };
 

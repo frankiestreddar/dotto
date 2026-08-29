@@ -44,7 +44,15 @@ export default function LoginPage() {
     <>
       <h1 style={{ fontSize: 20, fontWeight: 700, margin: "0 0 24px" }}>Log in to Dotto</h1>
       <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-        <label style={{ display: "flex", flexDirection: "column", gap: 6, fontSize: 12, color: "var(--ink-soft)" }}>
+        <label
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            gap: 6,
+            fontSize: 12,
+            color: "var(--ink-soft)",
+          }}
+        >
           Email
           <input
             type="email"
@@ -55,7 +63,15 @@ export default function LoginPage() {
             style={inputStyle}
           />
         </label>
-        <label style={{ display: "flex", flexDirection: "column", gap: 6, fontSize: 12, color: "var(--ink-soft)" }}>
+        <label
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            gap: 6,
+            fontSize: 12,
+            color: "var(--ink-soft)",
+          }}
+        >
           Password
           <input
             type="password"

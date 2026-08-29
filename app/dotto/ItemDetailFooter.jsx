@@ -11,7 +11,11 @@ import usePortalNode from "./usePortalNode";
 // The rest of the Item Detail view (title/price/desc fields, canvas preview) and the whole Publish
 // Flow view stay vanilla — see itemDetailFooterStore's comment in bridges.js.
 export default function ItemDetailFooter() {
-  const state = useSyncExternalStore(itemDetailFooterStore.subscribe, itemDetailFooterStore.getSnapshot, () => null);
+  const state = useSyncExternalStore(
+    itemDetailFooterStore.subscribe,
+    itemDetailFooterStore.getSnapshot,
+    () => null,
+  );
   const portalNode = usePortalNode("item-detail-footer");
 
   if (!portalNode || !state) return null;
@@ -19,8 +23,12 @@ export default function ItemDetailFooter() {
   if (state.sourceFolder === "drafts") {
     return createPortal(
       <>
-        <button className="btn-buy btn-secondary" onClick={() => window.__deleteDetailDraft()}>Delete</button>
-        <button className="btn-buy" onClick={() => window.__startPublishFlow()}>Publish</button>
+        <button className="btn-buy btn-secondary" onClick={() => window.__deleteDetailDraft()}>
+          Delete
+        </button>
+        <button className="btn-buy" onClick={() => window.__startPublishFlow()}>
+          Publish
+        </button>
       </>,
       portalNode,
     );
@@ -29,15 +37,25 @@ export default function ItemDetailFooter() {
   if (state.sourceFolder === "published") {
     return createPortal(
       <>
-        <button className="btn-buy btn-secondary" onClick={() => window.__unpublishDetailItem()}>Unpublish</button>
-        <button className="btn-buy" disabled={!state.dirty} onClick={() => window.__updateDetailItem()}>Update</button>
+        <button className="btn-buy btn-secondary" onClick={() => window.__unpublishDetailItem()}>
+          Unpublish
+        </button>
+        <button
+          className="btn-buy"
+          disabled={!state.dirty}
+          onClick={() => window.__updateDetailItem()}
+        >
+          Update
+        </button>
       </>,
       portalNode,
     );
   }
 
   return createPortal(
-    <button className="btn-buy" onClick={() => window.__deployPurchasedTemplate(state.itemId)}>Deploy</button>,
+    <button className="btn-buy" onClick={() => window.__deployPurchasedTemplate(state.itemId)}>
+      Deploy
+    </button>,
     portalNode,
   );
 }

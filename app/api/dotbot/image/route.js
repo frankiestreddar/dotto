@@ -1,6 +1,12 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import { getHfApiKey, HF_IMAGE_ENDPOINT, PIXEL_ART_LORA, buildPixelArtPrompt, pixelateToSprite } from "@/lib/huggingface";
+import {
+  getHfApiKey,
+  HF_IMAGE_ENDPOINT,
+  PIXEL_ART_LORA,
+  buildPixelArtPrompt,
+  pixelateToSprite,
+} from "@/lib/huggingface";
 import { peekGenerationCredits, spendGenerationCredits } from "@/lib/dotbot";
 
 export async function POST(request) {
@@ -51,7 +57,11 @@ export async function POST(request) {
     });
     if (!response.ok) {
       const errText = await response.text().catch(() => "");
-      console.error("[dotbot/image] Hugging Face request failed:", response.status, errText.slice(0, 500));
+      console.error(
+        "[dotbot/image] Hugging Face request failed:",
+        response.status,
+        errText.slice(0, 500),
+      );
       return NextResponse.json({ error: "generation_failed" }, { status: 502 });
     }
     const data = await response.json();

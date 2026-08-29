@@ -1,6 +1,6 @@
 import { openSearchOverlay, scrollChatThreadToBottom, showAiChatView, updateChatThread } from './ai-assistant-suggestions.js';
-import { appState, canvasViewportCenterX, drawSettings, supabase } from './core-state.js';
-import { openCollabPanel, renderCollabPill } from './friends-presence.js';
+import { appState, canvasViewportCenterX, drawSettings, findItemEl, supabase } from './core-state.js';
+import { activePaneCollabBubbleEl, openCollabPanel, renderCollabPill } from './friends-presence.js';
 import { saveWorkspaceNow, smoothPanTo } from './history-autosave.js';
 import { findItemById } from './live-presence.js';
 import { flashCanvasElement } from './mnemonic-search-matching.js';
@@ -153,6 +153,11 @@ import { deleteCanvasCollabsForFolder, deleteWaypointCardEverywhere, expandWaypo
     // the obvious next step from here.
     function handleOwnedHubCollabRowClick(folderId) {
         openFolder(folderId); // our own canvas — plain local navigation, no fetch needed
+        // Retargets appState.collabBubble to the (now-active) pane's own bubble element first —
+        // split-screen Stage 8, every pane has its own now, so there's no single static bubble to
+        // assume any more (see collabBubblePaneClick's own comment, friends-presence.js).
+        const bubbleEl = activePaneCollabBubbleEl();
+        if (bubbleEl) appState.collabBubble = bubbleEl;
         renderCollabPill(); // sets the bubble's .show class synchronously so the line below doesn't no-op
         openCollabPanel(true);
     }
@@ -269,24 +274,51 @@ import { deleteCanvasCollabsForFolder, deleteWaypointCardEverywhere, expandWaypo
     // convention renderSourcesList's own rows already use, though the underlying relationship here
     // is simpler — a media item only ever lives in exactly one folder directly, no separate linking
     // item the way a source can appear on canvases other than its own.
+    // Files sidebar — deduplicated to ONE row per uploaded file, per explicit bug report: dragging
+    // a file from this panel onto canvas (spawnMediaItemAt, waypoints-render-loop.js) spawns a
+    // second card pointing at the exact same underlying file, which used to show up as a second,
+    // seemingly-duplicate row here. it.mediaFileId (a real crypto.randomUUID(), assigned once per
+    // upload — see setMediaFromLink/processMediaFile/uploadDocumentToStorage's own comments,
+    // media-pdf-epub.js, for why a real UUID rather than appState.idCounter: "not just a unique
+    // code for the user... unique across the platform") is the dedupe key; a legacy item from
+    // before this field existed falls back to its own mediaSrc (still a real, if less explicit,
+    // per-upload identity — two cards genuinely pointing at the same storage URL/data: URI ARE the
+    // same file either way). Deliberately NOT applied to the Outline panel (computeOutlineRows,
+    // shared-canvases-outline.js, which has no dedup logic of its own and isn't touched here) — per
+    // explicit request, Outline should keep listing every individual card instance on the canvas,
+    // only the Files sidebar collapses them down to one.
     function renderFilesList(query) {
         const input = document.getElementById('files-panel-search');
         const q = (query !== undefined ? query : (input ? input.value : '')).trim().toLowerCase();
         const mediaTypeLabel = { video: 'Video', pdf: 'PDF', epub: 'EPUB' };
-        const rows = [];
+        const byFileKey = new Map();
         Object.values(appState.folders).forEach(f => {
             (f.items || []).forEach(it => {
                 if (it.kind !== 'media' || !it.mediaSrc) return;
-                rows.push({
+                const fileKey = it.mediaFileId || it.mediaSrc;
+                const onCanvas = f.id === appState.currentFolderId;
+                const existing = byFileKey.get(fileKey);
+                // First instance found wins by default; a later one only replaces it if THIS one is
+                // on the current canvas and the kept one wasn't — so the row always navigates
+                // somewhere actually visible right now when that's an option.
+                if (existing && !(onCanvas && !existing.onCanvas)) return;
+                byFileKey.set(fileKey, {
                     id: it.id,
                     folderId: f.id,
                     itemId: it.id,
                     title: it.mediaName || mediaTypeLabel[it.mediaType] || 'Image',
-                    onCanvas: f.id === appState.currentFolderId,
+                    onCanvas,
+                    // The file's own real, directly-openable URL (a Supabase Storage public URL,
+                    // or occasionally a data: URI for a not-yet-uploaded local preview — see
+                    // media-pdf-epub.js's own it.mediaSrc assignments) — used by FilesListPanel.jsx's
+                    // "open in a new tab" row action; every browser already knows how to render an
+                    // image/video/PDF navigated to directly, so no special per-type handling is
+                    // needed here.
+                    mediaSrc: it.mediaSrc,
                 });
             });
         });
-        const filtered = rows
+        const filtered = Array.from(byFileKey.values())
             .filter(r => !q || r.title.toLowerCase().includes(q))
             .sort((a, b) => (b.onCanvas === a.onCanvas ? 0 : b.onCanvas ? 1 : -1));
         window.__setFilesList({ rows: filtered, query: q });
@@ -313,7 +345,7 @@ import { deleteCanvasCollabsForFolder, deleteWaypointCardEverywhere, expandWaypo
     // Pans to and briefly expands (read-only "peek") a waypoint card already present in the
     // CURRENTLY open folder's DOM — shared by both branches of goToWaypointCard below.
     function peekWaypointCard(folderId, it) {
-        const el = document.getElementById('item-' + it.id);
+        const el = findItemEl(it.id);
         const w = el ? el.offsetWidth : (it.w || 28);
         const h = el ? el.offsetHeight : (it.h || 28);
         smoothPanTo(canvasViewportCenterX() - (it.x + w / 2), window.innerHeight / 2 - (it.y + h / 2), 1);

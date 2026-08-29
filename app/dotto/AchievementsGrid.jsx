@@ -23,7 +23,11 @@ function SpriteCell({ index, achievements, unlockedSet }) {
       ? `/sprites/sprite-${index}.png`
       : `/sprites/sprite-${index}-locked.png`;
 
-  return <div className="profile-sprite-cell">{!broken && <img src={src} alt="" onError={() => setBroken(true)} />}</div>;
+  return (
+    <div className="profile-sprite-cell">
+      {!broken && <img src={src} alt="" onError={() => setBroken(true)} />}
+    </div>
+  );
 }
 
 // Portals into #profile-sprite-grid (content/fragments/profile-panel.html) — genuine JSX cells,
@@ -32,7 +36,11 @@ function SpriteCell({ index, achievements, unlockedSet }) {
 // (see profile-achievements-pricing.js's own comment) since they never change; only the unlocked-
 // ids list is real store state.
 export default function AchievementsGrid() {
-  const unlockedIds = useSyncExternalStore(achievementsStore.subscribe, achievementsStore.getSnapshot, () => EMPTY_UNLOCKED);
+  const unlockedIds = useSyncExternalStore(
+    achievementsStore.subscribe,
+    achievementsStore.getSnapshot,
+    () => EMPTY_UNLOCKED,
+  );
   const portalNode = usePortalNode("profile-sprite-grid");
 
   if (!portalNode) return null;
@@ -42,7 +50,9 @@ export default function AchievementsGrid() {
   const count = window.__SPRITE_TOTAL_COUNT || 0;
   const cells = [];
   for (let i = 1; i <= count; i++) {
-    cells.push(<SpriteCell key={i} index={i} achievements={achievements} unlockedSet={unlockedSet} />);
+    cells.push(
+      <SpriteCell key={i} index={i} achievements={achievements} unlockedSet={unlockedSet} />,
+    );
   }
 
   return createPortal(cells, portalNode);

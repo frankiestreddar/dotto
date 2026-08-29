@@ -77,7 +77,7 @@ const CARD_KIND_COMPONENTS = {
 // still diffs each Component's JSX output and no-ops an unchanged one), but individual Components
 // with an expensive rebuild of their own (CanvasCard's inline preview, MediaCard's PDF/EPUB
 // viewer) gate that specific work behind their own dependency array — see their own comments.
-function CanvasItem({ it }) {
+function CanvasItem({ it, paneId }) {
   const ref = useRef(null);
   const Component = CARD_KIND_COMPONENTS[it.kind];
 
@@ -88,19 +88,24 @@ function CanvasItem({ it }) {
   });
 
   return (
-    <div ref={ref} id={"item-" + it.id}>
-      {Component ? <Component it={it} /> : null}
+    <div ref={ref} id={window.__itemElId(it.id, paneId)}>
+      {Component ? <Component it={it} paneId={paneId} /> : null}
     </div>
   );
 }
 
-// Portals the current folder's item cards into #items-layer, a stable child of #world added to
-// content/fragments/canvas-area.html (see that file's comment) specifically so React never has to
-// own #world itself — #world has several other direct children managed imperatively outside of
-// React (drawing/connection SVG layers, the placement ghost, connection-drag preview) that this
-// must not disturb.
-export default function CanvasItemsLayer() {
-  const items = useSyncExternalStore(canvasItemsStore.subscribe, canvasItemsStore.getSnapshot, () => EMPTY_ITEMS);
+// Portals one pane's current-folder item cards into ITS OWN #items-layer (pane 0: unqualified
+// "items-layer"; every other pane: "items-layer-{paneId}" — see PaneCanvasArea.jsx), a stable
+// child of that pane's own #world added to content/fragments/canvas-area.html (see that file's
+// comment) specifically so React never has to own #world itself — #world has several other direct
+// children managed imperatively outside of React (drawing/connection SVG layers, the placement
+// ghost, connection-drag preview) that this must not disturb. One instance of this component is
+// mounted per pane (see PaneCanvasArea.jsx) — split-screen Stage 4; paneId defaults to 0 so
+// existing single-pane behavior (and any test/debug code written before this stage) keeps working
+// unchanged.
+export default function CanvasItemsLayer({ paneId = 0 }) {
+  const store = canvasItemsStore.storeFor(paneId);
+  const items = useSyncExternalStore(store.subscribe, store.getSnapshot, () => EMPTY_ITEMS);
   // #items-layer is part of #world's static markup (rendered elsewhere via dangerouslySetInnerHTML)
   // so it doesn't exist in the DOM yet on this component's own first render — only resolvable once,
   // after mount. The one-extra-render cost the lint rule warns about here is unavoidable for
@@ -108,8 +113,11 @@ export default function CanvasItemsLayer() {
   // this component's own first commit has happened) and is otherwise harmless: it happens once, on
   // initial mount, well before the vanilla render() loop's first real call (see the flushSync
   // caller in app/dotto-app.jsx) — see that comment for why later calls are unaffected.
-  const portalNode = usePortalNode("items-layer");
+  const portalNode = usePortalNode(paneId === 0 ? "items-layer" : `items-layer-${paneId}`);
 
   if (!portalNode) return null;
-  return createPortal(items.map((it) => <CanvasItem key={it.id} it={it} />), portalNode);
+  return createPortal(
+    items.map((it) => <CanvasItem key={it.id} it={it} paneId={paneId} />),
+    portalNode,
+  );
 }

@@ -31,5 +31,7 @@ import './dotto/shared-canvases-outline.js';
 import './dotto/drag-drop-chat.js';
 import './dotto/marketplace.js';
 import './dotto/library-publish.js';
+import './dotto/blocks-panel.js';
+import './dotto/extensions-panel.js';
 import './dotto/resize-shortcuts-init.js';
 import './dotto/window-bridge.js';

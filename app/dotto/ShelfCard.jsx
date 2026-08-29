@@ -27,7 +27,11 @@ export default function ShelfCard({ it }) {
       {it.shelfName}
     </div>
   ) : (
-    <div className="shelf-header crumb-placeholder" data-placeholder="Stack" onClick={startRenameName} />
+    <div
+      className="shelf-header crumb-placeholder"
+      data-placeholder="Stack"
+      onClick={startRenameName}
+    />
   );
 
   const searchEl =
@@ -92,8 +96,9 @@ export default function ShelfCard({ it }) {
       <>
         {nameEl}
         <div className="shelf-empty">
-          No sessions saved yet, and nothing connected. Connect a source here to combine it with others for flashcards, or link a
-          stopwatch (that&apos;s linked to a game) here, then press Start then Stop on it, to save a session.
+          No sessions saved yet, and nothing connected. Connect a source here to combine it with
+          others for flashcards, or link a stopwatch (that&apos;s linked to a game) here, then press
+          Start then Stop on it, to save a session.
         </div>
       </>
     );
@@ -107,7 +112,10 @@ export default function ShelfCard({ it }) {
       <div className="shelf-rows">
         {sessions.map((s) => {
           const selected = s.sessionId === it.shelfSelectedId;
-          const totalSeen = s.payloads.reduce((sum, p) => sum + ((p.delta && p.delta.seen) || 0), 0);
+          const totalSeen = s.payloads.reduce(
+            (sum, p) => sum + ((p.delta && p.delta.seen) || 0),
+            0,
+          );
           return (
             <div
               className={"shelf-row" + (selected ? " selected" : "")}

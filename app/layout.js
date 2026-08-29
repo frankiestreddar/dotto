@@ -20,20 +20,28 @@ export default function RootLayout({ children }) {
         {/* suppressHydrationWarning above: the inline script below deliberately sets data-theme on
             <html> before React hydrates, so its attributes will legitimately differ from what got
             server-rendered (which has no data-theme at all — there's no request-time way to know
-            the visitor's localStorage value) — exactly the "external changing data" case React's
-            own hydration-mismatch warning describes, and exactly what that prop exists for. Scoped
-            to just this one element/attribute, not a blanket suppression.
-            Applies the persisted light/dark theme (see theme-toggle.js) to <html> synchronously,
-            before anything paints — this app's vanilla-JS bootstrap (dotto-script.js) loads via
-            <Script strategy="afterInteractive"> in dotto-app.jsx, well after hydration, which
-            would otherwise mean a visible flash of the wrong theme on every load. Deliberately a
-            plain blocking <script> (no async/defer/type=module) so it runs synchronously as the
-            browser parses this <head>, before <body> renders. Wrapped in try/catch since
-            localStorage can throw in some private-browsing configurations — falls back to dark,
-            the app's default, exactly like theme-toggle.js's own first-run default does. */}
+            the visitor's localStorage value, let alone their OS colour-scheme preference) —
+            exactly the "external changing data" case React's own hydration-mismatch warning
+            describes, and exactly what that prop exists for. Scoped to just this one
+            element/attribute, not a blanket suppression.
+            Applies the theme to <html> synchronously, before anything paints — this app's
+            vanilla-JS bootstrap (dotto-script.js) loads via <Script strategy="afterInteractive">
+            in dotto-app.jsx, well after hydration, which would otherwise mean a visible flash of
+            the wrong theme on every load. Deliberately a plain blocking <script> (no
+            async/defer/type=module) so it runs synchronously as the browser parses this <head>,
+            before <body> renders.
+            Explicit request: the site should follow the OS light/dark preference live, but a
+            choice made via the Settings switch or the \ shortcut (see theme-toggle.js's own
+            setTheme/toggleTheme) always wins over that until cleared. localStorage's 'dotto-theme'
+            key is used ONLY to record that explicit override — its mere presence (not just its
+            value) is what "an override exists" means, so an unset key here means "no explicit
+            choice yet, use the live OS preference" rather than defaulting to a fixed theme.
+            Wrapped in try/catch since localStorage/matchMedia can throw or be unavailable in some
+            private-browsing configurations — falls back to dark, matching theme-toggle.js's own
+            fallback for the same case. */}
         <script
           dangerouslySetInnerHTML={{
-            __html: `(function(){try{document.documentElement.dataset.theme=localStorage.getItem('dotto-theme')==='light'?'light':'dark';}catch(e){document.documentElement.dataset.theme='dark';}})();`,
+            __html: `(function(){try{var s=localStorage.getItem('dotto-theme');document.documentElement.dataset.theme=(s==='light'||s==='dark')?s:((window.matchMedia&&window.matchMedia('(prefers-color-scheme: light)').matches)?'light':'dark');}catch(e){document.documentElement.dataset.theme='dark';}})();`,
           }}
         />
         <link rel="preconnect" href="https://fonts.googleapis.com" />

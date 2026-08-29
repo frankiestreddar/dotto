@@ -49,7 +49,9 @@ export async function POST(request) {
     });
     const parsed = JSON.parse(completion.choices[0].message.content);
     suggestions = Array.isArray(parsed.suggestions)
-      ? parsed.suggestions.filter((s) => typeof s === "string" && s.trim()).slice(0, MAX_SUGGESTIONS)
+      ? parsed.suggestions
+          .filter((s) => typeof s === "string" && s.trim())
+          .slice(0, MAX_SUGGESTIONS)
       : [];
   } catch (err) {
     console.error("[dotbot/suggest] Groq request failed:", err);

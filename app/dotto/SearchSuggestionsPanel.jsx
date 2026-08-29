@@ -13,7 +13,11 @@ import { searchSuggestionsStore } from "./bridges";
 // (window.__buildMnemonicErrorEl) — see renderDotbotOrchestrateError's own comment in
 // search-orchestration-selection.js for why they're really the same shape.
 export default function SearchSuggestionsPanel() {
-  const state = useSyncExternalStore(searchSuggestionsStore.subscribe, searchSuggestionsStore.getSnapshot, () => null);
+  const state = useSyncExternalStore(
+    searchSuggestionsStore.subscribe,
+    searchSuggestionsStore.getSnapshot,
+    () => null,
+  );
 
   useLayoutEffect(() => {
     const el = document.getElementById("search-suggestions");

@@ -1,13 +1,15 @@
-import { appState, canvas, supabase } from './core-state.js';
+import { addMenu, appState, btnAdd, supabase } from './core-state.js';
 import { saveSnapshot } from './history-autosave.js';
 import { openItemDetail } from './library-publish.js';
-import { findItemById, importSharedCardsAtScreenPoint, sanitizeFlashcardSnapshot, snapshotItem } from './live-presence.js';
+import { findItemById, sanitizeFlashcardSnapshot, snapshotItem } from './live-presence.js';
 import { closeRailView, openRailView, wireRailIcon } from './panels-hamburger.js';
 import { render, renderSelectedOutlines } from './waypoints-render-loop.js';
 
 
     // ---------- Template Marketplace (Discover) — browsing other creators' published templates.
-    // Library (your own drafts/published/purchased items) is a separate rail panel, below. ----------
+    // "Browse your own library content" (drafts/published/purchased/custom folders) moved to the
+    // Blocks panel (blocks-panel.js) when Library was repurposed into Plugins — see that file for
+    // all of it. Everything below here is Discover/purchase-flow only, untouched by that move. ----------
     // Restores the browse view, clearing any transient detail drill-down. Nothing is ever lost by
     // calling this — a listing you're browsing is read-only until purchased/published elsewhere.
     function resetMarketplacePanelView() {
@@ -26,31 +28,14 @@ import { render, renderSelectedOutlines } from './waypoints-render-loop.js';
     }
     wireRailIcon('marketplace', appState.btnCart, appState.cartPanel, refreshCartPanel);
 
-    // ---------- Library — your own drafts/published/purchased items. Used to be a tab sharing
-    // #cart-panel with Discover; now a fully separate rail icon/panel. ----------
-    // Restores the folder-picker view, clearing any transient item-detail/publish-flow drill-down.
-    function resetLibraryPanelView() {
-        document.getElementById('item-detail-view').classList.remove('active');
-        document.getElementById('publish-flow-view').classList.remove('active');
-        document.getElementById('view-library').classList.add('active');
-    }
-    async function refreshLibraryPanel() {
-        resetLibraryPanelView();
-        appState.activeLibraryFolder = null;
-        await refreshMyLibrary();
-        renderLibrary();
-    }
-    wireRailIcon('library', appState.libraryBtn, appState.libraryPanel, refreshLibraryPanel);
-    // Opens the Library panel straight to a specific folder — used after a purchase (jump to
-    // Purchased) or after packaging a draft via drag-and-drop (jump to Drafts) — rather than
-    // landing on the folder picker and making the user click into it themselves. Passes null as
-    // openRailView's own onOpen (skips refreshLibraryPanel's reset-to-folder-picker) since this
-    // does the equivalent sequence itself, ending on the requested folder instead.
-    async function openLibraryToFolder(folder) {
-        openRailView('library', appState.libraryPanel, appState.libraryBtn, null, true);
-        resetLibraryPanelView();
-        await refreshMyLibrary();
-        switchLibraryFolder(folder);
+    // Opens the Blocks panel (rail-pinned) and refreshes it — used after a purchase so the newly-
+    // bought item shows up in its always-visible Purchased folder. Was openLibraryToFolder('purchased'),
+    // back when Library had its own folder-drilldown view to jump straight to; Blocks shows every
+    // folder's contents at once now, so there's no specific folder to navigate to, just a refresh.
+    // window.__refreshBlocksPanel (not a direct import) — blocks-panel.js imports refreshMyLibrary
+    // from this file, so importing back here would be circular.
+    function openBlocksAfterPurchase() {
+        openRailView('add', addMenu, btnAdd, () => window.__refreshBlocksPanel(), true);
     }
 
     // Listings are cached in trendingMarketplace / userLibrary.{purchased,drafts,published}
@@ -84,6 +69,9 @@ import { render, renderSelectedOutlines } from './waypoints-render-loop.js';
             creatorUsername: row.creator?.username || 'Unknown'
         }));
     }
+    // Populates userLibrary.{drafts,published,purchased} from Supabase — called by
+    // refreshBlocksPanel (blocks-panel.js) every time the Blocks panel opens, same as it used to be
+    // called by Library's own refreshLibraryPanel.
     async function refreshMyLibrary() {
         if (!supabase || !appState.currentUser.id) return;
         const { data: mine, error: mineErr } = await supabase
@@ -101,17 +89,9 @@ import { render, renderSelectedOutlines } from './waypoints-render-loop.js';
             .eq('user_id', appState.currentUser.id)
             .order('acquired_at', { ascending: false });
         if (acqErr) console.error('[marketplace] failed to load purchased items:', acqErr);
-        // acquired_at drives the Library panel's "Purchased" folder, sorted most-recent-first —
+        // acquired_at drives the Blocks panel's Purchased folder, sorted most-recent-first —
         // carried through as acquiredAt alongside the usual marketplaceItemFromRow shape.
         appState.userLibrary.purchased = (acquired || []).filter(r => r.listing).map(r => ({ ...marketplaceItemFromRow(r.listing), acquiredAt: r.acquired_at }));
-    }
-
-    function switchLibraryFolder(folder) {
-        appState.activeLibraryFolder = folder;
-        const backRow = document.getElementById('library-back-row');
-        backRow.classList.toggle('show', !!folder);
-        document.getElementById('library-back-label').textContent = folder ? ('Back to folders') : '';
-        renderLibrary();
     }
 
     function handleMarketplaceSearch(val) {
@@ -161,7 +141,7 @@ import { render, renderSelectedOutlines } from './waypoints-render-loop.js';
         if (alreadyOwns) {
             alert("This template snapshot is already inside your Library!");
             closeMarketDetail();
-            openLibraryToFolder('purchased');
+            openBlocksAfterPurchase();
             return;
         }
 
@@ -172,165 +152,17 @@ import { render, renderSelectedOutlines } from './waypoints-render-loop.js';
 
         alert(`Successfully purchased "${appState.selectedMarketItem.title}" as a customizable template snapshot!`);
         closeMarketDetail();
-        openLibraryToFolder('purchased');
-    }
-
-    // Real React state now (see app/dotto/LibraryPanel.jsx, libraryViewStore) — genuine JSX rows
-    // for all three sub-views (folder picker / item list within a folder / cross-folder search
-    // results), same reasoning as the other list panels in this cluster. Drag-out-to-canvas for
-    // draft items (makeDraftItemDraggable) and opening the item detail view (openItemDetail,
-    // library-publish.js) stay vanilla, invoked from row handlers via window.__* bridges.
-    function renderLibrary() {
-        if (appState.librarySearchQuery) {
-            window.__setLibraryView({ view: 'search', results: computeLibrarySearchResults() });
-            return;
-        }
-
-        if (!appState.activeLibraryFolder) {
-            const fixed = ['purchased', 'drafts', 'published'].map(key => ({
-                key, label: appState.libraryFolderLabels[key], count: appState.userLibrary[key].length
-            }));
-            const custom = appState.userLibrary.customFolders.map(folder => ({
-                id: folder.id, name: folder.name, count: folder.items.length
-            }));
-            window.__setLibraryView({ view: 'folders', fixed, custom });
-            return;
-        }
-
-        const isCustom = isCustomFolderId(appState.activeLibraryFolder);
-        const customFolder = isCustom ? appState.userLibrary.customFolders.find(f => f.id === appState.activeLibraryFolder) : null;
-        const list = isCustom ? (customFolder ? customFolder.items : []) : appState.userLibrary[appState.activeLibraryFolder];
-
-        window.__setLibraryView({
-            view: 'items',
-            folderKey: appState.activeLibraryFolder,
-            isCustom,
-            customFolders: appState.userLibrary.customFolders.map(f => ({ id: f.id, name: f.name })),
-            items: (list || []).map(item => ({ item, status: isCustom ? resolveItemStatus(item) : appState.activeLibraryFolder }))
-        });
-    }
-
-    // A library item may live in exactly one of these three real folders; custom folders
-    // just hold references to items that already belong to one of them.
-    function resolveItemStatus(item) {
-        if (appState.userLibrary.drafts.some(x => x.id === item.id)) return 'drafts';
-        if (appState.userLibrary.published.some(x => x.id === item.id)) return 'published';
-        return 'purchased';
-    }
-
-    function isCustomFolderId(id) {
-        return typeof id === 'string' && id.indexOf('customfolder_') === 0;
-    }
-
-    function createCustomFolder() {
-        const name = prompt('Name your new library folder:', 'New Folder');
-        if (name === null) return;
-        const trimmed = name.trim();
-        appState.userLibrary.customFolders.push({ id: 'customfolder_' + appState.idCounter++, name: trimmed || 'New Folder', items: [] });
-        renderLibrary();
-    }
-
-    function addItemToCustomFolderById(folderId, sourceKey, itemId) {
-        const folder = appState.userLibrary.customFolders.find(f => f.id === folderId);
-        const source = appState.userLibrary[sourceKey];
-        if (!folder || !source) return;
-        const item = source.find(x => String(x.id) === String(itemId));
-        if (!item) return;
-        if (folder.items.some(x => String(x.id) === String(itemId))) { renderLibrary(); return; }
-        folder.items.push(item);
-        renderLibrary();
-    }
-
-    function removeFromCustomFolder(folderId, itemId) {
-        const folder = appState.userLibrary.customFolders.find(f => f.id === folderId);
-        if (!folder) return;
-        folder.items = folder.items.filter(x => String(x.id) !== String(itemId));
-        renderLibrary();
-    }
-
-    function handleLibrarySearch(val) {
-        appState.librarySearchQuery = val.trim().toLowerCase();
-        renderLibrary();
-    }
-
-    function computeLibrarySearchResults() {
-        const q = appState.librarySearchQuery;
-        const groups = [
-            { key: 'purchased', label: appState.libraryFolderLabels.purchased, items: appState.userLibrary.purchased },
-            { key: 'drafts', label: appState.libraryFolderLabels.drafts, items: appState.userLibrary.drafts },
-            { key: 'published', label: appState.libraryFolderLabels.published, items: appState.userLibrary.published },
-            ...appState.userLibrary.customFolders.map(f => ({ key: f.id, label: f.name, items: f.items }))
-        ];
-
-        const results = [];
-        groups.forEach(g => {
-            const folderMatches = g.label.toLowerCase().includes(q);
-            g.items.forEach(item => {
-                if (folderMatches || (item.title || '').toLowerCase().includes(q)) {
-                    const status = ['purchased', 'drafts', 'published'].includes(g.key) ? g.key : resolveItemStatus(item);
-                    results.push({ folderKey: g.key, folderLabel: g.label, item, status });
-                }
-            });
-        });
-        return results;
-    }
-
-    function openLibrarySearchResult(folderKey, item, status) {
-        const input = document.getElementById('library-search');
-        if (input) input.value = '';
-        appState.librarySearchQuery = '';
-        switchLibraryFolder(folderKey);
-        openItemDetail(item, status);
-    }
-
-    // Lets a saved draft's card in the library list be dragged out onto the main
-    // canvas, dropping in its packaged cards (mirrors the inline-canvas drag-out).
-    function makeDraftItemDraggable(div, item) {
-        div.style.cursor = 'grab';
-        div.addEventListener('pointerdown', (e) => {
-            if (e.target.closest('select') || e.target.closest('.lib-remove-btn')) return;
-            e.stopPropagation();
-            let dragStarted = false, dragGhost = null;
-            const startX = e.clientX, startY = e.clientY;
-            const move = (me) => {
-                if (!dragStarted) {
-                    if (Math.hypot(me.clientX - startX, me.clientY - startY) < 6) return;
-                    dragStarted = true;
-                    dragGhost = document.createElement('div');
-                    dragGhost.className = 'inline-canvas-drag-ghost';
-                    dragGhost.textContent = `${item.count || item.nodes.length} card${item.count === 1 ? '' : 's'} — drop onto your canvas`;
-                    document.body.appendChild(dragGhost);
-                }
-                dragGhost.style.left = (me.clientX + 14) + 'px';
-                dragGhost.style.top = (me.clientY + 14) + 'px';
-            };
-            const up = (ue) => {
-                window.removeEventListener('pointermove', move);
-                window.removeEventListener('pointerup', up);
-                if (dragGhost) dragGhost.remove();
-                if (!dragStarted) { openItemDetail(item, 'drafts'); return; }
-                const panelRect = appState.libraryPanel.getBoundingClientRect();
-                const overPanel = ue.clientX >= panelRect.left && ue.clientX <= panelRect.right && ue.clientY >= panelRect.top && ue.clientY <= panelRect.bottom;
-                if (overPanel) return;
-                const canvasRect = canvas.getBoundingClientRect();
-                const overCanvas = ue.clientX >= canvasRect.left && ue.clientX <= canvasRect.right && ue.clientY >= canvasRect.top && ue.clientY <= canvasRect.bottom;
-                if (!overCanvas) return;
-                importSharedCardsAtScreenPoint(item.nodes, ue.clientX, ue.clientY);
-                closeRailView();
-            };
-            window.addEventListener('pointermove', move);
-            window.addEventListener('pointerup', up);
-        });
+        openBlocksAfterPurchase();
     }
 
     function deployPurchasedTemplate(id) {
         const item = appState.userLibrary.purchased.find(x => x.id === id);
         if (!item) return;
-        
+
         saveSnapshot();
         const startX = Math.round((appState.tx + 200) / 28) * 28;
         const startY = Math.round((appState.ty + 200) / 28) * 28;
-        
+
         // Spawn cards on canvas
         appState.folders[appState.currentFolderId].items.push({
             id: appState.idCounter++,
@@ -364,7 +196,7 @@ import { render, renderSelectedOutlines } from './waypoints-render-loop.js';
         renderSelectedOutlines();
     }
 
-    // Cards dropped onto the marketplace panel are saved as a draft row right away (rather
+    // Cards dropped onto the Blocks panel's dropzone are saved as a draft row right away (rather
     // than held only in local state), so there's nothing left to lose if the panel gets
     // closed (e.g. clicking outside it) before the user is done editing it.
     async function createDraftFromItems(items) {
@@ -383,25 +215,16 @@ import { render, renderSelectedOutlines } from './waypoints-render-loop.js';
         appState.userLibrary.drafts.unshift(newItem);
 
         // packageSelectedAsTemplate (which called this) only ever fires while a card is dropped
-        // onto the Library panel, which is therefore already open — just switch its folder and
-        // open the new draft, no need to open the panel itself (unlike openLibraryToFolder, used
-        // for the purchase flow, which isn't reached from inside an already-open Library panel).
-        switchLibraryFolder('drafts');
+        // onto the Blocks panel, which is therefore already open — just open the new draft, no
+        // need to open the panel itself.
         openItemDetail(newItem, 'drafts');
     }
 
-export { addItemToCustomFolderById, closeMarketDetail, deployPurchasedTemplate, handleLibrarySearch, handleMarketplaceSearch, openMarketDetail, packageSelectedAsTemplate, purchaseCurrentMarketItem, refreshMyLibrary, removeFromCustomFolder, renderLibrary, switchLibraryFolder };
+export { closeMarketDetail, deployPurchasedTemplate, handleMarketplaceSearch, openMarketDetail, packageSelectedAsTemplate, purchaseCurrentMarketItem, refreshMyLibrary };
 
-// React → vanilla bridges — used by MarketDiscoverPanel.jsx/LibraryPanel.jsx/ItemDetailFooter.jsx
-// (app/dotto/), which can't import this directly since public/dotto/*.js isn't reachable from
-// app/dotto/.
+// React → vanilla bridges — used by MarketDiscoverPanel.jsx/ItemDetailFooter.jsx (app/dotto/),
+// which can't import this directly since public/dotto/*.js isn't reachable from app/dotto/.
 window.__openMarketDetail = openMarketDetail;
-window.__switchLibraryFolder = switchLibraryFolder;
-window.__createCustomFolder = createCustomFolder;
-window.__addItemToCustomFolderById = addItemToCustomFolderById;
-window.__removeFromCustomFolder = removeFromCustomFolder;
-window.__makeDraftItemDraggable = makeDraftItemDraggable;
-window.__openLibrarySearchResult = openLibrarySearchResult;
 window.__deployPurchasedTemplate = deployPurchasedTemplate;
 // Used by app/dotto/canvasItemBehavior.js's setupDraggingAndClicking (Phase 3's second relocated
 // piece), same reasoning as window.__getAppState (core-state.js).

@@ -1,5 +1,5 @@
 import { escapeHtml, stripHtml } from './ai-assistant-suggestions.js';
-import { appState } from './core-state.js';
+import { appState, findItemEl, itemElId, parseItemId } from './core-state.js';
 import { saveSnapshot, scheduleWorkspaceSave } from './history-autosave.js';
 import { findItemById } from './live-presence.js';
 import { awardUserPoints, bumpAchievementStat } from './profile-achievements-pricing.js';
@@ -281,7 +281,7 @@ import { render } from './waypoints-render-loop.js';
     // already used by showInlineCanvasDeleteMenu's own document-level pointerdown listener.
     document.addEventListener('pointerdown', (e) => {
         document.querySelectorAll('.item.options-open').forEach(el => {
-            if (!el.contains(e.target)) closeGameOptionsPanel(Number(el.id.replace('item-', '')));
+            if (!el.contains(e.target)) closeGameOptionsPanel(parseItemId(el));
         });
     });
 
@@ -381,7 +381,7 @@ import { render } from './waypoints-render-loop.js';
     function fcFlip(id) {
         const it = findItemById(id); if (!it) return;
         it.fcFlipped = !it.fcFlipped;
-        const el = document.getElementById('item-' + id);
+        const el = findItemEl(id);
         const card = el && el.querySelector('.fc-card');
         if (card) card.classList.toggle('flipped', it.fcFlipped);
         const flipBtn = el && el.querySelector('.fc-flip-btn');
@@ -542,7 +542,7 @@ import { render } from './waypoints-render-loop.js';
                 </div>
                 <div class="tr-prompt" onmousedown="event.stopPropagation()">${promptHTML || '(empty)'}</div>
                 <div class="tr-answer-row" onmousedown="event.stopPropagation()">
-                    <input type="text" class="tr-input${inputGradeClass}" placeholder="Type the answer…" value="${escapeHtml(it.trInput || '')}" oninput="trUpdateInput(${it.id}, this.value)" onkeydown="if(event.key==='Enter'){event.preventDefault(); ${checked ? `trNext(${it.id})` : `trCheck(${it.id})`};}" onfocus="broadcastEditingState(true, '#item-${it.id} .tr-input')" onblur="broadcastEditingState(false)" ${checked ? 'disabled' : ''}>
+                    <input type="text" class="tr-input${inputGradeClass}" placeholder="Type the answer…" value="${escapeHtml(it.trInput || '')}" oninput="trUpdateInput(${it.id}, this.value)" onkeydown="if(event.key==='Enter'){event.preventDefault(); ${checked ? `trNext(${it.id})` : `trCheck(${it.id})`};}" onfocus="broadcastEditingState(true, '#${itemElId(it.id)} .tr-input')" onblur="broadcastEditingState(false)" ${checked ? 'disabled' : ''}>
                     ${checked ? `<button class="tr-next-btn" onclick="trNext(${it.id})">Next</button>` : `<button class="tr-check-btn" onclick="trCheck(${it.id})">Check</button>`}
                 </div>
                 ${checked && grade !== 'correct' ? `<div class="tr-answer-reveal">Answer: ${escapeHtml(correctAnswer)}</div>` : ''}
@@ -570,7 +570,7 @@ import { render } from './waypoints-render-loop.js';
     // because the DOM node underneath it was swapped out. No-ops while the input is disabled
     // (mid-feedback, right after checking) or already focused.
     function trFocusInput(id) {
-        const el = document.getElementById('item-' + id);
+        const el = findItemEl(id);
         const input = el && el.querySelector('.tr-input');
         if (input && !input.disabled && document.activeElement !== input) input.focus();
     }

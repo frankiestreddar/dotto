@@ -27,14 +27,20 @@ function SnapshotCardMount({ item }) {
 // #canvas-modal-body itself is now an inner wrapper's className instead, so the portal never
 // writes to the target node's own attributes.
 export default function SharedCanvasModalBody() {
-  const state = useSyncExternalStore(sharedCanvasModalStore.subscribe, sharedCanvasModalStore.getSnapshot, () => null);
+  const state = useSyncExternalStore(
+    sharedCanvasModalStore.subscribe,
+    sharedCanvasModalStore.getSnapshot,
+    () => null,
+  );
   const portalNode = usePortalNode("canvas-modal-body");
 
   if (!portalNode || !state) return null;
 
   return createPortal(
     <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
-      {state.items.map((item, i) => <SnapshotCardMount key={i} item={item} />)}
+      {state.items.map((item, i) => (
+        <SnapshotCardMount key={i} item={item} />
+      ))}
     </div>,
     portalNode,
   );

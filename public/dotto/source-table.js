@@ -1,4 +1,4 @@
-import { appState } from './core-state.js';
+import { appState, itemElId } from './core-state.js';
 import { resolveTableForEdit } from './drawing-connections.js';
 import { saveSnapshot, scheduleWorkspaceSave } from './history-autosave.js';
 import { findItemById, placeCaretEnd } from './live-presence.js';
@@ -16,7 +16,7 @@ import { render } from './waypoints-render-loop.js';
         const numCols = it.tableData[0].length;
         const cg = it.userSized ? colgroupHTML(numCols) : '';
         const rows = it.tableData.map((row, ri) =>
-            `<tr>${row.map((cell, ci) => `<td contenteditable="true" data-r="${ri}" data-c="${ci}" oninput="updateTableCell(${it.id}, ${ri}, ${ci}, this)" onkeydown="handleTableKeydown(event, ${it.id}, ${ri}, ${ci})" onfocus="broadcastEditingState(true, '#item-${it.id} td[data-r=&quot;${ri}&quot;][data-c=&quot;${ci}&quot;]')" onblur="broadcastEditingState(false)">${cell}</td>`).join('')}</tr>`
+            `<tr>${row.map((cell, ci) => `<td contenteditable="true" data-r="${ri}" data-c="${ci}" oninput="updateTableCell(${it.id}, ${ri}, ${ci}, this)" onkeydown="handleTableKeydown(event, ${it.id}, ${ri}, ${ci})" onfocus="broadcastEditingState(true, '#${itemElId(it.id)} td[data-r=&quot;${ri}&quot;][data-c=&quot;${ci}&quot;]')" onblur="broadcastEditingState(false)">${cell}</td>`).join('')}</tr>`
         ).join('');
         return `<div class="static-table-wrap" style="--cell-align:${it.textAlign || 'left'}">
                 <div class="static-table-row">
@@ -159,7 +159,7 @@ import { render } from './waypoints-render-loop.js';
         // matching input exists here, fall through to the ordinary cell lookup below instead of
         // giving up — that's what was making the top row unreachable by arrow keys there.
         if (r === 0) {
-            const input = document.querySelector(`#item-${id} .col-name-input[data-c="${c}"]`);
+            const input = document.querySelector(`#${itemElId(id)} .col-name-input[data-c="${c}"]`);
             if (input) {
                 input.focus();
                 const caret = pos === 'start' ? 0 : input.value.length;
@@ -170,7 +170,7 @@ import { render } from './waypoints-render-loop.js';
         // Source-page (static) tables put the actual editable text in a nested `.cell-text`
         // div (so the hover tag-button/pills can live alongside it without being part of the
         // editable content); plain canvas table cards still edit the `<td>` itself directly.
-        const el = document.querySelector(`#item-${id} .cell-text[data-r="${r}"][data-c="${c}"]`) || document.querySelector(`#item-${id} td[data-r="${r}"][data-c="${c}"]`);
+        const el = document.querySelector(`#${itemElId(id)} .cell-text[data-r="${r}"][data-c="${c}"]`) || document.querySelector(`#${itemElId(id)} td[data-r="${r}"][data-c="${c}"]`);
         if (!el) return;
         el.focus();
         const range = document.createRange();
@@ -290,7 +290,7 @@ import { render } from './waypoints-render-loop.js';
         render();
         // Jump the table's own vertical scroller all the way down so the freshly added
         // (empty) row is immediately visible instead of staying scrolled off-screen.
-        const tableRounded = document.querySelector(`#item-${id} .table-rounded`);
+        const tableRounded = document.querySelector(`#${itemElId(id)} .table-rounded`);
         if (tableRounded) tableRounded.scrollTop = tableRounded.scrollHeight;
     }
     function addTableCol(id) {
@@ -301,7 +301,7 @@ import { render } from './waypoints-render-loop.js';
         render();
         // Jump the shared horizontal scroller all the way right so the freshly added
         // (empty) column is immediately visible instead of staying scrolled off-screen.
-        const hscroll = document.querySelector(`#item-${id} .static-table-hscroll`);
+        const hscroll = document.querySelector(`#${itemElId(id)} .static-table-hscroll`);
         if (hscroll) hscroll.scrollLeft = hscroll.scrollWidth;
     }
     // Merges two adjacent cell regions (plain canvas table cards only — see TableCard.jsx's own
@@ -347,7 +347,7 @@ import { render } from './waypoints-render-loop.js';
         }
         const id = appState.lastFocusedCell.id;
         saveSnapshot();
-        const td = document.querySelector(`#item-${id} .cell-text[data-r="${r}"][data-c="${c}"]`);
+        const td = document.querySelector(`#${itemElId(id)} .cell-text[data-r="${r}"][data-c="${c}"]`);
         if (td) {
             td.insertAdjacentHTML('beforeend', html);
             it.tableData[r][c] = td.innerHTML;

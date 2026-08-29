@@ -6,30 +6,38 @@ import { flushSync } from "react-dom";
 import { createClient } from "@/lib/supabase/client";
 import {
   achievementsStore,
+  activePaneIdStore,
   addToSourcePopupStore,
+  blocksViewStore,
   breadcrumbMapStore,
   canvasItemsStore,
   cellTagPickerListStore,
   chatsListStore,
   chatThreadStore,
+  closeLeafInTree,
   collabListStore,
   collabPillStore,
   commandPaletteStore,
   dictionaryPanelStore,
   dotbotAnswerStore,
   examplesPanelStore,
+  extensionsListStore,
   filesListStore,
   hubCollabListStore,
   imageResultStore,
   itemDetailFooterStore,
-  libraryViewStore,
   listPanelSelectionStore,
+  listPaneIds,
   marketDetailStore,
   marketDiscoverStore,
+  mediaViewerZoomStore,
   msgConvoStore,
   msgListStore,
-  notificationStore,
+  navHistoryStore,
+  notificationsStore,
   outlineStore,
+  paneLayoutStore,
+  splitLeafInTree,
   pricingOverlayStore,
   profileLevelStore,
   recommendedSearchesStore,
@@ -43,24 +51,30 @@ import {
 } from "./dotto/bridges";
 import AchievementsGrid from "./dotto/AchievementsGrid";
 import AddToSourcePopup from "./dotto/AddToSourcePopup";
-import { attachStaticTableHoverZones, layoutSourceTableColumns, renderConnectionsLayer, renderStaticTableHTML, setupDraggingAndClicking, setupResizing } from "./dotto/canvasItemBehavior";
-import CanvasItemsLayer from "./dotto/CanvasItemsLayer";
+import {
+  attachStaticTableHoverZones,
+  layoutSourceTableColumns,
+  renderConnectionsLayer,
+  renderStaticTableHTML,
+  setupDraggingAndClicking,
+  setupResizing,
+} from "./dotto/canvasItemBehavior";
+import BlocksPanel from "./dotto/BlocksPanel";
 import CellTagPickerList from "./dotto/CellTagPickerList";
 import ChatsListPanel from "./dotto/ChatsListPanel";
 import ChatThread from "./dotto/ChatThread";
 import CollabListPanel from "./dotto/CollabListPanel";
-import CollabPill from "./dotto/CollabPill";
 import CommandPalette from "./dotto/CommandPalette";
 import DictionaryPanel from "./dotto/DictionaryPanel";
 import DotbotAnswerPanel from "./dotto/DotbotAnswerPanel";
 import ErrorBoundary from "./dotto/ErrorBoundary";
 import ExamplesPanel from "./dotto/ExamplesPanel";
+import ExtensionsPanel from "./dotto/ExtensionsPanel";
 import FilesListPanel from "./dotto/FilesListPanel";
 import HubCollabListPanel from "./dotto/HubCollabListPanel";
 import ImageResultPanel from "./dotto/ImageResultPanel";
 import ItemDetailFooter from "./dotto/ItemDetailFooter";
 import ItemDetailTitle from "./dotto/ItemDetailTitle";
-import LibraryPanel from "./dotto/LibraryPanel";
 import MarketDetailPanel from "./dotto/MarketDetailPanel";
 import MarketDiscoverPanel from "./dotto/MarketDiscoverPanel";
 import MessagesListPanel from "./dotto/MessagesListPanel";
@@ -77,7 +91,6 @@ import SearchSuggestionsPanel from "./dotto/SearchSuggestionsPanel";
 import SelectionToolbar from "./dotto/SelectionToolbar";
 import SharedCanvasModalBody from "./dotto/SharedCanvasModalBody";
 import SourcesListPanel from "./dotto/SourcesListPanel";
-import TabsBar from "./dotto/TabsBar";
 import TranslationPanel from "./dotto/TranslationPanel";
 import WaypointsListPanel from "./dotto/WaypointsListPanel";
 
@@ -85,7 +98,7 @@ import TopBar from "./dotto/sections/TopBar";
 import CollaboratorsPanel from "./dotto/sections/CollaboratorsPanel";
 import SharedCanvasModal from "./dotto/sections/SharedCanvasModal";
 import HamburgerMenu from "./dotto/sections/HamburgerMenu";
-import CanvasArea from "./dotto/sections/CanvasArea";
+import PaneGrid from "./dotto/PaneGrid";
 import ZoomControl from "./dotto/sections/ZoomControl";
 import SourceAddMenu from "./dotto/sections/SourceAddMenu";
 import CellTagPicker from "./dotto/sections/CellTagPicker";
@@ -180,22 +193,66 @@ if (typeof window !== "undefined") {
   window.__setSelectionToolbarState = selectionToolbarStore.set;
   // Canvas items layer (see app/dotto/CanvasItemsLayer.jsx, PHASE2_ROADMAP.md's canvas-items-react
   // plan) — render() (waypoints-render-loop.js) calls this in place of its old world.innerHTML=''
-  // rebuild. Unlike the two stores above, this one MUST commit synchronously: at least one caller
-  // (drag-drop-chat.js's alt-duplicate-drag) does `render(); document.getElementById('item-'+id)`
-  // immediately afterward and depends on that node already existing. A plain store.set(...) here
-  // would only schedule the update (React 18+ batches/defers updates triggered outside of React's
-  // own event handlers to a microtask), so this wraps it in flushSync to force the commit — and,
-  // since each CanvasItem's own body-building happens in a useLayoutEffect (synchronous, pre-paint),
-  // flushSync flushes that too, before this function returns.
-  window.__renderCanvasItems = (items) => flushSync(() => canvasItemsStore.set(items));
-  // Notifications core engine (see app/dotto/NotificationBar.jsx, public/dotto/stopwatch-search-
-  // notifications.js's showNotification) — a plain store.set is fine here, unlike
-  // __renderCanvasItems: nothing reads the notification bar's DOM synchronously right after
-  // calling pushNotification (confirmed by grep — the only readers of notifTextEl/notifImageEl/
-  // notifActionBtn were the notification functions themselves, now replaced by this).
-  window.__setNotificationContent = notificationStore.set;
+  // rebuild, passing appState.activePaneId explicitly (split-screen Stage 4 — canvasItemsStore is
+  // pane-keyed now, see bridges.js: each pane shows its own folder's items independently).
+  // MUST commit synchronously: at least one caller (drag-drop-chat.js's alt-duplicate-drag) does
+  // `render(); findItemEl(id)` immediately afterward and depends on that node already existing. A
+  // plain store.set(...) here would only schedule the update (React 18+ batches/defers updates
+  // triggered outside of React's own event handlers to a microtask), so this wraps it in flushSync
+  // to force the commit — and, since each CanvasItem's own body-building happens in a
+  // useLayoutEffect (synchronous, pre-paint), flushSync flushes that too, before this returns.
+  window.__renderCanvasItems = (items, paneId) =>
+    flushSync(() => canvasItemsStore.storeFor(paneId).set(items));
+  // Pane layout (split-screen Stage 4+, see app/dotto/PaneGrid.jsx) — the tree itself, plus the
+  // split/close operations on it (Stage 6 — see paneLayoutStore's own comment, bridges.js, for why
+  // this became a real tree instead of a flat rect list). All flushSync'd for the same reason
+  // __renderCanvasItems is: a caller that splits or closes a pane needs that pane's own
+  // #canvas-{paneId}/#world-{paneId}/etc DOM to actually exist (or stop existing) immediately
+  // afterward, not just scheduled for a later batched update.
+  window.__setPaneLayout = (tree) => flushSync(() => paneLayoutStore.set(tree));
+  window.__getPaneLayout = () => paneLayoutStore.getSnapshot();
+  window.__listPaneIds = () => listPaneIds(paneLayoutStore.getSnapshot());
+  window.__countPanes = () => listPaneIds(paneLayoutStore.getSnapshot()).length;
+  window.__splitPaneInLayout = (targetPaneId, newPaneId, edge) =>
+    flushSync(() =>
+      paneLayoutStore.set(
+        splitLeafInTree(paneLayoutStore.getSnapshot(), targetPaneId, newPaneId, edge),
+      ),
+    );
+  window.__closePaneInLayout = (paneId) =>
+    flushSync(() => paneLayoutStore.set(closeLeafInTree(paneLayoutStore.getSnapshot(), paneId)));
+  // Drops a closed pane's own items/tabs/breadcrumb stores (see createPaneKeyedStore's own
+  // comment, bridges.js) so they don't just leak forever once closePane
+  // (shared-canvases-outline.js) actually closes a pane.
+  window.__removePaneItemsStore = (paneId) => canvasItemsStore.remove(paneId);
+  window.__removePaneTabsStore = (paneId) => {
+    tabsStore.remove(paneId);
+    breadcrumbMapStore.remove(paneId);
+    navHistoryStore.remove(paneId);
+    collabPillStore.remove(paneId);
+    mediaViewerZoomStore.remove(paneId);
+  };
+  // Temporary dev-only trigger (split-screen Stage 4 — "Ship WITHOUT the drag-to-split gesture
+  // yet") for exercising a real second pane ahead of Stage 5's actual drag-to-split UI. Splits the
+  // viewport into a fixed 50/50 left/right layout, activates the new right pane, and brings it up
+  // to a fresh starting state (own camera/selection/history, not a copy of the left pane's) via
+  // window.__initializeNewPane. Still useful post-Stage-6 as a quick manual smoke-test trigger, so
+  // kept rather than removed.
+  window.__debugSplitPane = () => {
+    const appState = window.__getAppState();
+    if (appState.activePaneId !== 0) window.__switchActivePane(0);
+    window.__splitPaneInLayout(0, 1, "right");
+    window.__switchActivePane(1);
+    window.__initializeNewPane(1, "root");
+    window.__render();
+  };
+  // Notification stack (see app/dotto/NotificationBar.jsx, public/dotto/stopwatch-search-
+  // notifications.js's pushNotification/dismissNotification) — a plain store.set is fine here,
+  // unlike __renderCanvasItems: nothing reads the notification stack's DOM synchronously right
+  // after calling pushNotification.
+  window.__setNotifications = notificationsStore.set;
   // Search-dropdown result panels (see app/dotto/TranslationPanel.jsx and friends,
-  // public/dotto/mnemonic-search-matching.js). Unlike __setNotificationContent above, these DO
+  // public/dotto/mnemonic-search-matching.js). Unlike __setNotifications above, these DO
   // need flushSync — updateSearchDropdown (ai-assistant-suggestions.js) reads
   // each panel's real DOM node's style.display synchronously right after calling its
   // render*Panel function (see renderOrchestrateResult, search-orchestration-selection.js, which
@@ -215,7 +272,8 @@ if (typeof window !== "undefined") {
   // height-transition function (ai-assistant-suggestions.js) reads #search-chat-thread's real
   // scrollHeight synchronously right after a turn is appended/restored.
   window.__setChatThread = (turns) => flushSync(() => chatThreadStore.set(turns));
-  window.__appendChatTurn = (turn) => flushSync(() => chatThreadStore.set([...chatThreadStore.getSnapshot(), turn]));
+  window.__appendChatTurn = (turn) =>
+    flushSync(() => chatThreadStore.set([...chatThreadStore.getSnapshot(), turn]));
   // #search-command-palette (see app/dotto/CommandPalette.jsx, command-palette.js's
   // updateCommandPalette) — same flushSync reasoning as the six above. Specifically also needs it
   // for a second reason: it's a real portal (see commandPaletteStore's own comment in bridges.js),
@@ -277,24 +335,44 @@ if (typeof window !== "undefined") {
   // Marketplace item detail view (see app/dotto/MarketDetailPanel.jsx, marketplace.js's
   // openMarketDetail/closeMarketDetail) — a plain store.set, no synchronous DOM read follows it.
   window.__setMarketDetail = marketDetailStore.set;
-  // Library tab's list content (see app/dotto/LibraryPanel.jsx, marketplace.js's renderLibrary) —
-  // a plain store.set, no synchronous DOM read follows it.
-  window.__setLibraryView = libraryViewStore.set;
+  // Blocks panel's list content (see app/dotto/BlocksPanel.jsx, blocks-panel.js's
+  // computeBlocksRows/refreshBlocksPanel — was Library/LibraryPanel.jsx's role before Essentials/
+  // Library were repurposed into Blocks/Extensions) — a plain store.set, no synchronous DOM read
+  // follows it.
+  window.__setBlocksView = blocksViewStore.set;
+  // Extensions panel's list content (see app/dotto/ExtensionsPanel.jsx) — dummy data for now, a
+  // plain store.set, no synchronous DOM read follows it.
+  window.__setExtensionsList = extensionsListStore.set;
   // Item Detail view's footer button set (see app/dotto/ItemDetailFooter.jsx, library-publish.js's
   // renderItemDetailFooter) — a plain store.set, no synchronous DOM read follows it.
   window.__setItemDetailFooter = itemDetailFooterStore.set;
-  // Collaborators pill (see app/dotto/CollabPill.jsx, friends-presence.js's renderCollabPill) —
-  // MUST be flushSync: openCollabPanel (friends-presence.js) reads collabBubble's `.show` class
-  // synchronously right after a caller in hamburger-collab.js calls this.
-  window.__setCollabPill = (state) => flushSync(() => collabPillStore.set(state));
-  // Breadcrumb pill — the compact "…/parent/current" trail shown by whichever tab is active (see
+  // Collaborators pill, one per pane (see app/dotto/PaneTopBar.jsx, friends-presence.js's
+  // renderCollabPill) — pane-keyed since split-screen Stage 8, same reasoning as
+  // __setBreadcrumbMap/__setTabs below. MUST be flushSync: openCollabPanel (friends-presence.js)
+  // reads the triggering bubble element's `.show` class synchronously right after this runs.
+  window.__setCollabPill = (paneId, state) =>
+    flushSync(() => collabPillStore.storeFor(paneId).set(state));
+  // Back/forward enabled-state, one per pane (see app/dotto/PaneTopBar.jsx,
+  // shared-canvases-outline.js's renderNavArrows) — pane-keyed for the same reason. A plain
+  // store.set, no synchronous DOM read follows it.
+  window.__setNavHistory = (paneId, state) => navHistoryStore.storeFor(paneId).set(state);
+  // Which pane is active (see app/dotto/PaneZoomBar.jsx) — pushed by switchActivePane
+  // (core-state.js). A plain store.set, no synchronous DOM read follows it.
+  window.__setActivePaneId = (paneId) => activePaneIdStore.set(paneId);
+  // Media-viewer zoom, one per pane (see app/dotto/PaneZoomBar.jsx,
+  // shared-canvases-outline.js's renderMediaViewerZoom/setMediaViewerZoom) — pane-keyed for the
+  // same reason as __setNavHistory above. A plain store.set, no synchronous DOM read follows it.
+  window.__setMediaViewerZoom = (paneId, state) => mediaViewerZoomStore.storeFor(paneId).set(state);
+  // Breadcrumb pill — the compact "…/parent/current" trail for one pane's own active tab (see
   // app/dotto/TabsBar.jsx, shared-canvases-outline.js's renderBreadcrumbMapPanel, called from
-  // every render()) — a plain store.set, no synchronous DOM read follows it.
-  window.__setBreadcrumbMap = breadcrumbMapStore.set;
+  // every render()) — pane-keyed since split-screen Stage 7 (each pane gets its own breadcrumb
+  // pill now), so this takes the paneId explicitly rather than being tabsStore.set directly. A
+  // plain store.set, no synchronous DOM read follows it.
+  window.__setBreadcrumbMap = (paneId, state) => breadcrumbMapStore.storeFor(paneId).set(state);
   // Canvas tabs (see app/dotto/TabsBar.jsx, shared-canvases-outline.js's renderTabsPanel, called
-  // from every render() alongside the breadcrumb map above) — a plain store.set, no synchronous
-  // DOM read follows it.
-  window.__setTabs = tabsStore.set;
+  // from every render() alongside the breadcrumb map above) — pane-keyed for the same reason. A
+  // plain store.set, no synchronous DOM read follows it.
+  window.__setTabs = (paneId, state) => tabsStore.storeFor(paneId).set(state);
   // Open conversation thread (see app/dotto/MsgConvo.jsx, live-presence.js's renderConvoBody) — a
   // plain store.set, no synchronous DOM read follows it (the scroll-to-bottom reset lives in a
   // useLayoutEffect inside MsgConvo.jsx itself instead).
@@ -333,60 +411,152 @@ export default function DottoApp({ sections, currentUser }) {
   return (
     <>
       <div id="dotto-root">
-        <ErrorBoundary name="TopBar"><TopBar html={sections["top-bar"]} /></ErrorBoundary>
-        <ErrorBoundary name="CollaboratorsPanel"><CollaboratorsPanel html={sections["collab-panel"]} /></ErrorBoundary>
-        <ErrorBoundary name="SharedCanvasModal"><SharedCanvasModal html={sections["canvas-modal"]} /></ErrorBoundary>
+        <ErrorBoundary name="TopBar">
+          <TopBar html={sections["top-bar"]} />
+        </ErrorBoundary>
+        <ErrorBoundary name="CollaboratorsPanel">
+          <CollaboratorsPanel html={sections["collab-panel"]} />
+        </ErrorBoundary>
+        <ErrorBoundary name="SharedCanvasModal">
+          <SharedCanvasModal html={sections["canvas-modal"]} />
+        </ErrorBoundary>
         {/* Profile/Messages/Marketplace/Add/AI search all moved into #hamburger-stack (see
             hamburger-stack.html) now that they share the permanent rail's one shell — no more
             separate top-level sections/markup of their own, and no more dimming modal backdrop
             for AI search specifically. */}
-        <ErrorBoundary name="HamburgerMenu"><HamburgerMenu html={sections["hamburger-stack"]} /></ErrorBoundary>
-        <ErrorBoundary name="CanvasArea"><CanvasArea html={sections["canvas-area"]} /></ErrorBoundary>
-        <ErrorBoundary name="ZoomControl"><ZoomControl html={sections["zoom-control"]} /></ErrorBoundary>
-        <ErrorBoundary name="SourceAddMenu"><SourceAddMenu html={sections["source-add-menu"]} /></ErrorBoundary>
-        <ErrorBoundary name="CellTagPicker"><CellTagPicker html={sections["cell-tag-picker"]} /></ErrorBoundary>
-        <ErrorBoundary name="AudioRecordIndicator"><AudioRecordIndicator html={sections["audio-record-indicator"]} /></ErrorBoundary>
-        <ErrorBoundary name="DrawSettingsBar"><DrawSettingsBar html={sections["draw-settings"]} /></ErrorBoundary>
-        <ErrorBoundary name="ItemContextMenu"><ItemContextMenu html={sections["context-menu"]} /></ErrorBoundary>
-        <ErrorBoundary name="CanvasContextMenu"><CanvasContextMenu html={sections["canvas-context-menu"]} /></ErrorBoundary>
+        <ErrorBoundary name="HamburgerMenu">
+          <HamburgerMenu html={sections["hamburger-stack"]} />
+        </ErrorBoundary>
+        <ErrorBoundary name="PaneGrid">
+          <PaneGrid html={sections["canvas-area"]} />
+        </ErrorBoundary>
+        <ErrorBoundary name="ZoomControl">
+          <ZoomControl html={sections["zoom-control"]} />
+        </ErrorBoundary>
+        <ErrorBoundary name="SourceAddMenu">
+          <SourceAddMenu html={sections["source-add-menu"]} />
+        </ErrorBoundary>
+        <ErrorBoundary name="CellTagPicker">
+          <CellTagPicker html={sections["cell-tag-picker"]} />
+        </ErrorBoundary>
+        <ErrorBoundary name="AudioRecordIndicator">
+          <AudioRecordIndicator html={sections["audio-record-indicator"]} />
+        </ErrorBoundary>
+        <ErrorBoundary name="DrawSettingsBar">
+          <DrawSettingsBar html={sections["draw-settings"]} />
+        </ErrorBoundary>
+        <ErrorBoundary name="ItemContextMenu">
+          <ItemContextMenu html={sections["context-menu"]} />
+        </ErrorBoundary>
+        <ErrorBoundary name="CanvasContextMenu">
+          <CanvasContextMenu html={sections["canvas-context-menu"]} />
+        </ErrorBoundary>
       </div>
-      <ErrorBoundary name="PricingOverlay"><PricingOverlay /></ErrorBoundary>
-      <ErrorBoundary name="SelectionToolbar"><SelectionToolbar /></ErrorBoundary>
-      <ErrorBoundary name="CanvasItemsLayer"><CanvasItemsLayer /></ErrorBoundary>
-      <ErrorBoundary name="NotificationBar"><NotificationBar /></ErrorBoundary>
-      <ErrorBoundary name="TranslationPanel"><TranslationPanel /></ErrorBoundary>
-      <ErrorBoundary name="DictionaryPanel"><DictionaryPanel /></ErrorBoundary>
-      <ErrorBoundary name="ExamplesPanel"><ExamplesPanel /></ErrorBoundary>
-      <ErrorBoundary name="RecommendedSearchesPanel"><RecommendedSearchesPanel /></ErrorBoundary>
-      <ErrorBoundary name="DotbotAnswerPanel"><DotbotAnswerPanel /></ErrorBoundary>
-      <ErrorBoundary name="ImageResultPanel"><ImageResultPanel /></ErrorBoundary>
-      <ErrorBoundary name="CommandPalette"><CommandPalette /></ErrorBoundary>
-      <ErrorBoundary name="SearchSuggestionsPanel"><SearchSuggestionsPanel /></ErrorBoundary>
-      <ErrorBoundary name="ChatThread"><ChatThread /></ErrorBoundary>
-      <ErrorBoundary name="AddToSourcePopup"><AddToSourcePopup /></ErrorBoundary>
-      <ErrorBoundary name="OutlinePanel"><OutlinePanel /></ErrorBoundary>
-      <ErrorBoundary name="WaypointsListPanel"><WaypointsListPanel /></ErrorBoundary>
-      <ErrorBoundary name="SourcesListPanel"><SourcesListPanel /></ErrorBoundary>
-      <ErrorBoundary name="FilesListPanel"><FilesListPanel /></ErrorBoundary>
-      <ErrorBoundary name="ChatsListPanel"><ChatsListPanel /></ErrorBoundary>
-      <ErrorBoundary name="HubCollabListPanel"><HubCollabListPanel /></ErrorBoundary>
-      <ErrorBoundary name="MessagesListPanel"><MessagesListPanel /></ErrorBoundary>
-      <ErrorBoundary name="CollabListPanel"><CollabListPanel /></ErrorBoundary>
-      <ErrorBoundary name="MarketDiscoverPanel"><MarketDiscoverPanel /></ErrorBoundary>
-      <ErrorBoundary name="MarketDetailPanel"><MarketDetailPanel /></ErrorBoundary>
-      <ErrorBoundary name="LibraryPanel"><LibraryPanel /></ErrorBoundary>
-      <ErrorBoundary name="ItemDetailFooter"><ItemDetailFooter /></ErrorBoundary>
-      <ErrorBoundary name="ItemDetailTitle"><ItemDetailTitle /></ErrorBoundary>
-      <ErrorBoundary name="PublishFlowName"><PublishFlowName /></ErrorBoundary>
-      <ErrorBoundary name="CollabPill"><CollabPill /></ErrorBoundary>
-      <ErrorBoundary name="TabsBar"><TabsBar /></ErrorBoundary>
-      <ErrorBoundary name="MsgConvo"><MsgConvo /></ErrorBoundary>
-      <ErrorBoundary name="SharedCanvasModalBody"><SharedCanvasModalBody /></ErrorBoundary>
-      <ErrorBoundary name="CellTagPickerList"><CellTagPickerList /></ErrorBoundary>
-      <ErrorBoundary name="ProfileLevelPill"><ProfileLevelPill /></ErrorBoundary>
-      <ErrorBoundary name="ProfileIdentity"><ProfileIdentity /></ErrorBoundary>
-      <ErrorBoundary name="ProfileAvatarSm"><ProfileAvatarSm /></ErrorBoundary>
-      <ErrorBoundary name="AchievementsGrid"><AchievementsGrid /></ErrorBoundary>
+      <ErrorBoundary name="PricingOverlay">
+        <PricingOverlay />
+      </ErrorBoundary>
+      <ErrorBoundary name="SelectionToolbar">
+        <SelectionToolbar />
+      </ErrorBoundary>
+      <ErrorBoundary name="NotificationBar">
+        <NotificationBar />
+      </ErrorBoundary>
+      <ErrorBoundary name="TranslationPanel">
+        <TranslationPanel />
+      </ErrorBoundary>
+      <ErrorBoundary name="DictionaryPanel">
+        <DictionaryPanel />
+      </ErrorBoundary>
+      <ErrorBoundary name="ExamplesPanel">
+        <ExamplesPanel />
+      </ErrorBoundary>
+      <ErrorBoundary name="RecommendedSearchesPanel">
+        <RecommendedSearchesPanel />
+      </ErrorBoundary>
+      <ErrorBoundary name="DotbotAnswerPanel">
+        <DotbotAnswerPanel />
+      </ErrorBoundary>
+      <ErrorBoundary name="ImageResultPanel">
+        <ImageResultPanel />
+      </ErrorBoundary>
+      <ErrorBoundary name="CommandPalette">
+        <CommandPalette />
+      </ErrorBoundary>
+      <ErrorBoundary name="SearchSuggestionsPanel">
+        <SearchSuggestionsPanel />
+      </ErrorBoundary>
+      <ErrorBoundary name="ChatThread">
+        <ChatThread />
+      </ErrorBoundary>
+      <ErrorBoundary name="AddToSourcePopup">
+        <AddToSourcePopup />
+      </ErrorBoundary>
+      <ErrorBoundary name="OutlinePanel">
+        <OutlinePanel />
+      </ErrorBoundary>
+      <ErrorBoundary name="WaypointsListPanel">
+        <WaypointsListPanel />
+      </ErrorBoundary>
+      <ErrorBoundary name="SourcesListPanel">
+        <SourcesListPanel />
+      </ErrorBoundary>
+      <ErrorBoundary name="FilesListPanel">
+        <FilesListPanel />
+      </ErrorBoundary>
+      <ErrorBoundary name="ChatsListPanel">
+        <ChatsListPanel />
+      </ErrorBoundary>
+      <ErrorBoundary name="HubCollabListPanel">
+        <HubCollabListPanel />
+      </ErrorBoundary>
+      <ErrorBoundary name="MessagesListPanel">
+        <MessagesListPanel />
+      </ErrorBoundary>
+      <ErrorBoundary name="CollabListPanel">
+        <CollabListPanel />
+      </ErrorBoundary>
+      <ErrorBoundary name="MarketDiscoverPanel">
+        <MarketDiscoverPanel />
+      </ErrorBoundary>
+      <ErrorBoundary name="MarketDetailPanel">
+        <MarketDetailPanel />
+      </ErrorBoundary>
+      <ErrorBoundary name="BlocksPanel">
+        <BlocksPanel />
+      </ErrorBoundary>
+      <ErrorBoundary name="ExtensionsPanel">
+        <ExtensionsPanel />
+      </ErrorBoundary>
+      <ErrorBoundary name="ItemDetailFooter">
+        <ItemDetailFooter />
+      </ErrorBoundary>
+      <ErrorBoundary name="ItemDetailTitle">
+        <ItemDetailTitle />
+      </ErrorBoundary>
+      <ErrorBoundary name="PublishFlowName">
+        <PublishFlowName />
+      </ErrorBoundary>
+      <ErrorBoundary name="MsgConvo">
+        <MsgConvo />
+      </ErrorBoundary>
+      <ErrorBoundary name="SharedCanvasModalBody">
+        <SharedCanvasModalBody />
+      </ErrorBoundary>
+      <ErrorBoundary name="CellTagPickerList">
+        <CellTagPickerList />
+      </ErrorBoundary>
+      <ErrorBoundary name="ProfileLevelPill">
+        <ProfileLevelPill />
+      </ErrorBoundary>
+      <ErrorBoundary name="ProfileIdentity">
+        <ProfileIdentity />
+      </ErrorBoundary>
+      <ErrorBoundary name="ProfileAvatarSm">
+        <ProfileAvatarSm />
+      </ErrorBoundary>
+      <ErrorBoundary name="AchievementsGrid">
+        <AchievementsGrid />
+      </ErrorBoundary>
       <Script src="/dotto-script.js" type="module" strategy="afterInteractive" />
     </>
   );

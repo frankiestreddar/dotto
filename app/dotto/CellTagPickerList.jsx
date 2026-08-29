@@ -11,12 +11,18 @@ const EMPTY_STATE = { rows: [], id: null, r: null };
 function TagRow({ row, id, r }) {
   const inputRef = useRef(null);
   useEffect(() => {
-    if (row.renaming && inputRef.current) { inputRef.current.focus(); inputRef.current.select(); }
+    if (row.renaming && inputRef.current) {
+      inputRef.current.focus();
+      inputRef.current.select();
+    }
   }, [row.renaming]);
 
   if (row.renaming) {
     return (
-      <div className={"cell-tag-picker-row" + (row.selected ? " selected" : "")} data-tag-id={row.tagId}>
+      <div
+        className={"cell-tag-picker-row" + (row.selected ? " selected" : "")}
+        data-tag-id={row.tagId}
+      >
         <span className="tag-swatch" style={{ background: row.color }} />
         <input
           ref={inputRef}
@@ -50,7 +56,11 @@ function TagRow({ row, id, r }) {
 // hide/position, the new-tag row, and the tag-context-menu are all plain sibling static markup
 // this component never touches.
 export default function CellTagPickerList() {
-  const state = useSyncExternalStore(cellTagPickerListStore.subscribe, cellTagPickerListStore.getSnapshot, () => EMPTY_STATE);
+  const state = useSyncExternalStore(
+    cellTagPickerListStore.subscribe,
+    cellTagPickerListStore.getSnapshot,
+    () => EMPTY_STATE,
+  );
   const portalNode = usePortalNode("cell-tag-picker-list");
 
   if (!portalNode) return null;

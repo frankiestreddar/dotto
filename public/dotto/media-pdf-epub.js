@@ -65,6 +65,13 @@ import { render } from './waypoints-render-loop.js';
         const isVideo = /\.(mp4|webm|ogg|mov)(\?|$)/i.test(url);
         it.mediaType = isVideo ? 'video' : 'image';
         it.mediaSrc = url.trim();
+        // A real, globally-unique id per upload (crypto.randomUUID() — not appState.idCounter,
+        // which is a plain local/per-session counter two different users could easily collide on)
+        // — explicit request: "not just a unique code for the user... unique across the platform."
+        // Lets the Files sidebar (renderFilesList, hamburger-collab.js) dedupe multiple canvas
+        // cards that all point at the SAME underlying file down to one row, while the Outline
+        // panel (which never looks at this field) keeps listing every individual card instance.
+        it.mediaFileId = crypto.randomUUID();
         render();
         measureMediaNaturalSize(it.mediaSrc, isVideo, (w, h) => {
             const live = findItemById(id);
@@ -89,6 +96,9 @@ import { render } from './waypoints-render-loop.js';
             const isVideo = file.type.startsWith('video');
             it.mediaType = isVideo ? 'video' : 'image';
             it.mediaSrc = reader.result;
+            // See setMediaFromLink's own comment just above for why this needs to be a real
+            // globally-unique id, not appState.idCounter.
+            it.mediaFileId = crypto.randomUUID();
             render();
             measureMediaNaturalSize(it.mediaSrc, isVideo, (w, h) => {
                 const live = findItemById(id);
@@ -137,13 +147,16 @@ import { render } from './waypoints-render-loop.js';
         }
         const { data } = supabase.storage.from('documents').getPublicUrl(path);
         live.mediaSrc = data.publicUrl;
+        // See setMediaFromLink's own comment for why this needs to be a real globally-unique id,
+        // not appState.idCounter.
+        live.mediaFileId = crypto.randomUUID();
         live.mediaUploading = false;
         render();
     }
     function clearMedia(id) {
         const it = findItemById(id); if (!it) return;
         saveSnapshot();
-        it.mediaType = null; it.mediaSrc = null; it.mediaName = null;
+        it.mediaType = null; it.mediaSrc = null; it.mediaName = null; it.mediaFileId = null;
         it.docPage = null; it.epubLocation = null;
         render();
     }

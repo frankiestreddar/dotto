@@ -18,7 +18,13 @@ const inputStyle = {
   boxSizing: "border-box",
 };
 
-const labelStyle = { display: "flex", flexDirection: "column", gap: 6, fontSize: 12, color: "var(--ink-soft)" };
+const labelStyle = {
+  display: "flex",
+  flexDirection: "column",
+  gap: 6,
+  fontSize: 12,
+  color: "var(--ink-soft)",
+};
 
 // Small green/red status dot shown inside a field once it's focused and has been typed into at
 // least once — hovering a red dot reveals a short reason via .auth-validity-tooltip (see
@@ -47,7 +53,8 @@ export default function RegisterPage() {
   const [confirmFocused, setConfirmFocused] = useState(false);
   const [confirmDirty, setConfirmDirty] = useState(false);
 
-  const passwordStrong = password.length >= 8 && /[a-zA-Z]/.test(password) && /[0-9]/.test(password);
+  const passwordStrong =
+    password.length >= 8 && /[a-zA-Z]/.test(password) && /[0-9]/.test(password);
   const passwordStatus = { ok: passwordStrong, reason: "too weak" };
 
   const confirmMatches = confirmPassword.length > 0 && confirmPassword === password;
@@ -123,12 +130,19 @@ export default function RegisterPage() {
               minLength={8}
               autoComplete="new-password"
               value={password}
-              onChange={(e) => { setPassword(e.target.value); setPasswordDirty(true); }}
+              onChange={(e) => {
+                setPassword(e.target.value);
+                setPasswordDirty(true);
+              }}
               onFocus={() => setPasswordFocused(true)}
               onBlur={() => setPasswordFocused(false)}
               style={inputStyle}
             />
-            <ValidityDot show={passwordFocused && passwordDirty} ok={passwordStatus.ok} reason={passwordStatus.reason} />
+            <ValidityDot
+              show={passwordFocused && passwordDirty}
+              ok={passwordStatus.ok}
+              reason={passwordStatus.reason}
+            />
           </div>
         </label>
         <label style={labelStyle}>
@@ -139,12 +153,19 @@ export default function RegisterPage() {
               required
               autoComplete="new-password"
               value={confirmPassword}
-              onChange={(e) => { setConfirmPassword(e.target.value); setConfirmDirty(true); }}
+              onChange={(e) => {
+                setConfirmPassword(e.target.value);
+                setConfirmDirty(true);
+              }}
               onFocus={() => setConfirmFocused(true)}
               onBlur={() => setConfirmFocused(false)}
               style={inputStyle}
             />
-            <ValidityDot show={confirmFocused && confirmDirty} ok={confirmStatus.ok} reason={confirmStatus.reason} />
+            <ValidityDot
+              show={confirmFocused && confirmDirty}
+              ok={confirmStatus.ok}
+              reason={confirmStatus.reason}
+            />
           </div>
         </label>
 

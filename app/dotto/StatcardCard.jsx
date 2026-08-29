@@ -6,7 +6,12 @@
 // simplest conversion yet — a pure function of `it`, no event handlers, no appState coupling, no
 // vanilla bridge needed at all.
 export default function StatcardCard({ it }) {
-  const label = it.statKind === "progress" ? "Progress" : it.statKind ? it.statKind[0].toUpperCase() + it.statKind.slice(1) : "Stat";
+  const label =
+    it.statKind === "progress"
+      ? "Progress"
+      : it.statKind
+        ? it.statKind[0].toUpperCase() + it.statKind.slice(1)
+        : "Stat";
   const payloads = Object.values(it.streamCache || {});
   let value = "—";
   let caption = "Link a game, stopwatch, or shelf card to see stats.";

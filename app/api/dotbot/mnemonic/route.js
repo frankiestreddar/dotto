@@ -1,7 +1,11 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { getGroqClient, GROQ_TEXT_MODEL, GROQ_REASONING_EFFORT } from "@/lib/groq";
-import { DOTBOT_MNEMONIC_SYSTEM_PROMPT, peekGenerationCredits, spendGenerationCredits } from "@/lib/dotbot";
+import {
+  DOTBOT_MNEMONIC_SYSTEM_PROMPT,
+  peekGenerationCredits,
+  spendGenerationCredits,
+} from "@/lib/dotbot";
 
 export async function POST(request) {
   const { word } = await request.json();

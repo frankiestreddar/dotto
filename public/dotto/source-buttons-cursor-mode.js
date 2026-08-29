@@ -1,4 +1,4 @@
-import { appState, canvas, contextMenu, drawSettings, effectiveMode } from './core-state.js';
+import { appState, canvas, contextMenu, drawSettings, effectiveMode, registerPaneCanvasListenerSetup } from './core-state.js';
 import { linkSelectedCards } from './drawing-connections.js';
 import { closeCollabPanel } from './friends-presence.js';
 import { dispatchListPanelDelete } from './hamburger-collab.js';
@@ -140,19 +140,23 @@ import { clearDataLinkPending } from './srs-connections-core.js';
     // instant the pointer leaves the toolbar's own small box.
     appState.modeToolbar.addEventListener('mouseleave', () => { startModePopupSafeZone(); });
 
-    // D / P / Escape / Shift each work as both a quick switch and a temporary (held) override for
-    // the four cursor modes (Data / Pen / Normal / Select respectively): pressing and releasing one
-    // within MODE_HOLD_THRESHOLD_MS counts as a tap and switches to that mode for good, exactly
-    // like clicking its toolbar button — the same as it would happen anyway from the immediate
+    // D / Escape / Shift each work as both a quick switch and a temporary (held) override for
+    // three of the four cursor modes (Drawing / Normal / Select respectively — Data mode has no
+    // keyboard shortcut of its own anymore, see below): pressing and releasing one within
+    // MODE_HOLD_THRESHOLD_MS counts as a tap and switches to that mode for good, exactly like
+    // clicking its toolbar button — the same as it would happen anyway from the immediate
     // keydown-triggered override, just made to stick around after keyup instead of reverting.
     // Holding it past that threshold keeps it a temporary override, reverting back to whatever
     // mode was active before the key went down the moment it's released. Option/Alt+drag is
-    // reserved separately for duplicating cards, so D/P/Shift are ignored while actively typing in
-    // a text field (Escape never types a character, so it's exempt from that check — same as its
-    // other, unrelated "close everything" behavior above), and D/P/Shift all bail out while a
-    // meta/ctrl modifier is held so they don't hijack unrelated shortcuts (e.g. Cmd+Z for undo,
-    // Cmd+P for print — 'P' in particular used to be Profile's own rail shortcut, now Tab, per
-    // explicit request that freed it up for this).
+    // reserved separately for duplicating cards, so D/Shift are ignored while actively typing in a
+    // text field (Escape never types a character, so it's exempt from that check — same as its
+    // other, unrelated "close everything" behavior above), and D/Shift both bail out while a
+    // meta/ctrl modifier is held so they don't hijack unrelated shortcuts (e.g. Cmd+Z for undo).
+    // Drawing (still internally the 'pen' cardMode/data-mode value — same "id stays, display name
+    // changes" convention as every other rename this session — was "Pen mode" on 'P' before an
+    // explicit request moved it here, which is also what freed 'D' up from Data mode: Data mode
+    // deliberately has no replacement shortcut per that same request, only its own toolbar
+    // button/mode-popup row still work.
     function beginModeOverride(key) {
         if (appState.modeOverrideKey === key) return;
         appState.modeOverrideKey = key;
@@ -193,13 +197,11 @@ import { clearDataLinkPending } from './srs-connections-core.js';
         }
         if (!isEditingText && e.key === 'Shift' && !e.metaKey && !e.ctrlKey) { beginModeOverride('shift'); }
         else if (!isEditingText && !e.metaKey && !e.ctrlKey && (e.key === 'd' || e.key === 'D')) { beginModeOverride('d'); }
-        else if (!isEditingText && !e.metaKey && !e.ctrlKey && (e.key === 'p' || e.key === 'P')) { beginModeOverride('p'); }
         else if (e.key === 'Escape') { beginModeOverride('escape'); }
     });
     document.addEventListener('keyup', (e) => {
         if (e.key === 'Shift') endModeOverride('shift', 'select');
-        else if (e.key === 'd' || e.key === 'D') endModeOverride('d', 'data');
-        else if (e.key === 'p' || e.key === 'P') endModeOverride('p', 'pen');
+        else if (e.key === 'd' || e.key === 'D') endModeOverride('d', 'pen');
         else if (e.key === 'Escape') endModeOverride('escape', 'normal');
     });
     window.addEventListener('blur', () => { if (appState.modeOverrideKey) { appState.modeOverrideKey = null; appState.modeKeyHoldStart = null; applyCursorMode(); } });
@@ -223,9 +225,20 @@ import { clearDataLinkPending } from './srs-connections-core.js';
     // transition would just recompute against whatever partial value the animation happened to be
     // at that instant, not the actual end state. e.propertyName is checked so this only reacts
     // once per transition (left and width both finish here, one event each) rather than twice.
-    canvas.addEventListener('transitionend', (e) => {
-        if (e.target === canvas && e.propertyName === 'width') relayoutSourceTableIfVisible();
-    });
+    // Re-attached per pane (split-screen Stage 4: see registerPaneCanvasListenerSetup, core-
+    // state.js) so this doesn't just stop firing for panes other than pane 0 — e.target===canvasEl
+    // now checks against THIS listener's own pane rather than the ambient `canvas` binding, for the
+    // same reason setupCanvasLevelInteractionListeners' pointerdown check does (srs-connections-
+    // core.js). relayoutSourceTableIfVisible itself still queries '.item.static-table' globally
+    // (not pane-scoped) — a known, separate gap in the Source-page-in-split-screen story that
+    // hasn't been audited yet, out of scope for this specific listener-attachment fix.
+    function setupCanvasTransitionEnd(canvasEl) {
+        canvasEl.addEventListener('transitionend', (e) => {
+            if (e.target === canvasEl && e.propertyName === 'width') relayoutSourceTableIfVisible();
+        });
+    }
+    setupCanvasTransitionEnd(canvas);
+    registerPaneCanvasListenerSetup(setupCanvasTransitionEnd);
 
     // Deliberately does NOT close the #hamburger-stack rail panel (Search/Outline/Waypoints/
     // Collaborations/Marketplace/Library/Messages/Sources/Files/Queries/Profile/Add) — per

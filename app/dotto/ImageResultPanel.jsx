@@ -9,7 +9,11 @@ import { imageResultStore } from "./bridges";
 // loading needs a real live node for its typewriter animation, success needs one for its
 // drag-to-canvas wiring.
 export default function ImageResultPanel() {
-  const state = useSyncExternalStore(imageResultStore.subscribe, imageResultStore.getSnapshot, () => null);
+  const state = useSyncExternalStore(
+    imageResultStore.subscribe,
+    imageResultStore.getSnapshot,
+    () => null,
+  );
 
   useLayoutEffect(() => {
     const el = document.getElementById("search-image-result");

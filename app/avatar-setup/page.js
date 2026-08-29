@@ -20,8 +20,15 @@ const SKIN_COLORS = ["#ffdbac", "#f1c27d", "#e0ac69", "#c68642", "#8d5524", "#5c
 // PART_COLORS stops, whose uneven hue spacing/lightness made interpolated colors look like a
 // muddy "smudge" instead of clean color.
 const RAINBOW_STOPS = [
-  "#000000", "#ffffff", // grayscale ramp — 1 of the 8 segments below
-  "#ff0000", "#ffff00", "#00ff00", "#00ffff", "#0000ff", "#ff00ff", "#ff0000", // hue sweep — 6 segments, wrapping back to red
+  "#000000",
+  "#ffffff", // grayscale ramp — 1 of the 8 segments below
+  "#ff0000",
+  "#ffff00",
+  "#00ff00",
+  "#00ffff",
+  "#0000ff",
+  "#ff00ff",
+  "#ff0000", // hue sweep — 6 segments, wrapping back to red
 ];
 // Fraction of the slider's width the grayscale ramp occupies (1 of the 8 total segments above) —
 // used to translate a hue (0-360°) into the right position past that ramp, and back.
@@ -42,7 +49,10 @@ const CATEGORIES = [
 ];
 // Rendered as two side-by-side pairs (see .avatar-setup-pair-row), each with its own color
 // swatches directly underneath — hair+facewear, then shirt+hat.
-const PAIR_ROWS = [["hair", "facewear"], ["shirt", "hat"]];
+const PAIR_ROWS = [
+  ["hair", "facewear"],
+  ["shirt", "hat"],
+];
 
 const ASSET_BASE = "/assets/avatar/build";
 const CANVAS_SIZE = 1080;
@@ -128,8 +138,14 @@ function StopSlider({ stops, labels, value, onChange }) {
       />
       <div className="avatar-setup-slider-stops">
         {stops.map((s, i) => (
-          <div key={s} className="avatar-setup-slider-stop" style={{ left: clampedLeft(stopPct(i), STOP_THUMB_R) }}>
-            <span className={`avatar-setup-slider-stop-label ${s === value ? "active" : ""}`}>{labels[i]}</span>
+          <div
+            key={s}
+            className="avatar-setup-slider-stop"
+            style={{ left: clampedLeft(stopPct(i), STOP_THUMB_R) }}
+          >
+            <span className={`avatar-setup-slider-stop-label ${s === value ? "active" : ""}`}>
+              {labels[i]}
+            </span>
           </div>
         ))}
       </div>
@@ -232,7 +248,10 @@ function ColorGradientSlider({ stops, t, onChange }) {
           `dragging` state as the thumb) so precision-scrubbing — which deliberately moves the
           cursor away from the track — doesn't flicker the mask back in the moment the pointer
           leaves the track's bounds. */}
-      <div className="avatar-setup-gradient-bg" style={{ background: `linear-gradient(to right, ${stops.join(",")})` }} />
+      <div
+        className="avatar-setup-gradient-bg"
+        style={{ background: `linear-gradient(to right, ${stops.join(",")})` }}
+      />
       <div className={`avatar-setup-gradient-mask ${dragging ? "active" : ""}`} />
       <div
         className={`avatar-setup-gradient-thumb ${dragging ? "dragging" : ""}`}
@@ -290,13 +309,23 @@ function buildLayerList(config) {
   const { age, bodyType, skinColor, parts } = config;
   const layers = [{ src: `${ASSET_BASE}/${age}-${bodyType}.png`, color: skinColor }];
   const partColor = (key) => interpolateStops(RAINBOW_STOPS, parts[key].colorT);
-  if (parts.shirt.option > 0) layers.push({ src: `${ASSET_BASE}/shirt-${parts.shirt.option}.png`, color: partColor("shirt") });
+  if (parts.shirt.option > 0)
+    layers.push({
+      src: `${ASSET_BASE}/shirt-${parts.shirt.option}.png`,
+      color: partColor("shirt"),
+    });
   layers.push({ src: `${ASSET_BASE}/mouth-1.png`, color: null });
   layers.push({ src: `${ASSET_BASE}/nose-1.png`, color: null });
   layers.push({ src: `${ASSET_BASE}/eyes-1.png`, color: null });
-  if (parts.hair.option > 0) layers.push({ src: `${ASSET_BASE}/hair-${parts.hair.option}.png`, color: partColor("hair") });
-  if (parts.facewear.option > 0) layers.push({ src: `${ASSET_BASE}/facewear-${parts.facewear.option}.png`, color: partColor("facewear") });
-  if (parts.hat.option > 0) layers.push({ src: `${ASSET_BASE}/hat-${parts.hat.option}.png`, color: partColor("hat") });
+  if (parts.hair.option > 0)
+    layers.push({ src: `${ASSET_BASE}/hair-${parts.hair.option}.png`, color: partColor("hair") });
+  if (parts.facewear.option > 0)
+    layers.push({
+      src: `${ASSET_BASE}/facewear-${parts.facewear.option}.png`,
+      color: partColor("facewear"),
+    });
+  if (parts.hat.option > 0)
+    layers.push({ src: `${ASSET_BASE}/hat-${parts.hat.option}.png`, color: partColor("hat") });
   return layers;
 }
 
@@ -315,7 +344,7 @@ export default function AvatarSetupPage() {
   // set is the gradient slider, so there's no separate hex field to keep in sync (unlike skin
   // tone, which also has discrete presets to reconcile against).
   const [parts, setParts] = useState(() =>
-    Object.fromEntries(CATEGORIES.map((c) => [c.key, { option: c.default, colorT: 0.3 }]))
+    Object.fromEntries(CATEGORIES.map((c) => [c.key, { option: c.default, colorT: 0.3 }])),
   );
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
@@ -358,22 +387,27 @@ export default function AvatarSetupPage() {
     let cancelled = false;
     const t = setTimeout(async () => {
       const supabase = createClient();
-      const { data, error } = await supabase.rpc("is_username_available", { check_username: username });
+      const { data, error } = await supabase.rpc("is_username_available", {
+        check_username: username,
+      });
       if (!cancelled) {
         setUsernameAvailable(error ? null : data);
         setUsernameSettled(true);
       }
     }, 500);
-    return () => { cancelled = true; clearTimeout(t); };
+    return () => {
+      cancelled = true;
+      clearTimeout(t);
+    };
   }, [usernameInput, username, usernameFormatValid, usernameLongEnough]);
 
   const usernameStatus = !usernameFormatValid
     ? { ok: false, reason: "use abc & 123" }
     : !usernameLongEnough
-    ? { ok: false, reason: "too short" }
-    : usernameAvailable === true
-    ? { ok: true }
-    : { ok: false, reason: usernameAvailable === false ? "unavailable" : "" };
+      ? { ok: false, reason: "too short" }
+      : usernameAvailable === true
+        ? { ok: true }
+        : { ok: false, reason: usernameAvailable === false ? "unavailable" : "" };
 
   function handleUsernameFocus() {
     setUsernameFocused(true);
@@ -454,8 +488,8 @@ export default function AvatarSetupPage() {
         CATEGORIES.map((c) => {
           const option = Math.floor(Math.random() * (c.count + 1)); // 0 (none) .. count
           return [c.key, { option, colorT: Math.random() }];
-        })
-      )
+        }),
+      ),
     );
   }
 
@@ -507,120 +541,144 @@ export default function AvatarSetupPage() {
       <div className="avatar-setup-card">
         <div className="avatar-setup-options">
           <div className="avatar-setup-options-inner">
-          <h1 style={{ fontSize: 20, fontWeight: 700, margin: 0 }}>Create your character</h1>
+            <h1 style={{ fontSize: 20, fontWeight: 700, margin: 0 }}>Create your character</h1>
 
-          <div style={{ position: "relative" }}>
-            <input
-              type="text"
-              placeholder="@username"
-              autoComplete="username"
-              value={usernameInput}
-              onChange={handleUsernameChange}
-              onFocus={handleUsernameFocus}
-              onBlur={handleUsernameBlur}
-              onSelect={handleUsernameSelect}
-              onClick={handleUsernameSelect}
-              style={{
-                width: "100%",
-                background: "#1a1a1a",
-                border: "1px solid var(--card-border)",
-                borderRadius: 8,
-                color: "var(--ink)",
-                padding: "10px 34px 10px 12px",
-                fontSize: 13,
-                fontFamily: "inherit",
-                outline: "none",
-                boxSizing: "border-box",
-              }}
-            />
-            <ValidityDot
-              show={!!usernameInput && (usernameFocused || usernameSettled)}
-              pending={!usernameSettled}
-              ok={usernameStatus.ok}
-              reason={usernameStatus.reason}
-            />
-          </div>
-
-          <div>
-            <div className="avatar-setup-section-label">Skin tone</div>
-            <div className="avatar-setup-skintone-row">
-              <div className="avatar-setup-skintone-presets">
-                {SKIN_COLORS.map((c, i) => (
-                  <button
-                    key={c}
-                    type="button"
-                    className={`avatar-setup-swatch ${skinColor === c ? "selected" : ""}`}
-                    style={{ background: c }}
-                    onClick={() => selectSkinPreset(i)}
-                    title={c}
-                  />
-                ))}
-              </div>
-              <ColorGradientSlider stops={RAINBOW_STOPS} t={skinSliderT} onChange={handleSkinSlider} />
+            <div style={{ position: "relative" }}>
+              <input
+                type="text"
+                placeholder="@username"
+                autoComplete="username"
+                value={usernameInput}
+                onChange={handleUsernameChange}
+                onFocus={handleUsernameFocus}
+                onBlur={handleUsernameBlur}
+                onSelect={handleUsernameSelect}
+                onClick={handleUsernameSelect}
+                style={{
+                  width: "100%",
+                  background: "#1a1a1a",
+                  border: "1px solid var(--card-border)",
+                  borderRadius: 8,
+                  color: "var(--ink)",
+                  padding: "10px 34px 10px 12px",
+                  fontSize: 13,
+                  fontFamily: "inherit",
+                  outline: "none",
+                  boxSizing: "border-box",
+                }}
+              />
+              <ValidityDot
+                show={!!usernameInput && (usernameFocused || usernameSettled)}
+                pending={!usernameSettled}
+                ok={usernameStatus.ok}
+                reason={usernameStatus.reason}
+              />
             </div>
-          </div>
 
-          {PAIR_ROWS.map((pairKeys) => (
-            <div className="avatar-setup-pair-row" key={pairKeys.join("-")}>
-              {pairKeys.map((key) => {
-                const cat = CATEGORIES.find((c) => c.key === key);
-                return (
-                  <div className="avatar-setup-pair-col" key={cat.key}>
-                    <div className="avatar-setup-section-label">{cat.label}</div>
-                    <div className="avatar-setup-option-grid">
-                      {Array.from({ length: cat.count }, (_, i) => i + 1).map((n) => {
-                        const selected = parts[cat.key].option === n;
-                        return (
-                          <button
-                            key={n}
-                            type="button"
-                            className={`avatar-setup-option-btn ${selected ? "selected" : ""}`}
-                            // Clicking the already-selected option again toggles it off (option:
-                            // 0, i.e. "none") instead of a separate None button.
-                            onClick={() => setPart(cat.key, { option: selected ? 0 : n })}
-                          >
-                            <img
-                              src={`${ASSET_BASE}/${cat.key}-${n}.png`}
-                              alt=""
-                              onError={(e) => {
-                                e.target.style.visibility = "hidden";
-                              }}
-                            />
-                          </button>
-                        );
-                      })}
-                    </div>
-                    <ColorGradientSlider
-                      stops={RAINBOW_STOPS}
-                      t={parts[cat.key].colorT}
-                      onChange={(t) => setPart(cat.key, { colorT: t })}
+            <div>
+              <div className="avatar-setup-section-label">Skin tone</div>
+              <div className="avatar-setup-skintone-row">
+                <div className="avatar-setup-skintone-presets">
+                  {SKIN_COLORS.map((c, i) => (
+                    <button
+                      key={c}
+                      type="button"
+                      className={`avatar-setup-swatch ${skinColor === c ? "selected" : ""}`}
+                      style={{ background: c }}
+                      onClick={() => selectSkinPreset(i)}
+                      title={c}
                     />
-                  </div>
-                );
-              })}
+                  ))}
+                </div>
+                <ColorGradientSlider
+                  stops={RAINBOW_STOPS}
+                  t={skinSliderT}
+                  onChange={handleSkinSlider}
+                />
+              </div>
             </div>
-          ))}
+
+            {PAIR_ROWS.map((pairKeys) => (
+              <div className="avatar-setup-pair-row" key={pairKeys.join("-")}>
+                {pairKeys.map((key) => {
+                  const cat = CATEGORIES.find((c) => c.key === key);
+                  return (
+                    <div className="avatar-setup-pair-col" key={cat.key}>
+                      <div className="avatar-setup-section-label">{cat.label}</div>
+                      <div className="avatar-setup-option-grid">
+                        {Array.from({ length: cat.count }, (_, i) => i + 1).map((n) => {
+                          const selected = parts[cat.key].option === n;
+                          return (
+                            <button
+                              key={n}
+                              type="button"
+                              className={`avatar-setup-option-btn ${selected ? "selected" : ""}`}
+                              // Clicking the already-selected option again toggles it off (option:
+                              // 0, i.e. "none") instead of a separate None button.
+                              onClick={() => setPart(cat.key, { option: selected ? 0 : n })}
+                            >
+                              <img
+                                src={`${ASSET_BASE}/${cat.key}-${n}.png`}
+                                alt=""
+                                onError={(e) => {
+                                  e.target.style.visibility = "hidden";
+                                }}
+                              />
+                            </button>
+                          );
+                        })}
+                      </div>
+                      <ColorGradientSlider
+                        stops={RAINBOW_STOPS}
+                        t={parts[cat.key].colorT}
+                        onChange={(t) => setPart(cat.key, { colorT: t })}
+                      />
+                    </div>
+                  );
+                })}
+              </div>
+            ))}
           </div>
         </div>
 
         <div className="avatar-setup-preview-col">
-          <canvas ref={canvasRef} width={CANVAS_SIZE} height={CANVAS_SIZE} className="avatar-setup-preview-canvas" />
+          <canvas
+            ref={canvasRef}
+            width={CANVAS_SIZE}
+            height={CANVAS_SIZE}
+            className="avatar-setup-preview-canvas"
+          />
           <div>
             <div className="avatar-setup-section-label">Age</div>
             <StopSlider stops={AGES} labels={AGE_LABELS} value={age} onChange={setAge} />
           </div>
           <div>
             <div className="avatar-setup-section-label">Build</div>
-            <StopSlider stops={TYPES} labels={TYPE_LABELS} value={bodyType} onChange={setBodyType} />
+            <StopSlider
+              stops={TYPES}
+              labels={TYPE_LABELS}
+              value={bodyType}
+              onChange={setBodyType}
+            />
           </div>
 
           {error && <div style={{ color: "#f87171", fontSize: 12 }}>{error}</div>}
 
           <div className="avatar-setup-action-row">
-            <button type="button" className="avatar-setup-random-btn" disabled={saving} onClick={handleRandom}>
+            <button
+              type="button"
+              className="avatar-setup-random-btn"
+              disabled={saving}
+              onClick={handleRandom}
+            >
               Random
             </button>
-            <button type="button" className="avatar-setup-save-btn" disabled={saving || !usernameStatus.ok} onClick={handleSave}>
+            <button
+              type="button"
+              className="avatar-setup-save-btn"
+              disabled={saving || !usernameStatus.ok}
+              onClick={handleSave}
+            >
               {saving ? "Saving…" : "Next"}
             </button>
           </div>

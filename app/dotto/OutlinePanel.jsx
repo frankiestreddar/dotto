@@ -15,7 +15,33 @@ const EMPTY_STATE = { rows: [], query: "" };
 // bridged since that lookup table lives in public/dotto/*.js, not reachable from app/dotto/.
 function OutlineIcon({ kind, level }) {
   const url = `/assets/icons/${window.__kindIconFile(kind, level)}`;
-  return <span className="outline-icon icon-mask" style={{ maskImage: `url(${url})`, WebkitMaskImage: `url(${url})` }} />;
+  return (
+    <span
+      className="outline-icon icon-mask"
+      style={{ maskImage: `url(${url})`, WebkitMaskImage: `url(${url})` }}
+    />
+  );
+}
+
+// Collapse toggle (explicit request) — only rendered for a heading (title kind) row that actually
+// has something nested under it (r.hasChildren, computed by renderHeadingSubtree,
+// shared-canvases-outline.js: a grouped item OR a child heading). Sits in the same slot as
+// OutlineIcon and only shows on row hover, swapping places with it via CSS (.has-children:hover) —
+// same mechanism/reasoning as the Blocks panel's own folder-collapse toggle, BlocksPanel.jsx.
+function OutlineCollapseToggle({ id, collapsed }) {
+  return (
+    <button
+      type="button"
+      className={"outline-collapse-toggle" + (collapsed ? " collapsed" : "")}
+      onClick={(e) => {
+        e.stopPropagation();
+        window.__toggleOutlineCollapse(id);
+      }}
+      title={collapsed ? "Expand" : "Collapse"}
+    >
+      <img src="/assets/icons/chevron.png" alt="" />
+    </button>
+  );
 }
 
 // Three row shapes, computed by computeOutlineRows/computeSourceOutlineRows
@@ -34,7 +60,10 @@ function OutlineRow({ r }) {
     return (
       <div
         className="outline-item"
-        onClick={(e) => { e.stopPropagation(); window.__goToOutlineSourceRow(r.tableItemId, r.number); }}
+        onClick={(e) => {
+          e.stopPropagation();
+          window.__goToOutlineSourceRow(r.tableItemId, r.number);
+        }}
       >
         <span className="outline-item-number">{r.number}</span>
         <span className="outline-label">{r.label}</span>
@@ -44,7 +73,7 @@ function OutlineRow({ r }) {
   }
   return (
     <div
-      className="outline-item"
+      className={"outline-item" + (r.hasChildren ? " has-children" : "")}
       style={{ "--outline-indent": r.indent + "px" }}
       onClick={(e) => {
         e.stopPropagation();
@@ -53,6 +82,7 @@ function OutlineRow({ r }) {
       }}
     >
       <OutlineIcon kind={r.itemKind} level={r.level} />
+      {r.hasChildren && <OutlineCollapseToggle id={r.id} collapsed={r.collapsed} />}
       <span className="outline-label">{r.label}</span>
       <RowActions />
     </div>
@@ -73,7 +103,11 @@ function OutlineRow({ r }) {
 // before buildOutline's own flushSync call (app/dotto-app.jsx's window.__setOutlineState) returns
 // and toggleHamburgerMenu's setOutlineActive(0) call runs immediately after it.
 export default function OutlinePanel() {
-  const state = useSyncExternalStore(outlineStore.subscribe, outlineStore.getSnapshot, () => EMPTY_STATE);
+  const state = useSyncExternalStore(
+    outlineStore.subscribe,
+    outlineStore.getSnapshot,
+    () => EMPTY_STATE,
+  );
   const portalNode = usePortalNode("hmenu-outline-container");
 
   useLayoutEffect(() => {
@@ -93,7 +127,9 @@ export default function OutlinePanel() {
     state.rows.length ? (
       state.rows.map((r) => <OutlineRow key={r.id} r={r} />)
     ) : (
-      <div className="outline-empty">{state.query ? "No matching blocks." : "Nothing here yet."}</div>
+      <div className="outline-empty">
+        {state.query ? "No matching blocks." : "Nothing here yet."}
+      </div>
     ),
     portalNode,
   );

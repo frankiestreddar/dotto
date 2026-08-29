@@ -1,6 +1,6 @@
 import { clearSearch } from './ai-assistant-suggestions.js';
 import { cutSelectedCards, pasteClipboardCards } from './copy-paste.js';
-import { appState, canvas, canvasContextMenu, contextMenu, dotLayer, recomputeTopCardZIndex, supabase, world, zoomFill, zoomThumb, zoomTrack } from './core-state.js';
+import { appState, canvas, canvasContextMenu, contextMenu, dotLayer, findItemEl, itemElId, recomputeTopCardZIndex, registerPaneCanvasListenerSetup, restorePaneState, supabase, switchActivePane, world, zoomFill, zoomThumb, zoomTrack } from './core-state.js';
 import { resolveTableForEdit } from './drawing-connections.js';
 import { generateGlobalId } from './global-ids.js';
 import { resolveSharedFolderChain } from './hamburger-collab.js';
@@ -37,7 +37,7 @@ import { centerOnContent, render } from './waypoints-render-loop.js';
         // reliable — the rest of the time too.
         appState.folders[appState.currentFolderId].items.forEach(it => {
             if (it.kind === 'stopwatch' && it.swRunning) {
-                const el = document.getElementById('item-' + it.id);
+                const el = findItemEl(it.id);
                 const timeEl = el && el.querySelector('.sw-time');
                 if (timeEl) timeEl.textContent = swFormatTime(swCurrentElapsedMs(it));
             }
@@ -94,9 +94,15 @@ import { centerOnContent, render } from './waypoints-render-loop.js';
         // entries (openPublicCanvas, shared-canvases-outline.js) get the same exclusion but for a
         // stronger reason: there's no update_public_folder counterpart at all to patch one back
         // to — a public view is read-only and never persisted anywhere, so it must never even be
-        // attempted here.
+        // attempted here. media-view-*: entries (window.__openMediaViewerTab,
+        // shared-canvases-outline.js) are a synthetic, session-local wrapper around a real canvas
+        // item (folderObj.mediaItem) — not real user content of their own, so persisting them would
+        // both bloat every save and go stale (mediaItem is a captured reference, not re-resolved on
+        // load). A tab that happened to bookmark one when the page was closed just won't resolve
+        // its own folder on the next load — a known, accepted gap (reopening a file full-screen
+        // after a refresh is a one-click action from the Files panel again), not specially handled.
         const localFolders = {};
-        for (const id in appState.folders) { if (!id.startsWith('shared:') && !id.startsWith('public:')) localFolders[id] = appState.folders[id]; }
+        for (const id in appState.folders) { if (!id.startsWith('shared:') && !id.startsWith('public:') && !id.startsWith('media-view-')) localFolders[id] = appState.folders[id]; }
         // Backfills globalId (global-ids.js) on any local folder that doesn't have one yet — every
         // canvas/source created through add()/deepCloneItem already gets one immediately, but the
         // built-in 'root' canvas (declared directly in core-state.js, which can't import this —
@@ -120,7 +126,28 @@ import { centerOnContent, render } from './waypoints-render-loop.js';
             ? { ownerId: activeShared.sharedOwnerId, folderId: activeShared.sharedRemoteFolderId }
             : null;
 
-        const workspaceData = { folders: localFolders, idCounter: appState.idCounter, historyStack: resumeStack, historyIndex: resumeIndex, tx: appState.tx, ty: appState.ty, scale: appState.scale, lastSharedView, tabs: appState.tabs, activeTabId: appState.activeTabId, nextTabId: appState.nextTabId };
+        // Split-screen window layout + every OTHER pane's own tabs/history/camera (explicit
+        // request: "tabs and window splits should persist across refreshes and log out/login") —
+        // the ACTIVE pane's own tabs/activeTabId/nextTabId/historyStack/historyIndex/tx/ty/scale
+        // were already saved above (pre-existing, single-pane behavior); this just adds the SAME
+        // shape for every OTHER currently-open pane, plus the tree describing how they're arranged.
+        // paneLayout is only ever meaningfully non-null once window.__setPaneLayout has actually
+        // run (app/dotto-app.jsx) — window.__listPaneIds/__getPaneLayout are both optional-chained
+        // for the same reason every other React-store bridge call in vanilla code is: this file's
+        // own module-load can, in principle, race the bridges being wired up.
+        const paneLayout = window.__getPaneLayout ? window.__getPaneLayout() : null;
+        const paneStates = {};
+        (window.__listPaneIds ? window.__listPaneIds() : []).forEach((paneId) => {
+            if (paneId === appState.activePaneId) return; // already covered by the top-level fields above
+            const saved = appState.panes[paneId];
+            if (!saved) return;
+            paneStates[paneId] = {
+                tx: saved.tx, ty: saved.ty, scale: saved.scale, currentFolderId: saved.currentFolderId,
+                historyStack: saved.historyStack, historyIndex: saved.historyIndex,
+                tabs: saved.tabs, activeTabId: saved.activeTabId, nextTabId: saved.nextTabId,
+            };
+        });
+        const workspaceData = { folders: localFolders, idCounter: appState.idCounter, historyStack: resumeStack, historyIndex: resumeIndex, tx: appState.tx, ty: appState.ty, scale: appState.scale, lastSharedView, tabs: appState.tabs, activeTabId: appState.activeTabId, nextTabId: appState.nextTabId, paneLayout, paneStates, nextPaneId: appState.nextPaneId, activePaneId: appState.activePaneId };
         const { error } = await supabase.from('workspaces').upsert({
             user_id: appState.currentUser.id,
             // historyStack/historyIndex are saved alongside folders so the full
@@ -290,11 +317,77 @@ import { centerOnContent, render } from './waypoints-render-loop.js';
         // (see above) already handles on the first render() regardless.
 
         appState.workspaceLoaded = true;
-        if (typeof data.data.tx === 'number' && typeof data.data.ty === 'number' && typeof data.data.scale === 'number') {
-            appState.tx = data.data.tx; appState.ty = data.data.ty; appState.scale = data.data.scale;
-            return true;
-        }
-        return false; // older save made before tx/ty/scale was persisted — nothing to restore
+        const hasCameraData = typeof data.data.tx === 'number' && typeof data.data.ty === 'number' && typeof data.data.scale === 'number';
+        if (hasCameraData) { appState.tx = data.data.tx; appState.ty = data.data.ty; appState.scale = data.data.scale; }
+        // Split-screen window layout + every other pane's own tabs/history/camera — explicit
+        // request: "tabs and window splits should persist across refreshes and log out/login".
+        // Pane 0 (the only one that can exist before this runs) is already fully restored above —
+        // this only has anything to do once a real multi-pane save exists.
+        restorePaneLayoutAndTabs(data.data);
+        return hasCameraData; // older save made before tx/ty/scale was persisted — nothing to restore
+    }
+
+    // See loadWorkspace's own call site for context. `saved` is the raw `data.data` payload —
+    // `saved.paneLayout` (the split tree, window.__setPaneLayout/paneLayoutStore) is only present
+    // once a real split has ever been saved; a plain single-pane save has none, so this just no-ops
+    // for the (overwhelmingly common) unsplit case. window.__setPaneLayout is flushSync'd (see its
+    // own comment, app/dotto-app.jsx), so every restored pane's own DOM (PaneCanvasArea.jsx) exists
+    // synchronously by the time window.__listPaneIds() is read right after it.
+    //
+    // A real bug caught via testing on the first version of this function: the top-level
+    // tabs/historyStack/tx/ty/scale fields (already restored onto LIVE appState by the existing
+    // code above, since that's always been "whichever pane happens to be live" — pane 0, the only
+    // one that exists before window.__setPaneLayout below runs) describe whichever pane was
+    // actually ACTIVE at SAVE time, which is NOT necessarily pane 0 — saveWorkspaceNow only writes
+    // paneStates entries for the OTHER panes, deliberately skipping whichever was active then (see
+    // its own comment). Treating "pane 0" and "the saved-active pane" as interchangeable silently
+    // dropped a tab from both the wrong-donor pane (pane 0, which never got its OWN real
+    // paneStates[0] applied — it kept the OTHER pane's data instead) and the real active pane
+    // (which never got restored at all, falling back to restorePaneState's own single-default-tab
+    // shape). Fixed by snapshotting the CURRENTLY-live fields into `activeFieldsSnapshot` before
+    // window.__setPaneLayout runs (the only moment they're guaranteed to still be intact — the loop
+    // below overwrites live appState multiple times as it visits every pane in turn) and feeding
+    // that snapshot to whichever paneId turns out to actually be `savedActivePaneId`, uniformly
+    // through the exact same restorePaneState call every other pane goes through — no more
+    // special-cased "skip this one, it's already right" branch.
+    //
+    // restorePaneState (core-state.js) does the same "save the currently-active pane's own live
+    // fields out to its own slot, then take over as the new live pane" swap switchActivePane
+    // normally does, but seeded with SAVED data instead of switchActivePane's own "restore from an
+    // existing slot" or initializeNewPane's "reset to fresh defaults" — calling it once per pane in
+    // sequence correctly hands each earlier pane's own just-restored data back to its own slot
+    // before moving to the next, the exact same chaining switchActivePane itself already relies on
+    // — which is also what guarantees `savedActivePaneId` has a real slot to restore from by the
+    // time the final switchActivePane call below reaches it, even though it's never skipped either.
+    // render() after each one pushes that pane's own tabs/breadcrumb/nav-arrows/collab-pill
+    // (renderTabsPanel/renderBreadcrumbMapPanel/renderNavArrows/renderCollabPill, all called from
+    // inside render()) so its own top-bar pill displays correctly even while it's not the pane the
+    // restore finally lands on.
+    function restorePaneLayoutAndTabs(saved) {
+        if (!saved.paneLayout || saved.paneLayout.type !== 'split' || !window.__setPaneLayout || !window.__listPaneIds) return;
+        const activeFieldsSnapshot = {
+            tx: appState.tx, ty: appState.ty, scale: appState.scale, currentFolderId: appState.currentFolderId,
+            historyStack: appState.historyStack, historyIndex: appState.historyIndex,
+            tabs: appState.tabs, activeTabId: appState.activeTabId, nextTabId: appState.nextTabId,
+        };
+        window.__setPaneLayout(saved.paneLayout);
+        const paneIds = window.__listPaneIds();
+        const savedActivePaneId = (typeof saved.activePaneId === 'number' && paneIds.includes(saved.activePaneId)) ? saved.activePaneId : 0;
+        let maxPaneId = 0;
+        paneIds.forEach((paneId) => {
+            maxPaneId = Math.max(maxPaneId, paneId);
+            const savedPane = paneId === savedActivePaneId ? activeFieldsSnapshot : ((saved.paneStates && saved.paneStates[paneId]) || {});
+            restorePaneState(paneId, savedPane);
+            render();
+        });
+        // Lands on whichever pane was actually active when this was saved — guaranteed a real slot
+        // by now (see this function's own comment above), so this always finds the right data
+        // regardless of which paneId happened to be visited last by the loop.
+        switchActivePane(savedActivePaneId);
+        render();
+        // Keeps a future real split (splitPaneWithTab, shared-canvases-outline.js) from minting a
+        // paneId that collides with one just restored.
+        appState.nextPaneId = Math.max(typeof saved.nextPaneId === 'number' ? saved.nextPaneId : 0, maxPaneId + 1);
     }
     document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') saveWorkspaceNow(); });
     window.addEventListener('pagehide', () => saveWorkspaceNow());
@@ -359,16 +452,26 @@ import { centerOnContent, render } from './waypoints-render-loop.js';
         document.getElementById('canvas-ctx-del-col').style.display = hasCellCtx ? 'block' : 'none';
         document.getElementById('canvas-ctx-del-row').style.display = hasCellCtx ? 'block' : 'none';
     }
-    canvas.addEventListener('contextmenu', (e) => {
-        // Only show the undo/redo menu when right-clicking blank canvas space
-        // (cards handle their own contextmenu and stop it from bubbling here).
-        e.preventDefault();
-        e.stopPropagation();
-        contextMenu.style.display = 'none';
-        appState.contextMenuItemId = null;
-        appState.contextMenuTableCtx = null;
-        showCanvasContextMenu(e.clientX, e.clientY);
-    });
+    // Re-attached per pane (split-screen Stage 4: see registerPaneCanvasListenerSetup, core-
+    // state.js). Right-click is a deliberate interaction with this specific pane, same as a plain
+    // click — switchActivePane matches setupCanvasLevelInteractionListeners' own reasoning
+    // (srs-connections-core.js) for why contextmenu isn't pointerdown-gated the way item-level
+    // gestures are.
+    function setupCanvasContextMenu(canvasEl, paneId) {
+        canvasEl.addEventListener('contextmenu', (e) => {
+            // Only show the undo/redo menu when right-clicking blank canvas space
+            // (cards handle their own contextmenu and stop it from bubbling here).
+            e.preventDefault();
+            e.stopPropagation();
+            switchActivePane(paneId);
+            contextMenu.style.display = 'none';
+            appState.contextMenuItemId = null;
+            appState.contextMenuTableCtx = null;
+            showCanvasContextMenu(e.clientX, e.clientY);
+        });
+    }
+    setupCanvasContextMenu(canvas, 0);
+    registerPaneCanvasListenerSetup(setupCanvasContextMenu);
     // Right-clicking a source-table data cell shows the same undo/redo menu plus
     // "Delete column"/"Delete row" for that cell's column/row.
     function openTableCellContextMenu(e, tableId, r, c) {
@@ -386,11 +489,11 @@ import { centerOnContent, render } from './waypoints-render-loop.js';
         clearContextDeleteHighlight();
         if (!on || !appState.contextMenuTableCtx) return;
         const { tableId, c } = appState.contextMenuTableCtx;
-        document.querySelectorAll(`#item-${tableId} .item-table td[data-c="${c}"]`).forEach(td => td.classList.add('ctx-del-highlight'));
-        const slot = document.querySelector(`#item-${tableId} .col-name-slot[data-c="${c}"]`);
+        document.querySelectorAll(`#${itemElId(tableId)} .item-table td[data-c="${c}"]`).forEach(td => td.classList.add('ctx-del-highlight'));
+        const slot = document.querySelector(`#${itemElId(tableId)} .col-name-slot[data-c="${c}"]`);
         if (slot) slot.classList.add('ctx-del-highlight');
     }
-    // Matched by [data-origin-table] rather than scoped to "#item-${tableId}" like the column
+    // Matched by [data-origin-table] rather than scoped to "#${itemElId(tableId)}" like the column
     // highlight above — a foreign row's tableId is never the id of anything actually in the DOM
     // (the one rendered top-level container is always the LOCAL table's own id), and its data-r
     // can collide with a local row sharing the same index, so both origin and row index are
@@ -558,9 +661,18 @@ import { centerOnContent, render } from './waypoints-render-loop.js';
         appState.tx = targetTx; appState.ty = targetTy; appState.scale = targetScale;
         applyTransform();
         clearTimeout(appState.cameraTweenTimeout);
+        // Capture world/dotLayer as locals rather than closing over the bare `let` bindings —
+        // those get reassigned by switchActivePane (split-screen Stage 1+) the moment the user
+        // switches to a different pane, and this callback fires later, asynchronously. Without
+        // this capture, switching panes mid-tween would clear the WRONG pane's transition style
+        // (whichever pane happens to be active when the timeout fires) and leave THIS pane's
+        // transition stuck on indefinitely, since nothing else ever clears it. appState.
+        // cameraTweenTimeout is itself pane-scoped (PANE_SCOPED_FIELDS, core-state.js) for the
+        // same reason — see that field's own comment.
+        const tweenWorld = world, tweenDotLayer = dotLayer;
         appState.cameraTweenTimeout = setTimeout(() => {
-            world.style.transition = '';
-            dotLayer.style.transition = '';
+            tweenWorld.style.transition = '';
+            tweenDotLayer.style.transition = '';
         }, durationMs + 20);
     }
     // Keeps the dot-layer element itself big enough (and positioned) to always cover the
@@ -596,7 +708,7 @@ import { centerOnContent, render } from './waypoints-render-loop.js';
     function updateContextMenuPosition() {
         if (contextMenu.style.display !== 'flex' || appState.contextMenuItemId == null) return;
         const it = findItemById(appState.contextMenuItemId);
-        const el = document.getElementById('item-' + appState.contextMenuItemId);
+        const el = findItemEl(appState.contextMenuItemId);
         if (!it || !el) { contextMenu.style.display = 'none'; appState.contextMenuItemId = null; return; }
         const w = el.offsetWidth;
         contextMenu.style.left = (appState.tx + (it.x + w) * appState.scale + 8) + 'px';
@@ -610,12 +722,21 @@ import { centerOnContent, render } from './waypoints-render-loop.js';
         zoomThumb.style.bottom = y + 'px';
     }
 
-export { applyTransform, deleteContextColumn, deleteContextRow, ensureSwTicking, hideCanvasContextMenu, highlightContextColumn, highlightContextRow, loadWorkspace, openTableCellContextMenu, redo, saveSnapshot, saveWorkspaceNow, scheduleApplyTransform, scheduleWorkspaceSave, smoothPanTo, undo, updateContextMenuPosition };
+export { applyTransform, deleteContextColumn, deleteContextRow, ensureSwTicking, hideCanvasContextMenu, highlightContextColumn, highlightContextRow, layoutDotLayer, loadWorkspace, openTableCellContextMenu, redo, saveSnapshot, saveWorkspaceNow, scheduleApplyTransform, scheduleWorkspaceSave, smoothPanTo, undo, updateContextMenuPosition };
 
 // React → vanilla bridge — used by app/dotto/canvasItemBehavior.js's setupResizing, same
 // reasoning as window.__getAppState (core-state.js).
 window.__saveSnapshot = saveSnapshot;
 window.__scheduleWorkspaceSave = scheduleWorkspaceSave;
+// Used by initializeNewPane (core-state.js) via this bridge rather than a direct import — that
+// file is imported BY this one, so importing back would be circular. A freshly split pane's own
+// #dot-layer-{paneId} otherwise never gets sized at all: layoutDotLayer only ever runs once at
+// module-load time (for pane 0, the only one that exists then) and on window resize — splitting a
+// pane doesn't resize the window, so nothing else would ever size the new pane's dot grid,
+// leaving it a plain background with no radial-gradient box to actually paint onto (a real,
+// previously-undiscovered gap — found via an explicit bug report that a split pane's background
+// was plain white with no dot grid).
+window.__layoutDotLayer = layoutDotLayer;
 // Used by app/dotto/canvasItemBehavior.js's setupDraggingAndClicking (Phase 3's second relocated
 // piece), same reasoning as window.__getAppState (core-state.js).
 window.__applyTransform = applyTransform;

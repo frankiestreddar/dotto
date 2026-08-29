@@ -156,6 +156,7 @@ import { closeSourceAddMenu } from './source-buttons-cursor-mode.js';
     wireRailIcon('sources', appState.btnSources, appState.sourcesPanel, () => renderSourcesList(''));
     wireRailIcon('snippets', appState.btnSnippets, appState.snippetsPanel, () => renderFilesList(''));
     wireRailIcon('snippets2', appState.btnSnippets2, appState.snippets2Panel, null);
+    wireRailIcon('servers', appState.btnServers, appState.serversPanel, null);
     wireRailIcon('ai', appState.railBtnAi, appState.aiPanel, refreshAiPanel);
     wireRailIcon('outline', appState.hamburgerBtn, appState.outlineMenu, buildOutline);
     wireRailIcon('waypoints', appState.railBtnWaypoints, appState.waypointsPanel, () => renderWaypointsList(''));

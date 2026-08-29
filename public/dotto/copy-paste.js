@@ -1,5 +1,5 @@
 import { kindSize } from './add-menu.js';
-import { appState, canvas, world } from './core-state.js';
+import { appState, canvas, registerPaneCanvasListenerSetup, world } from './core-state.js';
 import { saveSnapshot } from './history-autosave.js';
 import { findItemById } from './live-presence.js';
 import { closeRailView } from './panels-hamburger.js';
@@ -128,19 +128,28 @@ import { render, renderSelectedOutlines } from './waypoints-render-loop.js';
             appState.placementGhost.style.top = '-9999px';
         }
     }
-    canvas.addEventListener('pointermove', (e) => {
-        if (!appState.addingKind || !appState.placementGhost) return;
-        const { x, y } = placementGhostWorldPos(e.clientX, e.clientY, appState.addingKind);
-        appState.placementGhost.style.left = x + 'px';
-        appState.placementGhost.style.top = y + 'px';
-    });
+    // Purely a visual preview (the actual placement, on click, always correctly uses whichever
+    // pane was clicked into — see setupCanvasLevelInteractionListeners, srs-connections-core.js) —
+    // no switchActivePane needed here, just re-attached per pane (split-screen Stage 4: see
+    // registerPaneCanvasListenerSetup, core-state.js) so the ghost tracks the cursor over ANY
+    // pane, not just pane 0.
+    function setupPlacementGhostTracking(canvasEl) {
+        canvasEl.addEventListener('pointermove', (e) => {
+            if (!appState.addingKind || !appState.placementGhost) return;
+            const { x, y } = placementGhostWorldPos(e.clientX, e.clientY, appState.addingKind);
+            appState.placementGhost.style.left = x + 'px';
+            appState.placementGhost.style.top = y + 'px';
+        });
+    }
+    setupPlacementGhostTracking(canvas);
+    registerPaneCanvasListenerSetup(setupPlacementGhostTracking);
 
-    // Both callers (handleAddItemClick/newSourceClicked, add-menu.js) are only ever reached while
-    // the add panel itself is the open rail view, so closeRailView here always closes that panel.
+    // The only caller (handleBlockItemClick, blocks-panel.js) is only ever reached while the
+    // Blocks panel itself is the open rail view, so closeRailView here always closes that panel.
     function prepareAdd(kind, statKind) {
         appState.addingKind = kind; appState.addingStatKind = statKind || null; closeRailView(); canvas.classList.add('crosshair');
-        // Starting to place any card kind exits pen mode, same as opening the Add/Elements panel
-        // itself already does (resetAddMenuPanel, add-menu.js) — was setDrawMode(false).
+        // Starting to place any card kind exits pen mode, same as opening the Blocks panel itself
+        // already does (refreshBlocksPanel, blocks-panel.js) — was setDrawMode(false).
         if (appState.cardMode === 'pen') { appState.cardMode = 'normal'; applyCursorMode(); }
         showPlacementGhost(kind);
     }

@@ -10,7 +10,13 @@
 export default function EmbedCard({ it }) {
   if (!it.embedUrl) {
     return (
-      <div className="embed-empty" onClick={(e) => { e.stopPropagation(); window.editEmbed(it.id); }}>
+      <div
+        className="embed-empty"
+        onClick={(e) => {
+          e.stopPropagation();
+          window.editEmbed(it.id);
+        }}
+      >
         <div className="embed-icon">🌐</div>
         <div className="embed-title">New Embed</div>
         <div className="embed-hint">Click to add a website or code embed link</div>
@@ -30,7 +36,10 @@ export default function EmbedCard({ it }) {
         <div
           className="embed-edit"
           onMouseDown={(e) => e.stopPropagation()}
-          onClick={(e) => { e.stopPropagation(); window.editEmbed(it.id); }}
+          onClick={(e) => {
+            e.stopPropagation();
+            window.editEmbed(it.id);
+          }}
           title="Edit embed link"
         >
           ✎

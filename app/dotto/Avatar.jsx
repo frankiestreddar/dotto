@@ -12,7 +12,12 @@ import { useState } from "react";
 // but a document.getElementById lookup), which can beat that script's load, throwing
 // "window.__initials is not a function".
 function initials(name) {
-  return (name || "").split(" ").map((w) => w[0]).join("").slice(0, 2).toUpperCase();
+  return (name || "")
+    .split(" ")
+    .map((w) => w[0])
+    .join("")
+    .slice(0, 2)
+    .toUpperCase();
 }
 
 // Real JSX equivalent of renderAvatarInto (public/dotto/profile-achievements-pricing.js) — same
@@ -27,7 +32,11 @@ function initials(name) {
 export default function Avatar({ avatar, name, className, bare }) {
   const [failed, setFailed] = useState(false);
   const src = (avatar && avatar.url) || `/assets/avatar/avatar-${(avatar && avatar.id) || 0}.png`;
-  const content = failed ? initials(name) : <img src={src} alt="" onError={() => setFailed(true)} />;
+  const content = failed ? (
+    initials(name)
+  ) : (
+    <img src={src} alt="" onError={() => setFailed(true)} />
+  );
 
   if (bare) return content;
   return <div className={className}>{content}</div>;

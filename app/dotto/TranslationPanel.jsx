@@ -12,7 +12,11 @@ import { translationPanelStore } from "./bridges";
 // inline style directly to decide whether #search-dropdown itself should be visible, so this has
 // to keep setting it exactly as before, not hand that decision to React.
 export default function TranslationPanel() {
-  const panel = useSyncExternalStore(translationPanelStore.subscribe, translationPanelStore.getSnapshot, () => null);
+  const panel = useSyncExternalStore(
+    translationPanelStore.subscribe,
+    translationPanelStore.getSnapshot,
+    () => null,
+  );
 
   useLayoutEffect(() => {
     const el = document.getElementById("search-translation");

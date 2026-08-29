@@ -22,7 +22,10 @@ export default function PublishFlowName() {
       id="publish-flow-name"
       contentEditable
       suppressContentEditableWarning
-      onMouseDown={(e) => { e.preventDefault(); window.focusPublishFlowName(); }}
+      onMouseDown={(e) => {
+        e.preventDefault();
+        window.focusPublishFlowName();
+      }}
       onBlur={() => window.blurPublishFlowName()}
     />,
     portalNode,

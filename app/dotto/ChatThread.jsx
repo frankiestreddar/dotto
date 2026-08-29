@@ -115,7 +115,11 @@ function ChatTurn({ turn }) {
 // identity, keyed by turn.id) like CommandPalette.jsx, not a single-owner side-effect component
 // like DotbotAnswerPanel.jsx and friends, which this retires for AI content.
 export default function ChatThread() {
-  const turns = useSyncExternalStore(chatThreadStore.subscribe, chatThreadStore.getSnapshot, () => EMPTY_TURNS);
+  const turns = useSyncExternalStore(
+    chatThreadStore.subscribe,
+    chatThreadStore.getSnapshot,
+    () => EMPTY_TURNS,
+  );
   const portalNode = usePortalNode("search-chat-thread");
 
   if (!portalNode) return null;
@@ -129,7 +133,10 @@ export default function ChatThread() {
   // reordering existing turns on screen moves their DOM nodes rather than remounting them, so an
   // in-progress reveal on an older turn is unaffected by a new turn being appended above/below it.
   return createPortal(
-    turns.slice().reverse().map((turn) => <ChatTurn key={turn.id} turn={turn} />),
+    turns
+      .slice()
+      .reverse()
+      .map((turn) => <ChatTurn key={turn.id} turn={turn} />),
     portalNode,
   );
 }

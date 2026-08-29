@@ -11,7 +11,11 @@ import { dotbotAnswerStore } from "./bridges";
 // exported functions and now aren't. Build/append/reveal happen in that exact order because
 // typewriterReveal needs the text element already connected to the DOM.
 export default function DotbotAnswerPanel() {
-  const answer = useSyncExternalStore(dotbotAnswerStore.subscribe, dotbotAnswerStore.getSnapshot, () => null);
+  const answer = useSyncExternalStore(
+    dotbotAnswerStore.subscribe,
+    dotbotAnswerStore.getSnapshot,
+    () => null,
+  );
 
   useLayoutEffect(() => {
     const el = document.getElementById("search-dotbot-answer");
@@ -25,7 +29,10 @@ export default function DotbotAnswerPanel() {
     el.appendChild(textEl);
     el.style.display = "block";
     window.__startDotbotAnswerReveal(textEl, answer.text);
-    const blocksWrap = window.__buildAnswerBlocksWrap(answer.answerBlocksPanel, answer.answerBlocksLanguage);
+    const blocksWrap = window.__buildAnswerBlocksWrap(
+      answer.answerBlocksPanel,
+      answer.answerBlocksLanguage,
+    );
     if (blocksWrap) el.appendChild(blocksWrap);
   }, [answer]);
 

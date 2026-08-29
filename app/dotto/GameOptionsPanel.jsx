@@ -19,14 +19,14 @@ function optionsForSlot(it, colCount, headers, slot) {
     options.push(
       <option key={i} value={String(i)}>
         {name}
-      </option>
+      </option>,
     );
     if (window.__colHasAnyCloze(it, i)) {
       options.push(
         <optgroup key={i + "-cloze"} label={`${name} — cloze`}>
           <option value={`${i}:blank`}>Blank</option>
           <option value={`${i}:extract`}>[...]</option>
-        </optgroup>
+        </optgroup>,
       );
     }
   }
@@ -40,25 +40,44 @@ function GameOptionsSide({ it, label, side, slots, colCount, headers, sampleRow 
       {slots.map((slot, slotIndex) => {
         const cellHtml = ((sampleRow && sampleRow.cells) || [])[slot.col] || "";
         const type = sampleRow ? window.__cellContentType(cellHtml) : "text";
-        const glyph = type === "image" ? "🖼" : type === "audio" ? "🔊" : slot.mode !== "plain" ? "[…]" : "Aa";
+        const glyph =
+          type === "image" ? "🖼" : type === "audio" ? "🔊" : slot.mode !== "plain" ? "[…]" : "Aa";
         const selectValue = slot.mode === "plain" ? String(slot.col) : `${slot.col}:${slot.mode}`;
         return (
-          <div className="game-options-slot" key={slotIndex} onMouseDown={(e) => e.stopPropagation()}>
-            <select className="game-options-select" value={selectValue} onChange={(e) => window.setGameColumnSlot(it.id, side, slotIndex, e.target.value)}>
+          <div
+            className="game-options-slot"
+            key={slotIndex}
+            onMouseDown={(e) => e.stopPropagation()}
+          >
+            <select
+              className="game-options-select"
+              value={selectValue}
+              onChange={(e) => window.setGameColumnSlot(it.id, side, slotIndex, e.target.value)}
+            >
               {optionsForSlot(it, colCount, headers, slot)}
             </select>
             <span className="game-options-col-glyph" title={type}>
               {glyph}
             </span>
             {slots.length > 1 && (
-              <button type="button" className="game-options-remove-slot" onClick={() => window.removeGameColumnSlot(it.id, side, slotIndex)} title="Remove">
+              <button
+                type="button"
+                className="game-options-remove-slot"
+                onClick={() => window.removeGameColumnSlot(it.id, side, slotIndex)}
+                title="Remove"
+              >
                 ×
               </button>
             )}
           </div>
         );
       })}
-      <button type="button" className="game-options-add-slot" onMouseDown={(e) => e.stopPropagation()} onClick={() => window.addGameColumnSlot(it.id, side)}>
+      <button
+        type="button"
+        className="game-options-add-slot"
+        onMouseDown={(e) => e.stopPropagation()}
+        onClick={() => window.addGameColumnSlot(it.id, side)}
+      >
         + Add column
       </button>
     </div>
@@ -80,15 +99,37 @@ export default function GameOptionsPanel({ it }) {
   }
 
   const cfg = it.gameConfig || {};
-  const frontCols = (cfg.frontCols && cfg.frontCols.length ? cfg.frontCols : [{ col: 0, mode: "plain" }]).map(window.__normalizeGameSlot);
-  const backCols = (cfg.backCols && cfg.backCols.length ? cfg.backCols : [{ col: colCount > 1 ? 1 : 0, mode: "plain" }]).map(window.__normalizeGameSlot);
+  const frontCols = (
+    cfg.frontCols && cfg.frontCols.length ? cfg.frontCols : [{ col: 0, mode: "plain" }]
+  ).map(window.__normalizeGameSlot);
+  const backCols = (
+    cfg.backCols && cfg.backCols.length
+      ? cfg.backCols
+      : [{ col: colCount > 1 ? 1 : 0, mode: "plain" }]
+  ).map(window.__normalizeGameSlot);
 
   return (
     <>
       <div className="game-options-head">Options</div>
       <div className="game-options-body">
-        <GameOptionsSide it={it} label="Front" side="front" slots={frontCols} colCount={colCount} headers={headers} sampleRow={sampleRow} />
-        <GameOptionsSide it={it} label="Back" side="back" slots={backCols} colCount={colCount} headers={headers} sampleRow={sampleRow} />
+        <GameOptionsSide
+          it={it}
+          label="Front"
+          side="front"
+          slots={frontCols}
+          colCount={colCount}
+          headers={headers}
+          sampleRow={sampleRow}
+        />
+        <GameOptionsSide
+          it={it}
+          label="Back"
+          side="back"
+          slots={backCols}
+          colCount={colCount}
+          headers={headers}
+          sampleRow={sampleRow}
+        />
       </div>
     </>
   );

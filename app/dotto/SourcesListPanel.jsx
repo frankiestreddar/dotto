@@ -53,8 +53,15 @@ function SourceRow({ r, altHeld }) {
       className={"outline-item" + (r.active ? " active" : "") + (altHeld ? " alt-reveal-id" : "")}
       onClick={(e) => {
         e.stopPropagation();
-        if (clickTimerRef.current) { clearTimeout(clickTimerRef.current); clickTimerRef.current = null; return; }
-        clickTimerRef.current = setTimeout(() => { clickTimerRef.current = null; window.__openFolder(r.folderId); }, 220);
+        if (clickTimerRef.current) {
+          clearTimeout(clickTimerRef.current);
+          clickTimerRef.current = null;
+          return;
+        }
+        clickTimerRef.current = setTimeout(() => {
+          clickTimerRef.current = null;
+          window.__openFolder(r.folderId);
+        }, 220);
       }}
     >
       <img className="search-history-icon" src="/assets/icons/source.png" alt="" />
@@ -63,7 +70,12 @@ function SourceRow({ r, altHeld }) {
         className="outline-label outline-label-renameable"
         onDoubleClick={(e) => {
           e.stopPropagation();
-          window.__startRenameFolderCardTitle(labelRef.current, { folderId: r.folderId }, "outline-label", true);
+          window.__startRenameFolderCardTitle(
+            labelRef.current,
+            { folderId: r.folderId },
+            "outline-label",
+            true,
+          );
         }}
         title="Double-click to rename"
       >
@@ -91,13 +103,21 @@ function SourceRow({ r, altHeld }) {
 // only reachable here now, by holding Option and hovering a row, which swaps that row's name for
 // its id (SourceRow above).
 export default function SourcesListPanel() {
-  const state = useSyncExternalStore(sourcesListStore.subscribe, sourcesListStore.getSnapshot, () => EMPTY_STATE);
+  const state = useSyncExternalStore(
+    sourcesListStore.subscribe,
+    sourcesListStore.getSnapshot,
+    () => EMPTY_STATE,
+  );
   const portalNode = usePortalNode("sources-panel-content");
   const [altHeld, setAltHeld] = useState(false);
 
   useEffect(() => {
-    const onKeyDown = (e) => { if (e.key === "Alt") setAltHeld(true); };
-    const onKeyUp = (e) => { if (e.key === "Alt") setAltHeld(false); };
+    const onKeyDown = (e) => {
+      if (e.key === "Alt") setAltHeld(true);
+    };
+    const onKeyUp = (e) => {
+      if (e.key === "Alt") setAltHeld(false);
+    };
     const onBlur = () => setAltHeld(false);
     window.addEventListener("keydown", onKeyDown);
     window.addEventListener("keyup", onKeyUp);
@@ -115,7 +135,9 @@ export default function SourcesListPanel() {
     state.rows.length ? (
       state.rows.map((r) => <SourceRow key={r.id} r={r} altHeld={altHeld} />)
     ) : (
-      <div className="outline-empty">{state.query ? "No matching sources." : "No sources yet."}</div>
+      <div className="outline-empty">
+        {state.query ? "No matching sources." : "No sources yet."}
+      </div>
     ),
     portalNode,
   );

@@ -14,7 +14,7 @@ export default function SelectionToolbar() {
   const state = useSyncExternalStore(
     selectionToolbarStore.subscribe,
     selectionToolbarStore.getSnapshot,
-    () => CLOSED_STATE
+    () => CLOSED_STATE,
   );
 
   if (!state.isOpen) return null;
@@ -29,10 +29,18 @@ export default function SelectionToolbar() {
       // highlighted the moment it's clicked, instead of it having already vanished.
       onMouseDown={(e) => e.preventDefault()}
     >
-      <button type="button" className="selection-toolbar-btn" onClick={() => window.openAddToSourcePopup()}>
+      <button
+        type="button"
+        className="selection-toolbar-btn"
+        onClick={() => window.openAddToSourcePopup()}
+      >
         Add to...
       </button>
-      <button type="button" className="selection-toolbar-btn" onClick={() => window.selectionToolbarLookUp()}>
+      <button
+        type="button"
+        className="selection-toolbar-btn"
+        onClick={() => window.selectionToolbarLookUp()}
+      >
         Look up
       </button>
     </div>

@@ -35,24 +35,210 @@ export const pricingOverlayStore = createStore(false);
 // hideSelectionToolbar for the vanilla side that still owns WHEN to show/hide and WHERE.
 export const selectionToolbarStore = createStore({ isOpen: false, left: 0, top: 0 });
 
-// Canvas items layer (canvas-items-react plan, see PHASE2_ROADMAP.md) — the current folder's item
-// array, set by render() (waypoints-render-loop.js) via window.__renderCanvasItems every time it
-// would previously have wiped and rebuilt #world's item divs by hand. React now owns the #items-
-// layer child of #world (see app/dotto/CanvasItemsLayer.jsx) and keys off item.id, so unchanged
-// items are left alone instead of being torn down and recreated on every canvas interaction.
-export const canvasItemsStore = createStore([]);
+// Pane-keyed variant of createStore, split-screen Stage 4 (see the split-screen plan) — each pane
+// shows its own folder's items (and, since Stage 7, its own tabs/breadcrumb trail) independently,
+// so a single shared store (the original shape here) would make every pane render whichever pane
+// last called render() instead of its own content. Lazily creates one real createStore the first
+// time a given paneId is asked for, so pane 0 (the only one that exists before any split happens)
+// doesn't need anything pre-declared. defaultValue is a FACTORY (called fresh per pane, not a
+// single shared value) so each pane's own store starts from its own independent object rather than
+// every pane accidentally sharing one array/object reference — defaults to `[]` per pane, matching
+// canvasItemsStore's original (and only, before Stage 7) shape.
+function createPaneKeyedStore(defaultValue = () => []) {
+  const stores = new Map();
+  function storeFor(paneId) {
+    let store = stores.get(paneId);
+    if (!store) {
+      store = createStore(defaultValue());
+      stores.set(paneId, store);
+    }
+    return store;
+  }
+  // Drops a closed pane's store (split-screen Stage 5+) so it doesn't just leak forever.
+  function remove(paneId) {
+    stores.delete(paneId);
+  }
+  return { storeFor, remove };
+}
 
-// Top-bar notification pill content (message/imageUrl/actionLabel) — the queue/sequencing engine
-// and the CSS slide choreography that shows/hides it both stay fully vanilla (see
-// public/dotto/stopwatch-search-notifications.js's showNotification/dismissCurrentNotification —
-// neither is list-diffing or list-rebuilding, so there's no analogous bug to the canvas-items-
-// react one to fix; only the notification's own rendering surface moves to React, via
-// NotificationBar.jsx portaling into #notification-root, content/fragments/top-bar.html).
-// null means nothing has ever been shown yet (matches the original static markup's empty
-// image/text/button on load) — showNotification sets this once per notification and dismissal
-// deliberately leaves the last content in place rather than clearing it, same as the original
-// (harmless: the pill is hidden via CSS once #notification-pill loses .notif-active).
-export const notificationStore = createStore(null);
+// Canvas items layer (canvas-items-react plan, see PHASE2_ROADMAP.md) — the current folder's item
+// array, set by render() (waypoints-render-loop.js) via window.__renderCanvasItems(items, paneId)
+// every time it would previously have wiped and rebuilt #world's item divs by hand. React now owns
+// each pane's own #items-layer child of #world (see app/dotto/CanvasItemsLayer.jsx) and keys off
+// item.id, so unchanged items are left alone instead of being torn down and recreated on every
+// canvas interaction. canvasItemsStore.storeFor(paneId) — not a single store — since split-screen
+// Stage 4.
+export const canvasItemsStore = createPaneKeyedStore();
+
+// Pane layout tree (split-screen Stage 6+) — a real split tree, not a flat list of rects. Stage
+// 4/5 originally used a flat array ({ id, rect }[]), justified at the time as "sufficient for a
+// hard 2x2 cap and trivial to render/hit-test" — that stopped being true once Stage 6's own "what
+// happens when a quartered pane closes" product question got answered "re-merge into its sibling":
+// a flat list has no way to express "these two panes are a pair" once a pane has been split TWICE
+// (a quartered pane's own sibling might itself be a further-split PAIR, not a single leaf) — a
+// closed pane needs to know exactly which OTHER subtree reclaims its space, which only a real tree
+// can express correctly. Replaced here rather than patched once that became clear.
+//
+// Shape: { type: 'leaf', paneId } | { type: 'split', direction: 'row'|'column', children: [tree, tree] }.
+// 'row' = children sit side by side (a left/right edge drop splits this way); 'column' = children
+// stack top/bottom. children[0] is always the visually-first (left/top) child — which edge was
+// dropped on decides which side the NEW pane lands on, not some fixed convention. Starts as a
+// single leaf (pane 0, full viewport), matching how the app looked before split-screen existed.
+export const paneLayoutStore = createStore({ type: "leaf", paneId: 0 });
+
+// Walks the tree, dividing `rect` (fractional [0,1] viewport coords, defaulting to the full
+// viewport) evenly between each split's two children, and returns a flat [{ paneId, rect }] for
+// however many leaves currently exist — this is what PaneGrid.jsx actually renders from; nothing
+// downstream of it needs to know the tree shape at all, only the resulting flat rects. No
+// adjustable dividers (both children of a split always get exactly half) — matches the plan's own
+// "Stage 4 only needs a fixed, non-animated split" scope; a real draggable-divider feature would
+// extend this function's own math, not the tree shape.
+export function computePaneRects(tree, rect = { x: 0, y: 0, w: 1, h: 1 }) {
+  if (tree.type === "leaf") return [{ paneId: tree.paneId, rect }];
+  const [a, b] = tree.children;
+  if (tree.direction === "row") {
+    const halfW = rect.w / 2;
+    return [
+      ...computePaneRects(a, { x: rect.x, y: rect.y, w: halfW, h: rect.h }),
+      ...computePaneRects(b, { x: rect.x + halfW, y: rect.y, w: halfW, h: rect.h }),
+    ];
+  }
+  const halfH = rect.h / 2;
+  return [
+    ...computePaneRects(a, { x: rect.x, y: rect.y, w: rect.w, h: halfH }),
+    ...computePaneRects(b, { x: rect.x, y: rect.y + halfH, w: rect.w, h: halfH }),
+  ];
+}
+
+// One thin divider line per split node — walks the same tree computePaneRects does, but instead
+// of leaf rects, collects the boundary BETWEEN each split's two children (explicit request: "a
+// dividing line between the split screens"). 'row' splits (children side by side) get a vertical
+// line at the shared x boundary spanning that subtree's own full height; 'column' splits get a
+// horizontal line at the shared y boundary spanning its own full width — each in the same
+// fractional [0,1] coordinate space PaneGrid.jsx already renders panes in, so the caller just
+// converts to percent the same way it does for a pane's own rect.
+export function computeSplitDividers(tree, rect = { x: 0, y: 0, w: 1, h: 1 }) {
+  if (tree.type === "leaf") return [];
+  const [a, b] = tree.children;
+  if (tree.direction === "row") {
+    const halfW = rect.w / 2;
+    return [
+      { orientation: "vertical", x: rect.x + halfW, y: rect.y, length: rect.h },
+      ...computeSplitDividers(a, { x: rect.x, y: rect.y, w: halfW, h: rect.h }),
+      ...computeSplitDividers(b, { x: rect.x + halfW, y: rect.y, w: halfW, h: rect.h }),
+    ];
+  }
+  const halfH = rect.h / 2;
+  return [
+    { orientation: "horizontal", y: rect.y + halfH, x: rect.x, length: rect.w },
+    ...computeSplitDividers(a, { x: rect.x, y: rect.y, w: rect.w, h: halfH }),
+    ...computeSplitDividers(b, { x: rect.x, y: rect.y + halfH, w: rect.w, h: halfH }),
+  ];
+}
+
+// Every currently-open paneId, in no particular order — used for the 4-pane cap check
+// (shared-canvases-outline.js) and nowhere else, so a plain array beats bothering with an object.
+export function listPaneIds(tree) {
+  return tree.type === "leaf"
+    ? [tree.paneId]
+    : [...listPaneIds(tree.children[0]), ...listPaneIds(tree.children[1])];
+}
+
+// Which of a pane's 4 edges are valid drop targets right now — explicit request/correction: split-
+// screen must only ever grow into a clean 2x2 (quartering one or both halves of an existing row/
+// column split), never 3+ panes side by side in the same direction. Walks root-to-leaf collecting
+// each ancestor split's own direction; the shape of that path is exactly what decides which edges
+// are still legal for THIS leaf:
+//  - path length 0 (tree is just this one leaf, nothing split yet): every edge is legal — this is
+//    the very first split, which can go either way.
+//  - path length 1 (this leaf is one of an existing row/column pair, not itself split again yet):
+//    only the PERPENDICULAR edges are legal (top/bottom if its parent split was 'row', left/right
+//    if 'column'). The parent's own direction is explicitly excluded — splitting a pane that's
+//    already part of a row AGAIN in the row direction would produce 3 panes side by side instead of
+//    quartering it, which is exactly the shape this function exists to prevent.
+//  - path length 2+ (this leaf is already one of a quartered pair): no edge is legal — a 3rd level
+//    of nesting can only ever produce something other than a clean 2x2 (and this codebase caps
+//    split-screen at 4 panes total regardless, enforced separately by window.__countPanes() < 4 at
+//    the call site, TabsBar.jsx).
+// Returns the empty array for a paneId that isn't in the tree at all, same as "no legal edges."
+export function allowedEdgesForPane(tree, paneId) {
+  function pathTo(node, path) {
+    if (node.type === "leaf") return node.paneId === paneId ? path : null;
+    const [a, b] = node.children;
+    return pathTo(a, [...path, node.direction]) || pathTo(b, [...path, node.direction]);
+  }
+  const path = pathTo(tree, []);
+  if (!path) return [];
+  if (path.length === 0) return ["left", "right", "top", "bottom"];
+  if (path.length === 1) return path[0] === "row" ? ["top", "bottom"] : ["left", "right"];
+  return [];
+}
+
+// Replaces the leaf for targetPaneId with a new split node pairing it with newPaneId — direction/
+// child order both come from `edge` ('left'/'right' -> row, existing pane and new pane ordered so
+// the new one lands on the dropped side; 'top'/'bottom' -> column, same reasoning). Returns a NEW
+// tree (the leaf/split nodes on the path to the target are new objects; every sibling subtree not
+// on that path is reused as-is) rather than mutating — matches how every other store in this file
+// gets updated (a fresh value passed to .set(), not an in-place mutation), and keeps this function
+// safe to call speculatively before deciding whether to commit the result. Returns the ORIGINAL
+// tree unchanged if targetPaneId isn't found (caller's job to guard against that not happening).
+export function splitLeafInTree(tree, targetPaneId, newPaneId, edge) {
+  if (tree.type === "leaf") {
+    if (tree.paneId !== targetPaneId) return tree;
+    const targetLeaf = { type: "leaf", paneId: targetPaneId };
+    const newLeaf = { type: "leaf", paneId: newPaneId };
+    if (edge === "left")
+      return { type: "split", direction: "row", children: [newLeaf, targetLeaf] };
+    if (edge === "right")
+      return { type: "split", direction: "row", children: [targetLeaf, newLeaf] };
+    if (edge === "top")
+      return { type: "split", direction: "column", children: [newLeaf, targetLeaf] };
+    return { type: "split", direction: "column", children: [targetLeaf, newLeaf] }; // 'bottom'
+  }
+  return {
+    ...tree,
+    children: [
+      splitLeafInTree(tree.children[0], targetPaneId, newPaneId, edge),
+      splitLeafInTree(tree.children[1], targetPaneId, newPaneId, edge),
+    ],
+  };
+}
+
+// Closes paneId and re-merges its space into whichever subtree it was paired with — the split
+// node immediately ABOVE its leaf is replaced by that split's OTHER child, so the surviving
+// subtree (a single pane, or itself a further-split pair — e.g. closing the one pane NOT quartered
+// correctly hands the full reclaimed box to the still-quartered pair, not just one arbitrary pane
+// of it) expands to fill exactly the space the closed pane's pair used to occupy. Returns null if
+// paneId was the tree's only leaf (closing the last pane isn't a real operation — same "always
+// keep at least one" guard closeTab/splitPaneWithTab already enforce, just expressed as null here
+// since there's no tree left to return). Same "returns a new tree, doesn't mutate" shape as
+// splitLeafInTree.
+export function closeLeafInTree(tree, paneId) {
+  if (tree.type === "leaf") return tree.paneId === paneId ? null : tree;
+  const [a, b] = tree.children;
+  if (a.type === "leaf" && a.paneId === paneId) return b;
+  if (b.type === "leaf" && b.paneId === paneId) return a;
+  const newA = closeLeafInTree(a, paneId);
+  if (newA !== a) return newA === null ? b : { ...tree, children: [newA, b] };
+  const newB = closeLeafInTree(b, paneId);
+  if (newB !== b) return newB === null ? a : { ...tree, children: [a, newB] };
+  return tree;
+}
+
+// Notification stack, top-right — explicit redesign (was a single top-center pill swapping places
+// with #top-bar-center, one notification at a time with an enforced gap between them): "should
+// appear in the top right, sliding in from the right... if another notification appears, existing
+// ones smoothly shift down, then the new notification slides in. remove the delay between
+// notifications." A plain array of `{id, config}`, newest first (index 0 = topmost, per "new ones
+// push existing down") — NotificationBar.jsx now owns the whole stack (position, per-card measured-
+// height stacking, slide/shift animation, hover-reveal close button), not just a portal into
+// otherwise-vanilla-owned markup; the old vanilla queue/sequencing engine
+// (stopwatch-search-notifications.js's pushNotification/showNotification/
+// dismissNotification) still owns WHEN a notification appears/times out and calls
+// window.__setNotifications with the updated array — genuinely multiple notifications can be
+// visible at once now, so there's no single "current" one and no artificial gap between showing
+// consecutive ones.
+export const notificationsStore = createStore([]);
 
 // Search-dropdown result panels (public/dotto/mnemonic-search-matching.js) — each a single-owner
 // static container (#search-translation/#search-dictionary/etc.), unlike searchSuggestionsStore
@@ -66,7 +252,7 @@ export const notificationStore = createStore(null);
 // same as before, just triggered by React state instead of a direct DOM write.
 //
 // All six __set* bridges for these (app/dotto-app.jsx) wrap their store.set in flushSync, unlike
-// notificationStore above — updateSearchDropdown (ai-assistant-suggestions.js)
+// notificationsStore above — updateSearchDropdown (ai-assistant-suggestions.js)
 // reads each panel's real DOM node's style.display SYNCHRONOUSLY right after calling its
 // render*Panel function (see renderOrchestrateResult in search-orchestration-selection.js, which
 // calls several of these back-to-back and then updateSearchDropdown once at the end) — without
@@ -122,8 +308,8 @@ export const commandPaletteStore = createStore(null);
 // #search-suggestions — shared by 5 different producers across 3 files (live AI suggestions, the
 // mnemonic story/loading/error trio, and an orchestrate error), so this holds a small discriminated
 // union ({kind, ...}) rather than one plain value —
-// only ONE of them is ever shown at a time, same "replaces this one slot" idea as
-// notificationStore. See renderMnemonicResultCard's own comment in mnemonic-search-matching.js
+// only ONE of them is ever shown at a time, unlike notificationsStore above, which is a genuine
+// multi-item stack. See renderMnemonicResultCard's own comment in mnemonic-search-matching.js
 // for the full producer list, and SearchSuggestionsPanel.jsx for how each kind is built. Unlike
 // commandPaletteStore above, this one is NOT a portal (every kind's content stays 100%
 // vanilla-built, mounted the same "return null, mutate in an effect" way as
@@ -187,7 +373,13 @@ export const chatsListStore = createStore([]);
 // { view: 'requests', requests }. Genuine JSX rows (see HubCollabListPanel.jsx), same reasoning as
 // waypointsListStore. Not flushSync'd on the bridge (app/dotto-app.jsx) — both entry points are
 // real async Supabase calls, so there's no synchronous DOM read to race.
-export const hubCollabListStore = createStore({ view: "main", requestsCount: 0, ownedShown: [], sharedShown: [], query: "" });
+export const hubCollabListStore = createStore({
+  view: "main",
+  requestsCount: 0,
+  ownedShown: [],
+  sharedShown: [],
+  query: "",
+});
 
 // Shift-click-to-select + Backspace-to-delete state for the Chats/Waypoints/Collaborations
 // hamburger list panels (public/dotto/hamburger-collab.js's window.__toggleListPanelSelection).
@@ -218,7 +410,13 @@ export const achievementsStore = createStore([]);
 // both entry points are real async Supabase calls. The actual conversation thread (openConvo/
 // renderConvoBody) stays vanilla — part of the much larger "Live canvas presence" cluster
 // (PHASE2_ROADMAP.md item 11), not this list.
-export const msgListStore = createStore({ view: "main", requestsCount: 0, matchedFriends: [], searchResults: [], query: "" });
+export const msgListStore = createStore({
+  view: "main",
+  requestsCount: 0,
+  matchedFriends: [],
+  searchResults: [],
+  query: "",
+});
 
 // Per-canvas Collaborations flyout (public/dotto/friends-presence.js's renderCollabList) —
 // { rows: [{id, displayName, avatarId, avatarUrl, added, pending, isPresent}], query }. No
@@ -242,14 +440,27 @@ export const marketDiscoverStore = createStore([]);
 // machinery with switchCartTab/openItemDetail/startPublishFlow elsewhere in this cluster.
 export const marketDetailStore = createStore(null);
 
-// Library tab's list content (public/dotto/marketplace.js's renderLibrary) — a discriminated union
-// covering all three sub-views it can show: { view: 'folders', fixed, custom } (the folder
-// picker), { view: 'items', folderKey, isCustom, customFolders, items } (inside one folder), or
-// { view: 'search', results } (cross-folder search, appState.librarySearchQuery set). Genuine JSX
-// rows, same reasoning as the other list panels. Drag-out-to-canvas for draft items
-// (makeDraftItemDraggable) and opening the item detail view (openItemDetail, library-publish.js)
-// stay vanilla, invoked via bridges from row handlers — see LibraryPanel.jsx.
-export const libraryViewStore = createStore({ view: "folders", fixed: [], custom: [] });
+// Blocks panel's list content (public/dotto/blocks-panel.js's computeBlocksRows/refreshBlocksPanel)
+// — was libraryViewStore/Library's own discriminated-union-of-views shape before Essentials/
+// Library were repurposed into Blocks/Plugins (explicit request); Blocks shows every folder's
+// contents at once now (no drill-down navigation), so this is just a flat row array, same
+// convention as outlineStore/computeOutlineRows: [{ rowKind: 'folder', key, label, deletable,
+// count } | { rowKind: 'block-item', kind, statKind, label, icon } | { rowKind: 'content-item',
+// item, status, folderKey, deletable, draggable } | { rowKind: 'new-folder' }]. Genuine JSX rows —
+// drag-into-folder (setupContentItemDrag), opening the item detail view (openItemDetail), and
+// folder/item CRUD all stay vanilla, invoked via window.__ bridges from row handlers, see
+// BlocksPanel.jsx.
+export const blocksViewStore = createStore([]);
+
+// Extensions panel's list content (was Library's own role before the repurposing above — see
+// blocksViewStore's comment; was going to be called "Plugins" before an explicit follow-up rename)
+// — just a flat array of installed extensions, [{id, label}], rendered as rectangular pills rather
+// than item cards (explicit request). Currently seeded with two dummy entries (blocks-panel.js has
+// no real extension system to back this yet) — see ExtensionsPanel.jsx.
+export const extensionsListStore = createStore([
+  { id: "extension-1", label: "Plugin 1" },
+  { id: "extension-2", label: "Plugin 2" },
+]);
 
 // Item Detail view's footer button set (public/dotto/library-publish.js's renderItemDetailFooter)
 // — { sourceFolder: 'drafts'|'published'|'purchased', itemId, dirty } | null. A natural,
@@ -262,31 +473,73 @@ export const libraryViewStore = createStore({ view: "folders", fixed: [], custom
 // the hamburger menu's Outline panel exception (see PHASE2_ROADMAP.md item 6).
 export const itemDetailFooterStore = createStore(null);
 
-// Collaborators pill under the search bar (public/dotto/friends-presence.js's renderCollabPill) —
-// { show, collabs: [{id, avatarId, avatarUrl, displayName}] (up to 3), moreCount }. Genuine JSX, same
-// Avatar.jsx-based reasoning as CollabListPanel — this is just the small trigger/indicator for
-// that panel, not the panel itself (already done, item 6). Portals into #collab-content only;
-// #collab-bubble's own `.show` class and #collab-tooltip's text are plain sibling/ancestor nodes
-// outside the portal, synced imperatively via useLayoutEffect in CollabPill.jsx. MUST be
-// flushSync'd (see app/dotto-app.jsx): openCollabPanel (friends-presence.js) reads collabBubble's
-// `.show` class synchronously right after a caller in hamburger-collab.js calls this.
-export const collabPillStore = createStore({ show: false, collabs: [], moreCount: 0 });
+// Collaborators pill, now one per pane (split-screen Stage 8 — was a single shared store tied to
+// whichever pane happened to be active, per the same "each pane needs its own copy, not one shared
+// trigger" correction that made tabsStore/breadcrumbMapStore pane-keyed in Stage 7). Rendered
+// directly by PaneTopBar.jsx (app/dotto/) now, not portalled into a static top-bar.html node —
+// #collab-bubble/#collab-content/#collab-tooltip no longer exist as singular ids, see that file.
+// { show, collabs: [{id, avatarId, avatarUrl, displayName}] (up to 3), moreCount }, pushed by
+// public/dotto/friends-presence.js's renderCollabPill(paneId). MUST be flushSync'd (see
+// app/dotto-app.jsx): openCollabPanel (friends-presence.js) reads the triggering bubble element's
+// `.show` class synchronously right after a caller pushes here.
+export const collabPillStore = createPaneKeyedStore(() => ({
+  show: false,
+  collabs: [],
+  moreCount: 0,
+}));
 
-// Compact "…/parent/current" breadcrumb trail shown by whichever tab is active (see
+// Back/forward enabled-state, one per pane (split-screen Stage 8) — { canGoBack, canGoForward },
+// pushed by public/dotto/shared-canvases-outline.js's renderNavArrows(paneId) (called from
+// render()'s per-frame loop for the active pane, and from jumpToHistoryIndex/switchActivePane for
+// immediate feedback). Replaces the old singular #btn-back/#btn-forward .disabled assignments
+// (waypoints-render-loop.js) now that PaneTopBar.jsx renders its own back/forward buttons per pane.
+export const navHistoryStore = createPaneKeyedStore(() => ({
+  canGoBack: false,
+  canGoForward: false,
+}));
+
+// Which pane is currently active — a plain, non-pane-keyed store (there's only ever one answer,
+// unlike everything else pane-keyed here). Backs PaneZoomBar.jsx's own "only show for the pane you
+// last clicked into" requirement (explicit request) — everything else in this codebase reads
+// appState.activePaneId directly off the vanilla side, which isn't reactive; this is the one place
+// so far that needs an active REACT re-render when it changes. Pushed by switchActivePane
+// (core-state.js) via window.__setActivePaneId.
+export const activePaneIdStore = createStore(0);
+
+// Media-viewer full-screen zoom, one per pane (mirrors navHistoryStore/collabPillStore's own
+// per-pane reasoning) — { show, zoom }. show is true only while that pane's own CURRENT folder is a
+// synthetic isMediaViewer one (window.__openMediaViewerTab, shared-canvases-outline.js); zoom is a
+// plain multiplier (1 = 100%, i.e. the document at exactly the window's own width — explicit spec).
+// Pushed by renderMediaViewerZoom(paneId)/setMediaViewerZoom (waypoints-render-loop.js). zoom itself
+// actually lives on the synthetic folder object (folderObj.viewerZoom), not here — this store is
+// just the React-facing mirror of it, same "vanilla owns the real data, this is the push target"
+// split every other pane-keyed store in this file already follows.
+export const mediaViewerZoomStore = createPaneKeyedStore(() => ({ show: false, zoom: 1 }));
+
+// Compact "…/parent/current" breadcrumb trail for a pane's own active tab (see
 // app/dotto/TabsBar.jsx's ActiveTabTrail, public/dotto/shared-canvases-outline.js's
 // renderBreadcrumbMapPanel) — { hasMore, root, parent, current }, each of `root`/`parent`/
-// `current` either null or {label, folderId, isSyntheticRoot}. Not flushSync'd — a plain store.set,
-// same reasoning as chatsListStore/waypointsListStore: no synchronous DOM read follows a
-// navigation-driven update.
-export const breadcrumbMapStore = createStore({ hasMore: false, root: null, parent: null, current: null });
+// `current` either null or {label, folderId, isSyntheticRoot}. Pane-keyed since split-screen Stage
+// 7 (each pane gets its own breadcrumb pill now, explicit request — was a single shared store,
+// which only ever reflected whichever pane was CURRENTLY active, so an inactive pane's own pill
+// had nothing correct to show). Not flushSync'd — a plain store.set, same reasoning as
+// chatsListStore/waypointsListStore: no synchronous DOM read follows a navigation-driven update.
+export const breadcrumbMapStore = createPaneKeyedStore(() => ({
+  hasMore: false,
+  root: null,
+  parent: null,
+  current: null,
+}));
 
-// Canvas tabs, next to the breadcrumb pill (see app/dotto/TabsBar.jsx,
+// Canvas tabs, next to each pane's own breadcrumb pill (see app/dotto/TabsBar.jsx,
 // public/dotto/shared-canvases-outline.js's renderTabsPanel/addTab/switchTab/closeTab) —
 // { tabs: [{id, folderId, label}], activeTabId }. Each tab is a lightweight bookmark of a folder
 // location, not an independent history/camera context — see renderTabsPanel's own comment for why.
-// Not flushSync'd — same reasoning as breadcrumbMapStore just above: a plain store.set, no
-// synchronous DOM read follows a navigation-driven update.
-export const tabsStore = createStore({ tabs: [], activeTabId: null });
+// Pane-keyed since split-screen Stage 7, same reasoning as breadcrumbMapStore just above — each
+// pane now renders its own <TabsBar paneId={paneId}/> instance (PaneCanvasArea.jsx) instead of one
+// shared instance tied to whichever pane happens to be active. Not flushSync'd — same reasoning as
+// breadcrumbMapStore: a plain store.set, no synchronous DOM read follows a navigation-driven update.
+export const tabsStore = createPaneKeyedStore(() => ({ tabs: [], activeTabId: null }));
 
 // First slice of item 11's "Live canvas presence + real-time content sync" grab-bag (see
 // PHASE2_ROADMAP.md — that section needed a 3-way split before extraction): the messaging/

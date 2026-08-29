@@ -14,7 +14,11 @@ const CLOSED_STATE = { isOpen: false, left: 0, top: 0 };
 // actual content directly against this div's id once it exists — see addToSourcePopupStore's own
 // comment in bridges.js for why that's guaranteed by the time it runs.
 export default function AddToSourcePopup() {
-  const state = useSyncExternalStore(addToSourcePopupStore.subscribe, addToSourcePopupStore.getSnapshot, () => CLOSED_STATE);
+  const state = useSyncExternalStore(
+    addToSourcePopupStore.subscribe,
+    addToSourcePopupStore.getSnapshot,
+    () => CLOSED_STATE,
+  );
 
   if (!state.isOpen) return null;
 

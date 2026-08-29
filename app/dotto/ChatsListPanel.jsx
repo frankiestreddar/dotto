@@ -43,8 +43,16 @@ function ChatRow({ r, selected }) {
 // WaypointsListPanel.jsx (a plain flex-item container, safe to portal into directly), minus the
 // query-dependent empty-state message since this panel has no search box for v1.
 export default function ChatsListPanel() {
-  const rows = useSyncExternalStore(chatsListStore.subscribe, chatsListStore.getSnapshot, () => EMPTY_ROWS);
-  const selection = useSyncExternalStore(listPanelSelectionStore.subscribe, listPanelSelectionStore.getSnapshot, () => EMPTY_SELECTION);
+  const rows = useSyncExternalStore(
+    chatsListStore.subscribe,
+    chatsListStore.getSnapshot,
+    () => EMPTY_ROWS,
+  );
+  const selection = useSyncExternalStore(
+    listPanelSelectionStore.subscribe,
+    listPanelSelectionStore.getSnapshot,
+    () => EMPTY_SELECTION,
+  );
   const selectedIds = selection.panel === "chats" ? selection.ids : EMPTY_IDS;
   const portalNode = usePortalNode("chats-list");
 

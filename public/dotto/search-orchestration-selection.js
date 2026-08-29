@@ -1,6 +1,6 @@
 import { clearSearch, escapeHtml, handleSearchFocus, scrollChatThreadToBottom, showAiChatView, stripHtml, updateChatThread, updateSearchDropdown } from './ai-assistant-suggestions.js';
 import { executeCurrentCommand, setCommandActive } from './command-palette.js';
-import { appState } from './core-state.js';
+import { appState, parseItemId } from './core-state.js';
 import { ensureConnections } from './drawing-connections.js';
 import { saveSnapshot, scheduleWorkspaceSave } from './history-autosave.js';
 import { miniLabelForItem } from './live-presence.js';
@@ -273,7 +273,7 @@ import { render } from './waypoints-render-loop.js';
             if (table) return { folder, table };
         }
         const itemEl = hostEl && hostEl.closest ? hostEl.closest('.item') : null;
-        const itemId = itemEl && itemEl.id ? Number(itemEl.id.replace('item-', '')) : null;
+        const itemId = itemEl && itemEl.id ? parseItemId(itemEl) : null;
         const it = itemId != null ? folder.items.find(i => i.id === itemId) : null;
         if (it && it.kind === 'source') {
             const table = tableOf(appState.folders[it.folderId]);
@@ -357,7 +357,7 @@ import { render } from './waypoints-render-loop.js';
                        <div class="static-table-header-track">${pillsHTML}</div>
                        <div class="static-table-row"><div class="table-rounded"><table class="item-table">${cg}<tbody><tr>${cellsHTML}</tr></tbody></table></div></div>
                    </div>
-                   <button type="button" class="add-to-source-add-btn" title="Add entry"><img src="/assets/icons/add-btn.png" alt="Add"></button>
+                   <button type="button" class="add-to-source-add-btn" title="Add entry"><img src="/assets/icons/add.png" alt="Add"></button>
                </div>`
             : `<div class="add-to-source-empty">This source has no columns yet — open it to add one first.</div>`;
         popup.innerHTML = `

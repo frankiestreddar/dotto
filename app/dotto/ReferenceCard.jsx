@@ -24,14 +24,19 @@ export default function ReferenceCard({ it }) {
     let cancelled = false;
     window.__resolveReferenceFolderKey(it.refOwnerId, it.refFolderId).then((localKey) => {
       if (cancelled) return;
-      if (!localKey) { setStatus("unavailable"); return; }
+      if (!localKey) {
+        setStatus("unavailable");
+        return;
+      }
       if (previewWrapRef.current) {
         previewWrapRef.current.innerHTML = "";
         previewWrapRef.current.appendChild(window.__buildFolderInlineCanvas(localKey));
       }
       setStatus("loaded");
     });
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, [it.refOwnerId, it.refFolderId]);
 
   return (

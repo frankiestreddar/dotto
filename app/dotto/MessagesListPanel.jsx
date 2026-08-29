@@ -8,11 +8,23 @@ import usePortalNode from "./usePortalNode";
 
 // Module-level, not inline — see CanvasItemsLayer.jsx's identical EMPTY_ITEMS comment for why a
 // fresh object literal as the getServerSnapshot fallback trips React's "should be cached" warning.
-const EMPTY_STATE = { view: "main", requestsCount: 0, matchedFriends: [], searchResults: [], query: "" };
+const EMPTY_STATE = {
+  view: "main",
+  requestsCount: 0,
+  matchedFriends: [],
+  searchResults: [],
+  query: "",
+};
 
 function RequestsRow({ count }) {
   return (
-    <div className="outline-item requests-row" onClick={(e) => { e.stopPropagation(); window.__openMsgRequestsView(); }}>
+    <div
+      className="outline-item requests-row"
+      onClick={(e) => {
+        e.stopPropagation();
+        window.__openMsgRequestsView();
+      }}
+    >
       <span className="outline-label">Requests</span>
       <span className="requests-count">{count}</span>
     </div>
@@ -25,7 +37,11 @@ function RequestsRow({ count }) {
 function ChatRow({ f }) {
   return (
     <div className="msg-chat-row" onClick={() => window.__openConvo(f.id)}>
-      <Avatar className="msg-avatar" avatar={{ id: f.avatarId, url: f.avatarUrl }} name={f.displayName} />
+      <Avatar
+        className="msg-avatar"
+        avatar={{ id: f.avatarId, url: f.avatarUrl }}
+        name={f.displayName}
+      />
       <div className="msg-chat-meta">
         <div className="msg-chat-name">{f.displayName}</div>
         <div className="msg-chat-preview">{f.preview}</div>
@@ -43,7 +59,10 @@ function AddFriendRow({ u, query }) {
       <button
         className="msg-add-btn"
         disabled={u.pending}
-        onClick={(e) => { e.stopPropagation(); window.__handleAddFriendClick(u.id, query); }}
+        onClick={(e) => {
+          e.stopPropagation();
+          window.__handleAddFriendClick(u.id, query);
+        }}
       >
         {u.pending ? "Requested" : "Add"}
       </button>
@@ -53,7 +72,13 @@ function AddFriendRow({ u, query }) {
 
 function BackRow() {
   return (
-    <div className="requests-back-row" onClick={(e) => { e.stopPropagation(); window.__backToMsgMain(); }}>
+    <div
+      className="requests-back-row"
+      onClick={(e) => {
+        e.stopPropagation();
+        window.__backToMsgMain();
+      }}
+    >
       <span>&larr;</span>
       <span>Requests</span>
     </div>
@@ -67,10 +92,22 @@ function FriendRequestRow({ req }) {
         <div className="msg-chat-name">@{req.username}</div>
       </div>
       <div style={{ display: "flex", gap: "6px" }}>
-        <button className="msg-add-btn msg-req-accept" onClick={(e) => { e.stopPropagation(); window.__respondToMsgRequest(req.id, true); }}>
+        <button
+          className="msg-add-btn msg-req-accept"
+          onClick={(e) => {
+            e.stopPropagation();
+            window.__respondToMsgRequest(req.id, true);
+          }}
+        >
           Accept
         </button>
-        <button className="msg-add-btn msg-req-decline" onClick={(e) => { e.stopPropagation(); window.__respondToMsgRequest(req.id, false); }}>
+        <button
+          className="msg-add-btn msg-req-decline"
+          onClick={(e) => {
+            e.stopPropagation();
+            window.__respondToMsgRequest(req.id, false);
+          }}
+        >
           Decline
         </button>
       </div>
@@ -81,7 +118,11 @@ function FriendRequestRow({ req }) {
 // Portals into #msg-list (content/fragments/messages-panel.html) — a plain flex-item container,
 // safe to portal into directly, same as #waypoints-list/#hub-collab-list.
 export default function MessagesListPanel() {
-  const state = useSyncExternalStore(msgListStore.subscribe, msgListStore.getSnapshot, () => EMPTY_STATE);
+  const state = useSyncExternalStore(
+    msgListStore.subscribe,
+    msgListStore.getSnapshot,
+    () => EMPTY_STATE,
+  );
   const portalNode = usePortalNode("msg-list");
 
   if (!portalNode) return null;
@@ -107,16 +148,24 @@ export default function MessagesListPanel() {
       {state.requestsCount > 0 && <RequestsRow count={state.requestsCount} />}
       {state.matchedFriends.length > 0 && (
         <>
-          {state.matchedFriends.map((f) => <ChatRow key={f.id} f={f} />)}
+          {state.matchedFriends.map((f) => (
+            <ChatRow key={f.id} f={f} />
+          ))}
         </>
       )}
       {state.searchResults.length > 0 && (
         <>
           <div className="msg-section-label">Add a friend</div>
-          {state.searchResults.map((u) => <AddFriendRow key={u.id} u={u} query={state.query} />)}
+          {state.searchResults.map((u) => (
+            <AddFriendRow key={u.id} u={u} query={state.query} />
+          ))}
         </>
       )}
-      {!hasContent && <div className="msg-empty">{state.query ? "No chats or usernames found." : "No conversations yet."}</div>}
+      {!hasContent && (
+        <div className="msg-empty">
+          {state.query ? "No chats or usernames found." : "No conversations yet."}
+        </div>
+      )}
     </>,
     portalNode,
   );

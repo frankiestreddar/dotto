@@ -9,7 +9,7 @@ import { useLayoutEffect, useRef } from "react";
 //
 // fontSize lives on the WRAPPER <div>, not this component's own top-level element (there isn't a
 // single one — format-bar and body are siblings, same as the original markup) — set directly via
-// document.getElementById('item-'+it.id) each render, same technique swTick/fcFlip use to reach a
+// window.__findItemEl(it.id, paneId) each render, same technique swTick/fcFlip use to reach a
 // card from outside React. setTitleLevel (live-presence.js) already patches this itself for the
 // one interaction that changes it directly; this covers every other reason it.level might change
 // (initial mount, a remote sync) — redundant with setTitleLevel's own patch but harmless, since
@@ -23,18 +23,22 @@ import { useLayoutEffect, useRef } from "react";
 // this problem — the wrapper <div> itself already exists in the DOM by the time ANY layout effect
 // runs (React commits DOM mutations before firing effects), only its className is what's not set
 // yet.
-export default function TitleCard({ it }) {
+export default function TitleCard({ it, paneId }) {
   const bodyRef = useRef(null);
 
   useLayoutEffect(() => {
-    const el = document.getElementById("item-" + it.id);
+    const el = window.__findItemEl(it.id, paneId);
     if (el) el.style.fontSize = window.__titleFontSize(it.level || 1) + "px";
-    if (el && bodyRef.current) window.__attachTitleBody(el, bodyRef.current, it);
+    if (el && bodyRef.current) window.__attachTitleBody(el, bodyRef.current, it, paneId);
   });
 
   return (
     <>
-      <div className="format-bar" onMouseDown={(e) => e.stopPropagation()} onClick={(e) => e.stopPropagation()}>
+      <div
+        className="format-bar"
+        onMouseDown={(e) => e.stopPropagation()}
+        onClick={(e) => e.stopPropagation()}
+      >
         <select
           className="format-select"
           onMouseDown={(e) => e.stopPropagation()}
@@ -46,9 +50,18 @@ export default function TitleCard({ it }) {
           <option value="2">H2</option>
           <option value="3">H3</option>
         </select>
-        <input type="color" className="text-color-swatch" onInput={(e) => document.execCommand("foreColor", false, e.target.value)} />
+        <input
+          type="color"
+          className="text-color-swatch"
+          onInput={(e) => document.execCommand("foreColor", false, e.target.value)}
+        />
       </div>
-      <div className="body" ref={bodyRef} data-placeholder="Title..." dangerouslySetInnerHTML={{ __html: it.html || "" }} />
+      <div
+        className="body"
+        ref={bodyRef}
+        data-placeholder="Title..."
+        dangerouslySetInnerHTML={{ __html: it.html || "" }}
+      />
     </>
   );
 }

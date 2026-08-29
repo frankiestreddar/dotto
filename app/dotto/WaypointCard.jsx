@@ -12,11 +12,11 @@ import { useLayoutEffect } from "react";
 // same reasoning as WatermarkCard's dangerouslySetInnerHTML: it's mutated in place by
 // attachWaypointCardBody's handlers, and since its JSX-declared children never change render to
 // render, React never has anything to diff/fight it with.
-export default function WaypointCard({ it }) {
+export default function WaypointCard({ it, paneId }) {
   // `el` is WaypointCard's own wrapper, passed in explicitly — see attachFolderCardClick's comment
   // in waypoints-render-loop.js for why (closest('.item') breaks on first mount).
   useLayoutEffect(() => {
-    const el = document.getElementById("item-" + it.id);
+    const el = window.__findItemEl(it.id, paneId);
     if (el) window.__attachWaypointCardBody(el, it);
   });
 

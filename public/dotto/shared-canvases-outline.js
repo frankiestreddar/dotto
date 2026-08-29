@@ -1,6 +1,6 @@
 import { clearSearch, findParentFolderId, stripHtml } from './ai-assistant-suggestions.js';
 import { shortUrl } from './cards-misc.js';
-import { appState, canvasViewportCenterX, supabase } from './core-state.js';
+import { appState, canvasViewportCenterX, findItemEl, initializeNewPane, supabase, switchActivePane } from './core-state.js';
 import { applyTransform, smoothPanTo } from './history-autosave.js';
 import { flashCanvasElement } from './mnemonic-search-matching.js';
 import { closeRailView, openRailView } from './panels-hamburger.js';
@@ -283,9 +283,16 @@ import { applyFolderView, centerOnContent, expandWaypointCard, openFolder, rende
     // carry `isSyntheticRoot` through untouched, since whichever one ends up being the synthetic
     // Root row still needs breadcrumbMapRowClick to route it to exitSharedCanvasToRoot() rather
     // than a plain openFolder('root').
-    function renderBreadcrumbMapPanel() {
+    // paneId defaults to the live active pane, matching every existing call site (render()) — this
+    // always computes off the LIVE appState.currentFolderId/folders regardless of which paneId the
+    // result gets pushed to, since render() only ever runs for whichever pane is currently active
+    // anyway. Pane-keyed since split-screen Stage 7 (each pane gets its own breadcrumb pill now,
+    // explicit request) — writes into that pane's own store slot instead of one shared store, so an
+    // inactive pane's last-known trail just sits there correctly until it becomes active again and
+    // something navigates within it (no need to recompute it on every OTHER pane's own navigation).
+    function renderBreadcrumbMapPanel(paneId = appState.activePaneId) {
         const folderObj = appState.folders[appState.currentFolderId];
-        if (!folderObj) { window.__setBreadcrumbMap({ hasMore: false, root: null, parent: null, current: null }); return; }
+        if (!folderObj) { window.__setBreadcrumbMap(paneId, { hasMore: false, root: null, parent: null, current: null }); return; }
         const showSyntheticRoot = folderObj.isSharedView;
         const chain = [];
         if (showSyntheticRoot) {
@@ -299,12 +306,17 @@ import { applyFolderView, centerOnContent, expandWaypointCard, openFolder, rende
         const current = chain[chain.length - 1] || null;
         const parent = chain.length >= 2 ? chain[chain.length - 2] : null;
         const root = chain.length > 2 ? chain[0] : null;
-        window.__setBreadcrumbMap({ hasMore: chain.length > 2, root, parent, current });
+        window.__setBreadcrumbMap(paneId, { hasMore: chain.length > 2, root, parent, current });
     }
 
     // Wired up from TabsBar.jsx's ActiveTabTrail ellipsis/parent onClick — a non-current segment's
-    // click either exits to root (the synthetic row) or navigates there directly.
-    function breadcrumbMapRowClick(folderId, isSyntheticRoot) {
+    // click either exits to root (the synthetic row) or navigates there directly. paneId (split-
+    // screen Stage 7 — each pane has its own breadcrumb pill now) activates that pane FIRST if it
+    // wasn't already, same "clicking a pane's own UI focuses that pane" convention every other
+    // per-pane tab operation below now follows — exitSharedCanvasToRoot/openFolder both navigate
+    // via the LIVE appState.currentFolderId, so the target pane needs to actually be live first.
+    function breadcrumbMapRowClick(folderId, isSyntheticRoot, paneId = appState.activePaneId) {
+        if (paneId !== appState.activePaneId) switchActivePane(paneId);
         if (isSyntheticRoot) exitSharedCanvasToRoot();
         else openFolder(folderId);
     }
@@ -321,8 +333,13 @@ import { applyFolderView, centerOnContent, expandWaypointCard, openFolder, rende
     // below, and also from render() on every navigation (same call site as
     // renderBreadcrumbMapPanel, waypoints-render-loop.js), so the active tab's own folderId/label
     // stay in sync no matter how the current folder changed (a folder card click, back/forward,
-    // breadcrumb, outline row — render() runs after literally all of them).
-    function renderTabsPanel() {
+    // breadcrumb, outline row — render() runs after literally all of them). paneId (split-screen
+    // Stage 7) defaults to the live active pane, same reasoning as renderBreadcrumbMapPanel's own
+    // default just above — this always reads the LIVE appState.tabs/activeTabId, so it's only ever
+    // meaningful for whichever pane is currently active; every mutator below that touches an
+    // INACTIVE pane's own tabs activates that pane first (switchActivePane), so by the time this
+    // runs appState.tabs/activeTabId already correctly describe the pane paneId names.
+    function renderTabsPanel(paneId = appState.activePaneId) {
         const activeTab = appState.tabs.find(t => t.id === appState.activeTabId);
         if (activeTab) activeTab.folderId = appState.currentFolderId;
         const snapshot = appState.tabs.map(t => ({
@@ -330,28 +347,37 @@ import { applyFolderView, centerOnContent, expandWaypointCard, openFolder, rende
             folderId: t.folderId,
             label: (appState.folders[t.folderId] && appState.folders[t.folderId].title) || 'Untitled',
         }));
-        window.__setTabs({ tabs: snapshot, activeTabId: appState.activeTabId });
+        window.__setTabs(paneId, { tabs: snapshot, activeTabId: appState.activeTabId });
     }
 
+    // paneId (split-screen Stage 7 — each pane has its own breadcrumb pill/tab row now, explicit
+    // request) activates that pane FIRST if it wasn't already active — same "clicking a pane's own
+    // UI focuses that pane" convention PaneGrid.jsx's own capture-phase pointerdown router already
+    // uses for clicks on a pane's canvas, extended here to its breadcrumb pill too, since every one
+    // of these functions below reads/writes the LIVE appState.tabs/activeTabId/currentFolderId,
+    // which only ever describe whichever pane is currently active.
+    //
     // New tab starts at the SAME location as whichever tab is currently active — per explicit
     // request — so this is a bookmark copy, not a fresh "go to root" tab the way a real browser's
     // new-tab button would be; there's no location picker/history for it to start from anything
     // else. Already showing the right folder (nothing navigated), so no applyFolderView/render()
     // call needed — just refresh the tab bar's own display.
-    function addTab() {
+    function addTab(paneId = appState.activePaneId) {
+        if (paneId !== appState.activePaneId) switchActivePane(paneId);
         const activeTab = appState.tabs.find(t => t.id === appState.activeTabId);
         const folderId = activeTab ? activeTab.folderId : appState.currentFolderId;
         const id = 'tab-' + appState.nextTabId++;
         appState.tabs.push({ id, folderId });
         appState.activeTabId = id;
-        renderTabsPanel();
+        renderTabsPanel(paneId);
     }
 
     // Switching TO the already-active tab is a no-op (matches clicking the tab you're already on
     // in a real browser). Otherwise re-navigates the canvas to that tab's own bookmarked folder via
     // applyFolderView — which itself calls render(), which calls renderTabsPanel() again, keeping
     // this store in sync without a second explicit call here.
-    function switchTab(tabId) {
+    function switchTab(tabId, paneId = appState.activePaneId) {
+        if (paneId !== appState.activePaneId) switchActivePane(paneId);
         if (tabId === appState.activeTabId) return;
         const tab = appState.tabs.find(t => t.id === tabId);
         if (!tab) return;
@@ -364,7 +390,8 @@ import { applyFolderView, centerOnContent, expandWaypointCard, openFolder, rende
     // can't be closed). Closing the ACTIVE tab activates its nearest left neighbor (or the new
     // first tab, if it was leftmost) and navigates there, same "which tab becomes active next"
     // convention most browsers use; closing an inactive tab just removes it, no navigation needed.
-    function closeTab(tabId) {
+    function closeTab(tabId, paneId = appState.activePaneId) {
+        if (paneId !== appState.activePaneId) switchActivePane(paneId);
         const idx = appState.tabs.findIndex(t => t.id === tabId);
         if (idx === -1 || appState.tabs.length <= 1) return;
         const wasActive = tabId === appState.activeTabId;
@@ -374,28 +401,149 @@ import { applyFolderView, centerOnContent, expandWaypointCard, openFolder, rende
             appState.activeTabId = next.id;
             applyFolderView(next.folderId);
         } else {
-            renderTabsPanel();
+            renderTabsPanel(paneId);
         }
+    }
+
+    // Opens a NEW tab showing one file full-screen and scrollable — explicit request/correction:
+    // "a new tab in the app" (not a raw browser tab via window.open), "with the file full screen
+    // and scrollable." Rides the EXISTING tab/folderId machinery completely unmodified (a tab is
+    // just `{id, folderId}` — see addTab's own comment) by wrapping the file in a synthetic folder
+    // (isMediaViewer:true), the same "a folder that renders something totally different from the
+    // normal item canvas" precedent folderObj.isSource already established — see render()'s own
+    // isMediaViewer branch, waypoints-render-loop.js. Reuses the same synthetic folder (rather than
+    // creating a duplicate) if this exact item was already opened this session — repeat clicks just
+    // open a fresh tab bookmarked to the same existing location, same as any other tab.
+    function openMediaViewerTab(item, paneId = appState.activePaneId) {
+        if (paneId !== appState.activePaneId) switchActivePane(paneId);
+        const folderId = 'media-view-' + item.id;
+        if (!appState.folders[folderId]) {
+            appState.folders[folderId] = { id: folderId, title: item.mediaName || 'File', isMediaViewer: true, mediaItem: item, items: [], collaborators: [] };
+        }
+        const id = 'tab-' + appState.nextTabId++;
+        appState.tabs.push({ id, folderId });
+        appState.activeTabId = id;
+        applyFolderView(folderId);
     }
 
     // Drag-to-reorder (TabsBar.jsx's own pointer-drag handling — this is just the array mutation
     // it calls once it's computed where the dragged tab should land, per explicit request). Pure
     // reorder, no navigation/active-tab change of any kind — dragging a tab around never switches
     // which one is active or touches appState.currentFolderId.
-    function reorderTab(tabId, toIndex) {
+    function reorderTab(tabId, toIndex, paneId = appState.activePaneId) {
+        if (paneId !== appState.activePaneId) switchActivePane(paneId);
         const fromIndex = appState.tabs.findIndex(t => t.id === tabId);
         if (fromIndex === -1 || toIndex === fromIndex) return;
         const clampedIndex = Math.max(0, Math.min(toIndex, appState.tabs.length - 1));
         const [tab] = appState.tabs.splice(fromIndex, 1);
         appState.tabs.splice(clampedIndex, 0, tab);
-        renderTabsPanel();
+        renderTabsPanel(paneId);
+    }
+
+    // Split-screen Stage 5 — TabsBar.jsx's own drag-tab-to-edge-to-split gesture (2D pointer drag,
+    // escapes the breadcrumb pill once far enough, reveals a drop-zone for whichever pane's edge
+    // the cursor is near) calls this once a tab is dropped inside an active zone. targetPaneId is
+    // whichever EXISTING pane's box the cursor was over (Stage 6 — TabsBar.jsx hit-tests every
+    // current pane's own screen rect, not just the two viewport halves Stage 5 shipped with), so
+    // this can either bisect the tab's own pane (the common case) or quarter a DIFFERENT
+    // already-open pane while dragging a tab out of the active one's bar. edge is one of
+    // 'left'|'right'|'top'|'bottom' against THAT pane's own box, not the viewport's.
+    // splitLeafInTree/window.__splitPaneInLayout (bridges.js) do the actual tree surgery — this
+    // function's own job is just the tab-bookkeeping side, same shape as closeTab's own "always
+    // keep at least one tab" guard/next-active-tab logic (a pane can't be left with zero tabs).
+    // The new pane deliberately does NOT inherit its target's camera/selection/history —
+    // initializeNewPane resets those to fresh defaults, matching the plan's own "puts that tab in
+    // that section" framing (not "clones the source view"). The 4-pane cap (window.__countPanes)
+    // is enforced here rather than in TabsBar.jsx alone — TabsBar.jsx also skips edge-detection
+    // once the cap is hit (so the drop-zone never even shows), but this is the actual authority,
+    // in case anything else ever calls this bridge directly. sourcePaneId (split-screen Stage 7 —
+    // each pane has its own tab row now, so a drag can start from ANY pane's own bar, not just
+    // whichever happened to be active) activates that pane first, same convention as
+    // addTab/switchTab/closeTab/reorderTab just above.
+    function splitPaneWithTab(tabId, targetPaneId, edge, sourcePaneId = appState.activePaneId) {
+        if (sourcePaneId !== appState.activePaneId) switchActivePane(sourcePaneId);
+        if (appState.tabs.length < 2) return;
+        if (window.__countPanes() >= 4) return;
+        const fromIndex = appState.tabs.findIndex(t => t.id === tabId);
+        if (fromIndex === -1) return;
+        const [tab] = appState.tabs.splice(fromIndex, 1);
+        if (appState.activeTabId === tabId) {
+            const next = appState.tabs[Math.max(0, fromIndex - 1)];
+            appState.activeTabId = next.id;
+            applyFolderView(next.folderId);
+        } else {
+            renderTabsPanel();
+        }
+
+        const newPaneId = appState.nextPaneId++;
+        window.__splitPaneInLayout(targetPaneId, newPaneId, edge);
+        switchActivePane(newPaneId);
+        initializeNewPane(newPaneId, tab.folderId);
+        render();
+    }
+
+    // Closes a pane and re-merges its space into whichever OTHER pane/pair it was split from — the
+    // user's own explicit choice for Stage 6's "what happens when a quartered pane closes" product
+    // question ("re-merge into its sibling", not "leave a gap"). closeLeafInTree/
+    // window.__closePaneInLayout (bridges.js) computes the resulting tree; this function's own job
+    // is the appState side: reassigning activePaneId first if the closed pane WAS active (so
+    // switchActivePane still has a live pane to swap OUT of before that pane's own saved slot gets
+    // dropped), then dropping its now-orphaned appState.panes slot and its items/tabs/breadcrumb
+    // stores. Mirrors closeTab's own "always keep at least one" guard — a pane can't close itself
+    // into oblivion.
+    function closePane(paneId) {
+        if (window.__countPanes() <= 1) return;
+        if (appState.activePaneId === paneId) {
+            const survivor = window.__listPaneIds().find(id => id !== paneId);
+            switchActivePane(survivor);
+        }
+        window.__closePaneInLayout(paneId);
+        delete appState.panes[paneId];
+        window.__removePaneItemsStore(paneId);
+        window.__removePaneTabsStore(paneId);
+    }
+
+    // Back/forward enabled-state, one per pane (split-screen Stage 8 — was a pair of
+    // btnBack.disabled/btnForward.disabled assignments in waypoints-render-loop.js's render(),
+    // acting on the single shared #btn-back/#btn-forward; PaneTopBar.jsx renders its own back/
+    // forward buttons per pane now instead). paneId defaults to the live active pane, same
+    // reasoning as renderTabsPanel/renderCollabPill's own default — historyIndex/historyStack only
+    // ever describe whichever pane is currently active; called every render() frame for that pane,
+    // and once more immediately after switchActivePane's own swap so the newly active pane's arrows
+    // don't wait a frame to refresh.
+    function renderNavArrows(paneId = appState.activePaneId) {
+        window.__setNavHistory(paneId, {
+            canGoBack: appState.historyIndex > 0,
+            canGoForward: appState.historyIndex < appState.historyStack.length - 1,
+        });
     }
 
     // Steps to an EXISTING position in historyStack (back/forward, breadcrumb "..") — no
-    // truncation, no push, just moves the pointer.
-    function jumpToHistoryIndex(newIndex) {
+    // truncation, no push, just moves the pointer. paneId (split-screen Stage 8 — each pane has its
+    // own back/forward buttons now) activates that pane FIRST if it wasn't already, same
+    // "clicking a pane's own UI focuses that pane" convention every other per-pane navigation entry
+    // point in this file already follows.
+    function jumpToHistoryIndex(newIndex, paneId = appState.activePaneId) {
+        if (paneId !== appState.activePaneId) switchActivePane(paneId);
         appState.historyIndex = newIndex;
         applyFolderView(appState.historyStack[newIndex]);
+        renderNavArrows(paneId);
+    }
+
+    // PaneTopBar.jsx's own back/forward buttons (split-screen Stage 8) — were plain
+    // btnBack.onclick/btnForward.onclick bodies in resize-shortcuts-init.js, reading/bounds-checking
+    // the single shared appState.historyIndex/historyStack directly since there was only ever one
+    // pane's worth of nav state visible at a time. Activating the target pane FIRST (same "clicking
+    // a pane's own UI focuses that pane" convention as jumpToHistoryIndex itself) is what lets these
+    // reuse that exact same bounds-check against the now-live appState.historyIndex/historyStack,
+    // rather than needing a paneId-aware version of the bounds check itself.
+    function navBack(paneId = appState.activePaneId) {
+        if (paneId !== appState.activePaneId) switchActivePane(paneId);
+        if (appState.historyIndex > 0) jumpToHistoryIndex(appState.historyIndex - 1, paneId);
+    }
+    function navForward(paneId = appState.activePaneId) {
+        if (paneId !== appState.activePaneId) switchActivePane(paneId);
+        if (appState.historyIndex < appState.historyStack.length - 1) jumpToHistoryIndex(appState.historyIndex + 1, paneId);
     }
 
     // ---------- Canvas Outline Hierarchical Builder inside Hamburger Menu ----------
@@ -490,7 +638,18 @@ import { applyFolderView, centerOnContent, expandWaypointCard, openFolder, rende
     // rows.length for the "nothing here yet" empty state, exactly equivalent to the old boolean
     // return value since every one of titles/others/childFolders/childSources becomes exactly one
     // pushed row.
-    function computeOutlineRows(folder, depth, visited, rows) {
+    //
+    // Which headings are currently collapsed (explicit request) — a plain module-level Set, same
+    // "purely ephemeral, nothing else needs to read/write it" reasoning as add-block chord state
+    // (srs-connections-core.js): not persisted, not appState, resets on reload. Keyed by heading
+    // item id.
+    const collapsedOutlineHeadingIds = new Set();
+    function toggleOutlineCollapse(id) {
+        if (collapsedOutlineHeadingIds.has(id)) collapsedOutlineHeadingIds.delete(id);
+        else collapsedOutlineHeadingIds.add(id);
+        buildOutline(true);
+    }
+    function computeOutlineRows(folder, depth, visited, rows, ignoreCollapse) {
         const items = folder.items || [];
         const titles = items.filter(i => i.kind === 'title');
         const childFolders = items.filter(i => i.kind === 'folder');
@@ -565,7 +724,7 @@ import { applyFolderView, centerOnContent, expandWaypointCard, openFolder, rende
         // rowKind:'source' row (the source's own folder id, to open); parentFolderId (`folder.id`,
         // the containing folder this row belongs to) is what goToOutlineItem needs for every other
         // kind.
-        function makeRow(item, subIndent) {
+        function makeRow(item, subIndent, extra) {
             rows.push({
                 id: item.id,
                 rowKind: item.kind === 'source' ? 'source' : 'item',
@@ -575,6 +734,7 @@ import { applyFolderView, centerOnContent, expandWaypointCard, openFolder, rende
                 label: outlineLabel(item),
                 parentFolderId: folder.id,
                 targetFolderId: item.folderId,
+                ...extra,
             });
         }
 
@@ -584,7 +744,7 @@ import { applyFolderView, centerOnContent, expandWaypointCard, openFolder, rende
             makeRow(item, subIndent);
             if (item.kind === 'folder' && depth < appState.OUTLINE_MAX_DEPTH && item.folderId && appState.folders[item.folderId] && !visited.has(item.folderId)) {
                 visited.add(item.folderId);
-                computeOutlineRows(appState.folders[item.folderId], depth + 1, visited, rows);
+                computeOutlineRows(appState.folders[item.folderId], depth + 1, visited, rows, ignoreCollapse);
             }
         }
 
@@ -592,20 +752,32 @@ import { applyFolderView, centerOnContent, expandWaypointCard, openFolder, rende
         // this h1 itself, when it has no h2 children at all — see h3Parent above) are two
         // separate sources, merged and re-sorted together here so they interleave by proximity
         // rather than always listing every h2 subtree before any direct h3.
+        //
+        // Collapse (explicit request) — only offered when the heading actually has something
+        // nested under it (a group item OR a child heading); collapsing hides both. ignoreCollapse
+        // (set by handleOutlineSearch while a query is active) makes every heading render fully
+        // expanded regardless of its own collapsed state, same "search overrides collapse"
+        // behavior the Blocks panel's own folders get (toggleBlocksFolderCollapse's own comment,
+        // blocks-panel.js) — otherwise a real match hidden under a collapsed heading could never
+        // surface while searching.
         function renderHeadingSubtree(heading, subIndent) {
-            makeRow(heading, subIndent);
-            (headingGroups.get(heading.id) || []).forEach(item => makeCardRow(item, subIndent + 1));
+            const groupItems = headingGroups.get(heading.id) || [];
             const level = heading.level || 1;
-            let children = [];
+            let childHeadings = [];
             if (level === 1) {
-                children = [
+                childHeadings = [
                     ...h2s.filter(h2 => h2Parent.get(h2.id) === heading.id),
                     ...h3s.filter(h3 => { const p = h3Parent.get(h3.id); return p && p.level === 1 && p.id === heading.id; }),
                 ];
             } else if (level === 2) {
-                children = h3s.filter(h3 => { const p = h3Parent.get(h3.id); return p && p.level === 2 && p.id === heading.id; });
+                childHeadings = h3s.filter(h3 => { const p = h3Parent.get(h3.id); return p && p.level === 2 && p.id === heading.id; });
             }
-            sortByProximity(children).forEach(child => renderHeadingSubtree(child, subIndent + 1));
+            const hasChildren = groupItems.length > 0 || childHeadings.length > 0;
+            const collapsed = hasChildren && !ignoreCollapse && collapsedOutlineHeadingIds.has(heading.id);
+            makeRow(heading, subIndent, { hasChildren, collapsed });
+            if (collapsed) return;
+            groupItems.forEach(item => makeCardRow(item, subIndent + 1));
+            sortByProximity(childHeadings).forEach(child => renderHeadingSubtree(child, subIndent + 1));
         }
 
         // Top-level entries — every orphan heading (no parent to nest under) plus every fully
@@ -662,12 +834,12 @@ import { applyFolderView, centerOnContent, expandWaypointCard, openFolder, rende
     // Computes the full, unfiltered row set for whichever folder is current — shared by
     // buildOutline and handleOutlineSearch (both need "everything buildOutline itself would show,
     // fresh" as their starting point) rather than duplicating the isSource branch in both places.
-    function computeCurrentOutlineRows() {
+    function computeCurrentOutlineRows(ignoreCollapse) {
         const rootFolder = appState.folders[appState.currentFolderId];
         if (!rootFolder) return [];
         if (rootFolder.isSource) return computeSourceOutlineRows(rootFolder);
         const rows = [];
-        computeOutlineRows(rootFolder, 0, new Set([rootFolder.id]), rows);
+        computeOutlineRows(rootFolder, 0, new Set([rootFolder.id]), rows, ignoreCollapse);
         return rows;
     }
     // preserveState (per explicit request) is what lets render() call this unconditionally on
@@ -715,7 +887,10 @@ import { applyFolderView, centerOnContent, expandWaypointCard, openFolder, rende
     // change (see the migration plan's own "decide + confirm" note).
     function handleOutlineSearch(query) {
         const q = (query || '').trim().toLowerCase();
-        const rows = computeCurrentOutlineRows();
+        // ignoreCollapse while actively searching (q truthy) — otherwise a real match nested under
+        // a collapsed heading could never surface, since computeOutlineRows would never even
+        // generate its row to filter against. See renderHeadingSubtree's own comment.
+        const rows = computeCurrentOutlineRows(!!q);
         const filtered = q ? rows.filter(r => r.label.toLowerCase().includes(q)) : rows;
         window.__setOutlineState({ rows: filtered, query: q });
     }
@@ -728,7 +903,7 @@ import { applyFolderView, centerOnContent, expandWaypointCard, openFolder, rende
         if (appState.currentFolderId !== folderId) openFolder(folderId);
         const it = appState.folders[folderId].items.find(i => i.id === itemId);
         if (it) {
-            const el = document.getElementById('item-' + it.id);
+            const el = findItemEl(it.id);
             const w = el ? el.offsetWidth : (it.w || 100);
             const h = el ? el.offsetHeight : (it.h || 50);
             smoothPanTo(canvasViewportCenterX() - (it.x + w / 2), window.innerHeight / 2 - (it.y + h / 2), 1);
@@ -765,7 +940,7 @@ import { applyFolderView, centerOnContent, expandWaypointCard, openFolder, rende
         else { openRailView('outline', appState.outlineMenu, appState.hamburgerBtn, () => { buildOutline(); setOutlineActive(0); }, true); }
     }
 
-export { addTab, announceEnteredCollaboration, breadcrumbMapRowClick, buildOutline, closeTab, ensurePublicFolderLoaded, ensureSharedFolderLoaded, goToOutlineItem, goToOutlineSource, goToOutlineSourceRow, handleOutlineSearch, jumpToHistoryIndex, kindIconFile, kindIconHTML, namespacePublicFolderIds, namespaceSharedFolderIds, openPublicCanvas, openSharedCanvas, parsePublicFolderKey, parseSharedFolderKey, publicFolderKey, renderBreadcrumbMapPanel, renderTabsPanel, reorderTab, resolveReferenceFolderKey, rowActionsHTML, setOutlineActive, sharedFolderKey, stripSharedFolderIds, switchTab, syncOutlineRows, toggleHamburgerMenu };
+export { addTab, announceEnteredCollaboration, breadcrumbMapRowClick, buildOutline, closePane, closeTab, ensurePublicFolderLoaded, ensureSharedFolderLoaded, goToOutlineItem, goToOutlineSource, goToOutlineSourceRow, handleOutlineSearch, jumpToHistoryIndex, kindIconFile, kindIconHTML, namespacePublicFolderIds, namespaceSharedFolderIds, navBack, navForward, openMediaViewerTab, openPublicCanvas, openSharedCanvas, parsePublicFolderKey, parseSharedFolderKey, publicFolderKey, renderBreadcrumbMapPanel, renderNavArrows, renderTabsPanel, reorderTab, resolveReferenceFolderKey, rowActionsHTML, setOutlineActive, sharedFolderKey, splitPaneWithTab, stripSharedFolderIds, switchTab, syncOutlineRows, toggleHamburgerMenu, toggleOutlineCollapse };
 
 window.__kindIconFile = kindIconFile;
 window.__openSharedCanvas = openSharedCanvas;
@@ -786,7 +961,23 @@ window.__addTab = addTab;
 window.__switchTab = switchTab;
 window.__closeTab = closeTab;
 window.__reorderTab = reorderTab;
+window.__splitPaneWithTab = splitPaneWithTab;
+window.__closePane = closePane;
+// Called from switchActivePane (core-state.js) via this bridge, not a direct import — see that
+// function's own comment for why (core-state.js is imported BY this file, so the reverse would be
+// circular).
+window.__renderTabsPanel = renderTabsPanel;
+// PaneTopBar.jsx's own back/forward buttons (split-screen Stage 8) — same reasoning as
+// window.__addTab etc above.
+window.__jumpToHistoryIndex = jumpToHistoryIndex;
+window.__navBack = navBack;
+window.__navForward = navForward;
+// React → vanilla bridge — used by FilesListPanel.jsx's onOpen action.
+window.__openMediaViewerTab = openMediaViewerTab;
+// Called from switchActivePane (core-state.js), same reasoning as window.__renderTabsPanel above.
+window.__renderNavArrows = renderNavArrows;
 // React → vanilla bridge — used by FilesListPanel.jsx (app/dotto/) to navigate to (and flash) a
 // file's own canvas card on click, same primitive the Outline tree's own non-source rows already
 // use for every other card kind.
 window.__goToOutlineItem = goToOutlineItem;
+window.__toggleOutlineCollapse = toggleOutlineCollapse;

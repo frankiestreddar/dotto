@@ -59,8 +59,16 @@ function WaypointRow({ r, selected, index }) {
 // the outline/hub-collab panels) stays a vanilla classList toggle, unrelated to this — this
 // component only owns the row list.
 export default function WaypointsListPanel() {
-  const state = useSyncExternalStore(waypointsListStore.subscribe, waypointsListStore.getSnapshot, () => EMPTY_STATE);
-  const selection = useSyncExternalStore(listPanelSelectionStore.subscribe, listPanelSelectionStore.getSnapshot, () => EMPTY_SELECTION);
+  const state = useSyncExternalStore(
+    waypointsListStore.subscribe,
+    waypointsListStore.getSnapshot,
+    () => EMPTY_STATE,
+  );
+  const selection = useSyncExternalStore(
+    listPanelSelectionStore.subscribe,
+    listPanelSelectionStore.getSnapshot,
+    () => EMPTY_SELECTION,
+  );
   const selectedIds = selection.panel === "waypoints" ? selection.ids : EMPTY_IDS;
   const portalNode = usePortalNode("waypoints-list");
 
@@ -68,9 +76,18 @@ export default function WaypointsListPanel() {
 
   return createPortal(
     state.rows.length ? (
-      state.rows.map((r, index) => <WaypointRow key={waypointRowKey(r)} r={r} selected={selectedIds.has(waypointRowKey(r))} index={index} />)
+      state.rows.map((r, index) => (
+        <WaypointRow
+          key={waypointRowKey(r)}
+          r={r}
+          selected={selectedIds.has(waypointRowKey(r))}
+          index={index}
+        />
+      ))
     ) : (
-      <div className="outline-empty">{state.query ? "No matching waypoints." : "No waypoints yet."}</div>
+      <div className="outline-empty">
+        {state.query ? "No matching waypoints." : "No waypoints yet."}
+      </div>
     ),
     portalNode,
   );

@@ -2,7 +2,7 @@ import { searchKindLabel } from './add-menu.js';
 import { countSourceEntries, escapeHtml, stripHtml } from './ai-assistant-suggestions.js';
 import { CARD_KINDS, DEFAULT_CARD_ICON } from './card-kinds.js';
 import { renderChecklistHTML, renderStatcardHTML, shortUrl } from './cards-misc.js';
-import { appState, canvas, canvasViewportCenterX, cursorOverlay, supabase } from './core-state.js';
+import { appState, canvas, canvasViewportCenterX, cursorOverlay, findItemEl, registerPaneCanvasListenerSetup, supabase } from './core-state.js';
 import { ensureConnections } from './drawing-connections.js';
 import { closeCollabPanel, initials, renderMsgList } from './friends-presence.js';
 import { defaultFlashcardDeck, renderFlashcardHTML, renderTypeRightHTML } from './games-flashcard-typeright.js';
@@ -92,7 +92,15 @@ import { render } from './waypoints-render-loop.js';
     // app funnels through (every card kind, every field edit), so this never needs threading
     // through the ~100+ individual mutation call sites elsewhere. No-ops unless the resolved
     // (owner,folder) pair actually changed since the last call.
-    function ensureCanvasPresenceChannel() {
+    //
+    // paneId (split-screen Stage 3) — always called synchronously from whichever pane just
+    // mutated something, so appState.activePaneId is already correct at call time; the explicit
+    // parameter (rather than reading appState.activePaneId internally) exists purely so this
+    // function's own signature already matches queueSyncDiff/flushSyncDiff's below, which
+    // genuinely DO need it captured explicitly (see their own comments) — ahead of Stage 4+, when
+    // appState.canvasPresenceChannel and friends become real per-pane storage instead of a single
+    // shared slot, every caller here will already be passing the right paneId through.
+    function ensureCanvasPresenceChannel(paneId = appState.activePaneId) {
         const folderObj = appState.folders[appState.currentFolderId];
         if (!supabase || !appState.currentUser.id || !folderObj) { teardownCanvasPresenceChannel(); return; }
         // Only a shared: view (someone else's canvas) or an owned folder that currently has
@@ -412,7 +420,7 @@ import { render } from './waypoints-render-loop.js';
     function handleRemoteItemDrag(payload) {
         if (!payload || payload.userId === appState.currentUser.id || !Array.isArray(payload.items)) return;
         payload.items.forEach(({ id, x, y }) => {
-            const el = document.getElementById('item-' + id);
+            const el = findItemEl(id);
             if (!el) return;
             el.style.left = x + 'px';
             el.style.top = y + 'px';
@@ -425,7 +433,13 @@ import { render } from './waypoints-render-loop.js';
     // on-screen cursor. Re-broadcasting from applyTransform() (see below) using these, rather
     // than only on 'pointermove', is what keeps a collaborator's cursor tracking live WHILE
     // someone pans instead of appearing frozen until they next actually move the mouse.
-    function broadcastCursorPositionThrottled() {
+    // paneId (split-screen Stage 3) — accepted for signature consistency with
+    // queueSyncDiff/flushSyncDiff above, even though this send always happens synchronously within
+    // the same pointermove event that triggered it (so appState.activePaneId is already correct by
+    // the time this runs, unlike a genuinely deferred callback). The real per-pane fix here is
+    // cursorBroadcastThrottleId itself now being in PANE_SCOPED_FIELDS (core-state.js) — see that
+    // field's own comment — not this parameter.
+    function broadcastCursorPositionThrottled(paneId = appState.activePaneId) {
         if (!appState.canvasPresenceChannel || appState.lastPointerClientX == null || appState.cursorBroadcastThrottleId) return;
         appState.cursorBroadcastThrottleId = setTimeout(() => { appState.cursorBroadcastThrottleId = null; }, 50);
         const rect = canvas.getBoundingClientRect();
@@ -434,16 +448,28 @@ import { render } from './waypoints-render-loop.js';
             payload: { userId: appState.currentUser.id, x: (appState.lastPointerClientX - rect.left - appState.tx) / appState.scale, y: (appState.lastPointerClientY - rect.top - appState.ty) / appState.scale },
         });
     }
-    canvas.addEventListener('pointermove', (e) => {
-        appState.lastPointerClientX = e.clientX; appState.lastPointerClientY = e.clientY;
-        broadcastCursorPositionThrottled();
-    });
+    // Re-attached per pane (split-screen Stage 4: see registerPaneCanvasListenerSetup, core-
+    // state.js), same as the placement-ghost tracker (copy-paste.js), so cursor tracking doesn't
+    // just stop working when hovering a pane other than pane 0. Deliberately does NOT call
+    // switchActivePane here — canvasPresenceChannel/appState.tx/etc are still single global fields
+    // (Stage 3 explicitly deferred genuinely concurrent per-pane presence to real Stage 4+ feature
+    // work), and silently activating a pane on mere hover — no click — would be a real, separate UX
+    // decision, not something to make unilaterally inside a cursor-tracking listener.
+    function setupCursorTracking(canvasEl) {
+        canvasEl.addEventListener('pointermove', (e) => {
+            appState.lastPointerClientX = e.clientX; appState.lastPointerClientY = e.clientY;
+            broadcastCursorPositionThrottled();
+        });
+    }
+    setupCursorTracking(canvas);
+    registerPaneCanvasListenerSetup(setupCursorTracking);
     // Streams a dragged card's LIVE position to everyone else on this canvas (see the `move`
     // handler in setupDraggingAndClicking) — same throttle shape as the cursor broadcast above, so
     // a drag reads as smooth, continuous movement on other screens rather than a jump-to-final-
     // position once dropped. Purely visual on the receiving end (see handleRemoteItemDrag) — the
     // position only becomes durable once the drop itself triggers a normal render()/content-sync.
-    function broadcastItemDragPositions(startPositions) {
+    // paneId — same reasoning as broadcastCursorPositionThrottled's own comment just above.
+    function broadcastItemDragPositions(startPositions, paneId = appState.activePaneId) {
         if (!appState.canvasPresenceChannel || appState.itemDragBroadcastThrottleId) return;
         appState.itemDragBroadcastThrottleId = setTimeout(() => { appState.itemDragBroadcastThrottleId = null; }, 50);
         const items = startPositions.map(pos => {
@@ -459,7 +485,7 @@ import { render } from './waypoints-render-loop.js';
     // and scheduleWorkspaceSave's normal content-sync diff picks it up.
     function handleRemoteItemResize(payload) {
         if (!payload || payload.userId === appState.currentUser.id) return;
-        const el = document.getElementById('item-' + payload.id);
+        const el = findItemEl(payload.id);
         if (!el) return;
         el.style.width = payload.w + 'px';
         // Notes never get an explicit height, even here — it's always automatic (see
@@ -468,7 +494,8 @@ import { render } from './waypoints-render-loop.js';
         // leave a gap until something else happened to clear it.
         if (!el.classList.contains('note')) el.style.height = payload.h + 'px';
     }
-    function broadcastItemResize(id, w, h) {
+    // paneId — same reasoning as broadcastCursorPositionThrottled's own comment above.
+    function broadcastItemResize(id, w, h, paneId = appState.activePaneId) {
         if (!appState.canvasPresenceChannel || appState.itemResizeBroadcastThrottleId) return;
         appState.itemResizeBroadcastThrottleId = setTimeout(() => { appState.itemResizeBroadcastThrottleId = null; }, 50);
         appState.canvasPresenceChannel.send({ type: 'broadcast', event: 'item-resize', payload: { userId: appState.currentUser.id, id, w, h } });
@@ -674,7 +701,18 @@ import { render } from './waypoints-render-loop.js';
     // the existing debounced update_shared_folder save; real-time sync just makes concurrent edits
     // (and so this pre-existing edge case) more likely to actually happen. Worth a proper fix
     // (namespaced/UUID ids) if it turns out to matter in practice — out of scope here.
-    function queueSyncDiff(folderObj) {
+    // paneId (split-screen Stage 3) — captured here, at the top of the synchronous call chain
+    // (scheduleWorkspaceSave -> queueSyncDiff), and threaded through to the setTimeout callback
+    // below explicitly, rather than letting flushSyncDiff re-derive appState.activePaneId when it
+    // actually fires 120ms later. Without this, switching the active pane within that 120ms
+    // debounce window would flush THIS pane's diff against whatever pane happens to be active by
+    // the time the timeout runs — silently broadcasting the wrong folder's content change over the
+    // wrong (or a since-torn-down) presence channel. Still behaviorally inert with a single pane
+    // (paneId is always 0) — appState.canvasPresenceChannel/pendingSyncDeltas themselves stay
+    // single global fields for now, not yet pane-scoped storage; that's real Stage 4+ feature work
+    // (genuinely concurrent per-pane channels), this only fixes the closure's own correctness so
+    // that work doesn't inherit this bug too.
+    function queueSyncDiff(folderObj, paneId = appState.activePaneId) {
         if (!appState.canvasPresenceChannel || !appState.lastBroadcastSnapshot) return;
         if (!appState.pendingSyncDeltas) appState.pendingSyncDeltas = { upserts: new Map(), deletes: new Set() };
         const seenIds = new Set();
@@ -703,9 +741,9 @@ import { render } from './waypoints-render-loop.js';
         // re-renders per keystroke in some card kinds) coalesces into one broadcast instead of one
         // per keystroke.
         clearTimeout(appState.syncBroadcastTimer);
-        appState.syncBroadcastTimer = setTimeout(flushSyncDiff, 120);
+        appState.syncBroadcastTimer = setTimeout(() => flushSyncDiff(paneId), 120);
     }
-    function flushSyncDiff() {
+    function flushSyncDiff(paneId = appState.activePaneId) {
         if (!appState.canvasPresenceChannel || !appState.pendingSyncDeltas) return;
         const payload = { upserts: Array.from(appState.pendingSyncDeltas.upserts.values()), deletes: Array.from(appState.pendingSyncDeltas.deletes) };
         if (appState.pendingSyncDeltas.title !== undefined) payload.title = appState.pendingSyncDeltas.title;
@@ -1404,7 +1442,7 @@ import { render } from './waypoints-render-loop.js';
         if (!it) return;
         saveSnapshot();
         it.level = parseInt(level);
-        const el = document.getElementById('item-' + id);
+        const el = findItemEl(id);
         if (el) el.style.fontSize = titleFontSize(it.level) + 'px';
     }
 

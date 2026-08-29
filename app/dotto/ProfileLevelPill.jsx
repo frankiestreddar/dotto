@@ -14,7 +14,11 @@ const EMPTY_LEVEL = { displayName: "", tierColor: "" };
 // itself, not JSX props — createPortal only ever owns the target's CHILDREN, never its own
 // attributes, same as CommandPalette.jsx's #search-command-palette style.display handling.
 export default function ProfileLevelPill() {
-  const level = useSyncExternalStore(profileLevelStore.subscribe, profileLevelStore.getSnapshot, () => EMPTY_LEVEL);
+  const level = useSyncExternalStore(
+    profileLevelStore.subscribe,
+    profileLevelStore.getSnapshot,
+    () => EMPTY_LEVEL,
+  );
   const portalNode = usePortalNode("profile-level-pill");
 
   useLayoutEffect(() => {
@@ -27,5 +31,8 @@ export default function ProfileLevelPill() {
 
   if (!portalNode) return null;
 
-  return createPortal(<span className="profile-level-pill-text">{level.displayName}</span>, portalNode);
+  return createPortal(
+    <span className="profile-level-pill-text">{level.displayName}</span>,
+    portalNode,
+  );
 }

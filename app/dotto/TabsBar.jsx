@@ -2,7 +2,13 @@
 
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { createPortal } from "react-dom";
-import { breadcrumbMapStore, tabsStore } from "./bridges";
+import {
+  allowedEdgesForPane,
+  breadcrumbMapStore,
+  computePaneRects,
+  paneLayoutStore,
+  tabsStore,
+} from "./bridges";
 import usePortalNode from "./usePortalNode";
 
 // Module-level, not inline — see CanvasItemsLayer.jsx's identical EMPTY_ITEMS comment for why a
@@ -17,6 +23,59 @@ const EMPTY_TABS = { tabs: [], activeTabId: null };
 // unrelated gesture.
 const DRAG_THRESHOLD_PX = 4;
 
+// Split-screen Stage 5 — how close an escaped tab-drag needs to get to a pane's own edge (in real
+// pixels, via getPaneRectsPx below — automatically rail/hmenu-width-aware since it reads
+// .pane-grid-viewport's own live bounding box rather than duplicating that CSS math) before that
+// edge's drop-zone activates.
+const EDGE_ZONE_PX = 80;
+
+// Split-screen Stage 6 — every currently-open pane's own screen box, in real pixels, for hit-
+// testing during a drag ("which pane is the cursor over right now, and how close is it to which of
+// THAT pane's own 4 edges"). Reads paneLayoutStore directly rather than through a bridge (this file
+// already lives in the same React tree/module graph as bridges.js, unlike the vanilla side) and
+// .pane-grid-viewport's own live bounding box rather than window.innerWidth/--rail-width math, so
+// this stays correct through the hamburger-panel-open width reservation (globals.css) without
+// having to duplicate that CSS's own arithmetic here.
+function getPaneRectsPx() {
+  const viewportEl = document.querySelector(".pane-grid-viewport");
+  if (!viewportEl) return [];
+  const vp = viewportEl.getBoundingClientRect();
+  return computePaneRects(paneLayoutStore.getSnapshot()).map(({ paneId, rect }) => ({
+    paneId,
+    x: vp.left + rect.x * vp.width,
+    y: vp.top + rect.y * vp.height,
+    width: rect.w * vp.width,
+    height: rect.h * vp.height,
+  }));
+}
+
+// The drop-zone rectangle for a given pane+edge: half of that pane's own box on the dropped side,
+// inset OUTER px from the pane's true boundary and INNER px from the (future) split line — same
+// "padding off the true edges" shape the original ask/Stage 5 both used, just computed generically
+// against any pane's own box now instead of two hardcoded viewport-half CSS variants.
+const DROPZONE_OUTER_PX = 16;
+const DROPZONE_INNER_PX = 8;
+function computeDropzoneRect(pane, edge) {
+  const o = DROPZONE_OUTER_PX,
+    i = DROPZONE_INNER_PX;
+  if (edge === "left" || edge === "right") {
+    const halfW = pane.width / 2;
+    const top = pane.y + o,
+      height = pane.height - o * 2,
+      width = halfW - o - i;
+    return edge === "left"
+      ? { left: pane.x + o, top, width, height }
+      : { left: pane.x + halfW + i, top, width, height };
+  }
+  const halfH = pane.height / 2;
+  const left = pane.x + o,
+    width = pane.width - o * 2,
+    height = halfH - o - i;
+  return edge === "top"
+    ? { left, top: pane.y + o, width, height }
+    : { left, top: pane.y + halfH + i, width, height };
+}
+
 // The four-phase "switch tabs" sequence (per explicit request): a brief pause, then the OLD
 // content flies upward out of the tab, then the tab itself grows/shrinks, then the NEW content
 // flies up into place — durations match the CSS this drives, see TabRow's own comment on `phase`.
@@ -28,8 +87,12 @@ const RESIZE_MS = 250;
 // the active tab shows the full breadcrumb; every other tab just shows its own current segment,
 // see TabRow below). Takes its data as a prop now (not its own useSyncExternalStore subscription
 // — see TabRow's own comment for why) so TabRow can hand it a FROZEN snapshot while this tab is
-// fading out, rather than whatever breadcrumbMapStore currently holds (which, by the time a fade-
-// out is even playing, already describes the NEWLY active tab's folder, not this one's).
+// fading out, rather than whatever this pane's own breadcrumbMapStore slot currently holds (which,
+// by the time a fade-out is even playing, already describes the NEWLY active tab's folder, not
+// this one's). paneId (split-screen Stage 7 — each pane has its own breadcrumb pill now) is
+// threaded down to breadcrumbMapRowClick so a click on a non-current segment activates THIS pane
+// first if it wasn't already, same "clicking a pane's own UI focuses that pane" convention every
+// other tab operation in this file now follows.
 // The current-folder segment doubles as its rename control — same click-to-edit contentEditable
 // flow every other title in the app uses (window.__startRenameFolderCardTitle, shared with folder/
 // source cards) — see waypoints-render-loop.js's own comment on that function. A plain {folderId}
@@ -44,7 +107,7 @@ const RESIZE_MS = 250;
 // clicking any of these segments would silently fire the pill's own onClick instead (undefined
 // for the active tab, since it isn't itself clickable — see TabRow's own comment), never reaching
 // the handlers below at all.
-function ActiveTabTrail({ bc }) {
+function ActiveTabTrail({ bc, paneId }) {
   const currentRef = useRef(null);
 
   if (!bc.current) return null;
@@ -56,7 +119,10 @@ function ActiveTabTrail({ bc }) {
           <span
             className="breadcrumb-pill-ellipsis"
             onPointerDown={(e) => e.stopPropagation()}
-            onClick={(e) => { e.stopPropagation(); window.__breadcrumbMapRowClick(bc.root.folderId, bc.root.isSyntheticRoot); }}
+            onClick={(e) => {
+              e.stopPropagation();
+              window.__breadcrumbMapRowClick(bc.root.folderId, bc.root.isSyntheticRoot, paneId);
+            }}
           >
             …
           </span>
@@ -68,7 +134,10 @@ function ActiveTabTrail({ bc }) {
           <span
             className="breadcrumb-pill-parent"
             onPointerDown={(e) => e.stopPropagation()}
-            onClick={(e) => { e.stopPropagation(); window.__breadcrumbMapRowClick(bc.parent.folderId, bc.parent.isSyntheticRoot); }}
+            onClick={(e) => {
+              e.stopPropagation();
+              window.__breadcrumbMapRowClick(bc.parent.folderId, bc.parent.isSyntheticRoot, paneId);
+            }}
           >
             {bc.parent.label}
           </span>
@@ -79,7 +148,14 @@ function ActiveTabTrail({ bc }) {
         ref={currentRef}
         className="breadcrumb-pill-current"
         onPointerDown={(e) => e.stopPropagation()}
-        onClick={(e) => { e.stopPropagation(); window.__startRenameFolderCardTitle(currentRef.current, { folderId: bc.current.folderId }, "breadcrumb-pill-current"); }}
+        onClick={(e) => {
+          e.stopPropagation();
+          window.__startRenameFolderCardTitle(
+            currentRef.current,
+            { folderId: bc.current.folderId },
+            "breadcrumb-pill-current",
+          );
+        }}
       >
         {bc.current.label}
       </span>
@@ -119,9 +195,30 @@ function ActiveTabTrail({ bc }) {
 // the resize phase starts), so the OLD content is still on screen (and able to fly out) for the
 // first beat, and the box has already resized to fit the NEW content before it flies in for the
 // last; for the shrinking direction it flips immediately, alongside everything else.
-function TabRow({ tab, isActive, canClose, dragX, isDragging, tabRef, onDragStart, onDragMove, onDragEnd }) {
+function TabRow({
+  tab,
+  paneId,
+  isActive,
+  canClose,
+  dragX,
+  isDragging,
+  isEscaped,
+  tabRef,
+  onDragStart,
+  onDragMove,
+  onDragEnd,
+}) {
   const suppressClickRef = useRef(false);
-  const bc = useSyncExternalStore(breadcrumbMapStore.subscribe, breadcrumbMapStore.getSnapshot, () => EMPTY_BREADCRUMB);
+  // This pane's own breadcrumb store slot (split-screen Stage 7 — breadcrumbMapStore is pane-keyed
+  // now, one slot per pane, not a single shared store) — .storeFor(paneId) is stable across
+  // renders (createPaneKeyedStore caches it), so this is safe to call directly in render, same as
+  // every other pane-keyed store consumer in this codebase (CanvasItemsLayer.jsx, BlocksPanel.jsx).
+  const paneBreadcrumbStore = breadcrumbMapStore.storeFor(paneId);
+  const bc = useSyncExternalStore(
+    paneBreadcrumbStore.subscribe,
+    paneBreadcrumbStore.getSnapshot,
+    () => EMPTY_BREADCRUMB,
+  );
   // Cached in state, corrected DURING render (React's documented "adjusting state" pattern —
   // https://react.dev/learn/you-might-not-need-an-effect#adjusting-some-state-when-a-prop-changes
   // — a conditional setState call in the render body itself, not inside an effect, which would
@@ -159,28 +256,45 @@ function TabRow({ tab, isActive, canClose, dragX, isDragging, tabRef, onDragStar
     if (!isActive) return; // instant shrink already handled during render, above
     let cancelled = false;
     const timers = [];
-    timers.push(setTimeout(() => {
-      if (cancelled) return;
-      setPhase("fly-out");
-      timers.push(setTimeout(() => {
+    timers.push(
+      setTimeout(() => {
         if (cancelled) return;
-        setPhase("resize");
-        setShowTrail(true);
-        timers.push(setTimeout(() => {
-          if (cancelled) return;
-          setPhase("fly-in");
-          timers.push(setTimeout(() => {
+        setPhase("fly-out");
+        timers.push(
+          setTimeout(() => {
             if (cancelled) return;
-            setPhase("idle");
-          }, CONTENT_FLY_MS));
-        }, RESIZE_MS));
-      }, CONTENT_FLY_MS));
-    }, SWITCH_DELAY_MS));
-    return () => { cancelled = true; timers.forEach(clearTimeout); };
+            setPhase("resize");
+            setShowTrail(true);
+            timers.push(
+              setTimeout(() => {
+                if (cancelled) return;
+                setPhase("fly-in");
+                timers.push(
+                  setTimeout(() => {
+                    if (cancelled) return;
+                    setPhase("idle");
+                  }, CONTENT_FLY_MS),
+                );
+              }, RESIZE_MS),
+            );
+          }, CONTENT_FLY_MS),
+        );
+      }, SWITCH_DELAY_MS),
+    );
+    return () => {
+      cancelled = true;
+      timers.forEach(clearTimeout);
+    };
   }, [isActive]);
 
   const contentClass =
-    phase === "fly-out" ? " tab-content-fly-out" : phase === "fly-in" ? " tab-content-fly-in" : phase === "resize" ? " tab-content-hidden" : "";
+    phase === "fly-out"
+      ? " tab-content-fly-out"
+      : phase === "fly-in"
+        ? " tab-content-fly-in"
+        : phase === "resize"
+          ? " tab-content-hidden"
+          : "";
 
   return (
     <div
@@ -189,28 +303,40 @@ function TabRow({ tab, isActive, canClose, dragX, isDragging, tabRef, onDragStar
         "tab-pill" +
         (isActive ? " tab-pill-active" : "") +
         (showTrail ? " tab-pill-grown" : "") +
-        (isDragging ? " tab-pill-dragging" : "")
+        (isDragging && !isEscaped ? " tab-pill-dragging" : "") +
+        (isEscaped ? " tab-pill-collapsed" : "")
       }
-      style={isDragging ? { transform: `translateX(${dragX}px)` } : undefined}
+      style={isDragging && !isEscaped ? { transform: `translateX(${dragX}px)` } : undefined}
       onPointerDown={(e) => {
         if (e.button !== 0) return;
         e.currentTarget.setPointerCapture(e.pointerId);
         suppressClickRef.current = false;
-        onDragStart(tab.id, e.clientX);
+        onDragStart(tab.id, e.clientX, e.clientY);
       }}
-      onPointerMove={(e) => onDragMove(tab.id, e.clientX)}
+      onPointerMove={(e) => onDragMove(tab.id, e.clientX, e.clientY)}
       onPointerUp={(e) => {
         e.currentTarget.releasePointerCapture(e.pointerId);
-        suppressClickRef.current = onDragEnd(tab.id, e.clientX);
+        suppressClickRef.current = onDragEnd(tab.id, e.clientX, e.clientY);
       }}
-      onClick={isActive ? undefined : (e) => {
-        e.stopPropagation();
-        if (suppressClickRef.current) { suppressClickRef.current = false; return; }
-        window.__switchTab(tab.id);
-      }}
+      onClick={
+        isActive
+          ? undefined
+          : (e) => {
+              e.stopPropagation();
+              if (suppressClickRef.current) {
+                suppressClickRef.current = false;
+                return;
+              }
+              window.__switchTab(tab.id, paneId);
+            }
+      }
     >
       <div className={"tab-pill-content" + contentClass}>
-        {showTrail ? <ActiveTabTrail bc={isActive ? bc : lastOwnBc} /> : <span className="tab-pill-label">{tab.label}</span>}
+        {showTrail ? (
+          <ActiveTabTrail bc={isActive ? bc : lastOwnBc} paneId={paneId} />
+        ) : (
+          <span className="tab-pill-label">{tab.label}</span>
+        )}
       </div>
       {canClose && (
         <button
@@ -218,7 +344,10 @@ function TabRow({ tab, isActive, canClose, dragX, isDragging, tabRef, onDragStar
           className="tab-pill-close"
           title="Close tab"
           onPointerDown={(e) => e.stopPropagation()}
-          onClick={(e) => { e.stopPropagation(); window.__closeTab(tab.id); }}
+          onClick={(e) => {
+            e.stopPropagation();
+            window.__closeTab(tab.id, paneId);
+          }}
         >
           ×
         </button>
@@ -227,40 +356,164 @@ function TabRow({ tab, isActive, canClose, dragX, isDragging, tabRef, onDragStar
   );
 }
 
-// Portals into #breadcrumb-pill (content/fragments/top-bar.html), inside #top-bar-center — dead
-// centre of the viewport, beside the "add a collaborator" flyout (see its own comment,
-// globals.css). Used to portal a single breadcrumb trail directly (BreadcrumbPill.jsx, now folded
-// into ActiveTabTrail above) — now a row of tab pills instead, plus a "+" button that adds a new
-// one, per explicit request. New tabs start at the same location as whichever tab is currently
-// active (see addTab's own comment, shared-canvases-outline.js) — this component has no say in
-// where a new tab starts, it just renders whatever tabsStore already reflects.
-export default function TabsBar() {
-  const { tabs, activeTabId } = useSyncExternalStore(tabsStore.subscribe, tabsStore.getSnapshot, () => EMPTY_TABS);
-  const portalNode = usePortalNode("breadcrumb-pill");
-  // "+" button now portals separately, into #right-actions-pill's own #tab-add-slot (top-bar.html)
-  // alongside #collab-bubble, rather than being the tab row's own last child — per explicit request
-  // to group it with the collaborator button instead. See #tab-add-btn's own comment, globals.css,
-  // for why it needed its own portal target rather than just living inside #collab-bubble itself.
-  const addBtnPortalNode = usePortalNode("tab-add-slot");
+// One TabsBar instance PER PANE now (split-screen Stage 7, explicit request — was a single global
+// instance tied to whichever pane happened to be active). Portals into that pane's own
+// #pane-tabs-{paneId} anchor — the middle grid column of that pane's own FULL top-bar pill
+// (PaneTopBar.jsx, split-screen Stage 8 — nav-arrows/tab row/collab bubble/add-tab button together,
+// each independently hover-expanding, was just the tab row alone in Stage 7's
+// #pane-breadcrumb-pill-{paneId}) instead of the single static #breadcrumb-pill — used to portal a
+// single breadcrumb trail directly (BreadcrumbPill.jsx, now folded into ActiveTabTrail above), then
+// a shared row of tab pills, now one row per pane. New tabs start at the same location as whichever
+// tab is currently active in THIS pane (see addTab's own comment, shared-canvases-outline.js) —
+// this component has no say in where a new tab starts, it just renders whatever this pane's own
+// tabsStore slot already reflects.
+export default function TabsBar({ paneId }) {
+  // This pane's own tabs store slot (split-screen Stage 7 — tabsStore is pane-keyed now, one slot
+  // per pane, not a single shared store). .storeFor(paneId) is stable across renders
+  // (createPaneKeyedStore caches it), safe to call directly in render.
+  const paneTabsStore = tabsStore.storeFor(paneId);
+  const { tabs, activeTabId } = useSyncExternalStore(
+    paneTabsStore.subscribe,
+    paneTabsStore.getSnapshot,
+    () => EMPTY_TABS,
+  );
+  const portalNode = usePortalNode("pane-tabs-" + paneId);
 
   // Drag-to-reorder — see TabRow's own comment for why this is plain pointer tracking rather than
   // native HTML5 DnD, and why the actual reorder is computed once on release rather than live.
+  //
+  // Extended (split-screen Stage 5) into a full 2D drag-tab-to-edge-to-split gesture: once the drag
+  // both exceeds DRAG_THRESHOLD_PX AND the cursor leaves the breadcrumb pill's own bounding box, it
+  // "escapes" reorder-within-row mode entirely — the dragged tab collapses out of the row
+  // (.tab-pill-collapsed), a fixed, cursor-following ghost appears, and getting within
+  // EDGE_ZONE_PX of a viewport edge (rail-width-aware, same reasoning as canvasViewportCenterX,
+  // core-state.js) reveals that edge's drop-zone. Releasing inside an active zone calls
+  // window.__splitPaneWithTab; releasing outside one (still escaped) just cancels — the tab snaps
+  // back into the row with no reorder and no split, same as a real browser tab you drag out and
+  // drop back onto its own bar.
   const tabRefs = useRef({});
-  const dragRef = useRef(null); // { id, startX }
-  const [drag, setDrag] = useState({ id: null, x: 0 });
+  const dragRef = useRef(null); // { id, startX, startY, escaped, edge, targetPaneId }
+  const [drag, setDrag] = useState({
+    id: null,
+    x: 0,
+    y: 0,
+    escaped: false,
+    edge: null,
+    targetPaneId: null,
+    zoneRect: null,
+    clientX: 0,
+    clientY: 0,
+  });
 
-  const handleDragStart = (id, clientX) => {
-    dragRef.current = { id, startX: clientX };
+  const handleDragStart = (id, clientX, clientY) => {
+    dragRef.current = {
+      id,
+      startX: clientX,
+      startY: clientY,
+      escaped: false,
+      edge: null,
+      targetPaneId: null,
+    };
   };
-  const handleDragMove = (id, clientX) => {
-    if (!dragRef.current || dragRef.current.id !== id) return;
-    setDrag({ id, x: clientX - dragRef.current.startX });
+  const handleDragMove = (id, clientX, clientY) => {
+    const d = dragRef.current;
+    if (!d || d.id !== id) return;
+    const dx = clientX - d.startX,
+      dy = clientY - d.startY;
+
+    if (!d.escaped) {
+      const movedEnough = Math.hypot(dx, dy) >= DRAG_THRESHOLD_PX;
+      const pillRect = portalNode && portalNode.getBoundingClientRect();
+      const outsidePill =
+        pillRect &&
+        (clientX < pillRect.left ||
+          clientX > pillRect.right ||
+          clientY < pillRect.top ||
+          clientY > pillRect.bottom);
+      if (!(movedEnough && outsidePill)) {
+        setDrag({
+          id,
+          x: dx,
+          y: 0,
+          escaped: false,
+          edge: null,
+          targetPaneId: null,
+          zoneRect: null,
+          clientX,
+          clientY,
+        });
+        return;
+      }
+      d.escaped = true;
+    }
+
+    // Split-screen Stage 6 — hit-test every currently-open pane's own box (not just the two
+    // viewport halves), find whichever one the cursor is nearest, then check proximity to only
+    // THAT pane's own currently-LEGAL edges (allowedEdgesForPane, bridges.js — Stage 9, explicit
+    // correction: dropping on a pane that's already part of a row/column pair, on the SAME
+    // direction as that existing split, used to be allowed and produced 3+ panes side by side
+    // instead of quartering — only the perpendicular edges may ever show a zone now, growing
+    // strictly toward a clean 2x2). Capped: once 4 panes already exist, no edge zone can activate
+    // at all (window.__countPanes, shared-canvases-outline.js is the actual authority; this just
+    // avoids showing a drop-zone that a drop would immediately be rejected against) — redundant
+    // with allowedEdgesForPane's own depth-2 case in practice (a clean 2x2 always hits 4 panes
+    // exactly when every leaf is at depth 2), kept as an explicit belt-and-suspenders check.
+    let edge = null,
+      targetPaneId = null,
+      zoneRect = null;
+    if (window.__countPanes() < 4) {
+      const panes = getPaneRectsPx();
+      const hovered =
+        panes.find(
+          (p) =>
+            clientX >= p.x &&
+            clientX <= p.x + p.width &&
+            clientY >= p.y &&
+            clientY <= p.y + p.height,
+        ) ||
+        panes.reduce((best, p) => {
+          const cx = Math.max(p.x, Math.min(clientX, p.x + p.width));
+          const cy = Math.max(p.y, Math.min(clientY, p.y + p.height));
+          const dist = Math.hypot(clientX - cx, clientY - cy);
+          return !best || dist < best.dist ? { ...p, dist } : best;
+        }, null);
+      if (hovered) {
+        const allowed = allowedEdgesForPane(paneLayoutStore.getSnapshot(), hovered.paneId);
+        const distances = {
+          left: clientX - hovered.x,
+          right: hovered.x + hovered.width - clientX,
+          top: clientY - hovered.y,
+          bottom: hovered.y + hovered.height - clientY,
+        };
+        let bestEdge = null,
+          bestDist = Infinity;
+        allowed.forEach((e) => {
+          if (distances[e] < bestDist) {
+            bestDist = distances[e];
+            bestEdge = e;
+          }
+        });
+        if (bestEdge && bestDist <= EDGE_ZONE_PX) {
+          edge = bestEdge;
+          targetPaneId = hovered.paneId;
+          zoneRect = computeDropzoneRect(hovered, edge);
+        }
+      }
+    }
+    d.edge = edge;
+    d.targetPaneId = targetPaneId;
+    setDrag({ id, x: dx, y: dy, escaped: true, edge, targetPaneId, zoneRect, clientX, clientY });
   };
   // Returns true if this release should suppress the pill's own onClick (i.e. it was a real drag,
   // not a plain click) — TabRow reads this back into its own suppressClickRef.
   const handleDragEnd = (id, clientX) => {
-    const wasDragging = !!dragRef.current && dragRef.current.id === id && Math.abs(clientX - dragRef.current.startX) >= DRAG_THRESHOLD_PX;
-    if (wasDragging) {
+    const d = dragRef.current;
+    const wasDragging =
+      !!d && d.id === id && (d.escaped || Math.abs(clientX - d.startX) >= DRAG_THRESHOLD_PX);
+    if (d && d.id === id && d.escaped) {
+      if (d.edge) window.__splitPaneWithTab(id, d.targetPaneId, d.edge, paneId);
+      // else: cancelled — the tab just snaps back into the row below, no reorder/split.
+    } else if (wasDragging) {
       // Final drop index: the position of the LAST (rightmost, in left-to-right tab order) other
       // tab whose own current midpoint the release point has passed — see the file header comment
       // for why this single end-of-drag measurement is preferred over live per-frame reordering.
@@ -272,40 +525,69 @@ export default function TabsBar() {
         const rect = el.getBoundingClientRect();
         if (clientX > rect.left + rect.width / 2) toIndex = i;
       });
-      window.__reorderTab(id, toIndex);
+      window.__reorderTab(id, toIndex, paneId);
     }
     dragRef.current = null;
-    setDrag({ id: null, x: 0 });
+    setDrag({
+      id: null,
+      x: 0,
+      y: 0,
+      escaped: false,
+      edge: null,
+      targetPaneId: null,
+      zoneRect: null,
+      clientX: 0,
+      clientY: 0,
+    });
     return wasDragging;
   };
 
   if (!tabs.length) return null;
 
+  const draggedTab = drag.escaped ? tabs.find((t) => t.id === drag.id) : null;
+
   return (
     <>
-      {portalNode && createPortal(
-        tabs.map((tab) => (
-          <TabRow
-            key={tab.id}
-            tab={tab}
-            isActive={tab.id === activeTabId}
-            canClose={tabs.length > 1}
-            isDragging={tab.id === drag.id}
-            dragX={drag.x}
-            tabRef={(el) => { tabRefs.current[tab.id] = el; }}
-            onDragStart={handleDragStart}
-            onDragMove={handleDragMove}
-            onDragEnd={handleDragEnd}
-          />
-        )),
-        portalNode,
-      )}
-      {addBtnPortalNode && createPortal(
-        <button type="button" id="tab-add-btn" title="New tab" onClick={(e) => { e.stopPropagation(); window.__addTab(); }}>
-          +
-        </button>,
-        addBtnPortalNode,
-      )}
+      {portalNode &&
+        createPortal(
+          tabs.map((tab) => (
+            <TabRow
+              key={tab.id}
+              tab={tab}
+              paneId={paneId}
+              isActive={tab.id === activeTabId}
+              canClose={tabs.length > 1}
+              isDragging={tab.id === drag.id}
+              isEscaped={tab.id === drag.id && drag.escaped}
+              dragX={drag.x}
+              tabRef={(el) => {
+                tabRefs.current[tab.id] = el;
+              }}
+              onDragStart={handleDragStart}
+              onDragMove={handleDragMove}
+              onDragEnd={handleDragEnd}
+            />
+          )),
+          portalNode,
+        )}
+      {draggedTab &&
+        createPortal(
+          <>
+            <div
+              className="tab-drag-ghost"
+              style={{ left: drag.clientX + 14, top: drag.clientY + 14 }}
+            >
+              {draggedTab.label}
+            </div>
+            {/* Split-screen Stage 6 — a single zone now, geometry computed per-frame against
+              whichever pane+edge is actually targeted (computeDropzoneRect, above) rather than two
+              fixed viewport-half CSS variants. */}
+            {drag.zoneRect && (
+              <div className="pane-dropzone-overlay active" style={drag.zoneRect} />
+            )}
+          </>,
+          document.body,
+        )}
     </>
   );
 }

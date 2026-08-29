@@ -1,7 +1,16 @@
-    const canvas = document.getElementById('canvas'), world = document.getElementById('world'), dotLayer = document.getElementById('dot-layer'),
-        cursorOverlay = document.getElementById('cursor-overlay'),
-        btnBack = document.getElementById('btn-back'),
-        btnForward = document.getElementById('btn-forward'), btnAdd = document.getElementById('btn-add'),
+    // canvas/world/dotLayer/cursorOverlay are `let`, not `const` — reassigned by switchActivePane
+    // (below) once a second pane's DOM exists (split-screen Stage 4+). ES module `let`-exports are
+    // live bindings, so every existing `import { canvas, world } from './core-state.js'` across
+    // every vanilla file keeps working with zero changes once this starts actually reassigning
+    // them — see the split-screen plan's "core mechanism" section. Every other DOM ref declared
+    // alongside them here is genuine singleton app chrome (one instance regardless of pane count)
+    // and stays `const`.
+    let canvas = document.getElementById('canvas'), world = document.getElementById('world'), dotLayer = document.getElementById('dot-layer'),
+        cursorOverlay = document.getElementById('cursor-overlay');
+    // btn-back/btn-forward (formerly declared here) no longer exist as singular ids — split-screen
+    // Stage 8 moved back/forward to PaneTopBar.jsx, one real per-pane pair of buttons instead of a
+    // single shared DOM node.
+    const btnAdd = document.getElementById('btn-add'),
         addMenu = document.getElementById('add-menu'), contextMenu = document.getElementById('context-menu'),
         zoomTrack = document.getElementById('zoom-track'), zoomFill = document.getElementById('zoom-fill'),
         zoomThumb = document.getElementById('zoom-thumb'), zoomControl = document.getElementById('zoom-control'),
@@ -47,6 +56,16 @@
         // initial currentFolderId above; nextTabId is a plain incrementing counter for generating
         // each new tab's id.
         tabs: [{ id: 'tab-0', folderId: 'root' }], activeTabId: 'tab-0', nextTabId: 1,
+        // Split-screen pane bookkeeping (see switchActivePane/PANE_SCOPED_FIELDS below, and the
+        // split-screen plan's "core mechanism" section) — GLOBAL, not itself pane-scoped: this is
+        // the bookkeeping ABOUT panes, shared across all of them. activePaneId is which pane is
+        // currently "hot" (its PANE_SCOPED_FIELDS values are the live appState.<field> ones right
+        // now); panes holds every OTHER (inactive) pane's own saved snapshot, keyed by paneId —
+        // the active pane deliberately has no entry here, its values just ARE the live ones.
+        // nextPaneId is a plain incrementing counter for generating each new pane's id (Stage 5+,
+        // splitPaneWithTab — shared-canvases-outline.js) — same shape as appState.nextTabId, just
+        // for panes instead of tabs.
+        activePaneId: 0, panes: {}, nextPaneId: 1,
         // Core data mapping of our multiple folder structures
         folders: {
             'root': {
@@ -177,7 +196,7 @@
             { kind: 'typeright', label: 'Typeright', icon: '/assets/icons/typeright.png' },
             { kind: 'blanks', label: 'Blanks', icon: '/assets/icons/blanks.png' },
             { kind: 'match', label: 'Match', icon: '/assets/icons/match.png' },
-            { kind: 'audiotype', label: 'Audio Type', icon: '/assets/icons/audiotype.png' },
+            { kind: 'audiotype', label: 'Audio Type', icon: '/assets/icons/audio.png' },
         ]},
         stats: { label: 'Stats', categoryDesc: 'Cards that show stats pulled from a linked card.', items: [
             { kind: 'statcard', statKind: 'progress', label: 'Progress', icon: '/assets/icons/progress.png' },
@@ -312,10 +331,19 @@
         // rest of the app, now owned by the React component that renders it.
         messagesBtn: document.getElementById('btn-messages'),
         messagesPanel: document.getElementById('messages-panel'),
+        // Bare shell for now (see wireRailIcon('servers', ...), panels-hamburger.js) — behavior/
+        // content not yet decided, same as most of this rail.
+        btnServers: document.getElementById('btn-servers'),
+        serversPanel: document.getElementById('servers-panel'),
         msgConvo: document.getElementById('msg-convo'),
         msgList: document.getElementById('msg-list'),
         msgSearchInput: document.getElementById('msg-search'),
-        collabBubble: document.getElementById('collab-bubble'),
+        // No static #collab-bubble any more (split-screen Stage 8 — every pane renders its own,
+        // PaneTopBar.jsx) — starts null, retargeted to whichever pane's own bubble element the user
+        // actually clicks/hovers (collabBubblePaneClick/MouseEnter, friends-presence.js) before
+        // anything reads it. A mutable object property (not a `let`/`const` binding), so it can be
+        // reassigned at runtime like this — see friends-presence.js's own comment.
+        collabBubble: null,
         collabPanel: document.getElementById('collab-panel'),
         collabSearchInput: document.getElementById('collab-search'),
         outgoingCanvasInvitePendingIds: new Set(),
@@ -390,25 +418,26 @@
         aiChatView: document.getElementById('ai-chat-view'),
         aiListView: document.getElementById('ai-list-view'),
         aiListHeader: document.getElementById('ai-list-header'),
-        // Notifications live in the top bar now, not the search box (see showNotification/
-        // dismissCurrentNotification, stopwatch-search-notifications.js) — #top-bar-center slides
-        // up and out while #notification-pill slides down into its slot, and back on dismiss.
-        topBarCenter: document.getElementById('top-bar-center'),
-        notificationPill: document.getElementById('notification-pill'),
+        // Notification stack, bottom-left (see pushNotification/showNotification/
+        // dismissNotification, stopwatch-search-notifications.js, and app/dotto/NotificationBar.jsx,
+        // which owns the entire rendering surface now — no static markup node left to reach via
+        // appState; explicit redesign, was a single top-center pill swapping places with
+        // #top-bar-center).
         NOTIFICATION_DEFAULT_DURATION_MS: 5000,
-        NOTIF_SLIDE_MS: 300,
-        // Small pause between one of #top-bar-center/#notification-pill fully finishing its slide
-        // away and the other starting to slide in — so they never cross paths mid-transition, one
-        // fully leaves before the other arrives (see showNotification/dismissCurrentNotification).
-        NOTIF_STAGGER_MS: 150,
+        // At most this many visible at once (explicit request) — showNotification drops the
+        // oldest (the last entry in visibleNotifications below) once a new arrival would exceed
+        // this, rather than growing the stack unbounded. NotificationBar.jsx plays a real
+        // slide-out exit animation for whichever entry actually leaves the array this way, rather
+        // than it just vanishing — see its own comment.
+        NOTIFICATION_MAX_VISIBLE: 3,
+        // Notifications pushed while the tab isn't visible wait here (see pushNotification) rather
+        // than showing immediately unseen — flushed as a batch (each becomes its own real,
+        // independently-timed notification, no artificial stagger) once the tab is visible again.
         notificationQueue: [],
-        currentNotification: null,
-        notificationTimer: null,
-        notificationStageTimer: null,
-        // notifImageEl/notifTextEl/notifActionBtn removed — React owns the notification bar's
-        // content now (Phase 2, see app/dotto/NotificationBar.jsx).
-        NOTIFICATION_QUEUE_GAP_MS: 5000,
-        lastNotificationCloseTime: 0,
+        // Every CURRENTLY visible notification, newest first — {id, config}[], capped at
+        // NOTIFICATION_MAX_VISIBLE. Genuinely multiple can be up at once (explicit request:
+        // "remove the delay between notifications"), so there's no single "current" one any more.
+        visibleNotifications: [],
         searchCardContext: [],
         searchCardConnections: [],
         NON_LATIN_SCRIPT_RE: new RegExp("[^\u0000-\u024F\u1E00-\u1EFF\u2000-\u206F\s\d]"),
@@ -463,11 +492,11 @@
     // one #cart-panel; #cart-panel is now Discover browsing only. #chats-panel is deliberately NOT
     // here — Chats is a sub-view reached from inside the AI view (searchBar), not a top-level rail
     // destination of its own. #inbox-panel/#search-panel/#documents-panel/#sources-panel/
-    // #snippets-panel are bare shells (see
+    // #snippets-panel/#servers-panel are bare shells (see
     // wireRailIcon('inbox'/'search'/'documents'/'sources'/'snippets', ...) below) — their own
     // behavior/content hasn't been designed yet.
-    appState.railViewEls = [appState.inboxPanel, appState.searchPanel, appState.aiPanel, appState.sourcesPanel, appState.snippetsPanel, appState.snippets2Panel, appState.outlineMenu, appState.waypointsPanel, appState.hubCollabPanel, appState.cartPanel, appState.libraryPanel, appState.messagesPanel, addMenu, appState.profilePanel];
-    appState.railIconBtns = [appState.btnInbox, appState.btnSearch, appState.railBtnAi, appState.btnSources, appState.btnSnippets, appState.btnSnippets2, appState.hamburgerBtn, appState.railBtnWaypoints, appState.railBtnCollab, appState.btnCart, appState.libraryBtn, appState.messagesBtn, btnAdd, appState.profileBtn];
+    appState.railViewEls = [appState.inboxPanel, appState.searchPanel, appState.aiPanel, appState.sourcesPanel, appState.snippetsPanel, appState.snippets2Panel, appState.outlineMenu, appState.waypointsPanel, appState.hubCollabPanel, appState.cartPanel, appState.libraryPanel, appState.messagesPanel, appState.serversPanel, addMenu, appState.profilePanel];
+    appState.railIconBtns = [appState.btnInbox, appState.btnSearch, appState.railBtnAi, appState.btnSources, appState.btnSnippets, appState.btnSnippets2, appState.hamburgerBtn, appState.railBtnWaypoints, appState.railBtnCollab, appState.btnCart, appState.libraryBtn, appState.messagesBtn, appState.btnServers, btnAdd, appState.profileBtn];
     appState.TOTAL_SUB_LEVELS = appState.LEVEL_NAMES.length * appState.SUB_RANKS_PER_TIER;
     // Same reason as the block above: can't reference appState.currentUser from inside appState's
     // own object literal, since appState doesn't exist yet until that literal finishes constructing.
@@ -500,6 +529,260 @@
         appState.topCardZIndex = max;
     }
 
+    // Every appState field whose value genuinely belongs to "whichever specific pane you're
+    // looking at" — camera position, which folder/tabs it's navigated to, its own back/forward
+    // history, and its own selection/cursor-mode — as opposed to app-wide chrome/settings/data
+    // that's the same no matter which pane is active. Deliberately does NOT include transient,
+    // actively-in-progress interaction state (context menus, an in-progress pen stroke or media
+    // recording, an open tag picker, currentEditingEl) — those are momentary and naturally
+    // resolve themselves (blur, pointerup) the same way switching windows/apps mid-gesture would
+    // in any other app, rather than needing to be preserved across a pane switch. That split is a
+    // judgment call made from static reasoning, not yet exercised by real cross-pane interaction —
+    // expect this list to need revisiting once Stage 4 (two independently-interactive panes) is
+    // actually built and tested live, per the split-screen plan's own review note.
+    const PANE_SCOPED_FIELDS = [
+        'tx', 'ty', 'scale',
+        'currentFolderId', 'historyStack', 'historyIndex',
+        'tabs', 'activeTabId', 'nextTabId',
+        'selectedCardIds',
+        'cardMode', 'modeOverrideKey', 'modeKeyHoldStart',
+        'dataLinkPendingId',
+        // Added during Stage 3 (live-presence.js/history-autosave.js pane-parameterization),
+        // not the original Stage 1 pass — smoothPanTo (history-autosave.js) clears this specific
+        // pending timeout at the top of every call before scheduling its own, so it has to track
+        // whichever PANE'S tween is in flight, not a single global handle shared by every pane —
+        // otherwise switching panes mid-tween and starting a new tween in the newly-active pane
+        // would clearTimeout the PREVIOUS pane's still-pending cleanup out from under it, same
+        // class of bug the DOM-ref capture fix below addresses.
+        'cameraTweenTimeout',
+        // Also added during Stage 3 — these four gate live-presence.js's throttled broadcasters
+        // (cursor position, dragged-item position, dragged-item resize, caret position) to at most
+        // one send per ~50ms. As a single shared global each, one pane's broadcast starts a cooldown
+        // that would silently suppress a DIFFERENT pane's legitimate broadcast landing within that
+        // same window — unlike canvasPresenceChannel/pendingSyncDeltas/etc (which genuinely need to
+        // stay live for a BACKGROUND pane too, real Stage 4+ feature work, not something swap-in-
+        // place can express), a throttle window only ever needs to track "whichever pane you're
+        // actively pointer-interacting with right now," which swap-in-place already models exactly.
+        'cursorBroadcastThrottleId', 'itemDragBroadcastThrottleId', 'itemResizeBroadcastThrottleId',
+        'caretBroadcastThrottleId',
+    ];
+    // Swap-in-place pane switching (see the split-screen plan's "core mechanism" section for the
+    // full design rationale — chosen over a Proxy/accessor redirect). Copies the CURRENTLY active
+    // pane's live PANE_SCOPED_FIELDS values out into its own saved slot in appState.panes, then —
+    // if the target pane already has a saved slot (i.e. it's a real pre-existing pane, not a
+    // brand-new one) — copies that pane's saved values into the live appState.<field> slots so
+    // every existing reader/writer across the app (appState.tx, appState.selectedCardIds, etc.)
+    // transparently sees the newly-active pane's own state with zero changes to those call sites.
+    // A brand-new target pane (no saved slot yet) is left with whatever the live fields already
+    // hold — its caller (splitPaneWithTab, Stage 5+) is responsible for resetting them to fresh
+    // defaults right after, per the plan's "the new pane gets its own camera/selection state from
+    // scratch" decision, not this function's job.
+    function switchActivePane(paneId) {
+        if (paneId === appState.activePaneId) return;
+        const outgoing = appState.panes[appState.activePaneId] || (appState.panes[appState.activePaneId] = {});
+        PANE_SCOPED_FIELDS.forEach(f => { outgoing[f] = appState[f]; });
+        outgoing.canvas = canvas; outgoing.world = world; outgoing.dotLayer = dotLayer; outgoing.cursorOverlay = cursorOverlay;
+
+        const incoming = appState.panes[paneId];
+        if (incoming) {
+            PANE_SCOPED_FIELDS.forEach(f => { appState[f] = incoming[f]; });
+            canvas = incoming.canvas; world = incoming.world; dotLayer = incoming.dotLayer; cursorOverlay = incoming.cursorOverlay;
+        }
+        // The pane that was just switched TO is the one whose values are now live — it has no
+        // saved slot of its own while active, same as activePaneId's own comment says.
+        delete appState.panes[paneId];
+        appState.activePaneId = paneId;
+
+        // Push the newly-active pane's own tabs/activeTabId into React (TabsBar.jsx) immediately —
+        // without this, clicking into an already-existing OTHER pane (not one just created by
+        // splitPaneWithTab, which already gets a render() of its own via initializeNewPane) left
+        // the tab bar showing whichever pane's tabs it last rendered until something UNRELATED
+        // happened to call render() afterward. A real, previously-undiscovered gap: Stage 4/5 never
+        // exercised switching back and forth between two pre-existing panes without an intervening
+        // navigation in between. window.__renderTabsPanel (shared-canvases-outline.js) is called via
+        // a window bridge rather than a direct import — core-state.js is imported BY
+        // shared-canvases-outline.js, so importing back would be circular.
+        if (window.__renderTabsPanel) window.__renderTabsPanel();
+        // Same reasoning, split-screen Stage 8 — the newly-active pane's own back/forward buttons
+        // and collaborator bubble (PaneTopBar.jsx) shouldn't have to wait for the next render()
+        // frame to reflect its own historyIndex/currentFolderId either.
+        if (window.__renderNavArrows) window.__renderNavArrows();
+        if (window.__renderCollabPill) window.__renderCollabPill();
+        // Lets PaneZoomBar.jsx (explicit request: the zoom bar "should only appear when you're in
+        // that current window... current meaning last clicked in") react to which pane is active —
+        // nothing else needed a reactive answer to this before now, everything else just reads
+        // appState.activePaneId directly off the vanilla side.
+        if (window.__setActivePaneId) window.__setActivePaneId(paneId);
+        if (window.__renderMediaViewerZoom) window.__renderMediaViewerZoom(paneId);
+    }
+
+    // Canvas-LEVEL (not item-level) event listeners — wheel pan/zoom, box-selection pointerdown,
+    // context menu, pen-polyline finish, paste-preview tracking, cursor-broadcast pointermove,
+    // panel-resize recalc — are each attached exactly ONCE, at their owning vanilla file's own
+    // module-load time, directly to whichever DOM node `canvas` happened to be AT THAT MOMENT
+    // (pane 0's element, the only one that exists at boot). Reassigning the `canvas`/`world` `let`
+    // bindings later (switchActivePane/initializeNewPane) does NOT move these listeners —
+    // addEventListener binds to a specific node reference, not a variable — so a brand-new pane's
+    // own canvas element never gets any of them unless something explicitly re-attaches them to
+    // it. A real bug this way: found via a production-build test where splitting a second pane
+    // left it with no working wheel-pan at all, since its own #canvas-{paneId} never had that
+    // listener. Each owning file registers its own "attach my canvas-level listener(s) to a given
+    // canvas element" function here via registerPaneCanvasListenerSetup, called once at that
+    // file's own module-load time ALONGSIDE its existing pane-0 addEventListener call (that
+    // original call is untouched — this is purely additive, zero behavior change for pane 0).
+    // setupPaneCanvasListeners(paneId), called from initializeNewPane below, then runs every
+    // registered setup against that pane's own canvas element, so every new pane picks up the
+    // full set automatically without each pane-creation call site needing its own list. Each
+    // registered fn receives (canvasEl, paneId) — the paneId matters because most of these
+    // handlers aren't pointerdown (wheel, pointermove, contextmenu, transitionend, dblclick), so
+    // the capture-phase pointerdown router (PaneGrid.jsx) never runs ahead of them the way it does
+    // for a real click — a handler that only reads appState.tx/etc AMBIENTLY, trusting
+    // activePaneId already matches, would silently act on the WRONG pane's camera/state if the
+    // user e.g. wheels over an inactive pane without clicking it first. Each handler is expected to
+    // call switchActivePane(paneId) itself as its own first line (a no-op if already active) rather
+    // than relying on that invariant.
+    const paneCanvasListenerSetups = [];
+    function registerPaneCanvasListenerSetup(fn) {
+        paneCanvasListenerSetups.push(fn);
+    }
+    function setupPaneCanvasListeners(paneId) {
+        const canvasEl = document.getElementById(paneElId('canvas', paneId));
+        if (!canvasEl) return;
+        paneCanvasListenerSetups.forEach(fn => fn(canvasEl, paneId));
+    }
+
+    // Finishes bringing a BRAND-NEW pane (one switchActivePane just made active but that had no
+    // saved slot, so its live fields/DOM refs are still whatever the PREVIOUS pane's were) up to a
+    // real, independent starting state: resolves and assigns this pane's own DOM refs (the `let`
+    // canvas/world/dotLayer/cursorOverlay bindings can only be reassigned from within this module,
+    // which is why this lives here rather than in the caller) and resets every PANE_SCOPED_FIELDS
+    // entry to a fresh default — matching the plan's "the new pane gets its own camera/selection
+    // state from scratch" decision, not a copy of whichever pane it split off from. Must be called
+    // AFTER switchActivePane(paneId) has already made this pane active (so the reset writes land on
+    // the live appState.<field> slots, not some other pane's saved ones) and after that pane's own
+    // DOM (PaneCanvasArea.jsx) has actually mounted. Only call this for a pane with NO saved slot —
+    // switching back to a pane that already has one (Stage 6's close/reopen, if that's ever
+    // supported) should go through the normal switchActivePane restore path instead, not this reset.
+    function initializeNewPane(paneId, folderId = 'root') {
+        canvas = document.getElementById(paneElId('canvas', paneId));
+        world = document.getElementById(paneElId('world', paneId));
+        dotLayer = document.getElementById(paneElId('dot-layer', paneId));
+        cursorOverlay = document.getElementById(paneElId('cursor-overlay', paneId));
+        appState.tx = 0; appState.ty = 0; appState.scale = 1;
+        appState.currentFolderId = folderId;
+        appState.historyStack = [folderId]; appState.historyIndex = 0;
+        appState.tabs = [{ id: 'tab-0', folderId }]; appState.activeTabId = 'tab-0'; appState.nextTabId = 1;
+        appState.selectedCardIds = [];
+        appState.cardMode = 'normal'; appState.modeOverrideKey = null; appState.modeKeyHoldStart = null;
+        appState.dataLinkPendingId = null;
+        appState.cameraTweenTimeout = null;
+        appState.cursorBroadcastThrottleId = null; appState.itemDragBroadcastThrottleId = null;
+        appState.itemResizeBroadcastThrottleId = null; appState.caretBroadcastThrottleId = null;
+        setupPaneCanvasListeners(paneId);
+        // Sizes this pane's own #dot-layer-{paneId} against the live dotLayer binding (already
+        // repointed above) — layoutDotLayer (history-autosave.js, called via this bridge since
+        // that file imports FROM this one) otherwise only ever runs once at page load and on
+        // window resize, neither of which fires when a pane is split. Without this the new pane's
+        // dot grid box has no explicit size at all and never paints anything.
+        window.__layoutDotLayer?.();
+    }
+
+    // Brings a pane up to a SAVED state loaded from Supabase (loadWorkspace, history-autosave.js —
+    // explicit request: "tabs and window splits should persist across refreshes and log out/
+    // login"), rather than the fresh-defaults state initializeNewPane resets a brand-new pane to.
+    // Does both halves switchActivePane normally splits across two call sites itself: saves the
+    // CURRENTLY active pane's own live fields out to its own slot first (so a restore loop calling
+    // this once per pane in sequence correctly hands each earlier pane's own already-restored data
+    // back to its saved slot before moving on — the exact same "save outgoing, then take over live
+    // fields" shape switchActivePane already uses, just inlined here since paneId has no EXISTING
+    // saved slot yet for switchActivePane's own restore branch to find), then resolves paneId's own
+    // DOM refs directly (paneLayoutStore must already reflect the full restored tree — via
+    // window.__setPaneLayout, flushSync'd — before this runs, so PaneCanvasArea.jsx has actually
+    // mounted this pane's markup) and applies `savedFields` (whatever subset of tx/ty/scale/
+    // currentFolderId/historyStack/historyIndex/tabs/activeTabId/nextTabId the save actually had —
+    // each falls back to the same fresh-default initializeNewPane itself uses if missing, so a
+    // partially-saved or legacy pane still ends up in a valid state rather than undefined fields).
+    // Caller is responsible for the actual render()/renderTabsPanel-equivalent push afterward (via
+    // window.__render(), a bridge — same reasoning as initializeNewPane not calling render() itself)
+    // and for setting appState.nextPaneId high enough that a future real split can't collide with a
+    // restored paneId.
+    function restorePaneState(paneId, savedFields = {}) {
+        const outgoingId = appState.activePaneId;
+        if (outgoingId !== paneId) {
+            const outgoing = appState.panes[outgoingId] || (appState.panes[outgoingId] = {});
+            PANE_SCOPED_FIELDS.forEach(f => { outgoing[f] = appState[f]; });
+            outgoing.canvas = canvas; outgoing.world = world; outgoing.dotLayer = dotLayer; outgoing.cursorOverlay = cursorOverlay;
+        }
+        canvas = document.getElementById(paneElId('canvas', paneId));
+        world = document.getElementById(paneElId('world', paneId));
+        dotLayer = document.getElementById(paneElId('dot-layer', paneId));
+        cursorOverlay = document.getElementById(paneElId('cursor-overlay', paneId));
+        appState.tx = savedFields.tx ?? 0; appState.ty = savedFields.ty ?? 0; appState.scale = savedFields.scale ?? 1;
+        appState.currentFolderId = savedFields.currentFolderId || 'root';
+        appState.historyStack = savedFields.historyStack || [appState.currentFolderId];
+        appState.historyIndex = savedFields.historyIndex || 0;
+        appState.tabs = savedFields.tabs || [{ id: 'tab-0', folderId: appState.currentFolderId }];
+        appState.activeTabId = savedFields.activeTabId || appState.tabs[0].id;
+        appState.nextTabId = savedFields.nextTabId || 1;
+        appState.selectedCardIds = [];
+        appState.cardMode = 'normal'; appState.modeOverrideKey = null; appState.modeKeyHoldStart = null;
+        appState.dataLinkPendingId = null;
+        appState.cameraTweenTimeout = null;
+        appState.cursorBroadcastThrottleId = null; appState.itemDragBroadcastThrottleId = null;
+        appState.itemResizeBroadcastThrottleId = null; appState.caretBroadcastThrottleId = null;
+        delete appState.panes[paneId];
+        appState.activePaneId = paneId;
+        setupPaneCanvasListeners(paneId);
+        window.__layoutDotLayer?.();
+    }
+
+    // Pane ids (other than excludePaneId, default the live active pane) currently viewing folderId
+    // (default the live active pane's own currentFolderId) — an inactive pane's own currentFolderId
+    // lives in its saved slot (appState.panes), never a live field, same as switchActivePane's own
+    // comment explains; the active pane itself is checked against the live field directly, since it
+    // has no saved slot of its own while active. Backs render()'s own "sync siblings on commit"
+    // (waypoints-render-loop.js) and mirrorItemToSiblingPanes just below (live, per-pixel/per-
+    // keystroke mirroring) — both need exactly this same "who else is looking at this folder"
+    // answer, just at different granularities.
+    function otherPanesViewingFolder(folderId = appState.currentFolderId, excludePaneId = appState.activePaneId) {
+        return window.__listPaneIds().filter((paneId) => {
+            if (paneId === excludePaneId) return false;
+            const paneFolderId = paneId === appState.activePaneId ? appState.currentFolderId : (appState.panes[paneId] && appState.panes[paneId].currentFolderId);
+            return paneFolderId === folderId;
+        });
+    }
+
+    // Live cross-pane mirroring for anything that mutates a canvas item's DOM directly, DURING a
+    // gesture, outside React's own render cycle and outside render()'s own "sync on commit" (see its
+    // own comment, waypoints-render-loop.js) — explicit request: "movement is not live, only
+    // updating on release... i want it to be fully live. keystroke by keystroke, pixel by pixel
+    // movement while dragging." A drag/resize's own pointermove handler (canvasItemBehavior.js) and
+    // a contentEditable body's own oninput handler (attachNoteBody/attachWatermarkBody/
+    // attachTitleBody, waypoints-render-loop.js) already mutate the ACTIVE pane's own element on
+    // every tick/keystroke for local responsiveness — this runs `apply(el, paneId)` against
+    // itemId's own wrapper element in every OTHER pane currently viewing the same folder right
+    // alongside that, so a sibling pane's copy of the same item updates in the exact same tick
+    // rather than waiting for the gesture to end and render() to catch up. Silently no-ops per pane
+    // if that pane's own wrapper element doesn't exist (defensive only — every pane viewing a
+    // folder should always have one for every one of that folder's items).
+    function mirrorItemToSiblingPanes(itemId, apply, folderId = appState.currentFolderId, excludePaneId = appState.activePaneId) {
+        otherPanesViewingFolder(folderId, excludePaneId).forEach((paneId) => {
+            const el = document.getElementById(itemElId(itemId, paneId));
+            if (el) apply(el, paneId);
+        });
+    }
+
+    // Pane-qualifies one of the 5 canvas-area structural ids (canvas/world/dot-layer/cursor-
+    // overlay/items-layer) the same way PaneCanvasArea.jsx's own paneQualifyHtml does when it
+    // renders each pane's markup: pane 0 keeps the bare, unqualified id (see canvas/world/dotLayer/
+    // cursorOverlay's own comment, above, for why), every other pane gets "-{paneId}" appended.
+    // Needed anywhere vanilla code looks up one of these 5 by id directly rather than through the
+    // canvas/world/dotLayer/cursorOverlay `let` bindings themselves (e.g. items-layer, which has no
+    // binding of its own since only React ever reads it, via CanvasItemsLayer.jsx's portal).
+    function paneElId(staticId, paneId = appState.activePaneId) {
+        return paneId === 0 ? staticId : `${staticId}-${paneId}`;
+    }
+
     // Reserved space on the left for the permanent hamburger rail (#btn-menu — see --rail-width,
     // globals.css). #canvas's own box already starts to the right of it and #world's containing
     // block is #canvas (both position:absolute, #world is a DOM child) — so #world's coordinate
@@ -520,7 +803,38 @@
         return (window.innerWidth - RAIL_WIDTH - panelWidth) / 2;
     }
 
-export { addMenu, appState, bringCardToFront, btnAdd, btnBack, btnForward, canvas, canvasContextMenu, canvasViewportCenterX, contextMenu, cursorOverlay, dotLayer, drawBackBtn, drawColorInput, drawEraserBtn, drawFrontBtn, drawPenBtn, drawSettings, drawSizeInput, effectiveMode, recomputeTopCardZIndex, supabase, world, zoomControl, zoomFill, zoomThumb, zoomTrack };
+    // Canvas item DOM ids are pane-qualified ("item-{paneId}-{itemId}") for split-screen (multiple
+    // simultaneously-mounted panes, each with its own copy of any given item's element) — see the
+    // split-screen plan. paneId defaults to appState.activePaneId (Stage 4), not a hardcoded 0 —
+    // the vast majority of call sites are vanilla code responding to a direct user interaction
+    // (a context menu, a resize handle, a tag picker, connection-drag, ...), which by the time it
+    // runs is ALWAYS operating on whichever pane is currently active (the capture-phase pointerdown
+    // router, PaneGrid.jsx, guarantees that before any such handler ever fires) — so this default is
+    // correct for all of them with no per-call-site paneId threading needed, and is exactly the
+    // pre-split-screen behavior when there's only one pane (activePaneId is always 0). The one
+    // category that genuinely needs an EXPLICIT paneId instead of this default: React card
+    // components' own layout effects (NoteCard.jsx, TableCard.jsx, etc.) — a card can re-render for
+    // reasons unrelated to its pane being active, so those always pass their own paneId prop
+    // through explicitly rather than relying on this default. These three are the ONLY place this
+    // id format is spelled out — every lookup/assignment/parse in the app goes through one of them
+    // instead of constructing or parsing "item-..." strings inline.
+    function itemElId(itemId, paneId = appState.activePaneId) {
+        return 'item-' + paneId + '-' + itemId;
+    }
+    function findItemEl(itemId, paneId = appState.activePaneId) {
+        return document.getElementById(itemElId(itemId, paneId));
+    }
+    function parseItemId(el) {
+        const m = el && el.id && el.id.match(/^item-\d+-(\d+)$/);
+        return m ? Number(m[1]) : NaN;
+    }
+
+export { addMenu, appState, bringCardToFront, btnAdd, canvas, canvasContextMenu, canvasViewportCenterX, contextMenu, cursorOverlay, dotLayer, drawBackBtn, drawColorInput, drawEraserBtn, drawFrontBtn, drawPenBtn, drawSettings, drawSizeInput, effectiveMode, findItemEl, initializeNewPane, itemElId, mirrorItemToSiblingPanes, otherPanesViewingFolder, paneElId, parseItemId, recomputeTopCardZIndex, registerPaneCanvasListenerSetup, restorePaneState, setupPaneCanvasListeners, supabase, switchActivePane, world, zoomControl, zoomFill, zoomThumb, zoomTrack };
+
+// React → vanilla bridge — used by app/dotto/canvasItemBehavior.js (live drag/resize mirroring),
+// which can't import this directly since public/dotto/*.js isn't reachable from app/dotto/.
+window.__mirrorItemToSiblingPanes = mirrorItemToSiblingPanes;
+window.__otherPanesViewingFolder = otherPanesViewingFolder;
 
 // React → vanilla bridge — used by app/dotto/canvasItemBehavior.js's setupResizing (the first
 // piece of "canvas core" to move into app/dotto/, see CONTRIBUTING.md/the migration plan's Phase
@@ -533,3 +847,26 @@ window.__getAppState = () => appState;
 // piece), same reasoning as window.__getAppState just above.
 window.__bringCardToFront = bringCardToFront;
 window.__effectiveMode = effectiveMode;
+// Used by every React card component (CanvasCard.jsx, NoteCard.jsx, etc.) to look up its own
+// mounted DOM element by item id — see itemElId/findItemEl/parseItemId's own comment above.
+window.__findItemEl = findItemEl;
+window.__itemElId = itemElId;
+window.__parseItemId = parseItemId;
+// Used by the PaneGrid capture-phase pointerdown router (split-screen Stage 4+) to make "whichever
+// pane is active" track user focus/clicks — see switchActivePane's own comment above. Reachable
+// from this stage on, even though nothing calls it with a different paneId yet.
+window.__switchActivePane = switchActivePane;
+// Split-screen Stage 2: setupDraggingAndClicking/startConnectionDrag (app/dotto/canvasItemBehavior.js)
+// used to grab canvas/world via their own fresh document.getElementById("canvas"/"world") calls —
+// which happened to work fine with exactly one pane (there was only ever one #canvas/#world to
+// find), but silently breaks the moment a second pane's DOM exists (Stage 4+), since a bare
+// getElementById would always resolve to whichever pane's markup happens to be first in the
+// document, not necessarily the ACTIVE one canvas/world (the `let` bindings above) point to. Same
+// live-read reasoning as window.__getAppState — returns the CURRENT value of the `let` binding on
+// every call, so callers always see whichever pane is active right now with no separate sync step.
+window.__getCanvasEl = () => canvas;
+window.__getWorldEl = () => world;
+// Used by the debug split-pane trigger (split-screen Stage 4, dotto-app.jsx) to finish bringing a
+// brand-new pane up to a real starting state after switchActivePane has made it active — see
+// initializeNewPane's own comment above.
+window.__initializeNewPane = initializeNewPane;

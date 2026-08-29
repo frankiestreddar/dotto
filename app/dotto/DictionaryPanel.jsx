@@ -9,7 +9,11 @@ import { dictionaryPanelStore } from "./bridges";
 // real internal widget (multi-sense cycling via a closured `index`, hover-reveal side arrows, its
 // own drag-to-canvas wiring) — left fully vanilla rather than rewritten as JSX for this pass.
 export default function DictionaryPanel() {
-  const panel = useSyncExternalStore(dictionaryPanelStore.subscribe, dictionaryPanelStore.getSnapshot, () => null);
+  const panel = useSyncExternalStore(
+    dictionaryPanelStore.subscribe,
+    dictionaryPanelStore.getSnapshot,
+    () => null,
+  );
 
   useLayoutEffect(() => {
     const el = document.getElementById("search-dictionary");

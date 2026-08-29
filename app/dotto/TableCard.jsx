@@ -36,7 +36,8 @@ const TABLE_CELL_DRAG_THRESHOLD_PX = 4;
 function handleCellMouseDown(e) {
   const el = e.currentTarget;
   const wasFocused = document.activeElement === el;
-  const downX = e.clientX, downY = e.clientY;
+  const downX = e.clientX,
+    downY = e.clientY;
   let dragDetected = false;
   const onMove = (me) => {
     if (dragDetected) return;
@@ -53,7 +54,9 @@ function handleCellMouseDown(e) {
   window.addEventListener("mousemove", onMove);
   window.addEventListener("mouseup", cleanup);
   if (!wasFocused) {
-    setTimeout(() => { if (!dragDetected) window.__placeCaretEnd(el); }, 0);
+    setTimeout(() => {
+      if (!dragDetected) window.__placeCaretEnd(el);
+    }, 0);
   }
 }
 
@@ -81,10 +84,10 @@ function computeMergeGrid(mergedCells, numRows, numCols) {
 
 // userSized's wrapper class + distributeTableSizing, and setupResizing/setupTableGridResizing,
 // all need the wrapper element this component doesn't itself own — reached via
-// document.getElementById('item-'+it.id) each render, same technique TitleCard/NoteCard use.
-export default function TableCard({ it }) {
+// window.__findItemEl(it.id, paneId) each render, same technique TitleCard/NoteCard use.
+export default function TableCard({ it, paneId }) {
   useLayoutEffect(() => {
-    const el = document.getElementById("item-" + it.id);
+    const el = window.__findItemEl(it.id, paneId);
     if (!el) return;
     if (it.userSized) {
       el.classList.add("sized");
@@ -103,8 +106,14 @@ export default function TableCard({ it }) {
   // actually dragging a divider (see startTableColResize/startTableRowResize,
   // resize-shortcuts-init.js); this fallback is purely a render-time computation, nothing here
   // persists it.
-  const colWidths = Array.isArray(it.colWidths) && it.colWidths.length === numCols ? it.colWidths : new Array(numCols).fill(100 / numCols);
-  const rowHeights = Array.isArray(it.rowHeights) && it.rowHeights.length === numRows ? it.rowHeights : new Array(numRows).fill(100 / numRows);
+  const colWidths =
+    Array.isArray(it.colWidths) && it.colWidths.length === numCols
+      ? it.colWidths
+      : new Array(numCols).fill(100 / numCols);
+  const rowHeights =
+    Array.isArray(it.rowHeights) && it.rowHeights.length === numRows
+      ? it.rowHeights
+      : new Array(numRows).fill(100 / numRows);
   // Cumulative offsets — the left/top position (as a % of the table's own box) of each internal
   // divider, one fewer than the column/row count since the very last column/row has no divider
   // of its own past its trailing edge.
@@ -143,7 +152,11 @@ export default function TableCard({ it }) {
           mergeEdges.push({
             key: `mr${region.r1}-${region.c1}`,
             className: "table-merge-edge table-merge-edge-v",
-            style: { left: colLefts[region.c2 + 1] + "%", top: rowTops[region.r1] + "%", height: rowTops[region.r2 + 1] - rowTops[region.r1] + "%" },
+            style: {
+              left: colLefts[region.c2 + 1] + "%",
+              top: rowTops[region.r1] + "%",
+              height: rowTops[region.r2 + 1] - rowTops[region.r1] + "%",
+            },
             onClick: () => window.__mergeTableCells(it.id, region, rightRegion),
           });
         }
@@ -152,7 +165,11 @@ export default function TableCard({ it }) {
           mergeEdges.push({
             key: `mb${region.r1}-${region.c1}`,
             className: "table-merge-edge table-merge-edge-h",
-            style: { top: rowTops[region.r2 + 1] + "%", left: colLefts[region.c1] + "%", width: colLefts[region.c2 + 1] - colLefts[region.c1] + "%" },
+            style: {
+              top: rowTops[region.r2 + 1] + "%",
+              left: colLefts[region.c1] + "%",
+              width: colLefts[region.c2 + 1] - colLefts[region.c1] + "%",
+            },
             onClick: () => window.__mergeTableCells(it.id, region, bottomRegion),
           });
         }
@@ -168,7 +185,12 @@ export default function TableCard({ it }) {
             onMouseDown={handleCellMouseDown}
             onInput={(e) => window.updateTableCell(it.id, ri, ci, e.currentTarget)}
             onKeyDown={(e) => window.handleTableKeydown(e, it.id, ri, ci)}
-            onFocus={() => window.broadcastEditingState(true, `#item-${it.id} td[data-r="${ri}"][data-c="${ci}"]`)}
+            onFocus={() =>
+              window.broadcastEditingState(
+                true,
+                `#${window.__itemElId(it.id, paneId)} td[data-r="${ri}"][data-c="${ci}"]`,
+              )
+            }
             onBlur={() => window.broadcastEditingState(false)}
             dangerouslySetInnerHTML={{ __html: cell }}
           />
@@ -205,15 +227,33 @@ export default function TableCard({ it }) {
                 listener directly instead (same pattern already used there for '.resize'). */}
             {it.userSized &&
               mergeEdges.map((edge) => (
-                <div key={edge.key} className={edge.className} style={edge.style} onClick={edge.onClick} title="Delete border (merge cells)" />
+                <div
+                  key={edge.key}
+                  className={edge.className}
+                  style={edge.style}
+                  onClick={edge.onClick}
+                  title="Delete border (merge cells)"
+                />
               ))}
             {/* Per-column/row divider drags — separate from the corner .resize handle below,
                 which still resizes the WHOLE table. Wired up in the effect above
                 (setupTableGridResizing), not inline here, same split as .resize itself. */}
             {it.userSized &&
-              colDividerLefts.map((leftPct, i) => <div key={"cd" + i} className="table-col-resize-handle" style={{ left: leftPct + "%" }} />)}
+              colDividerLefts.map((leftPct, i) => (
+                <div
+                  key={"cd" + i}
+                  className="table-col-resize-handle"
+                  style={{ left: leftPct + "%" }}
+                />
+              ))}
             {it.userSized &&
-              rowDividerTops.map((topPct, i) => <div key={"rd" + i} className="table-row-resize-handle" style={{ top: topPct + "%" }} />)}
+              rowDividerTops.map((topPct, i) => (
+                <div
+                  key={"rd" + i}
+                  className="table-row-resize-handle"
+                  style={{ top: topPct + "%" }}
+                />
+              ))}
           </div>
         </div>
       </div>
@@ -228,7 +268,13 @@ export default function TableCard({ it }) {
         </div>
       </div>
       <div className="resize">
-        <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
+        <svg
+          viewBox="0 0 12 12"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="1.5"
+          strokeLinecap="round"
+        >
           <path d="M10 2L2 10M10 6L6 10M10 10L10 10" />
         </svg>
       </div>

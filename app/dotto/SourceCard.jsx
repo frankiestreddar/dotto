@@ -11,12 +11,12 @@ import { useLayoutEffect, useRef } from "react";
 // not present in the original flat markup (icon span and .source-card-info are direct siblings) —
 // kindIconFile (just the icon-filename lookup) is bridged instead so the same table stays the single
 // source of truth.
-export default function SourceCard({ it }) {
+export default function SourceCard({ it, paneId }) {
   const titleRef = useRef(null);
 
   // `el` is SourceCard's own wrapper, passed in explicitly — see CanvasCard.jsx's identical comment.
   useLayoutEffect(() => {
-    const el = document.getElementById("item-" + it.id);
+    const el = window.__findItemEl(it.id, paneId);
     if (el && titleRef.current) window.__attachSourceCardClick(el, it, titleRef.current);
   });
 

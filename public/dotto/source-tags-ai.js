@@ -1,6 +1,6 @@
 import { kindSize } from './add-menu.js';
 import { escapeHtml, stripHtml } from './ai-assistant-suggestions.js';
-import { appState, canvasViewportCenterX } from './core-state.js';
+import { appState, canvasViewportCenterX, findItemEl } from './core-state.js';
 import { resolveTableForEdit } from './drawing-connections.js';
 import { saveSnapshot, scheduleWorkspaceSave } from './history-autosave.js';
 import { closeAllPanels } from './panels-hamburger.js';
@@ -291,7 +291,7 @@ import { render } from './waypoints-render-loop.js';
             // The rendered page's own container is always keyed by the CURRENTLY OPEN source's
             // table id, not necessarily activeTagRow.id.
             const localTable = appState.folders[appState.currentFolderId] && appState.folders[appState.currentFolderId].items.find(i => i.kind === 'table');
-            const container = localTable && document.getElementById('item-' + localTable.id);
+            const container = localTable && findItemEl(localTable.id);
             if (container && container._resetRowTagHover) container._resetRowTagHover();
         }
         appState.activeTagRow = null;

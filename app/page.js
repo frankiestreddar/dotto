@@ -45,7 +45,9 @@ export default async function Home() {
   // missing column here fails this whole select, not just this one field.
   const { data: profile } = await supabase
     .from("profiles")
-    .select("id, username, display_name, avatar_url, avatar_id, total_score, login_streak, created_at")
+    .select(
+      "id, username, display_name, avatar_url, avatar_id, total_score, login_streak, created_at",
+    )
     .eq("id", user.id)
     .single();
 
@@ -87,7 +89,7 @@ export default async function Home() {
     FRAGMENT_NAMES.map((name) => [
       name,
       fs.readFileSync(path.join(fragmentsDir, `${name}.html`), "utf8"),
-    ])
+    ]),
   );
 
   return <DottoApp sections={sections} currentUser={currentUser} />;

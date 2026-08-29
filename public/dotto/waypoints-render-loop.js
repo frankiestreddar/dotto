@@ -1,5 +1,5 @@
 import { clearSearch } from './ai-assistant-suggestions.js';
-import { appState, btnAdd, btnBack, btnForward, canvas, canvasViewportCenterX, contextMenu, supabase, world, zoomControl } from './core-state.js';
+import { appState, btnAdd, canvas, canvasViewportCenterX, contextMenu, itemElId, mirrorItemToSiblingPanes, otherPanesViewingFolder, paneElId, parseItemId, supabase, switchActivePane, world, zoomControl } from './core-state.js';
 import { ensureDrawings, makeLayerSVG } from './drawing-connections.js';
 import { refreshCanvasCollabForCurrentFolder, renderCollabPill, syncCanvasCollabTitle } from './friends-presence.js';
 import { closeGameOptionsPanel, openGameOptionsPanel } from './games-flashcard-typeright.js';
@@ -7,7 +7,7 @@ import { renderFilesList, renderSourcesList } from './hamburger-collab.js';
 import { applyTransform, ensureSwTicking, saveSnapshot, scheduleWorkspaceSave, updateContextMenuPosition } from './history-autosave.js';
 import { broadcastEditingState, miniLabelForItem, placeCaretEnd, renderRealCardPreview, repositionAllRemoteCursors, syncColorPicker } from './live-presence.js';
 import { findNextFreeSlot } from './resize-shortcuts-init.js';
-import { buildOutline, ensureSharedFolderLoaded, renderBreadcrumbMapPanel, renderTabsPanel, sharedFolderKey, stripSharedFolderIds } from './shared-canvases-outline.js';
+import { buildOutline, ensureSharedFolderLoaded, renderBreadcrumbMapPanel, renderNavArrows, renderTabsPanel, sharedFolderKey, stripSharedFolderIds } from './shared-canvases-outline.js';
 import { closeSourceAddMenu } from './source-buttons-cursor-mode.js';
 import { closeCellTagPicker } from './source-tags-ai.js';
 import { applyConnections } from './srs-connections-core.js';
@@ -429,7 +429,7 @@ import { applyConnections } from './srs-connections-core.js';
         // No real `#item-X` wrapper to pin a remote caret indicator to for a sidebar row (it's not
         // a canvas element) — omitting targetSelector there just falls back to a plain floating
         // cursor for other viewers, same as the old breadcrumb-title rename always did.
-        broadcastEditingState(true, it.id != null ? `#item-${it.id} .${editingClass}` : undefined);
+        broadcastEditingState(true, it.id != null ? `#${itemElId(it.id)} .${editingClass}` : undefined);
         titleEl.focus();
         // Same caret-at-end-on-a-deferred-macrotask dance as the breadcrumb rename — see its own
         // comment for why the deferral is load-bearing (a pending native click-to-caret action
@@ -499,7 +499,7 @@ import { applyConnections } from './srs-connections-core.js';
     // Wires up a folder (Canvas) card's wrapper click routing — mechanically lifted out of the old
     // inline folder branch in renderLegacyCardBody now that folder is a real Component (see
     // CanvasCard.jsx). `el` is CanvasCard's wrapper, passed in explicitly (via
-    // document.getElementById('item-'+it.id)) rather than derived via closest() — see
+    // findItemEl(it.id)) rather than derived via closest() — see
     // attachWatermarkBody/attachTitleBody's own comments for why closest('.item') breaks on first
     // mount (child-before-parent layout effect ordering). `el.onclick =` is a plain assignment, not
     // addEventListener, so it's naturally idempotent across repeated calls — no AbortController
@@ -522,15 +522,30 @@ import { applyConnections } from './srs-connections-core.js';
     }
 
     // ---------- Main Canvas Render Loop ----------
-    function render() {
+    // Renders the CURRENTLY ACTIVE pane's own view from scratch — everything from here down to its
+    // closing brace is exactly what render() always was, unchanged. Split out under this name so
+    // render() itself (just below) can call it a second time per OTHER pane currently viewing the
+    // same folder, reusing switchActivePane's existing swap-in-place trick to "borrow" the live
+    // canvas/world/appState.currentFolderId bindings this function (and everything it calls —
+    // applyConnections, makeLayerSVG, window.__renderConnectionsLayer, etc.) already depends on,
+    // rather than threading a paneId through this whole function and everything downstream of it.
+    function renderOnce() {
         scheduleWorkspaceSave();
         clearSearch();
         // #items-layer (React-owned canvas item cards — see app/dotto/CanvasItemsLayer.jsx) is a
         // stable, permanent child of #world; only its siblings (drawing/connection SVG layers, the
         // isSource static-table div) get wiped and rebuilt here, in place of #world's own former
         // wholesale world.innerHTML='' (see the canvas-items-react plan, PHASE2_ROADMAP.md).
-        Array.from(world.children).forEach(child => { if (child.id !== 'items-layer') child.remove(); });
-        if(!appState.folders[appState.currentFolderId]) { window.__renderCanvasItems([]); return; }
+        Array.from(world.children).forEach(child => { if (child.id !== paneElId('items-layer')) child.remove(); });
+        // .media-viewer-fullscreen (isMediaViewer branch, below) is a direct child of `canvas`
+        // itself, not `world` — it needs to fill the pane's own real, explicitly-sized canvas box
+        // (see .media-viewer-fullscreen's own comment, globals.css, for why `world` can't host it),
+        // so the world-wipe just above can't clean up a stale one left over from navigating away
+        // from a previous media-viewer folder. Wiped unconditionally, every render, same as world's
+        // own children — the isMediaViewer branch below re-adds a fresh one when it applies.
+        const staleViewer = canvas.querySelector(':scope > .media-viewer-fullscreen');
+        if (staleViewer) staleViewer.remove();
+        if(!appState.folders[appState.currentFolderId]) { window.__renderCanvasItems([], appState.activePaneId); return; }
         const folderObj = appState.folders[appState.currentFolderId];
         // Waypoints are private to whoever dropped them — even on a canvas shared with (or by)
         // other people, only the creator ever sees their own waypoint cards (see the 20260729
@@ -575,6 +590,47 @@ import { applyConnections } from './srs-connections-core.js';
 
         renderCollabPill();
 
+        // A file opened full-screen in its own tab (window.__openMediaViewerTab,
+        // shared-canvases-outline.js, explicit request/correction — "a new tab in the app... full
+        // screen and scrollable") — same "a folder that renders something completely different from
+        // the normal item canvas" shape folderObj.isSource already established just below, reusing
+        // that exact same toolbar-hiding/identity-camera setup. Appended directly to `canvas` (not
+        // `world`, unlike isSource's own static-table div) since it needs to fill the pane's own
+        // real, explicitly-sized canvas box — see .media-viewer-fullscreen's own comment,
+        // globals.css. window.__buildEpubViewer is a bridge (media-pdf-epub.js) rather than a direct
+        // import — that file already imports render() FROM this one, so importing back would be
+        // circular.
+        if (folderObj.isMediaViewer) {
+            canvas.classList.add('static-source');
+            btnAdd.style.display = 'none';
+            appState.modeToolbar.style.display = 'none';
+            zoomControl.style.display = 'none';
+            appState.tx = 0; appState.ty = 0; appState.scale = 1; applyTransform();
+            const item = folderObj.mediaItem;
+            const viewer = document.createElement('div');
+            viewer.className = 'media-viewer-fullscreen';
+            if (item.mediaType === 'video') {
+                viewer.innerHTML = `<video src="${item.mediaSrc}" controls autoplay></video>`;
+            } else if (item.mediaType === 'pdf') {
+                viewer.innerHTML = `<iframe src="${item.mediaSrc}" title="${item.mediaName || 'PDF'}"></iframe>`;
+            } else if (item.mediaType === 'epub') {
+                viewer.appendChild(window.__buildEpubViewer(item));
+            } else {
+                viewer.innerHTML = `<img src="${item.mediaSrc}" alt="${item.mediaName || ''}"/>`;
+            }
+            // --viewer-zoom (globals.css) — read from the folder object (the real, persistent
+            // owner of this pane's current zoom level, see renderMediaViewerZoom's own comment)
+            // rather than always starting at 1, so navigating away and back (or a sibling pane
+            // sync, render()'s own wrapper) doesn't silently reset a zoom the user already set.
+            viewer.style.setProperty('--viewer-zoom', folderObj.viewerZoom || 1);
+            canvas.appendChild(viewer);
+            renderNavArrows();
+            renderMediaViewerZoom(appState.activePaneId);
+            window.__renderCanvasItems([], appState.activePaneId);
+            return;
+        }
+        renderMediaViewerZoom(appState.activePaneId);
+
         if (folderObj.isSource) {
             canvas.classList.add('static-source');
             // Was appState.addToolbar (the #add-toolbar wrapper div around #btn-add) — that wrapper
@@ -592,15 +648,15 @@ import { applyConnections } from './srs-connections-core.js';
             }
             const el = document.createElement('div');
             el.className = 'item table static-table';
-            el.id = 'item-' + tableItem.id;
+            el.id = itemElId(tableItem.id);
             el.innerHTML = window.__renderStaticTableHTML(tableItem, appState.currentFolderId);
             world.appendChild(el);
             window.__attachStaticTableHoverZones(el, tableItem);
             window.__layoutSourceTableColumns(tableItem, el);
-            btnBack.disabled = appState.historyIndex === 0; btnForward.disabled = appState.historyIndex === appState.historyStack.length - 1;
+            renderNavArrows();
             // isSource folders never reach the real item list below — #items-layer must be told
             // there's nothing to show, or it would keep showing whatever the previous folder had.
-            window.__renderCanvasItems([]);
+            window.__renderCanvasItems([], appState.activePaneId);
             return;
         }
         canvas.classList.remove('static-source');
@@ -629,23 +685,23 @@ import { applyConnections } from './srs-connections-core.js';
         // layer stacking exactly. world.appendChild(frontLayer) below is correct as a plain append:
         // #items-layer is the only other real child left at that point, so appending still lands
         // frontLayer after it.
-        const itemsLayer = document.getElementById('items-layer');
+        const itemsLayer = document.getElementById(paneElId('items-layer'));
         world.insertBefore(backLayer, itemsLayer);
         world.insertBefore(window.__renderConnectionsLayer(folderObj, currentItems), itemsLayer);
 
         // React (app/dotto/CanvasItemsLayer.jsx) owns creating/keying/removing each item's wrapper
-        // <div id="item-{id}"> inside #items-layer — see the canvas-items-react plan in
+        // <div id={itemElId(id)}> inside #items-layer — see the canvas-items-react plan in
         // PHASE2_ROADMAP.md. This bridge call is a synchronous flushSync under the hood
         // (app/dotto-app.jsx), so every item's wrapper div (and, via each CanvasItem's
         // useLayoutEffect, its body content — see renderLegacyCardInto below) already exists in the
         // DOM by the time this call returns, matching the old synchronous
         // createElement+appendChild guarantee callers like the alt-duplicate-drag path in
         // drag-drop-chat.js depend on.
-        window.__renderCanvasItems(currentItems);
+        window.__renderCanvasItems(currentItems, appState.activePaneId);
 
         world.appendChild(frontLayer);
         if (appState.addingKind && appState.placementGhost) world.appendChild(appState.placementGhost);
-        btnBack.disabled = appState.historyIndex === 0; btnForward.disabled = appState.historyIndex === appState.historyStack.length - 1;
+        renderNavArrows();
 
         // Sync visual selected outlines state
         renderSelectedOutlines();
@@ -658,6 +714,34 @@ import { applyConnections } from './srs-connections-core.js';
         // to reappear, if that target no longer exists at all — e.g. the card was deleted out from
         // under them).
         repositionAllRemoteCursors();
+    }
+
+    // Live cross-pane sync (explicit request: "if you have two same pages open in split screen,
+    // doing something in one updates the other instantly"). appState.folders (items, drawings,
+    // connections, etc.) is genuinely shared, global state — NOT one of PANE_SCOPED_FIELDS
+    // (core-state.js) — so a card add/edit/move/delete already lands in data every pane can see;
+    // the actual gap was that renderOnce() above only ever rebuilds the ACTIVE pane's own DOM
+    // (#world/#canvas, whichever the live canvas/world bindings currently point at) and only ever
+    // pushes to that pane's own canvasItemsStore slot (window.__renderCanvasItems(...,
+    // appState.activePaneId)) — an inactive sibling pane looking at the exact same folder wouldn't
+    // see the change until IT next became active. render() itself is the one universal "something
+    // on this canvas changed" signal already — dozens of call sites across the app (item drag end,
+    // add/delete, realtime remote updates, etc.) all funnel through it — so hooking sibling-sync in
+    // HERE, once, covers every one of them for free instead of chasing down each call site.
+    // syncSiblings defaults true for every real caller; false is only ever used for the recursive
+    // per-sibling calls below, so this never cascades into checking siblings-of-siblings.
+    function render(syncSiblings = true) {
+        renderOnce();
+        if (!syncSiblings) return;
+        const targetFolderId = appState.currentFolderId;
+        const originalPaneId = appState.activePaneId;
+        otherPanesViewingFolder(targetFolderId, originalPaneId).forEach((paneId) => {
+            switchActivePane(paneId);
+            renderOnce();
+        });
+        // switchActivePane no-ops if already on the target, so this is only a real switch back
+        // when the loop above actually moved off originalPaneId.
+        if (appState.activePaneId !== originalPaneId) switchActivePane(originalPaneId);
     }
 
     // Wrapper <div> attributes every item gets regardless of kind — split out of the old single
@@ -716,7 +800,7 @@ import { applyConnections } from './srs-connections-core.js';
     // content, so typing and resizing the width both just reflow the text and the browser does the
     // rest, with zero JS measurement needed. No more "More…"/expand-collapse clipping toggle — a
     // note now always shows its full content.
-    function attachNoteBody(el, it) {
+    function attachNoteBody(el, it, paneId = appState.activePaneId) {
         const b = el.querySelector('.body');
         // Purely a read: keeps it.h in sync with the real rendered height for OTHER systems that
         // still read a card's height (collision detection when placing new cards, connection-line
@@ -734,7 +818,17 @@ import { applyConnections } from './srs-connections-core.js';
         b.onblur = (e) => { if(e.relatedTarget && (e.relatedTarget.closest('.format-bar') || e.relatedTarget.closest('.resize'))) return; el.classList.remove('editing'); it.html = b.innerHTML; appState.currentEditingEl = null; b.contentEditable = false; broadcastEditingState(false); b.scrollTop = 0; scheduleWorkspaceSave(); };
         // Live per-keystroke commit+sync — see the identical comment on the title body in
         // attachTitleBody.
-        b.oninput = () => { it.html = b.innerHTML; scheduleWorkspaceSave(); };
+        // Live per-keystroke commit + cross-pane mirror — explicit request that text edits be fully
+        // live (keystroke by keystroke) in any sibling pane viewing this same folder, not just once
+        // editing ends and render() next runs. it.html itself is shared data (updated above,
+        // already visible to a sibling the NEXT time IT re-renders) — mirrorItemToSiblingPanes just
+        // pushes the same innerHTML into that sibling's own `.body` element right now, this tick,
+        // rather than waiting.
+        b.oninput = () => {
+            it.html = b.innerHTML;
+            scheduleWorkspaceSave();
+            mirrorItemToSiblingPanes(it.id, (el) => { const siblingBody = el.querySelector('.body'); if (siblingBody) siblingBody.innerHTML = it.html; });
+        };
         b.onkeydown = (e) => { if (e.key === 'Escape') { e.preventDefault(); b.blur(); } };
         b.onfocus = () => { syncColorPicker(b); syncNoteFormatButtons(b); };
         b.addEventListener('keyup', () => { syncColorPicker(b); syncNoteFormatButtons(b); }, { signal });
@@ -742,7 +836,7 @@ import { applyConnections } from './srs-connections-core.js';
         el.onclick = (e) => {
             e.stopPropagation();
             if (appState.currentEditingEl !== el) saveSnapshot();
-            el.classList.add('editing'); if (!b.isContentEditable) { b.contentEditable = true; placeCaretEnd(b); broadcastEditingState(true, '#item-' + it.id); } appState.currentEditingEl = el;
+            el.classList.add('editing'); if (!b.isContentEditable) { b.contentEditable = true; placeCaretEnd(b); broadcastEditingState(true, '#' + itemElId(it.id, paneId)); } appState.currentEditingEl = el;
         };
         window.__setupResizing(el, it);
     }
@@ -816,20 +910,30 @@ import { applyConnections } from './srs-connections-core.js';
     // (WatermarkCard's own, which calls this) before its PARENT's (CanvasItem's, which is what
     // actually sets className="item watermark" via applyItemWrapperAttrs), so on first mount
     // closest('.item') ran too early and matched nothing, throwing on el.classList/el.onclick
-    // below. document.getElementById('item-'+it.id) (see WatermarkCard.jsx) doesn't have this
+    // below. findItemEl(it.id) (see WatermarkCard.jsx) doesn't have this
     // problem — the wrapper <div> itself already exists in the DOM by the time ANY layout effect
     // runs (React commits DOM mutations before firing effects), only its className is what's not
     // set yet.
-    function attachWatermarkBody(el, b, it) {
+    function attachWatermarkBody(el, b, it, paneId = appState.activePaneId) {
         b.onblur = (e) => { el.classList.remove('editing'); it.html = b.innerHTML; appState.currentEditingEl = null; b.contentEditable = false; broadcastEditingState(false); scheduleWorkspaceSave(); };
         // Live per-keystroke commit+sync — see the identical comment on the title body in
         // renderLegacyCardBody.
-        b.oninput = () => { it.html = b.innerHTML; scheduleWorkspaceSave(); };
+        // Live per-keystroke commit + cross-pane mirror — explicit request that text edits be fully
+        // live (keystroke by keystroke) in any sibling pane viewing this same folder, not just once
+        // editing ends and render() next runs. it.html itself is shared data (updated above,
+        // already visible to a sibling the NEXT time IT re-renders) — mirrorItemToSiblingPanes just
+        // pushes the same innerHTML into that sibling's own `.body` element right now, this tick,
+        // rather than waiting.
+        b.oninput = () => {
+            it.html = b.innerHTML;
+            scheduleWorkspaceSave();
+            mirrorItemToSiblingPanes(it.id, (el) => { const siblingBody = el.querySelector('.body'); if (siblingBody) siblingBody.innerHTML = it.html; });
+        };
         b.onkeydown = (e) => { if (e.key === 'Escape') { e.preventDefault(); b.blur(); } };
         el.onclick = (e) => {
             e.stopPropagation();
             if (appState.currentEditingEl !== el) saveSnapshot();
-            el.classList.add('editing'); if (!b.isContentEditable) { b.contentEditable = true; placeCaretEnd(b); broadcastEditingState(true, '#item-' + it.id); } appState.currentEditingEl = el;
+            el.classList.add('editing'); if (!b.isContentEditable) { b.contentEditable = true; placeCaretEnd(b); broadcastEditingState(true, '#' + itemElId(it.id, paneId)); } appState.currentEditingEl = el;
         };
     }
 
@@ -847,13 +951,23 @@ import { applyConnections } from './srs-connections-core.js';
     // idempotency fix as setupDraggingAndClicking/setupResizing: this runs on every render() call
     // (TitleCard's own layout effect has no dependency array, matching every converted kind), and
     // `b` is a persistent node reused across those calls, not recreated.
-    function attachTitleBody(el, b, it) {
+    function attachTitleBody(el, b, it, paneId = appState.activePaneId) {
         b.__titleListenerAbort?.abort();
         const { signal } = (b.__titleListenerAbort = new AbortController());
         b.onblur = (e) => { if(e.relatedTarget && (e.relatedTarget.closest('.format-bar'))) return; el.classList.remove('editing'); it.html = b.innerHTML; appState.currentEditingEl = null; b.contentEditable = false; broadcastEditingState(false); scheduleWorkspaceSave(); };
         // Live per-keystroke commit+sync — see the identical comment on the note body in
         // renderLegacyCardBody.
-        b.oninput = () => { it.html = b.innerHTML; scheduleWorkspaceSave(); };
+        // Live per-keystroke commit + cross-pane mirror — explicit request that text edits be fully
+        // live (keystroke by keystroke) in any sibling pane viewing this same folder, not just once
+        // editing ends and render() next runs. it.html itself is shared data (updated above,
+        // already visible to a sibling the NEXT time IT re-renders) — mirrorItemToSiblingPanes just
+        // pushes the same innerHTML into that sibling's own `.body` element right now, this tick,
+        // rather than waiting.
+        b.oninput = () => {
+            it.html = b.innerHTML;
+            scheduleWorkspaceSave();
+            mirrorItemToSiblingPanes(it.id, (el) => { const siblingBody = el.querySelector('.body'); if (siblingBody) siblingBody.innerHTML = it.html; });
+        };
         b.onkeydown = (e) => { if (e.key === 'Escape') { e.preventDefault(); b.blur(); } };
         b.onfocus = () => syncColorPicker(b);
         b.addEventListener('keyup', () => syncColorPicker(b), { signal });
@@ -861,15 +975,14 @@ import { applyConnections } from './srs-connections-core.js';
         el.onclick = (e) => {
             e.stopPropagation();
             if (appState.currentEditingEl !== el) saveSnapshot();
-            el.classList.add('editing'); if (!b.isContentEditable) { b.contentEditable = true; placeCaretEnd(b); broadcastEditingState(true, '#item-' + it.id); } appState.currentEditingEl = el;
+            el.classList.add('editing'); if (!b.isContentEditable) { b.contentEditable = true; placeCaretEnd(b); broadcastEditingState(true, '#' + itemElId(it.id, paneId)); } appState.currentEditingEl = el;
         };
     }
 
     function renderSelectedOutlines() {
         document.querySelectorAll('.item').forEach(el => {
-            const idStr = el.id.replace('item-', '');
-            if (idStr.startsWith('folder-')) return; // ignore static compiler assets
-            const id = parseInt(idStr);
+            const id = parseItemId(el);
+            if (Number.isNaN(id)) return; // merged-folder items (string "folder-N" ids) and non-canvas .item elements
             el.classList.toggle('selected', appState.selectedCardIds.includes(id));
         });
     }
@@ -920,7 +1033,7 @@ import { applyConnections } from './srs-connections-core.js';
     }
 
     function performMerge(source, targetEl) {
-        const tid = parseInt(targetEl.id.replace('item-', ''));
+        const tid = parseItemId(targetEl);
         const target = appState.folders[appState.currentFolderId].items.find(i => i.id === tid);
         if(!target || target.kind !== 'folder') return;
         saveSnapshot();
@@ -954,19 +1067,22 @@ import { applyConnections } from './srs-connections-core.js';
     }
 
     // Shared by every navigation entry point (opening a folder, back/forward, breadcrumb ".."):
-    // saves the OUTGOING folder's pan/zoom as folders[id].lastView (skipped for sources, which
-    // never remember one), switches currentFolderId, re-renders, then either restores the
-    // incoming folder's saved view or centers fresh on first-ever visit. Source folders always
-    // reset regardless — render() itself unconditionally forces tx/ty/scale back to a fixed
-    // 0/0/1 static transform for them (see the `folderObj.isSource` branch inside render()), so
-    // there's nothing to restore or center for a source here.
+    // saves the OUTGOING folder's pan/zoom as folders[id].lastView (skipped for sources/media-
+    // viewers, which never remember one), switches currentFolderId, re-renders, then either
+    // restores the incoming folder's saved view or centers fresh on first-ever visit. Source/
+    // media-viewer folders always reset regardless — render() itself unconditionally forces
+    // tx/ty/scale back to a fixed 0/0/1 static transform for them (see the `folderObj.isSource`/
+    // `folderObj.isMediaViewer` branches inside render()), so there's nothing to restore or
+    // center for either here — without this same exclusion, centerOnContent()'s own camera math
+    // (meant for a normal folder's real item positions) would run right after and stomp that
+    // fixed transform straight back out.
     function applyFolderView(folderId) {
         const outgoing = appState.folders[appState.currentFolderId];
-        if (outgoing && !outgoing.isSource) outgoing.lastView = { tx: appState.tx, ty: appState.ty, scale: appState.scale };
+        if (outgoing && !outgoing.isSource && !outgoing.isMediaViewer) outgoing.lastView = { tx: appState.tx, ty: appState.ty, scale: appState.scale };
         appState.currentFolderId = folderId;
         render();
         const target = appState.folders[folderId];
-        if (target && !target.isSource) {
+        if (target && !target.isSource && !target.isMediaViewer) {
             if (target.lastView) {
                 appState.tx = target.lastView.tx; appState.ty = target.lastView.ty; appState.scale = target.lastView.scale;
                 applyTransform();
@@ -992,7 +1108,86 @@ import { applyConnections } from './srs-connections-core.js';
         applyFolderView(folderId);
     }
 
-export { applyFolderView, applyItemWrapperAttrs, attachFolderCardClick, attachNoteBody, attachSourceCardClick, attachTitleBody, attachUniversalItemBehavior, attachWatermarkBody, attachWaypointCardBody, buildFolderInlineCanvas, cascadeDeleteFolderContents, centerOnContent, deleteCanvasCollabsForFolder, deleteWaypointCardEverywhere, deleteWaypointFromDb, expandWaypointCard, folderGlobalId, folderTitle, openFolder, performMerge, render, renderSelectedOutlines, startBoxSelection, startRenameFolderCardTitle, syncNoteFormatButtons, syncWaypointToDb };
+    // Drops a Files-panel row onto a pane's own canvas (window.__spawnMediaItemAt,
+    // FilesListPanel.jsx's new drag gesture — explicit request: "dragging a file from the sidebar
+    // onto canvas places it on canvas"). Spawns a genuinely NEW item (a fresh id, kind:'media')
+    // copying `source`'s own media fields rather than moving it — `source` stays exactly where it
+    // already lives, same "drag copies, doesn't relocate" behavior the Blocks panel's own drag-into-
+    // folder gesture already established for a different kind of row. Same screen→world conversion
+    // formula placementGhostWorldPos (copy-paste.js) already uses for click-to-place — canvas/
+    // appState.tx/ty/scale only ever describe the ACTIVE pane's own live camera, so a drop on a
+    // different (inactive) pane activates it first (same "interacting with a pane's own UI focuses
+    // that pane" convention every other per-pane action in this codebase follows), which is what
+    // makes `canvas`/`appState.tx/ty/scale` resolve to THAT pane's own values by the time this reads
+    // them. w/h copied from `source` (not a fresh default size) so the dropped copy looks the same
+    // size as the row it came from; docAspectRatio carried over too, for a dropped PDF/media card
+    // whose own aspect lock (setupResizing's media branch, canvasItemBehavior.js) depends on it.
+    function spawnMediaItemAt(source, clientX, clientY, paneId = appState.activePaneId) {
+        if (paneId !== appState.activePaneId) switchActivePane(paneId);
+        if (!appState.folders[appState.currentFolderId]) return;
+        const rect = canvas.getBoundingClientRect();
+        const w = source.w || 340, h = source.h || 440;
+        const x = Math.round((((clientX - rect.left - appState.tx) / appState.scale) - w / 2) / 28) * 28;
+        const y = Math.round((((clientY - rect.top - appState.ty) / appState.scale) - h / 2) / 28) * 28;
+        const item = {
+            id: appState.idCounter++, x, y, w, h, kind: 'media',
+            mediaType: source.mediaType, mediaSrc: source.mediaSrc, mediaName: source.mediaName,
+            // Copies `source`'s own mediaFileId rather than minting a fresh one — this new card is
+            // another instance of the SAME uploaded file (explicit request/bug report: dragging a
+            // file onto canvas was silently duplicating it in the Files sidebar), not a new upload.
+            // Keeping the same id is what lets renderFilesList (hamburger-collab.js) correctly
+            // recognize both cards as one file and only ever show a single row for it, while the
+            // Outline panel (which has no dedup logic of its own) keeps listing every card
+            // instance individually, per explicit request.
+            mediaFileId: source.mediaFileId,
+        };
+        if (source.docAspectRatio) item.docAspectRatio = source.docAspectRatio;
+        appState.folders[appState.currentFolderId].items.push(item);
+        render();
+        scheduleWorkspaceSave();
+    }
+
+    // Media-viewer zoom, one per pane (window.__mediaViewerZoomStore, app/dotto/PaneZoomBar.jsx —
+    // explicit request/spec: "allow zooming in and out of the document, with the default 100% zoom
+    // being the document at 100% width of the window"). paneId defaults to the live active pane,
+    // same reasoning as renderNavArrows/renderCollabPill's own default — only ever meaningful for
+    // whichever pane is currently active while called from render()'s per-frame loop, but also
+    // called explicitly from switchActivePane (core-state.js) so a newly-active pane's own zoom
+    // doesn't wait a frame. Reads the REAL zoom value off the folder object itself
+    // (folderObj.viewerZoom) — this store is just the React-facing mirror of it (see its own
+    // comment, bridges.js).
+    function renderMediaViewerZoom(paneId = appState.activePaneId) {
+        const folderId = paneId === appState.activePaneId ? appState.currentFolderId : (appState.panes[paneId] && appState.panes[paneId].currentFolderId);
+        const folderObj = appState.folders[folderId];
+        window.__setMediaViewerZoom(paneId, { show: !!(folderObj && folderObj.isMediaViewer), zoom: (folderObj && folderObj.viewerZoom) || 1 });
+    }
+
+    // Applies a NEW zoom level to an already-open media-viewer tab (PaneZoomBar.jsx's +/-/reset
+    // buttons) WITHOUT going through a full render() — a full render() would tear down and rebuild
+    // the whole .media-viewer-fullscreen div (see the isMediaViewer branch above), which for an
+    // <iframe> (a PDF's own native viewer) or the epub.js-owned .epub-viewer would reset its
+    // internal scroll position/reading location on every single zoom click. Instead this directly
+    // restyles the ALREADY-LIVE viewer element's own --viewer-zoom custom property (globals.css) in
+    // place, same "mutate the DOM directly, skip render()" shape the live drag/resize mirroring
+    // (mirrorItemToSiblingPanes, core-state.js) already established this session for the identical
+    // reason. Clamped to a sane 25%-400% range. No-ops if the target pane's current folder isn't
+    // actually a media-viewer (stale click racing a navigation away, extremely unlikely but cheap
+    // to guard).
+    const MEDIA_VIEWER_ZOOM_MIN = 0.25, MEDIA_VIEWER_ZOOM_MAX = 4;
+    function setMediaViewerZoom(paneId, zoom) {
+        const clamped = Math.max(MEDIA_VIEWER_ZOOM_MIN, Math.min(MEDIA_VIEWER_ZOOM_MAX, zoom));
+        const folderId = paneId === appState.activePaneId ? appState.currentFolderId : (appState.panes[paneId] && appState.panes[paneId].currentFolderId);
+        const folderObj = appState.folders[folderId];
+        if (!folderObj || !folderObj.isMediaViewer) return;
+        folderObj.viewerZoom = clamped;
+        const canvasEl = document.getElementById(paneElId('canvas', paneId));
+        const viewer = canvasEl && canvasEl.querySelector(':scope > .media-viewer-fullscreen');
+        if (viewer) viewer.style.setProperty('--viewer-zoom', clamped);
+        window.__setMediaViewerZoom(paneId, { show: true, zoom: clamped });
+        scheduleWorkspaceSave();
+    }
+
+export { applyFolderView, applyItemWrapperAttrs, attachFolderCardClick, attachNoteBody, attachSourceCardClick, attachTitleBody, attachUniversalItemBehavior, attachWatermarkBody, attachWaypointCardBody, buildFolderInlineCanvas, cascadeDeleteFolderContents, centerOnContent, deleteCanvasCollabsForFolder, deleteWaypointCardEverywhere, deleteWaypointFromDb, expandWaypointCard, folderGlobalId, folderTitle, openFolder, performMerge, render, renderMediaViewerZoom, renderSelectedOutlines, setMediaViewerZoom, spawnMediaItemAt, startBoxSelection, startRenameFolderCardTitle, syncNoteFormatButtons, syncWaypointToDb };
 
 // React → vanilla bridge, the other direction from window-bridge.js (which is specifically the
 // ~107 auto-generated inline onclick="..." names — see its own header comment). CanvasItem
@@ -1022,3 +1217,9 @@ window.__openFolder = openFolder;
 window.__performMerge = performMerge;
 window.__render = render;
 window.__renderSelectedOutlines = renderSelectedOutlines;
+// React → vanilla bridge — used by FilesListPanel.jsx's drag-onto-canvas gesture.
+window.__spawnMediaItemAt = spawnMediaItemAt;
+// React → vanilla bridges — used by PaneZoomBar.jsx and switchActivePane (core-state.js, the
+// latter via a bridge rather than a direct import since core-state.js is imported BY this file).
+window.__renderMediaViewerZoom = renderMediaViewerZoom;
+window.__setMediaViewerZoomLevel = setMediaViewerZoom;

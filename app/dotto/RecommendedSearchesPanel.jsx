@@ -7,7 +7,11 @@ import { recommendedSearchesStore } from "./bridges";
 // Mounts buildRecommendedSearchesRows's vanilla-built rows into #search-recommended — see
 // TranslationPanel.jsx for the full reasoning (identical pattern, different panel/builder).
 export default function RecommendedSearchesPanel() {
-  const panel = useSyncExternalStore(recommendedSearchesStore.subscribe, recommendedSearchesStore.getSnapshot, () => null);
+  const panel = useSyncExternalStore(
+    recommendedSearchesStore.subscribe,
+    recommendedSearchesStore.getSnapshot,
+    () => null,
+  );
 
   useLayoutEffect(() => {
     const el = document.getElementById("search-recommended");

@@ -20,7 +20,13 @@ function folderIconStyle() {
 
 function RequestsRow({ count }) {
   return (
-    <div className="outline-item requests-row" onClick={(e) => { e.stopPropagation(); window.__openHubCollabRequestsView(); }}>
+    <div
+      className="outline-item requests-row"
+      onClick={(e) => {
+        e.stopPropagation();
+        window.__openHubCollabRequestsView();
+      }}
+    >
       <span className="outline-label">Requests</span>
       <span className="requests-count">{count}</span>
     </div>
@@ -61,9 +67,16 @@ function OwnedCanvasRow({ c, selected }) {
       </span>
       <div className="collab-avatars">
         {shown.map((f) => (
-          <Avatar key={f.id} className="collab-avatar" avatar={{ id: f.avatarId, url: f.avatarUrl }} name={f.displayName} />
+          <Avatar
+            key={f.id}
+            className="collab-avatar"
+            avatar={{ id: f.avatarId, url: f.avatarUrl }}
+            name={f.displayName}
+          />
         ))}
-        {c.collaborators.length > 3 && <div className="collab-avatar collab-more">+{c.collaborators.length - 3}</div>}
+        {c.collaborators.length > 3 && (
+          <div className="collab-avatar collab-more">+{c.collaborators.length - 3}</div>
+        )}
       </div>
       {/* Overlays on top of .collab-avatars' own right-edge position on hover (both want the same
           spot) — an accepted first-pass overlap for now, same as every other row type's own share
@@ -96,7 +109,11 @@ function SharedCanvasRow({ c, selected }) {
         <span className="hub-collab-row-owner">Owned by {c.ownerName}</span>
       </div>
       <div className="collab-avatars">
-        <Avatar className="collab-avatar" avatar={{ id: c.ownerAvatarId, url: c.ownerAvatarUrl }} name={c.ownerName} />
+        <Avatar
+          className="collab-avatar"
+          avatar={{ id: c.ownerAvatarId, url: c.ownerAvatarUrl }}
+          name={c.ownerName}
+        />
       </div>
       <RowActions />
     </div>
@@ -105,7 +122,13 @@ function SharedCanvasRow({ c, selected }) {
 
 function BackRow() {
   return (
-    <div className="requests-back-row" onClick={(e) => { e.stopPropagation(); window.__backToHubCollabMain(); }}>
+    <div
+      className="requests-back-row"
+      onClick={(e) => {
+        e.stopPropagation();
+        window.__backToHubCollabMain();
+      }}
+    >
       <span>&larr;</span>
       <span>Requests</span>
     </div>
@@ -120,10 +143,22 @@ function RequestRow({ req }) {
         <div className="collab-row-sub">from {req.ownerName}</div>
       </div>
       <div style={{ display: "flex", gap: "6px" }}>
-        <button className="msg-add-btn hub-collab-accept" onClick={(e) => { e.stopPropagation(); window.__respondToHubCollabRequest(req.id, true); }}>
+        <button
+          className="msg-add-btn hub-collab-accept"
+          onClick={(e) => {
+            e.stopPropagation();
+            window.__respondToHubCollabRequest(req.id, true);
+          }}
+        >
           Accept
         </button>
-        <button className="msg-add-btn hub-collab-decline" onClick={(e) => { e.stopPropagation(); window.__respondToHubCollabRequest(req.id, false); }}>
+        <button
+          className="msg-add-btn hub-collab-decline"
+          onClick={(e) => {
+            e.stopPropagation();
+            window.__respondToHubCollabRequest(req.id, false);
+          }}
+        >
           Decline
         </button>
       </div>
@@ -136,8 +171,16 @@ function RequestRow({ req }) {
 // ITSELF (vs. outline/waypoints) and which sub-view is showing (hubCollabView) stay vanilla —
 // this component only owns the row list for whichever view is currently active.
 export default function HubCollabListPanel() {
-  const state = useSyncExternalStore(hubCollabListStore.subscribe, hubCollabListStore.getSnapshot, () => EMPTY_STATE);
-  const selection = useSyncExternalStore(listPanelSelectionStore.subscribe, listPanelSelectionStore.getSnapshot, () => EMPTY_SELECTION);
+  const state = useSyncExternalStore(
+    hubCollabListStore.subscribe,
+    hubCollabListStore.getSnapshot,
+    () => EMPTY_STATE,
+  );
+  const selection = useSyncExternalStore(
+    listPanelSelectionStore.subscribe,
+    listPanelSelectionStore.getSnapshot,
+    () => EMPTY_SELECTION,
+  );
   const selectedIds = selection.panel === "collaborations" ? selection.ids : EMPTY_IDS;
   const portalNode = usePortalNode("hub-collab-list");
 
@@ -164,11 +207,21 @@ export default function HubCollabListPanel() {
       {state.requestsCount > 0 && <RequestsRow count={state.requestsCount} />}
       {hasRows ? (
         <>
-          {state.ownedShown.map((c) => <OwnedCanvasRow key={c.folderId} c={c} selected={selectedIds.has("owned:" + c.folderId)} />)}
-          {state.sharedShown.map((c) => <SharedCanvasRow key={c.id} c={c} selected={selectedIds.has("shared:" + c.id)} />)}
+          {state.ownedShown.map((c) => (
+            <OwnedCanvasRow
+              key={c.folderId}
+              c={c}
+              selected={selectedIds.has("owned:" + c.folderId)}
+            />
+          ))}
+          {state.sharedShown.map((c) => (
+            <SharedCanvasRow key={c.id} c={c} selected={selectedIds.has("shared:" + c.id)} />
+          ))}
         </>
       ) : (
-        <div className="outline-empty">{state.query ? "No matching canvases." : "No collaborations yet."}</div>
+        <div className="outline-empty">
+          {state.query ? "No matching canvases." : "No collaborations yet."}
+        </div>
       )}
     </>,
     portalNode,

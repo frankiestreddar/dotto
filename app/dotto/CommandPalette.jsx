@@ -14,7 +14,10 @@ function CommandRow({ row, index }) {
     <div
       className="command-palette-row"
       data-index={index}
-      onClick={(e) => { e.stopPropagation(); window.__selectCommandRow(row); }}
+      onClick={(e) => {
+        e.stopPropagation();
+        window.__selectCommandRow(row);
+      }}
     >
       <span className="command-palette-row-label">{row.label}</span>
       <span className="command-palette-row-sublabel">{row.sublabel}</span>
@@ -28,7 +31,11 @@ function CommandRow({ row, index }) {
 // display:block/none (driven by the layout effect below) participates in exactly like every
 // other panel there.
 export default function CommandPalette() {
-  const state = useSyncExternalStore(commandPaletteStore.subscribe, commandPaletteStore.getSnapshot, () => null);
+  const state = useSyncExternalStore(
+    commandPaletteStore.subscribe,
+    commandPaletteStore.getSnapshot,
+    () => null,
+  );
   const portalNode = usePortalNode("search-command-palette");
 
   useLayoutEffect(() => {
