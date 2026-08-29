@@ -9,13 +9,16 @@
   by deep hub dependencies (not just their own fan-in) — see its own section below. Revisit
   individual files as their blocking hub dependency lands in a later phase, but don't keep
   grinding on this phase in isolation; Phase 4.2 is the actual next productive step.
-- **Phase 4.2 — utility extraction from hub files: in progress.** 2 of 3 original targets done:
-  SM-2 (`calculateSM2`/`defaultSrsState`/`diffRatings`, from `srs-connections-core.js` into
-  `public/dotto/srs-algorithm.js`) and `escapeHtml`/`stripHtml` (from `ai-assistant-suggestions.js`
-  into `public/dotto/text-utils.js`), 21 new Vitest unit tests total (zero coverage before this).
-  See its own section below for a real correction to how this phase was originally scoped, and a
-  real importability gotcha (`core-state.js`'s module-level DOM lookups) caught while doing the
-  second extraction. Remaining: achievement-scoring out of `profile-achievements-pricing.js`.
+- **Phase 4.2 — utility extraction from hub files: done.** All 3 original targets addressed: SM-2
+  (`calculateSM2`/`defaultSrsState`/`diffRatings`, from `srs-connections-core.js` into
+  `public/dotto/srs-algorithm.js`), `escapeHtml`/`stripHtml` (from `ai-assistant-suggestions.js`
+  into `public/dotto/text-utils.js`), and achievement-scoring (`calculateUserLevel`, turned out to
+  already be cleanly separated in `lib/leveling.js` — just needed test coverage + a drift check
+  against its vanilla duplicate, not a real extraction). 30 new Vitest unit tests total across the
+  three (zero coverage on any of this before Phase 4.2). See its own section below for a real
+  correction to how this phase was originally scoped, and a real importability gotcha
+  (`core-state.js`'s module-level DOM lookups breaking Vitest imports) caught while doing the
+  second extraction.
 - **Phase 4.3 — split multi-concern files: not started.**
 - **Phase 4.4 — port split-out concerns + remaining DOM-heavy files: not started.**
 - **Phase 4.5 — architectural/hub files: not started.**
@@ -319,9 +322,28 @@ and others with zero/near-zero DOM touches.
    that (or making those lookups defensive/deferred) is worth keeping in mind as part of that
    phase's own scope, not just "move `appState` into a store."
 
-   Remaining Phase 4.2 target: achievement-scoring out of `profile-achievements-pricing.js` — same
-   vanilla-to-vanilla extraction pattern, same importability check needed before assuming it's
-   test-friendly.
+   Third target, achievement-scoring out of `profile-achievements-pricing.js` — turned out not to
+   need an extraction at all. `calculateUserLevel`/`scoreRequiredForLevel` (the actual pure
+   scoring logic — level/tier from cumulative score) already has a canonical, standalone,
+   zero-appState-dependency home: `lib/leveling.js`, a genuine Next.js `/lib` module (not
+   `public/dotto/`) already exported and presumably consumed server-side. The vanilla copy in
+   `profile-achievements-pricing.js` is a pre-existing, already-documented deliberate duplicate
+   ("canonical source is `lib/leveling.js`... duplicated here verbatim because this is a classic,
+   non-module script that can't import it" — its own comment, predates Phase 4 entirely), not a
+   Phase-4-created problem to fix. Real value found instead: spot-checked the vanilla copy's
+   constants (`LEVEL_NAMES`/`SUB_RANKS_PER_TIER`/`LEVEL_GROWTH_RATE`/`LEVEL_BASE_POINTS`, all on
+   `appState`, `core-state.js`) against `lib/leveling.js`'s own module-level constants and
+   confirmed **zero drift** — both sides genuinely in sync as of this commit, a real (if
+   unglamorous) professionalization check worth having done. Added the actually-missing piece:
+   `lib/leveling.js` had zero test coverage despite being real, already-portable app code — 11 new
+   Vitest unit tests in `lib/leveling.test.js`, colocated directly with the source (unlike the
+   `test/vanilla/` files above, `lib/` isn't served as a static asset the way `public/` is, so
+   normal colocation is fine here) covering tier-name/sub-level-count sanity, a fresh account's
+   starting state, negative/null/undefined/fractional score handling, tier-boundary naming,
+   max-level capping, `progressPercentage` bounds and monotonic increase within a level, and
+   overall score-to-level monotonicity. **Phase 4.2 is now fully done** — all 3 original targets
+   addressed (2 real extractions + 1 "already correctly separated, just needed tests + a drift
+   check").
 3. **Phase 4.3 — split multi-concern files** (mechanical, no logic change, structurally verified):
    `shared-canvases-outline.js` → outline-tree / tab-management / split-pane-management /
    shared-and-public-canvas-loading; `resize-shortcuts-init.js` → its 3 concerns;
@@ -453,3 +475,16 @@ UI exposure (`escapeHtml` feeds directly into `search-panel-history.js`'s render
 Playwright test: typed a literal `<script>alert(1)</script>` into the search-history box, pressed
 Enter, and confirmed the rendered row has it HTML-escaped (`&lt;script&gt;`), not present as
 executable markup, with zero page errors.
+
+**Phase 4.2 (leveling — closes out the phase)**: no vanilla files touched this time (only a new
+`lib/leveling.test.js`), so no `node --check` needed; `eslint` clean, a full clean
+`typecheck`/`format:check`/`build` pass, and all 32 Vitest tests passing (11 new leveling ones —
+tier-name/sub-level-count sanity, fresh-account starting state, negative/null/undefined/fractional
+score handling, a real tier-boundary name check found by walking `calculateUserLevel` itself
+rather than re-deriving the geometric-series threshold formula independently, max-level capping
+at 180 for an astronomically large score, `progressPercentage` bounds (0 at a level's own
+threshold, 100 at max, strictly between while mid-level) and monotonic increase within a level,
+and overall score-to-level monotonicity across an irregular sampling of scores — plus the 21 from
+the two earlier extractions, all still green). Also manually cross-checked the vanilla duplicate's
+5 constants (`LEVEL_NAMES`/`SUB_RANKS_PER_TIER`/`LEVEL_GROWTH_RATE`/`LEVEL_BASE_POINTS`,
+`core-state.js`) against `lib/leveling.js`'s own — byte-identical, zero drift found.
