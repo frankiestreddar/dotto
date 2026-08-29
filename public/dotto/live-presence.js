@@ -13,7 +13,6 @@ import { awardUserPoints, renderAvatarInto } from './profile-achievements-pricin
 import { kindIconHTML } from './outline-tree.js';
 import { renderTableHTML } from './source-table.js';
 import { renderStopwatchHTML } from './stopwatch.js';
-import { renderShelfHTML } from './shelf-search.js';
 import { render } from './waypoints-render-loop.js';
 
 
@@ -984,7 +983,7 @@ import { render } from './waypoints-render-loop.js';
         } else if (it.kind === 'stopwatch') {
             el.innerHTML = renderStopwatchHTML(it);
         } else if (it.kind === 'shelf') {
-            el.innerHTML = renderShelfHTML(it);
+            el.innerHTML = window.__renderShelfHTML(it);
         } else {
             el.innerHTML = `<div class="body">${it.html || ''}</div>`;
         }
@@ -1512,3 +1511,5 @@ window.__findItemById = findItemById;
 // Used by app/dotto/lib/marketplace.ts's packageSelectedAsTemplate (Phase 4.4).
 window.__snapshotItem = snapshotItem;
 window.__sanitizeFlashcardSnapshot = sanitizeFlashcardSnapshot;
+// Used by app/dotto/lib/shelfSearch.ts's startRenameShelfName/startRenameShelfSourceRow (Phase 4.4).
+window.__broadcastEditingState = broadcastEditingState;

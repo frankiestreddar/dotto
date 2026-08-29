@@ -179,6 +179,29 @@
   4th (`window.deployPurchasedTemplate`, no `__` prefix) was genuinely dead — only
   `window.__deployPurchasedTemplate` was ever actually called (ItemDetailFooter.jsx) — dropped
   rather than recreated.
+  `shelf-search.js` (330 lines) ported next to `app/dotto/lib/shelfSearch.ts` — the Shelf/Stack
+  card (aggregating connected sources + saved stopwatch sessions, with its own in-card row
+  search), the Filter card's tag-toggling, and the top search bar's autogrow + its AI-context
+  "drag cards in as context" popup. `renderShelfHTML` still builds a real HTML string with inline
+  `onclick="..."` attributes (live-presence.js's mini inline-canvas previews render it directly) —
+  those 5 globals (`startRenameShelfName`/`shelfSelectSession`/`handleShelfSourceRowClick`/
+  `startRenameShelfSourceRow`/`filterShelfRows`) kept their exact plain (non-`__`) names, same
+  convention `window-bridge.js` used for them before this port; 5 more (`closeSearchCardsModal`/
+  `setFilterMode`/`toggleFilterTag`/`openSearchCardsModal`/`clearSearchCardContext`) likewise.
+  9 new bridges added for still-vanilla dependencies with no bridge yet
+  (`__folderIdForConnectedSource`/`__syncCanvasCollabTitle`/`__broadcastEditingState`, plus 6 more
+  that already existed at runtime but had genuinely never been typed —
+  `__ensureConnections`/`__folderTitleForConnectedSource`/`__scheduleWorkspaceSave`/`__itemElId`/
+  `__escapeHtml`/`__renderInlineCanvas` — since no prior `.ts` file had touched them). Caught and
+  fixed 2 real bridge omissions of its own during the pre-verification comment sweep — a
+  discipline step that's paid off before, but this time genuinely caught something a
+  typecheck/build pass alone could NOT have: `renderShelfHTML` (still needed by live-presence.js)
+  and `autoGrowSearchInput` (needed by 2 files, several call sites) were both fully implemented and
+  exported from the new file but never actually assigned to a `window.*` bridge, so
+  `node --check`/`eslint`/`tsc`/`next build` all stayed green while the real call sites would have
+  silently called `undefined` at runtime — caught only by grepping for leftover references to the
+  old filename across the repo and finding these two still-real imports, not by any automated
+  check.
 - **Phase 4.5 — architectural/hub files: not started.**
 - **Phase 4.6 — delete the bridge layer: not started.**
 - **Phase 4.7 — final cleanup & professionalization close-out: not started.**
@@ -873,3 +896,31 @@ against an already-cached library entry, no write) correctly spawned a real canv
 right content. Zero console/page errors. Re-checked the account afterward to confirm the spawned
 card, the mock purchased-library entry, and `selectedMarketItem` were all cleaned up with no
 residue.
+
+**Phase 4.4 (`shelf-search.js` → `app/dotto/lib/shelfSearch.ts`)**: `node --check` on all touched
+vanilla files, `eslint` clean (zero errors or warnings), a full clean `rm -rf .next next-env.d.ts
+tsconfig.tsbuildinfo && npm run typecheck && npm run build` pass — typecheck caught 6 real errors
+on the first pass: 3 more "bridge exists at runtime but was never declared" (`__scheduleWorkspaceSave`,
+`closeSearchCardsModal` — this one genuinely forgotten in the ambient types even though its own
+JSDoc comment already described it), plus a `FolderObj` interface missing the `connections` field
+`__ensureConnections` needs, `npm run format:check` clean, all 32 Vitest tests still green. Real
+Playwright verification against a fresh dev server, deliberately targeting the highest-risk new
+surface (real HTML-string generation + contentEditable flows, a category this migration hadn't
+ported before): `renderShelfHTML` produced correct output for a mock session including real HTML-
+escaping of a `<script>` tag in the shelf name; `filterShelfRows` correctly showed/hid real DOM
+rows by a live search value; `startRenameShelfName` drove a genuine `contentEditable` flow on a
+mock Shelf card's own rendered `.shelf-header` element, confirming the rename actually persisted to
+`appState`; `setFilterMode`/`toggleFilterTag` round-tripped correctly on a mock Filter card; a real
+typed search grew `#search-input`'s height; and the full drag-context flow
+(`addCardsToSearchContext` → `openSearchCardsModal`, which really mounts a `renderInlineCanvas`
+node into the DOM → `closeSearchCardsModal` → `clearSearchCardContext`) worked end-to-end. Two real
+bridge omissions were caught and fixed during the pre-verification stale-reference sweep, not by
+any automated check: `renderShelfHTML` and `autoGrowSearchInput` were both fully implemented and
+exported but never actually assigned to a `window.*` bridge — `node --check`/`eslint`/`tsc`/
+`next build` all stayed green regardless, since nothing type-checks that a *specific* global gets
+assigned, only that assignments which DO exist are well-typed; only grepping for leftover
+references to the old filename across the repo (this project's own standing post-split discipline,
+established back in the very first Phase 4.3 split) surfaced that `live-presence.js` and two other
+files still had real, now-broken imports pointing at functions with no bridge. Zero console/page
+errors on the final run. Re-checked the account afterward to confirm zero residual mock Shelf/
+Filter cards and an empty `searchCardContext`.

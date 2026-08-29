@@ -5,7 +5,6 @@ import { saveSnapshot, scheduleWorkspaceSave } from './history-autosave.js';
 import { findItemById } from './live-presence.js';
 import { commenceSearchOrMnemonic } from './mnemonic-search-matching.js';
 import { closeAllPanels, closeRailView, openRailView } from './panels-hamburger.js';
-import { autoGrowSearchInput } from './shelf-search.js';
 // Phase 4.2 extraction — see text-utils.js's own comment. Re-exported below (not just used
 // internally) so every other file's existing `from './ai-assistant-suggestions.js'` import keeps
 // working unchanged. isLatinScriptText stayed here (not extracted alongside these two) — see
@@ -153,7 +152,7 @@ import { render } from './waypoints-render-loop.js';
         // triggers this reset when simply opening, so it never fights with reopening a saved chat.
         appState.currentConversationId = null;
         appState.searchInput.value = '';
-        autoGrowSearchInput();
+        window.__autoGrowSearchInput();
         appState.searchDotbotAnswer.innerHTML = ''; appState.searchDotbotAnswer.style.display = 'none';
         // #search-command-palette (CommandPalette.jsx) is portaled — React tracks real children
         // there, so a direct innerHTML write would desync its fiber tree from the actual DOM and
@@ -551,7 +550,7 @@ import { render } from './waypoints-render-loop.js';
     }
 
     function handleSearchInput(value) {
-        autoGrowSearchInput();
+        window.__autoGrowSearchInput();
         // Slash commands (see command-palette.js) take over the box entirely — none of the normal
         // live-suggestion machinery below applies, and any of its panels left over from before "/"
         // was typed need clearing so they don't linger behind the command palette.
@@ -667,7 +666,7 @@ import { render } from './waypoints-render-loop.js';
             label.className = 'search-suggestion-label';
             label.textContent = text;
             div.append(icon, label);
-            div.onclick = (e) => { e.stopPropagation(); appState.searchInput.value = text; autoGrowSearchInput(); commenceSearchOrMnemonic(text); };
+            div.onclick = (e) => { e.stopPropagation(); appState.searchInput.value = text; window.__autoGrowSearchInput(); commenceSearchOrMnemonic(text); };
             frag.appendChild(div);
         });
         return frag;

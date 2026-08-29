@@ -8,7 +8,6 @@ import { commenceSearchOrMnemonic } from './mnemonic-search-matching.js';
 import { bumpAchievementStat, openDotbotUpgradeModal, refreshDotbotUsage } from './profile-achievements-pricing.js';
 import { colgroupHTML } from './source-table.js';
 import { applyAiAddRowsToSource, createSourceFromAI } from './source-tags-ai.js';
-import { autoGrowSearchInput } from './shelf-search.js';
 import { render } from './waypoints-render-loop.js';
 
 
@@ -117,7 +116,7 @@ import { render } from './waypoints-render-loop.js';
             // likely to want to type a follow-up immediately.
             appState.searchInput.value = '';
             appState.searchInput.focus();
-            autoGrowSearchInput();
+            window.__autoGrowSearchInput();
             if (!res.ok) { renderDotbotOrchestrateError(data.error); return; }
             refreshDotbotUsage();
             // Carries forward even if the route's own persistence failed server-side (in which
@@ -129,7 +128,7 @@ import { render } from './waypoints-render-loop.js';
             appState.searchSpinner.classList.remove('visible');
             appState.searchInput.value = '';
             appState.searchInput.focus();
-            autoGrowSearchInput();
+            window.__autoGrowSearchInput();
             console.error('[dotbot/orchestrate] failed:', e);
             renderDotbotOrchestrateError('error');
         }
@@ -247,7 +246,7 @@ import { render } from './waypoints-render-loop.js';
         if (!text || !appState.searchInput) return;
         const query = `What does "${text}" mean?`;
         appState.searchInput.value = query;
-        autoGrowSearchInput();
+        window.__autoGrowSearchInput();
         commenceDotbotSearch(query);
         appState.searchInput.focus();
     }

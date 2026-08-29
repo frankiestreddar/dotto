@@ -75,6 +75,10 @@ import "./dotto/lib/tabManagement";
 // window.__openSharedCanvas/__ensureSharedFolderLoaded/etc at module-eval time for the 6
 // still-vanilla callers that used to import these directly.
 import "./dotto/lib/sharedAndPublicCanvasLoading";
+// Side-effect only, same reasoning as splitPaneManagement/tabManagement above — sets
+// window.startRenameShelfName/setFilterMode/etc at module-eval time for the 5 still-vanilla
+// callers that used to import these directly.
+import "./dotto/lib/shelfSearch";
 import BlocksPanel from "./dotto/BlocksPanel";
 import CellTagPickerList from "./dotto/CellTagPickerList";
 import ChatsListPanel from "./dotto/ChatsListPanel";

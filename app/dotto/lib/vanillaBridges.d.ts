@@ -39,6 +39,7 @@ declare global {
     __findItemById?: (id: number) => Record<string, unknown> | undefined;
     // history-autosave.js
     __saveSnapshot?: () => void;
+    __scheduleWorkspaceSave?: () => void;
     // waypoints-render-loop.js — the global re-render escape hatch.
     __render?: () => void;
     __renderSelectedOutlines?: () => void;
@@ -238,5 +239,47 @@ declare global {
     closeMarketDetail?: () => void;
     purchaseCurrentMarketItem?: () => Promise<void>;
     __refreshMyLibrary?: () => Promise<void>;
+    // drawing-connections.js
+    __folderIdForConnectedSource?: (sourceItemId: number) => string | undefined;
+    __folderTitleForConnectedSource?: (sourceItemId: number) => string;
+    __ensureConnections?: (folder: {
+      connections?: { fromId: number; toId: number }[];
+    }) => { fromId: number; toId: number }[];
+    // friends-presence.js
+    __syncCanvasCollabTitle?: (folderId: string, newTitle: string) => Promise<void>;
+    // live-presence.js
+    __broadcastEditingState?: (isEditing: boolean, targetSelector?: string) => void;
+    __renderInlineCanvas?: (
+      items: Record<string, unknown>[],
+      draggableOut: boolean,
+      connections: { fromId: number; toId: number }[],
+      onDelete: (id: number) => void,
+    ) => HTMLElement;
+    // core-state.js
+    __itemElId?: (id: number, paneId?: number) => string;
+    // ai-assistant-suggestions.js
+    __escapeHtml?: (str: string) => string;
+    // app/dotto/lib/shelfSearch.ts (Phase 4.4 port — was shelf-search.js) — vanilla -> React
+    // bridges: startRenameShelfName/shelfSelectSession/handleShelfSourceRowClick/
+    // startRenameShelfSourceRow/filterShelfRows are real inline onclick="..." targets inside
+    // renderShelfHTML's own built HTML string; closeSearchCardsModal is a real inline onclick
+    // target (canvas-modal.html); setFilterMode/toggleFilterTag are called from FilterCard.jsx
+    // the same plain-global way window.pushNotification is; openSearchCardsModal/
+    // clearSearchCardContext have no confirmed remaining caller, kept for parity with the
+    // pre-port file.
+    startRenameShelfName?: (nameEl: HTMLElement, itemId: number) => void;
+    shelfSelectSession?: (id: number, sessionId: string) => void;
+    handleShelfSourceRowClick?: (rowEl: HTMLElement, sourceItemId: number) => void;
+    startRenameShelfSourceRow?: (labelEl: HTMLElement, sourceItemId: number) => void;
+    filterShelfRows?: (inputEl: HTMLInputElement) => void;
+    closeSearchCardsModal?: () => void;
+    setFilterMode?: (id: number, mode: string) => void;
+    toggleFilterTag?: (id: number, tagId: string) => void;
+    openSearchCardsModal?: () => void;
+    clearSearchCardContext?: () => void;
+    // Used by app/dotto/canvasItemBehavior.js's setupDraggingAndClicking (Phase 3).
+    __addCardsToSearchContext?: (ids: number[]) => void;
+    __autoGrowSearchInput?: () => void;
+    __renderShelfHTML?: (it: Record<string, unknown>) => string;
   }
 }

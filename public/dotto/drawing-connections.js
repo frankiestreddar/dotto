@@ -251,3 +251,5 @@ window.__createConnection = createConnection;
 window.__itemRect = itemRect;
 window.__computeConnectorPoints = computeConnectorPoints;
 window.__pointsToLinePath = pointsToLinePath;
+// Used by app/dotto/lib/shelfSearch.ts's handleShelfSourceRowClick/startRenameShelfSourceRow (Phase 4.4).
+window.__folderIdForConnectedSource = folderIdForConnectedSource;

@@ -8,7 +8,6 @@ import { closeAllPanels } from './panels-hamburger.js';
 import { closeDotbotUpgradeModal, closePricingOverlay } from './profile-achievements-pricing.js';
 import { closeCellTagPicker } from './source-tags-ai.js';
 import { cancelAddingKind, finishPenPolyline } from './srs-connections-core.js';
-import { closeSearchCardsModal } from './shelf-search.js';
 import { closeUploadPopup } from './upload-popup.js';
 import { centerOnContent, render } from './waypoints-render-loop.js';
 
@@ -543,7 +542,7 @@ import { centerOnContent, render } from './waypoints-render-loop.js';
             // Every hover/pin panel (menu, messages, cart, profile, add, collab, sourceAdd —
             // see closeAllPanels) plus every standalone modal/overlay in the app, all in one go.
             closeAllPanels();
-            if (document.getElementById('search-cards-modal-overlay').classList.contains('open')) closeSearchCardsModal();
+            if (document.getElementById('search-cards-modal-overlay').classList.contains('open')) window.closeSearchCardsModal();
             closeSharedCanvasView();
             closeDotbotUpgradeModal();
             closePricingOverlay();

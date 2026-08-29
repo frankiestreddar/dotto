@@ -587,6 +587,8 @@ window.__collabBubblePaneMouseLeave = collabBubblePaneMouseLeave;
 // function is imported BY this file, so the reverse would be circular (same reasoning as
 // window.__renderTabsPanel, app/dotto/lib/tabManagement.ts).
 window.__renderCollabPill = renderCollabPill;
+// Used by app/dotto/lib/shelfSearch.ts's startRenameShelfSourceRow (Phase 4.4).
+window.__syncCanvasCollabTitle = syncCanvasCollabTitle;
 
 // No window.__initials bridge — Avatar.jsx (app/dotto/) reimplements this directly instead (see
 // its own comment for why: plain string logic with no vanilla-only dependency, and needing it to
