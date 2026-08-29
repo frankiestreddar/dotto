@@ -4566,7 +4566,7 @@ body:has(#collab-panel.open) .pane-collab-bubble:hover .collab-tooltip {
 }
 /* Drag-tab-to-split (split-screen Stage 5, TabsBar.jsx) — the fixed, cursor-following ghost
        shown once a tab drag "escapes" the breadcrumb pill's own box; same viewport-fixed ghost
-       shape .inline-canvas-drag-ghost already establishes (as opposed to copy-paste.js's
+       shape .inline-canvas-drag-ghost already establishes (as opposed to app/dotto/lib/copyPaste.ts's
        #placement-ghost, which is world-space — the wrong coordinate system for UI chrome like
        this), just its own class so TabsBar.jsx doesn't need to reach into an unrelated file's
        convention by name. */

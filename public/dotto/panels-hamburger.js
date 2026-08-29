@@ -8,7 +8,7 @@ import { closeSourceAddMenu } from './source-buttons-cursor-mode.js';
 
     // ---------- Hover/Pin Panel Helper ----------
     // Used by the add-menu and the per-canvas collaborator flyout ('add'/'collab' — see
-    // copy-paste.js/friends-presence.js): hovering the trigger opens them temporarily (closing
+    // app/dotto/lib/copyPaste.ts/friends-presence.js): hovering the trigger opens them temporarily (closing
     // again once the pointer leaves both the button and the panel), while clicking pins the panel
     // open until the user clicks elsewhere. The permanent rail (below) no longer uses this at all
     // — every rail icon is click-only now, so there's nothing for it to hover-close.
@@ -168,3 +168,6 @@ import { closeSourceAddMenu } from './source-buttons-cursor-mode.js';
     function handleFilesSearch(v) { renderFilesList(v); }
 
 export { closeAllPanels, closeRailView, handleFilesSearch, handleHubCollabSearch, handleSourcesSearch, handleWaypointsSearch, isAnyUiPanelOpen, openRailView, pinOnInsideClick, scheduleHoverClose, wireRailIcon };
+
+// Used by app/dotto/lib/copyPaste.ts's prepareAdd (Phase 4.4).
+window.__closeRailView = closeRailView;

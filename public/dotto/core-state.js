@@ -851,6 +851,10 @@ window.__switchActivePane = switchActivePane;
 // every call, so callers always see whichever pane is active right now with no separate sync step.
 window.__getCanvasEl = () => canvas;
 window.__getWorldEl = () => world;
+// Used by app/dotto/lib/copyPaste.ts's setupPlacementGhostTracking (Phase 4.4) to re-attach its
+// pointermove listener to every future pane's own canvas element, same reasoning as every other
+// registered setup — see this function's own comment above.
+window.__registerPaneCanvasListenerSetup = registerPaneCanvasListenerSetup;
 // Used by the debug split-pane trigger (split-screen Stage 4, dotto-app.jsx) to finish bringing a
 // brand-new pane up to a real starting state after switchActivePane has made it active — see
 // initializeNewPane's own comment above.

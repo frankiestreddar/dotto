@@ -16,7 +16,6 @@
 
 import { handleSearchFocus, handleSearchInput, showAiListView } from './ai-assistant-suggestions.js';
 import { addTask, editEmbed, removeTask, toggleTask, updateTaskDeadline, updateTaskText } from './cards-misc.js';
-import { prepareAdd } from './copy-paste.js';
 import { handleCollabSearch, handleMsgSearch, openCollabPanel } from './friends-presence.js';
 import { addGameColumnSlot, fcFlip, fcRate, fcToggleMode, removeGameColumnSlot, setGameColumnSlot, trCheck, trFocusInput, trNext, trToggleMode, trUpdateInput } from './games-flashcard-typeright.js';
 import { hmenuAction } from './hamburger-collab.js';
@@ -94,7 +93,6 @@ window.openPricingOverlay = openPricingOverlay;
 window.openSearchCardsModal = openSearchCardsModal;
 window.openTableCellContextMenu = openTableCellContextMenu;
 window.openTagContextMenu = openTagContextMenu;
-window.prepareAdd = prepareAdd;
 window.purchaseCurrentMarketItem = purchaseCurrentMarketItem;
 window.redo = redo;
 window.removeGameColumnSlot = removeGameColumnSlot;

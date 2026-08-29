@@ -149,3 +149,6 @@ document.addEventListener('keydown', (e) => {
 });
 
 export { deleteSelectedCards, findNextFreeSlot, setTableAlign };
+
+// Used by app/dotto/lib/copyPaste.ts's cutSelectedCards (Phase 4.4).
+window.__deleteSelectedCards = deleteSelectedCards;

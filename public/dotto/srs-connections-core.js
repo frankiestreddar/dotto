@@ -1,6 +1,5 @@
 import { kindLabel, kindSize } from './add-menu.js';
 import { openSearchOverlay, stripHtml } from './ai-assistant-suggestions.js';
-import { prepareAdd, removePlacementGhost } from './copy-paste.js';
 import { appState, btnAdd, canvas, canvasViewportCenterX, drawBackBtn, drawColorInput, drawEraserBtn, drawFrontBtn, drawPenBtn, drawSettings, drawSizeInput, effectiveMode, findItemEl, registerPaneCanvasListenerSetup, switchActivePane, world, zoomTrack } from './core-state.js';
 import { createConnection, ensureConnections, ensureDrawings, findLinkedTable, findTableById, makeLayerSVG, pathNearPoint, penPointsToPath, pointsToPath } from './drawing-connections.js';
 import { defaultFlashcardDeck } from './games-flashcard-typeright.js';
@@ -391,7 +390,7 @@ import { calculateSM2, defaultSrsState, diffRatings } from './srs-algorithm.js';
         appState.addingKind = null;
         appState.addingStatKind = null;
         canvas.classList.remove('crosshair');
-        removePlacementGhost();
+        window.removePlacementGhost();
     }
 
     // Keyed by appState.activeRailView (see openRailView/wireRailIcon, panels-hamburger.js) — used
@@ -416,7 +415,7 @@ import { calculateSM2, defaultSrsState, diffRatings } from './srs-algorithm.js';
     };
 
     // 'a'-prefix add-block chord — pressing 'a' then a second letter within ADD_CHORD_TIMEOUT_MS
-    // arms a placement ghost for that block kind (prepareAdd, copy-paste.js — the exact same
+    // arms a placement ghost for that block kind (prepareAdd, app/dotto/lib/copyPaste.ts — the exact same
     // click-to-place flow the Blocks panel's own rows use, handleBlockItemClick -> prepareAdd),
     // letting the next canvas click choose where it lands, rather than dropping it at
     // the viewport centre immediately — per explicit follow-up request. "Just to test" the idea per
@@ -447,7 +446,7 @@ import { calculateSM2, defaultSrsState, diffRatings } from './srs-algorithm.js';
             addChordArmed = false;
             clearTimeout(addChordTimer);
             const chordKind = ADD_CHORD_KEYS[e.key.toLowerCase()];
-            if (chordKind) { e.preventDefault(); prepareAdd(chordKind); return; }
+            if (chordKind) { e.preventDefault(); window.prepareAdd(chordKind); return; }
         } else if (!isEditingText && (e.key === 'a' || e.key === 'A') && !e.metaKey && !e.ctrlKey) {
             e.preventDefault();
             addChordArmed = true;
@@ -835,7 +834,7 @@ import { calculateSM2, defaultSrsState, diffRatings } from './srs-algorithm.js';
                 const y = Math.round((((e.clientY - rect.top - appState.ty) / appState.scale) - h / 2) / 28) * 28;
                 add(appState.addingKind, x, y, appState.addingStatKind);
                 appState.addingKind = null; appState.addingStatKind = null; canvasEl.classList.remove('crosshair');
-                removePlacementGhost();
+                window.removePlacementGhost();
                 return;
             }
             if(appState.currentEditingEl) { appState.currentEditingEl.classList.remove('editing'); appState.currentEditingEl.querySelector('.body').contentEditable = false; appState.currentEditingEl = null; broadcastEditingState(false); }

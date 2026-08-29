@@ -112,6 +112,26 @@
   side-effect import directly in `app/dotto-app.jsx` rather than called from a specific owning
   component — the same reasoning `wireNotifications`/`wireDayChangeAndAdNotifications` are called
   from there, just without a wire function of its own to invoke.
+  `copy-paste.js` (158 lines) ported next to `app/dotto/lib/copyPaste.ts` — the most involved
+  Phase 4.4 port so far: copy/cut/paste plus the add-menu "placement ghost" preview (a real DOM
+  element the TS code creates/positions itself, same imperative-DOM pattern
+  `canvasItemBehavior.js` established in Phase 3) and `prepareAdd`. 5 brand-new bridges added
+  (`__closeRailView`/`__applyCursorMode`/`__kindSize`/`__deleteSelectedCards`/
+  `__registerPaneCanvasListenerSetup`, one per still-vanilla dependency that had no bridge yet) —
+  the last of these replicates a real architectural pattern (`registerPaneCanvasListenerSetup`,
+  `core-state.js`): every owning file registers its own "attach my canvas-level listener to a
+  given canvas element" callback once, so a brand-new split-screen pane automatically gets it too,
+  fixing a real production bug (a second pane silently missing whichever listeners were only ever
+  attached to pane 0's own element) — `wireCopyPaste` replicates the exact same
+  register-once-at-wire-time shape, with the same bridge-readiness poll `wireDayChangeAndAdNotifications`
+  established (`window.__getCanvasEl`/`__registerPaneCanvasListenerSetup` might not exist yet when
+  DottoApp's own mount effect runs). 3 vanilla callers switched from direct imports to window
+  bridges (`blocks-panel.js`, `history-autosave.js`'s Cmd+C/X/V handler, `srs-connections-core.js`'s
+  'a'-chord + Escape handling); `window-bridge.js`'s now-dead `prepareAdd` import+assignment
+  removed. `vanillaBridges.d.ts` also gained 3 retroactive declarations
+  (`__getCanvasEl`/`__getWorldEl`/`__renderSelectedOutlines`) for bridges that already existed but
+  had never been touched by a real `.ts` file before — `canvasItemBehavior.js` (Phase 3) is a
+  plain `.js` file that never needed them declared.
 - **Phase 4.5 — architectural/hub files: not started.**
 - **Phase 4.6 — delete the bridge layer: not started.**
 - **Phase 4.7 — final cleanup & professionalization close-out: not started.**
@@ -720,3 +740,23 @@ NEW TS-sourced bridge behaves identically to the old vanilla one it replaced. Ze
 errors. Re-checked the account afterward to confirm the transient tab created during the test
 never got persisted (no `scheduleWorkspaceSave` was triggered or waited for) — tab/pane counts
 matched the pre-test baseline exactly.
+
+**Phase 4.4 (`copy-paste.js` → `app/dotto/lib/copyPaste.ts`)**: `node --check` on all touched
+vanilla files, `eslint` clean (zero errors or warnings), a full clean `rm -rf .next next-env.d.ts
+tsconfig.tsbuildinfo && npm run typecheck && npm run build` pass — typecheck caught 7 real errors
+on the first pass, all "bridge exists at runtime but was never declared" (`__getCanvasEl`/
+`__getWorldEl`/`__renderSelectedOutlines`, pre-existing bridges no prior `.ts` file had touched),
+fixed by adding the missing ambient declarations rather than working around them, `npm run
+format:check` clean, all 32 Vitest tests still green. Real Playwright verification against a
+fresh dev server: confirmed all 5 bridges live within 500ms of load; a real mock card round-
+tripped through `copySelectedCards` → `pasteClipboardCards` (clipboard length, the correct 28px
+cascade offset applied to the pasted clone's x/y, and its content preserved) → `cutSelectedCards`
+on the pasted clone (removed from `appState`, re-added to the clipboard); `prepareAdd('note')`
+correctly set `addingKind`, created a real `#placement-ghost` DOM element with the right class,
+and added the `crosshair` cursor class to the canvas; a genuine `page.mouse.move` over the canvas
+moved the ghost from its initial off-screen `-9999px` fallback to a real on-canvas pixel position,
+confirming `setupPlacementGhostTracking`'s pointermove listener — registered once at `wireCopyPaste`
+time via the new `__registerPaneCanvasListenerSetup` bridge — is genuinely live, not just present
+in the bundle; `removePlacementGhost` correctly removed the DOM node and nulled `appState.
+placementGhost`. Zero console/page errors. Re-checked the account afterward to confirm zero
+residual mock items, an empty clipboard, and `addingKind` back to `null`.

@@ -58,6 +58,7 @@ import {
   setupDraggingAndClicking,
   setupResizing,
 } from "./dotto/canvasItemBehavior";
+import { wireCopyPaste } from "./dotto/lib/copyPaste";
 import { wireDayChangeAndAdNotifications } from "./dotto/lib/dayChangeAndAdNotifications";
 import { wireNotifications } from "./dotto/lib/notificationsStore";
 // Side-effect only — sets window.__splitPaneWithTab/__closePane at module-eval time (no wireX()
@@ -420,6 +421,10 @@ export default function DottoApp({ sections, currentUser }) {
   // notification) and visibilitychange (flush anything queued while backgrounded) listeners — see
   // wireNotifications' own comment, app/dotto/lib/notificationsStore.ts.
   useEffect(() => wireNotifications(), []);
+  // Phase 4.4: the copy/cut/paste + add-menu placement-ghost engine's own canvas-listener wiring
+  // — see wireCopyPaste's own comment, app/dotto/lib/copyPaste.ts, for why this needs to poll for
+  // window.__getCanvasEl rather than a single readiness check.
+  useEffect(() => wireCopyPaste(), []);
 
   return (
     <>

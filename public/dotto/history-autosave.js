@@ -1,5 +1,4 @@
 import { clearSearch } from './ai-assistant-suggestions.js';
-import { cutSelectedCards, pasteClipboardCards } from './copy-paste.js';
 import { appState, canvas, canvasContextMenu, contextMenu, dotLayer, findItemEl, itemElId, recomputeTopCardZIndex, registerPaneCanvasListenerSetup, restorePaneState, supabase, switchActivePane, world, zoomFill, zoomThumb, zoomTrack } from './core-state.js';
 import { resolveTableForEdit } from './drawing-connections.js';
 import { generateGlobalId } from './global-ids.js';
@@ -582,12 +581,12 @@ import { centerOnContent, render } from './waypoints-render-loop.js';
         // cutSelectedCards() below, just no longer independently keyboard-triggerable.
         if (!isEditingText && !e.shiftKey && !e.altKey && (e.key === 'x' || e.key === 'X') && appState.selectedCardIds.length > 0) {
             e.preventDefault();
-            cutSelectedCards();
+            window.cutSelectedCards();
             return;
         }
         if (!isEditingText && !e.shiftKey && !e.altKey && (e.key === 'v' || e.key === 'V') && appState.cardClipboard.length > 0) {
             e.preventDefault();
-            pasteClipboardCards();
+            window.pasteClipboardCards();
             return;
         }
     });

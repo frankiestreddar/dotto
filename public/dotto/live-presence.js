@@ -451,7 +451,7 @@ import { render } from './waypoints-render-loop.js';
         });
     }
     // Re-attached per pane (split-screen Stage 4: see registerPaneCanvasListenerSetup, core-
-    // state.js), same as the placement-ghost tracker (copy-paste.js), so cursor tracking doesn't
+    // state.js), same as the placement-ghost tracker (app/dotto/lib/copyPaste.ts), so cursor tracking doesn't
     // just stop working when hovering a pane other than pane 0. Deliberately does NOT call
     // switchActivePane here — canvasPresenceChannel/appState.tx/etc are still single global fields
     // (Stage 3 explicitly deferred genuinely concurrent per-pane presence to real Stage 4+ feature

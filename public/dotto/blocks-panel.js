@@ -1,5 +1,4 @@
 import { addMenu, appState, btnAdd, canvas } from './core-state.js';
-import { prepareAdd } from './copy-paste.js';
 import { deleteMyCreationItem, openItemDetail } from './library-publish.js';
 import { importSharedCardsAtScreenPoint } from './live-presence.js';
 import { refreshMyLibrary } from './marketplace.js';
@@ -142,7 +141,7 @@ function handleBlocksSearchInput(value) {
 }
 
 function handleBlockItemClick(kind, statKind) {
-    prepareAdd(kind, statKind);
+    window.prepareAdd(kind, statKind);
 }
 
 function createBlocksFolder() {

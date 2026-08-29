@@ -34,6 +34,12 @@ declare global {
     __saveSnapshot?: () => void;
     // waypoints-render-loop.js — the global re-render escape hatch.
     __render?: () => void;
+    __renderSelectedOutlines?: () => void;
+    // core-state.js — the live-read canvas/world DOM element accessors (Phase 3's universal
+    // bridge for these two, already consumed by app/dotto/canvasItemBehavior.js, a plain .js file
+    // that never needed these declared until a real .ts file touched them here).
+    __getCanvasEl?: () => HTMLElement | undefined;
+    __getWorldEl?: () => HTMLElement | undefined;
     // srs-connections-core.js (re-exported from srs-algorithm.js) — needed by
     // app/dotto/lib/stopwatch.ts's swToggleRun to archive a finished session's rating deltas;
     // public/dotto/*.js isn't reachable from app/dotto/ even for an otherwise-pure function.
@@ -83,5 +89,26 @@ declare global {
       sourcePaneId?: number,
     ) => void;
     __closePane?: (paneId: number) => void;
+    // panels-hamburger.js
+    __closeRailView?: () => void;
+    // source-buttons-cursor-mode.js
+    __applyCursorMode?: () => void;
+    // add-menu.js — a card kind's default {w, h} for the placement ghost.
+    __kindSize?: (kind: string) => { w: number; h: number };
+    // card-shortcuts.js
+    __deleteSelectedCards?: () => void;
+    // core-state.js — registers a per-pane canvas-listener setup function, called once for every
+    // future pane's own canvas element (see that function's own comment for the real pane-0-only-
+    // listener bug this exists to prevent).
+    __registerPaneCanvasListenerSetup?: (fn: (canvasEl: HTMLElement) => void) => void;
+    // app/dotto/lib/copyPaste.ts (Phase 4.4 port — was copy-paste.js) — vanilla -> React bridges:
+    // history-autosave.js's Cmd+C/X/V keydown handler, blocks-panel.js's handleBlockItemClick, and
+    // srs-connections-core.js's 'a'-chord/Escape handling already called these as globals before
+    // the port (prepareAdd already was; the other 4 are new here, same shape).
+    copySelectedCards?: () => void;
+    cutSelectedCards?: () => void;
+    pasteClipboardCards?: () => void;
+    removePlacementGhost?: () => void;
+    prepareAdd?: (kind: string, statKind?: string | null) => void;
   }
 }

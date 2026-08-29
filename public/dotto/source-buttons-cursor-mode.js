@@ -262,3 +262,6 @@ import { clearDataLinkPending } from './srs-connections-core.js';
     };
 
 export { applyCursorMode, closeSourceAddMenu, openCellAddMenu };
+
+// Used by app/dotto/lib/copyPaste.ts's prepareAdd (Phase 4.4).
+window.__applyCursorMode = applyCursorMode;

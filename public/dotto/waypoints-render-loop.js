@@ -1116,7 +1116,7 @@ import { applyConnections } from './srs-connections-core.js';
     // copying `source`'s own media fields rather than moving it — `source` stays exactly where it
     // already lives, same "drag copies, doesn't relocate" behavior the Blocks panel's own drag-into-
     // folder gesture already established for a different kind of row. Same screen→world conversion
-    // formula placementGhostWorldPos (copy-paste.js) already uses for click-to-place — canvas/
+    // formula placementGhostWorldPos (app/dotto/lib/copyPaste.ts) already uses for click-to-place — canvas/
     // appState.tx/ty/scale only ever describe the ACTIVE pane's own live camera, so a drop on a
     // different (inactive) pane activates it first (same "interacting with a pane's own UI focuses
     // that pane" convention every other per-pane action in this codebase follows), which is what
