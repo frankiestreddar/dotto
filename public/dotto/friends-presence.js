@@ -2,7 +2,6 @@ import { clearSearch } from './ai-assistant-suggestions.js';
 import { appState, supabase, switchActivePane } from './core-state.js';
 import { ensureCanvasPresenceChannel, openConvo, renderConvoBody } from './live-presence.js';
 import { openMessagesPanel } from './messages-schedule.js';
-import { closeAllPanels, pinOnInsideClick, scheduleHoverClose } from './panels-hamburger.js';
 import { bumpAchievementStat } from './profile-achievements-pricing.js';
 
 
@@ -26,7 +25,7 @@ import { bumpAchievementStat } from './profile-achievements-pricing.js';
     }
     function openCollabPanel(pin) {
         if (!appState.collabBubble.classList.contains('show')) return;
-        closeAllPanels('collab');
+        window.__closeAllPanels('collab');
         clearSearch();
         appState.collabPanel.classList.add('open');
         appState.collabSearchInput.value = '';
@@ -59,7 +58,7 @@ import { bumpAchievementStat } from './profile-achievements-pricing.js';
         if (getCurrentCollaboratorIds().length === 0 && !appState.collabPanel.classList.contains('open')) openCollabPanel(false);
     }
     function collabBubblePaneMouseLeave(bubbleEl) {
-        scheduleHoverClose('collab', [bubbleEl, appState.collabPanel], closeCollabPanel);
+        window.__scheduleHoverClose('collab', [bubbleEl, appState.collabPanel], closeCollabPanel);
     }
     // A pane's own collaborator bubble element (PaneTopBar.jsx) is the only thing
     // appState.collabBubble can point to now that every pane renders its own (no more static
@@ -70,8 +69,8 @@ import { bumpAchievementStat } from './profile-achievements-pricing.js';
     function activePaneCollabBubbleEl() {
         return document.querySelector('#pane-breadcrumb-pill-' + appState.activePaneId + ' .pane-collab-bubble');
     }
-    appState.collabPanel.addEventListener('mouseleave', () => scheduleHoverClose('collab', [appState.collabBubble, appState.collabPanel], closeCollabPanel));
-    pinOnInsideClick('collab', [appState.collabPanel]);
+    appState.collabPanel.addEventListener('mouseleave', () => window.__scheduleHoverClose('collab', [appState.collabBubble, appState.collabPanel], closeCollabPanel));
+    window.__pinOnInsideClick('collab', [appState.collabPanel]);
 
     // Who's already accepted (including inherited from an ancestor canvas — see
     // get_effective_collaborators/canvas_access_status), and who has a pending invite at THIS

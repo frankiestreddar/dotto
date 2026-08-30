@@ -89,7 +89,7 @@ function SourceRow({ r, altHeld }) {
 
 // Portals into #sources-panel-content (content/fragments/hamburger-stack.html) — a plain flex-item
 // container, safe to portal into directly, no wrapper needed. Visibility of the panel itself stays
-// a vanilla classList toggle (openRailView/wireRailIcon, panels-hamburger.js), unrelated to this —
+// a vanilla classList toggle (openRailView/wireRailIcon, app/dotto/lib/panelsHamburger.ts), unrelated to this —
 // this component only owns the row list. Lists every source anywhere in the account, current-
 // canvas ones sorted first — see renderSourcesList's own comment, hamburger-collab.js, for the
 // full reasoning and why it refreshes on every render() rather than just on panel-open/search-input.

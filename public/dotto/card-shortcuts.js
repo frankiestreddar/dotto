@@ -1,7 +1,6 @@
 import { appState, contextMenu, parseItemId } from './core-state.js';
 import { saveSnapshot } from './history-autosave.js';
 import { findItemById } from './live-presence.js';
-import { isAnyUiPanelOpen } from './panels-hamburger.js';
 import { cascadeDeleteFolderContents, deleteWaypointFromDb, render, renderSelectedOutlines } from './waypoints-render-loop.js';
 
 // Phase 4.3 split (was part of resize-shortcuts-init.js, see PHASE4_ROADMAP.md) — the "shortcuts"
@@ -94,7 +93,7 @@ document.addEventListener('keydown', (e) => {
     // and can't hold focus anymore.
     const isEditingText = active && (active.isContentEditable || active.tagName === 'INPUT' || active.tagName === 'SELECT' || active.tagName === 'TEXTAREA');
     if (isEditingText) return;
-    if (isAnyUiPanelOpen()) return;
+    if (window.__isAnyUiPanelOpen()) return;
     if (window.__hasVisibleNotifications()) return; // its own Enter/Escape handling should win, not compete
     const it = hoveredGameCard();
     if (!it) return;
@@ -133,7 +132,7 @@ document.addEventListener('keydown', (e) => {
     const active = document.activeElement;
     const isEditingText = active && (active.isContentEditable || active.tagName === 'INPUT' || active.tagName === 'SELECT' || active.tagName === 'TEXTAREA');
     if (isEditingText) return;
-    if (isAnyUiPanelOpen()) return;
+    if (window.__isAnyUiPanelOpen()) return;
     if (window.__hasVisibleNotifications()) return;
     const hovered = hoveredPdfCard();
     if (!hovered) return;

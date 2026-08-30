@@ -4,7 +4,6 @@ import { renderChatsList } from './hamburger-collab.js';
 import { saveSnapshot, scheduleWorkspaceSave } from './history-autosave.js';
 import { findItemById } from './live-presence.js';
 import { commenceSearchOrMnemonic } from './mnemonic-search-matching.js';
-import { closeAllPanels, closeRailView, openRailView } from './panels-hamburger.js';
 // Phase 4.2 extraction — see text-utils.js's own comment. Re-exported below (not just used
 // internally) so every other file's existing `from './ai-assistant-suggestions.js'` import keeps
 // working unchanged. isLatinScriptText stayed here (not extracted alongside these two) — see
@@ -139,7 +138,7 @@ import { render } from './waypoints-render-loop.js';
     // right as/after Enter is pressed (too late for the abort() below to actually cancel it) —
     // otherwise it would clobber the "thinking..." loading state with a stale suggestions list.
 
-    // AI search's own state reset — called from closeRailView/openRailView (panels-hamburger.js)
+    // AI search's own state reset — called from closeRailView/openRailView (app/dotto/lib/panelsHamburger.ts)
     // whenever the AI view is the one actually being closed or navigated away from, never called
     // directly by anything outside this file. Kept as a separate function from clearSearch()
     // below specifically to avoid a clearSearch<->closeRailView call cycle: closeRailView needs to
@@ -216,15 +215,15 @@ import { render } from './waypoints-render-loop.js';
     // of those call sites fire from unrelated background events (render()'s per-tick calls,
     // realtime sync broadcasts) that have nothing to do with the user actually closing anything —
     // see resetAiSearchState's own comment for the "AI forgets everything" bug this guard exists
-    // to prevent. Delegates to closeRailView() for the actual hide/state-reset (see its own
-    // comment in panels-hamburger.js), rather than duplicating that logic here.
+    // to prevent. Delegates to window.__closeRailView() for the actual hide/state-reset (see its own
+    // comment in app/dotto/lib/panelsHamburger.ts), rather than duplicating that logic here.
     function clearSearch() {
         if (appState.activeRailView !== 'ai') return;
-        closeRailView();
+        window.__closeRailView();
     }
     // Toggles between the AI panel's two internal views — the chat list (default: search box up
     // top, previous conversations below it) and an active conversation — independent of the outer
-    // rail's own open/close/pin state (openRailView/closeRailView, panels-hamburger.js), so
+    // rail's own open/close/pin state (openRailView/closeRailView, app/dotto/lib/panelsHamburger.ts), so
     // switching between them never disturbs whether the AI panel itself is open or pinned.
     // #search-input-wrap/#search-dropdown are a single shared pair (see #ai-panel's own comment,
     // hamburger-stack.html), physically moved between #ai-list-header and #ai-chat-view by these
@@ -260,11 +259,11 @@ import { render } from './waypoints-render-loop.js';
         appState.searchChatThread.insertAdjacentElement('afterend', appState.searchDropdown);
         appState.searchChatThread.insertAdjacentElement('afterend', appState.searchInputWrap);
     }
-    // AI search's own onOpen callback — passed to panels-hamburger.js's wireRailIcon('ai', ...)
-    // call (kept there, not here, alongside every other rail icon's own wireRailIcon call, to
-    // avoid calling wireRailIcon itself at this module's own top level — a circular-import timing
-    // risk, since panels-hamburger.js also imports from this file; a plain function reference like
-    // this one has no such risk, it's only ever invoked later, on a real click). Always lands back
+    // AI search's own onOpen callback — passed to app/dotto/lib/panelsHamburger.ts's wireRailIcon('ai', ...)
+    // call (kept there, not here, alongside every other rail icon's own wireRailIcon call — reached
+    // via window.__refreshAiPanel now that panels-hamburger.js has moved to TypeScript; back when
+    // both were vanilla ES modules, this avoided a circular-import timing risk from each file
+    // importing the other at its own top level). Always lands back
     // on the list view (not mid-conversation from a previous session). Used to also focus the input
     // here — removed per explicit request that opening the panel not auto-focus the search box;
     // `pin` is kept as a parameter since openRailView always passes it through, same as every other
@@ -277,7 +276,7 @@ import { render } from './waypoints-render-loop.js';
     // saved conversation from the chat list.
     function openSearchOverlay() {
         if (!appState.aiPanel || !appState.searchInput) return;
-        openRailView('ai', appState.aiPanel, appState.railBtnAi, refreshAiPanel, true);
+        window.__openRailView('ai', appState.aiPanel, appState.railBtnAi, refreshAiPanel, true);
     }
     // Factory for the hardened open/close/resize height-transition system originally built (across
     // many rounds of real bugs) for #search-dropdown alone — factored out once #search-chat-thread
@@ -596,7 +595,7 @@ import { render } from './waypoints-render-loop.js';
         // only happens while it's visible), so closing the rail here would close the box's own
         // panel out from under itself. Still closes unrelated overlays (add-menu/collab/source-add)
         // that might be open at the same time.
-        closeAllPanels('rail');
+        window.__closeAllPanels('rail');
         hideDotbotResultPanels();
         const v = appState.searchInput.value.trim();
         if (v !== "") return;
@@ -873,3 +872,7 @@ window.__escapeHtml = escapeHtml;
 window.__stripHtml = stripHtml;
 // Used by app/dotto/lib/tabManagement.ts's buildAncestorChain (Phase 4.4).
 window.__findParentFolderId = findParentFolderId;
+// Used by app/dotto/lib/panelsHamburger.ts's wireRailIcon call for the AI rail icon, and
+// openRailView's own AI-view-navigated-away-from check (Phase 4.5).
+window.__refreshAiPanel = refreshAiPanel;
+window.__resetAiSearchState = resetAiSearchState;

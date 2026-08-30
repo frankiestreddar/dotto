@@ -1,5 +1,5 @@
 <!-- Hamburger Panels (stacked) — each is now its own rail icon's view (see #dotto-rail, top-bar.html,
-     and openRailView/wireRailIcon, panels-hamburger.js), not reached via an account-menu row
+     and openRailView/wireRailIcon, app/dotto/lib/panelsHamburger.ts), not reached via an account-menu row
      anymore. Waypoints/Collaborations/Marketplace/Plugins/Messages/Blocks/You/AI-search all share
      this one shell, swapping which section is .open. -->
 <div id="hamburger-stack">
@@ -28,12 +28,12 @@
          'inbox'/#btn-inbox/#inbox-panel under the hood, same convention as every other rename this
          session) — rail icon (group 2, top-bar.html, alone). Behavior/content not decided yet; a
          bare shell wired into the shared openRailView mechanism (see wireRailIcon('inbox', ...),
-         panels-hamburger.js) just so #btn-inbox has a panel to open. -->
+         app/dotto/lib/panelsHamburger.ts) just so #btn-inbox has a panel to open. -->
     <div id="inbox-panel" class="hmenu-panel hub-subpanel" onclick="event.stopPropagation()">
         <div id="inbox-panel-content"></div>
     </div>
     <!-- Search — rail icon (group 3, top-bar.html, alongside Outline/Waypoints), wired into the
-         shared openRailView mechanism (see wireRailIcon('search', ...), panels-hamburger.js).
+         shared openRailView mechanism (see wireRailIcon('search', ...), app/dotto/lib/panelsHamburger.ts).
          Rebuilt as a structural, like-for-like copy of #ai-panel's own #ai-list-view (hero/
          heading/description block, then a search header, then a history list below it) — per
          explicit request, after several rounds of chasing sizing/spacing parity between two
@@ -75,7 +75,7 @@
          .panel-search-hint/.panel-history-list classes (globals.css), same shape, just this
          panel's own text/ids so neither's existing JS wiring needed to change. Unlike
          #search-panel's own box (which still doesn't execute anything), #sources-panel-search
-         DOES filter live (oninput="handleSourcesSearch(...)", panels-hamburger.js/
+         DOES filter live (oninput="handleSourcesSearch(...)", app/dotto/lib/panelsHamburger.ts/
          renderSourcesList, hamburger-collab.js) — matches #waypoints-search/#hub-collab-search's
          own working-search convention instead, since this panel needed a real one from the start
          (per explicit request: "it should list all your sources in the canvas").
@@ -110,7 +110,7 @@
          earlier rename — see Files' own comment below) — this is a new, separate icon per explicit
          request, with its own #btn-snippets2/#snippets2-panel id distinct from Files'
          #btn-snippets/#snippets-panel. Behavior/content not decided yet; a bare shell wired into
-         the shared openRailView mechanism (see wireRailIcon('snippets2', ...), panels-hamburger.js)
+         the shared openRailView mechanism (see wireRailIcon('snippets2', ...), app/dotto/lib/panelsHamburger.ts)
          just so #btn-snippets2 has a panel to open. -->
     <div id="snippets2-panel" class="hmenu-panel hub-subpanel" onclick="event.stopPropagation()">
         <div id="snippets2-panel-content"></div>
@@ -118,7 +118,7 @@
     <!-- Servers — rail icon (group 3, top-bar.html, below Messages), per explicit request that the
          Collaborations/Messages group move up beneath Search/Queries and gain a Servers button.
          Behavior/content not decided yet; a bare shell wired into the shared openRailView
-         mechanism (see wireRailIcon('servers', ...), panels-hamburger.js) just so #btn-servers has
+         mechanism (see wireRailIcon('servers', ...), app/dotto/lib/panelsHamburger.ts) just so #btn-servers has
          a panel to open — same pattern as #snippets2-panel just above. -->
     <div id="servers-panel" class="hmenu-panel hub-subpanel" onclick="event.stopPropagation()">
         <div id="servers-panel-content"></div>
@@ -138,7 +138,7 @@
          outer id already matched its own name) fresh 'files-panel-*' ids for these new INNER
          elements — there was no pre-existing inner id here to preserve, so these follow Sources'
          own naming convention instead. #files-panel-search DOES filter live
-         (oninput="handleFilesSearch(...)", panels-hamburger.js/renderFilesList, hamburger-
+         (oninput="handleFilesSearch(...)", app/dotto/lib/panelsHamburger.ts/renderFilesList, hamburger-
          collab.js), matching Sources' own working-search convention. No "+ new file" button
          (unlike Sources' own #sources-new-btn) — per explicit request this panel just LISTS
          "any uploaded files across a user's entire canvas" (renderFilesList's own comment,

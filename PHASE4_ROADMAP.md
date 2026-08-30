@@ -340,7 +340,44 @@
   this port owns directly. Zero console/page errors. Re-checked the account afterward to confirm
   zero residual mock cards/folders. **This closes out Phase 4.4 — every split-out concern and
   remaining DOM-heavy file has now been ported.** Phase 4.5 (architectural/hub files) is next.
-- **Phase 4.5 — architectural/hub files: not started.**
+- **Phase 4.5 — architectural/hub files: in progress (1 of 7 done).**
+  `panels-hamburger.js` (178 lines) ported first to `app/dotto/lib/panelsHamburger.ts` — the
+  permanent rail's shared open/close contract (one sliding `#hamburger-stack` shell, many trigger
+  icons) plus the hover/pin panel helper used by the add-menu and per-canvas collaborator flyout.
+  **No `usePanelState` React hook/context was built**, despite the original plan anticipating one
+  ("just a generic open/close contract") — all 12 real callers turned out to still be vanilla
+  today, with zero React components reaching this file yet, so a hook would have had no real
+  consumer; built the same conservative, proven Phase 4.4 pattern (plain TS module + bridges)
+  instead, consistent with this migration's own "port what's actually needed" discipline
+  throughout. If a real React consumer needs this panel-state logic later, a hook can be
+  introduced then. 12 real vanilla callers fixed (`blocks-panel.js`, `ai-assistant-suggestions.js`,
+  `card-shortcuts.js`, `extensions-panel.js`, `history-autosave.js`, `hamburger-collab.js`,
+  `friends-presence.js`, `messages-schedule.js`, `profile-achievements-pricing.js`,
+  `source-tags-ai.js`, `srs-connections-core.js`, `window-bridge.js`); 4 real inline oninput
+  targets (`handleFilesSearch`/`handleHubCollabSearch`/`handleSourcesSearch`/
+  `handleWaypointsSearch`) moved off `window-bridge.js`'s indirection onto direct plain-global
+  assignment, same convention as every recent port. 7 new outbound bridges added for still-vanilla
+  dependencies with no bridge yet (`__refreshAiPanel`/`__resetAiSearchState` on
+  `ai-assistant-suggestions.js`; `__clearListPanelSelection`/`__renderFilesList`/
+  `__renderHubCollabList`/`__renderSourcesList`/`__renderWaypointsList` on `hamburger-collab.js`).
+  Its real module-load-time rail-icon click wiring (10 `wireRailIcon` calls against already-
+  existing DOM elements) ported as `wirePanelsHamburger()`, same bridge-readiness-poll `wireX()`
+  pattern every Phase 4.4/4.5 port with real DOM wiring has used. The stale-reference sweep found
+  ~30 comment references across 17 files (the widest sweep of this migration so far, reflecting
+  this file's real fan-in) — two were caught not just for a stale filename but for reasoning that
+  had gone stale: `ai-assistant-suggestions.js`'s own onOpen-callback comment, and this file's own
+  `refreshAiPanel`-wiring comment, both used to justify a plain-function-reference pattern by a
+  circular-ES-import risk that no longer exists now that the two files reach each other through a
+  bridge instead of a direct import — both rewritten to state what's actually true now. Real
+  Playwright verification against a fresh dev server: a real click on the Outline rail icon opened
+  it; a real click on a DIFFERENT icon (Sources) correctly switched — Outline closed, Sources
+  opened; a real click on the now-active Sources icon again closed it; real typing into the
+  Sources and Waypoints search inputs (`handleSourcesSearch`/`handleWaypointsSearch`, genuine
+  inline `oninput` targets) correctly filtered each list to zero rows on a no-match query; and a
+  real `Escape` keypress (routing through `history-autosave.js`'s existing global handler into
+  `closeAllPanels`) closed the open panel. `isAnyUiPanelOpen()` was checked at every stage and
+  matched the real DOM state throughout. Zero console/page errors. No mock data was created (pure
+  UI-interaction test), so no cleanup step was needed.
 - **Phase 4.6 — delete the bridge layer: not started.**
 - **Phase 4.7 — final cleanup & professionalization close-out: not started.**
 
@@ -1192,3 +1229,17 @@ session's final one are all confirmed green in real GitHub Actions CI. Phase 4.5
 files — `panels-hamburger.js` → `live-presence.js` → `history-autosave.js` → `srs-connections-
 core.js` remainder → `window-bridge.js` → `waypoints-render-loop.js` → `core-state.js`, in that
 order per the original approved plan) is next.
+
+**Phase 4.5 (`panels-hamburger.js` → `app/dotto/lib/panelsHamburger.ts`)**: `node --check` on all
+12 touched vanilla files, `eslint` clean (zero errors or warnings), `npm run typecheck` clean on
+the first pass, `npm run format:check` clean after a `prettier --write` pass, `rm -rf .next && npm
+run build` clean, all 32 Vitest tests still green. Real Playwright verification against a fresh
+dev server, deliberately driving several real rail icons through real clicks rather than just one,
+since this file is the shared mechanism EVERY rail panel in the app depends on: a real click
+opened the Outline panel; a real click on a different icon (Sources) correctly switched panels
+(Outline closed, Sources opened); a real click on the now-active Sources icon closed it again;
+real typing into the Sources and Waypoints search inputs correctly filtered each list to zero rows
+on a no-match query; a real `Escape` keypress closed the open panel via the existing global
+handler's `closeAllPanels` call; and `window.__isAnyUiPanelOpen()` was checked at every stage and
+matched the real DOM state throughout. Zero console/page errors. No mock data was created (pure
+UI-interaction test), so no cleanup step was needed.

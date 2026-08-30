@@ -357,7 +357,7 @@ function doWire(appState: AppState): void {
   // Deliberately does NOT close the #hamburger-stack rail panel (Search/Outline/Waypoints/
   // Collaborations/Marketplace/Library/Messages/Sources/Files/Queries/Profile/Add) — per explicit
   // request, a rail panel now only closes via Escape (closeAllPanels, history-autosave.js) or by
-  // clicking its own already-open icon again (wireRailIcon, panels-hamburger.js), never by
+  // clicking its own already-open icon again (wireRailIcon, app/dotto/lib/panelsHamburger.ts), never by
   // clicking anywhere else. clearSearch() (ai-assistant-suggestions.js) is omitted for the same
   // reason — despite its generic name, its only effect is closing the Queries/AI rail view
   // specifically (see its own body), which is exactly the behavior being removed here. Everything
@@ -416,7 +416,7 @@ export function wireSourceButtonsCursorMode(): () => void {
 // onclick target, canvasItemBehavior.js's cell markup) — plain (non-`__`) global, same shape
 // window.handleOutlineSearch/window.pushNotification use.
 window.openCellAddMenu = openCellAddMenu;
-// Vanilla -> React bridges — panels-hamburger.js/app/dotto/lib/sourceTable.ts/waypoints-render-loop.js/
+// Vanilla -> React bridges — app/dotto/lib/panelsHamburger.ts/app/dotto/lib/sourceTable.ts/waypoints-render-loop.js/
 // source-tags-ai.js/app-init.js/blocks-panel.js all previously imported these directly.
 window.__closeSourceAddMenu = closeSourceAddMenu;
 window.__applyCursorMode = applyCursorMode;

@@ -11,7 +11,7 @@
 // that tooling is ever set up.
 // openChatsPanel/openHubCollabPanel/openWaypointsPanel were hand-added the same way but later
 // REMOVED again — Waypoints/Collaborations/the outline tree are dedicated permanent rail icons now
-// (#dotto-rail, top-bar.html), wired directly via addEventListener in panels-hamburger.js rather
+// (#dotto-rail, top-bar.html), wired directly via addEventListener in app/dotto/lib/panelsHamburger.ts rather
 // than being called by name from an inline onclick attribute, so they no longer belong here.
 // handleColNameKeydown/renameTableColumn/setLastFocusedCell (also hand-added alongside
 // openTableCellContextMenu originally) were REMOVED again too, for a different reason — Phase 4.4
@@ -26,7 +26,6 @@ import { hmenuAction } from './hamburger-collab.js';
 import { deleteContextColumn, deleteContextRow, hideCanvasContextMenu, highlightContextColumn, highlightContextRow, openTableCellContextMenu, redo, undo } from './history-autosave.js';
 import { blurPublishFlowName, commitItemDetailDesc, commitItemDetailTitle, confirmPublishFlow, deleteDetailDraft, focusPublishFlowName, onItemDetailFieldChange, startPublishFlow, unpublishDetailItem, updateDetailItem } from './library-publish.js';
 import { broadcastEditingState, closeConvo, closeSharedCanvasView, sendMsg, setTitleLevel } from './live-presence.js';
-import { handleFilesSearch, handleHubCollabSearch, handleSourcesSearch, handleWaypointsSearch } from './panels-hamburger.js';
 import { closeDotbotUpgradeModal, closePricingOverlay, openPricingOverlay, showProfileMainView, showProfileSettingsView } from './profile-achievements-pricing.js';
 import { setTableAlign } from './card-shortcuts.js';
 import { closeCellTagPicker, closeTagContextMenu, commitTagRename, createTagFromCellPicker, deleteActiveTag, handleTagRenameKeydown, openTagContextMenu, startRenameActiveTag, toggleCellTag, triggerSourceUpload } from './source-tags-ai.js';
@@ -54,14 +53,10 @@ window.deleteDetailDraft = deleteDetailDraft;
 window.editEmbed = editEmbed;
 window.focusPublishFlowName = focusPublishFlowName;
 window.handleCollabSearch = handleCollabSearch;
-window.handleFilesSearch = handleFilesSearch;
-window.handleHubCollabSearch = handleHubCollabSearch;
 window.handleMsgSearch = handleMsgSearch;
 window.handleSearchFocus = handleSearchFocus;
 window.handleSearchInput = handleSearchInput;
-window.handleSourcesSearch = handleSourcesSearch;
 window.handleTagRenameKeydown = handleTagRenameKeydown;
-window.handleWaypointsSearch = handleWaypointsSearch;
 window.hideCanvasContextMenu = hideCanvasContextMenu;
 window.highlightContextColumn = highlightContextColumn;
 window.highlightContextRow = highlightContextRow;

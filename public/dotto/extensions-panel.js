@@ -1,5 +1,4 @@
 import { appState } from './core-state.js';
-import { wireRailIcon } from './panels-hamburger.js';
 
 // ---------- Extensions panel (was Library — repurposed per explicit request; "browse your own
 // library content" moved to the Blocks panel instead, see blocks-panel.js). Just a flat list of
@@ -11,6 +10,6 @@ function refreshExtensionsPanel() {
     // Nothing to do yet — extensionsListStore already holds its (static, dummy) data.
 }
 
-wireRailIcon('library', appState.libraryBtn, appState.libraryPanel, refreshExtensionsPanel);
+window.__wireRailIcon('library', appState.libraryBtn, appState.libraryPanel, refreshExtensionsPanel);
 
 export { refreshExtensionsPanel };

@@ -96,7 +96,7 @@ declare global {
       sourcePaneId?: number,
     ) => void;
     __closePane?: (paneId: number) => void;
-    // panels-hamburger.js
+    // app/dotto/lib/panelsHamburger.ts (Phase 4.5 port — was panels-hamburger.js)
     __closeRailView?: () => void;
     // app/dotto/lib/sourceButtonsCursorMode.ts
     __applyCursorMode?: () => void;
@@ -196,19 +196,19 @@ declare global {
     // __getWorldEl above).
     __getAddMenuEl?: () => HTMLElement | undefined;
     __getBtnAddEl?: () => HTMLElement | undefined;
-    // panels-hamburger.js
+    // app/dotto/lib/panelsHamburger.ts (Phase 4.5 port — was panels-hamburger.js)
     __wireRailIcon?: (
       key: string,
       btn: HTMLElement,
       viewEl: HTMLElement,
-      onOpen: () => void,
+      onOpen?: ((pin?: boolean) => void) | null,
     ) => void;
     __openRailView?: (
       key: string,
       viewEl: HTMLElement,
       btn: HTMLElement,
-      onOpen: () => void,
-      pin: boolean,
+      onOpen?: ((pin?: boolean) => void) | null,
+      pin?: boolean,
     ) => void;
     // live-presence.js — used by app/dotto/lib/marketplace.ts's packageSelectedAsTemplate.
     __snapshotItem?: (it: Record<string, unknown>) => Record<string, unknown>;
@@ -360,7 +360,7 @@ declare global {
     __closeCellTagPicker?: () => void;
     // srs-connections-core.js
     __clearDataLinkPending?: () => void;
-    // panels-hamburger.js
+    // app/dotto/lib/panelsHamburger.ts (Phase 4.5 port — was panels-hamburger.js)
     __closeAllPanels?: (except?: string) => void;
     // app/dotto/lib/sourceButtonsCursorMode.ts (Phase 4.4 port — was
     // source-buttons-cursor-mode.js) — vanilla -> React bridge: panels-hamburger.js/source-table.js/
@@ -499,5 +499,34 @@ declare global {
     triggerCellAudioUpload?: () => void;
     startCellAudioRecording?: () => void;
     stopCellAudioRecording?: () => void;
+    // ai-assistant-suggestions.js — used by app/dotto/lib/panelsHamburger.ts's wireRailIcon/
+    // openRailView calls for the AI rail icon.
+    __refreshAiPanel?: () => void;
+    __resetAiSearchState?: () => void;
+    // hamburger-collab.js — used by app/dotto/lib/panelsHamburger.ts's openRailView/wireRailIcon
+    // calls.
+    __clearListPanelSelection?: () => void;
+    __renderFilesList?: (query: string) => void;
+    __renderHubCollabList?: (query: string) => void;
+    __renderSourcesList?: (query: string) => void;
+    __renderWaypointsList?: (query: string) => void;
+    // app/dotto/lib/panelsHamburger.ts (Phase 4.5 port — was panels-hamburger.js) — vanilla ->
+    // React bridges: blocks-panel.js/ai-assistant-suggestions.js/card-shortcuts.js/extensions-
+    // panel.js/history-autosave.js/hamburger-collab.js/friends-presence.js/messages-schedule.js/
+    // profile-achievements-pricing.js/source-tags-ai.js/srs-connections-core.js all previously
+    // imported these directly.
+    __isAnyUiPanelOpen?: () => boolean;
+    __scheduleHoverClose?: (
+      name: string,
+      hoverEls: (HTMLElement | undefined | null)[],
+      closeFn: () => void,
+    ) => void;
+    __pinOnInsideClick?: (name: string, els: (HTMLElement | undefined | null)[]) => void;
+    // Plain (non-`__`) globals — real inline oninput targets (content/fragments/hamburger-
+    // stack.html), same shape window.pushNotification/window.handleMarketplaceSearch use.
+    handleFilesSearch?: (v: string) => void;
+    handleHubCollabSearch?: (v: string) => void;
+    handleSourcesSearch?: (v: string) => void;
+    handleWaypointsSearch?: (v: string) => void;
   }
 }

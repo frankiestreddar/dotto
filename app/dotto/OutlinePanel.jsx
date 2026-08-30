@@ -91,7 +91,7 @@ function OutlineRow({ r }) {
 
 // Portals into #hmenu-outline-container (content/fragments/hamburger-stack.html) — a plain
 // flex-item container, safe to portal into directly, no wrapper needed. Visibility of the panel
-// itself stays a vanilla classList toggle (openRailView/wireRailIcon, panels-hamburger.js),
+// itself stays a vanilla classList toggle (openRailView/wireRailIcon, app/dotto/lib/panelsHamburger.ts),
 // unrelated to this — this component only owns the row list, same division of ownership every
 // other converted sidebar list panel already uses (SourcesListPanel.jsx and friends).
 //

@@ -370,7 +370,7 @@ export const hubCollabListStore = createStore({
 
 // Shift-click-to-select + Backspace-to-delete state for the Chats/Waypoints/Collaborations
 // hamburger list panels (public/dotto/hamburger-collab.js's window.__toggleListPanelSelection).
-// One shared store, not three — openHubSubpanel (panels-hamburger.js) already enforces exactly
+// One shared store, not three — openHubSubpanel (app/dotto/lib/panelsHamburger.ts) already enforces exactly
 // one hub-subpanel open at a time, so `panel` (which list the ids belong to) doubles as the
 // disambiguation a Backspace handler needs for free, no separate "which panel is active"
 // bookkeeping. Collaborations' two row kinds (owned vs. shared-with-me) share this same `ids` Set

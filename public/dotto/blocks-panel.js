@@ -1,7 +1,6 @@
 import { addMenu, appState, btnAdd, canvas } from './core-state.js';
 import { deleteMyCreationItem, openItemDetail } from './library-publish.js';
 import { importSharedCardsAtScreenPoint } from './live-presence.js';
-import { closeRailView, wireRailIcon } from './panels-hamburger.js';
 
 // ---------- Blocks panel (was Essentials/the Add menu; also absorbed "browse your own library
 // content" — Purchased/drafts+published/custom folders — from Library, now Plugins, when the two
@@ -106,7 +105,7 @@ function pushBlocksView() {
     window.__setBlocksView(computeBlocksRows(appState.addMenuSearchQuery));
 }
 
-// The onOpen callback for wireRailIcon('add', ...) below — replaces resetAddMenuPanel
+// The onOpen callback for window.__wireRailIcon('add', ...) below — replaces resetAddMenuPanel
 // (add-menu.js). Always reopens showing every row, never mid-search from a previous visit (same
 // convention as every other rail view's onOpen). Refreshes userLibrary from Supabase every open,
 // same as Library's own refreshLibraryPanel used to — but pushes the view BEFORE that network
@@ -263,7 +262,7 @@ function setupContentItemDrag(div, row) {
             if (overPanel) return;
             const canvasRect = canvas.getBoundingClientRect();
             const overCanvas = ue.clientX >= canvasRect.left && ue.clientX <= canvasRect.right && ue.clientY >= canvasRect.top && ue.clientY <= canvasRect.bottom;
-            if (overCanvas) { importSharedCardsAtScreenPoint(item.nodes, ue.clientX, ue.clientY); closeRailView(); }
+            if (overCanvas) { importSharedCardsAtScreenPoint(item.nodes, ue.clientX, ue.clientY); window.__closeRailView(); }
         };
         window.addEventListener('pointermove', move);
         window.addEventListener('pointerup', up);
@@ -272,7 +271,7 @@ function setupContentItemDrag(div, row) {
     return () => div.removeEventListener('pointerdown', onPointerDown);
 }
 
-wireRailIcon('add', btnAdd, addMenu, refreshBlocksPanel);
+window.__wireRailIcon('add', btnAdd, addMenu, refreshBlocksPanel);
 
 export { computeBlocksRows, createBlocksFolder, deleteBlocksFolder, deleteBlockContentItem, handleBlockItemClick, handleBlocksSearchInput, refreshBlocksPanel, setupContentItemDrag, toggleBlocksFolderCollapse };
 

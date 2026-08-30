@@ -1,5 +1,4 @@
 import { appState, supabase } from './core-state.js';
-import { closeAllPanels, closeRailView, wireRailIcon } from './panels-hamburger.js';
 
 
     // ---------- Profile Panel Controls ----------
@@ -144,13 +143,13 @@ import { closeAllPanels, closeRailView, wireRailIcon } from './panels-hamburger.
     }, 60000);
     renderSpriteGrid();
     // Profile shares the permanent rail's one shell/pinned-state now (see openRailView,
-    // panels-hamburger.js) — no more of its own positionProfilePanel/resize listener (the shell is
+    // app/dotto/lib/panelsHamburger.ts) — no more of its own positionProfilePanel/resize listener (the shell is
     // already positioned beside the rail, full-height, no per-panel height to keep in sync).
     // closeProfilePanel stays a named export (hamburger-collab.js calls it directly); opening goes
-    // through the generic wireRailIcon('profile', ...) below now, same as every other rail icon —
+    // through the generic window.__wireRailIcon('profile', ...) below now, same as every other rail icon —
     // the hover-to-logout swap that used to need its own hand-written click handler here is gone
     // (logout is a small button inside the panel's identity block now, see hamburger-stack.html).
-    function closeProfilePanel() { closeRailView(); }
+    function closeProfilePanel() { window.__closeRailView(); }
     // Two internal sub-views of #profile-panel, toggled independently of the outer rail's own
     // open/close state — same shape as showAiListView/showAiChatView (ai-assistant-suggestions.js).
     // #profile-settings-view holds the old #settings-panel's content (Brightness Theme, Sidebar
@@ -284,14 +283,14 @@ import { closeAllPanels, closeRailView, wireRailIcon } from './panels-hamburger.
     // attributes bridged through window-bridge.js) keeps working unmodified — they just flip the
     // React-owned open state (app/dotto/bridges.js) instead of touching the DOM directly now.
     function openPricingOverlay() {
-        closeAllPanels(null);
+        window.__closeAllPanels(null);
         closeProfilePanel();
         window.__setPricingOverlayOpen(true);
     }
     function closePricingOverlay() {
         window.__setPricingOverlayOpen(false);
     }
-    wireRailIcon('profile', appState.profileBtn, appState.profilePanel, refreshProfilePanel);
+    window.__wireRailIcon('profile', appState.profileBtn, appState.profilePanel, refreshProfilePanel);
 
 export { awardUserPoints, bumpAchievementStat, closeDotbotUpgradeModal, closePricingOverlay, closeProfilePanel, openDotbotUpgradeModal, openPricingOverlay, refreshDotbotUsage, renderAvatarInto, showProfileMainView, showProfileSettingsView };
 

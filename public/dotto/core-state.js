@@ -248,7 +248,7 @@
         MODE_HOLD_THRESHOLD_MS: 180,
         modeKeyHoldStart: null,
         // "rail" replaces the old separate menu/messages/cart/profile/add flags — all of them now
-        // share one #hamburger-stack shell (see openRailView, panels-hamburger.js), so there's only
+        // share one #hamburger-stack shell (see openRailView, app/dotto/lib/panelsHamburger.ts), so there's only
         // ever one pinned-or-not state to track, not several independent ones that happened to all
         // mean "is #hamburger-stack pinned open." collab/sourceAdd are unrelated systems (the
         // per-canvas collab flyout, source-add-menu) and keep their own flags.
@@ -256,7 +256,7 @@
         // Which #hamburger-stack view is currently showing — null | 'inbox' | 'search' | 'ai' |
         // 'sources' | 'snippets' | 'snippets2' | 'outline' | 'waypoints' |
         // 'collab' | 'marketplace' | 'library' | 'messages' | 'profile'. Set by openRailView,
-        // cleared by closeRailView (panels-hamburger.js).
+        // cleared by closeRailView (app/dotto/lib/panelsHamburger.ts).
         activeRailView: null,
         dottoRail: document.getElementById('dotto-rail'),
         btnInbox: document.getElementById('btn-inbox'),
@@ -331,7 +331,7 @@
         // rest of the app, now owned by the React component that renders it.
         messagesBtn: document.getElementById('btn-messages'),
         messagesPanel: document.getElementById('messages-panel'),
-        // Bare shell for now (see wireRailIcon('servers', ...), panels-hamburger.js) — behavior/
+        // Bare shell for now (see wireRailIcon('servers', ...), app/dotto/lib/panelsHamburger.ts) — behavior/
         // content not yet decided, same as most of this rail.
         btnServers: document.getElementById('btn-servers'),
         serversPanel: document.getElementById('servers-panel'),
@@ -470,7 +470,7 @@
     // sync alongside modeButtons by the same updateModeToolbarUI (app/dotto/lib/sourceButtonsCursorMode.ts).
     appState.modePopupRows = Array.from(appState.modeToolbar.querySelectorAll('.mode-popup-row'));
     // Every panel-style rail view, in the same order as their icons top-to-bottom in #dotto-rail
-    // (see openRailView/closeRailView, panels-hamburger.js) — replaces the old hubSubpanels (just
+    // (see openRailView/closeRailView, app/dotto/lib/panelsHamburger.ts) — replaces the old hubSubpanels (just
     // Waypoints/Collaborations/Chats) now that Marketplace/Library/Messages/Add/Profile/AI search
     // share the exact same "one shell, swap which section is .open" mechanism. Library is a
     // separate rail view from Marketplace (own icon, own panel) — they used to be two tabs sharing

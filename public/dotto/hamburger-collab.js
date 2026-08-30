@@ -4,7 +4,6 @@ import { activePaneCollabBubbleEl, openCollabPanel, renderCollabPill } from './f
 import { saveWorkspaceNow, smoothPanTo } from './history-autosave.js';
 import { findItemById } from './live-presence.js';
 import { flashCanvasElement } from './mnemonic-search-matching.js';
-import { closeRailView } from './panels-hamburger.js';
 import { closeProfilePanel, openPricingOverlay } from './profile-achievements-pricing.js';
 import { deleteCanvasCollabsForFolder, deleteWaypointCardEverywhere, expandWaypointCard, folderGlobalId, openFolder, render } from './waypoints-render-loop.js';
 
@@ -235,7 +234,7 @@ import { deleteCanvasCollabsForFolder, deleteWaypointCardEverywhere, expandWaypo
     // query is optional — render()'s own call omits it, falling back to whatever's currently typed
     // into the live search input (if the panel isn't even open/mounted yet, that lookup just comes
     // back empty, same as an untouched box) so a render()-driven refresh doesn't clobber the user's
-    // in-progress search; the oninput handler (handleSourcesSearch, panels-hamburger.js) always
+    // in-progress search; the oninput handler (handleSourcesSearch, app/dotto/lib/panelsHamburger.ts) always
     // passes the freshly-typed value directly instead.
     // Account-wide: every source folder that exists (appState.folders is a flat, non-nested map
     // of ALL folders — see findAllSourceFolders's own comment, search-orchestration-selection.js,
@@ -377,7 +376,7 @@ import { deleteCanvasCollabsForFolder, deleteWaypointCardEverywhere, expandWaypo
         return localKeys;
     }
     async function goToWaypointCard(ownerId, folderId, itemId) {
-        closeRailView();
+        window.__closeRailView();
         if (ownerId === appState.currentUser.id) {
             if (appState.currentFolderId !== folderId) openFolder(folderId);
             const it = appState.folders[folderId] && appState.folders[folderId].items.find(i => String(i.id) === String(itemId));
@@ -402,7 +401,7 @@ import { deleteCanvasCollabsForFolder, deleteWaypointCardEverywhere, expandWaypo
     // ChatThread.jsx uses for live results. openSearchOverlay alone (no separate closeRailView
     // first) is enough — opening the AI view already closes/hides whatever else might be open, and
     // since it's already the active view here (that's how the chat list itself is visible),
-    // calling closeRailView first would trigger resetAiSearchState (see panels-hamburger.js) and
+    // calling closeRailView first would trigger resetAiSearchState (see app/dotto/lib/panelsHamburger.ts) and
     // reset currentConversationId/chatThreadStore right before this function sets them again —
     // harmless in the end (this function's own assignments below run after and win), but
     // pointless churn to avoid. openSearchOverlay lands on the list view by default (refreshAiPanel
@@ -440,7 +439,7 @@ import { deleteCanvasCollabsForFolder, deleteWaypointCardEverywhere, expandWaypo
         scrollChatThreadToBottom();
     }
     // ---------- Chats/Waypoints/Collaborations list-panel selection + deletion ----------
-    // One shared selection, not three — openHubSubpanel (panels-hamburger.js) already enforces
+    // One shared selection, not three — openHubSubpanel (app/dotto/lib/panelsHamburger.ts) already enforces
     // exactly one hub-subpanel open at a time, so `panel` doubles as the disambiguation a single
     // Backspace handler needs (see dispatchListPanelDelete, called from source-buttons-cursor-
     // mode.js's keydown listener). Vanilla owns this as the source of truth (appState.
@@ -554,7 +553,7 @@ import { deleteCanvasCollabsForFolder, deleteWaypointCardEverywhere, expandWaypo
         if (panel === 'collaborations') { deleteSelectedCollabs(ids); return; }
     }
     function hmenuAction(action) {
-        closeRailView();
+        window.__closeRailView();
         closeProfilePanel();
         if (action === 'upgrade') {
             openPricingOverlay();
@@ -584,3 +583,9 @@ window.__handleOwnedHubCollabRowClick = handleOwnedHubCollabRowClick;
 window.__respondToHubCollabRequest = respondToHubCollabRequest;
 // Used by app/dotto/lib/sourceButtonsCursorMode.ts's Backspace shortcut (Phase 4.4).
 window.__dispatchListPanelDelete = dispatchListPanelDelete;
+// Used by app/dotto/lib/panelsHamburger.ts's openRailView/wireRailIcon calls (Phase 4.5).
+window.__clearListPanelSelection = clearListPanelSelection;
+window.__renderFilesList = renderFilesList;
+window.__renderHubCollabList = renderHubCollabList;
+window.__renderSourcesList = renderSourcesList;
+window.__renderWaypointsList = renderWaypointsList;

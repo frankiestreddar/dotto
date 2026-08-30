@@ -4,7 +4,6 @@ import { resolveTableForEdit } from './drawing-connections.js';
 import { generateGlobalId } from './global-ids.js';
 import { resolveSharedFolderChain } from './hamburger-collab.js';
 import { broadcastCursorPositionThrottled, closeSharedCanvasView, ensureCanvasPresenceChannel, findItemById, queueSyncDiff, repositionAllRemoteCursors } from './live-presence.js';
-import { closeAllPanels } from './panels-hamburger.js';
 import { closeDotbotUpgradeModal, closePricingOverlay } from './profile-achievements-pricing.js';
 import { closeCellTagPicker } from './source-tags-ai.js';
 import { cancelAddingKind, finishPenPolyline } from './srs-connections-core.js';
@@ -541,7 +540,7 @@ import { centerOnContent, render } from './waypoints-render-loop.js';
         if (e.key === 'Escape') {
             // Every hover/pin panel (menu, messages, cart, profile, add, collab, sourceAdd —
             // see closeAllPanels) plus every standalone modal/overlay in the app, all in one go.
-            closeAllPanels();
+            window.__closeAllPanels();
             if (document.getElementById('search-cards-modal-overlay').classList.contains('open')) window.closeSearchCardsModal();
             closeSharedCanvasView();
             closeDotbotUpgradeModal();

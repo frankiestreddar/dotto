@@ -75,7 +75,7 @@ function resetMarketplacePanelView(): void {
 }
 
 // Marketplace shares the permanent rail's one shell/pinned-state (see openRailView/wireRailIcon,
-// panels-hamburger.js) — no separate positionCartPanel or its own click/hover/pin wiring
+// app/dotto/lib/panelsHamburger.ts) — no separate positionCartPanel or its own click/hover/pin wiring
 // (wireRailIcon covers that generically). This onOpen callback fires every time the Marketplace
 // icon is clicked.
 async function refreshCartPanel(): Promise<void> {

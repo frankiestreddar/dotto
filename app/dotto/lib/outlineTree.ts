@@ -533,7 +533,7 @@ export function syncOutlineRows(elements: ArrayLike<HTMLElement>): void {
   appState.outlineActiveIndex = -1;
 }
 // "M" keyboard shortcut (srs-connections-core.js) — routes through the same shared rail mechanism
-// the outline's own icon uses (openRailView/closeRailView, panels-hamburger.js) rather than
+// the outline's own icon uses (openRailView/closeRailView, app/dotto/lib/panelsHamburger.ts) rather than
 // toggling classes directly, so it correctly closes whichever OTHER rail view might currently be
 // open instead of just layering the outline on top of it.
 export function toggleHamburgerMenu(): void {
@@ -568,7 +568,7 @@ window.__syncOutlineRows = syncOutlineRows;
 window.__goToOutlineItem = goToOutlineItem;
 window.__toggleOutlineCollapse = toggleOutlineCollapse;
 // Vanilla → React bridges — hamburger-collab.js/live-presence.js/search-panel-history.js/
-// panels-hamburger.js/window-bridge.js/waypoints-render-loop.js/srs-connections-core.js all
+// app/dotto/lib/panelsHamburger.ts/window-bridge.js/waypoints-render-loop.js/srs-connections-core.js all
 // previously imported these directly.
 window.__buildOutline = buildOutline;
 window.__kindIconHTML = kindIconHTML;

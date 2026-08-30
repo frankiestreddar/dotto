@@ -1,6 +1,6 @@
 <!-- The permanent rail (#dotto-rail) replaces the old single #btn-menu button — a full-height
      strip of icons, each opening its own view inside #hamburger-stack (see openRailView,
-     panels-hamburger.js) via click-only open/switch/close (no hover preview). Back/forward live in
+     app/dotto/lib/panelsHamburger.ts) via click-only open/switch/close (no hover preview). Back/forward live in
      each pane's own top-bar pill instead (see app/dotto/PaneTopBar.jsx, below) — they're
      page-navigation, not rail-icon-style view triggers, and read better beside the breadcrumb they
      actually move.
@@ -37,7 +37,7 @@
     <!-- Group 2: Search, then Queries (was Routes, then Queries — swapped with Group 3's own
          Search per explicit request; #search-panel, hamburger-stack.html, is a bare shell for now
          — behavior/content not yet decided, wired into the shared openRailView mechanism, see
-         wireRailIcon('search', ...), panels-hamburger.js). Queries: moved here below it per an
+         wireRailIcon('search', ...), app/dotto/lib/panelsHamburger.ts). Queries: moved here below it per an
          earlier explicit request — was in group 6 (now Files/Sources/Snippets, see its own
          comment) — #rail-btn-ai/#ai-panel keep their internal id unchanged, same convention as
          every other rename/relocation this session. -->
@@ -63,7 +63,7 @@
          earlier explicit request; id/wiring kept as 'inbox'/#btn-inbox/#inbox-panel under the hood,
          same convention as every other rename this session, e.g. Files staying #btn-snippets) is a
          bare shell for now — behavior/content not yet decided, wired into the shared openRailView
-         mechanism (see wireRailIcon('inbox', ...), panels-hamburger.js) so the icon has somewhere
+         mechanism (see wireRailIcon('inbox', ...), app/dotto/lib/panelsHamburger.ts) so the icon has somewhere
          to open. -->
     <div class="rail-group rail-group-divider">
         <button id="btn-menu" class="rail-btn"><img class="rail-icon-img" src="/assets/icons/outline.png" alt=""><span class="rail-tooltip"><span class="rail-tooltip-row"><span class="rail-tooltip-name">Outline</span><span class="rail-tooltip-key">O</span></span><span class="rail-tooltip-desc" data-desc="A collapsible tree of every block on this canvas."></span></span></button>
@@ -79,7 +79,7 @@
          panel went. Servers (#btn-servers/#servers-panel, hamburger-stack.html) added below
          Messages/Collaborations per explicit request — a bare shell for now, same as most of this
          rail (behavior/content not yet decided), wired into the shared openRailView mechanism (see
-         wireRailIcon('servers', ...), panels-hamburger.js) so the icon has somewhere to open. -->
+         wireRailIcon('servers', ...), app/dotto/lib/panelsHamburger.ts) so the icon has somewhere to open. -->
     <div class="rail-group rail-group-divider">
         <button id="btn-messages" class="rail-btn"><img class="rail-icon-img" src="/assets/icons/messages.png" alt=""><span class="rail-tooltip"><span class="rail-tooltip-row"><span class="rail-tooltip-name">Messages</span><span class="rail-tooltip-key">M</span></span><span class="rail-tooltip-desc" data-desc="Direct messages and conversations."></span></span></button>
         <button id="rail-btn-collab" class="rail-btn"><img class="rail-icon-img" src="/assets/icons/collaboration.png" alt=""><span class="rail-tooltip"><span class="rail-tooltip-row"><span class="rail-tooltip-name">Collaborations</span><span class="rail-tooltip-key">C</span></span><span class="rail-tooltip-desc" data-desc="People collaborating with you on this canvas."></span></span></button>
@@ -97,7 +97,7 @@
          request to tell them apart. Sources/Snippets(new): #sources-panel/#snippets2-panel
          (hamburger-stack.html) are bare shells for now — behavior/content not yet decided, wired
          into the shared openRailView mechanism (see wireRailIcon('sources'/'snippets2', ...),
-         panels-hamburger.js) so each icon has somewhere to open. -->
+         app/dotto/lib/panelsHamburger.ts) so each icon has somewhere to open. -->
     <div class="rail-group rail-group-divider">
         <button id="btn-snippets" class="rail-btn"><img class="rail-icon-img" src="/assets/icons/files.png" alt=""><span class="rail-tooltip"><span class="rail-tooltip-row"><span class="rail-tooltip-name">Files</span><span class="rail-tooltip-key">F</span></span><span class="rail-tooltip-desc" data-desc="Files and snippets you've saved."></span></span></button>
         <button id="btn-sources" class="rail-btn"><img class="rail-icon-img" src="/assets/icons/sources.png" alt=""><span class="rail-tooltip"><span class="rail-tooltip-row"><span class="rail-tooltip-name">Sources</span><span class="rail-tooltip-key">K</span></span><span class="rail-tooltip-desc" data-desc="Structured source tables you can reference and query."></span></span></button>

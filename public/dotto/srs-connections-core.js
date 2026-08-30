@@ -5,7 +5,6 @@ import { createConnection, ensureConnections, ensureDrawings, findLinkedTable, f
 import { generateGlobalId } from './global-ids.js';
 import { applyTransform, saveSnapshot, scheduleApplyTransform } from './history-autosave.js';
 import { broadcastEditingState } from './live-presence.js';
-import { isAnyUiPanelOpen } from './panels-hamburger.js';
 import { awardUserPoints, bumpAchievementStat, showProfileSettingsView } from './profile-achievements-pricing.js';
 import { toggleTheme } from './theme-toggle.js';
 import { toggleUploadPopup } from './upload-popup.js';
@@ -395,7 +394,7 @@ import { calculateSM2, defaultSrsState, diffRatings } from './srs-algorithm.js';
         window.removePlacementGhost();
     }
 
-    // Keyed by appState.activeRailView (see openRailView/wireRailIcon, panels-hamburger.js) — used
+    // Keyed by appState.activeRailView (see openRailView/wireRailIcon, app/dotto/lib/panelsHamburger.ts) — used
     // by the Enter-focuses-search-box handler below. 'search'/'ai' added per explicit follow-up
     // request that every side panel's search box show/respond to this — both panels' own search
     // boxes didn't exist yet when this map (and its "AI/Profile don't [have one]" comment further
@@ -476,7 +475,7 @@ import { calculateSM2, defaultSrsState, diffRatings } from './srs-algorithm.js';
         // a space or "/" was typed — reading as "if you start typing, it starts inputting in the
         // text box." Once some other panel is already open, reaching a DIFFERENT one now always
         // means clicking its rail icon rather than one of these letter shortcuts still firing.
-        const anyPanelOpen = isAnyUiPanelOpen();
+        const anyPanelOpen = window.__isAnyUiPanelOpen();
         // Space opens the Explain panel (AI chat, part of #hamburger-stack — see
         // openRailView/openSearchOverlay) empty. openSearchOverlay shows the panel THEN focuses
         // the input — focusing an element inside a still-hidden (display:none) subtree is a silent
@@ -992,7 +991,7 @@ import { calculateSM2, defaultSrsState, diffRatings } from './srs-algorithm.js';
     // the user's next canvas click. render() (inside add()) already refreshes everything reading
     // off appState.folders[appState.currentFolderId].items, including the new source's own linking
     // item — the panel's own list just needs its own render hook wired to pick that up too, see
-    // panels-hamburger.js/hamburger-collab.js.
+    // app/dotto/lib/panelsHamburger.ts/hamburger-collab.js.
     function createNewSource() {
         const { w, h } = kindSize('source');
         const center = viewportCenterWorldPoint();

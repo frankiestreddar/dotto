@@ -3,7 +3,6 @@ import { escapeHtml, stripHtml } from './ai-assistant-suggestions.js';
 import { appState, canvasViewportCenterX, findItemEl } from './core-state.js';
 import { resolveTableForEdit } from './drawing-connections.js';
 import { saveSnapshot, scheduleWorkspaceSave } from './history-autosave.js';
-import { closeAllPanels } from './panels-hamburger.js';
 import { add } from './srs-connections-core.js';
 import { render } from './waypoints-render-loop.js';
 
@@ -158,7 +157,7 @@ import { render } from './waypoints-render-loop.js';
         // 'rail' — a click on a row's own tag button is exactly the kind of "clicked elsewhere on
         // the canvas" interaction that must no longer close an open rail panel (see
         // window.onclick's own comment, app/dotto/lib/sourceButtonsCursorMode.ts).
-        closeAllPanels('rail');
+        window.__closeAllPanels('rail');
         appState.activeTagRow = { id, r };
         appState.renamingTagId = null;
         closeTagContextMenu();

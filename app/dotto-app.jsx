@@ -63,6 +63,7 @@ import { wireDayChangeAndAdNotifications } from "./dotto/lib/dayChangeAndAdNotif
 import { wireMarketplace } from "./dotto/lib/marketplace";
 import { wireNotifications } from "./dotto/lib/notificationsStore";
 import { wireSourceButtonsCursorMode } from "./dotto/lib/sourceButtonsCursorMode";
+import { wirePanelsHamburger } from "./dotto/lib/panelsHamburger";
 // Side-effect only, same reasoning as splitPaneManagement/tabManagement above — sets
 // window.__openGameOptionsPanel/fcFlip/etc at module-eval time for the 5 still-vanilla callers
 // that used to import these directly, plus the React->vanilla bridges FlashcardCard.jsx/
@@ -468,6 +469,11 @@ export default function DottoApp({ sections, currentUser }) {
   // why this needs to poll for window.__getAppState/appState.modeToolbar rather than a single
   // readiness check.
   useEffect(() => wireSourceButtonsCursorMode(), []);
+  // Phase 4.5: the permanent rail's shared open/close contract — 10 real rail-icon click listeners
+  // — see wirePanelsHamburger's own comment, app/dotto/lib/panelsHamburger.ts, for why this needs
+  // to poll for window.__getAppState/every rail-icon DOM element rather than a single readiness
+  // check.
+  useEffect(() => wirePanelsHamburger(), []);
 
   return (
     <>

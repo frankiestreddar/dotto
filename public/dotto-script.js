@@ -3,7 +3,6 @@ import './dotto/add-menu.js';
 import './dotto/history-autosave.js';
 import './dotto/drawing-connections.js';
 import './dotto/srs-connections-core.js';
-import './dotto/panels-hamburger.js';
 import './dotto/theme-toggle.js';
 import './dotto/upload-popup.js';
 import './dotto/hamburger-collab.js';
