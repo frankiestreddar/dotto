@@ -416,7 +416,7 @@ export function wireSourceButtonsCursorMode(): () => void {
 // onclick target, canvasItemBehavior.js's cell markup) — plain (non-`__`) global, same shape
 // window.handleOutlineSearch/window.pushNotification use.
 window.openCellAddMenu = openCellAddMenu;
-// Vanilla -> React bridges — panels-hamburger.js/source-table.js/waypoints-render-loop.js/
+// Vanilla -> React bridges — panels-hamburger.js/app/dotto/lib/sourceTable.ts/waypoints-render-loop.js/
 // source-tags-ai.js/app-init.js/blocks-panel.js all previously imported these directly.
 window.__closeSourceAddMenu = closeSourceAddMenu;
 window.__applyCursorMode = applyCursorMode;

@@ -61,7 +61,7 @@
   genuine resolution problem). **Phase 4.3 is now fully done** — all 3 originally-scoped
   multi-concern files split. All 3 commits (`86fc151`, `c8a182f`, `50e9f00`) confirmed green in
   real GitHub Actions.
-- **Phase 4.4 — port split-out concerns + remaining DOM-heavy files: in progress.**
+- **Phase 4.4 — port split-out concerns + remaining DOM-heavy files: done.**
   `notifications.js` (Phase 4.3's own split, 122 lines) ported first: `app/dotto/lib/
   notificationsStore.ts` — the codebase's first real **Zustand** store (per the Phase 4 plan's
   locked-in decision, installed as a real dependency here since nothing had adopted it yet;
@@ -313,6 +313,33 @@
   `import()`, the one part with genuine build-breaking risk) already proven correct by the PDF
   test above. Zero unexpected console/page errors. Re-checked the account afterward to confirm
   zero residual mock cards.
+  `source-table.js` (543 lines) ported last to `app/dotto/lib/sourceTable.ts` — the on-canvas
+  Table card's legacy string renderer, cell/keyboard navigation shared by both that legacy
+  renderer and the real `TableCard.jsx`, row/column growth + merging, and the Source page's own
+  image/audio-insert + CSV/TSV import pipeline. `TableCard.jsx` upgraded from window bridges to
+  real ES imports for the technical functions (`distributeTableSizing`/`mergeTableCells`/
+  `updateTableCell`/`handleTableKeydown`/`addTableCol`/`addTableRow` — same precedent as every
+  recent Phase 4.4 port); its own separate, pre-existing local `handleCellMouseDown` was correctly
+  left alone rather than shadowed by an accidental same-name import (caught by a real duplicate-
+  declaration error on the first typecheck attempt). 5 real vanilla callers fixed
+  (`live-presence.js`, `search-orchestration-selection.js`, `window-bridge.js`, `source-tags-ai.js`,
+  `table-grid-resize.js`); 12 real inline onclick/oninput/onkeydown/onmousedown/onfocus targets
+  moved off `window-bridge.js`'s indirection onto direct plain-global assignment — the largest
+  single batch of any Phase 4.4 port, spanning `renderTableHTML`'s own built HTML,
+  `canvasItemBehavior.js`'s still-vanilla Source-page renderer, and two static HTML fragments
+  (`source-add-menu.html`/`audio-record-indicator.html`). 2 new outbound bridges added for
+  still-vanilla dependencies with no bridge yet (`__placeCaretEnd` on `live-presence.js`,
+  `__resolveTableForEdit` on `drawing-connections.js`). Real Playwright verification against a
+  fresh dev server: real contentEditable typing into a `TableCard.jsx` cell persisted to
+  `tableData`; real clicks on Add-column/Add-row grew the table correctly; a real `ArrowRight`
+  keypress navigated focus to the adjacent cell; a real `mergeTableCells` call rendered a genuine
+  `<td colspan="2">` in the DOM; and `importDelimitedIntoSource`'s column-name-matching CSV import
+  logic was verified directly against a tagged mock source folder (matched `Name`/`Age` by name,
+  appended the unmatched `City` column) — the full "open a real Source page, upload a real CSV
+  file" UI flow was judged not worth the added weight over exercising the actual matching logic
+  this port owns directly. Zero console/page errors. Re-checked the account afterward to confirm
+  zero residual mock cards/folders. **This closes out Phase 4.4 — every split-out concern and
+  remaining DOM-heavy file has now been ported.** Phase 4.5 (architectural/hub files) is next.
 - **Phase 4.5 — architectural/hub files: not started.**
 - **Phase 4.6 — delete the bridge layer: not started.**
 - **Phase 4.7 — final cleanup & professionalization close-out: not started.**
@@ -1130,3 +1157,38 @@ pdf.js viewer with a real rendered `<canvas>` and a real "1 / 1" page-nav label.
 was verified by bridge presence and code review only, not a real file upload — see the status
 section entry above for why that tradeoff was made. Zero console/page errors. Re-checked the
 account afterward to confirm zero residual mock cards.
+
+**Real CI failure caught and fixed after this commit landed**: the `turbopackIgnore` fix above was
+made after the last local `prettier --write` pass and never reformatted before committing, which
+passed every local check that had already run (typecheck, eslint, build, tests) but broke the
+separate `format:check` CI step on push — confirmed via the GitHub Actions API directly (this
+project's own standing CI-confirmation discipline), not assumed. Fixed with a second, immediate
+commit (`e28c418`) containing only a `prettier --write` diff, verified locally against exactly what
+would be committed (via `git stash push -u --keep-index` to isolate the fix from unrelated
+in-progress work already sitting in the working directory) before pushing, then re-confirmed green
+in real CI. Lesson for every future commit in this migration: run `format:check` as the LAST step
+immediately before committing, not just once earlier in the verification pass — any edit made after
+an earlier `prettier --write` (a build-fix, a typecheck-fix, anything) can reintroduce formatting
+drift that only `format:check` itself would catch.
+
+**Phase 4.4 (`source-table.js` → `app/dotto/lib/sourceTable.ts`)**: `node --check` on all 5 touched
+vanilla files, `eslint` clean (zero errors or warnings), `npm run typecheck` clean on the first
+pass (a real duplicate-declaration bug — `TableCard.jsx`'s own pre-existing local
+`handleCellMouseDown` shadowed by an accidentally-imported same-name function from the new port —
+was caught and fixed before this pass, not by it), `npm run format:check` clean after a `prettier
+--write` pass run as the actual last step before committing (see the lesson just above), `rm -rf
+.next && npm run build` clean, all 32 Vitest tests still green. Real Playwright verification
+against a fresh dev server: real `contentEditable` typing into a `TableCard.jsx` cell persisted to
+`tableData`; real clicks on Add-column/Add-row grew the table from 2×2 to 3×3; a real `ArrowRight`
+keypress moved DOM focus to the adjacent cell; a real `mergeTableCells` call produced a genuine
+`<td colspan="2">` in the live DOM; `importDelimitedIntoSource`'s column-matching CSV logic was
+verified directly against a tagged mock source folder, correctly matching `Name`/`Age` columns by
+name and appending the unmatched `City` column as new. Zero console/page errors. Re-checked the
+account afterward to confirm zero residual mock cards/folders.
+
+**Phase 4.4 is now fully complete** — every split-out concern (Phase 4.3) and every remaining
+DOM-heavy vanilla file has been ported to `app/dotto/lib/*.ts`. Commits `810c8fd` through this
+session's final one are all confirmed green in real GitHub Actions CI. Phase 4.5 (architectural/hub
+files — `panels-hamburger.js` → `live-presence.js` → `history-autosave.js` → `srs-connections-
+core.js` remainder → `window-bridge.js` → `waypoints-render-loop.js` → `core-state.js`, in that
+order per the original approved plan) is next.

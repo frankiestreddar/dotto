@@ -301,9 +301,9 @@ declare global {
     // mnemonic-search-matching.js — brief highlight flash on a canvas element, used to draw the
     // eye after a jump-to-item navigation (outline row click, search result click, etc).
     __flashCanvasElement?: (el: HTMLElement | undefined) => void;
-    // source-table.js — moves keyboard focus (and starts editing on Enter-driven nav) to a
-    // specific table cell; pos is an optional caret-position hint for text inputs.
-    __focusTableCell?: (id: number, r: number, c: number, pos?: unknown) => void;
+    // app/dotto/lib/sourceTable.ts — moves keyboard focus (and starts editing on Enter-driven nav)
+    // to a specific table cell; pos is an optional caret-position hint for text inputs.
+    __focusTableCell?: (id: number, r: number, c: number, pos?: "start" | "end") => void;
     // waypoints-render-loop.js — expands (or, with opts.editable, opens for rename) a waypoint
     // card's DOM in place.
     __expandWaypointCard?: (
@@ -463,5 +463,41 @@ declare global {
     setMediaFromLink?: (id: number) => void;
     triggerMediaUpload?: (id: number) => void;
     clearMedia?: (id: number) => void;
+    // live-presence.js — places the caret at the end of an element's content.
+    __placeCaretEnd?: (el: HTMLElement) => void;
+    // drawing-connections.js — same as __findItemById, but also reaches a table living in a
+    // different folder than the one currently open (e.g. a flashcard fed via a connected Stack).
+    __resolveTableForEdit?: (id: number) => Record<string, unknown> | undefined;
+    // app/dotto/lib/sourceTable.ts (Phase 4.4 port — was source-table.js) — React -> vanilla
+    // bridges pre-dating this port (TableCard.jsx now imports the technical ones directly instead,
+    // being in the same app/dotto/ tree — kept declared/assigned since still-vanilla callers need
+    // them too) plus a new bridge for source-tags-ai.js's still-vanilla triggerSourceUpload.
+    __distributeTableSizing?: (it: Record<string, unknown>, el: HTMLElement) => void;
+    __mergeTableCells?: (
+      id: number,
+      regionA: { r1: number; c1: number; r2: number; c2: number },
+      regionB: { r1: number; c1: number; r2: number; c2: number },
+    ) => void;
+    __renderTableHTML?: (it: Record<string, unknown>) => string;
+    __colgroupHTML?: (numCols: number) => string;
+    __importDelimitedIntoSource?: (text: string, delim: string) => void;
+    // Plain (non-`__`) globals — real inline onclick/oninput/onkeydown/onmousedown/onfocus targets
+    // built into sourceTable.ts's own renderTableHTML output, canvasItemBehavior.js's source-page
+    // markup, and static HTML fragments (source-add-menu.html/audio-record-indicator.html), same
+    // shape window.pushNotification/window.handleMarketplaceSearch use. updateTableCell/
+    // handleTableKeydown/addTableCol/addTableRow/handleCellMouseDown are ALSO real ES imports in
+    // TableCard.jsx now (same precedent as every recent Phase 4.4 port).
+    updateTableCell?: (id: number, r: number, c: number, el: HTMLElement) => void;
+    handleTableKeydown?: (e: KeyboardEvent, id: number, r: number, c: number) => void;
+    addTableCol?: (id: number) => void;
+    addTableRow?: (id: number) => void;
+    handleCellMouseDown?: (e: MouseEvent) => void;
+    renameTableColumn?: (id: number, colIndex: number, value: string) => void;
+    handleColNameKeydown?: (e: KeyboardEvent, id: number, colIndex: number) => void;
+    setLastFocusedCell?: (id: number, r: number, c: number) => void;
+    triggerCellImageUpload?: () => void;
+    triggerCellAudioUpload?: () => void;
+    startCellAudioRecording?: () => void;
+    stopCellAudioRecording?: () => void;
   }
 }

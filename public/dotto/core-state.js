@@ -376,7 +376,7 @@
         STATIC_HEADER_PILL_GAP: 8,
         // Was 3.2 (3 full columns + a peek of the 4th before scrolling) — tightened to 2.2 per
         // explicit request that only 2 columns fit the screen before more start scrolling (see
-        // layoutSourceTableColumns's `overflowing` check, source-table.js, now numCols > 2).
+        // layoutSourceTableColumns's `overflowing` check, app/dotto/lib/sourceTable.ts, now numCols > 2).
         STATIC_TABLE_VISIBLE_COLS: 2.2,
         STATIC_TABLE_ROW_GAP: 10,
         STATIC_TABLE_PAGE_PADDING_TOP: 96,

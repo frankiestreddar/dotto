@@ -6,7 +6,6 @@ import { saveSnapshot, scheduleWorkspaceSave } from './history-autosave.js';
 import { miniLabelForItem } from './live-presence.js';
 import { commenceSearchOrMnemonic } from './mnemonic-search-matching.js';
 import { bumpAchievementStat, openDotbotUpgradeModal, refreshDotbotUsage } from './profile-achievements-pricing.js';
-import { colgroupHTML } from './source-table.js';
 import { applyAiAddRowsToSource, createSourceFromAI } from './source-tags-ai.js';
 import { render } from './waypoints-render-loop.js';
 
@@ -343,7 +342,7 @@ import { render } from './waypoints-render-loop.js';
             <div class="col-name-slot" style="width:${pillWidth}%">
                 <div class="col-name-pill"><input type="text" class="col-name-input" readonly value="${escapeHtml(h)}" placeholder="Column ${i + 1}"></div>
             </div>`).join('');
-        const cg = colgroupHTML(numCols);
+        const cg = window.__colgroupHTML(numCols);
         const cellsHTML = headers.map((_, i) => `
             <td>
                 <div class="cell-inner">

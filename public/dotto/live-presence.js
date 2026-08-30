@@ -8,7 +8,6 @@ import { closeCollabPanel, initials, renderMsgList } from './friends-presence.js
 import { saveSnapshot, smoothPanTo } from './history-autosave.js';
 import { closeMessagesPanel } from './messages-schedule.js';
 import { awardUserPoints, renderAvatarInto } from './profile-achievements-pricing.js';
-import { renderTableHTML } from './source-table.js';
 import { renderStopwatchHTML } from './stopwatch.js';
 import { render } from './waypoints-render-loop.js';
 
@@ -957,7 +956,7 @@ import { render } from './waypoints-render-loop.js';
             el.style.fontSize = titleFontSize(it.level || 1) + 'px';
             el.innerHTML = `<div class="body">${it.html || ''}</div>`;
         } else if (it.kind === 'table') {
-            el.innerHTML = renderTableHTML(it);
+            el.innerHTML = window.__renderTableHTML(it);
             if (it.userSized) el.classList.add('sized');
         } else if (it.kind === 'media') {
             el.innerHTML = window.__renderMediaHTML(it);
@@ -1215,7 +1214,7 @@ import { render } from './waypoints-render-loop.js';
             if (tableItem) {
                 const tableWrap = document.createElement('div');
                 tableWrap.className = 'msg-inline-canvas-source-table';
-                tableWrap.innerHTML = renderTableHTML(tableItem);
+                tableWrap.innerHTML = window.__renderTableHTML(tableItem);
                 tableWrap.style.pointerEvents = 'none';
                 scroller.appendChild(tableWrap);
             }

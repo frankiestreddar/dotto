@@ -384,7 +384,7 @@ function computeOutlineRows(
 // header, so data rows start at index 1) with that row's first-column value as its label,
 // stripped of any rich-text markup the same way every other free-text outline label already is
 // (e.g. .note's own outlineLabel branch above). Clicking a row focuses that row's first cell
-// directly in the live table (focusTableCell, source-table.js — the same primitive arrow-key
+// directly in the live table (focusTableCell, app/dotto/lib/sourceTable.ts — the same primitive arrow-key
 // navigation and Enter-to-edit already use) rather than panning/flashing a canvas element the way
 // goToOutlineItem does — there's no canvas to pan on a source page, it's a fixed full-viewport
 // table, and focusing the cell already scrolls it into view within .table-rounded's own scroll

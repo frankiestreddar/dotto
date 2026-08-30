@@ -2,11 +2,22 @@
 
 import { useLayoutEffect } from "react";
 import { setupResizing } from "./canvasItemBehavior";
+import {
+  addTableCol,
+  addTableRow,
+  distributeTableSizing,
+  handleTableKeydown,
+  mergeTableCells,
+  updateTableCell,
+} from "./lib/sourceTable";
 
-// Ported from the old renderTableHTML (public/dotto/source-table.js — kept there, not deleted:
-// renderStaticTableHTML, the much larger Source database-page renderer, shares colgroupHTML with
-// it and is a separate, harder conversion of its own — see PHASE2_ROADMAP.md). This is the plain
-// in-canvas Table card specifically, not Source's page.
+// Ported from the old renderTableHTML (now app/dotto/lib/sourceTable.ts, Phase 4.4 — reached here
+// as real ES imports since both files live in the same app/dotto/ tree; the window bridges/plain
+// globals still exist too, but only because renderTableHTML's own still-string-built HTML — used
+// by live-presence.js's mini previews and a table's first-ever resize — and canvasItemBehavior.js's
+// separate, harder-to-convert Source database-page renderer (renderStaticTableHTML, which shares
+// colgroupHTML — see PHASE2_ROADMAP.md) both still need them). This is the plain in-canvas Table
+// card specifically, not Source's page.
 //
 // Each <td> is contentEditable with dangerouslySetInnerHTML for its content (cells can contain
 // arbitrary HTML from paste/rich content, not just plain text) — same "mutate in place, next real
@@ -61,7 +72,7 @@ function handleCellMouseDown(e) {
 }
 
 // it.mergedCells is a flat list of {r1,c1,r2,c2} rectangular regions (see mergeTableCells,
-// source-table.js) — a plain, still-unmerged cell has no entry of its own here at all. Builds a
+// app/dotto/lib/sourceTable.ts) — a plain, still-unmerged cell has no entry of its own here at all. Builds a
 // full numRows x numCols lookup, one entry per grid position pointing at whichever region (real
 // or, for an unmerged cell, the trivial 1x1 region matching just itself) actually covers it, so
 // the render loop below never has to re-search the list per cell.
@@ -91,7 +102,7 @@ export default function TableCard({ it, paneId }) {
     if (!el) return;
     if (it.userSized) {
       el.classList.add("sized");
-      requestAnimationFrame(() => window.__distributeTableSizing(it, el));
+      requestAnimationFrame(() => distributeTableSizing(it, el));
     }
     setupResizing(el, it);
     window.__setupTableGridResizing(el, it);
@@ -102,7 +113,7 @@ export default function TableCard({ it, paneId }) {
   // Falls back to an even split whenever there's no real per-column customization yet, or the
   // column count has since changed (adding/removing a column just resets the split rather than
   // trying to preserve old customization across it) — same fallback shape distributeTableSizing
-  // (source-table.js) already uses for rows. Only ever WRITTEN to it.colWidths/it.rowHeights by
+  // (app/dotto/lib/sourceTable.ts) already uses for rows. Only ever WRITTEN to it.colWidths/it.rowHeights by
   // actually dragging a divider (see startTableColResize/startTableRowResize,
   // table-grid-resize.js); this fallback is purely a render-time computation, nothing here
   // persists it.
@@ -157,7 +168,7 @@ export default function TableCard({ it, paneId }) {
               top: rowTops[region.r1] + "%",
               height: rowTops[region.r2 + 1] - rowTops[region.r1] + "%",
             },
-            onClick: () => window.__mergeTableCells(it.id, region, rightRegion),
+            onClick: () => mergeTableCells(it.id, region, rightRegion),
           });
         }
         const bottomRegion = region.r2 + 1 < numRows ? mergeGrid[region.r2 + 1][region.c1] : null;
@@ -170,7 +181,7 @@ export default function TableCard({ it, paneId }) {
               left: colLefts[region.c1] + "%",
               width: colLefts[region.c2 + 1] - colLefts[region.c1] + "%",
             },
-            onClick: () => window.__mergeTableCells(it.id, region, bottomRegion),
+            onClick: () => mergeTableCells(it.id, region, bottomRegion),
           });
         }
         return (
@@ -183,8 +194,8 @@ export default function TableCard({ it, paneId }) {
             rowSpan={rowSpan > 1 ? rowSpan : undefined}
             colSpan={colSpan > 1 ? colSpan : undefined}
             onMouseDown={handleCellMouseDown}
-            onInput={(e) => window.updateTableCell(it.id, ri, ci, e.currentTarget)}
-            onKeyDown={(e) => window.handleTableKeydown(e, it.id, ri, ci)}
+            onInput={(e) => updateTableCell(it.id, ri, ci, e.currentTarget)}
+            onKeyDown={(e) => handleTableKeydown(e, it.id, ri, ci)}
             onFocus={() =>
               window.broadcastEditingState(
                 true,
@@ -258,12 +269,12 @@ export default function TableCard({ it, paneId }) {
         </div>
       </div>
       <div className="add-col-zone" onMouseDown={(e) => e.stopPropagation()}>
-        <div className="table-add-btn" onClick={() => window.addTableCol(it.id)} title="Add column">
+        <div className="table-add-btn" onClick={() => addTableCol(it.id)} title="Add column">
           +
         </div>
       </div>
       <div className="add-row-zone" onMouseDown={(e) => e.stopPropagation()}>
-        <div className="table-add-btn" onClick={() => window.addTableRow(it.id)} title="Add row">
+        <div className="table-add-btn" onClick={() => addTableRow(it.id)} title="Add row">
           +
         </div>
       </div>

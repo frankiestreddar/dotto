@@ -1,6 +1,5 @@
 import { appState, findItemEl } from './core-state.js';
 import { saveSnapshot, scheduleWorkspaceSave } from './history-autosave.js';
-import { distributeTableSizing } from './source-table.js';
 
 // Phase 4.3 split (was part of resize-shortcuts-init.js, see PHASE4_ROADMAP.md) — the "resize"
 // concern: dragging an internal table column/row divider. Separate from setupResizing's corner
@@ -10,7 +9,7 @@ import { distributeTableSizing } from './source-table.js';
 // an internal divider, only from the corner handle. Percentage-based (it.colWidths/it.rowHeights,
 // each summing to 100) rather than pixel-based, so they scale automatically for free whenever the
 // corner handle later changes the table's overall size — <col style="width:X%"> and
-// distributeTableSizing (source-table.js, which now reads it.rowHeights when present) both
+// distributeTableSizing (app/dotto/lib/sourceTable.ts, which now reads it.rowHeights when present) both
 // already recompute off the CURRENT table size every time, so no separate rescaling logic is
 // needed here for that case.
 // Real pixel floors, not a flat percentage — a fixed % of the table's own width/height doesn't
@@ -119,7 +118,7 @@ function startTableRowResize(e, it, i) {
         it.rowHeights = heights;
         const el2 = findItemEl(it.id);
         if (!el2) return;
-        distributeTableSizing(it, el2);
+        window.__distributeTableSizing(it, el2);
         const handles = el2.querySelectorAll('.table-row-resize-handle');
         let acc = 0;
         for (let k = 0; k <= i; k++) acc += heights[k];

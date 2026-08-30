@@ -255,3 +255,5 @@ window.__pointsToLinePath = pointsToLinePath;
 window.__folderIdForConnectedSource = folderIdForConnectedSource;
 // Used by app/dotto/lib/sourceButtonsCursorMode.ts's Shift+X shortcut (Phase 4.4).
 window.__linkSelectedCards = linkSelectedCards;
+// Used by app/dotto/lib/sourceTable.ts's updateTableCell (Phase 4.4).
+window.__resolveTableForEdit = resolveTableForEdit;

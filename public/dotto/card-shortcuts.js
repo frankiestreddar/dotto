@@ -10,7 +10,7 @@ import { cascadeDeleteFolderContents, deleteWaypointFromDb, render, renderSelect
 
 // Global Option/Alt-held tracking, toggling .option-held on <body> — gates the table cell-edge
 // "hold Option, click a red edge to merge" overlays (see TableCard.jsx/mergeTableCells,
-// source-table.js) via plain CSS :hover, since CSS itself has no way to detect a held modifier
+// app/dotto/lib/sourceTable.ts) via plain CSS :hover, since CSS itself has no way to detect a held modifier
 // key on its own. Genuinely global rather than scoped to any one table: there's no natural
 // per-element scope for "is a key currently held," and every table on the canvas should react to
 // it the same way regardless of which one (if any) the cursor happens to be over. keyup and

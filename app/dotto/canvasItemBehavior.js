@@ -9,7 +9,7 @@
 // renderConnectionsLayer/startConnectionDrag (from public/dotto/srs-connections-core.js — SVG
 // connection-line rendering + drag-to-link, done third), and
 // renderStaticTableHTML/attachStaticTableHoverZones/layoutSourceTableColumns (from
-// public/dotto/source-table.js — the Source database page's own rendering/hover-zone geometry,
+// app/dotto/lib/sourceTable.ts — the Source database page's own rendering/hover-zone geometry,
 // done fourth — see that section's own comment further down for why it merges what looked like
 // two separate checklist items). All relocations, not rewrites — logic unchanged byte-for-byte
 // from the originals. Every already-React card component that owns a resize handle
@@ -32,7 +32,7 @@
 // Correct minimum for one axis (width or height) of a table whose column/row split might be
 // UNEVEN — dragging one divider rewrites the WHOLE colWidths/rowHeights array (see
 // startTableColResize/startTableRowResize, table-grid-resize.js), and a freshly added
-// column/row's own "average of existing" default (see growGridSizingForNewEntry, source-table.js)
+// column/row's own "average of existing" default (see growGridSizingForNewEntry, app/dotto/lib/sourceTable.ts)
 // can leave the split uneven even without any single entry being individually dragged. Just
 // checking count*unitMinPx (assuming every entry gets an equal share) isn't enough on its own: if
 // one entry's percentage share is smaller than that assumption, the table-wide total could already
@@ -241,7 +241,7 @@ export function setupDraggingAndClicking(el, it) {
         (appState.currentEditingEl === el && e.target !== el)
       )
         return;
-      // Table cell-merge edges (see TableCard.jsx/mergeTableCells, source-table.js) — same
+      // Table cell-merge edges (see TableCard.jsx/mergeTableCells, app/dotto/lib/sourceTable.ts) — same
       // exemption reasoning as '.resize'/'.item-options' above: the overlay's OWN React
       // onPointerDown={stopPropagation} can't stop this listener, since it's attached natively
       // on the card wrapper itself and fires during real DOM bubbling, before React's delegated
@@ -777,7 +777,7 @@ function startConnectionDrag(e, it, el) {
 }
 
 // ---------- Source database page: rendering + hover-zone geometry ----------
-// Moved here from public/dotto/source-table.js — Phase 3's fourth relocated piece (the Source
+// Moved here from public/dotto/source-table.js (deleted in Phase 4.4, ported to app/dotto/lib/sourceTable.ts) — Phase 3's fourth relocated piece (the Source
 // database page's own rendering/hover-zone geometry, previously listed as two separate-looking
 // checklist items — "connection-dragging"'s own SVG rendering and Phase 4's "Source database
 // page's own rendering" — that turned out to name the exact same code, merged into one pass here).

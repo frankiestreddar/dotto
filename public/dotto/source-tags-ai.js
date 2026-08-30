@@ -4,7 +4,6 @@ import { appState, canvasViewportCenterX, findItemEl } from './core-state.js';
 import { resolveTableForEdit } from './drawing-connections.js';
 import { saveSnapshot, scheduleWorkspaceSave } from './history-autosave.js';
 import { closeAllPanels } from './panels-hamburger.js';
-import { importDelimitedIntoSource } from './source-table.js';
 import { add } from './srs-connections-core.js';
 import { render } from './waypoints-render-loop.js';
 
@@ -108,7 +107,7 @@ import { render } from './waypoints-render-loop.js';
                 return;
             }
             const reader = new FileReader();
-            reader.onload = () => importDelimitedIntoSource(String(reader.result), ext === 'tsv' ? '\t' : ',');
+            reader.onload = () => window.__importDelimitedIntoSource(String(reader.result), ext === 'tsv' ? '\t' : ',');
             reader.readAsText(file);
         };
         input.click();

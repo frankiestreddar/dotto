@@ -5,14 +5,19 @@
 // worked before; real ES modules do not do this, so each one needs an explicit assignment here.
 // Regenerate by re-running the grep this was built from (see PHASE2_ROADMAP.md Phase 1) rather
 // than hand-editing — the list has to stay provably complete against the actual call sites.
-// (handleColNameKeydown/openTableCellContextMenu/renameTableColumn/setLastFocusedCell were found
-// missing from the original generation — the static-source table's cell-header wiring — and added
-// by hand here since no automated regeneration tooling exists in this environment; a real re-run
-// of the original grep would be the more thorough fix if that tooling is ever set up.
+// (openTableCellContextMenu was found missing from the original generation — the static-source
+// table's cell-header wiring — and added by hand here since no automated regeneration tooling
+// exists in this environment; a real re-run of the original grep would be the more thorough fix if
+// that tooling is ever set up.
 // openChatsPanel/openHubCollabPanel/openWaypointsPanel were hand-added the same way but later
 // REMOVED again — Waypoints/Collaborations/the outline tree are dedicated permanent rail icons now
 // (#dotto-rail, top-bar.html), wired directly via addEventListener in panels-hamburger.js rather
-// than being called by name from an inline onclick attribute, so they no longer belong here.)
+// than being called by name from an inline onclick attribute, so they no longer belong here.
+// handleColNameKeydown/renameTableColumn/setLastFocusedCell (also hand-added alongside
+// openTableCellContextMenu originally) were REMOVED again too, for a different reason — Phase 4.4
+// moved their owning file (source-table.js) to app/dotto/lib/sourceTable.ts, which now sets these
+// as plain globals directly, same convention every other inline-onclick target that file owns
+// already established.)
 
 import { handleSearchFocus, handleSearchInput, showAiListView } from './ai-assistant-suggestions.js';
 import { addTask, editEmbed, removeTask, toggleTask, updateTaskDeadline, updateTaskText } from './cards-misc.js';
@@ -24,12 +29,9 @@ import { broadcastEditingState, closeConvo, closeSharedCanvasView, sendMsg, setT
 import { handleFilesSearch, handleHubCollabSearch, handleSourcesSearch, handleWaypointsSearch } from './panels-hamburger.js';
 import { closeDotbotUpgradeModal, closePricingOverlay, openPricingOverlay, showProfileMainView, showProfileSettingsView } from './profile-achievements-pricing.js';
 import { setTableAlign } from './card-shortcuts.js';
-import { addTableCol, addTableRow, handleCellMouseDown, handleColNameKeydown, handleTableKeydown, renameTableColumn, setLastFocusedCell, startCellAudioRecording, stopCellAudioRecording, triggerCellAudioUpload, triggerCellImageUpload, updateTableCell } from './source-table.js';
 import { closeCellTagPicker, closeTagContextMenu, commitTagRename, createTagFromCellPicker, deleteActiveTag, handleTagRenameKeydown, openTagContextMenu, startRenameActiveTag, toggleCellTag, triggerSourceUpload } from './source-tags-ai.js';
 import { createNewSource } from './srs-connections-core.js';
 
-window.addTableCol = addTableCol;
-window.addTableRow = addTableRow;
 window.addTask = addTask;
 window.blurPublishFlowName = blurPublishFlowName;
 window.broadcastEditingState = broadcastEditingState;
@@ -51,16 +53,13 @@ window.deleteContextRow = deleteContextRow;
 window.deleteDetailDraft = deleteDetailDraft;
 window.editEmbed = editEmbed;
 window.focusPublishFlowName = focusPublishFlowName;
-window.handleCellMouseDown = handleCellMouseDown;
 window.handleCollabSearch = handleCollabSearch;
-window.handleColNameKeydown = handleColNameKeydown;
 window.handleFilesSearch = handleFilesSearch;
 window.handleHubCollabSearch = handleHubCollabSearch;
 window.handleMsgSearch = handleMsgSearch;
 window.handleSearchFocus = handleSearchFocus;
 window.handleSearchInput = handleSearchInput;
 window.handleSourcesSearch = handleSourcesSearch;
-window.handleTableKeydown = handleTableKeydown;
 window.handleTagRenameKeydown = handleTagRenameKeydown;
 window.handleWaypointsSearch = handleWaypointsSearch;
 window.hideCanvasContextMenu = hideCanvasContextMenu;
@@ -74,26 +73,19 @@ window.openTableCellContextMenu = openTableCellContextMenu;
 window.openTagContextMenu = openTagContextMenu;
 window.redo = redo;
 window.removeTask = removeTask;
-window.renameTableColumn = renameTableColumn;
 window.sendMsg = sendMsg;
-window.setLastFocusedCell = setLastFocusedCell;
 window.setTableAlign = setTableAlign;
 window.setTitleLevel = setTitleLevel;
 window.showAiListView = showAiListView;
 window.showProfileMainView = showProfileMainView;
 window.showProfileSettingsView = showProfileSettingsView;
-window.startCellAudioRecording = startCellAudioRecording;
 window.startPublishFlow = startPublishFlow;
 window.startRenameActiveTag = startRenameActiveTag;
-window.stopCellAudioRecording = stopCellAudioRecording;
 window.toggleCellTag = toggleCellTag;
 window.toggleTask = toggleTask;
-window.triggerCellAudioUpload = triggerCellAudioUpload;
-window.triggerCellImageUpload = triggerCellImageUpload;
 window.triggerSourceUpload = triggerSourceUpload;
 window.undo = undo;
 window.unpublishDetailItem = unpublishDetailItem;
 window.updateDetailItem = updateDetailItem;
-window.updateTableCell = updateTableCell;
 window.updateTaskDeadline = updateTaskDeadline;
 window.updateTaskText = updateTaskText;

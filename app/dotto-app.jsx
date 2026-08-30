@@ -73,6 +73,12 @@ import "./dotto/lib/gamesFlashcardTyperight";
 // callers that used to import these directly, plus the React->vanilla bridges MediaCard.jsx
 // itself now imports directly instead (live-presence.js's mini previews still need the bridges).
 import "./dotto/lib/mediaPdfEpub";
+// Side-effect only, same reasoning as splitPaneManagement/tabManagement above — sets
+// window.__renderTableHTML/updateTableCell/etc at module-eval time for the 5 still-vanilla
+// callers that used to import these directly, plus the React->vanilla bridges TableCard.jsx
+// itself now imports directly instead (live-presence.js's mini previews and
+// canvasItemBehavior.js's Source-page renderer still need the bridges).
+import "./dotto/lib/sourceTable";
 // Side-effect only — sets window.__splitPaneWithTab/__closePane at module-eval time (no wireX()
 // needed, unlike the two imports above: nothing here needs a live DOM/appState read at wire time,
 // just the bridge assignment itself). Imported here, not from any specific component, since
@@ -193,7 +199,7 @@ if (typeof window !== "undefined" && !window.__dottoSupabase) {
 // renderConnectionsLayer/renderStaticTableHTML/attachStaticTableHoverZones/
 // layoutSourceTableColumns now live in app/dotto/canvasItemBehavior.js instead of
 // public/dotto/resize-shortcuts-init.js, public/dotto/drag-drop-chat.js,
-// public/dotto/srs-connections-core.js, and public/dotto/source-table.js — every already-React
+// public/dotto/srs-connections-core.js, and app/dotto/lib/sourceTable.ts — every already-React
 // card component that owns a resize handle (TableCard.jsx, FlashcardCard.jsx, MediaCard.jsx,
 // TypeRightCard.jsx) imports setupResizing directly now, no bridge needed. The remaining vanilla
 // callers (attachNoteBody's own call to setupResizing, attachUniversalItemBehavior's own call to
