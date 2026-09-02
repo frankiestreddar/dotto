@@ -3,7 +3,6 @@ const appState = window.__getAppState();
 const supabase = window.__dottoSupabase || null;
 const switchActivePane = window.__switchActivePane;
 import { openMessagesPanel } from './messages-schedule.js';
-import { bumpAchievementStat } from './profile-achievements-pricing.js';
 
 
 
@@ -281,7 +280,7 @@ import { bumpAchievementStat } from './profile-achievements-pricing.js';
         // always this user's true total regardless of who sent/accepted — sync it in as an
         // absolute value rather than incrementing, since respondToFriendRequest only runs on the
         // accepting side and would otherwise never move the requester's own count.
-        bumpAchievementStat('three_friends', appState.friends.length, true);
+        window.__bumpAchievementStat('three_friends', appState.friends.length, true);
 
         // Loaded in one round trip (not lazily per-conversation) so the chat
         // list's preview text and the collab panel's "most conversed with"

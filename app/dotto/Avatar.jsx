@@ -20,7 +20,7 @@ function initials(name) {
     .toUpperCase();
 }
 
-// Real JSX equivalent of renderAvatarInto (public/dotto/profile-achievements-pricing.js) — same
+// Real JSX equivalent of renderAvatarInto (app/dotto/lib/profileAchievementsPricing.ts) — same
 // img-with-fallback logic (a broken/missing avatar image falls back to initials text), just as
 // local component state instead of an onerror handler mutating the DOM. `className` goes on the
 // OUTER wrapper (matching the original's .collab-avatar/.profile-avatar-etc. div, which provides

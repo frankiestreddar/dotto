@@ -1,6 +1,5 @@
 const appState = window.__getAppState();
 import { refreshCanvasCollabForCurrentFolder, refreshFriendsData, renderCollabPill } from './friends-presence.js';
-import { refreshDotbotUsage } from './profile-achievements-pricing.js';
 
 // Phase 4.3 split (was part of resize-shortcuts-init.js, see PHASE4_ROADMAP.md) — the "init"
 // concern: the one-time bootstrap sequence that actually gets the app showing real content, run
@@ -33,4 +32,4 @@ window.__applyCursorMode();
     if (appState.folders[appState.currentFolderId] && appState.folders[appState.currentFolderId].isSharedView) window.__announceEnteredCollaboration(appState.currentFolderId);
 })();
 refreshFriendsData().then(() => renderCollabPill());
-refreshDotbotUsage();
+window.__refreshDotbotUsage?.();

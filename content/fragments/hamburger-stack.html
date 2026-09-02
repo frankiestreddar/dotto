@@ -394,13 +394,14 @@
     </div>
     <!-- Profile — moved here from its own standalone floating card (content/fragments/
          profile-panel.html, now empty/unused) now that it shares this permanent rail shell (see
-         refreshProfilePanel/openRailView, profile-achievements-pricing.js). Two internal sub-views
-         now, not a top-level rail view of its own: #profile-main-view (default — identity/upgrade/
-         usage/spritebook, the panel's original content) and #profile-settings-view (the old
-         #settings-panel's content, moved here after Settings was removed as its own rail icon per
-         explicit request — "the options in its panel should be repurposed as a panel under the
-         profile panel"). Toggled by #profile-settings-btn/#profile-settings-back-btn
-         (showProfileSettingsView/showProfileMainView, profile-achievements-pricing.js), same
+         refreshProfilePanel/openRailView, app/dotto/lib/profileAchievementsPricing.ts). Two
+         internal sub-views now, not a top-level rail view of its own: #profile-main-view (default
+         — identity/upgrade/usage/spritebook, the panel's original content) and
+         #profile-settings-view (the old #settings-panel's content, moved here after Settings was
+         removed as its own rail icon per explicit request — "the options in its panel should be
+         repurposed as a panel under the profile panel"). Toggled by
+         #profile-settings-btn/#profile-settings-back-btn (showProfileSettingsView/
+         showProfileMainView, app/dotto/lib/profileAchievementsPricing.ts), same
          "←"-header-toggles-two-siblings shape as #ai-list-view/#ai-chat-view
          (ai-assistant-suggestions.js), independent of the outer rail's own open/close state. -->
     <div id="profile-panel" class="hmenu-panel hub-subpanel" onclick="event.stopPropagation()">

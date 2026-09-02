@@ -1,5 +1,4 @@
 const appState = window.__getAppState();
-import { bumpAchievementStat } from './profile-achievements-pricing.js';
 
 
     // ---------- Drawing mode ----------
@@ -75,7 +74,7 @@ import { bumpAchievementStat } from './profile-achievements-pricing.js';
     function createConnection(conns, fromId, toId) {
         const conn = { id: 'conn_' + appState.idCounter++, fromId, toId };
         conns.push(conn);
-        bumpAchievementStat('fifty_links');
+        window.__bumpAchievementStat('fifty_links');
         return conn;
     }
 

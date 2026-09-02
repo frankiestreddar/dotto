@@ -4,7 +4,6 @@ const appState = window.__getAppState();
 const parseItemId = window.__parseItemId;
 import { ensureConnections } from './drawing-connections.js';
 import { commenceSearchOrMnemonic } from './mnemonic-search-matching.js';
-import { bumpAchievementStat, openDotbotUpgradeModal, refreshDotbotUsage } from './profile-achievements-pricing.js';
 import { applyAiAddRowsToSource, createSourceFromAI } from './source-tags-ai.js';
 
 
@@ -21,7 +20,7 @@ import { applyAiAddRowsToSource, createSourceFromAI } from './source-tags-ai.js'
     function renderDotbotOrchestrateError(reason) {
         window.__setSearchSuggestions({ kind: 'dotbot-error', reason });
         updateSearchDropdown();
-        if (reason === 'no_credits') { appState.dotbotUpgradePromptedForFullness = true; openDotbotUpgradeModal(); }
+        if (reason === 'no_credits') { appState.dotbotUpgradePromptedForFullness = true; window.__openDotbotUpgradeModal(); }
     }
 
     // A short, plain-text description of one attached card for the AI's context block — reuses
@@ -67,7 +66,7 @@ import { applyAiAddRowsToSource, createSourceFromAI } from './source-tags-ai.js'
         query = (query || '').trim();
         if (!query) return;
         appState.dotbotSearchGeneration++; // redundant when reached via commenceSearchOrMnemonic, needed for direct callers like selectionToolbarLookUp
-        bumpAchievementStat('twenty_searches');
+        window.__bumpAchievementStat('twenty_searches');
         const folderObj = appState.folders[appState.currentFolderId];
         if (!folderObj) return;
         appState.searchDotbotAnswer.innerHTML = ''; appState.searchDotbotAnswer.style.display = 'none';
@@ -115,7 +114,7 @@ import { applyAiAddRowsToSource, createSourceFromAI } from './source-tags-ai.js'
             appState.searchInput.focus();
             window.__autoGrowSearchInput();
             if (!res.ok) { renderDotbotOrchestrateError(data.error); return; }
-            refreshDotbotUsage();
+            window.__refreshDotbotUsage();
             // Carries forward even if the route's own persistence failed server-side (in which
             // case data.conversationId is just whatever was already sent, possibly still null —
             // see the route's own fail-soft handling) rather than ever going backward to null here.

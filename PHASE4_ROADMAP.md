@@ -910,6 +910,74 @@
   where `#item-detail-view` actually lives, predating the Library→Blocks/Plugins repurposing) —
   confirmed clean afterward. Zero console/page errors across both scripts in both dev and
   production modes.
+  `profile-achievements-pricing.js` (314 lines) done third, to
+  `app/dotto/lib/profileAchievementsPricing.ts` — the Profile panel (level pill, avatar rendering,
+  Dotbot usage bars), the achievement/spritebook system, and the pricing-overlay open/close
+  wrappers. The one genuinely new wrinkle this port needed, beyond the lazy-`getAppState()`
+  discipline `cardsMisc.ts`/`libraryPublish.ts` already established: this file has real
+  module-load-time side effects (an initial `renderProfileLevel()`/`renderSpriteGrid()` call, the
+  achievement-bump interval, the usage-tooltip mousemove listeners, and — the one requiring a real
+  external bridge — `window.__wireRailIcon('profile', ...)` itself, wiring the Profile rail icon),
+  not just functions waiting to be called later. A plain side-effect import (this file's first
+  instinct, matching `cardsMisc.ts`/`libraryPublish.ts`) would have run all of that at module-eval
+  time, before `ensureCoreState()` OR `panelsHamburger.ts`'s own `wireRailIcon` bridge exist —
+  needed a real `wireProfileAchievementsPricing()`, following
+  `app/dotto/lib/dayChangeAndAdNotifications.ts`'s own precedent almost exactly (that file's own
+  comment already states the general principle: "a single readiness check isn't enough here"),
+  polling for both `window.__getAppState` and `window.__wireRailIcon` before wiring — the first
+  case in this migration polling for two independent bridges from two different owning files at
+  once, not just one. `window.__ACHIEVEMENTS`/`__SPRITE_TOTAL_COUNT` (true constants,
+  `AchievementsGrid.jsx`'s own bridges) went through the identical mistake once before landing
+  correctly: an initial `if (window.__getAppState) { window.__ACHIEVEMENTS = ... }` guard at module
+  scope looked plausible but is provably always-false, not just racy — module eval always
+  completes before `DottoApp`'s render body (where the bridge gets set) ever runs, so this isn't a
+  timing window that sometimes loses, it never wins; caught by the verify script below actually
+  checking the two window globals' real values, not just their bridge-existence type, then fixed
+  by moving the assignment inside `doWire()` where `appState` is genuinely available. 6 real
+  vanilla-to-vanilla direct imports fixed across `friends-presence.js`, `drawing-connections.js`,
+  `search-orchestration-selection.js` (`bumpAchievementStat`), `hamburger-collab.js`
+  (`closeProfilePanel`/`openPricingOverlay`), and `app-init.js`/`mnemonic-search-matching.js`
+  (`refreshDotbotUsage`/`openDotbotUpgradeModal`) — 3 brand-new bridges added
+  (`__refreshDotbotUsage`/`__closeProfilePanel`/`__openDotbotUpgradeModal`) since these 5 functions
+  had never needed one before (always reached via a same-file-tree import until now).
+  `closePricingOverlay`'s own old plain-global re-export (`window-bridge.js`) turned out to be
+  genuinely dead — grepped for a real caller anywhere (inline HTML, any component) and found none
+  (`PricingOverlay.jsx` closes itself directly via `pricingOverlayStore.set(false)`; the only real
+  caller of `closePricingOverlay` at all is `historyAutosave.ts`'s Escape handler, via the
+  `__`-prefixed bridge) — not carried forward, same "genuinely dead, don't perpetuate" precedent
+  `cardsMisc.ts`'s port already set with `commitItemDetailDesc`. `window-bridge.js`'s own import
+  line and 17 re-export lines removed — it now imports from 5 files instead of 6. Real Playwright
+  verification against both a dev server and a real production server: bridge-existence/type
+  checks for all 15 bridges this port touches, including the 2 true constants checked for their
+  real values (`__ACHIEVEMENTS.length === 7`, `__SPRITE_TOTAL_COUNT === 108`), not just presence;
+  a real click on the Profile rail icon opening `#profile-panel`, proving
+  `wireProfileAchievementsPricing()`'s own poll-and-wire actually ran on a fresh page load; the
+  real level pill (`ProfileLevelPill.jsx`) and all 108 real achievement-grid sprite cells
+  (`AchievementsGrid.jsx`) rendered correctly from this port's own wire-time
+  `renderProfileLevel()`/`renderSpriteGrid()` calls; a real `refreshDotbotUsage()` Supabase read
+  against the signed-in test account populating the usage-bar tooltips with real data; real
+  `showProfileSettingsView`/`showProfileMainView` clicks (inline onclick targets) correctly
+  toggling the two sub-views; a real `openDotbotUpgradeModal()`/`closeDotbotUpgradeModal()` round
+  trip (bridge call + the real "Got it" button's inline onclick target); a real
+  `closeProfilePanel()`/`openPricingOverlay()`/`closePricingOverlay()` round trip, including the
+  real inline `onclick="openPricingOverlay()"` upgrade-hint click; a real `renderAvatarInto()`
+  img-with-fallback round trip (a real broken-image error event correctly swapping to initials
+  text). One real Playwright quirk hit and worked around, not just accepted: `#btn-profile` sits at
+  the exact bottom-left screen position Next.js's own dev-mode floating indicator badge
+  (`<nextjs-portal>`) occupies, so a coordinate-based mouse click (even with `force: true`) lands
+  on the overlay instead of the button — switched to an in-page `element.click()` call, which
+  bypasses coordinate-based hit-testing while still exercising the exact same real DOM `click`
+  listener `wireRailIcon` attaches (confirmed identical behavior against a real production build,
+  which has no such overlay). Regression-verified `verify-phase4-5-corestate-port.js`,
+  `verify-phase4-5-panelshamburger-port.js`, and `verify-phase4-5-srsconnectionscore-port.js` all
+  clean afterward (the three ports this file's own rail-icon wiring and appState reads sit
+  closest to). Zero console/page errors in either mode. `awardUserPoints`/`bumpAchievementStat`
+  deliberately NOT exercised with new real RPC calls in this port's own verify script (bridge
+  existence/type checked only) — unlike every other Supabase call this migration's scripts
+  routinely make for real against nonexistent mock ids, these two mutate the *real* signed-in test
+  account's own score/achievement row with no safe fake-id equivalent available, and
+  `gamesFlashcardTyperight.ts`'s own verify script already exercises `__awardUserPoints` for real
+  via `fcFlip`/`trCheck` — a documented scope decision, not an oversight.
 - **Phase 4.6 — delete the bridge layer: not started.**
 - **Phase 4.7 — final cleanup & professionalization close-out: not started.**
 
@@ -2016,3 +2084,67 @@ direct bridge call it replaces), a stale `#btn-library` click (the Plugins panel
 actually lives inside `#add-menu`, the Blocks panel, predating the Library→Blocks/Plugins
 repurposing), and a missing 404-noise filter every later Phase 4.x script already carries. Both
 scripts confirmed clean afterward, zero console/page errors, in both dev and production modes.
+
+**Phase 4.5 (`profile-achievements-pricing.js` → `app/dotto/lib/profileAchievementsPricing.ts`)**:
+`node --check` on the 9 touched vanilla files (`dotto-script.js`, `window-bridge.js`,
+`friends-presence.js`, `drawing-connections.js`, `search-orchestration-selection.js`,
+`hamburger-collab.js`, `app-init.js`, `mnemonic-search-matching.js`, `table-grid-resize.js`, the
+last for one stale comment reference), `eslint` clean, `npm run typecheck` clean (after adding
+ambient types for 8 bridges that had never been typed before this port needed them —
+`__setProfileLevel`/`__setAchievements`/`__setPricingOverlayOpen`/`__ACHIEVEMENTS`/
+`__SPRITE_TOTAL_COUNT`/`closeDotbotUpgradeModal`/`showProfileMainView`/`showProfileSettingsView`),
+`npm run format:check` clean after a `prettier --write` pass run as the actual last step before
+committing, `rm -rf .next && npm run build` clean, all 32 Vitest tests still green. The real design
+work here, beyond the by-now-established lazy-`getAppState()` discipline: this file has genuine
+module-load-time side effects (the initial `renderProfileLevel()`/`renderSpriteGrid()` calls, the
+achievement-bump interval, the usage-tooltip mousemove listeners, and wiring the Profile rail icon
+itself via `window.__wireRailIcon`) — the first two Phase 4.5-batch ports this session
+(`cardsMisc.ts`, `libraryPublish.ts`) only ever needed appState reads deferred, not real DOM
+wiring, so this one needed a proper `wireProfileAchievementsPricing()` (following
+`app/dotto/lib/dayChangeAndAdNotifications.ts`'s own established "a single readiness check isn't
+enough here" precedent almost exactly), polling for both `window.__getAppState` and
+`window.__wireRailIcon` — the first bridge-readiness poll in this migration waiting on two
+independently-owned bridges at once. One real bug caught and fixed by the verify script actually
+checking real *values*, not just bridge presence: `window.__ACHIEVEMENTS`/`__SPRITE_TOTAL_COUNT`
+were initially set behind a module-scope `if (window.__getAppState) { ... }` guard, which looked
+like the same safe pattern other true-constant bridges use — but is provably always-false at
+module-eval time (not just occasionally racy), since module eval unconditionally completes before
+`DottoApp`'s own render body — where that bridge actually gets set — ever runs; fixed by moving the
+assignment inside `doWire()`, where `appState` is genuinely available. 6 real vanilla-to-vanilla
+direct imports fixed (`friends-presence.js`/`drawing-connections.js`/
+`search-orchestration-selection.js`'s `bumpAchievementStat`,
+`hamburger-collab.js`'s `closeProfilePanel`/`openPricingOverlay`,
+`app-init.js`/`mnemonic-search-matching.js`'s `refreshDotbotUsage`/`openDotbotUpgradeModal`), 3
+brand-new bridges added for functions that had never needed one before this port
+(`__refreshDotbotUsage`/`__closeProfilePanel`/`__openDotbotUpgradeModal`). One genuinely dead
+plain-global caught and not carried forward: `closePricingOverlay`'s old `window-bridge.js`
+re-export had zero real callers anywhere (`PricingOverlay.jsx` closes itself directly via
+`pricingOverlayStore.set(false)`; the only real caller of `closePricingOverlay` at all reaches it
+through the `__`-prefixed bridge, from `historyAutosave.ts`'s Escape handler) — same
+"genuinely dead, don't perpetuate" precedent `cardsMisc.ts`'s port set with `commitItemDetailDesc`.
+Real Playwright verification against both a dev server and a real production server: bridge
+existence AND real-value checks for all 15 bridges this port touches (not just presence — the 2
+true constants checked against their actual expected values); a real click on the Profile rail
+icon opening `#profile-panel`, proving the bridge-readiness poll actually wired it on a fresh page
+load; the real level pill and all 108 real achievement-grid sprite cells rendered correctly from
+this port's own wire-time calls; a real `refreshDotbotUsage()` Supabase read against the
+signed-in test account populating the usage-bar tooltips with real data; real
+`showProfileSettingsView`/`showProfileMainView` sub-view toggle clicks; a real
+`openDotbotUpgradeModal()`/`closeDotbotUpgradeModal()` round trip through both the bridge call and
+the real "Got it" button's inline `onclick` target; a real
+`closeProfilePanel()`/`openPricingOverlay()`/`closePricingOverlay()` round trip including the real
+inline `onclick="openPricingOverlay()"` upgrade-hint click; a real `renderAvatarInto()`
+img-with-fallback round trip via a real broken-image error event. One real Playwright quirk hit and
+worked around: `#btn-profile` sits at the exact bottom-left screen position Next.js's own dev-mode
+floating indicator badge occupies, so even a `force: true` coordinate-based mouse click lands on
+the overlay instead — switched to an in-page `element.click()` call (still exercises the identical
+real DOM `click` listener `wireRailIcon` attaches; confirmed identical behavior against the real
+production build, which has no such overlay). Regression-verified
+`verify-phase4-5-corestate-port.js`, `verify-phase4-5-panelshamburger-port.js`, and
+`verify-phase4-5-srsconnectionscore-port.js` all clean afterward. Zero console/page errors in
+either mode. `awardUserPoints`/`bumpAchievementStat` deliberately NOT exercised with new real RPC
+calls in this port's own verify script — unlike every other real Supabase call this migration's
+scripts make against safely-nonexistent mock ids, these two mutate the real signed-in test
+account's own score/achievement row with no safe fake-id equivalent available, and
+`gamesFlashcardTyperight.ts`'s own verify script already exercises `__awardUserPoints` for real via
+`fcFlip`/`trCheck` — a documented scope decision, not an oversight.

@@ -6,7 +6,6 @@ const findItemEl = window.__findItemEl;
 const supabase = window.__dottoSupabase || null;
 import { activePaneCollabBubbleEl, openCollabPanel, renderCollabPill } from './friends-presence.js';
 import { flashCanvasElement } from './mnemonic-search-matching.js';
-import { closeProfilePanel, openPricingOverlay } from './profile-achievements-pricing.js';
 
 
     // ---------- Hamburger "Collaborations" panel ----------
@@ -555,9 +554,9 @@ import { closeProfilePanel, openPricingOverlay } from './profile-achievements-pr
     }
     function hmenuAction(action) {
         window.__closeRailView();
-        closeProfilePanel();
+        window.__closeProfilePanel();
         if (action === 'upgrade') {
-            openPricingOverlay();
+            window.openPricingOverlay();
         } else if (action === 'logout') {
             // Flush whatever's still sitting in the debounced save timer (e.g. a pan/zoom just
             // before clicking logout) before navigating away, so the next login restores exactly

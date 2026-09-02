@@ -25,7 +25,7 @@ function createStore(initialValue) {
 }
 
 // Pricing/upgrade overlay (Phase 2 increment 1, the first subsystem converted) — a plain boolean.
-// See public/dotto/profile-achievements-pricing.js's openPricingOverlay/closePricingOverlay for
+// See app/dotto/lib/profileAchievementsPricing.ts's openPricingOverlay/closePricingOverlay for
 // the vanilla callers (inline onclick="..." attributes, other ES modules) that still trigger this.
 export const pricingOverlayStore = createStore(false);
 
@@ -379,7 +379,7 @@ export const hubCollabListStore = createStore({
 // place, always replaced wholesale via .set() like every other store here.
 export const listPanelSelectionStore = createStore({ panel: null, ids: new Set() });
 
-// Profile panel's level pill (public/dotto/profile-achievements-pricing.js's renderProfileLevel)
+// Profile panel's level pill (app/dotto/lib/profileAchievementsPricing.ts's renderProfileLevel)
 // — { displayName, tierColor }, updated once at init and again live after awardUserPoints. Text +
 // background color move together as one store value — see ProfileLevelPill.jsx.
 export const profileLevelStore = createStore({ displayName: "", tierColor: "" });

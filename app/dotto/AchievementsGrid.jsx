@@ -33,8 +33,8 @@ function SpriteCell({ index, achievements, unlockedSet }) {
 // Portals into #profile-sprite-grid (content/fragments/profile-panel.html) — genuine JSX cells,
 // same reasoning as WaypointsListPanel: no per-cell widget state beyond its own broken-image
 // fallback. window.__ACHIEVEMENTS/__SPRITE_TOTAL_COUNT are bridged as plain constants
-// (see profile-achievements-pricing.js's own comment) since they never change; only the unlocked-
-// ids list is real store state.
+// (see app/dotto/lib/profileAchievementsPricing.ts's own comment) since they never change; only
+// the unlocked-ids list is real store state.
 export default function AchievementsGrid() {
   const unlockedIds = useSyncExternalStore(
     achievementsStore.subscribe,

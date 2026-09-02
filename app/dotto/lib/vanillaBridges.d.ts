@@ -32,7 +32,7 @@ declare global {
     // app/dotto/lib/notificationsStore.ts — card-shortcuts.js's hover-scoped game-card/PDF-page-
     // turn shortcuts gate on this so a notification's own Enter/Escape handling wins instead.
     __hasVisibleNotifications?: () => boolean;
-    // profile-achievements-pricing.js
+    // app/dotto/lib/profileAchievementsPricing.ts
     openPricingOverlay?: () => void;
     // app/dotto/lib/canvasPresence.ts — canonical item-data accessor, used by
     // app/dotto/lib/stopwatch.ts to reach a stopwatch card's own live item (part of
@@ -425,7 +425,7 @@ declare global {
     openCellAddMenu?: (id: number, r: number, c: number, btnEl: HTMLElement) => void;
     // app/dotto/lib/coreState.ts — extracts an item's id out of its DOM element (the inverse of __itemElId).
     __parseItemId?: (el: HTMLElement) => number;
-    // profile-achievements-pricing.js
+    // app/dotto/lib/profileAchievementsPricing.ts
     __awardUserPoints?: (
       actionType: string,
       points: number,
@@ -590,12 +590,34 @@ declare global {
     handleWaypointsSearch?: (v: string) => void;
     // app/dotto/lib/coreState.ts — same live-read reasoning as __getCanvasEl/__getWorldEl above.
     __getCursorOverlayEl?: () => HTMLElement | undefined;
-    // profile-achievements-pricing.js
+    // app/dotto/lib/profileAchievementsPricing.ts
     __renderAvatarInto?: (
       el: HTMLElement,
       avatar: { id: number; url: string | null },
       fallbackText: string,
     ) => void;
+    // app/dotto-app.jsx (via app/dotto/bridges.js's profileLevelStore/achievementsStore/
+    // pricingOverlayStore) — React-facing setters, plain store.sets, no synchronous DOM read
+    // follows any of them.
+    __setProfileLevel?: (state: { displayName: string; tierColor: string }) => void;
+    __setAchievements?: (unlockedIds: string[]) => void;
+    __setPricingOverlayOpen?: (open: boolean) => void;
+    // React -> vanilla bridges — used by AchievementsGrid.jsx (app/dotto/), which can't import
+    // these directly since public/dotto/*.js isn't reachable from app/dotto/. True constants
+    // (never reassigned after init), unlike __setProfileLevel/__setAchievements above.
+    __ACHIEVEMENTS?: {
+      id: string;
+      statKey: string;
+      threshold: number;
+      name: string;
+      spriteIndex: number;
+    }[];
+    __SPRITE_TOTAL_COUNT?: number;
+    // Plain (non-`__`) globals — real inline onclick targets in
+    // content/fragments/hamburger-stack.html/canvas-modal.html.
+    closeDotbotUpgradeModal?: () => void;
+    showProfileMainView?: () => void;
+    showProfileSettingsView?: () => void;
     // app/dotto/lib/canvasPresence.ts (Phase 4.5 port — was part of live-presence.js) — React ->
     // vanilla bridges pre-dating this port (kept declared/assigned since still-vanilla callers
     // need them too) plus new vanilla -> React bridges: ai-assistant-suggestions.js/cards-misc.js/
@@ -683,9 +705,12 @@ declare global {
     __generateGlobalId?: () => string;
     // hamburger-collab.js
     __resolveSharedFolderChain?: (ownerId: string, folderId: string) => Promise<string[] | null>;
-    // profile-achievements-pricing.js
+    // app/dotto/lib/profileAchievementsPricing.ts (Phase 4.5 port — was profile-achievements-pricing.js)
     __closeDotbotUpgradeModal?: () => void;
     __closePricingOverlay?: () => void;
+    __refreshDotbotUsage?: () => Promise<void>;
+    __closeProfilePanel?: () => void;
+    __openDotbotUpgradeModal?: () => void;
     // app/dotto/lib/srsConnectionsCore.ts
     __cancelAddingKind?: () => void;
     __finishPenPolyline?: () => void;

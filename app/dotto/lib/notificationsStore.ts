@@ -152,9 +152,9 @@ export function wireNotifications(): () => void {
 }
 
 // Not an inline-HTML onclick target (see window-bridge.js's own header comment for why those live
-// there instead) — plain vanilla-callable bridges for the ~7 still-vanilla files that push/query
+// there instead) — plain vanilla-callable bridges for the still-vanilla files that push/query
 // notifications (command-verbs.js, command-palette.js, hamburger-collab.js, friends-presence.js,
-// profile-achievements-pricing.js, app/dotto/lib/srsConnectionsCore.ts, card-shortcuts.js) plus
+// app/dotto/lib/srsConnectionsCore.ts, card-shortcuts.js) plus app/dotto/lib/profileAchievementsPricing.ts,
 // app/dotto/lib/dayChangeAndAdNotifications.ts, app/dotto/lib/sharedAndPublicCanvasLoading.ts, and
 // PricingOverlay.jsx, which already called window.pushNotification even before this port (see
 // vanillaBridges.d.ts).

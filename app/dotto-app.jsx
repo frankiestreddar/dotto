@@ -68,6 +68,7 @@ import { wireCanvasPresence } from "./dotto/lib/canvasPresence";
 import { wireMessagingCanvasPreview } from "./dotto/lib/messagingCanvasPreview";
 import { wireHistoryAutosave } from "./dotto/lib/historyAutosave";
 import { wireSrsConnectionsCore } from "./dotto/lib/srsConnectionsCore";
+import { wireProfileAchievementsPricing } from "./dotto/lib/profileAchievementsPricing";
 import { ensureCoreState } from "./dotto/lib/coreState";
 // Side-effect only, same reasoning as splitPaneManagement/tabManagement above — sets
 // window.__openGameOptionsPanel/fcFlip/etc at module-eval time for the 5 still-vanilla callers
@@ -250,7 +251,7 @@ if (typeof window !== "undefined") {
 }
 
 // Phase 2 increment 1: the pricing overlay is the first subsystem converted to real React state
-// (see app/dotto/PricingOverlay.jsx). public/dotto/profile-achievements-pricing.js's vanilla
+// (see app/dotto/PricingOverlay.jsx). app/dotto/lib/profileAchievementsPricing.ts's
 // openPricingOverlay/closePricingOverlay still exist unchanged for every existing caller (inline
 // onclick="..." attributes, other ES modules) — they just call this instead of touching the DOM
 // directly now. Same "set during module eval, not an effect" timing as window.__dottoSupabase
@@ -385,8 +386,8 @@ if (typeof window !== "undefined") {
   // selection toggle either.
   window.__setListPanelSelection = listPanelSelectionStore.set;
   // Profile panel (see app/dotto/ProfileLevelPill.jsx/AchievementsGrid.jsx,
-  // profile-achievements-pricing.js's renderProfileLevel/renderSpriteGrid) — plain store.sets,
-  // no synchronous DOM read follows either one.
+  // app/dotto/lib/profileAchievementsPricing.ts's renderProfileLevel/renderSpriteGrid) — plain
+  // store.sets, no synchronous DOM read follows either one.
   window.__setProfileLevel = profileLevelStore.set;
   window.__setAchievements = achievementsStore.set;
   // Messages panel (see app/dotto/MessagesListPanel.jsx, friends-presence.js's renderMsgList/
@@ -535,6 +536,12 @@ export default function DottoApp({ sections, currentUser }) {
   // to poll for live appState AND the canvas/zoom-track/draw-toolbar elements rather than a single
   // readiness check.
   useEffect(() => wireSrsConnectionsCore(), []);
+  // Phase 4.5: the profile level pill/avatar/achievements/Dotbot-usage-bars/pricing-overlay
+  // system, plus wiring the Profile rail icon itself — see wireProfileAchievementsPricing's own
+  // comment, app/dotto/lib/profileAchievementsPricing.ts, for why this needs to poll for both
+  // window.__getAppState AND window.__wireRailIcon (app/dotto/lib/panelsHamburger.ts) rather than
+  // a single readiness check.
+  useEffect(() => wireProfileAchievementsPricing(), []);
 
   return (
     <>

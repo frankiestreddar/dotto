@@ -32,7 +32,7 @@ const TABLE_ROW_MIN_PX = 28;
 // corner-drag and a divider-drag never disagree about the smallest allowed column/row), but can
 // no longer share them via a same-module import now that it's moved out of this file — plain
 // constant bridges, not functions, same convention as window.__ACHIEVEMENTS
-// (profile-achievements-pricing.js).
+// (app/dotto/lib/profileAchievementsPricing.ts).
 window.__TABLE_COL_MIN_PX = TABLE_COL_MIN_PX;
 window.__TABLE_ROW_MIN_PX = TABLE_ROW_MIN_PX;
 

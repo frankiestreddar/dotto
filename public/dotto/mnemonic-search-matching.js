@@ -1,6 +1,5 @@
 import { buildAlignedSentenceEls, clearSearch, dotbotErrorMessage, isLatinScriptText, scrollChatThreadToBottom, setupDotbotResultDrag, speakerIconHTML, typewriterReveal, typewriterRevealSegments, updateSearchDropdown } from './ai-assistant-suggestions.js';
 const appState = window.__getAppState();
-import { openDotbotUpgradeModal, refreshDotbotUsage } from './profile-achievements-pricing.js';
 import { commenceDotbotSearch } from './search-orchestration-selection.js';
 
 
@@ -120,7 +119,7 @@ import { commenceDotbotSearch } from './search-orchestration-selection.js';
     function renderMnemonicError(reason) {
         window.__setSearchSuggestions({ kind: 'mnemonic-error', reason });
         updateSearchDropdown();
-        if (reason === 'no_credits') { appState.dotbotUpgradePromptedForFullness = true; openDotbotUpgradeModal(); }
+        if (reason === 'no_credits') { appState.dotbotUpgradePromptedForFullness = true; window.__openDotbotUpgradeModal(); }
     }
     // The generated image gets its OWN dedicated panel (#search-image-result — see the
     // fragment/CSS) rather than sharing #search-suggestions with the story card, so a story and
@@ -167,7 +166,7 @@ import { commenceDotbotSearch } from './search-orchestration-selection.js';
     function renderImageResultError(reason) {
         if (!appState.searchImageResult) return;
         window.__setImageResult({ status: 'error', reason });
-        if (reason === 'no_credits') { appState.dotbotUpgradePromptedForFullness = true; openDotbotUpgradeModal(); }
+        if (reason === 'no_credits') { appState.dotbotUpgradePromptedForFullness = true; window.__openDotbotUpgradeModal(); }
     }
     function renderImageResultPanel(imageDataUrl) {
         if (!appState.searchImageResult) return;
@@ -183,7 +182,7 @@ import { commenceDotbotSearch } from './search-orchestration-selection.js';
             });
             const data = await res.json();
             if (!res.ok) { renderImageResultError(data.error); return; }
-            refreshDotbotUsage();
+            window.__refreshDotbotUsage();
             renderImageResultPanel(data.imageDataUrl);
         } catch (e) {
             console.error('[dotbot] image failed:', e);
@@ -215,7 +214,7 @@ import { commenceDotbotSearch } from './search-orchestration-selection.js';
             });
             const data = await res.json();
             if (!res.ok) { renderMnemonicError(data.error); return; }
-            refreshDotbotUsage();
+            window.__refreshDotbotUsage();
             sentence = data.sentence;
             imageScene = data.image_scene;
         } catch (e) {
