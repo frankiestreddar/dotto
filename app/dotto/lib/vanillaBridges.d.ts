@@ -41,8 +41,10 @@ declare global {
     // app/dotto/lib/historyAutosave.ts (Phase 4.5 port — was history-autosave.js)
     __saveSnapshot?: () => void;
     __scheduleWorkspaceSave?: () => void;
-    // waypoints-render-loop.js — the global re-render escape hatch.
-    __render?: () => void;
+    // app/dotto/lib/waypointsRenderLoop.ts (Phase 4.5 port — was waypoints-render-loop.js) — the
+    // global re-render escape hatch. syncSiblings genuinely is optional at the real call site
+    // (defaults true) — this was declared as a 0-arg function before any real caller passed one.
+    __render?: (syncSiblings?: boolean) => void;
     __renderSelectedOutlines?: () => void;
     // core-state.js — the live-read canvas/world DOM element accessors (Phase 3's universal
     // bridge for these two, already consumed by app/dotto/canvasItemBehavior.js, a plain .js file
@@ -71,7 +73,7 @@ declare global {
     __switchActivePane?: (paneId: number) => void;
     // core-state.js — resets a freshly-split pane's camera/selection/history to fresh defaults.
     __initializeNewPane?: (paneId: number, folderId: string) => void;
-    // waypoints-render-loop.js — re-navigates the canvas to a folder (used by
+    // app/dotto/lib/waypointsRenderLoop.ts — re-navigates the canvas to a folder (used by
     // app/dotto/lib/splitPaneManagement.ts's splitPaneWithTab).
     __applyFolderView?: (folderId: string) => void;
     // app/dotto/lib/tabManagement.ts — pushes appState.tabs/activeTabId into React; called after a
@@ -122,8 +124,10 @@ declare global {
     pasteClipboardCards?: () => void;
     removePlacementGhost?: () => void;
     prepareAdd?: (kind: string, statKind?: string | null) => void;
-    // waypoints-render-loop.js — the global folder-navigation entry point.
-    __openFolder?: (folderId: string) => void;
+    // app/dotto/lib/waypointsRenderLoop.ts — the global folder-navigation entry point. Genuinely
+    // async (a shared: key not yet fetched is loaded first) — this was declared as a sync void
+    // function before any real caller awaited it.
+    __openFolder?: (folderId: string) => Promise<void>;
     // ai-assistant-suggestions.js — structural (real canvas hierarchy) parent lookup, used by
     // app/dotto/lib/tabManagement.ts's buildAncestorChain.
     __findParentFolderId?: (folderId: string) => string | undefined;
@@ -166,7 +170,7 @@ declare global {
     __openMediaViewerTab?: (item: { id: number; mediaName?: string }, paneId?: number) => void;
     __renderNavArrows?: (paneId?: number) => void;
     __renderBreadcrumbMapPanel?: (paneId?: number) => void;
-    // waypoints-render-loop.js — pans/zooms to fit the current folder's content.
+    // app/dotto/lib/waypointsRenderLoop.ts — pans/zooms to fit the current folder's content.
     __centerOnContent?: () => void;
     // app/dotto/lib/sharedAndPublicCanvasLoading.ts (Phase 4.4 port — was
     // shared-and-public-canvas-loading.js) — vanilla -> React bridges: app-init.js,
@@ -326,12 +330,13 @@ declare global {
     // app/dotto/lib/sourceTable.ts — moves keyboard focus (and starts editing on Enter-driven nav)
     // to a specific table cell; pos is an optional caret-position hint for text inputs.
     __focusTableCell?: (id: number, r: number, c: number, pos?: "start" | "end") => void;
-    // waypoints-render-loop.js — expands (or, with opts.editable, opens for rename) a waypoint
-    // card's DOM in place.
+    // app/dotto/lib/waypointsRenderLoop.ts — expands (or, with opts.editable, opens for rename) a
+    // waypoint card's DOM in place. hover/peekMs were missing from this declaration until a real
+    // caller (the vanilla original's own hover/nav-jump branches) needed them typed.
     __expandWaypointCard?: (
       el: HTMLElement,
       it: Record<string, unknown>,
-      opts?: { editable?: boolean },
+      opts?: { editable?: boolean; hover?: boolean; peekMs?: number },
     ) => void;
     // app/dotto/lib/outlineTree.ts (Phase 4.4 port — was outline-tree.js) — React -> vanilla
     // bridges used by OutlinePanel.jsx/FilesListPanel.jsx (already established before this port,
@@ -534,10 +539,10 @@ declare global {
     // hamburger-collab.js — used by app/dotto/lib/panelsHamburger.ts's openRailView/wireRailIcon
     // calls.
     __clearListPanelSelection?: () => void;
-    __renderFilesList?: (query: string) => void;
-    __renderHubCollabList?: (query: string) => void;
-    __renderSourcesList?: (query: string) => void;
-    __renderWaypointsList?: (query: string) => void;
+    __renderFilesList?: (query?: string) => void;
+    __renderHubCollabList?: (query?: string) => void;
+    __renderSourcesList?: (query?: string) => void;
+    __renderWaypointsList?: (query?: string) => void;
     // app/dotto/lib/panelsHamburger.ts (Phase 4.5 port — was panels-hamburger.js) — vanilla ->
     // React bridges: blocks-panel.js/ai-assistant-suggestions.js/card-shortcuts.js/extensions-
     // panel.js/history-autosave.js/hamburger-collab.js/friends-presence.js/messages-schedule.js/
@@ -584,8 +589,9 @@ declare global {
     __queueSyncDiff?: (folderObj: Record<string, unknown>) => void;
     // Plain (non-`__`) global too — broadcastEditingState is ALSO a real inline onfocus/onblur
     // target (canvasItemBehavior.js's cell markup), kept alongside the `__` bridge above since
-    // real vanilla-JS callers (waypoints-render-loop.js's own .onblur closures) need programmatic
-    // access too, not just the inline-HTML-string form.
+    // real callers elsewhere (app/dotto/lib/waypointsRenderLoop.ts's own .onblur closures, reached
+    // via this bridge since it's a different lib file) need programmatic access too, not just the
+    // inline-HTML-string form.
     broadcastEditingState?: (isEditing: boolean, targetSelector?: string) => void;
     // add-menu.js
     __searchKindLabel?: (it: Record<string, unknown>) => string;
@@ -725,5 +731,80 @@ declare global {
     __viewportCenterWorldPoint?: () => { x: number; y: number };
     __updateDrawLayerBtns?: () => void;
     __add?: (kind: string, x?: number, y?: number, statKind?: string | null) => void;
+    // core-state.js — same "single, never-reassigned element"/live-read categories as
+    // __getBtnAddEl/__getCanvasEl above. Used by app/dotto/lib/waypointsRenderLoop.ts (Phase 4.5).
+    __getZoomControlEl?: () => HTMLElement | undefined;
+    __paneElId?: (staticId: string, paneId?: number) => string;
+    __otherPanesViewingFolder?: (folderId: string, excludePaneId: number) => number[];
+    __mirrorItemToSiblingPanes?: (itemId: number, apply: (el: HTMLElement) => void) => void;
+    // bridges.js (via app/dotto-app.jsx, flushSync-wrapped) — see __renderCanvasItems's own
+    // comment there for why it must commit synchronously.
+    __renderCanvasItems?: (items: Record<string, unknown>[], paneId: number) => void;
+    __setMediaViewerZoom?: (paneId: number, state: { show: boolean; zoom: number }) => void;
+    // friends-presence.js
+    __refreshCanvasCollabForCurrentFolder?: () => Promise<void>;
+    __renderCollabPill?: () => void;
+    // card-shortcuts.js
+    __findNextFreeSlot?: (folderId: string) => number;
+    // waypointsRenderLoop.ts's own outbound bridges (Phase 4.5 port — was
+    // waypoints-render-loop.js) — CanvasItemsLayer.jsx/CanvasCard.jsx/SourceCard.jsx/NoteCard.jsx/
+    // WatermarkCard.jsx/TitleCard.jsx/WaypointCard.jsx/FilesListPanel.jsx/PaneZoomBar.jsx/
+    // SourcesListPanel.jsx/TabsBar.jsx (React -> vanilla) and drawing-connections.js/
+    // ai-assistant-suggestions.js/search-orchestration-selection.js/hamburger-collab.js/
+    // app-init.js/mnemonic-search-matching.js/command-verbs.js/cards-misc.js/card-shortcuts.js/
+    // source-tags-ai.js (vanilla -> React) all reach these.
+    __applyCanvasItemWrapperAttrs?: (el: HTMLElement, it: Record<string, unknown>) => void;
+    __attachUniversalItemBehavior?: (el: HTMLElement, it: Record<string, unknown>) => void;
+    __attachWatermarkBody?: (
+      el: HTMLElement,
+      b: HTMLElement,
+      it: Record<string, unknown>,
+      paneId?: number,
+    ) => void;
+    __attachTitleBody?: (
+      el: HTMLElement,
+      b: HTMLElement,
+      it: Record<string, unknown>,
+      paneId?: number,
+    ) => void;
+    __attachNoteBody?: (el: HTMLElement, it: Record<string, unknown>, paneId?: number) => void;
+    __syncNoteFormatButtons?: (bodyEl: HTMLElement) => void;
+    __buildFolderInlineCanvas?: (folderId: string) => HTMLElement;
+    __startRenameFolderCardTitle?: (
+      titleEl: HTMLElement,
+      it: { id?: number; folderId: string },
+      editingClass?: string,
+      selectAll?: boolean,
+    ) => void;
+    __folderTitle?: (folderId: string) => string;
+    __folderGlobalId?: (folderId: string) => string;
+    __attachFolderCardClick?: (
+      el: HTMLElement,
+      it: Record<string, unknown>,
+      titleEl: HTMLElement,
+    ) => void;
+    __attachWaypointCardBody?: (el: HTMLElement, it: Record<string, unknown>) => void;
+    __attachSourceCardClick?: (
+      el: HTMLElement,
+      it: Record<string, unknown>,
+      titleEl: HTMLElement,
+    ) => void;
+    __performMerge?: (source: Record<string, unknown>, targetEl: HTMLElement) => void;
+    __spawnMediaItemAt?: (
+      source: Record<string, unknown>,
+      clientX: number,
+      clientY: number,
+      paneId?: number,
+    ) => void;
+    __renderMediaViewerZoom?: (paneId?: number) => void;
+    __setMediaViewerZoomLevel?: (paneId: number, zoom: number) => void;
+    __deleteWaypointFromDb?: (folderId: string, itemId: number) => Promise<void>;
+    __deleteCanvasCollabsForFolder?: (folderId: string) => Promise<void>;
+    __cascadeDeleteFolderContents?: (folderId: string) => Promise<void>;
+    __deleteWaypointCardEverywhere?: (
+      ownerId: string,
+      folderId: string,
+      itemId: number | string,
+    ) => Promise<void>;
   }
 }

@@ -1,9 +1,10 @@
 "use client";
 
 import { useLayoutEffect } from "react";
+import { attachWaypointCardBody } from "./lib/waypointsRenderLoop";
 
-// Ported from the old inline waypoint branch in renderLegacyCardBody (public/dotto/waypoints-
-// render-loop.js). The expand/collapse-on-hover/click/drag animation and the name's click-to-edit
+// Ported from the old inline waypoint branch in renderLegacyCardBody (app/dotto/lib/
+// waypointsRenderLoop.ts). The expand/collapse-on-hover/click/drag animation and the name's click-to-edit
 // contentEditable lifecycle (expandWaypointCard/collapseWaypointCardWidth, plus the new
 // attachWaypointCardBody wiring click/hover/pointerdown) all stay vanilla — coupled to
 // appState.waypointPeekTimer/broadcastEditingState/syncWaypointToDb, and driven by direct
@@ -14,10 +15,10 @@ import { useLayoutEffect } from "react";
 // render, React never has anything to diff/fight it with.
 export default function WaypointCard({ it, paneId }) {
   // `el` is WaypointCard's own wrapper, passed in explicitly — see attachFolderCardClick's comment
-  // in waypoints-render-loop.js for why (closest('.item') breaks on first mount).
+  // in app/dotto/lib/waypointsRenderLoop.ts for why (closest('.item') breaks on first mount).
   useLayoutEffect(() => {
     const el = window.__findItemEl(it.id, paneId);
-    if (el) window.__attachWaypointCardBody(el, it);
+    if (el) attachWaypointCardBody(el, it);
   });
 
   const iconUrl = `/assets/icons/${window.__kindIconFile("waypoint")}`;

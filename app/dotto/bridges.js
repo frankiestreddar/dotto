@@ -62,7 +62,7 @@ function createPaneKeyedStore(defaultValue = () => []) {
 }
 
 // Canvas items layer (canvas-items-react plan, see PHASE2_ROADMAP.md) — the current folder's item
-// array, set by render() (waypoints-render-loop.js) via window.__renderCanvasItems(items, paneId)
+// array, set by render() (app/dotto/lib/waypointsRenderLoop.ts) via window.__renderCanvasItems(items, paneId)
 // every time it would previously have wiped and rebuilt #world's item divs by hand. React now owns
 // each pane's own #items-layer child of #world (see app/dotto/CanvasItemsLayer.jsx) and keys off
 // item.id, so unchanged items are left alone instead of being torn down and recreated on every
@@ -479,7 +479,7 @@ export const collabPillStore = createPaneKeyedStore(() => ({
 // pushed by app/dotto/lib/tabManagement.ts's renderNavArrows(paneId) (called from
 // render()'s per-frame loop for the active pane, and from jumpToHistoryIndex/switchActivePane for
 // immediate feedback). Replaces the old singular #btn-back/#btn-forward .disabled assignments
-// (waypoints-render-loop.js) now that PaneTopBar.jsx renders its own back/forward buttons per pane.
+// (app/dotto/lib/waypointsRenderLoop.ts) now that PaneTopBar.jsx renders its own back/forward buttons per pane.
 export const navHistoryStore = createPaneKeyedStore(() => ({
   canGoBack: false,
   canGoForward: false,
@@ -497,7 +497,7 @@ export const activePaneIdStore = createStore(0);
 // per-pane reasoning) — { show, zoom }. show is true only while that pane's own CURRENT folder is a
 // synthetic isMediaViewer one (window.__openMediaViewerTab, app/dotto/lib/tabManagement.ts); zoom is a
 // plain multiplier (1 = 100%, i.e. the document at exactly the window's own width — explicit spec).
-// Pushed by renderMediaViewerZoom(paneId)/setMediaViewerZoom (waypoints-render-loop.js). zoom itself
+// Pushed by renderMediaViewerZoom(paneId)/setMediaViewerZoom (app/dotto/lib/waypointsRenderLoop.ts). zoom itself
 // actually lives on the synthetic folder object (folderObj.viewerZoom), not here — this store is
 // just the React-facing mirror of it, same "vanilla owns the real data, this is the push target"
 // split every other pane-keyed store in this file already follows.
@@ -558,7 +558,7 @@ export const sharedCanvasModalStore = createStore(null);
 // caret-regression risk that ruled out converting the Source table's own cells or the Item Detail/
 // Publish Flow contentEditable fields). The rest of the cluster stays vanilla: the Source table
 // itself (renderStaticTableHTML) is built by the legacy `folderObj.isSource` branch in render()
-// (waypoints-render-loop.js), entirely bypassing CanvasItemsLayer, and is deeply
+// (app/dotto/lib/waypointsRenderLoop.ts), entirely bypassing CanvasItemsLayer, and is deeply
 // contentEditable-per-cell plus continuous pointermove-driven hover-zone pixel math — the same
 // canvas-core-tier risk as item 12, not this migration's usual mechanical conversion. Cell image/
 // audio upload, AI-generated source content, and SM-2 are all pure logic with no DOM of their own.

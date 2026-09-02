@@ -2,7 +2,6 @@ import { kindSize } from './add-menu.js';
 import { escapeHtml, stripHtml } from './ai-assistant-suggestions.js';
 import { appState, canvasViewportCenterX, findItemEl } from './core-state.js';
 import { resolveTableForEdit } from './drawing-connections.js';
-import { render } from './waypoints-render-loop.js';
 
 
     // ---------- Dotbot-generated source content (see the "sourceAction" panel in
@@ -61,7 +60,7 @@ import { render } from './waypoints-render-loop.js';
             if (tableItem.tableData[ri].every(isCellEmpty)) { tableItem.tableData[ri] = newRows[ni]; ni++; }
         }
         if (ni < newRows.length) tableItem.tableData.push(...newRows.slice(ni));
-        render();
+        window.__render?.();
         window.__scheduleWorkspaceSave();
         return true;
     }
@@ -83,7 +82,7 @@ import { render } from './waypoints-render-loop.js';
         const dataRows = (rows || []).slice(0, appState.AI_SOURCE_MAX_ROWS).map(r => aiRowToCells(r, width));
         folderObj.title = (title || 'New Source').trim().slice(0, 80) || 'New Source';
         folderObj.items[0].tableData = [header, ...(dataRows.length ? dataRows : [new Array(width).fill('')])];
-        render();
+        window.__render?.();
         window.__scheduleWorkspaceSave();
         return true;
     }
@@ -136,7 +135,7 @@ import { render } from './waypoints-render-loop.js';
     function refreshCellTagsDom(id, r) {
         const it = resolveTableForEdit(id); if (!it) return;
         const cells = document.querySelectorAll(`.item-table td[data-origin-table="${id}"][data-r="${r}"][data-c="0"] .cell-tags`);
-        if (!cells.length) { render(); return; }
+        if (!cells.length) { window.__render?.(); return; }
         cells.forEach(el => { el.innerHTML = tagPillsHTML(it, r); });
     }
     // Delete/rename affect potentially every row's chips (not just the one being edited in the

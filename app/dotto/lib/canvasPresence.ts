@@ -724,7 +724,7 @@ function handleRemoteItemResize(payload: unknown): void {
   if (!el) return;
   el.style.width = p.w + "px";
   // Notes never get an explicit height, even here — it's always automatic (see
-  // applyItemWrapperAttrs, waypoints-render-loop.js) — pinning one on a remote collaborator's
+  // applyItemWrapperAttrs, app/dotto/lib/waypointsRenderLoop.ts) — pinning one on a remote collaborator's
   // screen while the owner drags would fight that and either clip content or leave a gap until
   // something else happened to clear it.
   if (!el.classList.contains("note")) el.style.height = p.h + "px";
@@ -1166,7 +1166,8 @@ if (typeof window !== "undefined") {
   window.__queueSyncDiff = queueSyncDiff;
   // Plain (non-`__`) global too — broadcastEditingState is ALSO a real inline onfocus/onblur target
   // (canvasItemBehavior.js's cell markup), same shape window.pushNotification uses; kept alongside
-  // the `__` bridge above since real vanilla-JS callers (waypoints-render-loop.js's own .onblur
-  // closures) need programmatic access too, not just the inline-HTML-string form.
+  // the `__` bridge above since real callers elsewhere (app/dotto/lib/waypointsRenderLoop.ts's own
+  // .onblur closures, reached via this bridge since it's a different lib file) need programmatic
+  // access too, not just the inline-HTML-string form.
   window.broadcastEditingState = broadcastEditingState;
 }

@@ -9,6 +9,7 @@ import {
   paneLayoutStore,
   tabsStore,
 } from "./bridges";
+import { startRenameFolderCardTitle } from "./lib/waypointsRenderLoop";
 import usePortalNode from "./usePortalNode";
 
 // Module-level, not inline — see CanvasItemsLayer.jsx's identical EMPTY_ITEMS comment for why a
@@ -94,8 +95,8 @@ const RESIZE_MS = 250;
 // first if it wasn't already, same "clicking a pane's own UI focuses that pane" convention every
 // other tab operation in this file now follows.
 // The current-folder segment doubles as its rename control — same click-to-edit contentEditable
-// flow every other title in the app uses (window.__startRenameFolderCardTitle, shared with folder/
-// source cards) — see waypoints-render-loop.js's own comment on that function. A plain {folderId}
+// flow every other title in the app uses (startRenameFolderCardTitle, shared with folder/
+// source cards) — see app/dotto/lib/waypointsRenderLoop.ts's own comment on that function. A plain {folderId}
 // stands in for the `it` object those callers pass; there's no real `.id`/canvas item behind a
 // breadcrumb segment, so the 3rd arg (editingClass) is inert here.
 //
@@ -150,7 +151,7 @@ function ActiveTabTrail({ bc, paneId }) {
         onPointerDown={(e) => e.stopPropagation()}
         onClick={(e) => {
           e.stopPropagation();
-          window.__startRenameFolderCardTitle(
+          startRenameFolderCardTitle(
             currentRef.current,
             { folderId: bc.current.folderId },
             "breadcrumb-pill-current",

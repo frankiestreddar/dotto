@@ -9,7 +9,6 @@ import { commenceSearchOrMnemonic } from './mnemonic-search-matching.js';
 // runs core-state.js's own module-level DOM lookups, which a standalone text-utils.js has no
 // other reason to depend on.
 import { escapeHtml, stripHtml } from './text-utils.js';
-import { render } from './waypoints-render-loop.js';
 
 
     // ---------- Animated Placeholder (types out & deletes a looping series of suggestions) ----------
@@ -824,7 +823,7 @@ import { render } from './waypoints-render-loop.js';
             table.tableData[r][c] = (table.tableData[r][c] || '') + imgHtml;
         }
         window.__scheduleWorkspaceSave();
-        render();
+        window.__render?.();
         return true;
     }
     function importDotbotResultAtScreenPoint(template, clientX, clientY) {
@@ -850,7 +849,7 @@ import { render } from './waypoints-render-loop.js';
             item.translation = template.translation || '';
         }
         appState.folders[appState.currentFolderId].items.push(item);
-        render();
+        window.__render?.();
         clearSearch();
     }
 

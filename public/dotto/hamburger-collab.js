@@ -3,7 +3,6 @@ import { appState, canvasViewportCenterX, drawSettings, findItemEl, supabase } f
 import { activePaneCollabBubbleEl, openCollabPanel, renderCollabPill } from './friends-presence.js';
 import { flashCanvasElement } from './mnemonic-search-matching.js';
 import { closeProfilePanel, openPricingOverlay } from './profile-achievements-pricing.js';
-import { deleteCanvasCollabsForFolder, deleteWaypointCardEverywhere, expandWaypointCard, folderGlobalId, openFolder, render } from './waypoints-render-loop.js';
 
 
     // ---------- Hamburger "Collaborations" panel ----------
@@ -114,7 +113,7 @@ import { deleteCanvasCollabsForFolder, deleteWaypointCardEverywhere, expandWaypo
         const ownedCandidates = appState.ownedCanvasCollaborations.filter(c => !q || c.folderTitle.toLowerCase().includes(q));
         const ownedShown = ownedCandidates.filter(c => {
             if (appState.folders[c.folderId]) return true;
-            deleteCanvasCollabsForFolder(c.folderId);
+            window.__deleteCanvasCollabsForFolder?.(c.folderId);
             return false;
         }).map(c => ({ ...c, liveTitle: (appState.folders[c.folderId] && appState.folders[c.folderId].title) || c.folderTitle }));
         // Canvases shared WITH this user aren't necessarily loaded locally yet (a friend's canvas
@@ -147,7 +146,7 @@ import { deleteCanvasCollabsForFolder, deleteWaypointCardEverywhere, expandWaypo
     // Own canvas row click: navigates there AND opens its collaborator panel, since managing it is
     // the obvious next step from here.
     function handleOwnedHubCollabRowClick(folderId) {
-        openFolder(folderId); // our own canvas — plain local navigation, no fetch needed
+        window.__openFolder?.(folderId); // our own canvas — plain local navigation, no fetch needed
         // Retargets appState.collabBubble to the (now-active) pane's own bubble element first —
         // split-screen Stage 8, every pane has its own now, so there's no single static bubble to
         // assume any more (see collabBubblePaneClick's own comment, friends-presence.js).
@@ -224,7 +223,7 @@ import { deleteCanvasCollabsForFolder, deleteWaypointCardEverywhere, expandWaypo
     // different, unrelated use case) — per explicit request. Entirely local/synchronous, unlike
     // renderWaypointsList/renderChatsList/renderHubCollabList above (no Supabase round trip needed
     // — a canvas's own item list is already fully in memory).
-    // Called from render() itself (waypoints-render-loop.js), same as renderBreadcrumbMapPanel/
+    // Called from render() itself (app/dotto/lib/waypointsRenderLoop.ts), same as renderBreadcrumbMapPanel/
     // renderTabsPanel — not just on panel-open/search-input — so the list stays correct even if the
     // current folder changes while the panel happens to be pinned open, and so creating a new
     // source (createNewSource, app/dotto/lib/srsConnectionsCore.ts, which calls add() -> render()) updates the
@@ -250,7 +249,7 @@ import { deleteCanvasCollabsForFolder, deleteWaypointCardEverywhere, expandWaypo
         );
         const rows = Object.values(appState.folders)
             .filter(f => f.isSource)
-            .map(f => ({ id: f.id, folderId: f.id, title: f.title || 'New Source', globalId: folderGlobalId(f.id), onCanvas: onCanvasIds.has(f.id), active: f.id === appState.currentFolderId }))
+            .map(f => ({ id: f.id, folderId: f.id, title: f.title || 'New Source', globalId: window.__folderGlobalId?.(f.id), onCanvas: onCanvasIds.has(f.id), active: f.id === appState.currentFolderId }))
             .filter(r => !q || r.title.toLowerCase().includes(q))
             .sort((a, b) => (b.onCanvas === a.onCanvas ? 0 : b.onCanvas ? 1 : -1));
         window.__setSourcesList({ rows, query: q });
@@ -270,7 +269,7 @@ import { deleteCanvasCollabsForFolder, deleteWaypointCardEverywhere, expandWaypo
     // is simpler — a media item only ever lives in exactly one folder directly, no separate linking
     // item the way a source can appear on canvases other than its own.
     // Files sidebar — deduplicated to ONE row per uploaded file, per explicit bug report: dragging
-    // a file from this panel onto canvas (spawnMediaItemAt, waypoints-render-loop.js) spawns a
+    // a file from this panel onto canvas (spawnMediaItemAt, app/dotto/lib/waypointsRenderLoop.ts) spawns a
     // second card pointing at the exact same underlying file, which used to show up as a second,
     // seemingly-duplicate row here. it.mediaFileId (a real crypto.randomUUID(), assigned once per
     // upload — see setMediaFromLink/processMediaFile/uploadDocumentToStorage's own comments,
@@ -344,7 +343,7 @@ import { deleteCanvasCollabsForFolder, deleteWaypointCardEverywhere, expandWaypo
         const w = el ? el.offsetWidth : (it.w || 28);
         const h = el ? el.offsetHeight : (it.h || 28);
         window.__smoothPanTo(canvasViewportCenterX() - (it.x + w / 2), window.innerHeight / 2 - (it.y + h / 2), 1);
-        if (el) expandWaypointCard(el, it, { editable: false });
+        if (el) window.__expandWaypointCard?.(el, it, { editable: false });
         flashCanvasElement(el);
     }
     // Navigates to a waypoint card, possibly on a completely different user's canvas and
@@ -376,7 +375,7 @@ import { deleteCanvasCollabsForFolder, deleteWaypointCardEverywhere, expandWaypo
     async function goToWaypointCard(ownerId, folderId, itemId) {
         window.__closeRailView();
         if (ownerId === appState.currentUser.id) {
-            if (appState.currentFolderId !== folderId) openFolder(folderId);
+            if (appState.currentFolderId !== folderId) window.__openFolder?.(folderId);
             const it = appState.folders[folderId] && appState.folders[folderId].items.find(i => String(i.id) === String(itemId));
             if (it) peekWaypointCard(folderId, it);
             return;
@@ -388,7 +387,7 @@ import { deleteCanvasCollabsForFolder, deleteWaypointCardEverywhere, expandWaypo
         appState.currentFolderId = localKeys[localKeys.length - 1];
         appState.historyStack = localKeys;
         appState.historyIndex = localKeys.length - 1;
-        render();
+        window.__render?.();
         if (isFreshEntry) window.__announceEnteredCollaboration(localKeys[0]);
         const it = appState.folders[appState.currentFolderId] && appState.folders[appState.currentFolderId].items.find(i => String(i.id) === String(itemId));
         if (it) peekWaypointCard(appState.currentFolderId, it);
@@ -518,7 +517,7 @@ import { deleteCanvasCollabsForFolder, deleteWaypointCardEverywhere, expandWaypo
         const rows = (appState.lastWaypointsRows || []).filter(r => idSet.has(waypointRowKey(r)));
         if (!rows.length) { clearListPanelSelection(); return; }
         if (!confirm(rows.length === 1 ? 'Delete this waypoint?' : `Delete ${rows.length} waypoints?`)) { clearListPanelSelection(); return; }
-        await Promise.all(rows.map(r => deleteWaypointCardEverywhere(r.owner_id, r.folder_id, r.item_id)));
+        await Promise.all(rows.map(r => window.__deleteWaypointCardEverywhere?.(r.owner_id, r.folder_id, r.item_id)));
         clearListPanelSelection();
         renderWaypointsList(appState.waypointsSearchInput ? appState.waypointsSearchInput.value : '');
     }
@@ -534,7 +533,7 @@ import { deleteCanvasCollabsForFolder, deleteWaypointCardEverywhere, expandWaypo
         const count = owned.length + shared.length;
         if (!confirm(count === 1 ? 'Remove this collaboration?' : `Remove ${count} collaborations?`)) { clearListPanelSelection(); return; }
         await Promise.all([
-            ...owned.map((folderId) => deleteCanvasCollabsForFolder(folderId)),
+            ...owned.map((folderId) => window.__deleteCanvasCollabsForFolder?.(folderId)),
             ...shared.map(async (id) => {
                 const { error } = await supabase.rpc('leave_canvas_collaboration', { p_id: id });
                 if (error) console.error('[collab] failed to leave canvas collaboration:', error);

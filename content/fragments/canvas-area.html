@@ -4,7 +4,7 @@
         <!-- React-owned portal target for canvas item cards (see app/dotto/CanvasItemsLayer.jsx).
              Deliberately left unstyled (no position/transform) so .item's position:absolute still
              resolves against #world, not this wrapper — see PHASE2_ROADMAP.md's canvas-items-react
-             plan. render() (waypoints-render-loop.js) never removes this node; it only rebuilds the
+             plan. render() (app/dotto/lib/waypointsRenderLoop.ts) never removes this node; it only rebuilds the
              non-item layers (drawings/connections SVG) around it. -->
         <div id="items-layer"></div>
     </div>

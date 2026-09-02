@@ -435,7 +435,7 @@ function computeCurrentOutlineRows(ignoreCollapse?: boolean): OutlineRow[] {
   return rows;
 }
 // preserveState (per explicit request) is what lets render() call this unconditionally on every
-// navigation/rename/etc — see its own call site's comment, waypoints-render-loop.js — without
+// navigation/rename/etc — see its own call site's comment, app/dotto/lib/waypointsRenderLoop.ts — without
 // also constantly resetting an already-open panel's scroll position or blowing away whatever the
 // user is actively searching for. false/omitted (every existing caller before this —
 // toggleHamburgerMenu's own panel-open callback, the outline search input's own Enter-to-refocus

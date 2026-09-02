@@ -1,5 +1,5 @@
 import { appState } from './core-state.js';
-import { render } from './waypoints-render-loop.js';
+
 
 
     // Shared by embed's own card (below) and its outline/mini-preview labels elsewhere
@@ -70,7 +70,7 @@ import { render } from './waypoints-render-loop.js';
         if (url === null) return;
         window.__saveSnapshot();
         it.embedUrl = url.trim();
-        render();
+        window.__render?.();
     }
 
     // ---------- Checklist card ----------
@@ -115,13 +115,13 @@ import { render } from './waypoints-render-loop.js';
         const it = window.__findItemById(id); if (!it) return;
         window.__saveSnapshot();
         it.tasks.push({ id: appState.idCounter++, text: '', done: false, deadline: '' });
-        render();
+        window.__render?.();
     }
     function toggleTask(id, tid) {
         const it = window.__findItemById(id); if (!it) return;
         window.__saveSnapshot();
         const t = it.tasks.find(x => x.id === tid); if (t) t.done = !t.done;
-        render();
+        window.__render?.();
     }
     function updateTaskText(id, tid, el) {
         const it = window.__findItemById(id); if (!it) return;
@@ -137,12 +137,12 @@ import { render } from './waypoints-render-loop.js';
         const it = window.__findItemById(id); if (!it) return;
         window.__saveSnapshot();
         it.tasks = it.tasks.filter(x => x.id !== tid);
-        render();
+        window.__render?.();
     }
 
 export { addTask, editEmbed, removeTask, renderChecklistHTML, renderStatcardHTML, shortUrl, toEmbeddableUrl, toggleTask, updateTaskDeadline, updateTaskText };
 
-// React → vanilla bridge (see the identical pattern/comment in waypoints-render-loop.js) — used by
+// React → vanilla bridge (see the identical pattern/comment in app/dotto/lib/waypointsRenderLoop.ts) — used by
 // EmbedCard.jsx (app/dotto/CanvasItemsLayer.jsx), which can't import these directly since
 // public/dotto/*.js isn't reachable from app/dotto/.
 window.__shortUrl = shortUrl;

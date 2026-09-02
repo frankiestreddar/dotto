@@ -3,7 +3,7 @@
 // into this client's own `folders` map under a namespaced key, and the resume-state bookkeeping
 // for leaving it again. Reaches every still-vanilla dependency through window bridges — most
 // already existed (window.__closeRailView/__render/__applyTransform/__getAppState), 1 is new as
-// part of this port (__centerOnContent, waypoints-render-loop.js).
+// part of this port (__centerOnContent, app/dotto/lib/waypointsRenderLoop.ts).
 
 interface Item {
   id: number;

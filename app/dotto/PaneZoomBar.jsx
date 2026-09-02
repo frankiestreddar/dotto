@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useSyncExternalStore } from "react";
 import { mediaViewerZoomStore } from "./bridges";
+import { setMediaViewerZoom } from "./lib/waypointsRenderLoop";
 
 // Module-level, not inline — see CanvasItemsLayer.jsx's identical EMPTY_ITEMS comment for why a
 // fresh object literal as the getServerSnapshot fallback trips React's "should be cached" warning.
@@ -28,8 +29,8 @@ const ZOOM_STEP = 0.25;
 // so hovering it still reads as "inside."
 // zoom itself is a plain multiplier (1 = 100%) stored on the media-viewer's own synthetic folder
 // object (folderObj.viewerZoom) — mediaViewerZoomStore is just this component's own reactive mirror
-// of it (see that store's own comment, bridges.js). window.__setMediaViewerZoomLevel
-// (waypoints-render-loop.js) restyles the already-live viewer element's own --viewer-zoom custom
+// of it (see that store's own comment, bridges.js). setMediaViewerZoom
+// (app/dotto/lib/waypointsRenderLoop.ts) restyles the already-live viewer element's own --viewer-zoom custom
 // property directly rather than going through a full render(), so clicking +/- doesn't reset an
 // <iframe> PDF's or epub.js's own internal scroll position on every click.
 export default function PaneZoomBar({ paneId, rect }) {
@@ -71,7 +72,7 @@ export default function PaneZoomBar({ paneId, rect }) {
         type="button"
         className="pane-zoom-btn"
         title="Zoom out"
-        onClick={() => window.__setMediaViewerZoomLevel(paneId, zoomState.zoom - ZOOM_STEP)}
+        onClick={() => setMediaViewerZoom(paneId, zoomState.zoom - ZOOM_STEP)}
       >
         −
       </button>
@@ -79,7 +80,7 @@ export default function PaneZoomBar({ paneId, rect }) {
         type="button"
         className="pane-zoom-pct"
         title="Reset to 100%"
-        onClick={() => window.__setMediaViewerZoomLevel(paneId, 1)}
+        onClick={() => setMediaViewerZoom(paneId, 1)}
       >
         {pct}%
       </button>
@@ -87,7 +88,7 @@ export default function PaneZoomBar({ paneId, rect }) {
         type="button"
         className="pane-zoom-btn"
         title="Zoom in"
-        onClick={() => window.__setMediaViewerZoomLevel(paneId, zoomState.zoom + ZOOM_STEP)}
+        onClick={() => setMediaViewerZoom(paneId, zoomState.zoom + ZOOM_STEP)}
       >
         +
       </button>

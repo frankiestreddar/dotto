@@ -3,6 +3,7 @@
 import { useLayoutEffect, useRef, useSyncExternalStore } from "react";
 import { createPortal } from "react-dom";
 import { canvasItemsStore } from "./bridges";
+import { applyItemWrapperAttrs, attachUniversalItemBehavior } from "./lib/waypointsRenderLoop";
 import usePortalNode from "./usePortalNode";
 import CanvasCard from "./CanvasCard";
 import ChecklistCard from "./ChecklistCard";
@@ -54,7 +55,8 @@ const CARD_KIND_COMPONENTS = {
 
 // One canvas item's wrapper <div>. React's job is creating/keying/removing this node and owning
 // its real JSX children (Component) — className/style/event wiring for the wrapper itself is
-// still owned by vanilla code (public/dotto/waypoints-render-loop.js), called from a layout effect
+// owned by applyItemWrapperAttrs/attachUniversalItemBehavior (app/dotto/lib/waypointsRenderLoop.ts,
+// same-tree real imports now), called from a layout effect
 // so it runs synchronously before paint, matching the old code's single-pass
 // createElement+build+appendChild (no visible empty-card flash on first mount). None of that
 // (drag/click, aiGenerated badge, right-click suppression) is kind-specific.
@@ -83,8 +85,8 @@ function CanvasItem({ it, paneId }) {
 
   useLayoutEffect(() => {
     if (!ref.current) return;
-    window.__applyCanvasItemWrapperAttrs(ref.current, it);
-    window.__attachUniversalItemBehavior(ref.current, it);
+    applyItemWrapperAttrs(ref.current, it);
+    attachUniversalItemBehavior(ref.current, it);
   });
 
   return (

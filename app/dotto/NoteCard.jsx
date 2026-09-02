@@ -1,12 +1,14 @@
 "use client";
 
 import { useLayoutEffect } from "react";
+import { attachNoteBody, syncNoteFormatButtons } from "./lib/waypointsRenderLoop";
 
-// Ported from the old default/untyped branch in renderLegacyCardBody (public/dotto/waypoints-
-// render-loop.js) — the most common card kind on any canvas. Format-bar (bold/italic/underline/
-// strikethrough/color) is real JSX with direct handlers (document.execCommand is a plain browser
-// API, no bridge needed); the body's click-to-edit lifecycle stays vanilla as attachNoteBody,
-// called via window.__findItemEl(it.id, paneId) each render — same technique TitleCard uses
+// Ported from the old default/untyped branch in renderLegacyCardBody (app/dotto/lib/
+// waypointsRenderLoop.ts) — the most common card kind on any canvas. Format-bar (bold/italic/
+// underline/strikethrough/color) is real JSX with direct handlers (document.execCommand is a
+// plain browser API, no bridge needed); the body's click-to-edit lifecycle stays vanilla as
+// attachNoteBody, called via window.__findItemEl(it.id, paneId) each render — same technique
+// TitleCard uses
 // for its wrapper-level fontSize, needed here because attachNoteBody itself needs the wrapper (for
 // resize and the click-to-edit classList toggle), not just the body — see that function's own
 // comment for the full reasoning (coupled to appState.currentEditingEl/broadcastEditingState).
@@ -25,7 +27,7 @@ import { useLayoutEffect } from "react";
 export default function NoteCard({ it, paneId }) {
   useLayoutEffect(() => {
     const el = window.__findItemEl(it.id, paneId);
-    if (el) window.__attachNoteBody(el, it, paneId);
+    if (el) attachNoteBody(el, it, paneId);
   });
 
   const runFormatCommand = (cmd) => (e) => {
@@ -34,7 +36,7 @@ export default function NoteCard({ it, paneId }) {
     const el = window.__findItemEl(it.id, paneId);
     const body = el && el.querySelector(".body");
     if (!body) return;
-    window.__syncNoteFormatButtons(body);
+    syncNoteFormatButtons(body);
     // With an actual text selection, queryCommandState reflects the just-applied toggle
     // synchronously (the call above already covers that case). With a collapsed selection (just a
     // caret, nothing selected — toggling on/off what the NEXT typed character will look like),
@@ -42,7 +44,7 @@ export default function NoteCard({ it, paneId }) {
     // off then read back as still "on" until some later event (e.g. a keypress) happened to
     // re-sync it. This is a correction pass for exactly that case, cheap and invisible (runs
     // before the next paint) when the immediate call above was already correct.
-    requestAnimationFrame(() => window.__syncNoteFormatButtons(body));
+    requestAnimationFrame(() => syncNoteFormatButtons(body));
   };
 
   return (

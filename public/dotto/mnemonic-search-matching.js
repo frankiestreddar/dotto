@@ -2,7 +2,6 @@ import { buildAlignedSentenceEls, clearSearch, dotbotErrorMessage, isLatinScript
 import { appState, canvas } from './core-state.js';
 import { openDotbotUpgradeModal, refreshDotbotUsage } from './profile-achievements-pricing.js';
 import { commenceDotbotSearch } from './search-orchestration-selection.js';
-import { render } from './waypoints-render-loop.js';
 
 
     // ---------- Mnemonic story / image (explicit, separate actions — not part of the
@@ -33,7 +32,7 @@ import { render } from './waypoints-render-loop.js';
         // Offset to the right of the story block so the two never fully overlap; falls back to
         // the same drop point when there's no story block to offset from (e.g. story failed).
         if (pair.image) place(pair.image, dropX + (pair.text ? pair.text.w + 20 : 0), dropY);
-        render();
+        window.__render?.();
         clearSearch();
     }
     // #search-suggestions' content is real React state now (see app/dotto/SearchSuggestionsPanel.jsx,

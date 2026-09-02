@@ -1,5 +1,4 @@
 import { appState, contextMenu, parseItemId } from './core-state.js';
-import { cascadeDeleteFolderContents, deleteWaypointFromDb, render, renderSelectedOutlines } from './waypoints-render-loop.js';
 
 // Phase 4.3 split (was part of resize-shortcuts-init.js, see PHASE4_ROADMAP.md) — the "shortcuts"
 // concern: global keyboard shortcuts and the multi-select delete action they (and the context
@@ -52,17 +51,17 @@ function deleteSelectedCards() {
     const removedFolders = items.filter(it => (it.kind === 'folder' || it.kind === 'source') && it.folderId);
     appState.folders[appState.currentFolderId].items = appState.folders[appState.currentFolderId].items.filter(i => !idSet.has(i.id));
     appState.selectedCardIds = [];
-    render();
-    renderSelectedOutlines();
-    removedWaypoints.forEach(it => deleteWaypointFromDb(appState.currentFolderId, it.id));
-    removedFolders.forEach(it => cascadeDeleteFolderContents(it.folderId));
+    window.__render?.();
+    window.__renderSelectedOutlines?.();
+    removedWaypoints.forEach(it => window.__deleteWaypointFromDb?.(appState.currentFolderId, it.id));
+    removedFolders.forEach(it => window.__cascadeDeleteFolderContents?.(it.folderId));
 }
 function setTableAlign(align) {
     const id = parseInt(contextMenu.dataset.id);
     const it = window.__findItemById(id); if (!it) return;
     window.__saveSnapshot();
     it.textAlign = align;
-    render();
+    window.__render?.();
     contextMenu.style.display = 'none'; appState.contextMenuItemId = null;
 }
 
@@ -114,7 +113,7 @@ document.addEventListener('keydown', (e) => {
 // as hoveredGameCard above, for the same reason (render() rebuilds every .item element from
 // scratch on every change, so tracked mouseenter/mouseleave state would need constant re-wiring
 // for no benefit over just reading live :hover). A media card's own wrapper is only ever
-// class="item media" regardless of mediaType (applyItemWrapperAttrs, waypoints-render-loop.js) —
+// class="item media" regardless of mediaType (applyItemWrapperAttrs, app/dotto/lib/waypointsRenderLoop.ts) —
 // pdf/epub/image/video all share that one kind — so this reads it.mediaType off the found item
 // rather than being able to select on kind alone the way hoveredGameCard's flashcard/typeright
 // split can.
@@ -148,3 +147,5 @@ export { deleteSelectedCards, findNextFreeSlot, setTableAlign };
 
 // Used by app/dotto/lib/copyPaste.ts's cutSelectedCards (Phase 4.4).
 window.__deleteSelectedCards = deleteSelectedCards;
+// Used by app/dotto/lib/waypointsRenderLoop.ts's performMerge (Phase 4.5).
+window.__findNextFreeSlot = findNextFreeSlot;

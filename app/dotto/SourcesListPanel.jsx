@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { createPortal } from "react-dom";
 import { sourcesListStore } from "./bridges";
+import { openFolder, startRenameFolderCardTitle } from "./lib/waypointsRenderLoop";
 import RowActions from "./RowActions";
 import usePortalNode from "./usePortalNode";
 
@@ -29,11 +30,11 @@ const EMPTY_STATE = { rows: [], query: "" };
 // state, passed down) and :hover apply, at which point it swaps places with .outline-label instead
 // of sitting alongside it (globals.css). Pure CSS for the hover half so no per-row mouseenter/leave
 // tracking is needed here — only the keyboard half needs JS.
-// Double-clicking the label renames the source in place (window.__startRenameFolderCardTitle, the
+// Double-clicking the label renames the source in place (startRenameFolderCardTitle, the
 // same primitive the breadcrumb's current segment and folder/source cards already use, passed
 // selectAll:true — per explicit follow-up request — so the whole name is selected right away
 // instead of just a caret at the end, ready to be typed straight over) — per explicit request. A
-// single click still navigates (window.__openFolder), so the row's own onClick needs the same
+// single click still navigates (openFolder), so the row's own onClick needs the same
 // "delay navigation, cancel if a second click lands within the window" dance ShelfCard.jsx's
 // handleShelfSourceRowClick already establishes for this exact tension (see its own comment there)
 // rather than firing immediately, or a genuine double-click would navigate away on its first click
@@ -60,7 +61,7 @@ function SourceRow({ r, altHeld }) {
         }
         clickTimerRef.current = setTimeout(() => {
           clickTimerRef.current = null;
-          window.__openFolder(r.folderId);
+          openFolder(r.folderId);
         }, 220);
       }}
     >
@@ -70,7 +71,7 @@ function SourceRow({ r, altHeld }) {
         className="outline-label outline-label-renameable"
         onDoubleClick={(e) => {
           e.stopPropagation();
-          window.__startRenameFolderCardTitle(
+          startRenameFolderCardTitle(
             labelRef.current,
             { folderId: r.folderId },
             "outline-label",

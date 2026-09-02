@@ -1,9 +1,10 @@
 "use client";
 
 import { useLayoutEffect, useRef } from "react";
+import { attachWatermarkBody } from "./lib/waypointsRenderLoop";
 
-// Ported from the old inline watermark branch in renderLegacyCardBody (public/dotto/waypoints-
-// render-loop.js) — see EmbedCard.jsx for the general pattern this follows. Unlike Embed/Checklist,
+// Ported from the old inline watermark branch in renderLegacyCardBody (app/dotto/lib/
+// waypointsRenderLoop.ts) — see EmbedCard.jsx for the general pattern this follows. Unlike Embed/Checklist,
 // the click-to-edit contentEditable lifecycle (click to start editing, blur to commit, Escape to
 // exit) stays vanilla — see attachWatermarkBody's own comment for why: it's coupled to
 // appState.currentEditingEl/broadcastEditingState, shared state with other still-unconverted
@@ -13,7 +14,7 @@ export default function WatermarkCard({ it, paneId }) {
 
   useLayoutEffect(() => {
     const el = window.__findItemEl(it.id, paneId);
-    if (el && ref.current) window.__attachWatermarkBody(el, ref.current, it, paneId);
+    if (el && ref.current) attachWatermarkBody(el, ref.current, it, paneId);
   });
 
   // dangerouslySetInnerHTML, not plain text children — it.html is genuinely rich content (read/

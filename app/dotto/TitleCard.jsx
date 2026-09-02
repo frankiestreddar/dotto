@@ -2,9 +2,10 @@
 
 import { useLayoutEffect, useRef } from "react";
 import { setTitleLevel, titleFontSize } from "./lib/messagingCanvasPreview";
+import { attachTitleBody } from "./lib/waypointsRenderLoop";
 
-// Ported from the old inline title branch in renderLegacyCardBody (public/dotto/waypoints-render-
-// loop.js). Body's click-to-edit lifecycle (attachTitleBody) stays vanilla, same reasoning as
+// Ported from the old inline title branch in renderLegacyCardBody (app/dotto/lib/
+// waypointsRenderLoop.ts). Body's click-to-edit lifecycle (attachTitleBody) stays vanilla, same reasoning as
 // WatermarkCard's attachWatermarkBody — coupled to appState.currentEditingEl/broadcastEditingState,
 // shared with other still-unconverted click-to-edit kinds (note).
 //
@@ -30,7 +31,7 @@ export default function TitleCard({ it, paneId }) {
   useLayoutEffect(() => {
     const el = window.__findItemEl(it.id, paneId);
     if (el) el.style.fontSize = titleFontSize(it.level || 1) + "px";
-    if (el && bodyRef.current) window.__attachTitleBody(el, bodyRef.current, it, paneId);
+    if (el && bodyRef.current) attachTitleBody(el, bodyRef.current, it, paneId);
   });
 
   return (

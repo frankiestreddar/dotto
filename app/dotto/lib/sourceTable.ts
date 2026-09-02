@@ -90,7 +90,7 @@ export function renderTableHTML(it: Item): string {
 // relocated piece — the Source database page's own rendering/hover-zone geometry, see the
 // migration plan), alongside tableCellHTML/renderStaticTableHTML/layoutSourceTableColumns/
 // attachStaticTableHoverZones just below/further down — the only callers of any of these five are
-// each other and render() (waypoints-render-loop.js). colgroupHTML just above stays here —
+// each other and render() (app/dotto/lib/waypointsRenderLoop.ts). colgroupHTML just above stays here —
 // renderTableHTML (the on-canvas Table card's own legacy preview renderer, still used by
 // app/dotto/lib/messagingCanvasPreview.ts) needs it too — reached from the relocated
 // renderStaticTableHTML via window.__colgroupHTML.
@@ -106,7 +106,7 @@ export function renderTableHTML(it: Item): string {
 //
 // Also handles the folder/waypoint title rename's own "the first click into an unfocused field
 // always lands the caret at the end, not wherever you clicked" behavior
-// (startRenameFolderCardTitle, waypoints-render-loop.js) — but .cell-text is always contentEditable
+// (startRenameFolderCardTitle, app/dotto/lib/waypointsRenderLoop.ts) — but .cell-text is always contentEditable
 // here (never toggled on click the way a rename field is), so "was this the very first click into
 // an unfocused cell" is detected via document.activeElement at mousedown time, before the
 // browser's own focus+click-to-caret handling has run. The deferred placement is itself guarded on

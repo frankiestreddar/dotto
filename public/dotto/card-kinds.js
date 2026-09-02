@@ -13,7 +13,7 @@
 // Those functions are deliberately left untouched rather than forced into this registry.
 //
 // Deliberately does NOT yet include a `Component:` slot for React-owned rendering. render()
-// (waypoints-render-loop.js) does a full, unconditional teardown-and-rebuild of every card's DOM
+// (app/dotto/lib/waypointsRenderLoop.ts) does a full, unconditional teardown-and-rebuild of every card's DOM
 // on nearly every canvas interaction (world.innerHTML = '', called from 15+ files) — there's no
 // keyed diffing today, so making React actually own a card kind's DOM node means first modifying
 // render()'s own teardown logic to cache wrapper elements/React roots by item id. That's real

@@ -5,7 +5,6 @@ import { ensureConnections } from './drawing-connections.js';
 import { commenceSearchOrMnemonic } from './mnemonic-search-matching.js';
 import { bumpAchievementStat, openDotbotUpgradeModal, refreshDotbotUsage } from './profile-achievements-pricing.js';
 import { applyAiAddRowsToSource, createSourceFromAI } from './source-tags-ai.js';
-import { render } from './waypoints-render-loop.js';
 
 
     // ---------- Orchestrated search: one AI call decides which panels are useful. Canvas
@@ -393,7 +392,7 @@ import { render } from './waypoints-render-loop.js';
                 window.__saveSnapshot();
                 appState.addToSourceTarget.table.tableData.push(cells);
                 window.__scheduleWorkspaceSave();
-                if (appState.currentFolderId === appState.addToSourceTarget.folder.id) render();
+                if (appState.currentFolderId === appState.addToSourceTarget.folder.id) window.__render?.();
                 closeAddToSourcePopup();
             };
         }

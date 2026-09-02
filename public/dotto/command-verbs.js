@@ -1,7 +1,6 @@
 import { appState, supabase } from './core-state.js';
 import { resolveUsernameToUserId } from './friends-presence.js';
 import { generateGlobalId } from './global-ids.js';
-import { openFolder, render } from './waypoints-render-loop.js';
 import { CARD_KINDS } from './card-kinds.js';
 
 // Executes the 'obtain' verb for an already-resolved command target (see
@@ -12,7 +11,7 @@ import { CARD_KINDS } from './card-kinds.js';
 // verb actually ships.
 function obtainTarget(target) {
     if (!target) return;
-    if (target.access === 'owner') { openFolder(target.folder_id); return; }
+    if (target.access === 'owner') { window.__openFolder?.(target.folder_id); return; }
     if (target.access === 'collaborator') { window.__openSharedCanvas(target.owner_id, target.folder_id, target.title); return; }
     if (target.access === 'public') { window.__openPublicCanvas(target.owner_id, target.folder_id, target.title); return; }
 }
@@ -93,7 +92,7 @@ function placeTarget(target) {
         refOwnerId: target.owner_id, refFolderId: target.folder_id, refKind: target.kind,
         refTitle: target.title, refGlobalId: target.global_id || null,
     });
-    render();
+    window.__render?.();
 }
 
 // Recursively rebuilds a fetched remote folder — and everything nested inside it the caller can
@@ -165,7 +164,7 @@ async function copyTarget(target) {
         x: Math.round(center.x - w / 2), y: Math.round(center.y - h / 2), w, h,
         kind, folderId: clonedFolderId,
     });
-    render();
+    window.__render?.();
     window.pushNotification({ type: 'command_success', message: `Copied "${target.title}".` });
 }
 

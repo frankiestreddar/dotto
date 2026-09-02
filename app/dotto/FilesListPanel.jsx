@@ -4,6 +4,7 @@ import { useRef, useState, useSyncExternalStore } from "react";
 import { createPortal } from "react-dom";
 import { computePaneRects, filesListStore, paneLayoutStore } from "./bridges";
 import { findItemById } from "./lib/canvasPresence";
+import { spawnMediaItemAt } from "./lib/waypointsRenderLoop";
 import RowActions from "./RowActions";
 import usePortalNode from "./usePortalNode";
 
@@ -66,7 +67,7 @@ function clearDropHighlights() {
 // file full screen and scrollable") opens the file in a real tab of THIS app's own tab bar
 // (window.__openMediaViewerTab, app/dotto/lib/tabManagement.ts) — a synthetic folder wrapping the item
 // (isMediaViewer:true), rendered full-screen/scrollable by a dedicated branch in render()
-// (waypoints-render-loop.js), riding the exact same tab/pane machinery every other tab already
+// (app/dotto/lib/waypointsRenderLoop.ts), riding the exact same tab/pane machinery every other tab already
 // uses. findItemById (app/dotto/lib/canvasPresence.ts, a real ES import here) resolves the row's
 // own itemId back to the real, live item object
 // (mediaSrc/mediaType/mediaName) rather than this row carrying a stale copy. Omitted (falls back to
@@ -81,7 +82,7 @@ function clearDropHighlights() {
 // already uses); past it, a floating label ghost follows the cursor and every pane is hit-tested
 // each move for whether the cursor is over that pane's own breadcrumb pill (drop → open as a
 // media-viewer tab there) or elsewhere within that pane's own canvas box (drop → spawn a real copy
-// of the file as a new card at that point, window.__spawnMediaItemAt). Released outside any pane
+// of the file as a new card at that point, spawnMediaItemAt). Released outside any pane
 // (or on a row with no mediaSrc yet — an unfinished upload) just cancels, no drop.
 function FileRow({ r }) {
   const suppressClickRef = useRef(false);
@@ -156,7 +157,7 @@ function FileRow({ r }) {
       const item = findItemById(r.itemId);
       if (item && d.targetKind === "tab") window.__openMediaViewerTab(item, d.targetPaneId);
       else if (item && d.targetKind === "canvas")
-        window.__spawnMediaItemAt(item, e.clientX, e.clientY, d.targetPaneId);
+        spawnMediaItemAt(item, e.clientX, e.clientY, d.targetPaneId);
     }
     setDrag(null);
   };

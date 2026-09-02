@@ -15,7 +15,6 @@ import './dotto/ai-assistant-suggestions.js';
 import './dotto/search-panel-history.js';
 import './dotto/mnemonic-search-matching.js';
 import './dotto/search-orchestration-selection.js';
-import './dotto/waypoints-render-loop.js';
 import './dotto/drag-drop-chat.js';
 import './dotto/library-publish.js';
 import './dotto/blocks-panel.js';

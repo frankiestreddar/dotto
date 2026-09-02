@@ -1,7 +1,6 @@
 import { appState } from './core-state.js';
 import { refreshCanvasCollabForCurrentFolder, refreshFriendsData, renderCollabPill } from './friends-presence.js';
 import { refreshDotbotUsage } from './profile-achievements-pricing.js';
-import { centerOnContent, render } from './waypoints-render-loop.js';
 
 // Phase 4.3 split (was part of resize-shortcuts-init.js, see PHASE4_ROADMAP.md) — the "init"
 // concern: the one-time bootstrap sequence that actually gets the app showing real content, run
@@ -19,8 +18,8 @@ window.__applyCursorMode();
 // instantly if there's no signed-in user or nothing saved yet.
 (async () => {
     const restoredView = await window.__loadWorkspace();
-    render();
-    if (!restoredView) centerOnContent();
+    window.__render();
+    if (!restoredView) window.__centerOnContent();
     else window.__applyTransform();
     // Same reasoning as the fix inside refreshCanvasCollabForCurrentFolder itself — the very first
     // render() above ran before this had any real data, so a landing folder with an actual

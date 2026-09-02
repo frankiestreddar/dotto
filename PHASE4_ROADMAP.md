@@ -340,7 +340,7 @@
   this port owns directly. Zero console/page errors. Re-checked the account afterward to confirm
   zero residual mock cards/folders. **This closes out Phase 4.4 — every split-out concern and
   remaining DOM-heavy file has now been ported.** Phase 4.5 (architectural/hub files) is next.
-- **Phase 4.5 — architectural/hub files: in progress (4 of 7 done).**
+- **Phase 4.5 — architectural/hub files: in progress (5 of 7 done).**
   `panels-hamburger.js` (178 lines) ported first to `app/dotto/lib/panelsHamburger.ts` — the
   permanent rail's shared open/close contract (one sliding `#hamburger-stack` shell, many trigger
   icons) plus the hover/pin panel helper used by the add-menu and per-canvas collaborator flyout.
@@ -623,6 +623,100 @@
   `profile-achievements-pricing.js`/`theme-toggle.js`/`upload-popup.js` — passed clean, no
   regression. Zero console/page errors on either script. Cleanup removed every mock item/folder/
   connection created during the run.
+  `waypoints-render-loop.js` (1231 lines, fan-in 10) ported fifth to
+  `app/dotto/lib/waypointsRenderLoop.ts` — the plan's own "hardest single piece": `render()`/
+  `renderOnce()`, the global re-render escape hatch dozens of call sites across the whole app funnel
+  through (item add/delete/move, realtime remote updates, navigation — every one of them,
+  vanilla and React alike, still reaches it exactly the same way, via `window.__render`), plus
+  waypoint-card expand/collapse (intricate width-transition/contentEditable/drag-detection math),
+  folder/source card click-routing and inline-rename, the note/watermark/title contentEditable
+  lifecycles, universal per-item wrapper attrs/behavior, box-selection, folder-merge (Alt-drag),
+  camera centering, folder navigation (`openFolder`/`applyFolderView`), media-viewer zoom, and
+  cascading folder deletion (waypoints/collaborators/`global_items` cleanup, recursive into nested
+  folders). **No `wireX()` was needed** — unusual for a Phase 4.4/4.5 port with real DOM
+  interactivity: unlike every prior port, nothing here does real DOM-listener wiring at a fixed
+  module-load moment. Every interactive piece is attached per-item from a React layout effect
+  (`CanvasItemsLayer.jsx` et al., matching the established per-Component `attach*` pattern) or
+  invoked directly by a caller — so a plain side-effect import in `dotto-app.jsx` is enough, same
+  shape `outlineTree.ts`/`shelfSearch.ts` already use for their own side-effect-only imports.
+  `setupResizing`/`setupDraggingAndClicking`/`renderConnectionsLayer`/`renderStaticTableHTML`/
+  `attachStaticTableHoverZones`/`layoutSourceTableColumns` are real ES imports from
+  `canvasItemBehavior.js` instead of bridges — same-tree, both live in `app/dotto/` — the first
+  time this migration's "same-tree caller upgrade" precedent applied to the PORTED file's own
+  internal calls, not just external callers; `window.__performMerge` deliberately stayed a bridge
+  in `canvasItemBehavior.js` specifically (not the "ubiquitous primitive" reasoning `render()`/
+  `openFolder()` get everywhere else, but a genuine circular-import hazard: `canvasItemBehavior.js`
+  importing back from `waypointsRenderLoop.ts` would close a cycle, since that file already imports
+  FROM `canvasItemBehavior.js`) — checked and ruled out before ever attempting it, not discovered
+  by a failed build. 10 real vanilla callers fixed (`drawing-connections.js`,
+  `ai-assistant-suggestions.js`, `search-orchestration-selection.js`, `hamburger-collab.js`,
+  `app-init.js`, `mnemonic-search-matching.js`, `command-verbs.js`, `cards-misc.js`,
+  `card-shortcuts.js`, `source-tags-ai.js`). 12 new outbound bridges added for still-vanilla
+  dependencies with no bridge yet (`__paneElId`/`__getZoomControlEl` on `core-state.js`;
+  `__refreshCanvasCollabForCurrentFolder` on `friends-presence.js`; `__findNextFreeSlot` on
+  `card-shortcuts.js`) plus 4 bridges that already existed at runtime but had never been typed
+  (`__deleteWaypointFromDb`/`__deleteCanvasCollabsForFolder`/`__cascadeDeleteFolderContents`/
+  `__deleteWaypointCardEverywhere` — caught only because `card-shortcuts.js`'s own fix needed them
+  typed, the same "gap invisible until a real caller needs it" class as prior ports). 13
+  already-existing React components upgraded from window bridges to real ES imports — the widest
+  batch of this precedent yet: `CanvasItemsLayer.jsx`, `CanvasCard.jsx`, `SourceCard.jsx`,
+  `NoteCard.jsx`, `WatermarkCard.jsx`, `TitleCard.jsx`, `WaypointCard.jsx`, `FilesListPanel.jsx`,
+  `PaneZoomBar.jsx`, `ReferenceCard.jsx`, `SourcesListPanel.jsx` (both `startRenameFolderCardTitle`
+  and `openFolder`, tightly coupled to the same row-click interaction), `TabsBar.jsx`. `render()`/
+  `openFolder()`/`centerOnContent()`/`applyFolderView()`/`performMerge()`/`expandWaypointCard()`/
+  etc deliberately stayed bridges everywhere else — same "ubiquitous core primitive" precedent
+  `getAppState`/`saveSnapshot` already established (called so pervasively, including
+  lib-file-to-lib-file, that treating every call site as a direct-import candidate would tangle the
+  dependency graph for no real benefit); the same-tree-upgrade precedent applies specifically to a
+  React component's own clearly-scoped rendering/behavior helper, not a universal entry point. Two
+  real pre-existing type bugs caught by `npm run typecheck` on the first real pass, both fixed by
+  correcting the type to match the real call site (never the other way around): `__renderSourcesList`/
+  `__renderFilesList`/`__renderHubCollabList`/`__renderWaypointsList`'s shared `query` parameter was
+  declared required when the real functions have always treated it as optional (falling back to the
+  search input's own live value); `__openFolder`'s declared return type was a sync `void` when the
+  real function has always been `async` (a `shared:` key not yet fetched is loaded first). The
+  stale-reference sweep found ~55 comment references across 24 files (the widest yet this
+  migration, reflecting this file's real fan-out even though its fan-in was comparatively small) —
+  several caught reasoning that had gone stale, not just a filename: `dotto-app.jsx`'s and
+  `canvasItemBehavior.js`'s own comments explaining which vanilla callers "still need" the
+  `setupResizing`/`renderConnectionsLayer`/etc bridges had to be rewritten now that `render()`
+  itself reaches those same-tree (the one real remaining bridge consumer is
+  `sourceButtonsCursorMode.ts`'s `relayoutSourceTableIfVisible`, a genuinely different lib file);
+  `CanvasItemsLayer.jsx`'s own comment claiming wrapper-attr/behavior wiring was "still owned by
+  vanilla code" (now a same-tree import); two identical `table-grid-resize.js`/vanillaBridges.d.ts
+  passages claiming `attachNoteBody`'s onblur closures were "real vanilla-JS callers" of
+  `__broadcastEditingState` (still real bridge callers, just no longer vanilla — TS calling a
+  different lib file's bridge, not vanilla calling one).
+  **Build took an anomalously long 17.1 minutes for TypeScript checking on its very first run
+  after this port landed** (vs. the usual under-2-second `next build` TypeScript pass) — re-ran
+  immediately after to rule out a real regression: the second run was back to 1.67s, confirming
+  this was a one-time cold-cache cost (Turbopack's persistent type-check cache warming up against
+  this migration's single largest new file, ~1650 lines) rather than a lasting problem; flagged
+  here for visibility, not treated as a blocker.
+  Real Playwright verification against a fresh dev server, deliberately going deeper than a bridge-
+  presence check given this file's real risk profile (`render()` is called on every single state
+  change across the whole app): a real note-card click-to-edit-and-type-and-blur round trip
+  persisting `it.html` correctly (the single most common interaction in the entire app); a real
+  mock folder card created, clicked, and navigated into end-to-end
+  (`attachFolderCardClick` -> `openFolder` -> `applyFolderView` -> `render()`, confirmed via a real
+  `currentFolderId` check, then navigated back out again); a real double-click folder rename
+  (`startRenameFolderCardTitle`) that persisted the new title; a real mouse hover that visibly
+  widened a waypoint card via `attachWaypointCardBody`/`expandWaypointCard`'s real
+  `getBoundingClientRect`-driven width transition; and a real Shift+drag box selection
+  (`startBoxSelection`) that correctly picked up all 3 mock cards by real screen-to-world coordinate
+  conversion. Mock cards were placed in a large empty world-coordinate area (x/y 5000+, camera
+  panned out to it first) specifically so they'd never collide with this shared test account's real
+  existing content — a real collision was hit and fixed during this port's own test-writing pass
+  (a mock note card first placed near the origin landed under a real table card and silently ate
+  every click). Also re-ran both `verify-phase4-5-historyautosave-port.js` and
+  `verify-phase4-5-srsconnectionscore-port.js` afterward as regression checks, since this port
+  touched several files those scripts exercise (`core-state.js`, `hamburger-collab.js`,
+  `card-shortcuts.js`, `cards-misc.js`, `ai-assistant-suggestions.js`) — both passed clean, no
+  regression. Also re-ran the SSR-safety check from the `history-autosave.js` port one more time
+  (`npm run build && npm run start`, 3 real authenticated Playwright reloads) since this port added
+  yet another new module-top-level bridge-setting file to the same import graph that bug lived in —
+  zero console errors or server 500s. Zero console/page errors across every script. Cleanup removed
+  every mock item/folder created during the run and restored the original folder/camera.
 - **Phase 4.6 — delete the bridge layer: not started.**
 - **Phase 4.7 — final cleanup & professionalization close-out: not started.**
 
@@ -1572,3 +1666,42 @@ port also touched several files (`core-state.js`, `waypoints-render-loop.js`,
 `upload-popup.js`) that port's own script exercises — passed clean, no regression. Zero
 console/page errors across both scripts. Cleanup removed every mock item/folder/connection created
 during the run.
+
+**Phase 4.5 (`waypoints-render-loop.js` → `app/dotto/lib/waypointsRenderLoop.ts`)**: `node --check`
+on all 10 touched vanilla callers, `eslint` clean, `npm run typecheck` clean (after fixing two real
+pre-existing type bugs — `__renderSourcesList`/`__renderFilesList`/`__renderHubCollabList`/
+`__renderWaypointsList`'s `query` param wrongly required instead of optional,
+`__openFolder`'s return type wrongly sync instead of the real `Promise<void>`), `npm run
+format:check` clean after a `prettier --write` pass run as the actual last step before committing,
+`rm -rf .next && npm run build` clean (TypeScript checking took an anomalous 17.1 minutes on the
+very first run after this port landed — re-ran immediately and got 1.67s, confirming a one-time
+Turbopack cache-warming cost against this migration's largest new file, not a real regression), all
+32 Vitest tests still green. Re-verified the SSR-safety fix from the `history-autosave.js` port
+still holds against this port's own new bridge block too: a real `npm run build && npm run start`
+production server, 3 real authenticated Playwright reloads, zero console errors or server 500s.
+Real Playwright verification against a fresh dev server, deliberately going deeper than a
+bridge-presence check given `render()`'s real risk profile (called on every single state change
+across the whole app): a real note-card click-to-edit-and-type-and-blur round trip persisting
+`it.html`; a real mock folder card created, clicked, and navigated into end-to-end
+(`attachFolderCardClick` → `openFolder` → `applyFolderView` → `render()`, confirmed via a real
+`currentFolderId` check, then navigated back out); a real double-click folder rename
+(`startRenameFolderCardTitle`) that persisted the new title; a real mouse hover that visibly widened
+a waypoint card via `attachWaypointCardBody`/`expandWaypointCard`'s real `getBoundingClientRect`-
+driven width transition; and a real Shift+drag box selection (`startBoxSelection`) that correctly
+picked up all 3 mock cards via real screen-to-world coordinate conversion. Mock cards were placed in
+a large empty world-coordinate area (x/y 5000+, camera panned out to it first) specifically to avoid
+colliding with this shared test account's real content — a real collision was hit and fixed during
+this port's own test-writing pass (a mock note card placed near the origin landed under a real table
+card and silently ate every click, caught by a real Playwright timeout, not assumed). Also re-ran
+both `verify-phase4-5-historyautosave-port.js` and `verify-phase4-5-srsconnectionscore-port.js`
+afterward as regression checks, since this port touched several files those scripts exercise
+(`core-state.js`, `hamburger-collab.js`, `card-shortcuts.js`, `cards-misc.js`,
+`ai-assistant-suggestions.js`) — both passed clean, no regression. Zero console/page errors across
+every script. Cleanup removed every mock item/folder created during the run and restored the
+original folder/camera.
+
+**This closes out the two hardest Phase 4.5 ports (`live-presence.js` and
+`waypoints-render-loop.js`, per the plan's own risk assessment) — 5 of 7 done.** Remaining 2:
+`window-bridge.js` (still blocked on the paused Phase 4.1 files — see its own status entry above)
+and `core-state.js` (the `appState` singleton, deliberately saved for last since everything reads
+it).

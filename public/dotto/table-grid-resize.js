@@ -132,6 +132,7 @@ export { setupTableGridResizing };
 
 // window.__setupResizing is now assigned from app/dotto-app.jsx instead (setupResizing itself
 // moved to app/dotto/canvasItemBehavior.js) — the bridge's direction flipped along with its
-// implementation, but vanilla code that still needs it (attachNoteBody, waypoints-render-loop.js)
-// calls it exactly the same way as before.
+// implementation. attachNoteBody (app/dotto/lib/waypointsRenderLoop.ts) has since reached same-tree
+// and calls setupResizing via a real ES import instead of this bridge; any genuinely still-vanilla
+// caller would still reach it exactly the same way as before.
 window.__setupTableGridResizing = setupTableGridResizing;

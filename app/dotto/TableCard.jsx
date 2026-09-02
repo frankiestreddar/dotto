@@ -38,7 +38,7 @@ import { placeCaretEnd } from "./lib/canvasPresence";
 //
 // Also handles the folder/waypoint title rename's own "the first click into an unfocused field
 // always lands the caret at the end, not wherever you clicked" behavior (startRenameFolderCardTitle,
-// waypoints-render-loop.js) — but a table <td> is always contentEditable here (never toggled on
+// app/dotto/lib/waypointsRenderLoop.ts) — but a table <td> is always contentEditable here (never toggled on
 // click the way a rename field is), so "was this the very first click into an unfocused cell" is
 // detected via document.activeElement at mousedown time, before the browser's own focus+click-to-
 // caret handling has run. The deferred placement is itself guarded on dragDetected, so a fast

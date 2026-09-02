@@ -592,6 +592,8 @@ window.__syncCanvasCollabTitle = syncCanvasCollabTitle;
 window.__closeCollabPanel = closeCollabPanel;
 // Used by app/dotto/lib/messagingCanvasPreview.ts's closeConvo (Phase 4.5).
 window.__renderMsgList = renderMsgList;
+// Used by app/dotto/lib/waypointsRenderLoop.ts's applyFolderView (Phase 4.5).
+window.__refreshCanvasCollabForCurrentFolder = refreshCanvasCollabForCurrentFolder;
 
 // No window.__initials bridge — Avatar.jsx (app/dotto/) reimplements this directly instead (see
 // its own comment for why: plain string logic with no vanilla-only dependency, and needing it to

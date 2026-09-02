@@ -64,7 +64,7 @@ function buildAncestorChain(folderId: string): string[] {
 // Real React state (see app/dotto/TabsBar.jsx's ActiveTabTrail, breadcrumbMapStore) — a compact
 // "…/parent/current" trail for whichever tab is active now, not a full indented ancestor list, so
 // this only ever needs the last couple of links in the chain plus whether there's more above them.
-// Called straight from render() (waypoints-render-loop.js) on every navigation, same as before.
+// Called straight from render() (app/dotto/lib/waypointsRenderLoop.ts) on every navigation, same as before.
 // Still walks the full structural chain (buildAncestorChain, including the synthetic Root row
 // pinned in when currently inside a shared tree, since the real ancestor chain never reaches it
 // from there) — just condenses it down to {hasMore, root, parent, current} instead of keeping
@@ -136,7 +136,7 @@ export function breadcrumbMapRowClick(
 
 // Pushes appState.tabs/activeTabId into React (TabsBar.jsx) — called after every mutation below,
 // and also from render() on every navigation (same call site as renderBreadcrumbMapPanel,
-// waypoints-render-loop.js), so the active tab's own folderId/label stay in sync no matter how the
+// app/dotto/lib/waypointsRenderLoop.ts), so the active tab's own folderId/label stay in sync no matter how the
 // current folder changed (a folder card click, back/forward, breadcrumb, outline row — render()
 // runs after literally all of them). paneId (split-screen Stage 7) defaults to the live active
 // pane, same reasoning as renderBreadcrumbMapPanel's own default just above — this always reads
@@ -228,7 +228,7 @@ export function closeTab(tabId: string, paneId?: number): void {
 // {id, folderId} — see addTab's own comment) by wrapping the file in a synthetic folder
 // (isMediaViewer:true), the same "a folder that renders something totally different from the
 // normal item canvas" precedent folderObj.isSource already established — see render()'s own
-// isMediaViewer branch, waypoints-render-loop.js. Reuses the same synthetic folder (rather than
+// isMediaViewer branch, app/dotto/lib/waypointsRenderLoop.ts. Reuses the same synthetic folder (rather than
 // creating a duplicate) if this exact item was already opened this session — repeat clicks just
 // open a fresh tab bookmarked to the same existing location, same as any other tab.
 export function openMediaViewerTab(item: MediaItem, paneId?: number): void {
@@ -340,7 +340,9 @@ if (typeof window !== "undefined") {
   window.__navForward = navForward;
   window.__openMediaViewerTab = openMediaViewerTab;
   window.__renderNavArrows = renderNavArrows;
-  // waypoints-render-loop.js's own render() is the only real remaining vanilla caller — every other
-  // consumer already went through a window bridge before this port.
+  // app/dotto/lib/waypointsRenderLoop.ts's own render() was the only real remaining vanilla caller
+  // at port time — every other consumer already went through a window bridge before this port; now
+  // reaches this the same way (a bridge), since public/dotto/*.js can't import from app/dotto/ and
+  // that file is a different lib module.
   window.__renderBreadcrumbMapPanel = renderBreadcrumbMapPanel;
 }

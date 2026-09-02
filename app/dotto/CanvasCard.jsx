@@ -1,15 +1,21 @@
 "use client";
 
 import { useLayoutEffect, useRef } from "react";
+import {
+  attachFolderCardClick,
+  buildFolderInlineCanvas,
+  folderGlobalId,
+  folderTitle,
+} from "./lib/waypointsRenderLoop";
 
-// Ported from the old inline folder branch in renderLegacyCardBody (public/dotto/waypoints-render-
-// loop.js) — this is the "Canvas" card kind (kind:'folder'), a nested canvas, not to be confused
-// with the "Table" card kind (a plain in-canvas grid, see TableCard.jsx) or the "Source" card kind
-// (a database block, see SourceCard.jsx). buildFolderInlineCanvas/attachFolderCardClick/
-// startRenameFolderCardTitle all stay vanilla: the preview is a whole live mini-canvas DOM tree with
-// its own auto-fit zoom/pan math (see buildFolderInlineCanvas's own comment), not worth re-deriving
-// in JSX, and the title's click-to-rename lifecycle is coupled to appState/broadcastEditingState the
-// same way Title/Note/Watermark's bodies are.
+// Ported from the old inline folder branch in renderLegacyCardBody (app/dotto/lib/
+// waypointsRenderLoop.ts) — this is the "Canvas" card kind (kind:'folder'), a nested canvas, not
+// to be confused with the "Table" card kind (a plain in-canvas grid, see TableCard.jsx) or the
+// "Source" card kind (a database block, see SourceCard.jsx). buildFolderInlineCanvas/
+// attachFolderCardClick/startRenameFolderCardTitle all stay vanilla: the preview is a whole live
+// mini-canvas DOM tree with its own auto-fit zoom/pan math (see buildFolderInlineCanvas's own
+// comment), not worth re-deriving in JSX, and the title's click-to-rename lifecycle is coupled to
+// appState/broadcastEditingState the same way Title/Note/Watermark's bodies are.
 export default function CanvasCard({ it, paneId }) {
   const titleRef = useRef(null);
   const previewWrapRef = useRef(null);
@@ -21,7 +27,7 @@ export default function CanvasCard({ it, paneId }) {
   useLayoutEffect(() => {
     if (!previewWrapRef.current) return;
     previewWrapRef.current.innerHTML = "";
-    previewWrapRef.current.appendChild(window.__buildFolderInlineCanvas(it.folderId));
+    previewWrapRef.current.appendChild(buildFolderInlineCanvas(it.folderId));
   }, [it.folderId]);
 
   // `el` is CanvasCard's own wrapper, passed in explicitly via document.getElementById rather than
@@ -29,11 +35,11 @@ export default function CanvasCard({ it, paneId }) {
   // closest() breaks on first mount (child-before-parent layout effect ordering).
   useLayoutEffect(() => {
     const el = window.__findItemEl(it.id, paneId);
-    if (el && titleRef.current) window.__attachFolderCardClick(el, it, titleRef.current);
+    if (el && titleRef.current) attachFolderCardClick(el, it, titleRef.current);
   });
 
-  const liveTitle = window.__folderTitle(it.folderId);
-  const globalId = window.__folderGlobalId(it.folderId);
+  const liveTitle = folderTitle(it.folderId);
+  const globalId = folderGlobalId(it.folderId);
 
   return (
     <>

@@ -1,6 +1,5 @@
 import { appState } from './core-state.js';
 import { bumpAchievementStat } from './profile-achievements-pricing.js';
-import { render } from './waypoints-render-loop.js';
 
 
     // ---------- Drawing mode ----------
@@ -99,7 +98,7 @@ import { render } from './waypoints-render-loop.js';
             }
         });
         if (!madeAny) { appState.undoStack.pop(); return; }
-        render();
+        window.__render?.();
     }
 
     // ---- Connector geometry: lines must exit exactly at a card's edge and never cut

@@ -1,10 +1,11 @@
 "use client";
 
 import { useLayoutEffect, useRef, useState } from "react";
+import { buildFolderInlineCanvas } from "./lib/waypointsRenderLoop";
 
 // Read-only live reference to another canvas/source (see the "/source|canvas ... place" command,
 // command-verbs.js) — reuses the exact same inline-preview rendering CanvasCard.jsx uses for its
-// own nested-folder preview (window.__buildFolderInlineCanvas), just pointed at whichever local
+// own nested-folder preview (buildFolderInlineCanvas), just pointed at whichever local
 // key currently represents the referenced item (own/shared:/public:) instead of a plain local
 // folderId. That key is re-resolved fresh every time this component (re)mounts — see
 // resolveReferenceFolderKey's own comment in app/dotto/lib/sharedAndPublicCanvasLoading.ts for why it's never
@@ -30,7 +31,7 @@ export default function ReferenceCard({ it }) {
       }
       if (previewWrapRef.current) {
         previewWrapRef.current.innerHTML = "";
-        previewWrapRef.current.appendChild(window.__buildFolderInlineCanvas(localKey));
+        previewWrapRef.current.appendChild(buildFolderInlineCanvas(localKey));
       }
       setStatus("loaded");
     });

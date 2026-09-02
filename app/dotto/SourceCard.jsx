@@ -1,9 +1,10 @@
 "use client";
 
 import { useLayoutEffect, useRef } from "react";
+import { attachSourceCardClick, folderTitle } from "./lib/waypointsRenderLoop";
 
-// Ported from the old inline source branch in renderLegacyCardBody (public/dotto/waypoints-render-
-// loop.js) — this is the "Source" card kind (kind:'source'), a database block storing entries for
+// Ported from the old inline source branch in renderLegacyCardBody (app/dotto/lib/
+// waypointsRenderLoop.ts) — this is the "Source" card kind (kind:'source'), a database block storing entries for
 // linking with games, not to be confused with the "Canvas" card kind (a nested canvas, see
 // CanvasCard.jsx) or the "Table" card kind (a plain in-canvas grid, see TableCard.jsx). The icon is
 // built as real JSX rather than via kindIconHTML's returned HTML string, since that string is a
@@ -17,10 +18,10 @@ export default function SourceCard({ it, paneId }) {
   // `el` is SourceCard's own wrapper, passed in explicitly — see CanvasCard.jsx's identical comment.
   useLayoutEffect(() => {
     const el = window.__findItemEl(it.id, paneId);
-    if (el && titleRef.current) window.__attachSourceCardClick(el, it, titleRef.current);
+    if (el && titleRef.current) attachSourceCardClick(el, it, titleRef.current);
   });
 
-  const liveTitle = window.__folderTitle(it.folderId);
+  const liveTitle = folderTitle(it.folderId);
   const nestedCount = window.__countSourceEntries(it.folderId);
   const iconUrl = `/assets/icons/${window.__kindIconFile("source")}`;
 

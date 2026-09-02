@@ -726,7 +726,7 @@
     // lives in its saved slot (appState.panes), never a live field, same as switchActivePane's own
     // comment explains; the active pane itself is checked against the live field directly, since it
     // has no saved slot of its own while active. Backs render()'s own "sync siblings on commit"
-    // (waypoints-render-loop.js) and mirrorItemToSiblingPanes just below (live, per-pixel/per-
+    // (app/dotto/lib/waypointsRenderLoop.ts) and mirrorItemToSiblingPanes just below (live, per-pixel/per-
     // keystroke mirroring) — both need exactly this same "who else is looking at this folder"
     // answer, just at different granularities.
     function otherPanesViewingFolder(folderId = appState.currentFolderId, excludePaneId = appState.activePaneId) {
@@ -739,11 +739,11 @@
 
     // Live cross-pane mirroring for anything that mutates a canvas item's DOM directly, DURING a
     // gesture, outside React's own render cycle and outside render()'s own "sync on commit" (see its
-    // own comment, waypoints-render-loop.js) — explicit request: "movement is not live, only
+    // own comment, app/dotto/lib/waypointsRenderLoop.ts) — explicit request: "movement is not live, only
     // updating on release... i want it to be fully live. keystroke by keystroke, pixel by pixel
     // movement while dragging." A drag/resize's own pointermove handler (canvasItemBehavior.js) and
     // a contentEditable body's own oninput handler (attachNoteBody/attachWatermarkBody/
-    // attachTitleBody, waypoints-render-loop.js) already mutate the ACTIVE pane's own element on
+    // attachTitleBody, app/dotto/lib/waypointsRenderLoop.ts) already mutate the ACTIVE pane's own element on
     // every tick/keystroke for local responsiveness — this runs `apply(el, paneId)` against
     // itemId's own wrapper element in every OTHER pane currently viewing the same folder right
     // alongside that, so a sibling pane's copy of the same item updates in the exact same tick
@@ -841,6 +841,8 @@ window.__parseItemId = parseItemId;
 window.__canvasViewportCenterX = canvasViewportCenterX;
 window.__itemElId = itemElId;
 window.__parseItemId = parseItemId;
+// Used by app/dotto/lib/waypointsRenderLoop.ts (Phase 4.5).
+window.__paneElId = paneElId;
 // Used by the PaneGrid capture-phase pointerdown router (split-screen Stage 4+) to make "whichever
 // pane is active" track user focus/clicks — see switchActivePane's own comment above. Reachable
 // from this stage on, even though nothing calls it with a different paneId yet.
@@ -868,6 +870,9 @@ window.__getBtnAddEl = () => btnAdd;
 // Used by app/dotto/lib/sourceButtonsCursorMode.ts (Phase 4.4) — same "single, never-reassigned
 // element" category as addMenu/btnAdd above.
 window.__getContextMenuEl = () => contextMenu;
+// Used by app/dotto/lib/waypointsRenderLoop.ts (Phase 4.5) — same "single, never-reassigned
+// element" category as addMenu/btnAdd/contextMenu above.
+window.__getZoomControlEl = () => zoomControl;
 window.__getDrawSettingsEl = () => drawSettings;
 // Used by app/dotto/lib/historyAutosave.ts (Phase 4.5) — same "single, never-reassigned element"
 // category as addMenu/btnAdd/contextMenu above.

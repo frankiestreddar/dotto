@@ -107,6 +107,14 @@ import "./dotto/lib/shelfSearch";
 // that used to import these directly, plus the React->vanilla bridges OutlinePanel.jsx/
 // FilesListPanel.jsx already called before this port.
 import "./dotto/lib/outlineTree";
+// Side-effect only, same reasoning as outlineTree/splitPaneManagement/tabManagement above — sets
+// window.__render/__openFolder/__attachNoteBody/etc at module-eval time for the 10 still-vanilla
+// callers that used to import these directly, plus the many React->vanilla bridges
+// CanvasItemsLayer.jsx/CanvasCard.jsx/etc already called before this port. Unlike every wireX()
+// port, this file has no real DOM-listener wiring to defer — every interactive piece is attached
+// per-item from a React layout effect or invoked directly by a caller — so a plain side-effect
+// import is enough, no useEffect/wireX() call needed here.
+import "./dotto/lib/waypointsRenderLoop";
 import BlocksPanel from "./dotto/BlocksPanel";
 import CellTagPickerList from "./dotto/CellTagPickerList";
 import ChatsListPanel from "./dotto/ChatsListPanel";
@@ -207,16 +215,18 @@ if (typeof window !== "undefined" && !window.__dottoSupabase) {
 // public/dotto/resize-shortcuts-init.js, public/dotto/drag-drop-chat.js,
 // public/dotto/srs-connections-core.js, and app/dotto/lib/sourceTable.ts — every already-React
 // card component that owns a resize handle (TableCard.jsx, FlashcardCard.jsx, MediaCard.jsx,
-// TypeRightCard.jsx) imports setupResizing directly now, no bridge needed. The remaining vanilla
-// callers (attachNoteBody's own call to setupResizing, attachUniversalItemBehavior's own call to
-// setupDraggingAndClicking, render()'s own calls to renderConnectionsLayer/renderStaticTableHTML/
-// attachStaticTableHoverZones/layoutSourceTableColumns, and relayoutSourceTableIfVisible's own
-// call to layoutSourceTableColumns — waypoints-render-loop.js and
-// app/dotto/lib/sourceButtonsCursorMode.ts, some reached via a component's own layout effect) still need
-// these bridges — same "set during module eval, not an effect" timing as window.__dottoSupabase
-// above: several of these vanilla calls can fire from another component's OWN layout effect
-// during the very first commit, before this component's own (passive) useEffect below would
-// otherwise get a chance to assign them.
+// TypeRightCard.jsx) imports setupResizing directly now, no bridge needed, and as of
+// app/dotto/lib/waypointsRenderLoop.ts's own Phase 4.5 port, so does that file (render()'s own
+// calls to renderConnectionsLayer/renderStaticTableHTML/attachStaticTableHoverZones/
+// layoutSourceTableColumns, attachNoteBody's own call to setupResizing,
+// attachUniversalItemBehavior's own call to setupDraggingAndClicking — same-tree, both live in
+// app/dotto/lib now). The one remaining real bridge consumer is
+// relayoutSourceTableIfVisible's own call to layoutSourceTableColumns
+// (app/dotto/lib/sourceButtonsCursorMode.ts, a different lib file, reached via a component's own
+// layout effect) — still needs these bridges set, same "set during module eval, not an effect"
+// timing as window.__dottoSupabase above: that vanilla call can fire from another component's OWN
+// layout effect during the very first commit, before this component's own (passive) useEffect
+// below would otherwise get a chance to assign them.
 if (typeof window !== "undefined") {
   window.__setupResizing = setupResizing;
   window.__setupDraggingAndClicking = setupDraggingAndClicking;
@@ -240,7 +250,7 @@ if (typeof window !== "undefined") {
   // showSelectionToolbarFor/hideSelectionToolbar.
   window.__setSelectionToolbarState = selectionToolbarStore.set;
   // Canvas items layer (see app/dotto/CanvasItemsLayer.jsx, PHASE2_ROADMAP.md's canvas-items-react
-  // plan) — render() (waypoints-render-loop.js) calls this in place of its old world.innerHTML=''
+  // plan) — render() (app/dotto/lib/waypointsRenderLoop.ts) calls this in place of its old world.innerHTML=''
   // rebuild, passing appState.activePaneId explicitly (split-screen Stage 4 — canvasItemsStore is
   // pane-keyed now, see bridges.js: each pane shows its own folder's items independently).
   // MUST commit synchronously: at least one caller (drag-drop-chat.js's alt-duplicate-drag) does

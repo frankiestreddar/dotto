@@ -25,12 +25,13 @@ import {
 // (TableCard.jsx, FlashcardCard.jsx, MediaCard.jsx, TypeRightCard.jsx) calls setupResizing
 // directly now — no bridge needed, both sides are in app/dotto/ — and setupDraggingAndClicking
 // calls startConnectionDrag directly too, for the same reason (its own only caller now lives in
-// this same file). The vanilla callers that still need a bridge (attachNoteBody's own call to
-// setupResizing, attachUniversalItemBehavior's own call to setupDraggingAndClicking, render()'s
-// own calls to renderConnectionsLayer/renderStaticTableHTML/attachStaticTableHoverZones/
-// layoutSourceTableColumns, and relayoutSourceTableIfVisible's own call to
-// layoutSourceTableColumns — waypoints-render-loop.js and app/dotto/lib/sourceButtonsCursorMode.ts) reach
-// these via their own window.__ bridge — bridges whose OWNERSHIP flipped: assigned here (see
+// this same file). attachNoteBody's own call to setupResizing, attachUniversalItemBehavior's own
+// call to setupDraggingAndClicking, and render()'s own calls to renderConnectionsLayer/
+// renderStaticTableHTML/attachStaticTableHoverZones/layoutSourceTableColumns are all real ES
+// imports now too (app/dotto/lib/waypointsRenderLoop.ts, same-tree, ported since) — the one
+// remaining real bridge consumer is relayoutSourceTableIfVisible's own call to
+// layoutSourceTableColumns (app/dotto/lib/sourceButtonsCursorMode.ts, a different lib file), which
+// reaches these via its own window.__ bridge — bridges whose OWNERSHIP flipped: assigned here (see
 // app/dotto-app.jsx) instead of in their old vanilla modules, with vanilla as the caller instead
 // of React. Every OTHER vanilla dependency any of these functions still needs (appState,
 // saveSnapshot, render, findItemById, makeLayerSVG, isValidConnection, escapeHtml,
@@ -220,7 +221,7 @@ export function setupResizing(el, it) {
 // the actually-active one. dispatchSelectedToChat (the "drop into an open chat" case) stayed
 // vanilla — self-contained enough behind its own bridge that moving it too wasn't worth it.
 //
-// Called every time renderLegacyCardInto (waypoints-render-loop.js) populates an item's wrapper
+// Called every time renderLegacyCardInto (app/dotto/lib/waypointsRenderLoop.ts) populates an item's wrapper
 // <div> — which, since the canvas-items-react plan, is a persistent node reused across renders
 // rather than recreated from scratch each time (see PHASE2_ROADMAP.md). Re-registering a plain
 // addEventListener on every call would stack duplicate pointerdown listeners on the same element
@@ -640,8 +641,8 @@ export function setupDraggingAndClicking(el, it) {
 // Moved here from public/dotto/srs-connections-core.js — Phase 3's third relocated piece,
 // following the exact pattern setupResizing/setupDraggingAndClicking already proved out. Unlike
 // those two (a per-item pointer listener attached to an existing React-owned wrapper node), this
-// pair builds/returns a whole vanilla SVG subtree — render() (waypoints-render-loop.js, still
-// vanilla, untouched) wipes and rebuilds every #world child but #items-layer on every call, and
+// pair builds/returns a whole vanilla SVG subtree — render() (app/dotto/lib/waypointsRenderLoop.ts,
+// ported since, still calls this file the same way via a real ES import) wipes and rebuilds every #world child but #items-layer on every call, and
 // inserts whatever this returns before #items-layer, exactly as it always has; only WHERE the
 // building logic lives changed, not how it's invoked or how its result gets used. Logic unchanged
 // byte-for-byte. applyConnections/propagateCanvasStreams (app/dotto/lib/srsConnectionsCore.ts) stayed put
@@ -790,7 +791,8 @@ function startConnectionDrag(e, it, el) {
 // checklist items — "connection-dragging"'s own SVG rendering and Phase 4's "Source database
 // page's own rendering" — that turned out to name the exact same code, merged into one pass here).
 // Unlike the first three pieces, none of this is reached via React at all: render()
-// (waypoints-render-loop.js, still vanilla, untouched) builds this whole page as one big
+// (app/dotto/lib/waypointsRenderLoop.ts, ported since, still calls this file the same way via a
+// real ES import) builds this whole page as one big
 // `document.createElement('div')` appended straight to #world when the current folder isSource,
 // completely bypassing CanvasItemsLayer.jsx (it explicitly calls window.__renderCanvasItems([])
 // right after — see that call site's own comment). Logic unchanged byte-for-byte.
