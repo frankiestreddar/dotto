@@ -1,6 +1,5 @@
 import { addMenu, appState, btnAdd, canvas } from './core-state.js';
 import { deleteMyCreationItem, openItemDetail } from './library-publish.js';
-import { importSharedCardsAtScreenPoint } from './live-presence.js';
 
 // ---------- Blocks panel (was Essentials/the Add menu; also absorbed "browse your own library
 // content" — Purchased/drafts+published/custom folders — from Library, now Plugins, when the two
@@ -262,7 +261,7 @@ function setupContentItemDrag(div, row) {
             if (overPanel) return;
             const canvasRect = canvas.getBoundingClientRect();
             const overCanvas = ue.clientX >= canvasRect.left && ue.clientX <= canvasRect.right && ue.clientY >= canvasRect.top && ue.clientY <= canvasRect.bottom;
-            if (overCanvas) { importSharedCardsAtScreenPoint(item.nodes, ue.clientX, ue.clientY); window.__closeRailView(); }
+            if (overCanvas) { window.__importSharedCardsAtScreenPoint(item.nodes, ue.clientX, ue.clientY); window.__closeRailView(); }
         };
         window.addEventListener('pointermove', move);
         window.addEventListener('pointerup', up);

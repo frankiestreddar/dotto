@@ -3,7 +3,6 @@ import { appState, canvas, canvasContextMenu, contextMenu, dotLayer, findItemEl,
 import { resolveTableForEdit } from './drawing-connections.js';
 import { generateGlobalId } from './global-ids.js';
 import { resolveSharedFolderChain } from './hamburger-collab.js';
-import { broadcastCursorPositionThrottled, closeSharedCanvasView, ensureCanvasPresenceChannel, findItemById, queueSyncDiff, repositionAllRemoteCursors } from './live-presence.js';
 import { closeDotbotUpgradeModal, closePricingOverlay } from './profile-achievements-pricing.js';
 import { closeCellTagPicker } from './source-tags-ai.js';
 import { cancelAddingKind, finishPenPolyline } from './srs-connections-core.js';
@@ -68,7 +67,7 @@ import { centerOnContent, render } from './waypoints-render-loop.js';
         // missed every one of those for sync purposes, even though the change was saved/undoable
         // fine locally. This is a strict superset of what render()-anchoring caught.
         const folderObj = appState.folders[appState.currentFolderId];
-        if (folderObj) { ensureCanvasPresenceChannel(); queueSyncDiff(folderObj); }
+        if (folderObj) { window.__ensureCanvasPresenceChannel(); window.__queueSyncDiff(folderObj); }
         clearTimeout(appState.workspaceSaveTimer);
         appState.workspaceSaveTimer = setTimeout(saveWorkspaceNow, 800);
     }
@@ -507,7 +506,7 @@ import { centerOnContent, render } from './waypoints-render-loop.js';
         const ctx = appState.contextMenuTableCtx;
         hideCanvasContextMenu();
         if (!ctx) return;
-        const it = findItemById(ctx.tableId);
+        const it = window.__findItemById(ctx.tableId);
         if (!it || it.tableData[0].length <= 1) return;
         saveSnapshot();
         it.tableData.forEach(row => row.splice(ctx.c, 1));
@@ -542,7 +541,7 @@ import { centerOnContent, render } from './waypoints-render-loop.js';
             // see closeAllPanels) plus every standalone modal/overlay in the app, all in one go.
             window.__closeAllPanels();
             if (document.getElementById('search-cards-modal-overlay').classList.contains('open')) window.closeSearchCardsModal();
-            closeSharedCanvasView();
+            window.closeSharedCanvasView();
             closeDotbotUpgradeModal();
             closePricingOverlay();
             closeCellTagPicker();
@@ -635,12 +634,12 @@ import { centerOnContent, render } from './waypoints-render-loop.js';
         dotLayer.style.transform = `translate(${dx}px, ${dy}px) scale(${appState.scale})`;
         updateZoomUI();
         updateContextMenuPosition();
-        repositionAllRemoteCursors();
+        window.__repositionAllRemoteCursors();
         // Keeps OUR OWN cursor broadcast live while panning/zooming without any real mouse
         // movement (see lastPointerClientX/Y's comment) — repositionAllRemoteCursors above only
         // repositions everyone ELSE's cursor on our screen using our new tx/ty; this is the
         // symmetric other half, telling THEM where ours now is.
-        broadcastCursorPositionThrottled();
+        window.__broadcastCursorPositionThrottled();
     }
     // Eases the camera to a new pan/zoom instead of snapping — used by every "jump to X"
     // navigation (goToOutlineItem, goToWaypointCard) so the canvas visibly pans
@@ -703,7 +702,7 @@ import { centerOnContent, render } from './waypoints-render-loop.js';
     }
     function updateContextMenuPosition() {
         if (contextMenu.style.display !== 'flex' || appState.contextMenuItemId == null) return;
-        const it = findItemById(appState.contextMenuItemId);
+        const it = window.__findItemById(appState.contextMenuItemId);
         const el = findItemEl(appState.contextMenuItemId);
         if (!it || !el) { contextMenu.style.display = 'none'; appState.contextMenuItemId = null; return; }
         const w = el.offsetWidth;

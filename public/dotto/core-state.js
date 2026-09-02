@@ -540,8 +540,8 @@
         // would clearTimeout the PREVIOUS pane's still-pending cleanup out from under it, same
         // class of bug the DOM-ref capture fix below addresses.
         'cameraTweenTimeout',
-        // Also added during Stage 3 — these four gate live-presence.js's throttled broadcasters
-        // (cursor position, dragged-item position, dragged-item resize, caret position) to at most
+        // Also added during Stage 3 — these four gate app/dotto/lib/canvasPresence.ts's throttled
+        // broadcasters (cursor position, dragged-item position, dragged-item resize, caret position) to at most
         // one send per ~50ms. As a single shared global each, one pane's broadcast starts a cooldown
         // that would silently suppress a DIFFERENT pane's legitimate broadcast landing within that
         // same window — unlike canvasPresenceChannel/pendingSyncDeltas/etc (which genuinely need to
@@ -855,6 +855,10 @@ window.__switchActivePane = switchActivePane;
 // every call, so callers always see whichever pane is active right now with no separate sync step.
 window.__getCanvasEl = () => canvas;
 window.__getWorldEl = () => world;
+// Used by app/dotto/lib/canvasPresence.ts (Phase 4.5) — same live-read reasoning as
+// __getCanvasEl/__getWorldEl above (reassigned by switchActivePane once a second pane's DOM
+// exists).
+window.__getCursorOverlayEl = () => cursorOverlay;
 // Used by app/dotto/lib/marketplace.ts's openBlocksAfterPurchase (Phase 4.4) — addMenu/btnAdd
 // are the same "single, never-reassigned #add-menu/#btn-add elements" as contextMenu etc, not
 // per-pane like canvas/world above, but still separate module-level bindings (not appState

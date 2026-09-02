@@ -535,7 +535,7 @@ export const tabsStore = createPaneKeyedStore(() => ({ tabs: [], activeTabId: nu
 // updates, same "canvas-core-adjacent, migrate last" reasoning as canvas core itself, not a list
 // with any natural React-owned identity.
 //
-// Open conversation thread (public/dotto/live-presence.js's openConvo/renderConvoBody) —
+// Open conversation thread (app/dotto/lib/messagingCanvasPreview.ts's openConvo/renderConvoBody) —
 // { friendId, displayName, avatarId, avatarUrl, messages } | null. Genuine JSX for the header
 // (Avatar.jsx) and each plain-text message bubble; each canvas-snapshot message's own card
 // content is ref-mounted vanilla DOM (renderInlineCanvas/renderMsgSnapshotCard) — see
@@ -544,7 +544,7 @@ export const tabsStore = createPaneKeyedStore(() => ({ tabs: [], activeTabId: nu
 // MsgConvo.jsx itself, so it's correctly synchronous with that component's own commit regardless.
 export const msgConvoStore = createStore(null);
 
-// Shared Card preview modal's body (public/dotto/live-presence.js's openSharedCanvasView) —
+// Shared Card preview modal's body (app/dotto/lib/messagingCanvasPreview.ts's openSharedCanvasView) —
 // { items } | null. Genuine JSX list, each item's own card content ref-mounted the same way as
 // MsgConvo's canvas-snapshot messages (renderMsgSnapshotCard) — see SharedCanvasModalBody.jsx. The
 // modal shell's own open/close class toggle and title text stay vanilla (plain attribute writes

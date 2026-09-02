@@ -3,7 +3,8 @@
 // connected sources + saved stopwatch sessions, with its own in-card row search), the Filter
 // card's tag-toggling, and the top search bar's autogrow + its AI-context "drag cards in as
 // context" popup. renderShelfHTML still builds a real HTML string with inline onclick="..."
-// attributes (live-presence.js's mini inline-canvas previews render it directly) — those globals
+// attributes (app/dotto/lib/messagingCanvasPreview.ts's mini inline-canvas previews render it
+// directly) — those globals
 // (startRenameShelfName/shelfSelectSession/handleShelfSourceRowClick/startRenameShelfSourceRow/
 // filterShelfRows) keep their exact plain (non-`__`) names, same convention window-bridge.js used
 // for them before this port.
@@ -453,5 +454,6 @@ window.clearSearchCardContext = clearSearchCardContext;
 // Used by ai-assistant-suggestions.js/search-orchestration-selection.js (multiple call sites
 // each), which previously imported this directly.
 window.__autoGrowSearchInput = autoGrowSearchInput;
-// Used by live-presence.js's mini inline-canvas previews, which previously imported this directly.
+// Used by app/dotto/lib/messagingCanvasPreview.ts's mini inline-canvas previews, which previously
+// imported this directly.
 window.__renderShelfHTML = renderShelfHTML;

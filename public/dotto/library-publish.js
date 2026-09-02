@@ -1,5 +1,4 @@
 import { addMenu, appState, btnAdd, supabase } from './core-state.js';
-import { renderInlineCanvas } from './live-presence.js';
 
 
     // ---------- Blocks panel: Item Detail View (Purchased / My Creations = drafts+published) ----------
@@ -50,7 +49,7 @@ import { renderInlineCanvas } from './live-presence.js';
 
         const canvasWrap = document.getElementById('item-detail-canvas-wrap');
         canvasWrap.innerHTML = '';
-        canvasWrap.appendChild(renderInlineCanvas(item.nodes || item.canvasSnapshot || [], false));
+        canvasWrap.appendChild(window.__renderInlineCanvas(item.nodes || item.canvasSnapshot || [], false));
 
         renderItemDetailFooter();
     }
@@ -187,7 +186,7 @@ import { renderInlineCanvas } from './live-presence.js';
 
         const canvasWrap = document.getElementById('publish-flow-canvas-wrap');
         canvasWrap.innerHTML = '';
-        canvasWrap.appendChild(renderInlineCanvas(appState.publishFlowItem.nodes || [], false));
+        canvasWrap.appendChild(window.__renderInlineCanvas(appState.publishFlowItem.nodes || [], false));
     }
 
     // Clicking into the name field always jumps the caret (and visible scroll) to the end,

@@ -9,7 +9,6 @@ import './dotto/hamburger-collab.js';
 import './dotto/profile-achievements-pricing.js';
 import './dotto/messages-schedule.js';
 import './dotto/friends-presence.js';
-import './dotto/live-presence.js';
 import './dotto/source-tags-ai.js';
 import './dotto/cards-misc.js';
 import './dotto/stopwatch.js';

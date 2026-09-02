@@ -2,8 +2,7 @@
 // ai-assistant-suggestions.js (Phase 4.2 of the vanilla->React consolidation, see
 // PHASE4_ROADMAP.md). ai-assistant-suggestions.js itself still has real vanilla hub dependents of
 // its own, so these can't fully move to app/dotto/lib yet either — that file keeps re-exporting
-// both so its own existing callers (live-presence.js,
-// search-panel-history.js, search-orchestration-selection.js,
+// both so its own existing callers (search-panel-history.js, search-orchestration-selection.js,
 // source-tags-ai.js,
 // srs-connections-core.js) keep working unchanged. This extraction's own value right now is real
 // test coverage (see text-utils.test.ts) for logic that had zero coverage before, and a smaller,

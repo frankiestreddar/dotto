@@ -4,6 +4,7 @@ import { useSyncExternalStore } from "react";
 import { createPortal } from "react-dom";
 import Avatar from "./Avatar";
 import { msgListStore } from "./bridges";
+import { openConvo } from "./lib/messagingCanvasPreview";
 import usePortalNode from "./usePortalNode";
 
 // Module-level, not inline — see CanvasItemsLayer.jsx's identical EMPTY_ITEMS comment for why a
@@ -36,7 +37,7 @@ function RequestsRow({ count }) {
 // this list).
 function ChatRow({ f }) {
   return (
-    <div className="msg-chat-row" onClick={() => window.__openConvo(f.id)}>
+    <div className="msg-chat-row" onClick={() => openConvo(f.id)}>
       <Avatar
         className="msg-avatar"
         avatar={{ id: f.avatarId, url: f.avatarUrl }}

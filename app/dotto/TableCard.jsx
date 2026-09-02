@@ -10,14 +10,15 @@ import {
   mergeTableCells,
   updateTableCell,
 } from "./lib/sourceTable";
+import { placeCaretEnd } from "./lib/canvasPresence";
 
 // Ported from the old renderTableHTML (now app/dotto/lib/sourceTable.ts, Phase 4.4 — reached here
 // as real ES imports since both files live in the same app/dotto/ tree; the window bridges/plain
 // globals still exist too, but only because renderTableHTML's own still-string-built HTML — used
-// by live-presence.js's mini previews and a table's first-ever resize — and canvasItemBehavior.js's
-// separate, harder-to-convert Source database-page renderer (renderStaticTableHTML, which shares
-// colgroupHTML — see PHASE2_ROADMAP.md) both still need them). This is the plain in-canvas Table
-// card specifically, not Source's page.
+// by app/dotto/lib/messagingCanvasPreview.ts's mini previews and a table's first-ever resize — and
+// canvasItemBehavior.js's separate, harder-to-convert Source database-page renderer
+// (renderStaticTableHTML, which shares colgroupHTML — see PHASE2_ROADMAP.md) both still need
+// them). This is the plain in-canvas Table card specifically, not Source's page.
 //
 // Each <td> is contentEditable with dangerouslySetInnerHTML for its content (cells can contain
 // arbitrary HTML from paste/rich content, not just plain text) — same "mutate in place, next real
@@ -66,7 +67,7 @@ function handleCellMouseDown(e) {
   window.addEventListener("mouseup", cleanup);
   if (!wasFocused) {
     setTimeout(() => {
-      if (!dragDetected) window.__placeCaretEnd(el);
+      if (!dragDetected) placeCaretEnd(el);
     }, 0);
   }
 }

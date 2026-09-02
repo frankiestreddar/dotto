@@ -16,10 +16,11 @@ import {
 } from "./lib/gamesFlashcardTyperight";
 
 // Ported from the old renderTypeRightHTML (now app/dotto/lib/gamesFlashcardTyperight.ts, Phase
-// 4.4 — live-presence.js's mini previews still call it, now via window.__renderTypeRightHTML;
-// this component reaches the same logic as real ES imports instead, both files living in the same
-// app/dotto/ tree). window.broadcastEditingState/window.__itemElId below are unrelated to this
-// port — they still belong to live-presence.js/core-state.js, genuinely still vanilla. See
+// 4.4 — app/dotto/lib/messagingCanvasPreview.ts's mini previews still call it, now via
+// window.__renderTypeRightHTML; this component reaches the same logic as real ES imports instead,
+// both files living in the same app/dotto/ tree). window.broadcastEditingState/window.__itemElId
+// below are unrelated to this port — the former now belongs to app/dotto/lib/canvasPresence.ts
+// (Phase 4.5), the latter still belongs to core-state.js, genuinely still vanilla. See
 // FlashcardCard.jsx for the general pattern (setupResizing
 // (canvasItemBehavior.js) owns the resize handle from this component's own layout effect, safe to
 // call on every render() call — no dependency array, matching every converted kind — because of

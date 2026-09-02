@@ -567,9 +567,10 @@ window.__syncOutlineRows = syncOutlineRows;
 // use for every other card kind.
 window.__goToOutlineItem = goToOutlineItem;
 window.__toggleOutlineCollapse = toggleOutlineCollapse;
-// Vanilla → React bridges — hamburger-collab.js/live-presence.js/search-panel-history.js/
-// app/dotto/lib/panelsHamburger.ts/window-bridge.js/waypoints-render-loop.js/srs-connections-core.js all
-// previously imported these directly.
+// Vanilla → React bridges — hamburger-collab.js/search-panel-history.js/
+// app/dotto/lib/panelsHamburger.ts/window-bridge.js/waypoints-render-loop.js/srs-connections-core.js
+// all previously imported these directly, plus app/dotto/lib/messagingCanvasPreview.ts (ported
+// since — was live-presence.js's own direct import of kindIconHTML).
 window.__buildOutline = buildOutline;
 window.__kindIconHTML = kindIconHTML;
 window.__rowActionsHTML = rowActionsHTML;

@@ -49,7 +49,8 @@ function getAppState(): AppState | undefined {
 // pressed repeatedly to stamp down more copies, same as any normal clipboard.
 
 // Self-contained capture of a card for cardClipboard — same embed-nested-contents idea as
-// snapshotItem (used for external chat/marketplace sharing, live-presence.js), kept as its own
+// snapshotItem (used for external chat/marketplace sharing, app/dotto/lib/messagingCanvasPreview.ts),
+// kept as its own
 // function since that one is optimized for a read-only, cross-account view (renderInlineCanvas),
 // while this one needs to round-trip back into real, live folders[] data via
 // materializeClipboardItem.
@@ -183,8 +184,9 @@ function showPlacementGhost(kind: string): void {
   // Per explicit bug report: a keyboard-triggered placement (the 'a'-chord, srs-connections-
   // core.js) never moves the mouse at all, so parking the ghost off-screen until the next real
   // pointermove left it (and the crosshair cursor feedback with it) invisible until the user
-  // deliberately jiggled the mouse. lastPointerClientX/Y (live-presence.js, mirrored onto appState)
-  // already tracks the cursor's real screen position on every canvas pointermove regardless of
+  // deliberately jiggled the mouse. lastPointerClientX/Y (app/dotto/lib/canvasPresence.ts,
+  // mirrored onto appState) already tracks the cursor's real screen position on every canvas
+  // pointermove regardless of
   // what triggered this — reusing it here means the ghost renders at the CURRENT cursor position
   // immediately, with the exact same math the live pointermove handler below already uses, no
   // movement required. Only falls back to off-screen in the (practically unreachable, since the

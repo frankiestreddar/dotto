@@ -1,11 +1,11 @@
 import { appState } from './core-state.js';
 import { saveSnapshot, scheduleWorkspaceSave } from './history-autosave.js';
-import { findItemById } from './live-presence.js';
 import { render } from './waypoints-render-loop.js';
 
 
     // Shared by embed's own card (below) and its outline/mini-preview labels elsewhere
-    // (app/dotto/lib/outlineTree.ts via window.__shortUrl, live-presence.js) — used to be Bookmark's too, before that card
+    // (app/dotto/lib/outlineTree.ts and app/dotto/lib/messagingCanvasPreview.ts, both via
+    // window.__shortUrl) — used to be Bookmark's too, before that card
     // kind was removed as redundant with waypoints/other menus.
     function shortUrl(url) {
         try { return new URL(url).hostname; } catch (e) { return url.slice(0, 24); }
@@ -66,7 +66,7 @@ import { render } from './waypoints-render-loop.js';
     // rewriting, some sites still refuse to be framed at all and will just show blank inside the
     // iframe — that's a property of the target site, not something fixable from here.
     function editEmbed(id) {
-        const it = findItemById(id); if (!it) return;
+        const it = window.__findItemById(id); if (!it) return;
         const url = prompt('Embed URL (website or embeddable code snippet link):', it.embedUrl || 'https://');
         if (url === null) return;
         saveSnapshot();
@@ -113,29 +113,29 @@ import { render } from './waypoints-render-loop.js';
             <div class="checklist-add" onmousedown="event.stopPropagation()" onclick="addTask(${it.id})">+ Add task</div>`;
     }
     function addTask(id) {
-        const it = findItemById(id); if (!it) return;
+        const it = window.__findItemById(id); if (!it) return;
         saveSnapshot();
         it.tasks.push({ id: appState.idCounter++, text: '', done: false, deadline: '' });
         render();
     }
     function toggleTask(id, tid) {
-        const it = findItemById(id); if (!it) return;
+        const it = window.__findItemById(id); if (!it) return;
         saveSnapshot();
         const t = it.tasks.find(x => x.id === tid); if (t) t.done = !t.done;
         render();
     }
     function updateTaskText(id, tid, el) {
-        const it = findItemById(id); if (!it) return;
+        const it = window.__findItemById(id); if (!it) return;
         const t = it.tasks.find(x => x.id === tid); if (t) t.text = el.textContent;
         scheduleWorkspaceSave();
     }
     function updateTaskDeadline(id, tid, el) {
-        const it = findItemById(id); if (!it) return;
+        const it = window.__findItemById(id); if (!it) return;
         const t = it.tasks.find(x => x.id === tid); if (t) t.deadline = el.value;
         scheduleWorkspaceSave();
     }
     function removeTask(id, tid) {
-        const it = findItemById(id); if (!it) return;
+        const it = window.__findItemById(id); if (!it) return;
         saveSnapshot();
         it.tasks = it.tasks.filter(x => x.id !== tid);
         render();
@@ -148,3 +148,7 @@ export { addTask, editEmbed, removeTask, renderChecklistHTML, renderStatcardHTML
 // public/dotto/*.js isn't reachable from app/dotto/.
 window.__shortUrl = shortUrl;
 window.__toEmbeddableUrl = toEmbeddableUrl;
+// Used by app/dotto/lib/messagingCanvasPreview.ts's renderMsgSnapshotCard/renderRealCardPreview
+// (Phase 4.5).
+window.__renderChecklistHTML = renderChecklistHTML;
+window.__renderStatcardHTML = renderStatcardHTML;

@@ -340,7 +340,7 @@
   this port owns directly. Zero console/page errors. Re-checked the account afterward to confirm
   zero residual mock cards/folders. **This closes out Phase 4.4 — every split-out concern and
   remaining DOM-heavy file has now been ported.** Phase 4.5 (architectural/hub files) is next.
-- **Phase 4.5 — architectural/hub files: in progress (1 of 7 done).**
+- **Phase 4.5 — architectural/hub files: in progress (2 of 7 done).**
   `panels-hamburger.js` (178 lines) ported first to `app/dotto/lib/panelsHamburger.ts` — the
   permanent rail's shared open/close contract (one sliding `#hamburger-stack` shell, many trigger
   icons) plus the hover/pin panel helper used by the add-menu and per-canvas collaborator flyout.
@@ -378,6 +378,98 @@
   `closeAllPanels`) closed the open panel. `isAnyUiPanelOpen()` was checked at every stage and
   matched the real DOM state throughout. Zero console/page errors. No mock data was created (pure
   UI-interaction test), so no cleanup step was needed.
+  `live-presence.js` (1512 lines, fan-in 15 files) ported second — the largest single port of this
+  entire migration, more than double any Phase 4.4 file. Split into two files along the plan's own
+  3-concern breakdown, mechanically for organization (not for any new architecture — see below):
+  `app/dotto/lib/canvasPresence.ts` (~1050 lines — the realtime presence/cursor-broadcast concern:
+  Figma-style remote cursors/typing indicators/selection highlights, plus the diff-and-broadcast
+  content-sync pipeline riding every `render()` call; also owns `findItemById`/`placeCaretEnd`,
+  the tiny "canonical item-data accessor" primitives the plan called out separately, kept here
+  since nothing else in either new file needed them split out further) and
+  `app/dotto/lib/messagingCanvasPreview.ts` (~500 lines — the card-preview/messaging DOM concern:
+  mini read-only canvas previews, snapshot/sanitize helpers for exporting cards off-canvas, and the
+  chat conversation panel's send/close/title-level plumbing). **Neither a Zustand selector layer
+  nor a dedicated presence hook were built**, despite the original plan explicitly anticipating
+  both ("canonical item-data accessors... → Zustand selectors," "realtime presence/cursor
+  broadcast... → a dedicated hook wrapping the Supabase realtime channel") — checked against the
+  real codebase first (not assumed from the plan's own aspirational language written before this
+  phase's actual work began): zero React components read `appState.remoteCursors`/
+  `cursorOverlay` today (pure imperative DOM, no reactive consumer to serve), and a Zustand
+  selector over `appState.folders` would be structurally meaningless before `appState` itself
+  becomes a real Zustand store — core-state.js's own job, deliberately saved for last in this same
+  phase since "everything reads it." Same conservative "port what's actually needed" call as
+  `panels-hamburger.js` just above, for the identical underlying reason.
+  8 already-existing React components (`TitleCard.jsx`, `MsgConvo.jsx`, `SharedCanvasModalBody.jsx`,
+  `CollabListPanel.jsx`, `FilesListPanel.jsx`, `MessagesListPanel.jsx`, `MarketDetailPanel.jsx`,
+  `TableCard.jsx`) upgraded from window bridges to real ES imports — the largest batch of this
+  precedent (previously used for `stopwatch.ts`/`MediaCard.jsx`/`TableCard.jsx`/the whole
+  `gamesFlashcardTyperight.ts` trio) applied in one port so far. `miniIconForKind` (the original
+  file's own dead code — defined but never called anywhere) was dropped rather than carried over,
+  same precedent as `window.deployPurchasedTemplate` earlier this session. 15 real vanilla callers
+  fixed across both new files; 5 new outbound bridges added for still-vanilla dependencies with no
+  bridge yet (`__getCursorOverlayEl` on `core-state.js`, `__renderAvatarInto` on
+  `profile-achievements-pricing.js`, `__searchKindLabel` on `add-menu.js`, `__countSourceEntries`
+  already existed but untyped, `__renderChecklistHTML`/`__renderStatcardHTML` on `cards-misc.js`,
+  `__renderStopwatchHTML` on `stopwatch.js`, `__renderMsgList`/`__closeMessagesPanel` on their
+  owning files) plus roughly a dozen bridges that already existed at runtime but had never been
+  typed in `vanillaBridges.d.ts` (including a genuine duplicate `__findItemById` declaration this
+  port's own new one superseded, removed rather than left alongside it). `broadcastEditingState`
+  is dual-exposed on purpose — both `window.broadcastEditingState` (a real inline `onfocus`/
+  `onblur` target, `canvasItemBehavior.js`'s cell markup) and `window.__broadcastEditingState`
+  (real vanilla-JS callers like `waypoints-render-loop.js`'s own `.onblur` closures need
+  programmatic access too) — same shape the original vanilla file already used, preserved exactly.
+  The real, module-load-time cursor-tracking `pointermove` listener (`setupCursorTracking(canvas)`
+  + `registerPaneCanvasListenerSetup`) and the `selectionchange` listener both ported into
+  `wireCanvasPresence()`, same bridge-readiness-poll `wireX()` pattern every other port with real
+  DOM wiring has used; the `#msg-convo-input` keydown/input listeners similarly became
+  `wireMessagingCanvasPreview()`. The stale-reference sweep found ~35 comment references across 26
+  files (the widest yet, matching this file's real fan-in) — several caught not just a stale
+  filename but reasoning that had gone stale (`FilesListPanel.jsx`'s own `window.__findItemById`
+  comment now describing a real ES import instead; `friends-presence.js`'s own claim that
+  `openConvo`/`renderConvoBody` "stays vanilla," no longer true; `card-kinds.js`'s own
+  `miniIconForKind` reference, now describing dead code) — all rewritten to state what's actually
+  true now, not just repointed.
+  **Two real bugs caught by later verification steps, not by typecheck**: (1) `queueSyncDiff`/
+  `renderConvoBody`'s own bridge assignments failed to typecheck against their
+  `Record<string, unknown>` ambient declarations until `FolderObj`/`Friend` got the same index-
+  signature treatment `SrsState`/`CardRow` needed earlier this session — an expected instance of
+  that now-familiar friction, not a new class of bug. (2) A genuinely new class of gap, caught only
+  by `npm run build` (not `npm run typecheck`, which stayed clean): `renderMsgSnapshotCard` was
+  fully implemented and called correctly from within `messagingCanvasPreview.ts` itself (via its
+  own `window.__renderMsgSnapshotCard` bridge assignment) but the `export` keyword was missing from
+  its own function declaration — `tsc --noEmit` never caught this because the file's own internal
+  usage was enough to satisfy every type it checks; only Next.js's real bundler, resolving
+  `MsgConvo.jsx`/`SharedCanvasModalBody.jsx`'s real ES `import { renderMsgSnapshotCard } from
+  "./lib/messagingCanvasPreview"` against the module's actual exports, caught the mismatch. Lesson
+  for the rest of this migration: the "port what's needed" discipline already established for
+  window-bridge omissions (caught only by the stale-reference sweep, see the `shelf-search.js`/
+  `outline-tree.js` entries above) has a real sibling failure mode on the ES-export side too, and
+  only a real build — never typecheck alone — catches it; never skip `npm run build` even when
+  typecheck is clean.
+  Real Playwright verification against a fresh dev server, scoped honestly (documented in the
+  verify script itself, same tradeoff class as this migration's own EPUB-upload and full-CSV-UI
+  skips elsewhere): this shared test account has zero real friends and zero real canvas
+  collaborators, so the actual multi-client realtime presence path (two different real users
+  seeing each other's cursors/typing indicators/content-sync) genuinely cannot be exercised without
+  a second real authenticated account with a real collaboration relationship, out of reach for a
+  single-account test session. What WAS verified for real: all 27 bridges present; every
+  presence/broadcast function's real null-channel safety (this account's `appState.
+  canvasPresenceChannel` is legitimately `null` with no active collaboration — `ensureCanvas
+  PresenceChannel`/every `broadcast*` function/`repositionAllRemoteCursors`/`goToCollaboratorCursor`
+  all had to no-op cleanly against that, not throw, and did); the pure data-transform functions
+  (`snapshotItem`'s real nested-folder embedding, `sanitizeFlashcardSnapshot`'s real disconnected-
+  deck reset, `miniLabelForItem`, `renderMsgSnapshotCard`) called directly and checked against real
+  expected output; `renderInlineCanvas` mounted into a real detached DOM node and inspected for
+  real structure (world/zoom-bar/card-count/no-drag-tab-when-draggableOut-false); a real messaging
+  flow — `openConvo`/`renderConvoBody`/`closeConvo` driven through the real `MsgConvo.jsx` React
+  component and a real click on its back button, using a tagged mock friend injected AFTER opening
+  the real rail panel specifically because `refreshMessagesPanel`'s own `renderMsgList` makes a
+  real Supabase round-trip that wholesale-overwrites `appState.friends` with this account's real
+  (empty) list, which would silently wipe out a mock seeded any earlier — confirmed via a real
+  failed run before adjusting the seeding order; and a real `TitleCard.jsx` dropdown change (after
+  a real click put the card into `.editing` mode, since `.format-bar` is `display:none` until
+  then) correctly updated both the data (`level`) and the live DOM (`fontSize`). Zero console/page
+  errors. Re-checked the account afterward to confirm zero residual mock items/friends.
 - **Phase 4.6 — delete the bridge layer: not started.**
 - **Phase 4.7 — final cleanup & professionalization close-out: not started.**
 

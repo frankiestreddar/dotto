@@ -3,7 +3,8 @@
 import { swCurrentElapsedMs, swFormatTime, swTogglePause, swToggleRun } from "./lib/stopwatch";
 
 // Ported from the old renderStopwatchHTML (public/dotto/stopwatch.js — kept there, not deleted:
-// live-presence.js's mini inline-canvas previews still call it directly). swToggleRun/
+// app/dotto/lib/messagingCanvasPreview.ts's mini inline-canvas previews still call it directly).
+// swToggleRun/
 // swTogglePause/swFormatTime/swCurrentElapsedMs themselves moved to app/dotto/lib/stopwatch.ts in
 // Phase 4.4 — real imports now, not window bridges, since both this component and that module
 // live in the same app/dotto/ tree. stopwatch.ts still sets window.swToggleRun/swTogglePause/

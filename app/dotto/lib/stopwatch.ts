@@ -1,7 +1,8 @@
 // Phase 4.4 port of public/dotto/stopwatch.js's swFormatTime/swCurrentElapsedMs/swToggleRun/
 // swTogglePause (itself a Phase 4.3 split of stopwatch-search-notifications.js — see
-// PHASE4_ROADMAP.md). renderStopwatchHTML stays vanilla in stopwatch.js — live-presence.js's mini
-// inline-canvas previews still call it directly — so this isn't a Zustand-store port like
+// PHASE4_ROADMAP.md). renderStopwatchHTML stays vanilla in stopwatch.js —
+// app/dotto/lib/messagingCanvasPreview.ts's mini inline-canvas previews still call it directly —
+// so this isn't a Zustand-store port like
 // notifications.js: a stopwatch card's own fields (swElapsedMs, swRunning, ...) live on the same
 // `it` object every other item field does, inside appState.folders (core-state.js), which stays
 // the single source of truth until Phase 4.5's own core-state.js migration. This just moves the

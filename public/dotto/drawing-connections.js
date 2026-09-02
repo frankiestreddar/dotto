@@ -1,6 +1,5 @@
 import { appState } from './core-state.js';
 import { saveSnapshot } from './history-autosave.js';
-import { findItemById } from './live-presence.js';
 import { bumpAchievementStat } from './profile-achievements-pricing.js';
 import { isValidConnection } from './srs-connections-core.js';
 import { render } from './waypoints-render-loop.js';
@@ -212,7 +211,7 @@ import { render } from './waypoints-render-loop.js';
     // findItemById (scoped to currentFolderId) is exactly the right lookup here, no global search
     // needed.
     function connectedSourceCard(sourceItemId) {
-        return findItemById(sourceItemId);
+        return window.__findItemById(sourceItemId);
     }
     // A source card's own display name IS its nested subfolder's title (folders[it.folderId] —
     // same property its own card and the breadcrumb read/write) — used by a Stack card (see
@@ -233,7 +232,7 @@ import { render } from './waypoints-render-loop.js';
     // superset of findItemById for this purpose, checked first since it's the one that actually
     // needs to reach outside the current folder.
     function resolveTableForEdit(id) {
-        return findTableById(id) || findItemById(id);
+        return findTableById(id) || window.__findItemById(id);
     }
 
 export { computeConnectorPoints, createConnection, ensureConnections, ensureDrawings, findLinkedTable, findTableById, folderIdForConnectedSource, folderTitleForConnectedSource, itemRect, linkSelectedCards, makeLayerSVG, pathNearPoint, penPointsToPath, pointsToLinePath, pointsToPath, resolveTableForEdit };

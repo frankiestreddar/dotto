@@ -303,3 +303,5 @@ window.__SPRITE_TOTAL_COUNT = appState.SPRITE_TOTAL_COUNT;
 // Used by app/dotto/lib/gamesFlashcardTyperight.ts's fcFlip/trCheck (Phase 4.4).
 window.__awardUserPoints = awardUserPoints;
 window.__bumpAchievementStat = bumpAchievementStat;
+// Used by app/dotto/lib/canvasPresence.ts's handleCanvasPresenceSync (Phase 4.5).
+window.__renderAvatarInto = renderAvatarInto;

@@ -1,12 +1,13 @@
 // Phase 4.4 port of public/dotto/source-table.js: the on-canvas Table card's legacy string
-// renderer (still used by live-presence.js's mini previews and a table's first-ever resize, see
-// renderTableHTML's own comment), cell/keyboard navigation shared by both the legacy renderer and
-// the real TableCard.jsx, row/column growth + merging, and the Source page's own image/audio-
-// insert + CSV/TSV import pipeline. TableCard.jsx upgraded from window bridges to real ES imports
-// (same precedent as stopwatch.ts/gamesFlashcardTyperight.ts/MediaCard.jsx), bridges kept only for
-// the still-vanilla callers (live-presence.js, search-orchestration-selection.js, table-grid-
-// resize.js, source-tags-ai.js, and canvasItemBehavior.js's/static-HTML's own inline-onclick
-// targets). Reaches every still-vanilla dependency through window bridges.
+// renderer (still used by app/dotto/lib/messagingCanvasPreview.ts's mini previews and a table's
+// first-ever resize, see renderTableHTML's own comment), cell/keyboard navigation shared by both
+// the legacy renderer and the real TableCard.jsx, row/column growth + merging, and the Source
+// page's own image/audio-insert + CSV/TSV import pipeline. TableCard.jsx upgraded from window
+// bridges to real ES imports (same precedent as stopwatch.ts/gamesFlashcardTyperight.ts/
+// MediaCard.jsx), bridges kept only for the still-vanilla callers (search-orchestration-
+// selection.js, table-grid-resize.js, source-tags-ai.js, and canvasItemBehavior.js's/static-HTML's
+// own inline-onclick targets) plus app/dotto/lib/messagingCanvasPreview.ts. Reaches every
+// still-vanilla dependency through window bridges.
 
 interface MergedRegion {
   r1: number;
@@ -91,8 +92,8 @@ export function renderTableHTML(it: Item): string {
 // attachStaticTableHoverZones just below/further down — the only callers of any of these five are
 // each other and render() (waypoints-render-loop.js). colgroupHTML just above stays here —
 // renderTableHTML (the on-canvas Table card's own legacy preview renderer, still used by
-// live-presence.js) needs it too — reached from the relocated renderStaticTableHTML via
-// window.__colgroupHTML.
+// app/dotto/lib/messagingCanvasPreview.ts) needs it too — reached from the relocated
+// renderStaticTableHTML via window.__colgroupHTML.
 // A click and drag on a cell should move the whole card, never focus/edit that cell — but the
 // browser grabs focus on a contentEditable element the instant mousedown fires, before there's any
 // way to know yet whether this gesture is a click or the start of a drag. This tracks real pointer

@@ -1,6 +1,5 @@
 import { appState, contextMenu, parseItemId } from './core-state.js';
 import { saveSnapshot } from './history-autosave.js';
-import { findItemById } from './live-presence.js';
 import { cascadeDeleteFolderContents, deleteWaypointFromDb, render, renderSelectedOutlines } from './waypoints-render-loop.js';
 
 // Phase 4.3 split (was part of resize-shortcuts-init.js, see PHASE4_ROADMAP.md) — the "shortcuts"
@@ -33,7 +32,7 @@ function findNextFreeSlot(folderId) {
 // oncontextmenu change above).
 function deleteSelectedCards() {
     if (!appState.selectedCardIds.length) return;
-    const items = appState.selectedCardIds.map(id => findItemById(id)).filter(Boolean);
+    const items = appState.selectedCardIds.map(id => window.__findItemById(id)).filter(Boolean);
     if (!items.length) return;
     const hasSource = items.some(it => it.kind === 'source');
     const hasShelf = items.some(it => it.kind === 'shelf');
@@ -61,7 +60,7 @@ function deleteSelectedCards() {
 }
 function setTableAlign(align) {
     const id = parseInt(contextMenu.dataset.id);
-    const it = findItemById(id); if (!it) return;
+    const it = window.__findItemById(id); if (!it) return;
     saveSnapshot();
     it.textAlign = align;
     render();
@@ -80,7 +79,7 @@ function setTableAlign(align) {
 function hoveredGameCard() {
     const el = document.querySelector('.item.flashcard:hover, .item.typeright:hover');
     if (!el) return null;
-    const it = findItemById(parseItemId(el));
+    const it = window.__findItemById(parseItemId(el));
     return it && (it.kind === 'flashcard' || it.kind === 'typeright') ? it : null;
 }
 document.addEventListener('keydown', (e) => {
@@ -123,7 +122,7 @@ document.addEventListener('keydown', (e) => {
 function hoveredPdfCard() {
     const el = document.querySelector('.item.media:hover');
     if (!el) return null;
-    const it = findItemById(parseItemId(el));
+    const it = window.__findItemById(parseItemId(el));
     return (it && it.kind === 'media' && it.mediaType === 'pdf') ? { it, el } : null;
 }
 document.addEventListener('keydown', (e) => {

@@ -1,6 +1,7 @@
 "use client";
 
 import { useLayoutEffect, useRef } from "react";
+import { setTitleLevel, titleFontSize } from "./lib/messagingCanvasPreview";
 
 // Ported from the old inline title branch in renderLegacyCardBody (public/dotto/waypoints-render-
 // loop.js). Body's click-to-edit lifecycle (attachTitleBody) stays vanilla, same reasoning as
@@ -10,10 +11,10 @@ import { useLayoutEffect, useRef } from "react";
 // fontSize lives on the WRAPPER <div>, not this component's own top-level element (there isn't a
 // single one — format-bar and body are siblings, same as the original markup) — set directly via
 // window.__findItemEl(it.id, paneId) each render, same technique swTick/fcFlip use to reach a
-// card from outside React. setTitleLevel (live-presence.js) already patches this itself for the
-// one interaction that changes it directly; this covers every other reason it.level might change
-// (initial mount, a remote sync) — redundant with setTitleLevel's own patch but harmless, since
-// it's always reapplying the same correct value.
+// card from outside React. setTitleLevel (app/dotto/lib/messagingCanvasPreview.ts, now a real ES
+// import here too) already patches this itself for the one interaction that changes it directly;
+// this covers every other reason it.level might change (initial mount, a remote sync) — redundant
+// with setTitleLevel's own patch but harmless, since it's always reapplying the same correct value.
 //
 // That same el lookup is also what attachTitleBody needs for its wrapper — passed in explicitly
 // rather than derived via bodyRef.current.closest('.item') inside that function, which broke on
@@ -28,7 +29,7 @@ export default function TitleCard({ it, paneId }) {
 
   useLayoutEffect(() => {
     const el = window.__findItemEl(it.id, paneId);
-    if (el) el.style.fontSize = window.__titleFontSize(it.level || 1) + "px";
+    if (el) el.style.fontSize = titleFontSize(it.level || 1) + "px";
     if (el && bodyRef.current) window.__attachTitleBody(el, bodyRef.current, it, paneId);
   });
 
@@ -43,7 +44,7 @@ export default function TitleCard({ it, paneId }) {
           className="format-select"
           onMouseDown={(e) => e.stopPropagation()}
           onClick={(e) => e.stopPropagation()}
-          onChange={(e) => window.setTitleLevel(it.id, e.target.value)}
+          onChange={(e) => setTitleLevel(it.id, e.target.value)}
           value={String(it.level || 1)}
         >
           <option value="1">H1</option>

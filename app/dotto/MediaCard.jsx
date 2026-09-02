@@ -7,7 +7,8 @@ import { buildEpubViewer, buildPdfViewer, renderMediaHTML } from "./lib/mediaPdf
 // Ported from the old inline media branch in renderLegacyCardBody (public/dotto/waypoints-render-
 // loop.js, logic itself now in app/dotto/lib/mediaPdfEpub.ts, Phase 4.4 — reached here as real ES
 // imports since both files live in the same app/dotto/ tree; window.__buildPdfViewer/etc still
-// exist too, but only because live-presence.js's mini previews still need them as bridges).
+// exist too, but only because app/dotto/lib/messagingCanvasPreview.ts's mini previews still need
+// them as bridges).
 // buildPdfViewer/buildEpubViewer build a whole live DOM subtree (pdf.js/epub.js need real canvas/
 // iframe elements, not an HTML string) — same "vanilla function builds live DOM, React just mounts
 // it" pattern as CanvasCard's buildFolderInlineCanvas. This wrapper div uses display:contents so it

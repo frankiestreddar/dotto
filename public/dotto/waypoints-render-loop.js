@@ -4,7 +4,6 @@ import { ensureDrawings, makeLayerSVG } from './drawing-connections.js';
 import { refreshCanvasCollabForCurrentFolder, renderCollabPill, syncCanvasCollabTitle } from './friends-presence.js';
 import { renderFilesList, renderSourcesList } from './hamburger-collab.js';
 import { applyTransform, ensureSwTicking, saveSnapshot, scheduleWorkspaceSave, updateContextMenuPosition } from './history-autosave.js';
-import { broadcastEditingState, miniLabelForItem, placeCaretEnd, renderRealCardPreview, repositionAllRemoteCursors, syncColorPicker } from './live-presence.js';
 import { findNextFreeSlot } from './card-shortcuts.js';
 import { closeCellTagPicker } from './source-tags-ai.js';
 import { applyConnections } from './srs-connections-core.js';
@@ -98,7 +97,7 @@ import { applyConnections } from './srs-connections-core.js';
             }
 
             nameEl.contentEditable = true;
-            broadcastEditingState(true);
+            window.__broadcastEditingState(true);
             // contentEditable flips to true DURING this same click's dispatch, so the click still
             // has a pending default action that places the caret at the click coordinates — that
             // runs AFTER this handler returns and silently undoes a synchronous placement here
@@ -106,11 +105,11 @@ import { applyConnections } from './srs-connections-core.js';
             // runs after that default action has settled, so this placement is what actually
             // sticks; the synchronous call is just so there's no flash of a wrong caret position
             // first.
-            placeCaretEnd(nameEl);
-            setTimeout(() => placeCaretEnd(nameEl), 0);
+            window.__placeCaretEnd(nameEl);
+            setTimeout(() => window.__placeCaretEnd(nameEl), 0);
             nameEl.onblur = () => {
                 nameEl.contentEditable = false;
-                broadcastEditingState(false);
+                window.__broadcastEditingState(false);
                 nameEl.classList.remove('crumb-placeholder');
                 it.name = nameEl.textContent.trim();
                 el.classList.remove('waypoint-editing');
@@ -382,7 +381,7 @@ import { applyConnections } from './srs-connections-core.js';
 
         items.forEach(it => {
             const w = it.w || 100, h = it.h || 60;
-            const mini = renderRealCardPreview(it);
+            const mini = window.__renderRealCardPreview(it);
             mini.style.position = 'absolute';
             mini.style.left = (it.x - minX) + 'px';
             mini.style.top = (it.y - minY) + 'px';
@@ -391,7 +390,7 @@ import { applyConnections } from './srs-connections-core.js';
                 mini.style.height = h + 'px';
             }
             mini.style.pointerEvents = 'none';
-            mini.title = miniLabelForItem(it);
+            mini.title = window.__miniLabelForItem(it);
             world.appendChild(mini);
         });
 
@@ -426,7 +425,7 @@ import { applyConnections } from './srs-connections-core.js';
         // No real `#item-X` wrapper to pin a remote caret indicator to for a sidebar row (it's not
         // a canvas element) — omitting targetSelector there just falls back to a plain floating
         // cursor for other viewers, same as the old breadcrumb-title rename always did.
-        broadcastEditingState(true, it.id != null ? `#${itemElId(it.id)} .${editingClass}` : undefined);
+        window.__broadcastEditingState(true, it.id != null ? `#${itemElId(it.id)} .${editingClass}` : undefined);
         titleEl.focus();
         // Same caret-at-end-on-a-deferred-macrotask dance as the breadcrumb rename — see its own
         // comment for why the deferral is load-bearing (a pending native click-to-caret action
@@ -447,7 +446,7 @@ import { applyConnections } from './srs-connections-core.js';
         setTimeout(applySelection, 0);
         titleEl.onblur = () => {
             titleEl.contentEditable = false;
-            broadcastEditingState(false);
+            window.__broadcastEditingState(false);
             titleEl.classList.remove('crumb-placeholder');
             const newTitle = titleEl.textContent.trim();
             if (newTitle) {
@@ -710,7 +709,7 @@ import { applyConnections } from './srs-connections-core.js';
         // full rebuild did), so the highlight/caret/label all need reapplying (or the cursor needs
         // to reappear, if that target no longer exists at all — e.g. the card was deleted out from
         // under them).
-        repositionAllRemoteCursors();
+        window.__repositionAllRemoteCursors();
     }
 
     // Live cross-pane sync (explicit request: "if you have two same pages open in split screen,
@@ -812,7 +811,7 @@ import { applyConnections } from './srs-connections-core.js';
         }
         b.__noteListenerAbort?.abort();
         const { signal } = (b.__noteListenerAbort = new AbortController());
-        b.onblur = (e) => { if(e.relatedTarget && (e.relatedTarget.closest('.format-bar') || e.relatedTarget.closest('.resize'))) return; el.classList.remove('editing'); it.html = b.innerHTML; appState.currentEditingEl = null; b.contentEditable = false; broadcastEditingState(false); b.scrollTop = 0; scheduleWorkspaceSave(); };
+        b.onblur = (e) => { if(e.relatedTarget && (e.relatedTarget.closest('.format-bar') || e.relatedTarget.closest('.resize'))) return; el.classList.remove('editing'); it.html = b.innerHTML; appState.currentEditingEl = null; b.contentEditable = false; window.__broadcastEditingState(false); b.scrollTop = 0; scheduleWorkspaceSave(); };
         // Live per-keystroke commit+sync — see the identical comment on the title body in
         // attachTitleBody.
         // Live per-keystroke commit + cross-pane mirror — explicit request that text edits be fully
@@ -827,13 +826,13 @@ import { applyConnections } from './srs-connections-core.js';
             mirrorItemToSiblingPanes(it.id, (el) => { const siblingBody = el.querySelector('.body'); if (siblingBody) siblingBody.innerHTML = it.html; });
         };
         b.onkeydown = (e) => { if (e.key === 'Escape') { e.preventDefault(); b.blur(); } };
-        b.onfocus = () => { syncColorPicker(b); syncNoteFormatButtons(b); };
-        b.addEventListener('keyup', () => { syncColorPicker(b); syncNoteFormatButtons(b); }, { signal });
-        b.addEventListener('click', () => { syncColorPicker(b); syncNoteFormatButtons(b); }, { signal });
+        b.onfocus = () => { window.__syncColorPicker(b); syncNoteFormatButtons(b); };
+        b.addEventListener('keyup', () => { window.__syncColorPicker(b); syncNoteFormatButtons(b); }, { signal });
+        b.addEventListener('click', () => { window.__syncColorPicker(b); syncNoteFormatButtons(b); }, { signal });
         el.onclick = (e) => {
             e.stopPropagation();
             if (appState.currentEditingEl !== el) saveSnapshot();
-            el.classList.add('editing'); if (!b.isContentEditable) { b.contentEditable = true; placeCaretEnd(b); broadcastEditingState(true, '#' + itemElId(it.id, paneId)); } appState.currentEditingEl = el;
+            el.classList.add('editing'); if (!b.isContentEditable) { b.contentEditable = true; window.__placeCaretEnd(b); window.__broadcastEditingState(true, '#' + itemElId(it.id, paneId)); } appState.currentEditingEl = el;
         };
         window.__setupResizing(el, it);
     }
@@ -912,7 +911,7 @@ import { applyConnections } from './srs-connections-core.js';
     // runs (React commits DOM mutations before firing effects), only its className is what's not
     // set yet.
     function attachWatermarkBody(el, b, it, paneId = appState.activePaneId) {
-        b.onblur = (e) => { el.classList.remove('editing'); it.html = b.innerHTML; appState.currentEditingEl = null; b.contentEditable = false; broadcastEditingState(false); scheduleWorkspaceSave(); };
+        b.onblur = (e) => { el.classList.remove('editing'); it.html = b.innerHTML; appState.currentEditingEl = null; b.contentEditable = false; window.__broadcastEditingState(false); scheduleWorkspaceSave(); };
         // Live per-keystroke commit+sync — see the identical comment on the title body in
         // renderLegacyCardBody.
         // Live per-keystroke commit + cross-pane mirror — explicit request that text edits be fully
@@ -930,7 +929,7 @@ import { applyConnections } from './srs-connections-core.js';
         el.onclick = (e) => {
             e.stopPropagation();
             if (appState.currentEditingEl !== el) saveSnapshot();
-            el.classList.add('editing'); if (!b.isContentEditable) { b.contentEditable = true; placeCaretEnd(b); broadcastEditingState(true, '#' + itemElId(it.id, paneId)); } appState.currentEditingEl = el;
+            el.classList.add('editing'); if (!b.isContentEditable) { b.contentEditable = true; window.__placeCaretEnd(b); window.__broadcastEditingState(true, '#' + itemElId(it.id, paneId)); } appState.currentEditingEl = el;
         };
     }
 
@@ -951,7 +950,7 @@ import { applyConnections } from './srs-connections-core.js';
     function attachTitleBody(el, b, it, paneId = appState.activePaneId) {
         b.__titleListenerAbort?.abort();
         const { signal } = (b.__titleListenerAbort = new AbortController());
-        b.onblur = (e) => { if(e.relatedTarget && (e.relatedTarget.closest('.format-bar'))) return; el.classList.remove('editing'); it.html = b.innerHTML; appState.currentEditingEl = null; b.contentEditable = false; broadcastEditingState(false); scheduleWorkspaceSave(); };
+        b.onblur = (e) => { if(e.relatedTarget && (e.relatedTarget.closest('.format-bar'))) return; el.classList.remove('editing'); it.html = b.innerHTML; appState.currentEditingEl = null; b.contentEditable = false; window.__broadcastEditingState(false); scheduleWorkspaceSave(); };
         // Live per-keystroke commit+sync — see the identical comment on the note body in
         // renderLegacyCardBody.
         // Live per-keystroke commit + cross-pane mirror — explicit request that text edits be fully
@@ -966,13 +965,13 @@ import { applyConnections } from './srs-connections-core.js';
             mirrorItemToSiblingPanes(it.id, (el) => { const siblingBody = el.querySelector('.body'); if (siblingBody) siblingBody.innerHTML = it.html; });
         };
         b.onkeydown = (e) => { if (e.key === 'Escape') { e.preventDefault(); b.blur(); } };
-        b.onfocus = () => syncColorPicker(b);
-        b.addEventListener('keyup', () => syncColorPicker(b), { signal });
-        b.addEventListener('click', () => syncColorPicker(b), { signal });
+        b.onfocus = () => window.__syncColorPicker(b);
+        b.addEventListener('keyup', () => window.__syncColorPicker(b), { signal });
+        b.addEventListener('click', () => window.__syncColorPicker(b), { signal });
         el.onclick = (e) => {
             e.stopPropagation();
             if (appState.currentEditingEl !== el) saveSnapshot();
-            el.classList.add('editing'); if (!b.isContentEditable) { b.contentEditable = true; placeCaretEnd(b); broadcastEditingState(true, '#' + itemElId(it.id, paneId)); } appState.currentEditingEl = el;
+            el.classList.add('editing'); if (!b.isContentEditable) { b.contentEditable = true; window.__placeCaretEnd(b); window.__broadcastEditingState(true, '#' + itemElId(it.id, paneId)); } appState.currentEditingEl = el;
         };
     }
 

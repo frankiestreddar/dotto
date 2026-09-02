@@ -1,5 +1,7 @@
 // Card-kind metadata registry (Phase 2, see PHASE2_ROADMAP.md's "Card-kind registry pattern").
-// Consolidates kindSize (add-menu.js) and miniIconForKind (live-presence.js) — two independent
+// Consolidates kindSize (add-menu.js) and the original miniIconForKind (public/dotto/live-
+// presence.js — since dropped as dead code during that file's own Phase 4.5 port, never called
+// anywhere) — two independent
 // if/else chains in two different files, keyed by the same `kind` string but never sharing a
 // data source — into one lookup. `label` here is ONLY kindLabel's own 2 genuine hardcoded
 // specials (sentence, checklist); every OTHER function that produces a kind-dependent label

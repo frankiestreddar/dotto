@@ -64,6 +64,8 @@ import { wireMarketplace } from "./dotto/lib/marketplace";
 import { wireNotifications } from "./dotto/lib/notificationsStore";
 import { wireSourceButtonsCursorMode } from "./dotto/lib/sourceButtonsCursorMode";
 import { wirePanelsHamburger } from "./dotto/lib/panelsHamburger";
+import { wireCanvasPresence } from "./dotto/lib/canvasPresence";
+import { wireMessagingCanvasPreview } from "./dotto/lib/messagingCanvasPreview";
 // Side-effect only, same reasoning as splitPaneManagement/tabManagement above — sets
 // window.__openGameOptionsPanel/fcFlip/etc at module-eval time for the 5 still-vanilla callers
 // that used to import these directly, plus the React->vanilla bridges FlashcardCard.jsx/
@@ -72,13 +74,14 @@ import "./dotto/lib/gamesFlashcardTyperight";
 // Side-effect only, same reasoning as splitPaneManagement/tabManagement above — sets
 // window.__renderMediaHTML/setMediaFromLink/etc at module-eval time for the 3 still-vanilla
 // callers that used to import these directly, plus the React->vanilla bridges MediaCard.jsx
-// itself now imports directly instead (live-presence.js's mini previews still need the bridges).
+// itself now imports directly instead (app/dotto/lib/messagingCanvasPreview.ts's mini previews
+// still need the bridges).
 import "./dotto/lib/mediaPdfEpub";
 // Side-effect only, same reasoning as splitPaneManagement/tabManagement above — sets
 // window.__renderTableHTML/updateTableCell/etc at module-eval time for the 5 still-vanilla
 // callers that used to import these directly, plus the React->vanilla bridges TableCard.jsx
-// itself now imports directly instead (live-presence.js's mini previews and
-// canvasItemBehavior.js's Source-page renderer still need the bridges).
+// itself now imports directly instead (app/dotto/lib/messagingCanvasPreview.ts's mini previews
+// and canvasItemBehavior.js's Source-page renderer still need the bridges).
 import "./dotto/lib/sourceTable";
 // Side-effect only — sets window.__splitPaneWithTab/__closePane at module-eval time (no wireX()
 // needed, unlike the two imports above: nothing here needs a live DOM/appState read at wire time,
@@ -413,12 +416,13 @@ if (typeof window !== "undefined") {
   // from every render() alongside the breadcrumb map above) — pane-keyed for the same reason. A
   // plain store.set, no synchronous DOM read follows it.
   window.__setTabs = (paneId, state) => tabsStore.storeFor(paneId).set(state);
-  // Open conversation thread (see app/dotto/MsgConvo.jsx, live-presence.js's renderConvoBody) — a
-  // plain store.set, no synchronous DOM read follows it (the scroll-to-bottom reset lives in a
-  // useLayoutEffect inside MsgConvo.jsx itself instead).
+  // Open conversation thread (see app/dotto/MsgConvo.jsx, app/dotto/lib/messagingCanvasPreview.ts's
+  // renderConvoBody) — a plain store.set, no synchronous DOM read follows it (the scroll-to-bottom
+  // reset lives in a useLayoutEffect inside MsgConvo.jsx itself instead).
   window.__setMsgConvo = msgConvoStore.set;
-  // Shared Card preview modal's body (see app/dotto/SharedCanvasModalBody.jsx, live-presence.js's
-  // openSharedCanvasView) — a plain store.set, no synchronous DOM read follows it.
+  // Shared Card preview modal's body (see app/dotto/SharedCanvasModalBody.jsx,
+  // app/dotto/lib/messagingCanvasPreview.ts's openSharedCanvasView) — a plain store.set, no
+  // synchronous DOM read follows it.
   window.__setSharedCanvasModal = sharedCanvasModalStore.set;
   // Cell tag picker dropdown (see app/dotto/CellTagPickerList.jsx, source-tags-ai.js's
   // renderCellTagPickerList) — a plain store.set, no synchronous DOM read follows it.
@@ -474,6 +478,17 @@ export default function DottoApp({ sections, currentUser }) {
   // to poll for window.__getAppState/every rail-icon DOM element rather than a single readiness
   // check.
   useEffect(() => wirePanelsHamburger(), []);
+  // Phase 4.5: the realtime presence/cursor-broadcast concern's own cursor-tracking pointermove
+  // listener + selectionchange listener — see wireCanvasPresence's own comment,
+  // app/dotto/lib/canvasPresence.ts, for why this needs to poll for
+  // window.__getCanvasEl/window.__registerPaneCanvasListenerSetup rather than a single readiness
+  // check.
+  useEffect(() => wireCanvasPresence(), []);
+  // Phase 4.5: the card-preview/messaging DOM concern's own #msg-convo-input keydown/input
+  // listeners — see wireMessagingCanvasPreview's own comment,
+  // app/dotto/lib/messagingCanvasPreview.ts, for why this needs to poll for live appState AND that
+  // element already existing rather than a single readiness check.
+  useEffect(() => wireMessagingCanvasPreview(), []);
 
   return (
     <>

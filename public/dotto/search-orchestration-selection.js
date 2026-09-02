@@ -3,7 +3,6 @@ import { executeCurrentCommand, setCommandActive } from './command-palette.js';
 import { appState, parseItemId } from './core-state.js';
 import { ensureConnections } from './drawing-connections.js';
 import { saveSnapshot, scheduleWorkspaceSave } from './history-autosave.js';
-import { miniLabelForItem } from './live-presence.js';
 import { commenceSearchOrMnemonic } from './mnemonic-search-matching.js';
 import { bumpAchievementStat, openDotbotUpgradeModal, refreshDotbotUsage } from './profile-achievements-pricing.js';
 import { applyAiAddRowsToSource, createSourceFromAI } from './source-tags-ai.js';
@@ -45,7 +44,7 @@ import { render } from './waypoints-render-loop.js';
     }
 
     function describeCardForAI(snapshot) {
-        const label = miniLabelForItem(snapshot);
+        const label = window.__miniLabelForItem(snapshot);
         let text;
         if (snapshot.kind === 'table' || snapshot.kind === 'source' || snapshot.kind === 'folder') {
             const table = snapshot.kind === 'table' ? snapshot : (snapshot.snapshotChildren || []).find(c => c.kind === 'table');
@@ -98,7 +97,7 @@ import { render } from './waypoints-render-loop.js';
                     cardConnections: appState.searchCardConnections.length ? appState.searchCardConnections.map(c => {
                         const from = appState.searchCardContext.find(sc => sc.id === c.fromId);
                         const to = appState.searchCardContext.find(sc => sc.id === c.toId);
-                        return `${from ? miniLabelForItem(from.snapshot) : c.fromId} -> ${to ? miniLabelForItem(to.snapshot) : c.toId}`;
+                        return `${from ? window.__miniLabelForItem(from.snapshot) : c.fromId} -> ${to ? window.__miniLabelForItem(to.snapshot) : c.toId}`;
                     }) : undefined,
                     // Numbered the same way as cardContext above (both mapped from searchCardContext
                     // in the same order) so the server can tell the model "source #N" and get back a

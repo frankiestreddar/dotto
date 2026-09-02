@@ -1,7 +1,6 @@
 import { appState, supabase } from './core-state.js';
 import { renderMsgList } from './friends-presence.js';
 import { saveSnapshot } from './history-autosave.js';
-import { findItemById, renderConvoBody, sanitizeFlashcardSnapshot, snapshotItem } from './live-presence.js';
 
 
     // setupDraggingAndClicking moved to app/dotto/canvasItemBehavior.js (Phase 3 of the
@@ -25,8 +24,8 @@ import { findItemById, renderConvoBody, sanitizeFlashcardSnapshot, snapshotItem 
         // If targetIt is selected, we share all selected cards. Otherwise, share just this card.
         const gestureIds = appState.selectedCardIds.includes(targetIt.id) ? appState.selectedCardIds.slice() : [targetIt.id];
         gestureIds.forEach(id => {
-            const it = findItemById(id);
-            if (it) itemsToShare.push(sanitizeFlashcardSnapshot(snapshotItem(it), gestureIds));
+            const it = window.__findItemById(id);
+            if (it) itemsToShare.push(window.__sanitizeFlashcardSnapshot(window.__snapshotItem(it), gestureIds));
         });
 
         if (itemsToShare.length === 0) return;
@@ -40,7 +39,7 @@ import { findItemById, renderConvoBody, sanitizeFlashcardSnapshot, snapshotItem 
         if (error) { console.error('[chat] failed to share card:', error); return; }
         f.messages.push({ id: data.id, senderId: data.sender_id, text: data.body, canvasSnapshot: data.canvas_snapshot, createdAt: data.created_at });
 
-        renderConvoBody(f);
+        window.__renderConvoBody(f);
         renderMsgList('');
     }
 

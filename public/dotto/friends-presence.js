@@ -1,6 +1,5 @@
 import { clearSearch } from './ai-assistant-suggestions.js';
 import { appState, supabase, switchActivePane } from './core-state.js';
-import { ensureCanvasPresenceChannel, openConvo, renderConvoBody } from './live-presence.js';
 import { openMessagesPanel } from './messages-schedule.js';
 import { bumpAchievementStat } from './profile-achievements-pricing.js';
 
@@ -100,7 +99,7 @@ import { bumpAchievementStat } from './profile-achievements-pricing.js';
         // actively viewing. Re-running it here, now that folderObj.collaborators is current, is
         // what actually catches that — safe to call any time, it always re-resolves against
         // whatever's currently true rather than anything captured earlier.
-        ensureCanvasPresenceChannel();
+        window.__ensureCanvasPresenceChannel();
     }
     // A raw insert here fails outright (unique constraint violation) for anyone whose invite
     // already reached a terminal state -- declined, or removed via revoke_canvas_collaboration
@@ -401,9 +400,10 @@ import { bumpAchievementStat } from './profile-achievements-pricing.js';
     // Real React state now (see app/dotto/MessagesListPanel.jsx, msgListStore) — same two-view
     // shape (main list + Requests drill-down) as HubCollabListPanel, genuine JSX rows for the same
     // reason (no complex per-row widget state). The actual conversation thread (openConvo/
-    // renderConvoBody, live-presence.js) stays vanilla — that's part of the much larger "Live
-    // canvas presence + real-time content sync" cluster (PHASE2_ROADMAP.md item 11), not this
-    // list, and needs its own foundation-first pass; a chat row here just calls window.__openConvo.
+    // renderConvoBody) moved to app/dotto/lib/messagingCanvasPreview.ts in Phase 4.5, reached via
+    // window.__openConvo — this file's own list rendering stayed vanilla in that same port since
+    // it's a separate concern (real-time presence/content-sync, not messaging DOM); a chat row
+    // here just calls window.__openConvo.
     async function renderMsgList(query) {
         await refreshFriendsData();
         if (appState.msgView === 'requests') { renderMsgRequests(); return; }
@@ -501,7 +501,7 @@ import { bumpAchievementStat } from './profile-achievements-pricing.js';
                 type: 'friend_online',
                 message: `${live.displayName} is online`,
                 actionLabel: 'Chat',
-                onAction: () => { openMessagesPanel(true); openConvo(live.id); },
+                onAction: () => { openMessagesPanel(true); window.__openConvo(live.id); },
             }); // one button, auto-dismisses — no dismiss function
         } else if (nowStatus === null) {
             window.pushNotification({ type: 'friend_offline', message: `${live.displayName} logged off` }); // no buttons, auto-dismisses — no dismiss function
@@ -537,7 +537,7 @@ import { bumpAchievementStat } from './profile-achievements-pricing.js';
                     live.messages.push({ id: m.id, senderId: m.sender_id, text: m.body, canvasSnapshot: m.canvas_snapshot, createdAt: m.created_at });
                     const isActivelyViewing = appState.activeConvoId === live.id && appState.messagesPanel.classList.contains('open');
                     if (isActivelyViewing) {
-                        renderConvoBody(live);
+                        window.__renderConvoBody(live);
                     } else {
                         // renderMsgList only ever runs on open/search/etc. (see its own call
                         // sites) — never just because a message arrived, so the chat list's
@@ -545,7 +545,7 @@ import { bumpAchievementStat } from './profile-achievements-pricing.js';
                         // last there until the panel is closed and reopened. Refresh it here too,
                         // but only when the list is what's actually showing right now (not the
                         // Requests drill-down, not a conversation) — matches closeConvo's own
-                        // "refresh when returning to the list" fix (live-presence.js).
+                        // "refresh when returning to the list" fix (app/dotto/lib/messagingCanvasPreview.ts).
                         if (appState.messagesPanel.classList.contains('open') && appState.msgView === 'main') {
                             renderMsgList(appState.msgSearchInput.value);
                         }
@@ -553,7 +553,7 @@ import { bumpAchievementStat } from './profile-achievements-pricing.js';
                             type: 'chat',
                             message: `${live.displayName}: ${(m.body || '').trim().slice(0, 80) || 'New message'}`,
                             actionLabel: 'Reply',
-                            onAction: () => { openMessagesPanel(true); openConvo(live.id); },
+                            onAction: () => { openMessagesPanel(true); window.__openConvo(live.id); },
                         }); // one button, auto-dismisses — no dismiss function
                     }
                 })
@@ -590,6 +590,8 @@ window.__renderCollabPill = renderCollabPill;
 window.__syncCanvasCollabTitle = syncCanvasCollabTitle;
 // Used by app/dotto/lib/sourceButtonsCursorMode.ts's window.onclick handler (Phase 4.4).
 window.__closeCollabPanel = closeCollabPanel;
+// Used by app/dotto/lib/messagingCanvasPreview.ts's closeConvo (Phase 4.5).
+window.__renderMsgList = renderMsgList;
 
 // No window.__initials bridge — Avatar.jsx (app/dotto/) reimplements this directly instead (see
 // its own comment for why: plain string logic with no vanilla-only dependency, and needing it to

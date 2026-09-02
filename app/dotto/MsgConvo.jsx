@@ -5,6 +5,11 @@ import { useSyncExternalStore } from "react";
 import { createPortal } from "react-dom";
 import Avatar from "./Avatar";
 import { msgConvoStore } from "./bridges";
+import {
+  openSharedCanvasView,
+  renderInlineCanvas,
+  renderMsgSnapshotCard,
+} from "./lib/messagingCanvasPreview";
 import usePortalNode from "./usePortalNode";
 
 // A canvas-snapshot message's own card content still comes from vanilla builders
@@ -18,12 +23,12 @@ function MsgSnapshotMount({ m }) {
     const mount = ref.current;
     if (!mount) return;
     if (m.canvasSnapshot.length > 1) {
-      mount.appendChild(window.__renderInlineCanvas(m.canvasSnapshot));
+      mount.appendChild(renderInlineCanvas(m.canvasSnapshot));
     } else {
       const snapBox = document.createElement("div");
       snapBox.className = "msg-canvas-snapshot";
-      snapBox.appendChild(window.__renderMsgSnapshotCard(m.canvasSnapshot[0]));
-      snapBox.onclick = () => window.__openSharedCanvasView(m.canvasSnapshot);
+      snapBox.appendChild(renderMsgSnapshotCard(m.canvasSnapshot[0]));
+      snapBox.onclick = () => openSharedCanvasView(m.canvasSnapshot);
       mount.appendChild(snapBox);
     }
   }, [m]);

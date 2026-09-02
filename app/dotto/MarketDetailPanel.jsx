@@ -4,6 +4,7 @@ import { useLayoutEffect, useRef } from "react";
 import { useSyncExternalStore } from "react";
 import { createPortal } from "react-dom";
 import { marketDetailStore } from "./bridges";
+import { renderInlineCanvas } from "./lib/messagingCanvasPreview";
 import usePortalNode from "./usePortalNode";
 
 // renderInlineCanvas builds a whole live DOM subtree (its own pan/zoom/nav state) — same "vanilla
@@ -16,7 +17,7 @@ function InlineCanvasPreview({ item }) {
     const mount = ref.current;
     if (!mount || !item.canvasSnapshot || !item.canvasSnapshot.length) return;
     // Preview only — draggableOut=false so this can't be dragged onto the user's own canvas.
-    mount.appendChild(window.__renderInlineCanvas(item.canvasSnapshot, false));
+    mount.appendChild(renderInlineCanvas(item.canvasSnapshot, false));
   }, [item]);
 
   return <div ref={ref} />;

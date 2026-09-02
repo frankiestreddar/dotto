@@ -1,8 +1,9 @@
 "use client";
 
 // Ported from the old renderStatcardHTML (public/dotto/cards-misc.js — kept there, not deleted:
-// live-presence.js's mini inline-canvas previews still call it directly for their own simplified
-// rendering, same as ChecklistCard's note). See EmbedCard.jsx for the general pattern. The
+// app/dotto/lib/messagingCanvasPreview.ts's mini inline-canvas previews still call it directly for
+// their own simplified rendering, same as ChecklistCard's note). See EmbedCard.jsx for the general
+// pattern. The
 // simplest conversion yet — a pure function of `it`, no event handlers, no appState coupling, no
 // vanilla bridge needed at all.
 export default function StatcardCard({ it }) {

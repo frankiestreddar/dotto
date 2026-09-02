@@ -823,8 +823,9 @@ window.__renderGameFaceBlocksHTML = renderGameFaceBlocksHTML;
 window.__resolveGameFace = resolveGameFace;
 window.__trCurrentCard = trCurrentCard;
 window.__trPlayableCards = trPlayableCards;
-// Vanilla -> React bridges — waypoints-render-loop.js/live-presence.js/srs-connections-core.js all
-// previously imported these directly.
+// Vanilla -> React bridges — waypoints-render-loop.js/srs-connections-core.js all previously
+// imported these directly, plus app/dotto/lib/messagingCanvasPreview.ts (ported since — was
+// live-presence.js's own direct import of renderFlashcardHTML/renderTypeRightHTML).
 window.__openGameOptionsPanel = openGameOptionsPanel;
 window.__closeGameOptionsPanel = closeGameOptionsPanel;
 window.__defaultFlashcardDeck = defaultFlashcardDeck;

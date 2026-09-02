@@ -12,7 +12,10 @@ const EMPTY_STATE = { rows: [], query: "" };
 
 // Same mask-image icon shape kindIconHTML (app/dotto/lib/outlineTree.ts) already builds for every
 // other outline-icon use — window.__kindIconFile resolves the kind(+level)->filename mapping,
-// bridged since kindIconFile is also called from vanilla files (live-presence.js and others).
+// bridged since several other React components (HubCollabListPanel.jsx/SourceCard.jsx/
+// WaypointsListPanel.jsx/WaypointCard.jsx) also call it this same way, despite all now living in
+// the same app/dotto/ tree as outlineTree.ts itself — a real ES import would work for all of them
+// too, just not yet done.
 function OutlineIcon({ kind, level }) {
   const url = `/assets/icons/${window.__kindIconFile(kind, level)}`;
   return (

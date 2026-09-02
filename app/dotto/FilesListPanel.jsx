@@ -3,6 +3,7 @@
 import { useRef, useState, useSyncExternalStore } from "react";
 import { createPortal } from "react-dom";
 import { computePaneRects, filesListStore, paneLayoutStore } from "./bridges";
+import { findItemById } from "./lib/canvasPresence";
 import RowActions from "./RowActions";
 import usePortalNode from "./usePortalNode";
 
@@ -66,7 +67,8 @@ function clearDropHighlights() {
 // (window.__openMediaViewerTab, app/dotto/lib/tabManagement.ts) — a synthetic folder wrapping the item
 // (isMediaViewer:true), rendered full-screen/scrollable by a dedicated branch in render()
 // (waypoints-render-loop.js), riding the exact same tab/pane machinery every other tab already
-// uses. window.__findItemById resolves the row's own itemId back to the real, live item object
+// uses. findItemById (app/dotto/lib/canvasPresence.ts, a real ES import here) resolves the row's
+// own itemId back to the real, live item object
 // (mediaSrc/mediaType/mediaName) rather than this row carrying a stale copy. Omitted (falls back to
 // RowActions' own "don't render the button" branch) for the rare row whose upload hasn't finished
 // yet and so has no mediaSrc.
@@ -151,7 +153,7 @@ function FileRow({ r }) {
     clearDropHighlights();
     if (d && d.dragging) {
       suppressClickRef.current = true;
-      const item = window.__findItemById(r.itemId);
+      const item = findItemById(r.itemId);
       if (item && d.targetKind === "tab") window.__openMediaViewerTab(item, d.targetPaneId);
       else if (item && d.targetKind === "canvas")
         window.__spawnMediaItemAt(item, e.clientX, e.clientY, d.targetPaneId);
@@ -179,11 +181,7 @@ function FileRow({ r }) {
       <img className="search-history-icon" src="/assets/icons/files.png" alt="" />
       <span className="outline-label">{r.title}</span>
       <RowActions
-        onOpen={
-          r.mediaSrc
-            ? () => window.__openMediaViewerTab(window.__findItemById(r.itemId))
-            : undefined
-        }
+        onOpen={r.mediaSrc ? () => window.__openMediaViewerTab(findItemById(r.itemId)) : undefined}
       />
       {drag &&
         createPortal(

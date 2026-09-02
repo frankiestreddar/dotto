@@ -1,6 +1,6 @@
 // ---------- Global canvas/source IDs ----------
 // A folder-id string (e.g. 'folder-5') is only unique WITHIN one user's own idCounter sequence —
-// see the collision note in live-presence.js's remote-cursor comment. Global ids are a separate,
+// see the collision note in app/dotto/lib/canvasPresence.ts's queueSyncDiff comment. Global ids are a separate,
 // deliberately short/human-typeable identifier layered on top, unique across every user, used for
 // the new slash-command system (look up/share a canvas or source by id) and faintly displayed on
 // its card. Client-generated (no server round trip needed at creation time, matching every other

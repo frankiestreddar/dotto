@@ -34,9 +34,10 @@ declare global {
     __hasVisibleNotifications?: () => boolean;
     // profile-achievements-pricing.js
     openPricingOverlay?: () => void;
-    // live-presence.js — canonical item-data accessor, used by app/dotto/lib/stopwatch.ts to
-    // reach a stopwatch card's own live item (part of appState.folders, not a separate store).
-    __findItemById?: (id: number) => Record<string, unknown> | undefined;
+    // app/dotto/lib/canvasPresence.ts — canonical item-data accessor, used by
+    // app/dotto/lib/stopwatch.ts to reach a stopwatch card's own live item (part of
+    // appState.folders, not a separate store). Declared again, in full, further down alongside
+    // this port's own other bridges.
     // history-autosave.js
     __saveSnapshot?: () => void;
     __scheduleWorkspaceSave?: () => void;
@@ -165,8 +166,8 @@ declare global {
     __centerOnContent?: () => void;
     // app/dotto/lib/sharedAndPublicCanvasLoading.ts (Phase 4.4 port — was
     // shared-and-public-canvas-loading.js) — vanilla -> React bridges: app-init.js,
-    // command-verbs.js, hamburger-collab.js, history-autosave.js, live-presence.js, and
-    // waypoints-render-loop.js all previously imported these directly.
+    // command-verbs.js, hamburger-collab.js, history-autosave.js, and waypoints-render-loop.js all
+    // previously imported these directly, plus app/dotto/lib/canvasPresence.ts (ported since).
     __announceEnteredCollaboration?: (localKey: string) => Promise<void>;
     __openPublicCanvas?: (ownerId: string, folderId: string, title?: string) => Promise<void>;
     __ensureSharedFolderLoaded?: (localKey: string) => Promise<boolean>;
@@ -210,7 +211,8 @@ declare global {
       onOpen?: ((pin?: boolean) => void) | null,
       pin?: boolean,
     ) => void;
-    // live-presence.js — used by app/dotto/lib/marketplace.ts's packageSelectedAsTemplate.
+    // app/dotto/lib/messagingCanvasPreview.ts — used by app/dotto/lib/marketplace.ts's
+    // packageSelectedAsTemplate.
     __snapshotItem?: (it: Record<string, unknown>) => Record<string, unknown>;
     __sanitizeFlashcardSnapshot?: (
       snapshot: Record<string, unknown>,
@@ -247,7 +249,7 @@ declare global {
     }) => { fromId: number; toId: number }[];
     // friends-presence.js
     __syncCanvasCollabTitle?: (folderId: string, newTitle: string) => Promise<void>;
-    // live-presence.js
+    // app/dotto/lib/canvasPresence.ts
     __broadcastEditingState?: (isEditing: boolean, targetSelector?: string) => void;
     __renderInlineCanvas?: (
       items: Record<string, unknown>[],
@@ -313,9 +315,11 @@ declare global {
     ) => void;
     // app/dotto/lib/outlineTree.ts (Phase 4.4 port — was outline-tree.js) — React -> vanilla
     // bridges used by OutlinePanel.jsx/FilesListPanel.jsx (already established before this port,
-    // just now typed) plus vanilla -> React bridges used by hamburger-collab.js/live-presence.js/
+    // just now typed) plus vanilla -> React bridges used by hamburger-collab.js/
     // search-panel-history.js/panels-hamburger.js/window-bridge.js/waypoints-render-loop.js/
-    // srs-connections-core.js, which all previously imported these directly.
+    // srs-connections-core.js, which all previously imported these directly, plus
+    // app/dotto/lib/messagingCanvasPreview.ts (ported since — was live-presence.js's own direct
+    // import of kindIconHTML).
     __kindIconFile?: (kind: string, level?: number) => string;
     __goToOutlineSource?: (folderId: string) => void;
     __goToOutlineSourceRow?: (tableItemId: number, rowNumber: number) => void;
@@ -388,8 +392,8 @@ declare global {
     // app/dotto/lib/gamesFlashcardTyperight.ts (Phase 4.4 port — was games-flashcard-typeright.js)
     // — React -> vanilla bridges pre-dating this port (FlashcardCard.jsx/TypeRightCard.jsx now
     // import these directly instead, being in the same app/dotto/ tree; GameOptionsPanel.jsx does
-    // too — these stay declared/assigned since still-vanilla live-presence.js's mini previews
-    // reach cellContentType/colHasAnyCloze indirectly through renderFlashcardHTML/
+    // too — these stay declared/assigned since app/dotto/lib/messagingCanvasPreview.ts's mini
+    // previews reach cellContentType/colHasAnyCloze indirectly through renderFlashcardHTML/
     // renderTypeRightHTML, not directly, so kept for parity/safety rather than proven-unused).
     __cellContentType?: (html: string) => "text" | "image" | "audio";
     __colHasAnyCloze?: (it: Record<string, unknown>, i: number) => boolean;
@@ -413,8 +417,9 @@ declare global {
       playable: Record<string, unknown>[],
     ) => Record<string, unknown> | null;
     __trPlayableCards?: (it: Record<string, unknown>) => Record<string, unknown>[];
-    // Vanilla -> React bridges: waypoints-render-loop.js/
-    // live-presence.js/srs-connections-core.js all previously imported these directly.
+    // Vanilla -> React bridges: waypoints-render-loop.js/srs-connections-core.js all previously
+    // imported these directly, plus app/dotto/lib/messagingCanvasPreview.ts (ported since — was
+    // live-presence.js's own direct import).
     __openGameOptionsPanel?: (id: number) => void;
     __closeGameOptionsPanel?: (id: number) => void;
     __defaultFlashcardDeck?: () => Record<string, unknown>[];
@@ -450,9 +455,10 @@ declare global {
     ) => void;
     // app/dotto/lib/mediaPdfEpub.ts (Phase 4.4 port — was media-pdf-epub.js) — React -> vanilla
     // bridges pre-dating this port (MediaCard.jsx now imports these directly instead, being in the
-    // same app/dotto/ tree — kept declared/assigned since live-presence.js's mini previews still
-    // need them) plus vanilla -> React bridges: live-presence.js/window-bridge.js/upload-popup.js
-    // all previously imported these directly.
+    // same app/dotto/ tree — kept declared/assigned since app/dotto/lib/messagingCanvasPreview.ts's
+    // mini previews still need them) plus vanilla -> React bridges: live-presence.js/window-
+    // bridge.js/upload-popup.js all previously imported these directly (as of this file's own
+    // port — live-presence.js has since been ported too, see messagingCanvasPreview.ts above).
     __renderMediaHTML?: (it: Record<string, unknown>) => string;
     __buildPdfViewer?: (it: Record<string, unknown>) => HTMLElement;
     __buildEpubViewer?: (it: Record<string, unknown>) => HTMLElement;
@@ -463,7 +469,7 @@ declare global {
     setMediaFromLink?: (id: number) => void;
     triggerMediaUpload?: (id: number) => void;
     clearMedia?: (id: number) => void;
-    // live-presence.js — places the caret at the end of an element's content.
+    // app/dotto/lib/canvasPresence.ts — places the caret at the end of an element's content.
     __placeCaretEnd?: (el: HTMLElement) => void;
     // drawing-connections.js — same as __findItemById, but also reaches a table living in a
     // different folder than the one currently open (e.g. a flashcard fed via a connected Stack).
@@ -528,5 +534,75 @@ declare global {
     handleHubCollabSearch?: (v: string) => void;
     handleSourcesSearch?: (v: string) => void;
     handleWaypointsSearch?: (v: string) => void;
+    // core-state.js — same live-read reasoning as __getCanvasEl/__getWorldEl above.
+    __getCursorOverlayEl?: () => HTMLElement | undefined;
+    // profile-achievements-pricing.js
+    __renderAvatarInto?: (
+      el: HTMLElement,
+      avatar: { id: number; url: string | null },
+      fallbackText: string,
+    ) => void;
+    // app/dotto/lib/canvasPresence.ts (Phase 4.5 port — was part of live-presence.js) — React ->
+    // vanilla bridges pre-dating this port (kept declared/assigned since still-vanilla callers
+    // need them too) plus new vanilla -> React bridges: ai-assistant-suggestions.js/cards-misc.js/
+    // card-shortcuts.js/drawing-connections.js/history-autosave.js/hamburger-collab.js/friends-
+    // presence.js/drag-drop-chat.js/srs-connections-core.js/window-bridge.js/waypoints-render-
+    // loop.js all previously imported these directly.
+    __findItemById?: (id: number) => Record<string, unknown> | undefined;
+    __ensureCanvasPresenceChannel?: () => void;
+    __repositionAllRemoteCursors?: () => void;
+    __goToCollaboratorCursor?: (userId: string) => void;
+    __broadcastCursorPositionThrottled?: () => void;
+    __broadcastItemDragPositions?: (startPositions: { id: number }[]) => void;
+    __broadcastItemResize?: (id: number, w: number, h: number) => void;
+    __queueSyncDiff?: (folderObj: Record<string, unknown>) => void;
+    // Plain (non-`__`) global too — broadcastEditingState is ALSO a real inline onfocus/onblur
+    // target (canvasItemBehavior.js's cell markup), kept alongside the `__` bridge above since
+    // real vanilla-JS callers (waypoints-render-loop.js's own .onblur closures) need programmatic
+    // access too, not just the inline-HTML-string form.
+    broadcastEditingState?: (isEditing: boolean, targetSelector?: string) => void;
+    // add-menu.js
+    __searchKindLabel?: (it: Record<string, unknown>) => string;
+    // ai-assistant-suggestions.js
+    __countSourceEntries?: (folderId: string) => number;
+    // cards-misc.js
+    __renderChecklistHTML?: (it: Record<string, unknown>) => string;
+    __renderStatcardHTML?: (it: Record<string, unknown>) => string;
+    // stopwatch.js
+    __renderStopwatchHTML?: (it: Record<string, unknown>) => string;
+    // app/dotto/lib/messagingCanvasPreview.ts (Phase 4.5 port — was part of live-presence.js) —
+    // React -> vanilla bridges pre-dating this port (TitleCard.jsx/MsgConvo.jsx/
+    // SharedCanvasModalBody.jsx/CollabListPanel.jsx/FilesListPanel.jsx/MessagesListPanel.jsx/
+    // MarketDetailPanel.jsx/TableCard.jsx now import these directly instead, all in the same
+    // app/dotto/ tree — kept declared/assigned since still-vanilla callers need them too) plus new
+    // vanilla -> React bridges: blocks-panel.js/friends-presence.js/messages-schedule.js/drag-
+    // drop-chat.js/library-publish.js/window-bridge.js all previously imported these directly.
+    __syncColorPicker?: (bodyEl: HTMLElement) => void;
+    __titleFontSize?: (level: number) => number;
+    __renderRealCardPreview?: (it: Record<string, unknown>) => HTMLElement;
+    __renderMsgSnapshotCard?: (item: Record<string, unknown>) => HTMLElement;
+    __openSharedCanvasView?: (items: Record<string, unknown>[]) => void;
+    __miniLabelForItem?: (item: Record<string, unknown>) => string;
+    __importSharedCardsAtScreenPoint?: (
+      items: Record<string, unknown>[],
+      clientX: number,
+      clientY: number,
+    ) => void;
+    __openConvo?: (friendId: string) => void;
+    __renderConvoBody?: (f: Record<string, unknown>) => void;
+    __closeMessagesPanel?: () => void;
+    __renderMsgList?: (query: string) => void;
+    // app/dotto-app.jsx (via app/dotto/bridges.js's msgConvoStore/sharedCanvasModalStore) —
+    // React-facing setters, plain store.set (no flushSync — see renderConvoBody/openSharedCanvasView's
+    // own comments for why neither needs it).
+    __setMsgConvo?: (state: Record<string, unknown> | null) => void;
+    __setSharedCanvasModal?: (state: Record<string, unknown> | null) => void;
+    // Plain (non-`__`) globals — real inline onclick targets (content/fragments/hamburger-
+    // stack.html/canvas-modal.html), same shape window.pushNotification/
+    // window.handleMarketplaceSearch use.
+    closeConvo?: () => void;
+    sendMsg?: () => Promise<void>;
+    closeSharedCanvasView?: () => void;
+    setTitleLevel?: (id: number, level: string | number) => void;
   }
 }

@@ -4,7 +4,6 @@ import { appState, btnAdd, canvas, canvasViewportCenterX, drawBackBtn, drawColor
 import { createConnection, ensureConnections, ensureDrawings, findLinkedTable, findTableById, makeLayerSVG, pathNearPoint, penPointsToPath, pointsToPath } from './drawing-connections.js';
 import { generateGlobalId } from './global-ids.js';
 import { applyTransform, saveSnapshot, scheduleApplyTransform } from './history-autosave.js';
-import { broadcastEditingState } from './live-presence.js';
 import { awardUserPoints, bumpAchievementStat, showProfileSettingsView } from './profile-achievements-pricing.js';
 import { toggleTheme } from './theme-toggle.js';
 import { toggleUploadPopup } from './upload-popup.js';
@@ -838,7 +837,7 @@ import { calculateSM2, defaultSrsState, diffRatings } from './srs-algorithm.js';
                 window.removePlacementGhost();
                 return;
             }
-            if(appState.currentEditingEl) { appState.currentEditingEl.classList.remove('editing'); appState.currentEditingEl.querySelector('.body').contentEditable = false; appState.currentEditingEl = null; broadcastEditingState(false); }
+            if(appState.currentEditingEl) { appState.currentEditingEl.classList.remove('editing'); appState.currentEditingEl.querySelector('.body').contentEditable = false; appState.currentEditingEl = null; window.__broadcastEditingState(false); }
 
             // Multi-selection: Shift+drag (or Select mode) on empty canvas draws a selection window instead of panning
             if (e.shiftKey || effectiveMode() === 'select') {

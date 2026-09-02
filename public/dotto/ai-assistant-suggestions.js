@@ -2,7 +2,6 @@ import { updateCommandPalette } from './command-palette.js';
 import { appState, canvas, itemElId } from './core-state.js';
 import { renderChatsList } from './hamburger-collab.js';
 import { saveSnapshot, scheduleWorkspaceSave } from './history-autosave.js';
-import { findItemById } from './live-presence.js';
 import { commenceSearchOrMnemonic } from './mnemonic-search-matching.js';
 // Phase 4.2 extraction — see text-utils.js's own comment. Re-exported below (not just used
 // internally) so every other file's existing `from './ai-assistant-suggestions.js'` import keeps
@@ -815,7 +814,7 @@ import { render } from './waypoints-render-loop.js';
     // triggerCellImageUpload/insertIntoActiveCell do for a manually-uploaded image, just
     // addressed by an explicit (tableId, r, c) from the drop point rather than lastFocusedCell.
     function insertImageIntoCellAt(tableId, r, c, imgHtml) {
-        const table = findItemById(tableId);
+        const table = window.__findItemById(tableId);
         if (!table || !table.tableData || !table.tableData[r] || table.tableData[r][c] == null) return false;
         saveSnapshot();
         const cellEl = document.querySelector(`#${itemElId(tableId)} .cell-text[data-r="${r}"][data-c="${c}"]`);

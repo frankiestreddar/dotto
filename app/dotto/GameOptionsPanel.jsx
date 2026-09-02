@@ -12,8 +12,9 @@ import {
 // Ported from the old renderGameOptionsHTML — a separate, still-string-building copy of that
 // function now lives internally in app/dotto/lib/gamesFlashcardTyperight.ts (Phase 4.4), kept
 // there rather than deleted: renderFlashcardHTML/renderTypeRightHTML in that same file still
-// depend on it for live-presence.js's mini previews, which build a real HTML string rather than
-// mounting this component (see PHASE2_ROADMAP.md's Game options/cloze entry). Shared by
+// depend on it for app/dotto/lib/messagingCanvasPreview.ts's mini previews, which build a real
+// HTML string rather than mounting this component (see PHASE2_ROADMAP.md's Game options/cloze
+// entry). Shared by
 // FlashcardCard.jsx and TypeRightCard.jsx, same as the vanilla version was shared by both kinds'
 // own render functions.
 //

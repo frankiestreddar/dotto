@@ -18,7 +18,8 @@ import {
 // app/dotto/lib/gamesFlashcardTyperight.ts (Phase 4.4), reached here as real ES imports since both
 // files live in the same app/dotto/ tree — window.fcFlip/window.fcRate/window.fcToggleMode still
 // exist too, but only because they're also real inline onclick targets for the still-string-built
-// preview HTML (live-presence.js's mini previews) and card-shortcuts.js's keyboard shortcuts.
+// preview HTML (app/dotto/lib/messagingCanvasPreview.ts's mini previews) and card-shortcuts.js's
+// keyboard shortcuts.
 //
 // setupResizing (canvasItemBehavior.js) still owns the resize handle — called directly here via a
 // layout effect, same as attachWatermarkBody/attachUniversalItemBehavior; it's idempotent

@@ -5,7 +5,7 @@ import { appState } from './core-state.js';
     // ---------- Block-kind metadata helpers ----------
     // The Add-menu UI itself (grid/search/wiring) moved to blocks-panel.js when Essentials was
     // repurposed into the Blocks panel (explicit request) — these three pure lookups are kept here
-    // since app/dotto/lib/copyPaste.ts/live-presence.js/srs-connections-core.js/source-tags-ai.js all still
+    // since app/dotto/lib/copyPaste.ts/srs-connections-core.js/source-tags-ai.js all still
     // import them independently of anything panel-related.
 
     function kindLabel(kind) {
@@ -37,3 +37,5 @@ export { kindLabel, kindSize, searchKindLabel };
 
 // Used by app/dotto/lib/copyPaste.ts's placementGhostWorldPos (Phase 4.4).
 window.__kindSize = kindSize;
+// Used by app/dotto/lib/messagingCanvasPreview.ts's renderMsgSnapshotCard (Phase 4.5).
+window.__searchKindLabel = searchKindLabel;

@@ -2,7 +2,6 @@ import { openSearchOverlay, scrollChatThreadToBottom, showAiChatView, updateChat
 import { appState, canvasViewportCenterX, drawSettings, findItemEl, supabase } from './core-state.js';
 import { activePaneCollabBubbleEl, openCollabPanel, renderCollabPill } from './friends-presence.js';
 import { saveWorkspaceNow, smoothPanTo } from './history-autosave.js';
-import { findItemById } from './live-presence.js';
 import { flashCanvasElement } from './mnemonic-search-matching.js';
 import { closeProfilePanel, openPricingOverlay } from './profile-achievements-pricing.js';
 import { deleteCanvasCollabsForFolder, deleteWaypointCardEverywhere, expandWaypointCard, folderGlobalId, openFolder, render } from './waypoints-render-loop.js';
@@ -180,7 +179,7 @@ import { deleteCanvasCollabsForFolder, deleteWaypointCardEverywhere, expandWaypo
         const worldCenterY = (window.innerHeight / 2 - appState.ty) / appState.scale;
         const distanceOf = (r) => {
             if (r.folder_id !== appState.currentFolderId) return Infinity;
-            const it = findItemById(r.item_id);
+            const it = window.__findItemById(r.item_id);
             if (!it) return Infinity;
             return Math.hypot(it.x - worldCenterX, it.y - worldCenterY);
         };

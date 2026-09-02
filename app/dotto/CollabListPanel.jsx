@@ -4,6 +4,7 @@ import { useSyncExternalStore } from "react";
 import { createPortal } from "react-dom";
 import Avatar from "./Avatar";
 import { collabListStore } from "./bridges";
+import { goToCollaboratorCursor } from "./lib/canvasPresence";
 import usePortalNode from "./usePortalNode";
 
 const EMPTY_STATE = { rows: [], query: "" };
@@ -29,7 +30,7 @@ function CollabRow({ r }) {
             r.isPresent
               ? (e) => {
                   e.stopPropagation();
-                  window.__goToCollaboratorCursor(r.id);
+                  goToCollaboratorCursor(r.id);
                 }
               : undefined
           }
