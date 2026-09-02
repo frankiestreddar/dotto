@@ -225,7 +225,7 @@ export function closeLeafInTree(tree, paneId) {
   return tree;
 }
 
-// Search-dropdown result panels (public/dotto/mnemonic-search-matching.js) — each a single-owner
+// Search-dropdown result panels (app/dotto/lib/mnemonicSearchMatching.ts) — each a single-owner
 // static container (#search-translation/#search-dictionary/etc.), unlike searchSuggestionsStore
 // below, which is shared by multiple producers and needs its own discriminated-union design.
 // null means "nothing to show" (matches each panel's own
@@ -238,7 +238,7 @@ export function closeLeafInTree(tree, paneId) {
 //
 // All six __set* bridges for these (app/dotto-app.jsx) wrap their store.set in flushSync, unlike
 // the ported notification stack (app/dotto/lib/notificationsStore.ts, a plain Zustand store
-// rather than a flushSync'd bridge like these) — updateSearchDropdown (ai-assistant-suggestions.js)
+// rather than a flushSync'd bridge like these) — updateSearchDropdown (app/dotto/lib/aiAssistantSuggestions.ts)
 // reads each panel's real DOM node's style.display SYNCHRONOUSLY right after calling its
 // render*Panel function (see renderOrchestrateResult in search-orchestration-selection.js, which
 // calls several of these back-to-back and then updateSearchDropdown once at the end) — without
@@ -271,7 +271,7 @@ export const imageResultStore = createStore(null);
 // saved chat, see the reopen-flow bridge) render with `fresh` false/omitted so they show fully
 // settled immediately, never re-typewriter. Like commandPaletteStore below, __setChatThread/
 // __appendChatTurn (app/dotto-app.jsx) are flushSync'd — the new independent chat-thread
-// height-transition function (ai-assistant-suggestions.js) reads #search-chat-thread's real
+// height-transition function (app/dotto/lib/aiAssistantSuggestions.ts) reads #search-chat-thread's real
 // scrollHeight synchronously right after appending a turn, same reasoning as
 // updateSearchDropdown's own flushSync dependency.
 export const chatThreadStore = createStore([]);
@@ -296,7 +296,7 @@ export const commandPaletteStore = createStore(null);
 // union ({kind, ...}) rather than one plain value —
 // only ONE of them is ever shown at a time, unlike the ported notification stack
 // (app/dotto/lib/notificationsStore.ts), which is a genuine multi-item stack. See
-// renderMnemonicResultCard's own comment in mnemonic-search-matching.js
+// renderMnemonicResultCard's own comment in app/dotto/lib/mnemonicSearchMatching.ts
 // for the full producer list, and SearchSuggestionsPanel.jsx for how each kind is built. Unlike
 // commandPaletteStore above, this one is NOT a portal (every kind's content stays 100%
 // vanilla-built, mounted the same "return null, mutate in an effect" way as
@@ -317,7 +317,7 @@ export const searchSuggestionsStore = createStore(null);
 // renderAddToSourcePopup right after.
 export const addToSourcePopupStore = createStore({ isOpen: false, left: 0, top: 0 });
 
-// Hamburger menu's Waypoints panel (public/dotto/hamburger-collab.js's renderWaypointsList) —
+// Hamburger menu's Waypoints panel (app/dotto/lib/hamburgerCollab.ts's renderWaypointsList) —
 // { rows: [{owner_id, folder_id, item_id, name}], query } — genuine JSX rows (see
 // WaypointsListPanel.jsx), same reasoning as commandPaletteStore: simple icon+label+onclick rows,
 // no per-row widget state worth keeping vanilla. `query` rides along just to pick the right empty-
@@ -334,27 +334,27 @@ export const waypointsListStore = createStore({ rows: [], query: "" });
 // called from OutlinePanel.jsx's own layout effect) rather than owning that DOM itself.
 export const outlineStore = createStore({ rows: [], query: "" });
 
-// Hamburger menu's Sources panel (public/dotto/hamburger-collab.js's renderSourcesList) —
+// Hamburger menu's Sources panel (app/dotto/lib/hamburgerCollab.ts's renderSourcesList) —
 // { rows: [{id, folderId, title, globalId, onCanvas, active}] , query }, one row per source folder
 // account-wide (current-canvas ones sorted first). Genuine JSX rows (see SourcesListPanel.jsx),
 // same reasoning as chatsListStore below. Not flushSync'd — a plain store.set, no synchronous DOM
 // read follows a render()-driven update.
 export const sourcesListStore = createStore({ rows: [], query: "" });
 
-// Hamburger menu's Files panel (public/dotto/hamburger-collab.js's renderFilesList) — structurally
+// Hamburger menu's Files panel (app/dotto/lib/hamburgerCollab.ts's renderFilesList) — structurally
 // identical to sourcesListStore just above (copied from it per explicit request), just
 // { rows: [{id, folderId, itemId, title, onCanvas}], query }, one row per uploaded kind:'media' item
 // account-wide (current-canvas ones sorted first). See FilesListPanel.jsx.
 export const filesListStore = createStore({ rows: [], query: "" });
 
-// Hamburger menu's Chats panel (public/dotto/hamburger-collab.js's renderChatsList) — a plain
+// Hamburger menu's Chats panel (app/dotto/lib/hamburgerCollab.ts's renderChatsList) — a plain
 // array of { id, title, updated_at } rows (see ChatsListPanel.jsx), no search/query state (v1: no
 // search box, unlike Waypoints/Collaborations above — a saved-chat list is likely short enough not
 // to need one yet). Row click reopens that conversation in the search palette — see
 // window.__openSavedChat, search-orchestration-selection.js.
 export const chatsListStore = createStore([]);
 
-// Hamburger menu's Collaborations panel (public/dotto/hamburger-collab.js's renderHubCollabList/
+// Hamburger menu's Collaborations panel (app/dotto/lib/hamburgerCollab.ts's renderHubCollabList/
 // renderHubCollabRequests) — two views sharing #hub-collab-list, same as the vanilla version:
 // { view: 'main', requestsCount, ownedShown, sharedShown, query } or
 // { view: 'requests', requests }. Genuine JSX rows (see HubCollabListPanel.jsx), same reasoning as
@@ -369,7 +369,7 @@ export const hubCollabListStore = createStore({
 });
 
 // Shift-click-to-select + Backspace-to-delete state for the Chats/Waypoints/Collaborations
-// hamburger list panels (public/dotto/hamburger-collab.js's window.__toggleListPanelSelection).
+// hamburger list panels (app/dotto/lib/hamburgerCollab.ts's window.__toggleListPanelSelection).
 // One shared store, not three — openHubSubpanel (app/dotto/lib/panelsHamburger.ts) already enforces exactly
 // one hub-subpanel open at a time, so `panel` (which list the ids belong to) doubles as the
 // disambiguation a Backspace handler needs for free, no separate "which panel is active"

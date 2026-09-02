@@ -3,6 +3,11 @@
 import { useLayoutEffect } from "react";
 import { useSyncExternalStore } from "react";
 import { imageResultStore } from "./bridges";
+import {
+  buildImageResultCard,
+  buildImageResultError,
+  buildImageResultLoading,
+} from "./lib/mnemonicSearchMatching";
 
 // Mounts the mnemonic image panel's 3 mutually-exclusive states into #search-image-result — see
 // imageResultStore's own comment in bridges.js. Each state's own build function stays vanilla:
@@ -24,9 +29,9 @@ export default function ImageResultPanel() {
       return;
     }
     let node;
-    if (state.status === "loading") node = window.__buildImageResultLoading();
-    else if (state.status === "error") node = window.__buildImageResultError(state.reason);
-    else node = window.__buildImageResultCard(state.imageDataUrl);
+    if (state.status === "loading") node = buildImageResultLoading();
+    else if (state.status === "error") node = buildImageResultError(state.reason);
+    else node = buildImageResultCard(state.imageDataUrl);
     el.appendChild(node);
     el.style.display = "block";
   }, [state]);

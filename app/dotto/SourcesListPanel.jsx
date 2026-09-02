@@ -20,7 +20,7 @@ const EMPTY_STATE = { rows: [], query: "" };
 // yet; a plain click just opens it, same as before this list existed at all (SourceCard.jsx's own
 // click handler, attachSourceCardClick).
 // r.active (whichever source's own folder IS the current canvas — computed in renderSourcesList,
-// hamburger-collab.js, so it stays correct across navigation without this component needing its
+// app/dotto/lib/hamburgerCollab.ts, so it stays correct across navigation without this component needing its
 // own currentFolderId subscription) reuses the exact same .outline-item.active rule the Outline
 // panel already applies to its own current-folder row (app/dotto/lib/outlineTree.ts) — a permanent
 // version of the same highlight :hover gives every row, per explicit request.
@@ -92,7 +92,7 @@ function SourceRow({ r, altHeld }) {
 // container, safe to portal into directly, no wrapper needed. Visibility of the panel itself stays
 // a vanilla classList toggle (openRailView/wireRailIcon, app/dotto/lib/panelsHamburger.ts), unrelated to this —
 // this component only owns the row list. Lists every source anywhere in the account, current-
-// canvas ones sorted first — see renderSourcesList's own comment, hamburger-collab.js, for the
+// canvas ones sorted first — see renderSourcesList's own comment, app/dotto/lib/hamburgerCollab.ts, for the
 // full reasoning and why it refreshes on every render() rather than just on panel-open/search-input.
 //
 // altHeld tracks the Option/Alt key globally (keydown/keyup, both scoped to this component's own

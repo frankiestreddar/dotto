@@ -100,7 +100,7 @@ interface AppState {
   outlineActiveIndex: number;
   outlineRows: { el: HTMLElement }[];
   activeRailView: string | null;
-  lastWaypointsRows: { owner_id: string; folder_id: string; item_id: string }[] | null;
+  lastWaypointsRows: { owner_id: string; folder_id: string; item_id: number }[] | null;
   btnInbox: HTMLElement;
   btnSearch: HTMLElement;
   btnSources: HTMLElement;
@@ -838,7 +838,7 @@ function handleGlobalKeydown(e: KeyboardEvent): void {
   }
   // 1-9 then 0 jump straight to the first 10 rows of the Waypoints panel — matching whatever it's
   // currently showing (see sortWaypointRowsByProximity/appState.lastWaypointsRows,
-  // hamburger-collab.js, and the same-index .outline-item-key badges WaypointRow draws,
+  // app/dotto/lib/hamburgerCollab.ts, and the same-index .outline-item-key badges WaypointRow draws,
   // WaypointsListPanel.jsx), only while that panel specifically is open. window.__goToWaypointCard
   // is the exact same bridge each row's own onClick already calls.
   if (!isEditingText && appState.activeRailView === "waypoints" && /^[0-9]$/.test(e.key)) {
@@ -1397,7 +1397,7 @@ export function add(kind: string, x = 100, y = 100, statKind: string | null = nu
 // click. render() (inside add()) already refreshes everything reading off
 // appState.folders[appState.currentFolderId].items, including the new source's own linking item —
 // the panel's own list just needs its own render hook wired to pick that up too, see
-// panelsHamburger.ts/hamburger-collab.js.
+// panelsHamburger.ts/app/dotto/lib/hamburgerCollab.ts.
 export function createNewSource(): void {
   const { w, h } = window.__kindSize?.("source") || { w: 0, h: 0 };
   const center = viewportCenterWorldPoint();

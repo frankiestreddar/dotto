@@ -19,9 +19,7 @@
 // as plain globals directly, same convention every other inline-onclick target that file owns
 // already established.)
 
-import { handleSearchFocus, handleSearchInput, showAiListView } from './ai-assistant-suggestions.js';
 import { handleCollabSearch, handleMsgSearch, openCollabPanel } from './friends-presence.js';
-import { hmenuAction } from './hamburger-collab.js';
 import { closeCellTagPicker, closeTagContextMenu, commitTagRename, createTagFromCellPicker, deleteActiveTag, handleTagRenameKeydown, openTagContextMenu, startRenameActiveTag, toggleCellTag, triggerSourceUpload } from './source-tags-ai.js';
 
 window.closeCellTagPicker = closeCellTagPicker;
@@ -31,13 +29,9 @@ window.createTagFromCellPicker = createTagFromCellPicker;
 window.deleteActiveTag = deleteActiveTag;
 window.handleCollabSearch = handleCollabSearch;
 window.handleMsgSearch = handleMsgSearch;
-window.handleSearchFocus = handleSearchFocus;
-window.handleSearchInput = handleSearchInput;
 window.handleTagRenameKeydown = handleTagRenameKeydown;
-window.hmenuAction = hmenuAction;
 window.openCollabPanel = openCollabPanel;
 window.openTagContextMenu = openTagContextMenu;
-window.showAiListView = showAiListView;
 window.startRenameActiveTag = startRenameActiveTag;
 window.toggleCellTag = toggleCellTag;
 window.triggerSourceUpload = triggerSourceUpload;

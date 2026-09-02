@@ -58,7 +58,7 @@ function clearDropHighlights() {
 // other card kind, rather than a source's own "enter it directly" behavior (a file is a normal
 // canvas card, not a full-page view of its own).
 // r.onCanvas (whichever file's own folder IS the current canvas — computed in renderFilesList,
-// hamburger-collab.js) only drives sort order here (current-canvas files first), unlike Sources'
+// app/dotto/lib/hamburgerCollab.ts) only drives sort order here (current-canvas files first), unlike Sources'
 // own r.active which also permanently highlights a row — a file's own folder isn't really "the
 // current page" the way a source's is, so there's no equivalent single "you're here" row to mark.
 //
@@ -202,7 +202,7 @@ function FileRow({ r }) {
 // container, safe to portal into directly, no wrapper needed. Visibility of the panel itself stays
 // a vanilla classList toggle (openRailView/wireRailIcon, app/dotto/lib/panelsHamburger.ts), unrelated to this —
 // this component only owns the row list. Lists every uploaded file anywhere in the account,
-// current-canvas ones sorted first — see renderFilesList's own comment, hamburger-collab.js, for
+// current-canvas ones sorted first — see renderFilesList's own comment, app/dotto/lib/hamburgerCollab.ts, for
 // the full reasoning and why it refreshes on every render() rather than just on panel-open/
 // search-input (same as Sources/Outline/Tabs/Breadcrumb already do).
 export default function FilesListPanel() {

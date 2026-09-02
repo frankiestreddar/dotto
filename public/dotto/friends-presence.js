@@ -1,4 +1,3 @@
-import { clearSearch } from './ai-assistant-suggestions.js';
 const appState = window.__getAppState();
 const supabase = window.__dottoSupabase || null;
 const switchActivePane = window.__switchActivePane;
@@ -26,7 +25,7 @@ import { openMessagesPanel } from './messages-schedule.js';
     function openCollabPanel(pin) {
         if (!appState.collabBubble.classList.contains('show')) return;
         window.__closeAllPanels('collab');
-        clearSearch();
+        window.__clearSearch?.();
         appState.collabPanel.classList.add('open');
         appState.collabSearchInput.value = '';
         renderCollabList('');
@@ -64,7 +63,7 @@ import { openMessagesPanel } from './messages-schedule.js';
     // appState.collabBubble can point to now that every pane renders its own (no more static
     // #collab-bubble) — found by pane id rather than a fixed id. For callers that need to open the
     // ACTIVE pane's own collab panel from somewhere other than a real click/hover on that bubble
-    // (e.g. handleOwnedHubCollabRowClick, hamburger-collab.js, which navigates then opens the panel
+    // (e.g. handleOwnedHubCollabRowClick, app/dotto/lib/hamburgerCollab.ts, which navigates then opens the panel
     // programmatically) rather than duplicating this query at each such call site.
     function activePaneCollabBubbleEl() {
         return document.querySelector('#pane-breadcrumb-pill-' + appState.activePaneId + ' .pane-collab-bubble');
@@ -221,7 +220,7 @@ import { openMessagesPanel } from './messages-schedule.js';
     // showed), and once more immediately after switchActivePane's own swap (that function's own
     // comment) so the newly active pane's pill doesn't wait a frame to refresh. MUST be flushSync'd
     // (see app/dotto-app.jsx): openCollabPanel, right below, reads collabBubble's `.show` class
-    // synchronously right after a caller in hamburger-collab.js calls this.
+    // synchronously right after a caller in app/dotto/lib/hamburgerCollab.ts calls this.
     function renderCollabPill(paneId = appState.activePaneId) {
         const folderObj = appState.folders[appState.currentFolderId];
         // The root canvas is always private to the user, so no collaborators indicator there —
@@ -595,6 +594,10 @@ window.__closeCollabPanel = closeCollabPanel;
 window.__renderMsgList = renderMsgList;
 // Used by app/dotto/lib/waypointsRenderLoop.ts's applyFolderView (Phase 4.5).
 window.__refreshCanvasCollabForCurrentFolder = refreshCanvasCollabForCurrentFolder;
+// Used by app/dotto/lib/hamburgerCollab.ts's handleOwnedHubCollabRowClick (Phase 4.5) — that file
+// used to import activePaneCollabBubbleEl directly, which no longer reaches across the public/app
+// boundary now that it's ported.
+window.__activePaneCollabBubbleEl = activePaneCollabBubbleEl;
 
 // No window.__initials bridge — Avatar.jsx (app/dotto/) reimplements this directly instead (see
 // its own comment for why: plain string logic with no vanilla-only dependency, and needing it to

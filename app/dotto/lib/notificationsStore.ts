@@ -153,11 +153,12 @@ export function wireNotifications(): () => void {
 
 // Not an inline-HTML onclick target (see window-bridge.js's own header comment for why those live
 // there instead) — plain vanilla-callable bridges for the still-vanilla files that push/query
-// notifications (command-verbs.js, command-palette.js, hamburger-collab.js, friends-presence.js,
+// notifications (command-verbs.js, command-palette.js, friends-presence.js,
 // app/dotto/lib/srsConnectionsCore.ts) plus app/dotto/lib/profileAchievementsPricing.ts,
-// app/dotto/lib/cardShortcuts.ts, app/dotto/lib/dayChangeAndAdNotifications.ts,
-// app/dotto/lib/sharedAndPublicCanvasLoading.ts, and PricingOverlay.jsx, which already called
-// window.pushNotification even before this port (see vanillaBridges.d.ts).
+// app/dotto/lib/cardShortcuts.ts, app/dotto/lib/hamburgerCollab.ts,
+// app/dotto/lib/dayChangeAndAdNotifications.ts, app/dotto/lib/sharedAndPublicCanvasLoading.ts, and
+// PricingOverlay.jsx, which already called window.pushNotification even before this port (see
+// vanillaBridges.d.ts).
 // Guarded: this module's top level is reached during Next's server-side render pass (a
 // pre-existing, project-wide issue across every Phase 4.4/4.5 bridge file, discovered and
 // documented while finishing the history-autosave.js port — see PHASE4_ROADMAP.md), where

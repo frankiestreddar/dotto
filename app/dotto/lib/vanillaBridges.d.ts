@@ -132,8 +132,8 @@ declare global {
     // async (a shared: key not yet fetched is loaded first) — this was declared as a sync void
     // function before any real caller awaited it.
     __openFolder?: (folderId: string) => Promise<void>;
-    // ai-assistant-suggestions.js — structural (real canvas hierarchy) parent lookup, used by
-    // app/dotto/lib/tabManagement.ts's buildAncestorChain.
+    // app/dotto/lib/aiAssistantSuggestions.ts — structural (real canvas hierarchy) parent lookup,
+    // used by app/dotto/lib/tabManagement.ts's buildAncestorChain.
     __findParentFolderId?: (folderId: string) => string | undefined;
     // app/dotto/lib/sharedAndPublicCanvasLoading.ts — leaves a live-shared/public canvas tree
     // and lands on the user's own real root, used by app/dotto/lib/tabManagement.ts's
@@ -178,8 +178,9 @@ declare global {
     __centerOnContent?: () => void;
     // app/dotto/lib/sharedAndPublicCanvasLoading.ts (Phase 4.4 port — was
     // shared-and-public-canvas-loading.js) — vanilla -> React bridges: app-init.js,
-    // command-verbs.js, hamburger-collab.js, history-autosave.js, and waypoints-render-loop.js all
-    // previously imported these directly, plus app/dotto/lib/canvasPresence.ts (ported since).
+    // command-verbs.js, history-autosave.js, and waypoints-render-loop.js all previously imported
+    // these directly, plus app/dotto/lib/canvasPresence.ts and app/dotto/lib/hamburgerCollab.ts
+    // (both ported since).
     __announceEnteredCollaboration?: (localKey: string) => Promise<void>;
     __openPublicCanvas?: (ownerId: string, folderId: string, title?: string) => Promise<void>;
     __ensureSharedFolderLoaded?: (localKey: string) => Promise<boolean>;
@@ -300,7 +301,7 @@ declare global {
     ) => HTMLElement;
     // app/dotto/lib/coreState.ts
     __itemElId?: (id: number, paneId?: number) => string;
-    // ai-assistant-suggestions.js
+    // text-utils.js
     __escapeHtml?: (str: string) => string;
     // app/dotto/lib/shelfSearch.ts (Phase 4.4 port — was shelf-search.js) — vanilla -> React
     // bridges: startRenameShelfName/shelfSelectSession/handleShelfSourceRowClick/
@@ -351,8 +352,8 @@ declare global {
       targetScale: number,
       durationMs?: number,
     ) => void;
-    // mnemonic-search-matching.js — brief highlight flash on a canvas element, used to draw the
-    // eye after a jump-to-item navigation (outline row click, search result click, etc).
+    // app/dotto/lib/mnemonicSearchMatching.ts — brief highlight flash on a canvas element, used to
+    // draw the eye after a jump-to-item navigation (outline row click, search result click, etc).
     __flashCanvasElement?: (el: HTMLElement | undefined) => void;
     // app/dotto/lib/sourceTable.ts — moves keyboard focus (and starts editing on Enter-driven nav)
     // to a specific table cell; pos is an optional caret-position hint for text inputs.
@@ -367,11 +368,11 @@ declare global {
     ) => void;
     // app/dotto/lib/outlineTree.ts (Phase 4.4 port — was outline-tree.js) — React -> vanilla
     // bridges used by OutlinePanel.jsx/FilesListPanel.jsx (already established before this port,
-    // just now typed) plus vanilla -> React bridges used by hamburger-collab.js/
-    // search-panel-history.js/panels-hamburger.js/window-bridge.js/waypoints-render-loop.js/
-    // srs-connections-core.js, which all previously imported these directly, plus
-    // app/dotto/lib/messagingCanvasPreview.ts (ported since — was live-presence.js's own direct
-    // import of kindIconHTML).
+    // just now typed) plus vanilla -> React bridges used by search-panel-history.js/
+    // panels-hamburger.js/window-bridge.js/waypoints-render-loop.js/srs-connections-core.js, which
+    // all previously imported these directly, plus app/dotto/lib/messagingCanvasPreview.ts and
+    // app/dotto/lib/hamburgerCollab.ts (both ported since — the former was live-presence.js's own
+    // direct import of kindIconHTML).
     __kindIconFile?: (kind: string, level?: number) => string;
     __goToOutlineSource?: (folderId: string) => void;
     __goToOutlineSourceRow?: (tableItemId: number, rowNumber: number) => void;
@@ -408,8 +409,8 @@ declare global {
     __linkSelectedCards?: () => void;
     // friends-presence.js
     __closeCollabPanel?: () => void;
-    // hamburger-collab.js
-    __dispatchListPanelDelete?: (panel: string, ids: number[]) => void;
+    // app/dotto/lib/hamburgerCollab.ts
+    __dispatchListPanelDelete?: (panel: string, ids: string[]) => void;
     // app/dotto/lib/historyAutosave.ts — dual-exposed with the plain `hideCanvasContextMenu`
     // global further down (a real inline onclick target too).
     __hideCanvasContextMenu?: () => void;
@@ -559,12 +560,19 @@ declare global {
     triggerCellAudioUpload?: () => void;
     startCellAudioRecording?: () => void;
     stopCellAudioRecording?: () => void;
-    // ai-assistant-suggestions.js — used by app/dotto/lib/panelsHamburger.ts's wireRailIcon/
-    // openRailView calls for the AI rail icon.
+    // app/dotto/lib/aiAssistantSuggestions.ts (Phase 4.5 port — was ai-assistant-suggestions.js) —
+    // used by app/dotto/lib/panelsHamburger.ts's wireRailIcon/openRailView calls for the AI rail
+    // icon.
     __refreshAiPanel?: () => void;
     __resetAiSearchState?: () => void;
-    // hamburger-collab.js — used by app/dotto/lib/panelsHamburger.ts's openRailView/wireRailIcon
-    // calls.
+    // app/dotto/lib/aiAssistantSuggestions.ts — used by search-orchestration-selection.js (still
+    // vanilla), which used to import these 4 directly.
+    __updateChatThread?: () => void;
+    __scrollChatThreadToBottom?: () => void;
+    __updateSearchDropdown?: () => void;
+    __showAiChatView?: () => void;
+    // app/dotto/lib/hamburgerCollab.ts (Phase 4.5 port — was hamburger-collab.js) — used by
+    // app/dotto/lib/panelsHamburger.ts's openRailView/wireRailIcon calls.
     __clearListPanelSelection?: () => void;
     __renderFilesList?: (query?: string) => void;
     __renderHubCollabList?: (query?: string) => void;
@@ -576,10 +584,11 @@ declare global {
     // profile-achievements-pricing.js/source-tags-ai.js/srs-connections-core.js all previously
     // imported these directly.
     __isAnyUiPanelOpen?: () => boolean;
-    // hamburger-collab.js — already an established runtime bridge (WaypointsListPanel.jsx's own
-    // row click), just never typed here until app/dotto/lib/srsConnectionsCore.ts (Phase 4.5)
-    // needed it too, for the same 1-9/0 waypoints-panel jump shortcut.
-    __goToWaypointCard?: (ownerId: string, folderId: string, itemId: string) => Promise<void>;
+    // app/dotto/lib/hamburgerCollab.ts — already an established runtime bridge
+    // (WaypointsListPanel.jsx's own row click), just never typed here until
+    // app/dotto/lib/srsConnectionsCore.ts (Phase 4.5) needed it too, for the same 1-9/0
+    // waypoints-panel jump shortcut.
+    __goToWaypointCard?: (ownerId: string, folderId: string, itemId: number) => Promise<void>;
     __scheduleHoverClose?: (
       name: string,
       hoverEls: (HTMLElement | undefined | null)[],
@@ -644,7 +653,7 @@ declare global {
     broadcastEditingState?: (isEditing: boolean, targetSelector?: string) => void;
     // add-menu.js
     __searchKindLabel?: (it: Record<string, unknown>) => string;
-    // ai-assistant-suggestions.js
+    // app/dotto/lib/aiAssistantSuggestions.ts
     __countSourceEntries?: (folderId: string) => number;
     // app/dotto/lib/cardsMisc.ts
     __renderChecklistHTML?: (it: Record<string, unknown>) => string;
@@ -703,11 +712,11 @@ declare global {
     __getDrawBackBtnEl?: () => HTMLElement | undefined;
     __recomputeTopCardZIndex?: () => void;
     __restorePaneState?: (paneId: number, savedFields: Record<string, unknown>) => void;
-    // ai-assistant-suggestions.js
+    // app/dotto/lib/aiAssistantSuggestions.ts
     __clearSearch?: () => void;
     // global-ids.js
     __generateGlobalId?: () => string;
-    // hamburger-collab.js
+    // app/dotto/lib/hamburgerCollab.ts
     __resolveSharedFolderChain?: (ownerId: string, folderId: string) => Promise<string[] | null>;
     // app/dotto/lib/profileAchievementsPricing.ts (Phase 4.5 port — was profile-achievements-pricing.js)
     __closeDotbotUpgradeModal?: () => void;
@@ -802,8 +811,7 @@ declare global {
     // waypoints-render-loop.js) — CanvasItemsLayer.jsx/CanvasCard.jsx/SourceCard.jsx/NoteCard.jsx/
     // WatermarkCard.jsx/TitleCard.jsx/WaypointCard.jsx/FilesListPanel.jsx/PaneZoomBar.jsx/
     // SourcesListPanel.jsx/TabsBar.jsx (React -> vanilla) and drawing-connections.js/
-    // ai-assistant-suggestions.js/search-orchestration-selection.js/hamburger-collab.js/
-    // app-init.js/mnemonic-search-matching.js/command-verbs.js/
+    // search-orchestration-selection.js/app-init.js/command-verbs.js/
     // source-tags-ai.js (vanilla -> React) all reach these.
     __applyCanvasItemWrapperAttrs?: (el: HTMLElement, it: Record<string, unknown>) => void;
     __attachUniversalItemBehavior?: (el: HTMLElement, it: Record<string, unknown>) => void;
@@ -875,5 +883,55 @@ declare global {
     // app/dotto/canvasItemBehavior.js's setupDraggingAndClicking (Phase 3), same reasoning as
     // window.__getAppState.
     __bringCardToFront?: (it: Record<string, unknown> | undefined, el?: HTMLElement | null) => void;
+
+    // app/dotto-app.jsx (via app/dotto/bridges.js's various stores) — React-facing setters for the
+    // Phase 4.5 aiAssistantSuggestions.ts/hamburgerCollab.ts/mnemonicSearchMatching.ts trio.
+    __setCommandPalette?: (state: { rows: Record<string, unknown>[] } | null) => void;
+    __setSearchSuggestions?: (state: Record<string, unknown> | null) => void;
+    __setChatThread?: (turns: { id: string; query: string; panels: unknown }[]) => void;
+    __setHubCollabList?: (state: {
+      view: string;
+      requestsCount?: number;
+      ownedShown?: unknown[];
+      sharedShown?: unknown[];
+      requests?: unknown[];
+      query?: string;
+    }) => void;
+    __setWaypointsList?: (state: { rows: unknown[]; query: string }) => void;
+    __setSourcesList?: (state: { rows: unknown[]; query: string }) => void;
+    __setFilesList?: (state: { rows: unknown[]; query: string }) => void;
+    __setChatsList?: (rows: { id: string; title: string; updated_at: string }[]) => void;
+    __setListPanelSelection?: (state: { panel: string | null; ids: Set<string> }) => void;
+    __setImageResult?: (state: Record<string, unknown> | null) => void;
+    __setTranslationPanel?: (panel: unknown) => void;
+    __setDictionaryPanel?: (panel: unknown) => void;
+    __setExamplesPanel?: (panel: unknown) => void;
+    __setRecommendedSearches?: (panel: unknown) => void;
+    __setDotbotAnswer?: (state: Record<string, unknown> | null) => void;
+
+    // command-palette.js — new bridge for this port; app/dotto/lib/aiAssistantSuggestions.ts used
+    // to import updateCommandPalette directly (vanilla-to-vanilla), which no longer reaches across
+    // the public/app boundary now that it's ported.
+    __updateCommandPalette?: (value: string) => void;
+    // search-orchestration-selection.js — new bridge for this port, same reasoning:
+    // app/dotto/lib/mnemonicSearchMatching.ts used to import commenceDotbotSearch directly.
+    __commenceDotbotSearch?: (query: string) => void;
+    // friends-presence.js — new bridge for this port; app/dotto/lib/hamburgerCollab.ts used to
+    // import activePaneCollabBubbleEl directly (vanilla-to-vanilla).
+    __activePaneCollabBubbleEl?: () => HTMLElement | undefined;
+    // friends-presence.js — already an established runtime bridge, just never typed here until
+    // app/dotto/lib/hamburgerCollab.ts (Phase 4.5) needed it too.
+    __openCollabPanel?: (pin?: boolean) => void;
+    // app/dotto/lib/mnemonicSearchMatching.ts — kept as bridges (not upgraded to real imports)
+    // since search-orchestration-selection.js (still vanilla) is a real caller alongside
+    // SearchSuggestionsPanel.jsx.
+    __buildMnemonicErrorEl?: (reason: string) => HTMLElement;
+    __commenceSearchOrMnemonic?: (query: string) => void;
+    // Plain (non-`__`) globals — real inline oninput/onfocus/onclick targets in
+    // content/fragments/hamburger-stack.html and content/dotto-markup.html.
+    handleSearchFocus?: () => void;
+    handleSearchInput?: (value: string) => void;
+    showAiListView?: () => void;
+    hmenuAction?: (action: string) => void;
   }
 }

@@ -423,8 +423,9 @@ if (typeof window !== "undefined") {
   window.__resolveReferenceFolderKey = resolveReferenceFolderKey;
   window.__exitSharedCanvasToRoot = exitSharedCanvasToRoot;
   // The rest of these are new as of this port — every one of these 7 callers (app-init.js,
-  // command-verbs.js, hamburger-collab.js, history-autosave.js, waypoints-render-loop.js — all still
-  // vanilla — plus app/dotto/lib/canvasPresence.ts, ported since) previously imported the function
+  // command-verbs.js, history-autosave.js, waypoints-render-loop.js — all still vanilla — plus
+  // app/dotto/lib/canvasPresence.ts and app/dotto/lib/hamburgerCollab.ts, both ported since)
+  // previously imported the function
   // directly; public/dotto/*.js can't import from app/dotto/, so each still-vanilla one switched to
   // calling the matching bridge instead.
   window.__announceEnteredCollaboration = announceEnteredCollaboration;

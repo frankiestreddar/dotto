@@ -1,4 +1,4 @@
-import { escapeHtml } from './ai-assistant-suggestions.js';
+import { escapeHtml } from './text-utils.js';
 
 // Recent-search-terms list for #search-panel (hamburger-stack.html) — per explicit request, a
 // plain history of what's been typed into #search-panel-search, shown as rows in

@@ -31,7 +31,7 @@ interface AppState {
   MODE_HOLD_THRESHOLD_MS: number;
   MODE_ORDER_WEIGHT: Record<string, number>;
   selectedCardIds: number[];
-  listPanelSelection: { panel: string | null; ids: Set<number> };
+  listPanelSelection: { panel: string | null; ids: Set<string> };
   folders: Record<string, FolderObj>;
   currentFolderId: string;
 }
@@ -304,7 +304,7 @@ function doWire(appState: AppState): void {
       return;
     }
     // Deletes whatever's currently selected. List-panel selection (Chats/Waypoints/
-    // Collaborations, shift-click — see toggleListPanelSelection, hamburger-collab.js) is checked
+    // Collaborations, shift-click — see toggleListPanelSelection, app/dotto/lib/hamburgerCollab.ts) is checked
     // FIRST and, if present, wins outright: opening the hamburger menu doesn't clear an existing
     // canvas-card selection, so both could genuinely be non-empty at once (e.g. select some
     // cards, then open the menu and shift-click a chat row) — without this ordering a bare
@@ -358,7 +358,7 @@ function doWire(appState: AppState): void {
   // Collaborations/Marketplace/Library/Messages/Sources/Files/Queries/Profile/Add) — per explicit
   // request, a rail panel now only closes via Escape (closeAllPanels, app/dotto/lib/historyAutosave.ts) or by
   // clicking its own already-open icon again (wireRailIcon, app/dotto/lib/panelsHamburger.ts), never by
-  // clicking anywhere else. clearSearch() (ai-assistant-suggestions.js) is omitted for the same
+  // clicking anywhere else. clearSearch() (app/dotto/lib/aiAssistantSuggestions.ts) is omitted for the same
   // reason — despite its generic name, its only effect is closing the Queries/AI rail view
   // specifically (see its own body), which is exactly the behavior being removed here. Everything
   // else this handler closes (the source-add-menu, cell tag picker, canvas/item context menus,

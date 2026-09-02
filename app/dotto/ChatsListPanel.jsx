@@ -5,6 +5,7 @@ import { createPortal } from "react-dom";
 import { chatsListStore, listPanelSelectionStore } from "./bridges";
 import RowActions from "./RowActions";
 import usePortalNode from "./usePortalNode";
+import { openSavedChat } from "./lib/hamburgerCollab";
 
 // Module-level, not inline — see CanvasItemsLayer.jsx's identical EMPTY_ITEMS comment for why a
 // fresh array literal as the getServerSnapshot fallback trips React's "should be cached" warning.
@@ -20,11 +21,11 @@ function ChatRow({ r, selected }) {
       onClick={(e) => {
         e.stopPropagation();
         // Selecting (both a plain shift+click and a shift+click-drag across several rows) is
-        // handled entirely by setupListPanelDragSelect (hamburger-collab.js), listening on the
-        // stable #chats-list container rather than here — this guard just stops a shift+click
-        // from ALSO opening the chat below.
+        // handled entirely by setupListPanelDragSelect (app/dotto/lib/hamburgerCollab.ts),
+        // listening on the stable #chats-list container rather than here — this guard just stops
+        // a shift+click from ALSO opening the chat below.
         if (e.shiftKey) return;
-        window.__openSavedChat(r.id);
+        openSavedChat(r.id);
       }}
     >
       {/* .search-history-icon (globals.css) reused as-is — same row structure #search-panel's own

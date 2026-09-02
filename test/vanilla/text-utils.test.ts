@@ -4,8 +4,9 @@ import { describe, expect, it } from "vitest";
 // can't be imported by app/" convention that governs the real running app. text-utils.js
 // deliberately only holds escapeHtml/stripHtml (not the third original candidate,
 // isLatinScriptText — see that file's own comment on why: it needs appState, reached via the
-// window.__getAppState() bridge rather than a real import even from ai-assistant-suggestions.js
-// now — but that bridge is never set in a Vitest/jsdom environment, since nothing there loads the
+// window.__getAppState() bridge rather than a real import even from
+// app/dotto/lib/aiAssistantSuggestions.ts now — but that bridge is never set in a Vitest/jsdom
+// environment, since nothing there loads the
 // real app/dotto-app.jsx that assigns it, so this function still can't be exercised standalone the
 // same way these two appState-free functions can).
 import { escapeHtml, stripHtml } from "../../public/dotto/text-utils.js";

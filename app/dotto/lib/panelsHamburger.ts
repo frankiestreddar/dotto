@@ -123,7 +123,7 @@ export function isAnyUiPanelOpen(): boolean {
 // switches, or (clicking the already-active icon again) closes a panel. `onOpen` is that view's
 // own refresh call (renderWaypointsList, buildOutline, refreshAiPanel, etc.), called every time so
 // content is never stale.
-// resetAiSearchState (ai-assistant-suggestions.js) is called here specifically when the AI view is
+// resetAiSearchState (app/dotto/lib/aiAssistantSuggestions.ts) is called here specifically when the AI view is
 // the one being navigated AWAY from (activeRailView was 'ai', the new key isn't) — opening AI
 // itself, or re-clicking it while it's already active, must never reset an in-progress
 // conversation. Checked BEFORE activeRailView is reassigned below, since the check needs the OLD
@@ -239,8 +239,8 @@ function doWire(appState: AppState): void {
   appState.hamburgerStack.addEventListener("click", (e) => e.stopPropagation());
 
   // refreshAiPanel is reached via window.__refreshAiPanel — wired here, alongside every other rail
-  // icon, rather than ai-assistant-suggestions.js calling wireRailIcon on itself. That circular-
-  // import concern (this file and ai-assistant-suggestions.js each importing from the other at
+  // icon, rather than app/dotto/lib/aiAssistantSuggestions.ts calling wireRailIcon on itself. That circular-
+  // import concern (this file and that file each importing from the other at
   // their own module top level) is what originally justified the indirection back when both were
   // vanilla ES modules; now that this file reaches it through a bridge instead, the historical
   // reasoning no longer strictly applies — kept as-is anyway, since centralizing every rail icon's
@@ -249,7 +249,7 @@ function doWire(appState: AppState): void {
   // #inbox-panel/#search-panel/#snippets2-panel have no content/refresh logic of their own yet
   // (see their own comments, hamburger-stack.html) — no onOpen callback needed until that's
   // designed. #snippets-panel (Files) is no longer one of these — see renderFilesList's own
-  // comment, hamburger-collab.js.
+  // comment, app/dotto/lib/hamburgerCollab.ts.
   wireRailIcon("inbox", appState.btnInbox, appState.inboxPanel, null);
   wireRailIcon("search", appState.btnSearch, appState.searchPanel, null);
   wireRailIcon("sources", appState.btnSources, appState.sourcesPanel, () =>

@@ -4,6 +4,17 @@ import { useLayoutEffect, useRef, useSyncExternalStore } from "react";
 import { createPortal } from "react-dom";
 import { chatThreadStore } from "./bridges";
 import usePortalNode from "./usePortalNode";
+import { updateChatThread } from "./lib/aiAssistantSuggestions";
+import {
+  buildAnswerBlocksWrap,
+  buildDictionaryCard,
+  buildDotbotAnswerTextEl,
+  buildExamplesCard,
+  buildRecommendedSearchesRows,
+  buildTranslationCard,
+  startSequencedTurnReveal,
+  stripInlineMarkers,
+} from "./lib/mnemonicSearchMatching";
 
 // Module-level, not inline — see CanvasItemsLayer.jsx's identical EMPTY_ITEMS comment for why a
 // fresh array literal as the getServerSnapshot fallback trips React's "should be cached" warning
@@ -67,10 +78,10 @@ function ChatTurn({ turn }) {
       // Simulated top-to-bottom sequenced reveal: answer text types out with any
       // {{dictionary:N}}/{{example:N}}/{{translation}} marker resolving to an inline widget after a
       // brief placeholder pulse, then answerBlocks/remaining cards/recommended-searches stagger in
-      // — see startSequencedTurnReveal (public/dotto/mnemonic-search-matching.js). Only ever runs
+      // — see startSequencedTurnReveal (app/dotto/lib/mnemonicSearchMatching.ts). Only ever runs
       // for a turn that was just live-appended, never for history restored from the sidebar (see
       // this function's own comment above on why `fresh` is safe to read once, on mount).
-      window.__startSequencedTurnReveal(el, panels, window.__updateChatThread);
+      startSequencedTurnReveal(el, panels, updateChatThread);
     } else {
       // History-restored turn: every panel already exists, so it renders in its final settled
       // state immediately — no typewriter, no placeholder pulse, no stagger. Exactly what this
@@ -79,24 +90,24 @@ function ChatTurn({ turn }) {
         // Strip any {{dictionary:N}}/{{example:N}}/{{translation}} marker that made it into the
         // stored text — this static branch never resolves markers into widgets (only
         // startSequencedTurnReveal does), so a raw marker left in would show as literal syntax.
-        const cleanText = window.__stripInlineMarkers(textPanel.text);
-        const textEl = window.__buildDotbotAnswerTextEl(cleanText);
+        const cleanText = stripInlineMarkers(textPanel.text);
+        const textEl = buildDotbotAnswerTextEl(cleanText);
         el.appendChild(textEl);
         textEl.textContent = cleanText;
-        const blocksWrap = window.__buildAnswerBlocksWrap(answerBlocksPanel, answerLanguage);
+        const blocksWrap = buildAnswerBlocksWrap(answerBlocksPanel, answerLanguage);
         if (blocksWrap) el.appendChild(blocksWrap);
       }
       if (translationPanel && translationPanel.sourceWord && translationPanel.targetWord) {
-        el.appendChild(window.__buildTranslationCard(translationPanel));
+        el.appendChild(buildTranslationCard(translationPanel));
       }
       if (dictPanel && dictPanel.entries && dictPanel.entries.length) {
-        el.appendChild(window.__buildDictionaryCard(dictPanel));
+        el.appendChild(buildDictionaryCard(dictPanel));
       }
       if (examplesPanel) {
-        el.appendChild(window.__buildExamplesCard(examplesPanel));
+        el.appendChild(buildExamplesCard(examplesPanel));
       }
       if (recommendedPanel && recommendedPanel.queries && recommendedPanel.queries.length) {
-        el.appendChild(window.__buildRecommendedSearchesRows(recommendedPanel));
+        el.appendChild(buildRecommendedSearchesRows(recommendedPanel));
       }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps -- deliberately mount-once, see comment above

@@ -45,7 +45,7 @@
          #search-panel-search-hint) distinct from #ai-panel's (#ai-list-header/#search-input-wrap/
          #search-input/#search-input-hint) so neither panel's existing JS wiring
          (RAIL_PANEL_SEARCH_INPUT_ID, app/dotto/lib/srsConnectionsCore.ts; handleSearchInput/handleSearchFocus/
-         animateSearchPlaceholder, ai-assistant-suggestions.js) needed to change.
+         animateSearchPlaceholder, app/dotto/lib/aiAssistantSuggestions.ts) needed to change.
          #search-panel-search is a plain <input>, not a growing <textarea> like #search-input —
          this box still doesn't execute a real search yet (per explicit statement), so there's no
          multi-line typing/dropdown machinery to justify one, just the same recent-term history
@@ -76,12 +76,12 @@
          panel's own text/ids so neither's existing JS wiring needed to change. Unlike
          #search-panel's own box (which still doesn't execute anything), #sources-panel-search
          DOES filter live (oninput="handleSourcesSearch(...)", app/dotto/lib/panelsHamburger.ts/
-         renderSourcesList, hamburger-collab.js) — matches #waypoints-search/#hub-collab-search's
+         renderSourcesList, app/dotto/lib/hamburgerCollab.ts) — matches #waypoints-search/#hub-collab-search's
          own working-search convention instead, since this panel needed a real one from the start
          (per explicit request: "it should list all your sources in the canvas").
          #sources-panel-content lists every kind:'source' item on the CURRENT canvas (not every
          source anywhere in the whole workspace — see renderSourcesList's own comment,
-         hamburger-collab.js) as real React rows (SourcesListPanel.jsx), same .outline-item/
+         app/dotto/lib/hamburgerCollab.ts) as real React rows (SourcesListPanel.jsx), same .outline-item/
          .search-history-icon/.outline-label row shape #chats-list's own rows use, since it shares
          that same .panel-history-list class.
          #sources-new-btn ("+", per explicit request) creates a new source and drops it at the
@@ -142,7 +142,7 @@
          collab.js), matching Sources' own working-search convention. No "+ new file" button
          (unlike Sources' own #sources-new-btn) — per explicit request this panel just LISTS
          "any uploaded files across a user's entire canvas" (renderFilesList's own comment,
-         hamburger-collab.js — every kind:'media' item account-wide with a real mediaSrc); there's
+         app/dotto/lib/hamburgerCollab.ts — every kind:'media' item account-wide with a real mediaSrc); there's
          no equivalent "create a blank one" action a file can start from the way a source can.
          #files-panel-content lists them as real React rows (FilesListPanel.jsx), same
          .outline-item/.search-history-icon/.outline-label row shape every other sidebar list uses,
@@ -162,12 +162,12 @@
     </div>
     <!-- AI search — moved here from its own standalone modal overlay (content/fragments/
          search-overlay.html, now empty/unused) now that it shares this permanent rail shell (see
-         openRailView('ai', ...) wiring, ai-assistant-suggestions.js). No more dimming backdrop —
+         openRailView('ai', ...) wiring, app/dotto/lib/aiAssistantSuggestions.ts). No more dimming backdrop —
          this is an embedded panel like every other rail view, not a modal. Two internal views, not
          top-level rail views of their own: the chat list (#ai-list-view, default — search box at
          the top, previous conversations below) and the active conversation (#ai-chat-view,
          reached by starting a new search or opening a chat row) — toggled by each view's own "←"
-         header button where relevant (showAiListView/showAiChatView, ai-assistant-suggestions.js),
+         header button where relevant (showAiListView/showAiChatView, app/dotto/lib/aiAssistantSuggestions.ts),
          independent of the outer rail's own open/close state.
          #search-input-wrap/#search-dropdown are a single shared pair, not duplicated per view —
          they live inside #ai-list-header in this markup (their "at rest" position, since
@@ -213,7 +213,7 @@
                  its own extra height/resize rules on top of the shared class (globals.css); only
                  the shared VISUAL chrome is unified, not the underlying element type. The animated
                  placeholder (animateSearchPlaceholder,
-                 ai-assistant-suggestions.js) is unaffected either way — every searchbox's own
+                 app/dotto/lib/aiAssistantSuggestions.ts) is unaffected either way — every searchbox's own
                  typing-suggestions animation, per explicit request, not something being removed
                  here. -->
             <div id="ai-list-header" class="panel-search-header">
@@ -247,7 +247,7 @@
             </div>
             <!-- #search-chat-thread: plain document order, right after the header. Once a real
                  response lands (.thread-settled, see updateChatThread/createHeightTransitionController,
-                 ai-assistant-suggestions.js), it switches to flex:1 (globals.css) and fills the
+                 app/dotto/lib/aiAssistantSuggestions.ts), it switches to flex:1 (globals.css) and fills the
                  rest of #ai-chat-view's height with its own internal scroll, which is what pushes
                  #search-input-wrap (reparented in here by showAiChatView, see above) down to sit
                  at the panel's bottom edge — a flex-grow computed directly against its real
@@ -403,7 +403,7 @@
          #profile-settings-btn/#profile-settings-back-btn (showProfileSettingsView/
          showProfileMainView, app/dotto/lib/profileAchievementsPricing.ts), same
          "←"-header-toggles-two-siblings shape as #ai-list-view/#ai-chat-view
-         (ai-assistant-suggestions.js), independent of the outer rail's own open/close state. -->
+         (app/dotto/lib/aiAssistantSuggestions.ts), independent of the outer rail's own open/close state. -->
     <div id="profile-panel" class="hmenu-panel hub-subpanel" onclick="event.stopPropagation()">
         <div id="profile-main-view" class="open">
             <div class="profile-block" id="profile-identity-block">

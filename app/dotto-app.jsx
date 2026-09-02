@@ -70,6 +70,13 @@ import { wireHistoryAutosave } from "./dotto/lib/historyAutosave";
 import { wireSrsConnectionsCore } from "./dotto/lib/srsConnectionsCore";
 import { wireProfileAchievementsPricing } from "./dotto/lib/profileAchievementsPricing";
 import { wireCardShortcuts } from "./dotto/lib/cardShortcuts";
+import { wireAiAssistantSuggestions } from "./dotto/lib/aiAssistantSuggestions";
+import { wireHamburgerCollab } from "./dotto/lib/hamburgerCollab";
+// Side-effect only — sets window.__buildMnemonicErrorEl/commenceSearchOrMnemonic/etc at
+// module-eval time for search-orchestration-selection.js (still vanilla); every other bridge this
+// file used to need was upgraded to a real import by its own same-tree app/dotto/*.jsx consumer.
+// No wireX() of its own (every top-level statement here is a plain function declaration).
+import "./dotto/lib/mnemonicSearchMatching";
 import { ensureCoreState } from "./dotto/lib/coreState";
 // Side-effect only, same reasoning as splitPaneManagement/tabManagement above — sets
 // window.__openGameOptionsPanel/fcFlip/etc at module-eval time for the 5 still-vanilla callers
@@ -320,10 +327,10 @@ if (typeof window !== "undefined") {
     window.__render();
   };
   // Search-dropdown result panels (see app/dotto/TranslationPanel.jsx and friends,
-  // public/dotto/mnemonic-search-matching.js). Unlike the notification stack (app/dotto/lib/
+  // app/dotto/lib/mnemonicSearchMatching.ts). Unlike the notification stack (app/dotto/lib/
   // notificationsStore.ts — a plain Zustand store now, React reads it directly with no
   // window-bridge write needed at all), these DO need flushSync — updateSearchDropdown
-  // (ai-assistant-suggestions.js) reads
+  // (app/dotto/lib/aiAssistantSuggestions.ts) reads
   // each panel's real DOM node's style.display synchronously right after calling its
   // render*Panel function (see renderOrchestrateResult, search-orchestration-selection.js, which
   // calls several of these back-to-back and then updateSearchDropdown once at the end) — without
@@ -339,7 +346,7 @@ if (typeof window !== "undefined") {
   // persisted multi-turn conversation shown above the search input, entirely separate from the six
   // single-owner panels right above (canvas matches/commands/suggestions below the input are
   // unaffected). flushSync for the same reason as those: the new independent chat-thread
-  // height-transition function (ai-assistant-suggestions.js) reads #search-chat-thread's real
+  // height-transition function (app/dotto/lib/aiAssistantSuggestions.ts) reads #search-chat-thread's real
   // scrollHeight synchronously right after a turn is appended/restored.
   window.__setChatThread = (turns) => flushSync(() => chatThreadStore.set(turns));
   window.__appendChatTurn = (turn) =>
@@ -363,23 +370,23 @@ if (typeof window !== "undefined") {
   // window.__syncOutlineRows) already committed.
   window.__setOutlineState = (state) => flushSync(() => outlineStore.set(state));
   // Hamburger menu's Waypoints panel (see app/dotto/WaypointsListPanel.jsx,
-  // hamburger-collab.js's renderWaypointsList) — a plain store.set, not flushSync'd: the fetch
+  // app/dotto/lib/hamburgerCollab.ts's renderWaypointsList) — a plain store.set, not flushSync'd: the fetch
   // it follows is async (a real network round-trip), so there's no synchronous DOM read racing
   // this the way there was for the search panels.
   window.__setWaypointsList = waypointsListStore.set;
   // Hamburger menu's Sources panel (see app/dotto/SourcesListPanel.jsx,
-  // hamburger-collab.js's renderSourcesList) — a plain store.set, no synchronous DOM read follows
+  // app/dotto/lib/hamburgerCollab.ts's renderSourcesList) — a plain store.set, no synchronous DOM read follows
   // it (it's called from render() itself, not a click handler expecting an immediate reflection).
   window.__setSourcesList = sourcesListStore.set;
-  // Hamburger menu's Files panel (see app/dotto/FilesListPanel.jsx, hamburger-collab.js's
+  // Hamburger menu's Files panel (see app/dotto/FilesListPanel.jsx, app/dotto/lib/hamburgerCollab.ts's
   // renderFilesList) — copied from __setSourcesList just above per explicit request; same
   // reasoning (a plain store.set, no synchronous DOM read follows it).
   window.__setFilesList = filesListStore.set;
-  // Hamburger menu's Chats panel (see app/dotto/ChatsListPanel.jsx, hamburger-collab.js's
+  // Hamburger menu's Chats panel (see app/dotto/ChatsListPanel.jsx, app/dotto/lib/hamburgerCollab.ts's
   // renderChatsList) — same reasoning as __setWaypointsList: a real async Supabase call.
   window.__setChatsList = chatsListStore.set;
   // Hamburger menu's Collaborations panel (see app/dotto/HubCollabListPanel.jsx,
-  // hamburger-collab.js's renderHubCollabList/renderHubCollabRequests) — same reasoning as
+  // app/dotto/lib/hamburgerCollab.ts's renderHubCollabList/renderHubCollabRequests) — same reasoning as
   // __setWaypointsList: both entry points are real async Supabase calls.
   window.__setHubCollabList = hubCollabListStore.set;
   // Shift-click-to-select state for the Chats/Waypoints/Collaborations hamburger list panels (see
@@ -549,6 +556,15 @@ export default function DottoApp({ sections, currentUser }) {
   // enough here (no rail icon or DOM writes to defer past mount, unlike
   // wireProfileAchievementsPricing above).
   useEffect(() => wireCardShortcuts(), []);
+  // Phase 4.5: the animated search-placeholder loop — see wireAiAssistantSuggestions's own
+  // comment, app/dotto/lib/aiAssistantSuggestions.ts, for why this needs live appState right at
+  // wire time (to read appState.searchInput) rather than a single readiness check.
+  useEffect(() => wireAiAssistantSuggestions(), []);
+  // Phase 4.5: the three list panels' shift+drag "paint select" listeners and the draw-settings
+  // panel's click-stop-propagation — see wireHamburgerCollab's own comment,
+  // app/dotto/lib/hamburgerCollab.ts, for why this needs window.__getDrawSettingsEl
+  // (app/dotto/lib/coreState.ts) ready right at wire time.
+  useEffect(() => wireHamburgerCollab(), []);
 
   return (
     <>

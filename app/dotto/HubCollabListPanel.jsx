@@ -6,6 +6,12 @@ import Avatar from "./Avatar";
 import { hubCollabListStore, listPanelSelectionStore } from "./bridges";
 import RowActions from "./RowActions";
 import usePortalNode from "./usePortalNode";
+import {
+  backToHubCollabMain,
+  handleOwnedHubCollabRowClick,
+  openHubCollabRequestsView,
+  respondToHubCollabRequest,
+} from "./lib/hamburgerCollab";
 
 // Module-level, not inline — see CanvasItemsLayer.jsx's identical EMPTY_ITEMS comment for why a
 // fresh object literal as the getServerSnapshot fallback trips React's "should be cached" warning.
@@ -24,7 +30,7 @@ function RequestsRow({ count }) {
       className="outline-item requests-row"
       onClick={(e) => {
         e.stopPropagation();
-        window.__openHubCollabRequestsView();
+        openHubCollabRequestsView();
       }}
     >
       <span className="outline-label">Requests</span>
@@ -38,7 +44,7 @@ function RequestsRow({ count }) {
 // AND opens its collaborator panel (managing it is the obvious next step from here). Selection id
 // is prefixed "owned:" — shares one listPanelSelectionStore ids Set with SharedCanvasRow's
 // "shared:" ids below (folderId and a canvas_collaborations row's own bigint id are two unrelated
-// id spaces), and lets the delete dispatcher (dispatchListPanelDelete, hamburger-collab.js) tell
+// id spaces), and lets the delete dispatcher (dispatchListPanelDelete, app/dotto/lib/hamburgerCollab.ts) tell
 // the two apart with no extra lookup — deleting an "owned:" id removes every collaborator via
 // deleteCanvasCollabsForFolder; a "shared:" id leaves that canvas via leave_canvas_collaboration.
 function OwnedCanvasRow({ c, selected }) {
@@ -50,11 +56,11 @@ function OwnedCanvasRow({ c, selected }) {
       onClick={(e) => {
         e.stopPropagation();
         // Selecting (both a plain shift+click and a shift+click-drag across several rows) is
-        // handled entirely by setupListPanelDragSelect (hamburger-collab.js), listening on the
-        // stable #hub-collab-list container rather than here — this guard just stops a shift+click
-        // from ALSO running the normal row-click action below.
+        // handled entirely by setupListPanelDragSelect (app/dotto/lib/hamburgerCollab.ts),
+        // listening on the stable #hub-collab-list container rather than here — this guard just
+        // stops a shift+click from ALSO running the normal row-click action below.
         if (e.shiftKey) return;
-        window.__handleOwnedHubCollabRowClick(c.folderId);
+        handleOwnedHubCollabRowClick(c.folderId);
       }}
     >
       <span className="outline-icon icon-mask" style={folderIconStyle()} />
@@ -96,9 +102,9 @@ function SharedCanvasRow({ c, selected }) {
       onClick={(e) => {
         e.stopPropagation();
         // Selecting (both a plain shift+click and a shift+click-drag across several rows) is
-        // handled entirely by setupListPanelDragSelect (hamburger-collab.js), listening on the
-        // stable #hub-collab-list container rather than here — this guard just stops a shift+click
-        // from ALSO running the normal row-click action below.
+        // handled entirely by setupListPanelDragSelect (app/dotto/lib/hamburgerCollab.ts),
+        // listening on the stable #hub-collab-list container rather than here — this guard just
+        // stops a shift+click from ALSO running the normal row-click action below.
         if (e.shiftKey) return;
         window.__openSharedCanvas(c.ownerId, c.folderId, c.folderTitle, c.ownerName);
       }}
@@ -126,7 +132,7 @@ function BackRow() {
       className="requests-back-row"
       onClick={(e) => {
         e.stopPropagation();
-        window.__backToHubCollabMain();
+        backToHubCollabMain();
       }}
     >
       <span>&larr;</span>
@@ -147,7 +153,7 @@ function RequestRow({ req }) {
           className="msg-add-btn hub-collab-accept"
           onClick={(e) => {
             e.stopPropagation();
-            window.__respondToHubCollabRequest(req.id, true);
+            respondToHubCollabRequest(req.id, true);
           }}
         >
           Accept
@@ -156,7 +162,7 @@ function RequestRow({ req }) {
           className="msg-add-btn hub-collab-decline"
           onClick={(e) => {
             e.stopPropagation();
-            window.__respondToHubCollabRequest(req.id, false);
+            respondToHubCollabRequest(req.id, false);
           }}
         >
           Decline

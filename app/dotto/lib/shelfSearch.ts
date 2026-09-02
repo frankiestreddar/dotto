@@ -456,8 +456,8 @@ if (typeof window !== "undefined") {
   window.toggleFilterTag = toggleFilterTag;
   window.openSearchCardsModal = openSearchCardsModal;
   window.clearSearchCardContext = clearSearchCardContext;
-  // Used by ai-assistant-suggestions.js/search-orchestration-selection.js (multiple call sites
-  // each), which previously imported this directly.
+  // Used by app/dotto/lib/aiAssistantSuggestions.ts/search-orchestration-selection.js (multiple
+  // call sites each), both of which previously imported this directly.
   window.__autoGrowSearchInput = autoGrowSearchInput;
   // Used by app/dotto/lib/messagingCanvasPreview.ts's mini inline-canvas previews, which previously
   // imported this directly.

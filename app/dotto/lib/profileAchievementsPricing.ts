@@ -4,9 +4,10 @@
 // bridges — most already existed (window.pushNotification/__closeAllPanels/__setPricingOverlayOpen/
 // __setProfileLevel/__setAchievements/__wireRailIcon/__closeRailView), 3 are new as part of this
 // port (__refreshDotbotUsage/__closeProfilePanel/__openDotbotUpgradeModal — friends-presence.js/
-// drawing-connections.js/search-orchestration-selection.js/hamburger-collab.js/app-init.js/
-// mnemonic-search-matching.js, all still vanilla, used to import these 5 functions directly; that
-// vanilla-to-vanilla import no longer reaches across the public/app boundary).
+// drawing-connections.js/search-orchestration-selection.js/app-init.js (still vanilla) plus
+// app/dotto/lib/hamburgerCollab.ts/app/dotto/lib/mnemonicSearchMatching.ts (ported since), all of
+// which used to import these 5 functions directly; that vanilla-to-vanilla import no longer
+// reaches across the public/app boundary).
 
 interface Achievement {
   id: string;
@@ -525,8 +526,9 @@ if (typeof window !== "undefined") {
   // Used by app/dotto/lib/srsConnectionsCore.ts's global keydown handler's ',' shortcut (Phase 4.5).
   window.__showProfileSettingsView = showProfileSettingsView;
   // New bridges for this port — friends-presence.js/drawing-connections.js/
-  // search-orchestration-selection.js/hamburger-collab.js/app-init.js/mnemonic-search-matching.js
-  // (all still vanilla) used to import these 5 directly.
+  // search-orchestration-selection.js/app-init.js (still vanilla) plus
+  // app/dotto/lib/hamburgerCollab.ts/app/dotto/lib/mnemonicSearchMatching.ts (ported since) used
+  // to import these 5 directly.
   window.__refreshDotbotUsage = refreshDotbotUsage;
   window.__closeProfilePanel = closeProfilePanel;
   window.__openDotbotUpgradeModal = openDotbotUpgradeModal;

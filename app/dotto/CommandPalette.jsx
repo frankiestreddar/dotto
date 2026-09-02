@@ -27,7 +27,7 @@ function CommandRow({ row, index }) {
 
 // Portals into #search-command-palette (content/fragments/top-bar.html), ordered first among
 // #search-dropdown's children so it visually leads whenever it has rows — see
-// updateSearchDropdown's panel list (ai-assistant-suggestions.js), which this node's own
+// updateSearchDropdown's panel list (app/dotto/lib/aiAssistantSuggestions.ts), which this node's own
 // display:block/none (driven by the layout effect below) participates in exactly like every
 // other panel there.
 export default function CommandPalette() {

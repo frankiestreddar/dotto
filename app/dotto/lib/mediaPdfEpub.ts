@@ -140,7 +140,7 @@ export function setMediaFromLink(id: number): void {
   // A real, globally-unique id per upload (crypto.randomUUID() — not appState.idCounter, which is
   // a plain local/per-session counter two different users could easily collide on) — explicit
   // request: "not just a unique code for the user... unique across the platform." Lets the Files
-  // sidebar (renderFilesList, hamburger-collab.js) dedupe multiple canvas cards that all point at
+  // sidebar (renderFilesList, app/dotto/lib/hamburgerCollab.ts) dedupe multiple canvas cards that all point at
   // the SAME underlying file down to one row, while the Outline panel (which never looks at this
   // field) keeps listing every individual card instance.
   it.mediaFileId = crypto.randomUUID();

@@ -3,6 +3,13 @@
 import { useLayoutEffect } from "react";
 import { useSyncExternalStore } from "react";
 import { searchSuggestionsStore } from "./bridges";
+import { buildLiveSuggestionsRows } from "./lib/aiAssistantSuggestions";
+import {
+  buildMnemonicErrorEl,
+  buildMnemonicLoadingEl,
+  buildMnemonicResultCard,
+  startMnemonicResultReveal,
+} from "./lib/mnemonicSearchMatching";
 
 // Mounts whichever of #search-suggestions' 5 producers is currently active — see
 // searchSuggestionsStore's own comment in bridges.js for the full producer list and why this is a
@@ -10,8 +17,9 @@ import { searchSuggestionsStore } from "./bridges";
 // canvas wiring), same "return null, mutate in an effect" pattern as TranslationPanel.jsx and
 // friends — there's no list to key/diff here, just one blob of content wholesale-replaced each
 // time. 'mnemonic-error' and 'dotbot-error' intentionally share the same builder
-// (window.__buildMnemonicErrorEl) — see renderDotbotOrchestrateError's own comment in
-// search-orchestration-selection.js for why they're really the same shape.
+// (buildMnemonicErrorEl, also kept as a window.__buildMnemonicErrorEl bridge for
+// search-orchestration-selection.js, still vanilla) — see renderDotbotOrchestrateError's own
+// comment in search-orchestration-selection.js for why they're really the same shape.
 export default function SearchSuggestionsPanel() {
   const state = useSyncExternalStore(
     searchSuggestionsStore.subscribe,
@@ -31,20 +39,20 @@ export default function SearchSuggestionsPanel() {
 
     switch (state.kind) {
       case "live-suggestions":
-        el.appendChild(window.__buildLiveSuggestionsRows(state.suggestions));
+        el.appendChild(buildLiveSuggestionsRows(state.suggestions));
         break;
       case "mnemonic-result": {
-        const card = window.__buildMnemonicResultCard();
+        const card = buildMnemonicResultCard();
         el.appendChild(card);
-        window.__startMnemonicResultReveal(card, state.content, state.options);
+        startMnemonicResultReveal(card, state.content, state.options);
         break;
       }
       case "mnemonic-loading":
-        el.appendChild(window.__buildMnemonicLoadingEl());
+        el.appendChild(buildMnemonicLoadingEl());
         break;
       case "mnemonic-error":
       case "dotbot-error":
-        el.appendChild(window.__buildMnemonicErrorEl(state.reason));
+        el.appendChild(buildMnemonicErrorEl(state.reason));
         break;
       default:
         break;

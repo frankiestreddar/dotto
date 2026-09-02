@@ -159,7 +159,7 @@ export function toggleOutlineCollapse(id: number): void {
 // Computes `folder`'s own items — leaf cards, plus child folders/sources — at the given depth, as
 // a flat array of row descriptors pushed onto `rows` (React owns the actual DOM now — see
 // OutlinePanel.jsx, app/dotto/ — this function only computes what to show, same "compute then
-// push" shape renderSourcesList/renderFilesList already use, hamburger-collab.js). Every row
+// push" shape renderSourcesList/renderFilesList already use, app/dotto/lib/hamburgerCollab.ts). Every row
 // (whether it's a canvas, a source, or a plain card) is rendered with the exact same .outline-item
 // styling — there is no header/row visual distinction of any kind by design. A child FOLDER's own
 // contents are recursed into immediately after its row (one level deeper), up to
@@ -471,7 +471,7 @@ export function buildOutline(preserveState?: boolean): void {
 // is all already-in-memory data, no re-derivation of the grouping/proximity-sort logic itself
 // needed, the same "compute then push" shape renderSourcesList/renderFilesList already use for
 // their own search). A plain substring match against each row's own label, independent per row,
-// is the same simple approach renderWaypointsList's own search (hamburger-collab.js) already
+// is the same simple approach renderWaypointsList's own search (app/dotto/lib/hamburgerCollab.ts) already
 // uses. "All your blocks" here means everything buildOutline itself already reaches — the current
 // canvas and its nested folders/sources, up to OUTLINE_MAX_DEPTH — not a cross-canvas search.
 // Note: unlike the old DOM-visibility-toggle version, this resets which row is arrow-key-active on

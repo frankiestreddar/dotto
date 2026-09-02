@@ -1,5 +1,5 @@
 import { kindSize } from './add-menu.js';
-import { escapeHtml, stripHtml } from './ai-assistant-suggestions.js';
+import { escapeHtml, stripHtml } from './text-utils.js';
 const appState = window.__getAppState();
 const canvasViewportCenterX = window.__canvasViewportCenterX;
 const findItemEl = window.__findItemEl;

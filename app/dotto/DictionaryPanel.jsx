@@ -3,6 +3,7 @@
 import { useLayoutEffect } from "react";
 import { useSyncExternalStore } from "react";
 import { dictionaryPanelStore } from "./bridges";
+import { buildDictionaryCard } from "./lib/mnemonicSearchMatching";
 
 // Mounts buildDictionaryCard's vanilla-built card into #search-dictionary — see TranslationPanel.jsx
 // for the full reasoning (identical pattern, different panel/builder). buildDictionaryCard owns a
@@ -20,7 +21,7 @@ export default function DictionaryPanel() {
     if (!el) return;
     el.innerHTML = "";
     if (panel) {
-      el.appendChild(window.__buildDictionaryCard(panel));
+      el.appendChild(buildDictionaryCard(panel));
       el.style.display = "block";
     } else {
       el.style.display = "none";

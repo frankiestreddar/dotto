@@ -324,7 +324,7 @@ export function attachWaypointCardBody(el: WaypointWidthEl, it: Item): void {
 // ever dropped across their own canvases and any canvas shared with them, regardless of whether
 // that canvas's folder data happens to be loaded locally right now (a friend's canvas 300 layers
 // deep isn't fetched until you actually navigate into it — see renderWaypointsList/
-// goToWaypointCard, hamburger-collab.js). Fire-and-forget; the canvas item itself already holds
+// goToWaypointCard, app/dotto/lib/hamburgerCollab.ts). Fire-and-forget; the canvas item itself already holds
 // the real data (name, position), this is just a searchable/global index of it, keyed by the REAL
 // (non shared:-namespaced) owner+folder id since that's what's stable across users.
 export async function syncWaypointToDb(folderId: string, it: Item): Promise<void> {
@@ -365,7 +365,7 @@ export async function deleteWaypointFromDb(folderId: string, itemId: number): Pr
 }
 // Deletes a waypoint's own canvas-card item (not just the global waypoints-table pointer —
 // deleteWaypointFromDb above only removes that) — used by the hamburger Waypoints panel's
-// shift-click + Backspace gesture (see deleteSelectedWaypointRows, hamburger-collab.js), where the
+// shift-click + Backspace gesture (see deleteSelectedWaypointRows, app/dotto/lib/hamburgerCollab.ts), where the
 // target folder might not even be loaded yet (a friend's shared canvas never navigated into this
 // session — own canvases are always fully loaded up front, see loadWorkspace). For an own canvas,
 // mutating appState.folders[...] + window.__scheduleWorkspaceSave() is enough: saveWorkspaceNow
@@ -786,13 +786,13 @@ function renderOnce(): void {
   // addTab/switchTab/closeTab directly.
   window.__renderTabsPanel?.();
   // Sources rail panel (SourcesListPanel.jsx) — every source account-wide (current-canvas ones
-  // sorted first), per explicit request; see renderSourcesList's own comment, hamburger-collab.js,
+  // sorted first), per explicit request; see renderSourcesList's own comment, app/dotto/lib/hamburgerCollab.ts,
   // for why it's called unconditionally here rather than only on panel-open/search-input, same
   // reasoning as renderBreadcrumbMapPanel/renderTabsPanel just above.
   window.__renderSourcesList?.();
   // Files rail panel (FilesListPanel.jsx) — every uploaded kind:'media' item account-wide
   // (current-canvas ones sorted first), same reasoning/pattern as renderSourcesList just above
-  // (see renderFilesList's own comment, hamburger-collab.js) — copied from it per explicit
+  // (see renderFilesList's own comment, app/dotto/lib/hamburgerCollab.ts) — copied from it per explicit
   // request, including this call site.
   window.__renderFilesList?.();
   // Outline rail panel (outlineTree.ts) — per explicit request that it reflect whatever page
@@ -1550,7 +1550,7 @@ export function spawnMediaItemAt(
     // Copies `source`'s own mediaFileId rather than minting a fresh one — this new card is
     // another instance of the SAME uploaded file (explicit request/bug report: dragging a file
     // onto canvas was silently duplicating it in the Files sidebar), not a new upload. Keeping the
-    // same id is what lets renderFilesList (hamburger-collab.js) correctly recognize both cards as
+    // same id is what lets renderFilesList (app/dotto/lib/hamburgerCollab.ts) correctly recognize both cards as
     // one file and only ever show a single row for it, while the Outline panel (which has no dedup
     // logic of its own) keeps listing every card instance individually, per explicit request.
     mediaFileId: source.mediaFileId,

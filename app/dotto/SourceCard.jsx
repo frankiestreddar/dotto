@@ -2,6 +2,7 @@
 
 import { useLayoutEffect, useRef } from "react";
 import { attachSourceCardClick, folderTitle } from "./lib/waypointsRenderLoop";
+import { countSourceEntries } from "./lib/aiAssistantSuggestions";
 
 // Ported from the old inline source branch in renderLegacyCardBody (app/dotto/lib/
 // waypointsRenderLoop.ts) — this is the "Source" card kind (kind:'source'), a database block storing entries for
@@ -22,7 +23,7 @@ export default function SourceCard({ it, paneId }) {
   });
 
   const liveTitle = folderTitle(it.folderId);
-  const nestedCount = window.__countSourceEntries(it.folderId);
+  const nestedCount = countSourceEntries(it.folderId);
   const iconUrl = `/assets/icons/${window.__kindIconFile("source")}`;
 
   return (

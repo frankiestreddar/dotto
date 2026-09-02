@@ -1039,6 +1039,108 @@
   deleted — no concrete plan yet devised for how to sequence or bundle that group, since each
   imports from at least one of the others; Phase 4.5's own final open question (whether any paused
   Phase 4.1 files are now unblocked) still depends on that cluster landing first.
+  `ai-assistant-suggestions.js`/`hamburger-collab.js`/`mnemonic-search-matching.js` (881 + 593 + 864
+  = 2,338 lines) done together next, as one coordinated PR — the largest single port of this whole
+  migration, and the first genuinely circular group: `ai-assistant-suggestions.js` ↔
+  `hamburger-collab.js` (mutual), `ai-assistant-suggestions.js` ↔ `mnemonic-search-matching.js`
+  (mutual), `hamburger-collab.js` → `mnemonic-search-matching.js` (one-way). Ported to
+  `app/dotto/lib/aiAssistantSuggestions.ts`/`app/dotto/lib/hamburgerCollab.ts`/
+  `app/dotto/lib/mnemonicSearchMatching.ts` with real ES imports between all three — TypeScript
+  modules in the same directory tolerate circular imports fine (matching the pre-existing
+  `live-presence.js`/`shelf-search.js` circular import this migration already carried over
+  unchanged), which is what actually dissolves the "genuinely circular" problem: it only existed
+  as an ordering constraint in the vanilla world, not a real architectural one. Before writing any
+  code, built a complete caller map across the whole repo (every real import, every bridge, every
+  inline-HTML target) for all 3 files' full export surfaces — given the scale, this was worth doing
+  as its own upfront pass rather than discovering gaps mid-port. `aiAssistantSuggestions.ts` owns
+  the AI search box (animated placeholder, live-suggestions, list/chat views), the shared
+  typewriter-reveal/height-transition machinery, and `countSourceEntries`/`findParentFolderId`/
+  `isLatinScriptText` (`escapeHtml`/`stripHtml` did NOT move here — see `text-utils.js` below).
+  `hamburgerCollab.ts` owns the Collaborations panel, the Chats/Waypoints/Sources/Files list
+  panels' data-fetching and row actions, shared list-panel selection + Backspace-delete dispatch,
+  and `hmenuAction`. `mnemonicSearchMatching.ts` owns the mnemonic story/image generation flow, the
+  Dotbot dictionary/examples/translation/answer-blocks panel builders, TTS playback, and the
+  fresh-turn sequenced reveal. A real, separate architectural decision made along the way:
+  `text-utils.js` (the Phase 4.2 extraction holding `escapeHtml`/`stripHtml`) stayed vanilla rather
+  than porting alongside this trio — 3 real vanilla files (`search-panel-history.js`,
+  `search-orchestration-selection.js`, `source-tags-ai.js`) still import it directly, and it now
+  sets its own `window.__escapeHtml`/`__stripHtml` bridges directly (genuinely pure/zero-import,
+  same convention `srs-algorithm.js` already established) rather than being re-exported through
+  `aiAssistantSuggestions.ts` as it used to be. 3 brand-new bridges added for functions that had
+  never needed one before (`__updateCommandPalette` on `command-palette.js`,
+  `__commenceDotbotSearch` on `search-orchestration-selection.js`,
+  `__activePaneCollabBubbleEl` on `friends-presence.js`) — one of these
+  (`__commenceDotbotSearch`) was initially only half-added (the ambient type and the caller-side
+  `window.__commenceDotbotSearch?.()` call were written, but the actual
+  `window.__commenceDotbotSearch = commenceDotbotSearch;` assignment on the owning file was
+  missed) — caught by the port's own verify script failing its very first bridge-existence check,
+  fixed before the port was considered done. 5 more real vanilla-to-vanilla callers fixed
+  (`friends-presence.js`'s `clearSearch` import, `search-orchestration-selection.js`'s 8-function
+  import spanning both `escapeHtml`/`stripHtml` — retargeted to `text-utils.js` directly — and 6
+  bridge-only names, `search-panel-history.js`'s and `source-tags-ai.js`'s `escapeHtml`/`stripHtml`
+  imports — both retargeted to `text-utils.js` directly). `window-bridge.js`'s own import lines for
+  both ported files and their combined 4 re-export lines removed — it now imports from only 2
+  files (`friends-presence.js`, `source-tags-ai.js`), down from the original 8-file
+  `window-bridge.js` dependency list this sub-effort started from. 12 same-tree `app/dotto/*.jsx`
+  callers upgraded to real imports (`ChatThread.jsx`, `DictionaryPanel.jsx`, `DotbotAnswerPanel.jsx`,
+  `ExamplesPanel.jsx`, `ImageResultPanel.jsx`, `RecommendedSearchesPanel.jsx`,
+  `SearchSuggestionsPanel.jsx`, `TranslationPanel.jsx`, `SourceCard.jsx`, `WaypointsListPanel.jsx`,
+  `ChatsListPanel.jsx`, `HubCollabListPanel.jsx`) — several bridges dropped entirely once their only
+  consumer was one of these (`__buildLiveSuggestionsRows`, `__updateChatThread`'s *jsx* consumer
+  specifically — the bridge itself was kept for a still-vanilla caller found later, see below —
+  `__openSavedChat`, `__openHubCollabRequestsView`, `__backToHubCollabMain`,
+  `__handleOwnedHubCollabRowClick`, `__respondToHubCollabRequest`, and all 15 of
+  `mnemonicSearchMatching.ts`'s panel-builder bridges except `__buildMnemonicErrorEl`, kept dual
+  for `search-orchestration-selection.js`'s own real caller); others stayed genuinely dual
+  (`__countSourceEntries` for `messagingCanvasPreview.ts`, `__goToWaypointCard` for
+  `srsConnectionsCore.ts`). One real gap caught only AFTER the first bridge-dropping pass: while
+  fixing `search-orchestration-selection.js`'s own real call sites, discovered it independently
+  needs `updateChatThread`/`scrollChatThreadToBottom`/`updateSearchDropdown`/`showAiChatView` too —
+  all 4 had to be added (back, for the first two) as bridges rather than staying jsx-only, since an
+  earlier caller-mapping pass (correctly, at the time) found no `__`-prefixed callers for them
+  simply because this file reached them via a *plain* vanilla-to-vanilla import back then, not a
+  bridge — the exact kind of gap only surfacing once each real caller is actually fixed one at a
+  time, not just mapped in the abstract. Two provably-wrong pre-existing ambient types caught and
+  fixed along the way, both around waypoint ids that are real numbers, not strings, everywhere else
+  in the codebase: `__goToWaypointCard`'s `itemId` param and `__dispatchListPanelDelete`'s `ids`
+  array — the latter also required fixing `sourceButtonsCursorMode.ts`'s own
+  `listPanelSelection.ids: Set<number>` field type to `Set<string>` (it's really the OTHER kind of
+  id — `"owned:folderId"`/`"shared:collabRowId"`-prefixed composite strings, confirmed against
+  `deleteSelectedCollabs`'s and `waypointRowKey`'s own real construction of these values). Real
+  Playwright verification against both a dev server and a real production server, via a new script
+  covering the parts genuinely new to this port rather than re-testing unchanged AI/business logic:
+  all 30 bridges checked for real presence; a real click on the Queries/AI rail icon opening
+  `#ai-panel` and landing on the list view, proving `wireAiAssistantSuggestions()`'s own
+  module-load-time animated-placeholder loop and the rail-icon wiring both actually ran; the
+  animated placeholder observed changing over a real 1.2s window; a real keystroke into
+  `#search-input` triggering a real `/api/dotbot/suggest` round trip and populating live
+  suggestions; a real `commenceSearchOrMnemonic` → `commenceDotbotSearch` call completing a real
+  `/api/dotbot/orchestrate` round trip end-to-end across the cross-file boundary (the real AI
+  provider call itself failed with a genuine `502` in this sandboxed environment — confirmed via
+  the dev server's own log as a real Groq network-access restriction, not a code defect — and the
+  real error-rendering path correctly handled it, which is what this check actually verifies); real
+  rail-icon clicks opening the Waypoints/Sources/Files/Collaborations panels, each confirmed to
+  have actually run its own real data-fetch (`renderWaypointsList`/`renderSourcesList`/
+  `renderFilesList`/`renderHubCollabList` + a real `refreshCanvasCollabData` Supabase round trip for
+  the last one); a real `#sources-panel-search` keystroke filtering to the empty state via
+  `renderSourcesList`; a real `hmenuAction('upgrade')` call opening `#pricing-overlay`; a real
+  `__flashCanvasElement()` call adding the flash class, exercising the cross-file
+  `hamburgerCollab.ts` → `mnemonicSearchMatching.ts` import directly; real
+  `escapeHtml`/`stripHtml`/`countSourceEntries`/`findParentFolderId` bridge calls all checked
+  against real expected output; a real Escape keypress correctly closing `#ai-panel` through
+  `historyAutosave.ts`'s existing global handler → `__clearSearch` → `closeRailView` →
+  `resetAiSearchState`. Regression-verified `verify-phase4-5-corestate-port.js`,
+  `verify-phase4-5-panelshamburger-port.js`, `verify-phase4-5-profileachievementspricing-port.js`,
+  `verify-phase4-5-srsconnectionscore-port.js`, `verify-phase4-5-historyautosave-port.js`, and
+  `verify-phase4-5-cardshortcuts-port.js` — 6 scripts, the widest regression batch this migration
+  has run for one port — all clean afterward. Zero console/page errors across every script in both
+  modes (beyond the one confirmed-external, deliberately-whitelisted `502`).
+  **This closes out the ai/hamburger/mnemonic circular cluster.** Of the original 8
+  `window-bridge.js`-owning files, only `friends-presence.js` and `source-tags-ai.js` remain — down
+  from 8 at the start of this session's Phase 4.5 sub-effort — plus `messages-schedule.js` (30
+  lines, never itself a `window-bridge.js` importer, but a real dependency of `friends-presence.js`)
+  still to resolve before `window-bridge.js` itself can be deleted and this sub-effort of Phase 4.5
+  closes out.
 - **Phase 4.6 — delete the bridge layer: not started.**
 - **Phase 4.7 — final cleanup & professionalization close-out: not started.**
 
@@ -2259,3 +2361,59 @@ Regression-verified `verify-phase4-5-corestate-port.js`, `verify-phase4-4-gamesf
 and `verify-phase4-4-copypaste-port.js` all clean afterward (the last two exercise
 `hoveredGameCard`/`fcFlip`/`fcRate` and the `__deleteSelectedCards` bridge this port's own routing
 sits directly on top of). Zero console/page errors across every script in both modes.
+
+**Phase 4.5 (`ai-assistant-suggestions.js`/`hamburger-collab.js`/`mnemonic-search-matching.js` →
+`app/dotto/lib/aiAssistantSuggestions.ts`/`app/dotto/lib/hamburgerCollab.ts`/
+`app/dotto/lib/mnemonicSearchMatching.ts`)**: `node --check` on the 7 touched vanilla files
+(`dotto-script.js`, `window-bridge.js`, `text-utils.js`, `command-palette.js`,
+`search-orchestration-selection.js`, `friends-presence.js`, `search-panel-history.js`,
+`source-tags-ai.js`), `eslint` clean, `npm run typecheck` clean (after fixing 2 real
+provably-wrong pre-existing ambient types — `__goToWaypointCard`'s `itemId` and
+`__dispatchListPanelDelete`'s `ids`, both really numbers/strings respectively everywhere else in
+the codebase, plus `sourceButtonsCursorMode.ts`'s own matching `Set<number>` field-type bug — and
+adding ambient types for ~25 previously-untyped React store setters this port's own new .ts files
+needed to call), `npm run format:check` clean after a `prettier --write` pass run as the actual
+last step before committing, `rm -rf .next && npm run build` clean (confirming the genuine
+3-file circular import resolves correctly at both compile time and real SSR — no
+module-evaluation-order crash), all 32 Vitest tests still green. The largest and most
+cross-cutting port of this whole migration, by a wide margin — 2,338 combined original lines
+across 3 files, ~150 real call sites re-pointed across roughly 20 other files. Before writing any
+code, spent a dedicated pass building a complete caller map (every real import, every existing
+bridge, every inline-HTML target) across the entire repo for all 3 files' full combined export
+surface — given the scale, treated as worth doing upfront rather than discovering gaps mid-port;
+even with that pass, 2 real gaps still only surfaced during the port itself (documented in the
+status entry above: a half-added `__commenceDotbotSearch` bridge missing its actual assignment,
+and `search-orchestration-selection.js` needing 4 more bridges the original caller map had
+correctly, but only faithfully, recorded as "not yet a bridge, still a plain import" before this
+port existed to convert it into one) — both caught by the port's own verify script and fixed
+before it was considered done, not discovered later. `text-utils.js` deliberately stayed vanilla
+rather than porting alongside the trio (3 real vanilla files still import it directly) — now sets
+its own `escapeHtml`/`stripHtml` bridges directly instead of being re-exported through
+`aiAssistantSuggestions.ts`, matching the `srs-algorithm.js` precedent for genuinely pure files.
+`window-bridge.js` now imports from only 2 files (`friends-presence.js`/`source-tags-ai.js`), down
+from 8 at the start of this session's Phase 4.5 sub-effort. Real Playwright verification against
+both a dev server and a real production server: all 30 bridges checked for real presence (not
+just type); a real click on the Queries/AI rail icon confirming both the animated-placeholder
+module-load-time loop and the rail-icon wiring actually ran; a real keystroke triggering a real
+`/api/dotbot/suggest` round trip and populating live suggestions; a real
+`commenceSearchOrMnemonic` → `commenceDotbotSearch` call completing a real
+`/api/dotbot/orchestrate` round trip across the cross-file boundary end-to-end (the real Groq
+provider call itself failed with a genuine, sandbox-network-restricted `502` — confirmed via the
+dev server's own log as an external infrastructure limit, not a code defect — and the real
+error-rendering path correctly handled it, which is what this check actually verifies, not
+whether the AI provider itself is reachable); real rail-icon clicks opening the
+Waypoints/Sources/Files/Collaborations panels, each confirmed to have run its own real data-fetch
+(including a real `refreshCanvasCollabData` Supabase round trip for Collaborations); a real
+`#sources-panel-search` keystroke filtering to the empty state; a real `hmenuAction('upgrade')`
+call opening `#pricing-overlay`; a real `__flashCanvasElement()` call exercising the
+`hamburgerCollab.ts` → `mnemonicSearchMatching.ts` cross-file import directly; real
+`escapeHtml`/`stripHtml`/`countSourceEntries`/`findParentFolderId` bridge calls checked against
+real expected output; a real Escape keypress closing `#ai-panel` through
+`historyAutosave.ts`'s existing global handler → `__clearSearch` → `closeRailView` →
+`resetAiSearchState`. Regression-verified 6 prior Phase 4.4/4.5 scripts — the widest regression
+batch this migration has run for a single port —
+`verify-phase4-5-corestate-port.js`/`verify-phase4-5-panelshamburger-port.js`/
+`verify-phase4-5-profileachievementspricing-port.js`/`verify-phase4-5-srsconnectionscore-port.js`/
+`verify-phase4-5-historyautosave-port.js`/`verify-phase4-5-cardshortcuts-port.js` — all clean
+afterward. Zero console/page errors across every script in both modes, beyond the one confirmed-
+external `502` deliberately whitelisted with a documented reason, not silently swallowed.

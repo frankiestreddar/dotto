@@ -5,6 +5,7 @@ import { createPortal } from "react-dom";
 import { listPanelSelectionStore, waypointsListStore } from "./bridges";
 import RowActions from "./RowActions";
 import usePortalNode from "./usePortalNode";
+import { goToWaypointCard } from "./lib/hamburgerCollab";
 
 // Module-level, not inline — see CanvasItemsLayer.jsx's identical EMPTY_ITEMS comment for why a
 // fresh object literal as the getServerSnapshot fallback trips React's "should be cached" warning.
@@ -13,16 +14,16 @@ const EMPTY_IDS = new Set();
 const EMPTY_SELECTION = { panel: null, ids: EMPTY_IDS };
 
 // Same `${owner_id}-${folder_id}-${item_id}` key used as this row's React `key` below AND as the
-// shift-click selection id (see hamburger-collab.js's waypointRowKey, which must stay identical to
-// this) — vanilla can't reverse-parse it (owner_id is a UUID full of hyphens) but re-deriving the
-// same string per candidate row and comparing works fine.
+// shift-click selection id (see app/dotto/lib/hamburgerCollab.ts's waypointRowKey, which must stay
+// identical to this) — vanilla can't reverse-parse it (owner_id is a UUID full of hyphens) but
+// re-deriving the same string per candidate row and comparing works fine.
 function waypointRowKey(r) {
   return `${r.owner_id}-${r.folder_id}-${r.item_id}`;
 }
 
 // index is this row's position in the current sorted-by-proximity, filtered list (WaypointsListPanel
 // below, matching appState.lastWaypointsRows' own order exactly — see sortWaypointRowsByProximity,
-// hamburger-collab.js) — the first 10 rows (index 0-9) get a keyboard-shortcut badge, 1-9 then 0,
+// app/dotto/lib/hamburgerCollab.ts) — the first 10 rows (index 0-9) get a keyboard-shortcut badge, 1-9 then 0,
 // per explicit request; row 11+ gets none. The actual key handling lives in srs-connections-
 // core.js's keydown handler, gated on the Waypoints panel being open — this component only draws
 // the indicator, matching whatever that handler will actually respond to.
@@ -36,11 +37,11 @@ function WaypointRow({ r, selected, index }) {
       onClick={(e) => {
         e.stopPropagation();
         // Selecting (both a plain shift+click and a shift+click-drag across several rows) is
-        // handled entirely by setupListPanelDragSelect (hamburger-collab.js), listening on the
-        // stable #waypoints-list container rather than here — this guard just stops a shift+click
-        // from ALSO running the normal open-waypoint action below.
+        // handled entirely by setupListPanelDragSelect (app/dotto/lib/hamburgerCollab.ts),
+        // listening on the stable #waypoints-list container rather than here — this guard just
+        // stops a shift+click from ALSO running the normal open-waypoint action below.
         if (e.shiftKey) return;
-        window.__goToWaypointCard(r.owner_id, r.folder_id, r.item_id);
+        goToWaypointCard(r.owner_id, r.folder_id, r.item_id);
       }}
     >
       <span

@@ -68,9 +68,10 @@ function setCommandActive(idx) {
     items[idx].scrollIntoView({ block: 'nearest' });
 }
 
-// Called from handleSearchInput's new command branch (ai-assistant-suggestions.js) on every
-// keystroke while the box starts with "/". Returns the parsed state so the caller can decide
-// whether to fall back to normal search (parsed === null) without parsing twice.
+// Called from handleSearchInput's new command branch (app/dotto/lib/aiAssistantSuggestions.ts, via
+// the window.__updateCommandPalette bridge below) on every keystroke while the box starts with
+// "/". Returns the parsed state so the caller can decide whether to fall back to normal search
+// (parsed === null) without parsing twice.
 function updateCommandPalette(value) {
     const parsed = parseCommandInput(value);
     appState.commandActiveIndex = -1;
@@ -125,3 +126,7 @@ async function executeCurrentCommand(value) {
 
 export { executeCurrentCommand, selectCommandRow, setCommandActive, updateCommandPalette };
 window.__selectCommandRow = selectCommandRow;
+// Used by app/dotto/lib/aiAssistantSuggestions.ts's handleSearchInput (Phase 4.5) — that file used
+// to import updateCommandPalette directly, which no longer reaches across the public/app boundary
+// now that it's ported.
+window.__updateCommandPalette = updateCommandPalette;

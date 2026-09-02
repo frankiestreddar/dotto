@@ -1,9 +1,8 @@
-import { clearSearch, escapeHtml, handleSearchFocus, scrollChatThreadToBottom, showAiChatView, stripHtml, updateChatThread, updateSearchDropdown } from './ai-assistant-suggestions.js';
+import { escapeHtml, stripHtml } from './text-utils.js';
 import { executeCurrentCommand, setCommandActive } from './command-palette.js';
 const appState = window.__getAppState();
 const parseItemId = window.__parseItemId;
 import { ensureConnections } from './drawing-connections.js';
-import { commenceSearchOrMnemonic } from './mnemonic-search-matching.js';
 import { applyAiAddRowsToSource, createSourceFromAI } from './source-tags-ai.js';
 
 
@@ -13,13 +12,13 @@ import { applyAiAddRowsToSource, createSourceFromAI } from './source-tags-ai.js'
     // the top/first panel in the stack; dictionary/examples are preferred over writing text
     // where possible, so they're common even without an answer panel above them. The search bar
     // itself never moves. ----------
-    // Same shape as renderMnemonicError (mnemonic-search-matching.js) — reuses its build function
+    // Same shape as renderMnemonicError (app/dotto/lib/mnemonicSearchMatching.ts) — reuses its build function
     // (window.__buildMnemonicErrorEl) via SearchSuggestionsPanel.jsx's 'dotbot-error' branch,
     // since the two are visually/structurally identical (same class, same dotbotErrorMessage
     // extraction), just triggered by a different flow.
     function renderDotbotOrchestrateError(reason) {
         window.__setSearchSuggestions({ kind: 'dotbot-error', reason });
-        updateSearchDropdown();
+        window.__updateSearchDropdown?.();
         if (reason === 'no_credits') { appState.dotbotUpgradePromptedForFullness = true; window.__openDotbotUpgradeModal(); }
     }
 
@@ -155,9 +154,9 @@ import { applyAiAddRowsToSource, createSourceFromAI } from './source-tags-ai.js'
         // fresh conversation) or the chat view's bottom box (a follow-up, already showing) — this
         // is what actually brings the conversation on screen for the former; a safe no-op for the
         // latter, already there.
-        showAiChatView();
-        updateChatThread();
-        scrollChatThreadToBottom();
+        window.__showAiChatView?.();
+        window.__updateChatThread?.();
+        window.__scrollChatThreadToBottom?.();
     }
 
     // ---------- Text selection toolbar (copy / paste / look up / add to source) ----------
@@ -419,9 +418,9 @@ import { applyAiAddRowsToSource, createSourceFromAI } from './source-tags-ai.js'
         // search, which doesn't blur it) doesn't re-fire the browser's own `focus` event — so
         // onfocus="handleSearchFocus()" alone would silently do nothing until the next keystroke.
         // Calling it here too makes a click always reopen the initial-suggestion state.
-        appState.searchInput.addEventListener('click', (e) => { e.stopPropagation(); handleSearchFocus(); });
+        appState.searchInput.addEventListener('click', (e) => { e.stopPropagation(); window.handleSearchFocus?.(); });
         appState.searchInput.addEventListener('keydown', (e) => {
-            if (e.key === 'Escape') { clearSearch(); return; }
+            if (e.key === 'Escape') { window.__clearSearch?.(); return; }
             // Slash-command mode (see command-palette.js) — Arrow/Enter get their own meaning
             // here (navigate/execute a command) instead of falling through to the general
             // Enter-submits-search handler below. Every other key (typing, Backspace, Tab, ...)
@@ -446,7 +445,7 @@ import { applyAiAddRowsToSource, createSourceFromAI } from './source-tags-ai.js'
             // empty, Enter closes it back up instead of submitting, so the same key toggles the
             // search bar open/closed depending on which state it's already in. Checked before the
             // general Enter-submits-search handler below, so a non-empty box still submits as usual.
-            if (e.key === 'Enter' && appState.searchInput.value.trim() === '') { e.preventDefault(); clearSearch(); appState.searchInput.blur(); return; }
+            if (e.key === 'Enter' && appState.searchInput.value.trim() === '') { e.preventDefault(); window.__clearSearch?.(); appState.searchInput.blur(); return; }
             if (e.key === 'Enter') {
                 e.preventDefault();
                 // Enter on whatever's typed commences a Dotbot search — or, for a mnemonic-shaped
@@ -454,7 +453,7 @@ import { applyAiAddRowsToSource, createSourceFromAI } from './source-tags-ai.js'
                 // into story+image generation instead (see commenceSearchOrMnemonic/
                 // parseMnemonicIntent).
                 const value = appState.searchInput.value.trim();
-                if (value) commenceSearchOrMnemonic(value);
+                if (value) window.__commenceSearchOrMnemonic?.(value);
             }
         });
     }
@@ -470,3 +469,7 @@ window.openAddToSourcePopup = openAddToSourcePopup;
 // Used by app/dotto/lib/mediaPdfEpub.ts's buildEpubViewer (Phase 4.4) to feed the same
 // "select text -> Add to source"/"Look up" flow from inside an EPUB's own same-origin iframe.
 window.__showSelectionToolbarFor = showSelectionToolbarFor;
+// Used by app/dotto/lib/mnemonicSearchMatching.ts's commenceSearchOrMnemonic (Phase 4.5) — that
+// file used to import commenceDotbotSearch directly, which no longer reaches across the
+// public/app boundary now that it's ported.
+window.__commenceDotbotSearch = commenceDotbotSearch;

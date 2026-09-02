@@ -3,6 +3,11 @@
 import { useLayoutEffect } from "react";
 import { useSyncExternalStore } from "react";
 import { dotbotAnswerStore } from "./bridges";
+import {
+  buildAnswerBlocksWrap,
+  buildDotbotAnswerTextEl,
+  startDotbotAnswerReveal,
+} from "./lib/mnemonicSearchMatching";
 
 // Mounts Dotbot's written answer into #search-dotbot-answer — the short text intro (typewriter-
 // revealed, same as before) plus, immediately after, the in-depth answer_blocks continuation
@@ -25,14 +30,11 @@ export default function DotbotAnswerPanel() {
       el.style.display = "none";
       return;
     }
-    const textEl = window.__buildDotbotAnswerTextEl(answer.text);
+    const textEl = buildDotbotAnswerTextEl(answer.text);
     el.appendChild(textEl);
     el.style.display = "block";
-    window.__startDotbotAnswerReveal(textEl, answer.text);
-    const blocksWrap = window.__buildAnswerBlocksWrap(
-      answer.answerBlocksPanel,
-      answer.answerBlocksLanguage,
-    );
+    startDotbotAnswerReveal(textEl, answer.text);
+    const blocksWrap = buildAnswerBlocksWrap(answer.answerBlocksPanel, answer.answerBlocksLanguage);
     if (blocksWrap) el.appendChild(blocksWrap);
   }, [answer]);
 

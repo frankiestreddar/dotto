@@ -89,7 +89,7 @@ function sanitizeSentence(s) {
 // grammatical artifact is an acceptable outcome for the rare case, rather than dropping the whole
 // sentence); valid markers pass through completely untouched as literal text, since dotbotText/
 // answerBlocks[].content stay plain strings all the way to the client (see parseInlineMarkers,
-// public/dotto/mnemonic-search-matching.js).
+// app/dotto/lib/mnemonicSearchMatching.ts).
 function sanitizeInlineMarkers(text, { dictEntryCount, exampleCount, hasTranslation }) {
   if (!text) return text;
   let count = 0;
@@ -217,7 +217,7 @@ function summarizeAssistantContent(panels) {
 // append_dotbot_turn); assistant turns' content is a raw panels array, flattened via
 // summarizeAssistantContent above. Empty/unsummarizable turns are dropped rather than sent as
 // blank messages. A null/undefined conversationId (brand-new conversation) and a just-reopened
-// saved chat (see openSavedChat, public/dotto/hamburger-collab.js) both flow through this exact
+// saved chat (see openSavedChat, app/dotto/lib/hamburgerCollab.ts) both flow through this exact
 // same path — the summary is always read fresh from the DB per-request, never client-cached, so
 // reopening needs no special-casing at all.
 async function loadConversationHistory(supabase, conversationId) {

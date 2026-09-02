@@ -1,14 +1,14 @@
 // Small, genuinely self-contained (zero imports) text helpers extracted out of
 // ai-assistant-suggestions.js (Phase 4.2 of the vanilla->React consolidation, see
-// PHASE4_ROADMAP.md). ai-assistant-suggestions.js itself still has real vanilla hub dependents of
-// its own, so these can't fully move to app/dotto/lib yet either — that file keeps re-exporting
-// both so its own existing callers (search-panel-history.js, search-orchestration-selection.js,
-// source-tags-ai.js — real ES imports, unchanged — and app/dotto/lib/srsConnectionsCore.ts, via
-// the window.__stripHtml bridge ai-assistant-suggestions.js already sets) keep working. This
-// extraction's own value right now is real
-// test coverage (see text-utils.test.ts) for logic that had zero coverage before, and a smaller,
-// focused module ready to move wholesale to app/dotto/lib once nothing vanilla needs it directly
-// anymore.
+// PHASE4_ROADMAP.md). ai-assistant-suggestions.js itself moved to app/dotto/lib/aiAssistantSuggestions.ts
+// in its own Phase 4.5 port, at which point this file started setting its own
+// window.__escapeHtml/__stripHtml bridges directly (genuinely pure/zero-import, so it can safely
+// do so, same convention srs-algorithm.js already established) — the real remaining vanilla
+// callers (search-panel-history.js, search-orchestration-selection.js, source-tags-ai.js) now
+// import straight from here instead of through ai-assistant-suggestions.js's old re-export. This
+// extraction's own value right now is real test coverage (see text-utils.test.ts) for logic that
+// had zero coverage before, and a smaller, focused module ready to move wholesale to app/dotto/lib
+// once nothing vanilla needs it directly anymore.
 //
 // isLatinScriptText, defined right alongside these two in the original file, was deliberately
 // NOT brought along despite being similarly self-contained in spirit — it reads
@@ -43,3 +43,11 @@ function escapeHtml(s) {
 }
 
 export { escapeHtml, stripHtml };
+
+// Sets its own bridges directly — genuinely pure/zero-import, same convention srs-algorithm.js
+// already established. Used by app/dotto/lib/outlineTree.ts/app/dotto/lib/srsConnectionsCore.ts
+// (window.__stripHtml) and app/dotto/canvasItemBehavior.js's renderStaticTableHTML
+// (window.__escapeHtml), plus app/dotto/lib/aiAssistantSuggestions.ts itself, none of which can
+// import this directly since public/dotto/*.js isn't reachable from app/dotto/.
+window.__escapeHtml = escapeHtml;
+window.__stripHtml = stripHtml;
