@@ -16,6 +16,5 @@ import './dotto/drag-drop-chat.js';
 import './dotto/blocks-panel.js';
 import './dotto/extensions-panel.js';
 import './dotto/table-grid-resize.js';
-import './dotto/card-shortcuts.js';
 import './dotto/app-init.js';
 import './dotto/window-bridge.js';

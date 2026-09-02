@@ -22,7 +22,6 @@
 import { handleSearchFocus, handleSearchInput, showAiListView } from './ai-assistant-suggestions.js';
 import { handleCollabSearch, handleMsgSearch, openCollabPanel } from './friends-presence.js';
 import { hmenuAction } from './hamburger-collab.js';
-import { setTableAlign } from './card-shortcuts.js';
 import { closeCellTagPicker, closeTagContextMenu, commitTagRename, createTagFromCellPicker, deleteActiveTag, handleTagRenameKeydown, openTagContextMenu, startRenameActiveTag, toggleCellTag, triggerSourceUpload } from './source-tags-ai.js';
 
 window.closeCellTagPicker = closeCellTagPicker;
@@ -38,7 +37,6 @@ window.handleTagRenameKeydown = handleTagRenameKeydown;
 window.hmenuAction = hmenuAction;
 window.openCollabPanel = openCollabPanel;
 window.openTagContextMenu = openTagContextMenu;
-window.setTableAlign = setTableAlign;
 window.showAiListView = showAiListView;
 window.startRenameActiveTag = startRenameActiveTag;
 window.toggleCellTag = toggleCellTag;

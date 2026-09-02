@@ -1166,7 +1166,7 @@ export function attachUniversalItemBehavior(el: HTMLElement, it: Item): void {
     el.appendChild(badge);
   }
   // Per-card right-click menu: table cards get the shared #context-menu align-pill (Delete is
-  // keyboard-only — see deleteSelectedCards, card-shortcuts.js — not a menu item here);
+  // keyboard-only — see deleteSelectedCards, app/dotto/lib/cardShortcuts.ts — not a menu item here);
   // flashcard/typeright game cards instead slide their own in-card options panel into view (see
   // openGameOptionsPanel/renderGameOptionsHTML) — only these two kinds have a real front/back
   // notion today, so other game-category placeholders (blanks/match/audiotype) get no right-click

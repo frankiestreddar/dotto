@@ -29,8 +29,9 @@ declare global {
       sticky?: boolean;
       durationMs?: number;
     }) => void;
-    // app/dotto/lib/notificationsStore.ts — card-shortcuts.js's hover-scoped game-card/PDF-page-
-    // turn shortcuts gate on this so a notification's own Enter/Escape handling wins instead.
+    // app/dotto/lib/notificationsStore.ts — app/dotto/lib/cardShortcuts.ts's hover-scoped
+    // game-card/PDF-page-turn shortcuts gate on this so a notification's own Enter/Escape
+    // handling wins instead.
     __hasVisibleNotifications?: () => boolean;
     // app/dotto/lib/profileAchievementsPricing.ts
     openPricingOverlay?: () => void;
@@ -107,8 +108,11 @@ declare global {
     __applyCursorMode?: () => void;
     // add-menu.js — a card kind's default {w, h} for the placement ghost.
     __kindSize?: (kind: string) => { w: number; h: number };
-    // card-shortcuts.js
+    // app/dotto/lib/cardShortcuts.ts (Phase 4.5 port — was card-shortcuts.js)
     __deleteSelectedCards?: () => void;
+    // Plain (non-`__`) global — real inline onclick target in content/dotto-markup.html and
+    // content/fragments/context-menu.html.
+    setTableAlign?: (align: string) => void;
     // app/dotto/lib/coreState.ts — registers a per-pane canvas-listener setup function, called once for every
     // future pane's own canvas element (see that function's own comment for the real pane-0-only-
     // listener bug this exists to prevent).
@@ -792,14 +796,14 @@ declare global {
     // friends-presence.js
     __refreshCanvasCollabForCurrentFolder?: () => Promise<void>;
     __renderCollabPill?: () => void;
-    // card-shortcuts.js
+    // app/dotto/lib/cardShortcuts.ts
     __findNextFreeSlot?: (folderId: string) => number;
     // waypointsRenderLoop.ts's own outbound bridges (Phase 4.5 port — was
     // waypoints-render-loop.js) — CanvasItemsLayer.jsx/CanvasCard.jsx/SourceCard.jsx/NoteCard.jsx/
     // WatermarkCard.jsx/TitleCard.jsx/WaypointCard.jsx/FilesListPanel.jsx/PaneZoomBar.jsx/
     // SourcesListPanel.jsx/TabsBar.jsx (React -> vanilla) and drawing-connections.js/
     // ai-assistant-suggestions.js/search-orchestration-selection.js/hamburger-collab.js/
-    // app-init.js/mnemonic-search-matching.js/command-verbs.js/card-shortcuts.js/
+    // app-init.js/mnemonic-search-matching.js/command-verbs.js/
     // source-tags-ai.js (vanilla -> React) all reach these.
     __applyCanvasItemWrapperAttrs?: (el: HTMLElement, it: Record<string, unknown>) => void;
     __attachUniversalItemBehavior?: (el: HTMLElement, it: Record<string, unknown>) => void;

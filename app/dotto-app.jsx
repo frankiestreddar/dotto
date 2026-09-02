@@ -69,6 +69,7 @@ import { wireMessagingCanvasPreview } from "./dotto/lib/messagingCanvasPreview";
 import { wireHistoryAutosave } from "./dotto/lib/historyAutosave";
 import { wireSrsConnectionsCore } from "./dotto/lib/srsConnectionsCore";
 import { wireProfileAchievementsPricing } from "./dotto/lib/profileAchievementsPricing";
+import { wireCardShortcuts } from "./dotto/lib/cardShortcuts";
 import { ensureCoreState } from "./dotto/lib/coreState";
 // Side-effect only, same reasoning as splitPaneManagement/tabManagement above — sets
 // window.__openGameOptionsPanel/fcFlip/etc at module-eval time for the 5 still-vanilla callers
@@ -542,6 +543,12 @@ export default function DottoApp({ sections, currentUser }) {
   // window.__getAppState AND window.__wireRailIcon (app/dotto/lib/panelsHamburger.ts) rather than
   // a single readiness check.
   useEffect(() => wireProfileAchievementsPricing(), []);
+  // Phase 4.5: global Option-held tracking, the multi-select delete action, and the hover-scoped
+  // game-card/PDF-page-turn keyboard shortcuts — see wireCardShortcuts's own comment,
+  // app/dotto/lib/cardShortcuts.ts, for why a single window.__getAppState readiness check is
+  // enough here (no rail icon or DOM writes to defer past mount, unlike
+  // wireProfileAchievementsPricing above).
+  useEffect(() => wireCardShortcuts(), []);
 
   return (
     <>

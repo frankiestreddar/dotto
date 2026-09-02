@@ -978,6 +978,67 @@
   account's own score/achievement row with no safe fake-id equivalent available, and
   `gamesFlashcardTyperight.ts`'s own verify script already exercises `__awardUserPoints` for real
   via `fcFlip`/`trCheck` — a documented scope decision, not an oversight.
+  `card-shortcuts.js` (154 lines) done fourth — the last of the 4 immediately-portable
+  `window-bridge.js`-owning files this batch targeted — to `app/dotto/lib/cardShortcuts.ts`: global
+  Option-held tracking, the multi-select delete action, hover-scoped game-card/PDF-page-turn
+  keyboard shortcuts, and `setTableAlign`. Unlike `cardsMisc.ts`/`libraryPublish.ts` (pure
+  functions, no module-load-time side effects) but also unlike
+  `profileAchievementsPricing.ts` (needed an external `__wireRailIcon` bridge too), this file's
+  real risk was 3 always-on global `document`/`window` listeners (Option-held tracking ×3,
+  hover-scoped game shortcuts, PDF arrow-key routing) that all close over live `appState`/bridge
+  reads — needed a real `wireCardShortcuts()`, but a single `window.__getAppState` readiness check
+  (not a poll for multiple bridges) was enough, matching
+  `app/dotto/lib/sourceButtonsCursorMode.ts`'s own established shape rather than
+  `profileAchievementsPricing.ts`'s heavier one — no rail icon or DOM writes to defer past mount
+  here. `setTableAlign` needed a brand-new ambient type (never declared before this port needed
+  it); 2 stale "current-tense" comment references caught and fixed where cardShortcuts.ts genuinely
+  no longer owns behavior a comment implied it did (`vanillaBridges.d.ts`'s own
+  `__applyCanvasItemWrapperAttrs`/`__attachUniversalItemBehavior` "vanilla -> React, all reach
+  these" list, same stale-list pattern `cardsMisc.ts`'s port already caught once). One real
+  documentation bug caught and fixed while writing this port, not just copied forward: the original
+  vanilla file's own `deleteSelectedCards` comment said "see the Backspace keydown handler" without
+  saying where — grepping for the real Backspace-to-delete callers found they live in
+  `app/dotto/lib/copyPaste.ts` and `app/dotto/lib/sourceButtonsCursorMode.ts` (via the
+  `__deleteSelectedCards` bridge), not in this file at all — the vague pointer got made precise
+  rather than carried forward unclear. `window-bridge.js`'s own import line and 1 re-export line
+  removed — it now imports from 4 files instead of 5, the exact 4-file circular cluster
+  (`ai-assistant-suggestions.js`/`hamburger-collab.js`/`friends-presence.js`/
+  `source-tags-ai.js`) this batch always expected to remain once the 4 immediately-portable files
+  were done. Real Playwright verification against both a dev server and a real production server:
+  real Alt keydown/keyup/window-blur events correctly toggling `body.option-held` (including the
+  stuck-on-alt-tab guard); a real `__deleteSelectedCards()` call removing a plain multi-selection
+  with no `confirm()` prompt, and a separate real call with a source-kind item correctly triggering
+  the irrecoverable-data `confirm()` gate (dismissing it correctly left the item in place — real
+  dialog interception via Playwright's own `page.on('dialog', ...)`, not stubbed); a real
+  `setTableAlign()` call against the live `#context-menu` DOM element correctly setting
+  `it.textAlign` and closing the menu; a real mouse-hover (via `page.mouse.move` to the item's
+  actual on-screen position, not a CSS class hack) plus a real Space keypress correctly routing
+  through `hoveredGameCard()` to `fcFlip()`, then a real "4" keypress correctly routing to
+  `fcRate('easy')`; a real hover plus ArrowRight keypress on a minimal mocked PDF-card DOM
+  (`.item.media` + two real `.pdf-viewer-nav-btn` buttons, `window.__findItemById`/`__parseItemId`
+  narrowly stubbed only for that one mock id) correctly routing to the real next-page button's own
+  `.click()`. Two real bugs caught and fixed in this port's own verify script before it was
+  considered done, not worked around: (1) an initial mock table item used `rows` instead of the
+  real `tableData` field `TableCard.jsx`/`sourceTable.ts` actually expect, which crashed the whole
+  React tree with a real `TypeError` (caught via the dev server's own error log, not silently
+  swallowed) and left every later assertion failing for an unrelated reason — fixed to use the
+  correct field name; (2) rating a freshly-created, unconnected mock flashcard collapsed
+  `fcStats` back to empty immediately, because `srs-connections-core.js`'s real "orphaned-SRS
+  integrity sweep" (`propagateCanvasStreams`) runs on every `render()` and legitimately resets any
+  flashcard whose `card.srs` looks real but isn't fed by an actual connection — the exact mechanism
+  `verify-phase4-4-gamesflashcardtyperight-port.js`'s own script already documented and worked
+  around (stub `window.__render` to a no-op for the one keypress being tested, check state, then
+  restore and re-trigger); applied the identical technique here. Regression-verified
+  `verify-phase4-5-corestate-port.js`, `verify-phase4-4-gamesflashcardtyperight-port.js`, and
+  `verify-phase4-4-copypaste-port.js` all clean afterward (the last two for
+  `hoveredGameCard`/`fcFlip`/`fcRate` and the `__deleteSelectedCards` bridge this port's own
+  routing sits directly on top of). Zero console/page errors across every script in both modes.
+  **This closes out all 4 of the immediately-portable `window-bridge.js`-owning files.** Only the
+  4-file circular cluster (`ai-assistant-suggestions.js`, `hamburger-collab.js`,
+  `friends-presence.js`, `source-tags-ai.js`) remains before `window-bridge.js` itself can be
+  deleted — no concrete plan yet devised for how to sequence or bundle that group, since each
+  imports from at least one of the others; Phase 4.5's own final open question (whether any paused
+  Phase 4.1 files are now unblocked) still depends on that cluster landing first.
 - **Phase 4.6 — delete the bridge layer: not started.**
 - **Phase 4.7 — final cleanup & professionalization close-out: not started.**
 
@@ -2148,3 +2209,53 @@ scripts make against safely-nonexistent mock ids, these two mutate the real sign
 account's own score/achievement row with no safe fake-id equivalent available, and
 `gamesFlashcardTyperight.ts`'s own verify script already exercises `__awardUserPoints` for real via
 `fcFlip`/`trCheck` — a documented scope decision, not an oversight.
+
+**Phase 4.5 (`card-shortcuts.js` → `app/dotto/lib/cardShortcuts.ts`)**: `node --check` on the 2
+touched vanilla files (`dotto-script.js`, `window-bridge.js`), `eslint` clean, `npm run typecheck`
+clean (after adding an ambient type for `setTableAlign`, never declared before this port needed
+it), `npm run format:check` clean after a `prettier --write` pass run as the actual last step
+before committing, `rm -rf .next && npm run build` clean, all 32 Vitest tests still green. This is
+the last of the 4 immediately-portable `window-bridge.js`-owning files this batch targeted, and the
+first of the 4 with genuine always-on global listeners (Option-held tracking ×3, hover-scoped
+game-card shortcuts, PDF arrow-key routing) rather than pure functions or appState-dependent DOM
+writes — needed a real `wireCardShortcuts()`, but (unlike `profileAchievementsPricing.ts`'s
+dual-bridge poll) a single `window.__getAppState` readiness check was enough, matching
+`app/dotto/lib/sourceButtonsCursorMode.ts`'s own established shape, since nothing here needs an
+external bridge like `__wireRailIcon` to be ready first. One real documentation bug fixed, not just
+carried forward: the original file's own `deleteSelectedCards` comment said "see the Backspace
+keydown handler" without saying where — grepped for the real callers and found they live in
+`app/dotto/lib/copyPaste.ts`/`app/dotto/lib/sourceButtonsCursorMode.ts` (via the
+`__deleteSelectedCards` bridge), not in this file itself; made precise rather than copied verbatim.
+`window-bridge.js`'s own import line and 1 re-export line removed — it now imports from 4 files
+instead of 5, exactly the circular 4-file cluster (`ai-assistant-suggestions.js`/
+`hamburger-collab.js`/`friends-presence.js`/`source-tags-ai.js`) this batch always expected to be
+left once the 4 immediately-portable files were done. Real Playwright verification against both a
+dev server and a real production server: real Alt keydown/keyup/window-blur events correctly
+toggling `body.option-held`, including the stuck-on-alt-tab-guard path (a real `blur` event, not
+just a keyup); a real `__deleteSelectedCards()` call removing a plain multi-selection with zero
+`confirm()` prompts, and a separate real call with a source-kind item correctly triggering the
+irrecoverable-data `confirm()` gate via real Playwright dialog interception
+(`page.on('dialog', ...)`, not stubbed) — dismissing it correctly left the item in place; a real
+`setTableAlign()` call against the live `#context-menu` DOM element setting `it.textAlign` and
+closing the menu; a real mouse-hover (`page.mouse.move` to the item's actual on-screen position,
+not a CSS class hack) plus a real Space keypress correctly routing through `hoveredGameCard()` to
+`fcFlip()`, then a real "4" keypress correctly routing to `fcRate('easy')`; a real hover plus
+ArrowRight keypress on a minimal mocked PDF-card DOM (a real `.item.media` element with two real
+`.pdf-viewer-nav-btn` buttons, `window.__findItemById`/`__parseItemId` narrowly stubbed only for
+that one mock id, every other id resolution left untouched) correctly routing to the real
+next-page button's own `.click()`. Two real bugs caught and fixed in this port's own verify script
+before it was considered done, not worked around: (1) an initial mock table item used `rows`
+instead of the real `tableData` field `TableCard.jsx`/`sourceTable.ts` actually expect, which
+crashed the whole React tree with a real, uncaught `TypeError` (`it.tableData[0]` on `undefined`) —
+caught by checking the dev server's own error log after the script's later assertions started
+failing for what looked like an unrelated reason, not assumed away; (2) rating a freshly-created,
+unconnected mock flashcard collapsed `fcStats` back to empty immediately, because
+`srs-connections-core.js`'s real "orphaned-SRS integrity sweep" (`propagateCanvasStreams`) runs on
+every `render()` and legitimately resets any flashcard whose `card.srs` looks real but isn't fed by
+an actual connection — the exact mechanism `verify-phase4-4-gamesflashcardtyperight-port.js`'s own
+script already documented and worked around (stub `window.__render` to a no-op for the one keypress
+under test, read state, then restore and re-trigger); the identical technique applied here.
+Regression-verified `verify-phase4-5-corestate-port.js`, `verify-phase4-4-gamesflashcardtyperight-port.js`,
+and `verify-phase4-4-copypaste-port.js` all clean afterward (the last two exercise
+`hoveredGameCard`/`fcFlip`/`fcRate` and the `__deleteSelectedCards` bridge this port's own routing
+sits directly on top of). Zero console/page errors across every script in both modes.

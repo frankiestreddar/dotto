@@ -94,7 +94,7 @@ export function closeAllPanels(except?: string): void {
 }
 // Any panel that owns its own keyboard input while open — same set closeAllPanels() knows about,
 // plus the search dropdown — should win over any OTHER global single-key shortcut (game-card
-// shortcuts in card-shortcuts.js, the Space/"/"/m/n shortcuts in app/dotto/lib/srsConnectionsCore.ts) even when
+// shortcuts in app/dotto/lib/cardShortcuts.ts, the Space/"/"/m/n shortcuts in app/dotto/lib/srsConnectionsCore.ts) even when
 // nothing inside that panel happens to be focused yet. Without this, typing a normal sentence while
 // e.g. the Waypoints panel is open (cursor resting on the panel, no input actually clicked into)
 // would silently do nothing for most letters, then hijack focus to the AI search box the instant a
