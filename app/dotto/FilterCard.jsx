@@ -1,11 +1,14 @@
 "use client";
 
+import { applyFilterToRows, collectAvailableFilterTags } from "./lib/srsConnectionsCore";
+
 // Ported from the old renderFilterHTML (app/dotto/lib/shelfSearch.ts — kept
 // there, not deleted: it's still exported alongside its siblings and cheap to leave). setFilterMode/
 // toggleFilterTag were already window-bridged for the original inline onclick attributes.
-// applyFilterToRows/collectAvailableFilterTags (srs-connections-core.js) are real filtering logic,
-// not boilerplate — reached via new window.__applyFilterToRows/__collectAvailableFilterTags
-// bridges, same pattern cards-misc.js established.
+// applyFilterToRows/collectAvailableFilterTags (app/dotto/lib/srsConnectionsCore.ts) are real
+// filtering logic, not boilerplate — real ES imports now (Phase 4.5 port, same-tree — the
+// window.__applyFilterToRows/__collectAvailableFilterTags bridges stay set from that file too,
+// for still-vanilla callers).
 export default function FilterCard({ it }) {
   const rows = it.incomingRows || [];
   if (!rows.length) {
@@ -19,10 +22,10 @@ export default function FilterCard({ it }) {
     );
   }
 
-  const availableTags = window.__collectAvailableFilterTags(rows);
+  const availableTags = collectAvailableFilterTags(rows);
   const selected = new Set(it.filterTagIds || []);
   const mode = it.filterMode === "and" ? "and" : "or";
-  const outCount = window.__applyFilterToRows(it, rows).length;
+  const outCount = applyFilterToRows(it, rows).length;
 
   return (
     <>

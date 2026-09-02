@@ -227,7 +227,7 @@ import { deleteCanvasCollabsForFolder, deleteWaypointCardEverywhere, expandWaypo
     // Called from render() itself (waypoints-render-loop.js), same as renderBreadcrumbMapPanel/
     // renderTabsPanel — not just on panel-open/search-input — so the list stays correct even if the
     // current folder changes while the panel happens to be pinned open, and so creating a new
-    // source (createNewSource, srs-connections-core.js, which calls add() -> render()) updates the
+    // source (createNewSource, app/dotto/lib/srsConnectionsCore.ts, which calls add() -> render()) updates the
     // list for free without a second explicit render call of its own.
     // query is optional — render()'s own call omits it, falling back to whatever's currently typed
     // into the live search input (if the panel isn't even open/mounted yet, that lookup just comes

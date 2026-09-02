@@ -1,5 +1,4 @@
 import { appState } from './core-state.js';
-import { add, viewportCenterWorldPoint } from './srs-connections-core.js';
 
 // Independent floating popup toggled by U — not part of the #hamburger-stack rail-panel system
 // (no railViewEls/railIconBtns entry, no wireRailIcon), so it gets its own tiny open/close pair
@@ -62,13 +61,13 @@ appState.uploadDropzone.addEventListener('drop', (e) => {
 // straight to processMediaFile (app/dotto/lib/mediaPdfEpub.ts) — the same FileReader/Supabase-
 // storage pipeline the Media card's own "Upload" button uses (via triggerMediaUpload, a thin
 // wrapper around that same function for ITS OWN picker-then-process flow), not a reimplementation.
-// add() (srs-connections-core.js) doesn't return the item it creates, but it's synchronous and
-// always pushes onto the end of the current folder's items array, so the last entry right after
-// calling it is guaranteed to be the one just added.
+// add() (app/dotto/lib/srsConnectionsCore.ts) doesn't return the item it creates, but it's
+// synchronous and always pushes onto the end of the current folder's items array, so the last
+// entry right after calling it is guaranteed to be the one just added.
 appState.uploadPopupBtn.addEventListener('click', () => {
     if (!pendingFile) return;
-    const { x, y } = viewportCenterWorldPoint();
-    add('media', x, y);
+    const { x, y } = window.__viewportCenterWorldPoint?.() || { x: 0, y: 0 };
+    window.__add?.('media', x, y);
     const items = appState.folders[appState.currentFolderId].items;
     window.__processMediaFile(items[items.length - 1].id, pendingFile);
     closeUploadPopup();
@@ -78,3 +77,5 @@ export { closeUploadPopup, toggleUploadPopup };
 
 // Used by app/dotto/lib/historyAutosave.ts's global Escape keydown handler (Phase 4.5).
 window.__closeUploadPopup = closeUploadPopup;
+// Used by app/dotto/lib/srsConnectionsCore.ts's global keydown handler's 'u' shortcut (Phase 4.5).
+window.__toggleUploadPopup = toggleUploadPopup;

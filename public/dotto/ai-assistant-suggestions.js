@@ -270,7 +270,7 @@ import { render } from './waypoints-render-loop.js';
         showAiListView();
     }
     // Opens the AI panel — called from the global Space/"/" keydown shortcuts
-    // (srs-connections-core.js), and from openSavedChat (hamburger-collab.js) when reopening a
+    // (app/dotto/lib/srsConnectionsCore.ts), and from openSavedChat (hamburger-collab.js) when reopening a
     // saved conversation from the chat list.
     function openSearchOverlay() {
         if (!appState.aiPanel || !appState.searchInput) return;
@@ -876,3 +876,6 @@ window.__refreshAiPanel = refreshAiPanel;
 window.__resetAiSearchState = resetAiSearchState;
 // Used by app/dotto/lib/historyAutosave.ts's global Escape keydown handler (Phase 4.5).
 window.__clearSearch = clearSearch;
+// Used by app/dotto/lib/srsConnectionsCore.ts's global keydown handler ('q' opens the Explain/AI
+// panel — Phase 4.5).
+window.__openSearchOverlay = openSearchOverlay;

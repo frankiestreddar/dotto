@@ -19,7 +19,7 @@ const EMPTY_TABS = { tabs: [], activeTabId: null };
 
 // Below this many px of horizontal pointer movement, a pointerdown-then-up on a tab still counts
 // as a plain click (switch tab / rename) rather than a drag-to-reorder — same "was this a click or
-// a drag" threshold shape as PEN_CLICK_THRESHOLD_PX (srs-connections-core.js), just for this
+// a drag" threshold shape as PEN_CLICK_THRESHOLD_PX (app/dotto/lib/srsConnectionsCore.ts), just for this
 // unrelated gesture.
 const DRAG_THRESHOLD_PX = 4;
 

@@ -69,7 +69,7 @@ function setTableAlign(align) {
 // ---------- Hover-scoped game card shortcuts ----------
 // Whichever game card the mouse is currently sitting over gets its own keyboard shortcuts — Space
 // to flip a flashcard (was F; freed up per explicit request once F became the rail shortcut for
-// Files, srs-connections-core.js — the two collided since this handler isn't gated on
+// Files, app/dotto/lib/srsConnectionsCore.ts — the two collided since this handler isn't gated on
 // !anyPanelOpen), 1-4 for its rating row once flipped, Enter to advance a Typeright card once
 // it's been checked (the ONLY way to do that from the keyboard, since the input itself goes
 // disabled right after checking — see renderTypeRightHTML — and so can no longer receive its own

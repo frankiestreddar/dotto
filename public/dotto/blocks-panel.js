@@ -40,7 +40,7 @@ function isCustomFolderId(id) {
 
 // Which folders are currently collapsed (explicit request) — a plain module-level Set, same
 // "purely ephemeral, nothing else needs to read/write it" reasoning as add-block chord state
-// (srs-connections-core.js): not persisted, not appState, resets on reload. Keyed by folder key
+// (app/dotto/lib/srsConnectionsCore.ts): not persisted, not appState, resets on reload. Keyed by folder key
 // ('essentials'/'purchased'/'my-creations'/a customfolder_ id).
 const collapsedBlocksFolders = new Set();
 

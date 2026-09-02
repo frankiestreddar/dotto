@@ -4,7 +4,8 @@ import { describe, expect, it } from "vitest";
 // resolve at runtime via a plain <Script> tag, not about test tooling). A relative import
 // straight into public/dotto/ is exactly how this file's own logic gets real coverage while it's
 // still vanilla-side (see srs-algorithm.js's own comment on why it hasn't moved to app/dotto/lib
-// yet — srs-connections-core.js still has real vanilla callers of its own).
+// yet — genuinely pure/zero-import and low-priority to move on its own, now that its last real
+// vanilla dependent, srs-connections-core.js, has itself been ported, Phase 4.5).
 // allowJs lets TypeScript infer real types straight from the plain JS source, no declaration file
 // or ts-expect-error needed.
 import { calculateSM2, defaultSrsState, diffRatings } from "../../public/dotto/srs-algorithm.js";

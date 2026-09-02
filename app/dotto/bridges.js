@@ -329,7 +329,7 @@ export const waypointsListStore = createStore({ rows: [], query: "" });
 // on a source page, one row per data row — see computeOutlineRows/computeSourceOutlineRows for the
 // row shapes). Genuine JSX rows (see OutlinePanel.jsx), same "no natural content-parameter
 // boundary" case CONTRIBUTING.md names as this migration's Phase 1 — the first vanilla list panel
-// converted where the existing keyboard-nav (srs-connections-core.js's ArrowUp/ArrowDown/Enter
+// converted where the existing keyboard-nav (app/dotto/lib/srsConnectionsCore.ts's ArrowUp/ArrowDown/Enter
 // block) still needs real DOM nodes handed back to it (see syncOutlineRows/window.__syncOutlineRows,
 // called from OutlinePanel.jsx's own layout effect) rather than owning that DOM itself.
 export const outlineStore = createStore({ rows: [], query: "" });

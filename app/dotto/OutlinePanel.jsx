@@ -98,7 +98,7 @@ function OutlineRow({ r }) {
 // unrelated to this — this component only owns the row list, same division of ownership every
 // other converted sidebar list panel already uses (SourcesListPanel.jsx and friends).
 //
-// The useLayoutEffect below is this panel's one real difference from those: srs-connections-core.js's
+// The useLayoutEffect below is this panel's one real difference from those: app/dotto/lib/srsConnectionsCore.ts's
 // existing ArrowUp/ArrowDown/Enter keyboard-nav block reads real DOM nodes out of
 // appState.outlineRows (untouched by this migration), so every time the row list changes, the
 // portal's freshly-committed .outline-item children are handed back to vanilla via

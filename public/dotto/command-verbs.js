@@ -3,7 +3,6 @@ import { resolveUsernameToUserId } from './friends-presence.js';
 import { generateGlobalId } from './global-ids.js';
 import { openFolder, render } from './waypoints-render-loop.js';
 import { CARD_KINDS } from './card-kinds.js';
-import { deepCloneItem, viewportCenterWorldPoint } from './srs-connections-core.js';
 
 // Executes the 'obtain' verb for an already-resolved command target (see
 // command-target-lookup.js's resolveCommandTarget) — navigates in for your own or shared-with-you
@@ -86,7 +85,7 @@ function placeTarget(target) {
     if (!target) return;
     window.__saveSnapshot();
     const { w, h } = CARD_KINDS.reference.defaultSize;
-    const center = viewportCenterWorldPoint();
+    const center = window.__viewportCenterWorldPoint?.();
     appState.folders[appState.currentFolderId].items.push({
         id: appState.idCounter++,
         x: Math.round(center.x - w / 2), y: Math.round(center.y - h / 2), w, h,
@@ -99,7 +98,7 @@ function placeTarget(target) {
 
 // Recursively rebuilds a fetched remote folder — and everything nested inside it the caller can
 // still reach — as brand-new local folders/items with fresh local AND global ids throughout. The
-// remote-data counterpart to deepCloneItem (srs-connections-core.js), which does the identical
+// remote-data counterpart to deepCloneItem (app/dotto/lib/srsConnectionsCore.ts), which does the identical
 // thing for data already sitting in appState.folders; this exists because deepCloneItem only ever
 // reads that local map, never fetches. get_shared_folder/get_public_folder are both gated
 // per-folder (not per-tree — see their own migrations), so a nested folder/source the caller can
@@ -151,7 +150,7 @@ async function copyTarget(target) {
     window.__saveSnapshot();
     let clonedFolderId;
     if (target.access === 'owner') {
-        const clone = deepCloneItem({ kind: target.kind === 'source' ? 'source' : 'folder', folderId: target.folder_id });
+        const clone = window.__deepCloneItem?.({ kind: target.kind === 'source' ? 'source' : 'folder', folderId: target.folder_id });
         clonedFolderId = clone.folderId;
     } else {
         const result = await cloneRemoteFolder(target.owner_id, target.folder_id, target.access);
@@ -160,7 +159,7 @@ async function copyTarget(target) {
     }
     const kind = target.kind === 'source' ? 'source' : 'folder';
     const { w, h } = CARD_KINDS[kind].defaultSize;
-    const center = viewportCenterWorldPoint();
+    const center = window.__viewportCenterWorldPoint?.();
     appState.folders[appState.currentFolderId].items.push({
         id: appState.idCounter++,
         x: Math.round(center.x - w / 2), y: Math.round(center.y - h / 2), w, h,

@@ -137,7 +137,7 @@
         drawColor: '#ffffff', drawLayer: 'front', drawTool: 'pen', drawSize: 3,
         liveSvg: null, livePath: null, drawing: null,
         // Point-by-point pen-tool line in progress (see startPenPolyline/addPenPolylinePoint/
-        // finishPenPolyline, srs-connections-core.js) — null whenever no such line is being built.
+        // finishPenPolyline, app/dotto/lib/srsConnectionsCore.ts) — null whenever no such line is being built.
         // penPolylineMoveHandler holds the persistent window pointermove listener that draws the
         // rubber-band segment between clicks, so it can be torn down when the line finishes.
         penPolyline: null, penPolylineMoveHandler: null,
@@ -879,6 +879,14 @@ window.__getZoomThumbEl = () => zoomThumb;
 // __getCanvasEl/__getWorldEl above (reassigned by switchActivePane once a second pane's DOM
 // exists).
 window.__getDotLayerEl = () => dotLayer;
+// Used by app/dotto/lib/srsConnectionsCore.ts (Phase 4.5) — same "single, never-reassigned
+// element" category as addMenu/btnAdd/contextMenu above.
+window.__getDrawColorInputEl = () => drawColorInput;
+window.__getDrawSizeInputEl = () => drawSizeInput;
+window.__getDrawPenBtnEl = () => drawPenBtn;
+window.__getDrawEraserBtnEl = () => drawEraserBtn;
+window.__getDrawFrontBtnEl = () => drawFrontBtn;
+window.__getDrawBackBtnEl = () => drawBackBtn;
 // Used by app/dotto/lib/historyAutosave.ts's loadWorkspace/restorePaneLayoutAndTabs (Phase 4.5).
 window.__recomputeTopCardZIndex = recomputeTopCardZIndex;
 window.__restorePaneState = restorePaneState;

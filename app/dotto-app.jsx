@@ -67,6 +67,7 @@ import { wirePanelsHamburger } from "./dotto/lib/panelsHamburger";
 import { wireCanvasPresence } from "./dotto/lib/canvasPresence";
 import { wireMessagingCanvasPreview } from "./dotto/lib/messagingCanvasPreview";
 import { wireHistoryAutosave } from "./dotto/lib/historyAutosave";
+import { wireSrsConnectionsCore } from "./dotto/lib/srsConnectionsCore";
 // Side-effect only, same reasoning as splitPaneManagement/tabManagement above — sets
 // window.__openGameOptionsPanel/fcFlip/etc at module-eval time for the 5 still-vanilla callers
 // that used to import these directly, plus the React->vanilla bridges FlashcardCard.jsx/
@@ -495,6 +496,13 @@ export default function DottoApp({ sections, currentUser }) {
   // app/dotto/lib/historyAutosave.ts, for why this needs to poll for
   // window.__getCanvasEl/window.__getDotLayerEl rather than a single readiness check.
   useEffect(() => wireHistoryAutosave(), []);
+  // Phase 4.5: the canvas data-conduit connection system (appState.CardStreamIO), click-to-link,
+  // canvas item creation, the pen/eraser drawing tool, the zoom-track drag/dblclick handlers, the
+  // draw toolbar, and the global keydown handler backing every one-letter rail shortcut — see
+  // wireSrsConnectionsCore's own comment, app/dotto/lib/srsConnectionsCore.ts, for why this needs
+  // to poll for live appState AND the canvas/zoom-track/draw-toolbar elements rather than a single
+  // readiness check.
+  useEffect(() => wireSrsConnectionsCore(), []);
 
   return (
     <>

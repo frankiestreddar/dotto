@@ -207,7 +207,7 @@ function showPlacementGhost(kind: string): void {
 }
 
 // Purely a visual preview (the actual placement, on click, always correctly uses whichever pane
-// was clicked into — see setupCanvasLevelInteractionListeners, srs-connections-core.js) — no
+// was clicked into — see setupCanvasLevelInteractionListeners, app/dotto/lib/srsConnectionsCore.ts) — no
 // switchActivePane needed here, just re-attached per pane (split-screen Stage 4: see
 // window.__registerPaneCanvasListenerSetup, core-state.js) so the ghost tracks the cursor over ANY
 // pane, not just pane 0.

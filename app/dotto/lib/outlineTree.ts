@@ -147,7 +147,7 @@ interface OutlineRow {
 
 // Which headings are currently collapsed (explicit request) — a plain module-level Set, same
 // "purely ephemeral, nothing else needs to read/write it" reasoning as add-block chord state
-// (srs-connections-core.js): not persisted, not appState, resets on reload. Keyed by heading item
+// (app/dotto/lib/srsConnectionsCore.ts): not persisted, not appState, resets on reload. Keyed by heading item
 // id.
 const collapsedOutlineHeadingIds = new Set<number>();
 export function toggleOutlineCollapse(id: number): void {
@@ -522,7 +522,7 @@ export function setOutlineActive(idx: number): void {
 }
 // Feeds real DOM nodes from the React-rendered tree (OutlinePanel.jsx's own useLayoutEffect on
 // its row list, app/dotto/) back into appState.outlineRows, in the same order they're displayed —
-// srs-connections-core.js's own ArrowUp/ArrowDown/Enter keyboard-nav block (untouched, needs zero
+// app/dotto/lib/srsConnectionsCore.ts's own ArrowUp/ArrowDown/Enter keyboard-nav block (untouched, needs zero
 // edits) doesn't care who owns the nodes, only that r.el is a real element it can
 // classList.add('active')/scrollIntoView/click() — exactly what it already got from makeRow's own
 // appState.outlineRows.push({ el: row }) before this tree became React.
@@ -532,7 +532,7 @@ export function syncOutlineRows(elements: ArrayLike<HTMLElement>): void {
   appState.outlineRows = Array.from(elements).map((el) => ({ el }));
   appState.outlineActiveIndex = -1;
 }
-// "M" keyboard shortcut (srs-connections-core.js) — routes through the same shared rail mechanism
+// "M" keyboard shortcut (app/dotto/lib/srsConnectionsCore.ts) — routes through the same shared rail mechanism
 // the outline's own icon uses (openRailView/closeRailView, app/dotto/lib/panelsHamburger.ts) rather than
 // toggling classes directly, so it correctly closes whichever OTHER rail view might currently be
 // open instead of just layering the outline on top of it.

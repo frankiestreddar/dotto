@@ -44,7 +44,7 @@
          (#search-panel-header/#search-panel-search-wrap/#search-panel-search/
          #search-panel-search-hint) distinct from #ai-panel's (#ai-list-header/#search-input-wrap/
          #search-input/#search-input-hint) so neither panel's existing JS wiring
-         (RAIL_PANEL_SEARCH_INPUT_ID, srs-connections-core.js; handleSearchInput/handleSearchFocus/
+         (RAIL_PANEL_SEARCH_INPUT_ID, app/dotto/lib/srsConnectionsCore.ts; handleSearchInput/handleSearchFocus/
          animateSearchPlaceholder, ai-assistant-suggestions.js) needed to change.
          #search-panel-search is a plain <input>, not a growing <textarea> like #search-input —
          this box still doesn't execute a real search yet (per explicit statement), so there's no
@@ -85,7 +85,7 @@
          .search-history-icon/.outline-label row shape #chats-list's own rows use, since it shares
          that same .panel-history-list class.
          #sources-new-btn ("+", per explicit request) creates a new source and drops it at the
-         current viewport centre immediately (createNewSource, srs-connections-core.js) rather than
+         current viewport centre immediately (createNewSource, app/dotto/lib/srsConnectionsCore.ts) rather than
          the Blocks panel's own Source row's click-to-place flow (handleBlockItemClick ->
          prepareAdd('source')) — both ultimately call the same add('source', x, y). Sits inside the
          search header's own row via .panel-search-header-row (globals.css, a small addition on top

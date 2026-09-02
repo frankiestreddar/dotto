@@ -340,7 +340,7 @@
   this port owns directly. Zero console/page errors. Re-checked the account afterward to confirm
   zero residual mock cards/folders. **This closes out Phase 4.4 — every split-out concern and
   remaining DOM-heavy file has now been ported.** Phase 4.5 (architectural/hub files) is next.
-- **Phase 4.5 — architectural/hub files: in progress (3 of 7 done).**
+- **Phase 4.5 — architectural/hub files: in progress (4 of 7 done).**
   `panels-hamburger.js` (178 lines) ported first to `app/dotto/lib/panelsHamburger.ts` — the
   permanent rail's shared open/close contract (one sliding `#hamburger-stack` shell, many trigger
   icons) plus the hover/pin panel helper used by the add-menu and per-canvas collaborator flyout.
@@ -549,6 +549,80 @@
   trip via a real title edit, `scheduleWorkspaceSave()`, a real page reload, and confirming the new
   title survived (real Supabase round trip, not a mocked one). Zero console/page errors. Cleanup
   restored the edited card's original title and removed the mock undo/redo test card.
+  `srs-connections-core.js` (1309 lines, fan-in 7) ported fourth to
+  `app/dotto/lib/srsConnectionsCore.ts` — the largest single Phase 4.5 file by fan-out even though
+  its own fan-in (7 real vanilla callers) was the smallest of the four ports so far: the canvas
+  data-conduit connection system (`isValidConnection`/`CardStreamIO`/`propagateCanvasStreams`,
+  9 card kinds' worth of stream config), click-to-link (`handleDataModeClick`), canvas item
+  creation (`add`/`createNewSource`/`deepCloneItem`/`deleteClonedItemFolders`), the pen/eraser
+  drawing tool (point-by-point polylines with bezier handles, freehand strokes, eraser hit-testing),
+  the zoom-track drag/dblclick handlers, the draw toolbar, and — the single largest piece — the
+  global keydown handler backing every one-letter rail shortcut in the app (~25 branches). SM-2
+  (`calculateSM2`/`defaultSrsState`/`diffRatings`) stayed in `srs-algorithm.js` exactly where the
+  Phase 4.2 extraction left it (genuinely pure/zero-import, still not worth moving on its own) —
+  that file now sets its own `window.__calculateSM2`/`__defaultSrsState`/`__diffRatings` bridges
+  directly instead of `srs-connections-core.js` re-exporting them, since it's fully capable of
+  doing so safely and that file is gone. **No `useHistoryStore`-style store or hook was built**,
+  same check-before-building discipline as every other Phase 4.5 port: `appState.CardStreamIO` is
+  still a plain mutable object assigned inside `wireSrsConnectionsCore()`'s own wire step (it
+  mutates the live `appState`, so it can't run at TS module-evaluation time the way the vanilla
+  original did at vanilla module-load time — `appState` doesn't exist yet then), same pattern
+  every other Phase 4.5 port's DOM/appState wiring already established. 7 real vanilla callers
+  fixed (`waypoints-render-loop.js`, `drawing-connections.js`, `window-bridge.js`, `app-init.js`,
+  `command-verbs.js`, `source-tags-ai.js`, `upload-popup.js`); `createNewSource` is dual-exposed —
+  both `window.createNewSource` (a real inline `onclick` target,
+  `content/fragments/hamburger-stack.html`'s "New source" `+` button) and `window.__createNewSource`
+  (already an established bridge, `SourcesListPanel.jsx`) — same dual-exposure shape
+  `hideCanvasContextMenu`/`broadcastEditingState` established earlier this session;
+  `window-bridge.js`'s own old re-export of the plain global was removed, same "this file is now
+  the sole source" precedent as every other recent plain-global move. 13 new outbound bridges added
+  for still-vanilla dependencies with no bridge yet (`__kindLabel` on `add-menu.js`;
+  `__openSearchOverlay` on `ai-assistant-suggestions.js`; `__showProfileSettingsView` on
+  `profile-achievements-pricing.js`; `__toggleTheme` on `theme-toggle.js`; `__toggleUploadPopup` on
+  `upload-popup.js`; `__startBoxSelection`/`__syncWaypointToDb` on `waypoints-render-loop.js`;
+  `__findLinkedTable`/`__findTableById`/`__pathNearPoint`/`__penPointsToPath`/`__pointsToPath`/
+  `__ensureDrawings` on `drawing-connections.js`) plus 6 new draw-toolbar-element getters on
+  `core-state.js` (`__getDrawColorInputEl`/`__getDrawSizeInputEl`/`__getDrawPenBtnEl`/
+  `__getDrawEraserBtnEl`/`__getDrawFrontBtnEl`/`__getDrawBackBtnEl`, same "single, never-reassigned
+  element" category `__getBtnAddEl`/`__getContextMenuEl` already established) and one bridge
+  (`__goToWaypointCard`) that already existed at runtime (`hamburger-collab.js`) but had never
+  been typed. `canvasItemBehavior.js` (same-tree, already real ES imports for
+  `applyTransform`/`saveSnapshot`/`scheduleWorkspaceSave` from the previous port) upgraded 7 call
+  sites (`handlePenPointerDown`, `deepCloneItem`, `deleteClonedItemFolders` x2,
+  `isValidConnection` x2, `handleDataModeClick`) from `window.__X` bridges to direct imports;
+  `FilterCard.jsx` (already real ES imports for other same-tree modules) similarly upgraded
+  `applyFilterToRows`/`collectAvailableFilterTags`. A real, pre-existing bug in
+  `vanillaBridges.d.ts` was caught by `npm run typecheck` on the first pass:
+  `__registerPaneCanvasListenerSetup`'s ambient type was declared as a 1-argument callback
+  (`(canvasEl: HTMLElement) => void`) when `core-state.js`'s real implementation has always called
+  it with 2 (`fn(canvasEl, paneId)`) — fixed the type to match the real call site. The
+  stale-reference sweep found ~50 comment references across 29 files (the widest yet this
+  migration) — several caught reasoning that had gone stale, not just a filename: `add-menu.js`'s
+  and `text-utils.js`'s own comments describing `srs-connections-core.js` as still directly
+  `import`-ing their pure helpers (now reached via a bridge, since `srsConnectionsCore.ts` can't
+  import from `public/dotto/`), `srs-algorithm.js`'s own header comment (previously justified
+  staying vanilla by "srs-connections-core.js still has real vanilla hub dependents of its own" —
+  no longer true, that file is gone), and `test/vanilla/srs-algorithm.test.ts`'s identical stale
+  justification.
+  **Real Playwright verification against a fresh dev server, covering unusually deep real
+  functional behavior for this migration (not just bridge presence)**: `add()` via a real bridge
+  call producing a real new item pushed onto `appState.folders[...].items`; a full real
+  click-to-link + data-flow round trip — two real mock cards (a source with a real nested table
+  and a flashcard), `isValidConnection` accepting the pairing, two real `handleDataModeClick` calls
+  completing the link, and `applyConnections`/`CardStreamIO`'s real propagation actually copying
+  the source table's row (`front: 'hello'`) onto the flashcard's own `cards` array — the single
+  deepest functional check any Phase 4.5 verify script has done, not just confirming a bridge
+  exists but confirming the whole data-conduit pipeline actually moves real data end to end; a real
+  `w` keypress (global keydown handler) opening the Waypoints panel via a real
+  `appState.railBtnWaypoints.click()`; a real click on the live `draw-pen-btn` DOM element setting
+  both `appState.drawTool` and the button's own `active` class; and a real pointerdown-drag-pointerup
+  gesture on the live zoom-track element changing `appState.scale` from a real `clientY` sequence,
+  not a synthetic direct call. Also re-ran the previous port's own
+  `verify-phase4-5-historyautosave-port.js` afterward as a regression check, since this port also
+  touched `core-state.js`/`waypoints-render-loop.js`/`ai-assistant-suggestions.js`/
+  `profile-achievements-pricing.js`/`theme-toggle.js`/`upload-popup.js` — passed clean, no
+  regression. Zero console/page errors on either script. Cleanup removed every mock item/folder/
+  connection created during the run.
 - **Phase 4.6 — delete the bridge layer: not started.**
 - **Phase 4.7 — final cleanup & professionalization close-out: not started.**
 
@@ -1472,3 +1546,29 @@ right-click context menu opened via a real right-click on a screen point verifie
 edit, `scheduleWorkspaceSave()`, a real page reload, and confirming the new title survived a real
 Supabase round trip. Zero console/page errors. Cleanup restored the edited card's original title
 and removed the mock undo/redo test card.
+
+**Phase 4.5 (`srs-connections-core.js` → `app/dotto/lib/srsConnectionsCore.ts`)**: `node --check`
+on all 14 touched vanilla files, `eslint` clean, `npm run typecheck` clean on the first real pass
+(after fixing `__registerPaneCanvasListenerSetup`'s ambient type, described above — a real
+pre-existing bug, not introduced by this port, caught here because this was the first port to
+actually register a 2-argument callback through it), `npm run format:check` clean after a
+`prettier --write` pass run as the actual last step before committing, `rm -rf .next && npm run
+build` clean, all 32 Vitest tests still green. Also re-verified the SSR-safety fix from the
+previous port still holds for this one: a real `npm run build && npm run start` production server,
+3 real authenticated Playwright reloads, zero console errors or server 500s — this port added a
+new module-top-level `if (typeof window !== "undefined") { ... }`-guarded bridge block
+(`srsConnectionsCore.ts` itself) to the same import graph that bug lived in, so re-confirming it
+here (not just trusting the previous port's fix) was worth the few extra minutes. Real Playwright
+verification against a fresh dev server: `add()` via a real bridge call producing a real item;
+a full click-to-link + `CardStreamIO` data-flow round trip (two real mock cards, `isValidConnection`
++ two real `handleDataModeClick` calls + `applyConnections` actually copying a real table row from
+a mock source onto a mock flashcard's own `cards` array — end-to-end real data movement, not just a
+bridge-presence check); a real `w` keypress opening the Waypoints panel through the real global
+keydown handler; a real click on the live pen-tool button setting both `appState.drawTool` and its
+own `active` class; and a real pointerdown-drag-pointerup gesture on the live zoom-track element
+changing `appState.scale`. Re-ran the previous port's own verify script afterward too, since this
+port also touched several files (`core-state.js`, `waypoints-render-loop.js`,
+`ai-assistant-suggestions.js`, `profile-achievements-pricing.js`, `theme-toggle.js`,
+`upload-popup.js`) that port's own script exercises — passed clean, no regression. Zero
+console/page errors across both scripts. Cleanup removed every mock item/folder/connection created
+during the run.

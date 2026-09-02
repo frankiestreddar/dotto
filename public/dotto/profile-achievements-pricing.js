@@ -164,7 +164,7 @@ import { appState, supabase } from './core-state.js';
     }
     function refreshProfilePanel() {
         // Always land on the main view, not wherever the panel was left last time (e.g. mid-
-        // Settings via the 'z' shortcut, srs-connections-core.js, which switches to the settings
+        // Settings via the ',' shortcut, app/dotto/lib/srsConnectionsCore.ts, which switches to the settings
         // view again right after this runs).
         showProfileMainView();
         refreshDotbotUsage();
@@ -308,3 +308,5 @@ window.__renderAvatarInto = renderAvatarInto;
 // Used by app/dotto/lib/historyAutosave.ts's global Escape keydown handler (Phase 4.5).
 window.__closeDotbotUpgradeModal = closeDotbotUpgradeModal;
 window.__closePricingOverlay = closePricingOverlay;
+// Used by app/dotto/lib/srsConnectionsCore.ts's global keydown handler's ',' shortcut (Phase 4.5).
+window.__showProfileSettingsView = showProfileSettingsView;

@@ -49,9 +49,11 @@ declare global {
     // that never needed these declared until a real .ts file touched them here).
     __getCanvasEl?: () => HTMLElement | undefined;
     __getWorldEl?: () => HTMLElement | undefined;
-    // srs-connections-core.js (re-exported from srs-algorithm.js) — needed by
-    // app/dotto/lib/stopwatch.ts's swToggleRun to archive a finished session's rating deltas;
-    // public/dotto/*.js isn't reachable from app/dotto/ even for an otherwise-pure function.
+    // srs-algorithm.js (sets this bridge itself — genuinely pure/zero-import, so it can safely do
+    // so directly, no longer re-exported through srs-connections-core.js, gone as of its own
+    // Phase 4.5 port) — needed by app/dotto/lib/stopwatch.ts's swToggleRun to archive a finished
+    // session's rating deltas; public/dotto/*.js isn't reachable from app/dotto/ even for an
+    // otherwise-pure function.
     __diffRatings?: (live: unknown, base: unknown) => Record<string, number> | undefined;
     // app/dotto/lib/stopwatch.ts (Phase 4.4 port — was stopwatch.js) — vanilla -> React bridges,
     // not React -> vanilla like most entries here: StopwatchCard.jsx's own onClick already called
@@ -249,6 +251,22 @@ declare global {
     __ensureConnections?: (folder: {
       connections?: { fromId: number; toId: number }[];
     }) => { fromId: number; toId: number }[];
+    __createConnection?: (
+      conns: { fromId: number; toId: number }[],
+      fromId: number,
+      toId: number,
+    ) => { id: string; fromId: number; toId: number };
+    __makeLayerSVG?: (zIndex: number) => SVGSVGElement;
+    __ensureDrawings?: (folder: {
+      drawings?: Record<string, unknown>[];
+    }) => Record<string, unknown>[];
+    __findLinkedTable?: (fromItem: Record<string, unknown>) => Record<string, unknown> | null;
+    __findTableById?: (tableId: number) => Record<string, unknown> | null;
+    __pathNearPoint?: (d: string, px: number, py: number, radius: number) => boolean;
+    __penPointsToPath?: (
+      points: { x: number; y: number; handleOut: [number, number] | null }[],
+    ) => string;
+    __pointsToPath?: (pts: [number, number][]) => string;
     // friends-presence.js
     __syncCanvasCollabTitle?: (folderId: string, newTitle: string) => Promise<void>;
     // app/dotto/lib/canvasPresence.ts
@@ -366,7 +384,7 @@ declare global {
     __layoutDotLayer?: () => void;
     // source-tags-ai.js
     __closeCellTagPicker?: () => void;
-    // srs-connections-core.js
+    // app/dotto/lib/srsConnectionsCore.ts
     __clearDataLinkPending?: () => void;
     // app/dotto/lib/panelsHamburger.ts (Phase 4.5 port — was panels-hamburger.js)
     __closeAllPanels?: (except?: string) => void;
@@ -389,8 +407,8 @@ declare global {
       delta?: number,
       absolute?: boolean,
     ) => Promise<void>;
-    // srs-algorithm.js (re-exported from srs-connections-core.js, same reasoning as __diffRatings
-    // above) — used by app/dotto/lib/gamesFlashcardTyperight.ts's fcRate/trCheck.
+    // srs-algorithm.js (sets this bridge itself, same reasoning as __diffRatings above) — used by
+    // app/dotto/lib/gamesFlashcardTyperight.ts's fcRate/trCheck.
     __calculateSM2?: (card: Record<string, unknown>, quality: number) => Record<string, unknown>;
     __defaultSrsState?: () => Record<string, unknown>;
     // app/dotto/lib/gamesFlashcardTyperight.ts (Phase 4.4 port — was games-flashcard-typeright.js)
@@ -526,6 +544,10 @@ declare global {
     // profile-achievements-pricing.js/source-tags-ai.js/srs-connections-core.js all previously
     // imported these directly.
     __isAnyUiPanelOpen?: () => boolean;
+    // hamburger-collab.js — already an established runtime bridge (WaypointsListPanel.jsx's own
+    // row click), just never typed here until app/dotto/lib/srsConnectionsCore.ts (Phase 4.5)
+    // needed it too, for the same 1-9/0 waypoints-panel jump shortcut.
+    __goToWaypointCard?: (ownerId: string, folderId: string, itemId: string) => Promise<void>;
     __scheduleHoverClose?: (
       name: string,
       hoverEls: (HTMLElement | undefined | null)[],
@@ -616,6 +638,14 @@ declare global {
     __getZoomThumbEl?: () => HTMLElement | undefined;
     // core-state.js — same live-read reasoning as __getCanvasEl/__getWorldEl above.
     __getDotLayerEl?: () => HTMLElement | undefined;
+    // core-state.js — same "single, never-reassigned element" category as addMenu/btnAdd/
+    // contextMenu above. Used by app/dotto/lib/srsConnectionsCore.ts (Phase 4.5).
+    __getDrawColorInputEl?: () => HTMLInputElement | undefined;
+    __getDrawSizeInputEl?: () => HTMLInputElement | undefined;
+    __getDrawPenBtnEl?: () => HTMLElement | undefined;
+    __getDrawEraserBtnEl?: () => HTMLElement | undefined;
+    __getDrawFrontBtnEl?: () => HTMLElement | undefined;
+    __getDrawBackBtnEl?: () => HTMLElement | undefined;
     __recomputeTopCardZIndex?: () => void;
     __restorePaneState?: (paneId: number, savedFields: Record<string, unknown>) => void;
     // ai-assistant-suggestions.js
@@ -627,7 +657,7 @@ declare global {
     // profile-achievements-pricing.js
     __closeDotbotUpgradeModal?: () => void;
     __closePricingOverlay?: () => void;
-    // srs-connections-core.js
+    // app/dotto/lib/srsConnectionsCore.ts
     __cancelAddingKind?: () => void;
     __finishPenPolyline?: () => void;
     // upload-popup.js
@@ -661,5 +691,39 @@ declare global {
     highlightContextColumn?: (on: boolean) => void;
     highlightContextRow?: (on: boolean) => void;
     openTableCellContextMenu?: (e: MouseEvent, tableId: number, r: number, c: number) => void;
+    // Used by app/dotto/lib/srsConnectionsCore.ts (Phase 4.5 port — was srs-connections-core.js)
+    // — add-menu.js/ai-assistant-suggestions.js/profile-achievements-pricing.js/theme-toggle.js/
+    // upload-popup.js/waypoints-render-loop.js all previously imported these directly.
+    __kindLabel?: (kind: string) => string;
+    __openSearchOverlay?: () => void;
+    __showProfileSettingsView?: () => void;
+    __toggleTheme?: () => void;
+    __toggleUploadPopup?: () => void;
+    __startBoxSelection?: (e: PointerEvent) => void;
+    __syncWaypointToDb?: (folderId: string, it: Record<string, unknown>) => Promise<void>;
+    // srsConnectionsCore.ts's own outbound bridges — FilterCard.jsx/canvasItemBehavior.js (React ->
+    // vanilla) and drawing-connections.js/waypoints-render-loop.js/window-bridge.js/app-init.js/
+    // command-verbs.js/source-tags-ai.js/upload-popup.js (vanilla -> React) all reach these.
+    __applyFilterToRows?: (
+      item: Record<string, unknown>,
+      rows: Record<string, unknown>[],
+    ) => Record<string, unknown>[];
+    __collectAvailableFilterTags?: (
+      rows: Record<string, unknown>[] | undefined,
+    ) => { id: number; name: string; color?: string }[];
+    __deepCloneItem?: (it: Record<string, unknown>) => Record<string, unknown>;
+    __deleteClonedItemFolders?: (item: Record<string, unknown> | undefined) => void;
+    __handlePenPointerDown?: (e: PointerEvent) => void;
+    __isValidConnection?: (fromId: number, toId: number) => boolean;
+    __handleDataModeClick?: (it: Record<string, unknown>, el: HTMLElement) => void;
+    __applyConnections?: (folderObj: Record<string, unknown>) => void;
+    __createNewSource?: () => void;
+    // Real inline onclick target (content/fragments/hamburger-stack.html's "New source" +
+    // button), dual-exposed alongside __createNewSource above — same shape
+    // window.hideCanvasContextMenu/window.__hideCanvasContextMenu use.
+    createNewSource?: () => void;
+    __viewportCenterWorldPoint?: () => { x: number; y: number };
+    __updateDrawLayerBtns?: () => void;
+    __add?: (kind: string, x?: number, y?: number, statKind?: string | null) => void;
   }
 }

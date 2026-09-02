@@ -1,7 +1,6 @@
 import { appState } from './core-state.js';
 import { refreshCanvasCollabForCurrentFolder, refreshFriendsData, renderCollabPill } from './friends-presence.js';
 import { refreshDotbotUsage } from './profile-achievements-pricing.js';
-import { updateDrawLayerBtns } from './srs-connections-core.js';
 import { centerOnContent, render } from './waypoints-render-loop.js';
 
 // Phase 4.3 split (was part of resize-shortcuts-init.js, see PHASE4_ROADMAP.md) — the "init"
@@ -9,7 +8,11 @@ import { centerOnContent, render } from './waypoints-render-loop.js';
 // as this module's own side effect on load (the last file in dotto-script.js's import order that
 // needs to be, since everything it calls must already be wired up).
 
-updateDrawLayerBtns();
+// Guarded (not a plain call — see BSD-sed-line-start-limitation precedent) since this fires
+// before wireSrsConnectionsCore() (srsConnectionsCore.ts) has necessarily run yet — harmless if it
+// hasn't: the buttons' 'active' class only affects an initial cosmetic highlight, self-corrects the
+// first time the user actually clicks a draw-layer button.
+window.__updateDrawLayerBtns?.();
 window.__applyCursorMode();
 // Waits for any saved workspace before the first render, so a returning user's real content shows
 // immediately instead of flashing the built-in starter folders first. window.__loadWorkspace() no-ops

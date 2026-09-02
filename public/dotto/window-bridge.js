@@ -27,7 +27,6 @@ import { blurPublishFlowName, commitItemDetailDesc, commitItemDetailTitle, confi
 import { closeDotbotUpgradeModal, closePricingOverlay, openPricingOverlay, showProfileMainView, showProfileSettingsView } from './profile-achievements-pricing.js';
 import { setTableAlign } from './card-shortcuts.js';
 import { closeCellTagPicker, closeTagContextMenu, commitTagRename, createTagFromCellPicker, deleteActiveTag, handleTagRenameKeydown, openTagContextMenu, startRenameActiveTag, toggleCellTag, triggerSourceUpload } from './source-tags-ai.js';
-import { createNewSource } from './srs-connections-core.js';
 
 window.addTask = addTask;
 window.blurPublishFlowName = blurPublishFlowName;
@@ -39,7 +38,6 @@ window.commitItemDetailDesc = commitItemDetailDesc;
 window.commitItemDetailTitle = commitItemDetailTitle;
 window.commitTagRename = commitTagRename;
 window.confirmPublishFlow = confirmPublishFlow;
-window.createNewSource = createNewSource;
 window.createTagFromCellPicker = createTagFromCellPicker;
 window.deleteActiveTag = deleteActiveTag;
 window.deleteDetailDraft = deleteDetailDraft;

@@ -2,7 +2,6 @@ import { kindSize } from './add-menu.js';
 import { escapeHtml, stripHtml } from './ai-assistant-suggestions.js';
 import { appState, canvasViewportCenterX, findItemEl } from './core-state.js';
 import { resolveTableForEdit } from './drawing-connections.js';
-import { add } from './srs-connections-core.js';
 import { render } from './waypoints-render-loop.js';
 
 
@@ -75,7 +74,7 @@ import { render } from './waypoints-render-loop.js';
         const cx = canvasViewportCenterX(), cy = window.innerHeight / 2;
         const x = Math.round((((cx - appState.tx) / appState.scale) - w / 2) / 28) * 28;
         const y = Math.round((((cy - appState.ty) / appState.scale) - h / 2) / 28) * 28;
-        add('source', x, y);
+        window.__add?.('source', x, y);
         const items = appState.folders[appState.currentFolderId].items;
         const created = items[items.length - 1];
         const folderObj = appState.folders[created.folderId];

@@ -5,7 +5,6 @@ import { refreshCanvasCollabForCurrentFolder, renderCollabPill, syncCanvasCollab
 import { renderFilesList, renderSourcesList } from './hamburger-collab.js';
 import { findNextFreeSlot } from './card-shortcuts.js';
 import { closeCellTagPicker } from './source-tags-ai.js';
-import { applyConnections } from './srs-connections-core.js';
 
 
     // ---------- Waypoint card expand/collapse ----------
@@ -660,7 +659,7 @@ import { applyConnections } from './srs-connections-core.js';
         zoomControl.style.display = '';
         window.__closeSourceAddMenu(); closeCellTagPicker();
 
-        applyConnections(folderObj);
+        window.__applyConnections?.(folderObj);
 
         const backLayer = makeLayerSVG(0);
         const frontLayer = makeLayerSVG(2);
@@ -1225,3 +1224,8 @@ window.__spawnMediaItemAt = spawnMediaItemAt;
 // latter via a bridge rather than a direct import since core-state.js is imported BY this file).
 window.__renderMediaViewerZoom = renderMediaViewerZoom;
 window.__setMediaViewerZoomLevel = setMediaViewerZoom;
+// Used by app/dotto/lib/srsConnectionsCore.ts (Phase 4.5) — startBoxSelection by the canvas
+// pointerdown handler's Shift+drag/Select-mode branch; syncWaypointToDb by add()'s own
+// kind==='waypoint' branch.
+window.__startBoxSelection = startBoxSelection;
+window.__syncWaypointToDb = syncWaypointToDb;

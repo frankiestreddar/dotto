@@ -8,7 +8,7 @@
 // after first paint, too late on its own to avoid a flash of the wrong theme).
 //
 // Explicit request: the site should follow the OS's own light/dark preference live, but a choice
-// made here (via the switch below) or via the \ shortcut (toggleTheme, srs-connections-core.js)
+// made here (via the switch below) or via the \ shortcut (toggleTheme, app/dotto/lib/srsConnectionsCore.ts)
 // always wins over that until... well, forever, in practice — there's no UI to CLEAR an explicit
 // choice and go back to following the system, only to flip it to the other explicit value, so
 // once set it stays set. localStorage's THEME_STORAGE_KEY holding a value AT ALL is what "an
@@ -77,6 +77,7 @@ if (window.matchMedia) {
     });
 }
 
-// toggleTheme is what the \ keyboard shortcut calls now (srs-connections-core.js) — there's no
-// rail button left to .click() the way that shortcut used to.
+// toggleTheme is what the \ keyboard shortcut calls now (app/dotto/lib/srsConnectionsCore.ts,
+// Phase 4.5) — there's no rail button left to .click() the way that shortcut used to.
 export { toggleTheme };
+window.__toggleTheme = toggleTheme;

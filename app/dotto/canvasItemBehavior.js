@@ -1,6 +1,13 @@
 "use client";
 
 import { applyTransform, saveSnapshot, scheduleWorkspaceSave } from "./lib/historyAutosave";
+import {
+  deepCloneItem,
+  deleteClonedItemFolders,
+  handleDataModeClick,
+  handlePenPointerDown,
+  isValidConnection,
+} from "./lib/srsConnectionsCore";
 
 // The "continuous pointer-driven pixel math" pieces of canvas core (CONTRIBUTING.md's category
 // name for this — Phase 3 of the vanilla->React consolidation) that have moved out of separate
@@ -307,7 +314,7 @@ export function setupDraggingAndClicking(el, it) {
         )
           return;
         e.stopPropagation();
-        window.__handlePenPointerDown(e);
+        handlePenPointerDown(e);
         return;
       }
       e.stopPropagation();
@@ -340,7 +347,7 @@ export function setupDraggingAndClicking(el, it) {
         gestureIds.forEach((srcId) => {
           const src = window.__findItemById(srcId);
           if (!src) return;
-          const clone = window.__deepCloneItem(src);
+          const clone = deepCloneItem(src);
           appState.topCardZIndex++;
           clone.zIndex = appState.topCardZIndex;
           appState.folders[appState.currentFolderId].items.push(clone);
@@ -362,7 +369,7 @@ export function setupDraggingAndClicking(el, it) {
           const cloneIdSet = new Set(startPositions.map((p) => p.id));
           appState.folders[appState.currentFolderId].items
             .filter((i) => cloneIdSet.has(i.id))
-            .forEach(window.__deleteClonedItemFolders);
+            .forEach(deleteClonedItemFolders);
           appState.folders[appState.currentFolderId].items = appState.folders[
             appState.currentFolderId
           ].items.filter((i) => !cloneIdSet.has(i.id));
@@ -552,7 +559,7 @@ export function setupDraggingAndClicking(el, it) {
             const cloneIdSet = new Set(startPositions.map((p) => p.id));
             appState.folders[appState.currentFolderId].items
               .filter((i) => cloneIdSet.has(i.id))
-              .forEach(window.__deleteClonedItemFolders);
+              .forEach(deleteClonedItemFolders);
             appState.folders[appState.currentFolderId].items = appState.folders[
               appState.currentFolderId
             ].items.filter((i) => !cloneIdSet.has(i.id));
@@ -637,7 +644,7 @@ export function setupDraggingAndClicking(el, it) {
 // vanilla, untouched) wipes and rebuilds every #world child but #items-layer on every call, and
 // inserts whatever this returns before #items-layer, exactly as it always has; only WHERE the
 // building logic lives changed, not how it's invoked or how its result gets used. Logic unchanged
-// byte-for-byte. applyConnections/propagateCanvasStreams (srs-connections-core.js) stayed put
+// byte-for-byte. applyConnections/propagateCanvasStreams (app/dotto/lib/srsConnectionsCore.ts) stayed put
 // entirely untouched — despite the name, propagateCanvasStreams is card-to-card data-flow (SRS
 // scoring, connected-card streams), not rendering or pointer math, so it was never actually part
 // of this category.
@@ -745,8 +752,7 @@ function startConnectionDrag(e, it, el) {
     // Only ever treat a hovered card as a droppable target if the link would actually be allowed
     // (rules 1-3 in isValidConnection); otherwise flag it so the user gets live feedback that
     // dropping here won't do anything, instead of silently doing nothing on drop.
-    hoveredTarget =
-      candidate != null && window.__isValidConnection(it.id, candidate) ? candidate : null;
+    hoveredTarget = candidate != null && isValidConnection(it.id, candidate) ? candidate : null;
     if (cardEl && candidate != null)
       cardEl.classList.add(hoveredTarget != null ? "link-target-hover" : "link-target-invalid");
     updatePreview(me.clientX, me.clientY);
@@ -758,7 +764,7 @@ function startConnectionDrag(e, it, el) {
     document
       .querySelectorAll(".item.link-target-hover, .item.link-target-invalid")
       .forEach((x) => x.classList.remove("link-target-hover", "link-target-invalid"));
-    if (hoveredTarget != null && window.__isValidConnection(it.id, hoveredTarget)) {
+    if (hoveredTarget != null && isValidConnection(it.id, hoveredTarget)) {
       const conns = window.__ensureConnections(appState.folders[appState.currentFolderId]);
       window.__createConnection(conns, it.id, hoveredTarget);
       window.__render();
@@ -769,7 +775,7 @@ function startConnectionDrag(e, it, el) {
       // happen; handleDataModeClick takes its own snapshot, only at the moment it actually
       // creates a connection.
       appState.undoStack.pop();
-      window.__handleDataModeClick(it, el);
+      handleDataModeClick(it, el);
     } else {
       appState.undoStack.pop();
     }

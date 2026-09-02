@@ -1,7 +1,7 @@
 import './dotto/core-state.js';
 import './dotto/add-menu.js';
 import './dotto/drawing-connections.js';
-import './dotto/srs-connections-core.js';
+import './dotto/srs-algorithm.js';
 import './dotto/theme-toggle.js';
 import './dotto/upload-popup.js';
 import './dotto/hamburger-collab.js';

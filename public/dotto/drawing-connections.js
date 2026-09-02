@@ -1,6 +1,5 @@
 import { appState } from './core-state.js';
 import { bumpAchievementStat } from './profile-achievements-pricing.js';
-import { isValidConnection } from './srs-connections-core.js';
 import { render } from './waypoints-render-loop.js';
 
 
@@ -34,7 +33,7 @@ import { render } from './waypoints-render-loop.js';
         return 'M' + pts[0][0] + ',' + pts[0][1] + ' ' + pts.slice(1).map(p => 'L' + p[0] + ',' + p[1]).join(' ');
     }
     // Bezier-aware sibling of pointsToPath above, used only by the pen tool's point-by-point line
-    // (startPenPolyline/addPenPolylinePoint/finishPenPolyline, srs-connections-core.js) — freehand
+    // (startPenPolyline/addPenPolylinePoint/finishPenPolyline, app/dotto/lib/srsConnectionsCore.ts) — freehand
     // strokes keep using plain pointsToPath, completely untouched. Takes {x, y, handleOut} objects
     // rather than [x,y] pairs: handleOut (world coords, or null for a plain corner point) is the
     // bezier handle a click-DRAG pulls out when placing that point — Illustrator's "smooth anchor
@@ -94,7 +93,7 @@ import { render } from './waypoints-render-loop.js';
         let madeAny = false;
         targetIds.forEach(targetId => {
             const exists = conns.some(c => c.fromId === sourceId && c.toId === targetId);
-            if (!exists && isValidConnection(sourceId, targetId)) {
+            if (!exists && window.__isValidConnection?.(sourceId, targetId)) {
                 createConnection(conns, sourceId, targetId);
                 madeAny = true;
             }
@@ -255,3 +254,13 @@ window.__folderIdForConnectedSource = folderIdForConnectedSource;
 window.__linkSelectedCards = linkSelectedCards;
 // Used by app/dotto/lib/sourceTable.ts's updateTableCell (Phase 4.4).
 window.__resolveTableForEdit = resolveTableForEdit;
+// Used by app/dotto/lib/srsConnectionsCore.ts (Phase 4.5) — findLinkedTable/findTableById by
+// CardStreamIO's table/source/folder getOutput+onStream and applySrsUpdateStream;
+// pathNearPoint/penPointsToPath/pointsToPath by the pen tool's eraser hit-testing and freehand/
+// point-by-point path rendering; ensureDrawings by the pen tool's own commit step.
+window.__findLinkedTable = findLinkedTable;
+window.__findTableById = findTableById;
+window.__pathNearPoint = pathNearPoint;
+window.__penPointsToPath = penPointsToPath;
+window.__pointsToPath = pointsToPath;
+window.__ensureDrawings = ensureDrawings;

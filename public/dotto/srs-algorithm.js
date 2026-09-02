@@ -1,15 +1,13 @@
 // SM-2 spaced-repetition algorithm — extracted out of srs-connections-core.js (Phase 4.2 of the
 // vanilla->React consolidation, see PHASE4_ROADMAP.md). Genuinely pure (no imports, no appState/
-// DOM touch), but srs-connections-core.js itself still has real vanilla hub dependents of its own
-// (see its own import list), so this can't fully move to app/dotto/lib yet either — that file
-// keeps re-exporting these three names — calculateSM2/defaultSrsState no longer have a real
-// vanilla caller as of Phase 4.4 (both now reached via window.__calculateSM2/__defaultSrsState
-// from app/dotto/lib/gamesFlashcardTyperight.ts instead), diffRatings still does
-// (app/dotto/lib/stopwatch.ts's swToggleRun, via window.__diffRatings). This extraction's own
-// value right now is real test coverage (see srs-algorithm.test.ts) for logic that had zero
-// coverage before,
-// and a smaller, focused module ready to move wholesale to app/dotto/lib once nothing vanilla
-// needs it directly anymore.
+// DOM touch) — none of the three functions here have a real vanilla caller left as of
+// srs-connections-core.js's own Phase 4.5 port to app/dotto/lib/srsConnectionsCore.ts (which
+// reaches these the same way every other TS file does, via the window.__calculateSM2/
+// __defaultSrsState/__diffRatings bridges set directly below), same as
+// app/dotto/lib/gamesFlashcardTyperight.ts's fcRate/trCheck (calculateSM2/defaultSrsState) and
+// app/dotto/lib/stopwatch.ts's swToggleRun (diffRatings). Simply hasn't been moved to
+// app/dotto/lib itself yet — low priority given real test coverage (srs-algorithm.test.ts)
+// already exists regardless of which side of the vanilla/React line this lives on.
 
 // ---------- SM-2 Spaced Repetition ----------
 // Per-row memory state lives on the table itself (table.srsMeta[rowIndex]), keyed by the row's
@@ -57,3 +55,13 @@ function diffRatings(live, base) {
 }
 
 export { calculateSM2, defaultSrsState, diffRatings };
+
+// Set directly here (rather than re-exported from srs-connections-core.js, which is gone as of
+// its own Phase 4.5 port to app/dotto/lib/srsConnectionsCore.ts) since this file is genuinely
+// pure/zero-import and can safely set its own bridges. Used by
+// app/dotto/lib/gamesFlashcardTyperight.ts's fcRate/trCheck (calculateSM2/defaultSrsState),
+// app/dotto/lib/stopwatch.ts's swToggleRun (diffRatings), and
+// app/dotto/lib/srsConnectionsCore.ts's own ensureSrsMeta/getSrsForRow (defaultSrsState).
+window.__calculateSM2 = calculateSM2;
+window.__defaultSrsState = defaultSrsState;
+window.__diffRatings = diffRatings;

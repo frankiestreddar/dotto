@@ -213,7 +213,7 @@ function relayoutSourceTableIfVisible(): void {
 // pane (split-screen Stage 4: see registerPaneCanvasListenerSetup, core-state.js) so this doesn't
 // just stop firing for panes other than pane 0 — e.target===canvasEl now checks against THIS
 // listener's own pane rather than the ambient canvas binding, for the same reason
-// setupCanvasLevelInteractionListeners' pointerdown check does (srs-connections-core.js).
+// setupCanvasLevelInteractionListeners' pointerdown check does (app/dotto/lib/srsConnectionsCore.ts).
 // relayoutSourceTableIfVisible itself still queries '.item.static-table' globally (not
 // pane-scoped) — a known, separate gap in the Source-page-in-split-screen story that hasn't been
 // audited yet, out of scope for this specific listener-attachment fix.
