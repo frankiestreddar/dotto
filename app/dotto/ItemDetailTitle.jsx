@@ -2,6 +2,7 @@
 
 import { createPortal } from "react-dom";
 import usePortalNode from "./usePortalNode";
+import { commitItemDetailTitle, onItemDetailFieldChange } from "./lib/libraryPublish";
 
 // Real React ownership of the Item Detail view's title field — CONTRIBUTING.md's "contentEditable
 // fields" category, converted via the decided uncontrolled-ref pattern rather than a rich-text
@@ -10,8 +11,9 @@ import usePortalNode from "./usePortalNode";
 // pure overhead. This component renders its contentEditable div exactly once — no props, no
 // state — so React never re-diffs its content out from under an in-progress edit; every read/
 // write still goes through document.getElementById('item-detail-title') exactly as before
-// (openItemDetail/isDetailDirty/commitItemDetailTitle/updateDetailItem, library-publish.js, all
-// untouched) since the id is preserved and DOM lookups don't care which side created the node.
+// (openItemDetail/isDetailDirty/commitItemDetailTitle/updateDetailItem, now
+// app/dotto/lib/libraryPublish.ts, same app/dotto/ tree, called via real imports below) since the
+// id is preserved and DOM lookups don't care which side created the node.
 //
 // Portals into #item-detail-title-root (content/fragments/hamburger-stack.html), which carries
 // display:contents so the actual #item-detail-title div ends up the effective flex child of
@@ -26,8 +28,8 @@ export default function ItemDetailTitle() {
       contentEditable
       suppressContentEditableWarning
       data-placeholder="Untitled Draft"
-      onInput={() => window.onItemDetailFieldChange()}
-      onBlur={() => window.commitItemDetailTitle()}
+      onInput={() => onItemDetailFieldChange()}
+      onBlur={() => commitItemDetailTitle()}
     />,
     portalNode,
   );

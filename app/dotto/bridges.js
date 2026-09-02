@@ -449,7 +449,7 @@ export const extensionsListStore = createStore([
   { id: "extension-2", label: "Plugin 2" },
 ]);
 
-// Item Detail view's footer button set (public/dotto/library-publish.js's renderItemDetailFooter)
+// Item Detail view's footer button set (app/dotto/lib/libraryPublish.ts's renderItemDetailFooter)
 // — { sourceFolder: 'drafts'|'published'|'purchased', itemId, dirty } | null. A natural,
 // self-contained discriminated union (same "compute state, render 1-3 buttons" shape as
 // ImageResultPanel), unlike the rest of the Item Detail/Publish Flow views: the title/price/desc

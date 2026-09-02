@@ -233,8 +233,21 @@ declare global {
     __setMarketDetail?: (item: Record<string, unknown> | null) => void;
     // blocks-panel.js
     __refreshBlocksPanel?: () => void;
-    // library-publish.js
+    // app/dotto/lib/libraryPublish.ts (Phase 4.5 port — was library-publish.js)
     __openItemDetail?: (item: Record<string, unknown>, folder: string) => void;
+    __deleteMyCreationItem?: (
+      item: Record<string, unknown>,
+      folderKey: "drafts" | "published",
+    ) => void;
+    // app/dotto-app.jsx (via app/dotto/bridges.js's itemDetailFooterStore) — React-facing setter,
+    // plain store.set, no synchronous DOM read follows it.
+    __setItemDetailFooter?: (
+      state: { sourceFolder: string | null; itemId: string; dirty: boolean } | null,
+    ) => void;
+    // Plain (non-`__`) globals — real inline oninput/onclick targets in
+    // content/fragments/hamburger-stack.html.
+    onItemDetailFieldChange?: () => void;
+    confirmPublishFlow?: () => Promise<void>;
     // app/dotto/lib/marketplace.ts (Phase 4.4 port — was marketplace.js) — vanilla -> React
     // bridges: MarketDiscoverPanel.jsx/ItemDetailFooter.jsx already called
     // __openMarketDetail/__deployPurchasedTemplate/__packageSelectedAsTemplate as globals before
@@ -277,9 +290,9 @@ declare global {
     __broadcastEditingState?: (isEditing: boolean, targetSelector?: string) => void;
     __renderInlineCanvas?: (
       items: Record<string, unknown>[],
-      draggableOut: boolean,
-      connections: { fromId: number; toId: number }[],
-      onDelete: (id: number) => void,
+      draggableOut?: boolean,
+      connections?: { fromId: number; toId: number }[],
+      onDelete?: (id: number) => void,
     ) => HTMLElement;
     // app/dotto/lib/coreState.ts
     __itemElId?: (id: number, paneId?: number) => string;

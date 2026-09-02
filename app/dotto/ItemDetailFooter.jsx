@@ -4,12 +4,22 @@ import { useSyncExternalStore } from "react";
 import { createPortal } from "react-dom";
 import { itemDetailFooterStore } from "./bridges";
 import usePortalNode from "./usePortalNode";
+import {
+  deleteDetailDraft,
+  startPublishFlow,
+  unpublishDetailItem,
+  updateDetailItem,
+} from "./lib/libraryPublish";
 
 // Portals into #item-detail-footer (content/fragments/hamburger-stack.html, #library-panel — Item
 // Detail is a Library view now, not Marketplace/Discover) — a plain positioned div, safe to portal
 // into directly (only ever written by renderItemDetailFooter, see that function's own comment).
 // The rest of the Item Detail view (title/price/desc fields, canvas preview) and the whole Publish
 // Flow view stay vanilla — see itemDetailFooterStore's comment in bridges.js.
+// deployPurchasedTemplate stays a window.__ bridge (app/dotto/lib/marketplace.ts, a different lib
+// file); the other 4 buttons below now call app/dotto/lib/libraryPublish.ts's real exports
+// directly (same app/dotto/ tree) instead of the window.__ bridges those functions used to be
+// reached through.
 export default function ItemDetailFooter() {
   const state = useSyncExternalStore(
     itemDetailFooterStore.subscribe,
@@ -23,10 +33,10 @@ export default function ItemDetailFooter() {
   if (state.sourceFolder === "drafts") {
     return createPortal(
       <>
-        <button className="btn-buy btn-secondary" onClick={() => window.__deleteDetailDraft()}>
+        <button className="btn-buy btn-secondary" onClick={() => deleteDetailDraft()}>
           Delete
         </button>
-        <button className="btn-buy" onClick={() => window.__startPublishFlow()}>
+        <button className="btn-buy" onClick={() => startPublishFlow()}>
           Publish
         </button>
       </>,
@@ -37,14 +47,10 @@ export default function ItemDetailFooter() {
   if (state.sourceFolder === "published") {
     return createPortal(
       <>
-        <button className="btn-buy btn-secondary" onClick={() => window.__unpublishDetailItem()}>
+        <button className="btn-buy btn-secondary" onClick={() => unpublishDetailItem()}>
           Unpublish
         </button>
-        <button
-          className="btn-buy"
-          disabled={!state.dirty}
-          onClick={() => window.__updateDetailItem()}
-        >
+        <button className="btn-buy" disabled={!state.dirty} onClick={() => updateDetailItem()}>
           Update
         </button>
       </>,

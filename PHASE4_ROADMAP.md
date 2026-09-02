@@ -846,6 +846,70 @@
   Regression-verified `core-state.js`'s and `waypoints-render-loop.js`'s own Phase 4.5 scripts
   clean afterward (the two ports `cardsMisc.ts` most directly sits on top of). Cleanup removed
   every mock item created.
+  `library-publish.js` (248 lines) done second, to `app/dotto/lib/libraryPublish.ts` — the Blocks
+  panel's Item Detail view (Purchased / My Creations = drafts+published) and the Publish Flow
+  (draft → published). Every function reads `appState` lazily via a `getAppState()` helper called
+  at the top of each function body (matching `marketplace.ts`'s established convention for
+  plain-side-effect-import files with no `wireX()`), not a module-top-level capture — the exact
+  same class of bug `cardsMisc.ts`'s port hit above would have recurred here otherwise, this file
+  has 9 functions that read `appState`, not just one. The real design work here was untangling
+  which of the file's 12 real callers actually needed which exposure shape, since every one of
+  them turned out different on inspection: `__openItemDetail` stays a `__`-prefixed bridge
+  (`marketplace.ts`, a different lib file, plus `blocks-panel.js`, still vanilla); a brand new
+  `__deleteMyCreationItem` bridge was added for `blocks-panel.js`'s own row-level delete (it used
+  to import this function directly, a plain vanilla-to-vanilla import that no longer reaches
+  across the public/app boundary); `onItemDetailFieldChange`/`confirmPublishFlow` stay plain
+  (non-`__`) globals (real inline `oninput`/`onclick` targets in
+  `content/fragments/hamburger-stack.html`'s price/description fields and Publish button) *and*
+  `onItemDetailFieldChange` also gets a real import in `ItemDetailTitle.jsx` — a genuine dual-path
+  consumer, both kept; `commitItemDetailTitle`/`focusPublishFlowName`/`blurPublishFlowName` had
+  their old plain-global exposure dropped entirely once their one real consumer each
+  (`ItemDetailTitle.jsx`, `PublishFlowName.jsx`) was upgraded to a real import — no inline HTML
+  target for any of the three, confirmed by grep before removing; `deleteDetailDraft`/
+  `startPublishFlow`/`unpublishDetailItem`/`updateDetailItem` had their old `__`-prefixed bridges
+  dropped the same way once their one real consumer (`ItemDetailFooter.jsx`) was upgraded to real
+  imports; `commitItemDetailDesc` turned out to be genuinely dead code — grepped for a real caller
+  (inline HTML, a React component, anywhere) and found none, so its window-bridge.js re-export was
+  removed but the function itself stays exported unchanged, matching this migration's
+  feature-freeze discipline (a real functional gap — the description field's blur never wires
+  to it, unlike the title field — carried forward exactly as-is, not fixed as a drive-by). One
+  pre-existing ambient-type inaccuracy caught and fixed: `__renderInlineCanvas`'s `connections`/
+  `onDelete` params were declared required even though the real implementation
+  (`messagingCanvasPreview.ts`) always treated them as optional — this file's own 2-argument call
+  sites would have failed `npm run typecheck` otherwise. `ItemDetailTitle.jsx`/`PublishFlowName.jsx`/
+  `ItemDetailFooter.jsx` (same `app/dotto/` tree) all upgraded to real ES imports, same "same-tree
+  caller upgrade" precedent as every other Phase 4.5 port. `window-bridge.js`'s own import line and
+  10 re-export lines removed — it now imports from 6 files instead of 7. `blocks-panel.js` (still
+  vanilla) fixed at its 2 real call sites (`openItemDetail`/`deleteMyCreationItem`, formerly a
+  direct vanilla-to-vanilla import) to go through the `__openItemDetail`/`__deleteMyCreationItem`
+  bridges instead. Real Playwright verification against both a dev server and a real production
+  server: real click on the Blocks rail icon opening `#add-menu`; a real `openItemDetail()` call
+  (matching `blocks-panel.js`'s own real call shape) correctly populating every DOM field and
+  toggling the right view classes; `ItemDetailFooter.jsx`'s real rendered button set checked for
+  both `sourceFolder` states (`Delete`/`Publish` for drafts, `Unpublish`/`Update` for published); a
+  real contentEditable triple-click-type-blur through `ItemDetailTitle.jsx`'s real
+  `commitItemDetailTitle` import persisting the new title; a real `startPublishFlow` →
+  `PublishFlowName.jsx`'s real `focusPublishFlowName` import (via a real mousedown) →
+  `confirmPublishFlow` (the real inline `onclick` target) round trip; a real price-field edit
+  through the real inline `oninput` target correctly enabling the Update button via
+  `onItemDetailFieldChange`; `updateDetailItem`/`unpublishDetailItem`/`deleteDetailDraft` all
+  exercised via real `ItemDetailFooter.jsx` button clicks; `__deleteMyCreationItem` exercised
+  directly, matching `blocks-panel.js`'s own real call shape. Every mock item used a real
+  `crypto.randomUUID()` id rather than a plain string — `marketplace_listings.id` is a real `uuid`
+  column, and a non-UUID string fails Postgres's own type check with a 400 before even reaching
+  "row doesn't exist," caught the hard way while writing this port's own verify script (a plain
+  string mock id produced a real, confusing `invalid input syntax for type uuid` Postgres error
+  instead of the intended silent 0-rows-affected no-op). Every Supabase update/delete call this
+  port makes was exercised for real, against real-UUID-shaped but nonexistent ids, so each one
+  safely no-ops without ever touching real data — not skipped, not mocked. Also caught and fixed
+  the same class of bug in a pre-existing (Phase 2, gitignored) regression script,
+  `verify-phase2-contenteditable.js`: a plain-string mock id triggering the same Postgres 400,
+  `window.__startPublishFlow` no longer existing now that its own bridge was dropped (fixed to
+  click the real Publish button instead — more faithful to a real user flow than the direct bridge
+  call it replaces), and a stale `#btn-library` click (the Plugins panel, not `#add-menu`, which is
+  where `#item-detail-view` actually lives, predating the Library→Blocks/Plugins repurposing) —
+  confirmed clean afterward. Zero console/page errors across both scripts in both dev and
+  production modes.
 - **Phase 4.6 — delete the bridge layer: not started.**
 - **Phase 4.7 — final cleanup & professionalization close-out: not started.**
 
@@ -1907,3 +1971,48 @@ port's own verify script where `pageerror` events weren't filtered through the s
 both `verify-phase4-5-corestate-port.js` and `verify-phase4-5-waypointsrenderloop-port.js` clean
 afterward, since `cardsMisc.ts` sits directly on `__getAppState`/`__findItemById`/`__saveSnapshot`/
 `__render` from both. Cleanup removed every mock item created during the run.
+
+**Phase 4.5 (`library-publish.js` → `app/dotto/lib/libraryPublish.ts`)**: `node --check` on the 3
+touched vanilla files (`dotto-script.js`, `window-bridge.js`, `blocks-panel.js`), `eslint` clean,
+`npm run typecheck` clean (after fixing a real pre-existing ambient-type inaccuracy —
+`__renderInlineCanvas`'s `connections`/`onDelete` params declared required when the real
+implementation always treats them as optional), `npm run format:check` clean after a
+`prettier --write` pass run as the actual last step before committing, `rm -rf .next && npm run
+build` clean, all 32 Vitest tests still green. Learned from `cardsMisc.ts`'s own port earlier this
+session: this file has 9 functions reading `appState`, not 1, so every one uses a lazy
+`getAppState()` helper called at the top of its own body — the same convention
+`marketplace.ts` (a Phase 4.4 port) already established for plain-side-effect-import files with no
+`wireX()` — rather than a module-top-level capture, avoiding a repeat of that exact crash outright
+instead of fixing it after the fact. Real production-server check (`npm run build && npm run
+start`): zero console errors or server 500s. Real Playwright verification, run against both the
+dev server and the real production server: a real click on the Blocks rail icon opening `#add-menu`;
+a real `__openItemDetail()` call (matching `blocks-panel.js`'s own real call shape) correctly
+populating every DOM field (title/price/description/canvas preview) and toggling the right
+draft/published/purchased view classes; `ItemDetailFooter.jsx`'s real rendered button set checked
+for both `sourceFolder` states; a real contentEditable triple-click-type-blur through
+`ItemDetailTitle.jsx`'s real `commitItemDetailTitle` import persisting the new title into
+`appState.detailItem.title`; a real `startPublishFlow` → `PublishFlowName.jsx`'s real
+`focusPublishFlowName` import (via a real mousedown, confirmed via `document.activeElement`) →
+`confirmPublishFlow` (the real inline `onclick="confirmPublishFlow()"` target) round trip back to
+the library view; a real price-field edit through the real inline `oninput` target correctly
+enabling the Update button via `onItemDetailFieldChange`; `updateDetailItem`/`unpublishDetailItem`/
+`deleteDetailDraft` all exercised via real `ItemDetailFooter.jsx` button clicks, each verified
+against real `appState` reads afterward; `__deleteMyCreationItem` exercised directly, matching
+`blocks-panel.js`'s own real call shape. Every mock item used a real `crypto.randomUUID()` id —
+`marketplace_listings.id` is a real `uuid` column, and an early version of this port's own verify
+script used a plain string id, which failed with a real Postgres `invalid input syntax for type
+uuid` 400 error instead of the intended silent 0-rows-affected no-op; fixed before the script was
+considered done, not worked around. Every real Supabase update/delete call this port makes
+(`commitItemDetailTitle`/`updateDetailItem`/`unpublishDetailItem`/`deleteDetailDraft`/
+`deleteMyCreationItem`/`confirmPublishFlow`) was exercised for real against these real-UUID-shaped
+but nonexistent ids, so each one safely no-ops without ever touching real data — not skipped, not
+mocked. Also found and fixed the identical class of bug in a pre-existing (Phase 2, gitignored)
+regression script, `verify-phase2-contenteditable.js`, while re-running it as a regression check
+(it directly exercises `ItemDetailTitle.jsx`/`PublishFlowName.jsx`, both touched by this port): the
+same plain-string-id Postgres 400, `window.__startPublishFlow` no longer existing now that this
+port dropped its bridge (its only real consumer, `ItemDetailFooter.jsx`, now uses a real import —
+fixed by clicking the real Publish button instead, more faithful to an actual user flow than the
+direct bridge call it replaces), a stale `#btn-library` click (the Plugins panel — `#item-detail-view`
+actually lives inside `#add-menu`, the Blocks panel, predating the Library→Blocks/Plugins
+repurposing), and a missing 404-noise filter every later Phase 4.x script already carries. Both
+scripts confirmed clean afterward, zero console/page errors, in both dev and production modes.

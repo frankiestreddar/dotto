@@ -2,10 +2,12 @@
 
 import { createPortal } from "react-dom";
 import usePortalNode from "./usePortalNode";
+import { blurPublishFlowName, focusPublishFlowName } from "./lib/libraryPublish";
 
-// Same uncontrolled-ref reasoning as ItemDetailTitle.jsx — renders once, library-publish.js's own
-// document.getElementById('publish-flow-name') reads/writes (startPublishFlow/focusPublishFlowName/
-// blurPublishFlowName/confirmPublishFlow) keep working unmodified. onMouseDown's preventDefault
+// Same uncontrolled-ref reasoning as ItemDetailTitle.jsx — renders once,
+// app/dotto/lib/libraryPublish.ts's own document.getElementById('publish-flow-name') reads/writes
+// (startPublishFlow/focusPublishFlowName/blurPublishFlowName/confirmPublishFlow) keep working
+// unmodified, called via real imports below (same app/dotto/ tree). onMouseDown's preventDefault
 // (instead of stopPropagation) matches the original inline attribute exactly — it's what stops the
 // mousedown's own default focus/caret placement so focusPublishFlowName can collapse the caret to
 // the end itself instead.
@@ -24,9 +26,9 @@ export default function PublishFlowName() {
       suppressContentEditableWarning
       onMouseDown={(e) => {
         e.preventDefault();
-        window.focusPublishFlowName();
+        focusPublishFlowName();
       }}
-      onBlur={() => window.blurPublishFlowName()}
+      onBlur={() => blurPublishFlowName()}
     />,
     portalNode,
   );

@@ -1,7 +1,6 @@
 const appState = window.__getAppState();
 const addMenu = window.__getAddMenuEl?.();
 const btnAdd = window.__getBtnAddEl?.();
-import { deleteMyCreationItem, openItemDetail } from './library-publish.js';
 
 // ---------- Blocks panel (was Essentials/the Add menu; also absorbed "browse your own library
 // content" — Purchased/drafts+published/custom folders — from Library, now Plugins, when the two
@@ -179,12 +178,13 @@ function removeFromCustomFolder(folderId, itemId) {
 }
 
 // Dispatches a content-item row's delete button — My Creations items get a real, destructive
-// delete (deleteMyCreationItem, library-publish.js — actually deletes the underlying draft/
-// published marketplace listing); custom-folder items just lose their reference to that folder
-// (removeFromCustomFolder, non-destructive — the item still exists in Purchased/My Creations).
-// Purchased/Essentials rows never reach this at all (row.deletable is false, no button rendered).
+// delete (__deleteMyCreationItem, app/dotto/lib/libraryPublish.ts — actually deletes the
+// underlying draft/published marketplace listing); custom-folder items just lose their reference
+// to that folder (removeFromCustomFolder, non-destructive — the item still exists in
+// Purchased/My Creations). Purchased/Essentials rows never reach this at all (row.deletable is
+// false, no button rendered).
 function deleteBlockContentItem(row) {
-    if (row.folderKey === 'my-creations') { deleteMyCreationItem(row.item, row.status); return; }
+    if (row.folderKey === 'my-creations') { window.__deleteMyCreationItem(row.item, row.status); return; }
     if (isCustomFolderId(row.folderKey)) removeFromCustomFolder(row.folderKey, row.item.id);
 }
 
@@ -247,7 +247,7 @@ function setupContentItemDrag(div, row) {
             window.removeEventListener('pointerup', up);
             if (dragGhost) dragGhost.remove();
             clearFolderDropHighlight();
-            if (!dragStarted) { openItemDetail(item, status); return; }
+            if (!dragStarted) { window.__openItemDetail(item, status); return; }
 
             const targetRow = folderRowElAtPoint(ue.clientX, ue.clientY);
             if (targetRow) {

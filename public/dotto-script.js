@@ -14,7 +14,6 @@ import './dotto/search-panel-history.js';
 import './dotto/mnemonic-search-matching.js';
 import './dotto/search-orchestration-selection.js';
 import './dotto/drag-drop-chat.js';
-import './dotto/library-publish.js';
 import './dotto/blocks-panel.js';
 import './dotto/extensions-panel.js';
 import './dotto/table-grid-resize.js';

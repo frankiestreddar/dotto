@@ -122,6 +122,12 @@ import "./dotto/lib/waypointsRenderLoop";
 // still need to exist for renderChecklistHTML's own generated inline onclick/onchange/oninput
 // attributes and for outlineTree.ts/messagingCanvasPreview.ts's bridge reads.
 import "./dotto/lib/cardsMisc";
+// Side-effect only — sets window.__openItemDetail/__deleteMyCreationItem/onItemDetailFieldChange/
+// confirmPublishFlow at module-eval time for blocks-panel.js (still vanilla) and
+// content/fragments/hamburger-stack.html's inline oninput/onclick targets; ItemDetailTitle.jsx/
+// PublishFlowName.jsx/ItemDetailFooter.jsx import the real functions directly instead (same
+// app/dotto/ tree).
+import "./dotto/lib/libraryPublish";
 import BlocksPanel from "./dotto/BlocksPanel";
 import CellTagPickerList from "./dotto/CellTagPickerList";
 import ChatsListPanel from "./dotto/ChatsListPanel";
@@ -405,8 +411,9 @@ if (typeof window !== "undefined") {
   // Extensions panel's list content (see app/dotto/ExtensionsPanel.jsx) — dummy data for now, a
   // plain store.set, no synchronous DOM read follows it.
   window.__setExtensionsList = extensionsListStore.set;
-  // Item Detail view's footer button set (see app/dotto/ItemDetailFooter.jsx, library-publish.js's
-  // renderItemDetailFooter) — a plain store.set, no synchronous DOM read follows it.
+  // Item Detail view's footer button set (see app/dotto/ItemDetailFooter.jsx,
+  // app/dotto/lib/libraryPublish.ts's renderItemDetailFooter) — a plain store.set, no synchronous
+  // DOM read follows it.
   window.__setItemDetailFooter = itemDetailFooterStore.set;
   // Collaborators pill, one per pane (see app/dotto/PaneTopBar.jsx, friends-presence.js's
   // renderCollabPill) — pane-keyed since split-screen Stage 8, same reasoning as
