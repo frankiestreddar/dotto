@@ -1,4 +1,6 @@
-import { appState, contextMenu, parseItemId } from './core-state.js';
+const appState = window.__getAppState();
+const contextMenu = window.__getContextMenuEl?.();
+const parseItemId = window.__parseItemId;
 
 // Phase 4.3 split (was part of resize-shortcuts-init.js, see PHASE4_ROADMAP.md) — the "shortcuts"
 // concern: global keyboard shortcuts and the multi-select delete action they (and the context

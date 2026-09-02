@@ -1,4 +1,5 @@
-import { appState, supabase } from './core-state.js';
+const appState = window.__getAppState();
+const supabase = window.__dottoSupabase || null;
 import { resolveUsernameToUserId } from './friends-presence.js';
 import { generateGlobalId } from './global-ids.js';
 import { CARD_KINDS } from './card-kinds.js';

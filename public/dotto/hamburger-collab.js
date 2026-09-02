@@ -1,5 +1,9 @@
 import { openSearchOverlay, scrollChatThreadToBottom, showAiChatView, updateChatThread } from './ai-assistant-suggestions.js';
-import { appState, canvasViewportCenterX, drawSettings, findItemEl, supabase } from './core-state.js';
+const appState = window.__getAppState();
+const canvasViewportCenterX = window.__canvasViewportCenterX;
+const drawSettings = window.__getDrawSettingsEl?.();
+const findItemEl = window.__findItemEl;
+const supabase = window.__dottoSupabase || null;
 import { activePaneCollabBubbleEl, openCollabPanel, renderCollabPill } from './friends-presence.js';
 import { flashCanvasElement } from './mnemonic-search-matching.js';
 import { closeProfilePanel, openPricingOverlay } from './profile-achievements-pricing.js';
@@ -440,7 +444,7 @@ import { closeProfilePanel, openPricingOverlay } from './profile-achievements-pr
     // exactly one hub-subpanel open at a time, so `panel` doubles as the disambiguation a single
     // Backspace handler needs (see dispatchListPanelDelete, called from source-buttons-cursor-
     // mode.js's keydown listener). Vanilla owns this as the source of truth (appState.
-    // listPanelSelection, core-state.js — same convention as appState.selectedCardIds for canvas
+    // listPanelSelection, app/dotto/lib/coreState.ts — same convention as appState.selectedCardIds for canvas
     // cards), mirrored into React's listPanelSelectionStore via window.__setListPanelSelection
     // purely so the list rows can show a highlight.
     function toggleListPanelSelection(panel, id) {

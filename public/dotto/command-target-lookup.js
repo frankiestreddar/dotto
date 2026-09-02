@@ -1,4 +1,5 @@
-import { appState, supabase } from './core-state.js';
+const appState = window.__getAppState();
+const supabase = window.__dottoSupabase || null;
 import { GLOBAL_ID_ALPHABET, GLOBAL_ID_LENGTH } from './global-ids.js';
 
 // Matches the exact shape generateGlobalId() produces (global-ids.js) — used to short-circuit

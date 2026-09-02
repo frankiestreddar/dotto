@@ -210,11 +210,11 @@ export function setupResizing(el, it) {
 // Moved here from public/dotto/drag-drop-chat.js — Phase 3's second relocated piece, following
 // the exact pattern setupResizing above already proved out. The single riskiest closure in the
 // app (direct camera-state writes inside its own RAF auto-pan loop, findItemEl(id) lookups
-// (see core-state.js — pane-qualified since the split-screen prep pass), a world.children scan
+// (see app/dotto/lib/coreState.ts — pane-qualified since the split-screen prep pass), a world.children scan
 // for merge-target detection,
 // three separate drop-zone checks) — logic unchanged byte-for-byte, every dependency that still
 // lives in public/dotto/*.js reached via a window.__ bridge (see each one's own comment there);
-// canvas/world are read live via window.__getCanvasEl()/__getWorldEl() (core-state.js) rather than
+// canvas/world are read live via window.__getCanvasEl()/__getWorldEl() (app/dotto/lib/coreState.ts) rather than
 // a bare document.getElementById — split-screen Stage 2: canvas/world became `let` bindings
 // reassigned by switchActivePane once a second pane's DOM can exist, so a bare getElementById
 // would silently resolve to whichever pane's markup happens to be first in the document instead of
@@ -410,7 +410,7 @@ export function setupDraggingAndClicking(el, it) {
       // Moves every dragged card to (start position) + (real cursor delta since drag start) +
       // (accumulated auto-pan delta) — called on every real pointermove AND every auto-pan tick,
       // so a card keeps moving even while the cursor itself sits still near the edge.
-      // window.__mirrorItemToSiblingPanes (core-state.js) pushes that same left/top onto any
+      // window.__mirrorItemToSiblingPanes (app/dotto/lib/coreState.ts) pushes that same left/top onto any
       // sibling pane's own copy of this item right in this same tick — explicit request that
       // dragging be fully live pixel-by-pixel across split-screen panes viewing the same folder,
       // not just once the drag ends and render() next runs.
@@ -439,7 +439,7 @@ export function setupDraggingAndClicking(el, it) {
         // (packageSelectedAsTemplate) lands in My Creations (Blocks panel, #add-menu) now that
         // "browse your own library content" moved there from Library (now Plugins). #add-menu
         // looked up directly (not via appState), same as #library-dropzone-overlay just below —
-        // addMenu is a plain module-level const in core-state.js, not an appState field.
+        // addMenu is a plain module-level const in app/dotto/lib/coreState.ts, not an appState field.
         const blocksPanelEl = document.getElementById("add-menu");
         if (blocksPanelEl.classList.contains("open")) {
           const blocksRect = blocksPanelEl.getBoundingClientRect();

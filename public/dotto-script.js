@@ -1,4 +1,3 @@
-import './dotto/core-state.js';
 import './dotto/add-menu.js';
 import './dotto/drawing-connections.js';
 import './dotto/srs-algorithm.js';

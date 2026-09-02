@@ -340,7 +340,7 @@
   this port owns directly. Zero console/page errors. Re-checked the account afterward to confirm
   zero residual mock cards/folders. **This closes out Phase 4.4 — every split-out concern and
   remaining DOM-heavy file has now been ported.** Phase 4.5 (architectural/hub files) is next.
-- **Phase 4.5 — architectural/hub files: in progress (5 of 7 done).**
+- **Phase 4.5 — architectural/hub files: in progress (6 of 7 done).**
   `panels-hamburger.js` (178 lines) ported first to `app/dotto/lib/panelsHamburger.ts` — the
   permanent rail's shared open/close contract (one sliding `#hamburger-stack` shell, many trigger
   icons) plus the hover/pin panel helper used by the add-menu and per-canvas collaborator flyout.
@@ -717,6 +717,95 @@
   yet another new module-top-level bridge-setting file to the same import graph that bug lived in —
   zero console errors or server 500s. Zero console/page errors across every script. Cleanup removed
   every mock item/folder created during the run and restored the original folder/camera.
+  `core-state.js` (905 lines, fan-in 35, the `appState` singleton) ported sixth — deliberately
+  last, per the plan's own reasoning ("everything reads it"). Genuinely different in kind from
+  every other Phase 4.5 port, not just scale: the plan's own original strategy for this file called
+  for a Zustand dual-write migration rather than the plain-TS-module pattern every other Phase 4.5
+  file ended up using — checked against real usage first (same discipline as every other deviation
+  this phase), and confirmed correct here in the OPPOSITE direction from every prior check: this
+  file's own extra caution turned out to be warranted, just not for the reason the plan assumed.
+  The real hazard wasn't architecture, it was timing: `appState.currentUser` depends on
+  `window.__DOTTO_USER__`, which `dotto-app.jsx` deliberately sets INSIDE `DottoApp`'s own render
+  body (not at module eval, not in a `useEffect` — see that file's own comment: `dotto-script.js`'s
+  `afterInteractive` `<Script>` tag needs it ready before that script runs, and setting it during
+  render, not after paint, is what guarantees that ordering). A plain module-load-time side-effect
+  import — the pattern every other Phase 4.4/4.5 port uses — runs during module evaluation, which
+  always completes *before* the first render call; had this port copied that pattern verbatim,
+  `appState.currentUser` would have silently constructed from the guest fallback (`{id: null,
+  username: 'guest', ...}`) for every real logged-in user, every single time. Caught by tracing the
+  actual render-vs-module-eval ordering before writing any code, not by a failed test. Fixed by
+  exporting `ensureCoreState()` instead of a side-effect import — called from `DottoApp`'s own
+  render body immediately after `window.__DOTTO_USER__` is set (the exact same synchronous timing),
+  idempotent (`DottoApp` re-renders many times over its lifetime; `appState` must only ever be
+  constructed once). Confirmed working via a real production-server check: `appState.currentUser`
+  showed the actual logged-in test account (real `id`/`username`/achievements), not the guest
+  fallback, across 3 real reloads.
+  **The other genuinely large-scale challenge was correctness at hundreds of call sites, not
+  architecture.** 22 real vanilla files still imported directly from `core-state.js` (real ES
+  imports, not bridges) — 553 individual `appState.` references across them combined. The key
+  simplification that made this tractable: `appState` is a stable object reference, only ever
+  mutated in place, never reassigned — given the confirmed module-eval-before-render ordering
+  guarantee, every vanilla file could safely capture it ONCE at its own module top level
+  (`const appState = window.__getAppState();`), with zero changes needed to any of those hundreds
+  of internal `appState.X` call sites, the exact same ergonomics as the real import it replaced.
+  The same held for every bridge-backed FUNCTION this file exposes (`effectiveMode`, `findItemEl`,
+  `switchActivePane`, `parseItemId`, `canvasViewportCenterX`, etc. — bridges are assigned once and
+  never reassigned) and for every `const`-declared DOM element (`btnAdd`, `contextMenu`,
+  `drawSettings`, etc. — genuine page-level singletons). The ONE real exception:
+  `canvas`/`world`/`dotLayer`/`cursorOverlay` are `let`-reassigned by `switchActivePane` for
+  split-screen — a module-scope capture of these would silently go stale the moment a second pane
+  became active, so the 3 files touching `canvas` (`ai-assistant-suggestions.js`,
+  `blocks-panel.js`, `mnemonic-search-matching.js`, one call site each) got a fresh
+  `window.__getCanvasEl?.()` call at their own actual use site instead, matching the "always fetch
+  fresh, never cache" convention every other Phase 4.4/4.5 port already established for these same
+  four elements. Zero new outbound bridges were needed for the appState/DOM-element surface at
+  all — every one of the ~90 bridges this file exposes (the appState-property DOM refs like
+  `appState.btnInbox` needed no getter of their own, already reachable through
+  `window.__getAppState()`; the ~19 separately-bound elements' getters) had already been
+  proactively established by 5 earlier ports reaching into this file's internals before this port
+  even started — this port's own job was almost entirely "actually implement what those getters
+  already promised." Only 3 bridges were genuinely new: `window.__DOTTO_USER__`'s own ambient type
+  (existed at runtime, never typed), `window.__setActivePaneId` (same), and
+  `window.__bringCardToFront` (same) — all 3 the "existed at runtime, never typed until a real
+  `.ts` consumer needed it" class this migration has hit repeatedly.
+  A real corruption was caught and fixed during the port itself, not by a later test: `NON_LATIN_SCRIPT_RE`'s
+  ` -ɏḀ-ỿ -⁯` unicode escape sequences got rendered as literal raw
+  Unicode characters while authoring the file (visually indistinguishable in a normal read, since
+  the resulting text still looked like plausible source) instead of staying escape-sequence text —
+  caught by a deliberate post-write `python3`/`repr()` byte-level diff against the original vanilla
+  file (grep alone couldn't even find the corrupted line, since the raw Unicode text no longer
+  matched a plain-ASCII search pattern), then fixed to be byte-for-byte identical to the original.
+  A related but harmless discrepancy (`CLOZE_RE`'s `[^[\]]` vs. the original's `[^\[\]]` —
+  functionally identical in JavaScript regex, since `[` needs no escaping inside a character class)
+  was fixed the same way for exact fidelity regardless. This bug class — and the fact that
+  automated verification (typecheck/eslint/build/tests) cannot catch it, since a corrupted-but-
+  syntactically-valid regex has no type or runtime signature distinguishing it from a correct one
+  — is worth remembering for any future port of a file with unicode-escape or other
+  easily-visually-confusable literal content.
+  Real Playwright verification against a fresh dev server: re-ran all 5 previous Phase 4.5 verify
+  scripts (`panels-hamburger`, `live-presence`, `history-autosave`, `srs-connections-core`,
+  `waypoints-render-loop`) as regression checks first, since every one of them depends on
+  `window.__getAppState()` now coming from this exact file — all 5 passed clean, zero regressions,
+  the single largest regression-check batch this migration has run for one port. Then a new,
+  targeted test for the one piece of real, distinctive logic `core-state.js` alone owns that
+  nothing else had exercised directly: split-screen pane switching. A real second pane created via
+  the same `window.__splitPaneWithTab` bridge `TabsBar.jsx`'s own drag-to-split gesture calls,
+  confirmed via a real mounted `#canvas-N` DOM element (not just state); a mock folder navigated
+  into on the new pane; `switchActivePane` back to pane 0 confirmed via a real
+  `appState.currentFolderId` check that pane 0's OWN folder came back correctly (not left stuck on
+  the new pane's folder, not reset to root); switching to the new pane again confirmed its own
+  folder was correctly saved and restored too — real swap-in-place pane-state correctness verified
+  in both directions, not just "a bridge exists." Also verified `appState.currentUser` reflects the
+  real logged-in user (not the guest fallback) directly in the browser, both in dev and via a real
+  production server (`npm run build && npm run start`, 3 real authenticated reloads) — zero console
+  errors or server 500s in either mode. Zero console/page errors across all 7 scripts run this port
+  (6 Phase 4.5 verify scripts plus the dev/prod SSR safety checks). Cleanup closed every pane and
+  removed every mock folder created during the run.
+  **This closes out Phase 4.5's single riskiest remaining target and the whole phase's real
+  architectural core — 6 of 7 done.** Only `window-bridge.js` remains, still blocked on the paused
+  Phase 4.1 files (its remaining 8 imports all belong to files that pass have never reached);
+  revisiting whether any of those are now unblocked, now that every other Phase 4.5 hub file has
+  landed, is Phase 4.5's own last remaining question before it can close out entirely.
 - **Phase 4.6 — delete the bridge layer: not started.**
 - **Phase 4.7 — final cleanup & professionalization close-out: not started.**
 
@@ -1705,3 +1794,36 @@ original folder/camera.
 `window-bridge.js` (still blocked on the paused Phase 4.1 files — see its own status entry above)
 and `core-state.js` (the `appState` singleton, deliberately saved for last since everything reads
 it).
+
+**Phase 4.5 (`core-state.js` → `app/dotto/lib/coreState.ts`)**: `node --check` on all 22 touched
+vanilla callers, `eslint` clean, `npm run typecheck` clean (after adding ambient types for 3
+bridges that already existed at runtime but had never been typed — `__DOTTO_USER__`,
+`__setActivePaneId`, `__bringCardToFront`), `npm run format:check` clean after a `prettier --write`
+pass run as the actual last step before committing — then re-verified `NON_LATIN_SCRIPT_RE`/
+`CLOZE_RE` byte-for-byte against the original vanilla file via `python3`/`repr()` a second time,
+since prettier reformats the file and a corruption of this exact class (see the status entry above)
+would be invisible to a normal read either way. `rm -rf .next && npm run build` clean, all 32
+Vitest tests still green. Real production-server check
+(`npm run build && npm run start`, 3 real authenticated Playwright reloads): zero console errors or
+server 500s, and `appState.currentUser` confirmed as the real logged-in test account (real
+`id`/`username`/achievements) rather than the guest fallback — the one thing this port's own
+`ensureCoreState()` timing fix (called from `DottoApp`'s render body, not a plain side-effect
+import) exists specifically to get right. Real Playwright verification against a fresh dev server:
+re-ran all 5 previous Phase 4.5 verify scripts (`panels-hamburger`, `live-presence`,
+`history-autosave`, `srs-connections-core`, `waypoints-render-loop`) as regression checks first —
+every one of them depends on `window.__getAppState()` now coming from this exact file, and all 5
+passed clean, the single largest regression-check batch this migration has run for one port. Then a
+new script targeting the one piece of real, distinctive logic `core-state.js` alone owns and
+nothing else had exercised: split-screen pane switching. A real second pane created via the same
+`window.__splitPaneWithTab` bridge `TabsBar.jsx`'s own drag-to-split gesture calls, confirmed via a
+real mounted `#canvas-N` DOM element, not just state; a mock folder navigated into on the new pane;
+`switchActivePane` back to pane 0 confirmed via a real `appState.currentFolderId` check that pane
+0's OWN folder came back correctly (not left stuck on the new pane's folder, not reset to root);
+switching to the new pane again confirmed its own folder was correctly saved and restored too — real
+swap-in-place pane-state correctness verified in both directions. Zero console/page errors across
+every script run this port (6 Phase 4.5 verify scripts plus the dev/prod SSR safety checks).
+Cleanup closed every pane and removed every mock folder created during the run.
+
+**This closes out Phase 4.5's single riskiest remaining target and the whole phase's real
+architectural core — 6 of 7 done.** Only `window-bridge.js` remains, still blocked on the paused
+Phase 4.1 files.

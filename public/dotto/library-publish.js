@@ -1,4 +1,7 @@
-import { addMenu, appState, btnAdd, supabase } from './core-state.js';
+const appState = window.__getAppState();
+const addMenu = window.__getAddMenuEl?.();
+const btnAdd = window.__getBtnAddEl?.();
+const supabase = window.__dottoSupabase || null;
 
 
     // ---------- Blocks panel: Item Detail View (Purchased / My Creations = drafts+published) ----------
@@ -15,7 +18,7 @@ import { addMenu, appState, btnAdd, supabase } from './core-state.js';
         appState.detailOriginal = { title: item.title, description: item.description || '', price: item.price || '' };
 
         // Keep the Blocks panel open (pinned) while the detail page is showing — it shares the one
-        // rail-wide pinned flag now (see appState.panelPinned.rail, core-state.js). Both callers (a
+        // rail-wide pinned flag now (see appState.panelPinned.rail, app/dotto/lib/coreState.ts). Both callers (a
         // Blocks row click, or packageSelectedAsTemplate's drag-drop) only ever reach this while
         // the Blocks panel is already the open rail view, so this is just making that state
         // explicit rather than actually switching panels.

@@ -1,4 +1,4 @@
-import { appState } from './core-state.js';
+const appState = window.__getAppState();
 
 // Independent floating popup toggled by U — not part of the #hamburger-stack rail-panel system
 // (no railViewEls/railIconBtns entry, no wireRailIcon), so it gets its own tiny open/close pair

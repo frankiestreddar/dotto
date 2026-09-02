@@ -1,4 +1,4 @@
-import { appState } from './core-state.js';
+const appState = window.__getAppState();
 
 // ---------- Extensions panel (was Library — repurposed per explicit request; "browse your own
 // library content" moved to the Blocks panel instead, see blocks-panel.js). Just a flat list of

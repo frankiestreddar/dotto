@@ -209,7 +209,7 @@ function showPlacementGhost(kind: string): void {
 // Purely a visual preview (the actual placement, on click, always correctly uses whichever pane
 // was clicked into — see setupCanvasLevelInteractionListeners, app/dotto/lib/srsConnectionsCore.ts) — no
 // switchActivePane needed here, just re-attached per pane (split-screen Stage 4: see
-// window.__registerPaneCanvasListenerSetup, core-state.js) so the ghost tracks the cursor over ANY
+// window.__registerPaneCanvasListenerSetup, app/dotto/lib/coreState.ts) so the ghost tracks the cursor over ANY
 // pane, not just pane 0.
 function setupPlacementGhostTracking(canvasEl: HTMLElement): void {
   canvasEl.addEventListener("pointermove", (e) => {
@@ -221,12 +221,14 @@ function setupPlacementGhostTracking(canvasEl: HTMLElement): void {
   });
 }
 
-// How long to wait for the vanilla afterInteractive bundle to set window.__getCanvasEl/
-// __registerPaneCanvasListenerSetup before giving up — same readiness-poll shape
-// wireDayChangeAndAdNotifications uses and for the same reason: this needs pane 0's own canvas
-// element to exist and be reachable RIGHT at wire time (not lazily on a later interaction), and
-// core-state.js (which sets both bridges) loads afterInteractive — independently of, and possibly
-// after, React's own effects.
+// How long to wait for window.__getCanvasEl/__registerPaneCanvasListenerSetup to be set before
+// giving up — same readiness-poll shape wireDayChangeAndAdNotifications uses and for the same
+// reason: this needs pane 0's own canvas element to exist and be reachable RIGHT at wire time (not
+// lazily on a later interaction). app/dotto/lib/coreState.ts (which sets both bridges) is called
+// from DottoApp's own render body via ensureCoreState() — earlier than this file's own wireX()
+// poll could possibly run, in practice, but the poll is kept anyway rather than assumed: this
+// file's own module evaluation, and the timing of whichever effect calls its wireX(), aren't
+// something coreState.ts's own render-body timing can make any guarantee about from its side.
 const BRIDGE_WAIT_TIMEOUT_MS = 30000;
 const BRIDGE_POLL_INTERVAL_MS = 100;
 

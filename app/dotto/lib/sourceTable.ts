@@ -755,7 +755,7 @@ if (typeof window !== "undefined") {
   window.__mergeTableCells = mergeTableCells;
   // Used by app/dotto/canvasItemBehavior.js's setupResizing (a table's first-ever resize rebuilds
   // its body via this legacy string-renderer before switching to userSized layout — see that
-  // function's own comment), same reasoning as window.__getAppState (core-state.js).
+  // function's own comment), same reasoning as window.__getAppState (app/dotto/lib/coreState.ts).
   window.__renderTableHTML = renderTableHTML;
   // Shared with the relocated renderStaticTableHTML (app/dotto/canvasItemBehavior.js — see the
   // comment above colgroupHTML's own definition) — the on-canvas Table card's own legacy preview

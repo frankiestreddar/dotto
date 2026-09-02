@@ -127,7 +127,7 @@
              styling). Rows stay in this fixed DOM order always — an earlier version sorted the
              active mode to the top, removed per explicit follow-up request — the active mode just
              gets a highlighted/outlined .active state instead (see appState.modePopupRows,
-             core-state.js, and its own click wiring in app/dotto/lib/sourceButtonsCursorMode.ts, mirroring
+             app/dotto/lib/coreState.ts, and its own click wiring in app/dotto/lib/sourceButtonsCursorMode.ts, mirroring
              appState.modeButtons' click handler). Moving the pointer from the button toward a row
              further from it without closing the popup early is handled by a JS "safe zone" polygon
              (modePopupSafeZone/handleModePopupSafeMove, app/dotto/lib/sourceButtonsCursorMode.ts) rather than

@@ -1,4 +1,4 @@
-import { appState } from './core-state.js';
+const appState = window.__getAppState();
 import { refreshCanvasCollabForCurrentFolder, refreshFriendsData, renderCollabPill } from './friends-presence.js';
 import { refreshDotbotUsage } from './profile-achievements-pricing.js';
 

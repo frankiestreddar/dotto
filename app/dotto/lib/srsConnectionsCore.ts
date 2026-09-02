@@ -770,7 +770,7 @@ function handleGlobalKeydown(e: KeyboardEvent): void {
     return;
   }
   // appState.btnSnippets2 is the newer, separate Snippets button (see its own comment,
-  // core-state.js) — not appState.btnSnippets, which is actually Files under the hood. Was 'S'
+  // app/dotto/lib/coreState.ts) — not appState.btnSnippets, which is actually Files under the hood. Was 'S'
   // (freed up per explicit request for Servers, above) — reassigned to 'X', which collides with
   // the bare delete/cut shortcut (historyAutosave.ts, fires whenever selectedCardIds is
   // non-empty) whenever something's actually selected; resolved the same way the Z/Cmd+Z collision
@@ -1107,7 +1107,7 @@ export function handlePenPointerDown(e: PointerEvent): void {
 }
 // Canvas-level (not item-level) interaction listeners — pen-polyline finish, box-select/pan/
 // add-placement pointerdown, wheel pan/zoom — wrapped in a reusable setup function (split-screen
-// Stage 4: see registerPaneCanvasListenerSetup, core-state.js) so every pane's own canvas element
+// Stage 4: see registerPaneCanvasListenerSetup, app/dotto/lib/coreState.ts) so every pane's own canvas element
 // gets them, not just pane 0's. switchActivePane(paneId) is each handler's own first line rather
 // than trusting appState.activePaneId ambiently — none of these are pointerdown-gated the way
 // item-level gestures are (wheel especially: it never goes through the capture-phase pointerdown
@@ -1456,9 +1456,9 @@ export function deleteClonedItemFolders(item: Item | undefined): void {
 }
 
 // Relocated here from core-state.js's appState object literal (same as the vanilla original) — it
-// needs functions this file already owns, and core-state.js must never import anything (see its
-// own comment on why: any import there re-creates the exact circular-evaluation hazard this whole
-// pass exists to eliminate, this time for appState itself). Assigned inside doWire() (below), not
+// needs functions this file already owns, and app/dotto/lib/coreState.ts deliberately imports
+// nothing of its own (same reasoning core-state.js's own comment gave: avoiding a
+// circular-evaluation hazard, this time for appState itself). Assigned inside doWire() (below), not
 // at module top level — it mutates the live appState object, which doesn't exist yet at
 // module-evaluation time.
 function buildCardStreamIO(): Record<string, CardStreamIOConfig> {
@@ -1947,12 +1947,12 @@ if (typeof window !== "undefined") {
   window.__applyFilterToRows = applyFilterToRows;
   window.__collectAvailableFilterTags = collectAvailableFilterTags;
   // Used by app/dotto/canvasItemBehavior.js's setupDraggingAndClicking (Phase 3's second relocated
-  // piece), same reasoning as window.__getAppState (core-state.js).
+  // piece), same reasoning as window.__getAppState (app/dotto/lib/coreState.ts).
   window.__deepCloneItem = deepCloneItem;
   window.__deleteClonedItemFolders = deleteClonedItemFolders;
   window.__handlePenPointerDown = handlePenPointerDown;
   // Used by app/dotto/canvasItemBehavior.js's startConnectionDrag (Phase 3's third relocated piece
-  // — connection-dragging), same reasoning as window.__getAppState (core-state.js). Both stay
+  // — connection-dragging), same reasoning as window.__getAppState (app/dotto/lib/coreState.ts). Both stay
   // reachable this way since isValidConnection/handleDataModeClick have their own vanilla-side
   // callers too (isValidConnection: drawing-connections.js's own linkSelectedCards;
   // handleDataModeClick: the click-to-link fallback startConnectionDrag's own up() handler falls

@@ -1,4 +1,4 @@
-import { appState } from './core-state.js';
+const appState = window.__getAppState();
 import { bumpAchievementStat } from './profile-achievements-pricing.js';
 
 
@@ -240,7 +240,7 @@ export { computeConnectorPoints, createConnection, ensureConnections, ensureDraw
 window.__folderTitleForConnectedSource = folderTitleForConnectedSource;
 // Used by app/dotto/canvasItemBehavior.js's renderConnectionsLayer/startConnectionDrag (Phase 3's
 // third relocated piece — connection-dragging), same reasoning as window.__getAppState
-// (core-state.js).
+// (app/dotto/lib/coreState.ts).
 window.__makeLayerSVG = makeLayerSVG;
 window.__ensureConnections = ensureConnections;
 window.__createConnection = createConnection;

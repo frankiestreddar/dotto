@@ -210,7 +210,7 @@ function relayoutSourceTableIfVisible(): void {
 // transition would just recompute against whatever partial value the animation happened to be at
 // that instant, not the actual end state. e.propertyName is checked so this only reacts once per
 // transition (left and width both finish here, one event each) rather than twice. Re-attached per
-// pane (split-screen Stage 4: see registerPaneCanvasListenerSetup, core-state.js) so this doesn't
+// pane (split-screen Stage 4: see registerPaneCanvasListenerSetup, app/dotto/lib/coreState.ts) so this doesn't
 // just stop firing for panes other than pane 0 — e.target===canvasEl now checks against THIS
 // listener's own pane rather than the ambient canvas binding, for the same reason
 // setupCanvasLevelInteractionListeners' pointerdown check does (app/dotto/lib/srsConnectionsCore.ts).

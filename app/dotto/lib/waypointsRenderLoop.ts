@@ -954,7 +954,7 @@ function renderOnce(): void {
 
 // Live cross-pane sync (explicit request: "if you have two same pages open in split screen, doing
 // something in one updates the other instantly"). appState.folders (items, drawings, connections,
-// etc.) is genuinely shared, global state — NOT one of PANE_SCOPED_FIELDS (core-state.js) — so a
+// etc.) is genuinely shared, global state — NOT one of PANE_SCOPED_FIELDS (app/dotto/lib/coreState.ts) — so a
 // card add/edit/move/delete already lands in data every pane can see; the actual gap was that
 // renderOnce() above only ever rebuilds the ACTIVE pane's own DOM (#world/#canvas, whichever the
 // live canvas/world bindings currently point at) and only ever pushes to that pane's own
@@ -1566,7 +1566,7 @@ export function spawnMediaItemAt(
 // being the document at 100% width of the window"). paneId defaults to the live active pane, same
 // reasoning as renderNavArrows/renderCollabPill's own default — only ever meaningful for whichever
 // pane is currently active while called from render()'s per-frame loop, but also called explicitly
-// from switchActivePane (core-state.js) so a newly-active pane's own zoom doesn't wait a frame.
+// from switchActivePane (app/dotto/lib/coreState.ts) so a newly-active pane's own zoom doesn't wait a frame.
 // Reads the REAL zoom value off the folder object itself (folderObj.viewerZoom) — this store is
 // just the React-facing mirror of it (see its own comment, bridges.js).
 export function renderMediaViewerZoom(paneId?: number): void {
@@ -1590,7 +1590,7 @@ export function renderMediaViewerZoom(paneId?: number): void {
 // position/reading location on every single zoom click. Instead this directly restyles the
 // ALREADY-LIVE viewer element's own --viewer-zoom custom property (globals.css) in place, same
 // "mutate the DOM directly, skip render()" shape the live drag/resize mirroring
-// (mirrorItemToSiblingPanes, core-state.js) already established this session for the identical
+// (mirrorItemToSiblingPanes, app/dotto/lib/coreState.ts) already established this session for the identical
 // reason. Clamped to a sane 25%-400% range. No-ops if the target pane's current folder isn't
 // actually a media-viewer (stale click racing a navigation away, extremely unlikely but cheap to
 // guard).
@@ -1643,7 +1643,7 @@ if (typeof window !== "undefined") {
   // Used by app/dotto/lib/splitPaneManagement.ts's splitPaneWithTab (Phase 4.4).
   window.__applyFolderView = applyFolderView;
   // Used by app/dotto/canvasItemBehavior.js's setupDraggingAndClicking (Phase 3's second relocated
-  // piece), same reasoning as window.__getAppState (core-state.js).
+  // piece), same reasoning as window.__getAppState (app/dotto/lib/coreState.ts).
   window.__performMerge = performMerge;
   window.__render = render;
   // Used by app/dotto/lib/outlineTree.ts's goToOutlineItem (Phase 4.4).
@@ -1651,8 +1651,10 @@ if (typeof window !== "undefined") {
   window.__renderSelectedOutlines = renderSelectedOutlines;
   // React -> vanilla bridge — used by FilesListPanel.jsx's drag-onto-canvas gesture.
   window.__spawnMediaItemAt = spawnMediaItemAt;
-  // React -> vanilla bridges — used by PaneZoomBar.jsx and switchActivePane (core-state.js, the
-  // latter via a bridge rather than a direct import since core-state.js is imported BY this file).
+  // React -> vanilla bridges — used by PaneZoomBar.jsx and switchActivePane
+  // (app/dotto/lib/coreState.ts, the latter via a bridge rather than a direct import — a different
+  // lib file, same "stays a bridge rather than coupling two independently-ported modules"
+  // reasoning every other cross-lib-file call in this migration uses).
   window.__renderMediaViewerZoom = renderMediaViewerZoom;
   window.__setMediaViewerZoomLevel = setMediaViewerZoom;
   // Used by app/dotto/lib/srsConnectionsCore.ts (Phase 4.5) — startBoxSelection by the canvas

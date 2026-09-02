@@ -100,7 +100,7 @@ export function closeAllPanels(except?: string): void {
 // would silently do nothing for most letters, then hijack focus to the AI search box the instant a
 // space or "/" was typed — reading as "if you start typing, it starts inputting in the text box."
 // Outline/Waypoints/Collaborations/Marketplace/Library/Messages/Add/Profile all share one rail
-// shell now (see appState.railViewEls, core-state.js) — checking the whole list covers all of them
+// shell now (see appState.railViewEls, app/dotto/lib/coreState.ts) — checking the whole list covers all of them
 // in one go instead of naming each one individually.
 export function isAnyUiPanelOpen(): boolean {
   const appState = getAppState();

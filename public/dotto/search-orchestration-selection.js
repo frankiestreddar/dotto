@@ -1,6 +1,7 @@
 import { clearSearch, escapeHtml, handleSearchFocus, scrollChatThreadToBottom, showAiChatView, stripHtml, updateChatThread, updateSearchDropdown } from './ai-assistant-suggestions.js';
 import { executeCurrentCommand, setCommandActive } from './command-palette.js';
-import { appState, parseItemId } from './core-state.js';
+const appState = window.__getAppState();
+const parseItemId = window.__parseItemId;
 import { ensureConnections } from './drawing-connections.js';
 import { commenceSearchOrMnemonic } from './mnemonic-search-matching.js';
 import { bumpAchievementStat, openDotbotUpgradeModal, refreshDotbotUsage } from './profile-achievements-pricing.js';
@@ -206,7 +207,7 @@ import { applyAiAddRowsToSource, createSourceFromAI } from './source-tags-ai.js'
         // A selectionchange firing because the user is typing inside the add-to-source popup's
         // own search box isn't a text highlight to react to. React only renders the popup at all
         // while open (see app/dotto/AddToSourcePopup.jsx) — this file can't import from app/ to
-        // read the bridge store directly (same constraint noted throughout core-state.js), so the
+        // read the bridge store directly (same constraint noted throughout app/dotto/lib/coreState.ts), so the
         // element's mere presence in the DOM doubles as the open-check here.
         if (document.getElementById('add-to-source-popup')) return;
         const sel = window.getSelection();
@@ -225,7 +226,7 @@ import { applyAiAddRowsToSource, createSourceFromAI } from './source-tags-ai.js'
     document.addEventListener('pointerdown', (e) => {
         // React only renders #selection-toolbar at all while open (see
         // app/dotto/SelectionToolbar.jsx) — this file can't import from app/ to read the bridge
-        // store directly (same constraint noted throughout core-state.js), so the element's mere
+        // store directly (same constraint noted throughout app/dotto/lib/coreState.ts), so the element's mere
         // presence in the DOM doubles as the open-check here.
         const toolbarEl = document.getElementById('selection-toolbar');
         if (toolbarEl && !toolbarEl.contains(e.target)) hideSelectionToolbar();

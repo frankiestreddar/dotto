@@ -4,8 +4,9 @@
 // app/dotto/lib/messagingCanvasPreview.ts's mini inline-canvas previews still call it directly —
 // so this isn't a Zustand-store port like
 // notifications.js: a stopwatch card's own fields (swElapsedMs, swRunning, ...) live on the same
-// `it` object every other item field does, inside appState.folders (core-state.js), which stays
-// the single source of truth until Phase 4.5's own core-state.js migration. This just moves the
+// `it` object every other item field does, inside appState.folders
+// (app/dotto/lib/coreState.ts), which stays the single source of truth — appState itself is a
+// plain mutable object even after its own Phase 4.5 port, not a reactive store. This just moves the
 // PURE/mutating LOGIC to TS, reaching that live item — and every other still-vanilla dependency —
 // through the existing window.__getAppState()/window.__findItemById() etc. bridges, same pattern
 // every Phase 4.1 port already established.

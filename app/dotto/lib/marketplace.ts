@@ -340,7 +340,7 @@ async function createDraftFromItems(items: unknown[]): Promise<void> {
 
 // Wires the Marketplace rail icon's click/hover/pin behavior — was a plain module-load-time
 // wireRailIcon(...) call in the original vanilla file. Needs appState.btnCart/appState.cartPanel
-// (real DOM elements, populated once core-state.js's own init runs) available RIGHT at wire time,
+// (real DOM elements, populated once app/dotto/lib/coreState.ts's own init runs) available RIGHT at wire time,
 // same bridge-readiness poll wireCopyPaste/wireDayChangeAndAdNotifications already established —
 // window.__wireRailIcon itself might not exist yet when DottoApp's own mount effect runs.
 const BRIDGE_WAIT_TIMEOUT_MS = 30000;

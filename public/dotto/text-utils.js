@@ -12,14 +12,20 @@
 //
 // isLatinScriptText, defined right alongside these two in the original file, was deliberately
 // NOT brought along despite being similarly self-contained in spirit — it reads
-// appState.NON_LATIN_SCRIPT_RE, and importing appState from core-state.js turned out to
-// transitively trigger core-state.js's own module-level DOM lookups (e.g.
-// appState.modeToolbar.querySelectorAll(...)), which throw under Vitest's jsdom environment with
-// no real app markup mounted — breaking this whole module's importability in tests, including for
-// escapeHtml/stripHtml which don't even touch appState. Left in ai-assistant-suggestions.js for
-// now, unmoved and untested via this extraction; a real fixture (or core-state.js becoming less
-// side-effect-heavy on import, likely as part of Phase 4.5's own core-state.js work) would be
-// needed to extend proper unit coverage to it.
+// appState.NON_LATIN_SCRIPT_RE. At the time this was written, appState reached here via a real
+// `import { appState } from './core-state.js'`, which transitively triggered core-state.js's own
+// module-level DOM lookups (e.g. appState.modeToolbar.querySelectorAll(...)) — those throw under
+// Vitest's jsdom environment with no real app markup mounted, breaking this whole module's
+// importability in tests, including for escapeHtml/stripHtml which don't even touch appState.
+// core-state.js's own Phase 4.5 port (app/dotto/lib/coreState.ts) did make its own DOM lookups
+// safely deferred (guarded behind ensureCoreState(), not run merely on import/evaluation) — but
+// that port also removed the real-import path entirely: every vanilla caller, including
+// ai-assistant-suggestions.js, now reaches appState via the window.__getAppState() bridge instead,
+// and that bridge is simply never assigned outside the real running app (nothing in a bare
+// Vitest/jsdom run loads the actual app/dotto-app.jsx that sets it). isLatinScriptText still can't
+// get real unit coverage this way — same practical outcome, different specific mechanism now. A
+// real fixture (stubbing window.__getAppState for the test) would be needed to extend proper
+// coverage to it.
 //
 // truncateCenter, also defined alongside these in the original file, was NOT brought along either
 // — it turned out to have zero callers anywhere in the codebase (confirmed via a full grep), so

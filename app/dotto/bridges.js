@@ -490,7 +490,7 @@ export const navHistoryStore = createPaneKeyedStore(() => ({
 // last clicked into" requirement (explicit request) — everything else in this codebase reads
 // appState.activePaneId directly off the vanilla side, which isn't reactive; this is the one place
 // so far that needs an active REACT re-render when it changes. Pushed by switchActivePane
-// (core-state.js) via window.__setActivePaneId.
+// (app/dotto/lib/coreState.ts) via window.__setActivePaneId.
 export const activePaneIdStore = createStore(0);
 
 // Media-viewer full-screen zoom, one per pane (mirrors navHistoryStore/collabPillStore's own

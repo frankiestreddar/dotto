@@ -172,7 +172,7 @@ export async function saveWorkspaceNow(): Promise<void> {
   if (!appState) return;
   clearTimeout(appState.workspaceSaveTimer);
   if (!supabaseClient || !appState.currentUser.id) return;
-  // See appState.workspaceLoaded's own comment, core-state.js — refuses to save before the initial
+  // See appState.workspaceLoaded's own comment, app/dotto/lib/coreState.ts — refuses to save before the initial
   // loadWorkspace() has resolved, so a tab-hide/pagehide firing mid-fetch can never upsert pre-load
   // default state over real saved data.
   if (!appState.workspaceLoaded) return;
@@ -941,13 +941,13 @@ export function wireHistoryAutosave(): () => void {
 // via the dev server log, "ReferenceError: window is not defined"), not a false positive.
 if (typeof window !== "undefined") {
   // React -> vanilla bridge — used by app/dotto/canvasItemBehavior.js's setupResizing/
-  // setupDraggingAndClicking, same reasoning as window.__getAppState (core-state.js).
+  // setupDraggingAndClicking, same reasoning as window.__getAppState (app/dotto/lib/coreState.ts).
   window.__saveSnapshot = saveSnapshot;
   window.__scheduleWorkspaceSave = scheduleWorkspaceSave;
   window.__applyTransform = applyTransform;
   // Used by app/dotto/lib/outlineTree.ts's goToOutlineItem (Phase 4.4).
   window.__smoothPanTo = smoothPanTo;
-  // Used by initializeNewPane (core-state.js) via this bridge rather than a direct import — that
+  // Used by initializeNewPane (app/dotto/lib/coreState.ts) via this bridge rather than a direct import — that
   // file is imported BY this one, so importing back would be circular.
   window.__layoutDotLayer = layoutDotLayer;
   // Vanilla -> React bridges — ai-assistant-suggestions.js/card-shortcuts.js/app-init.js/

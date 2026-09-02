@@ -29,7 +29,7 @@
 //
 // Phase 4.1 port (public/dotto/rail-tooltip-expand.js) — its only external dependency was a
 // single live read of appState.activeRailView, reached here via the existing universal
-// window.__getAppState() bridge (established in Phase 3) rather than needing core-state.js
+// window.__getAppState() bridge (established in Phase 3) rather than needing app/dotto/lib/coreState.ts
 // itself to be ported first — the same "live read, no bridge needed for the whole hub" pattern
 // canvasItemBehavior.js already uses throughout. See vanillaBridges.d.ts for the bridge's shared
 // ambient type declaration.

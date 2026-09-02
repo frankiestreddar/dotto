@@ -1,4 +1,4 @@
-import { appState } from './core-state.js';
+const appState = window.__getAppState();
 import { copyTarget, inviteUser, obtainTarget, placeTarget, removeUser, setVisibility } from './command-verbs.js';
 import { parseCommandInput } from './command-parser.js';
 import { GLOBAL_ID_SHAPE, resolveCommandTarget, searchAccessibleByNameAll, searchOwnTreeByNameAll } from './command-target-lookup.js';

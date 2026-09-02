@@ -1,4 +1,5 @@
-import { appState, findItemEl } from './core-state.js';
+const appState = window.__getAppState();
+const findItemEl = window.__findItemEl;
 
 // Phase 4.3 split (was part of resize-shortcuts-init.js, see PHASE4_ROADMAP.md) — the "resize"
 // concern: dragging an internal table column/row divider. Separate from setupResizing's corner

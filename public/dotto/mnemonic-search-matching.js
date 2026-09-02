@@ -1,5 +1,5 @@
 import { buildAlignedSentenceEls, clearSearch, dotbotErrorMessage, isLatinScriptText, scrollChatThreadToBottom, setupDotbotResultDrag, speakerIconHTML, typewriterReveal, typewriterRevealSegments, updateSearchDropdown } from './ai-assistant-suggestions.js';
-import { appState, canvas } from './core-state.js';
+const appState = window.__getAppState();
 import { openDotbotUpgradeModal, refreshDotbotUsage } from './profile-achievements-pricing.js';
 import { commenceDotbotSearch } from './search-orchestration-selection.js';
 
@@ -15,7 +15,7 @@ import { commenceDotbotSearch } from './search-orchestration-selection.js';
         const pair = appState.dotbotMnemonicPair;
         if (!pair.text && !pair.image) return;
         window.__saveSnapshot();
-        const rect = canvas.getBoundingClientRect();
+        const rect = window.__getCanvasEl?.().getBoundingClientRect();
         const dropX = Math.round(((clientX - rect.left - appState.tx) / appState.scale) / 28) * 28;
         const dropY = Math.round(((clientY - rect.top - appState.ty) / appState.scale) / 28) * 28;
         function place(template, x, y) {

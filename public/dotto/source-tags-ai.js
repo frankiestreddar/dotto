@@ -1,6 +1,8 @@
 import { kindSize } from './add-menu.js';
 import { escapeHtml, stripHtml } from './ai-assistant-suggestions.js';
-import { appState, canvasViewportCenterX, findItemEl } from './core-state.js';
+const appState = window.__getAppState();
+const canvasViewportCenterX = window.__canvasViewportCenterX;
+const findItemEl = window.__findItemEl;
 import { resolveTableForEdit } from './drawing-connections.js';
 
 
@@ -300,7 +302,7 @@ window.__openTagContextMenu = openTagContextMenu;
 window.__handleTagRenameKeydown = handleTagRenameKeydown;
 window.__commitTagRename = commitTagRename;
 // Used by app/dotto/canvasItemBehavior.js's renderStaticTableHTML/attachStaticTableHoverZones
-// (Phase 3's fourth relocated piece), same reasoning as window.__getAppState (core-state.js).
+// (Phase 3's fourth relocated piece), same reasoning as window.__getAppState (app/dotto/lib/coreState.ts).
 window.__openRowTagPicker = openRowTagPicker;
 window.__tagPillsHTML = tagPillsHTML;
 // Used by app/dotto/lib/sourceButtonsCursorMode.ts's openCellAddMenu/window.onclick (Phase 4.4).

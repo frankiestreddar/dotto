@@ -1,4 +1,5 @@
-import { appState, supabase } from './core-state.js';
+const appState = window.__getAppState();
+const supabase = window.__dottoSupabase || null;
 
 
     // ---------- Profile Panel Controls ----------

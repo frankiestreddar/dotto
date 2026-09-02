@@ -12,7 +12,7 @@ import { dateKey } from "./dateKey";
 // existing plain window bridges (window.pushNotification, set in notifications.js;
 // window.openPricingOverlay, set in window-bridge.js) without needing either of those files
 // ported first. appState.lastStatsDayKey is a dynamically-added field (never pre-declared in
-// core-state.js's own appState object literal — see this function's own note below), read/written
+// app/dotto/lib/coreState.ts's own appState object literal — see this function's own note below), read/written
 // through the existing universal window.__getAppState() bridge like any other live appState touch.
 
 // ---------- Day-change notification (3am cutoff, not midnight) ----------
@@ -40,10 +40,10 @@ const BRIDGE_POLL_INTERVAL_MS = 100;
 
 function setUpTimers(appState: Record<string, unknown>): () => void {
   // Baseline on load — only an actual crossing notifies, not "today" itself. Relocated here (was
-  // set directly on core-state.js's appState object literal in the original) since it needs to
-  // call statsDayKey, a function this module already owns, and core-state.js must never import
-  // anything (see its own comment on why: any import there re-creates the exact
-  // circular-evaluation hazard the original vanilla module split existed to eliminate, this time
+  // set directly on core-state.js's appState object literal in the original vanilla file) since it
+  // needs to call statsDayKey, a function this module already owns, and
+  // app/dotto/lib/coreState.ts deliberately imports nothing of its own (same reasoning
+  // core-state.js's own comment gave: avoiding a circular-evaluation hazard, this time
   // for appState itself).
   appState.lastStatsDayKey = statsDayKey(new Date());
 

@@ -1,5 +1,5 @@
 import { CARD_KINDS, DEFAULT_CARD_SIZE } from './card-kinds.js';
-import { appState } from './core-state.js';
+const appState = window.__getAppState();
 
 
     // ---------- Block-kind metadata helpers ----------

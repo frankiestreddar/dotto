@@ -10,10 +10,10 @@ declare global {
   interface Window {
     // app/dotto-app.jsx — the real Supabase browser client, set once during module eval (same
     // "set during module eval, not an effect" timing dotto-app.jsx's own comment describes) —
-    // already an established React -> vanilla bridge (core-state.js reads it as
+    // already an established React -> vanilla bridge (app/dotto/lib/coreState.ts reads it as
     // `window.__dottoSupabase || null`) before any .ts file needed it typed.
     __dottoSupabase?: SupabaseClient;
-    // core-state.js — returns the live, mutated-in-place appState singleton (Phase 3's universal
+    // app/dotto/lib/coreState.ts — returns the live, mutated-in-place appState singleton (Phase 3's universal
     // bridge). Loosely typed (not the full appState shape) since only a handful of fields are
     // read/written from ported code so far; widen as more fields are actually touched.
     __getAppState?: () => Record<string, unknown>;
@@ -46,7 +46,7 @@ declare global {
     // (defaults true) — this was declared as a 0-arg function before any real caller passed one.
     __render?: (syncSiblings?: boolean) => void;
     __renderSelectedOutlines?: () => void;
-    // core-state.js — the live-read canvas/world DOM element accessors (Phase 3's universal
+    // app/dotto/lib/coreState.ts — the live-read canvas/world DOM element accessors (Phase 3's universal
     // bridge for these two, already consumed by app/dotto/canvasItemBehavior.js, a plain .js file
     // that never needed these declared until a real .ts file touched them here).
     __getCanvasEl?: () => HTMLElement | undefined;
@@ -69,9 +69,9 @@ declare global {
     // both call these instead of a local function now.
     __swFormatTime?: (ms: number) => string;
     __swCurrentElapsedMs?: (it: Record<string, unknown>) => number;
-    // core-state.js — swaps which pane's fields are the live appState.<field> ones.
+    // app/dotto/lib/coreState.ts — swaps which pane's fields are the live appState.<field> ones.
     __switchActivePane?: (paneId: number) => void;
-    // core-state.js — resets a freshly-split pane's camera/selection/history to fresh defaults.
+    // app/dotto/lib/coreState.ts — resets a freshly-split pane's camera/selection/history to fresh defaults.
     __initializeNewPane?: (paneId: number, folderId: string) => void;
     // app/dotto/lib/waypointsRenderLoop.ts — re-navigates the canvas to a folder (used by
     // app/dotto/lib/splitPaneManagement.ts's splitPaneWithTab).
@@ -109,7 +109,7 @@ declare global {
     __kindSize?: (kind: string) => { w: number; h: number };
     // card-shortcuts.js
     __deleteSelectedCards?: () => void;
-    // core-state.js — registers a per-pane canvas-listener setup function, called once for every
+    // app/dotto/lib/coreState.ts — registers a per-pane canvas-listener setup function, called once for every
     // future pane's own canvas element (see that function's own comment for the real pane-0-only-
     // listener bug this exists to prevent).
     __registerPaneCanvasListenerSetup?: (
@@ -200,7 +200,7 @@ declare global {
       ownerName?: string,
     ) => Promise<void>;
     __resolveReferenceFolderKey?: (ownerId: string, folderId: string) => Promise<string | null>;
-    // core-state.js — the single, never-reassigned #add-menu/#btn-add elements (separate
+    // app/dotto/lib/coreState.ts — the single, never-reassigned #add-menu/#btn-add elements (separate
     // module-level bindings, not appState properties — same reasoning as __getCanvasEl/
     // __getWorldEl above).
     __getAddMenuEl?: () => HTMLElement | undefined;
@@ -281,7 +281,7 @@ declare global {
       connections: { fromId: number; toId: number }[],
       onDelete: (id: number) => void,
     ) => HTMLElement;
-    // core-state.js
+    // app/dotto/lib/coreState.ts
     __itemElId?: (id: number, paneId?: number) => string;
     // ai-assistant-suggestions.js
     __escapeHtml?: (str: string) => string;
@@ -307,12 +307,12 @@ declare global {
     __addCardsToSearchContext?: (ids: number[]) => void;
     __autoGrowSearchInput?: () => void;
     __renderShelfHTML?: (it: Record<string, unknown>) => string;
-    // text-utils.js / cards-misc.js / core-state.js — already-existing bridges, untyped until
+    // text-utils.js / cards-misc.js / app/dotto/lib/coreState.ts — already-existing bridges, untyped until
     // app/dotto/lib/outlineTree.ts became the first .ts file to reach them.
     __stripHtml?: (html: string) => string;
     __shortUrl?: (url: string) => string;
     __findItemEl?: (itemId: number, paneId?: number) => HTMLElement | null;
-    // core-state.js — center of the visible canvas viewport in screen-space X (accounts for the
+    // app/dotto/lib/coreState.ts — center of the visible canvas viewport in screen-space X (accounts for the
     // hamburger/rail sidebars eating into the left/right edges), used to invert screen->canvas
     // coordinates the same way smoothPanTo/centerOnContent already do.
     __canvasViewportCenterX?: () => number;
@@ -363,11 +363,11 @@ declare global {
     // (OutlinePanel.jsx's own useLayoutEffect syncs real DOM nodes back via __syncOutlineRows
     // synchronously right after, so the commit must already be flushed).
     __setOutlineState?: (state: { rows: unknown[]; query: string }) => void;
-    // core-state.js — the single, never-reassigned #context-menu/#draw-settings elements, same
+    // app/dotto/lib/coreState.ts — the single, never-reassigned #context-menu/#draw-settings elements, same
     // "not appState properties" category as __getAddMenuEl/__getBtnAddEl above.
     __getContextMenuEl?: () => HTMLElement | undefined;
     __getDrawSettingsEl?: () => HTMLElement | undefined;
-    // core-state.js — resolves the cursor mode actually in effect right now (accounting for a
+    // app/dotto/lib/coreState.ts — resolves the cursor mode actually in effect right now (accounting for a
     // temporary D/Escape/Shift keyboard override on top of the persistent cardMode).
     __effectiveMode?: () => string;
     // app/dotto/canvasItemBehavior.js (via app/dotto-app.jsx) — recomputes a source table's column
@@ -400,7 +400,7 @@ declare global {
     // Real inline onclick target (canvasItemBehavior.js's cell markup) — plain global, no
     // underscore, same shape window.handleOutlineSearch/window.pushNotification use.
     openCellAddMenu?: (id: number, r: number, c: number, btnEl: HTMLElement) => void;
-    // core-state.js — extracts an item's id out of its DOM element (the inverse of __itemElId).
+    // app/dotto/lib/coreState.ts — extracts an item's id out of its DOM element (the inverse of __itemElId).
     __parseItemId?: (el: HTMLElement) => number;
     // profile-achievements-pricing.js
     __awardUserPoints?: (
@@ -565,7 +565,7 @@ declare global {
     handleHubCollabSearch?: (v: string) => void;
     handleSourcesSearch?: (v: string) => void;
     handleWaypointsSearch?: (v: string) => void;
-    // core-state.js — same live-read reasoning as __getCanvasEl/__getWorldEl above.
+    // app/dotto/lib/coreState.ts — same live-read reasoning as __getCanvasEl/__getWorldEl above.
     __getCursorOverlayEl?: () => HTMLElement | undefined;
     // profile-achievements-pricing.js
     __renderAvatarInto?: (
@@ -636,15 +636,15 @@ declare global {
     sendMsg?: () => Promise<void>;
     closeSharedCanvasView?: () => void;
     setTitleLevel?: (id: number, level: string | number) => void;
-    // core-state.js — same "single, never-reassigned element" category as addMenu/btnAdd/
+    // app/dotto/lib/coreState.ts — same "single, never-reassigned element" category as addMenu/btnAdd/
     // contextMenu above.
     __getCanvasContextMenuEl?: () => HTMLElement | undefined;
     __getZoomTrackEl?: () => HTMLElement | undefined;
     __getZoomFillEl?: () => HTMLElement | undefined;
     __getZoomThumbEl?: () => HTMLElement | undefined;
-    // core-state.js — same live-read reasoning as __getCanvasEl/__getWorldEl above.
+    // app/dotto/lib/coreState.ts — same live-read reasoning as __getCanvasEl/__getWorldEl above.
     __getDotLayerEl?: () => HTMLElement | undefined;
-    // core-state.js — same "single, never-reassigned element" category as addMenu/btnAdd/
+    // app/dotto/lib/coreState.ts — same "single, never-reassigned element" category as addMenu/btnAdd/
     // contextMenu above. Used by app/dotto/lib/srsConnectionsCore.ts (Phase 4.5).
     __getDrawColorInputEl?: () => HTMLInputElement | undefined;
     __getDrawSizeInputEl?: () => HTMLInputElement | undefined;
@@ -731,7 +731,7 @@ declare global {
     __viewportCenterWorldPoint?: () => { x: number; y: number };
     __updateDrawLayerBtns?: () => void;
     __add?: (kind: string, x?: number, y?: number, statKind?: string | null) => void;
-    // core-state.js — same "single, never-reassigned element"/live-read categories as
+    // app/dotto/lib/coreState.ts — same "single, never-reassigned element"/live-read categories as
     // __getBtnAddEl/__getCanvasEl above. Used by app/dotto/lib/waypointsRenderLoop.ts (Phase 4.5).
     __getZoomControlEl?: () => HTMLElement | undefined;
     __paneElId?: (staticId: string, paneId?: number) => string;
@@ -806,5 +806,22 @@ declare global {
       folderId: string,
       itemId: number | string,
     ) => Promise<void>;
+    // app/dotto-app.jsx — set inline during DottoApp's own render body (not an effect, not module
+    // eval — see that file's own comment for why: dotto-script.js's afterInteractive <Script> tag,
+    // and app/dotto/lib/coreState.ts's own ensureCoreState(), both need this ready before they run).
+    __DOTTO_USER__?: {
+      id: string | null;
+      username: string;
+      displayName?: string;
+      unlockedAchievementIds?: string[];
+      [key: string]: unknown;
+    };
+    // app/dotto-app.jsx (via activePaneIdStore, bridges.js) — lets PaneZoomBar.jsx react to which
+    // pane is active.
+    __setActivePaneId?: (paneId: number) => void;
+    // app/dotto/lib/coreState.ts (Phase 4.5 port — was core-state.js) — used by
+    // app/dotto/canvasItemBehavior.js's setupDraggingAndClicking (Phase 3), same reasoning as
+    // window.__getAppState.
+    __bringCardToFront?: (it: Record<string, unknown> | undefined, el?: HTMLElement | null) => void;
   }
 }

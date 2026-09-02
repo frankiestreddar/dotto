@@ -3,10 +3,11 @@ import { describe, expect, it } from "vitest";
 // public/dotto/ works fine from Vitest (a Node test runner, not the browser) despite the "public/
 // can't be imported by app/" convention that governs the real running app. text-utils.js
 // deliberately only holds escapeHtml/stripHtml (not the third original candidate,
-// isLatinScriptText — see that file's own comment on why: it needs appState, and importing
-// appState transitively runs core-state.js's own module-level DOM lookups, which throw under
-// jsdom with no real app markup mounted, breaking importability for this whole module including
-// these two appState-free functions).
+// isLatinScriptText — see that file's own comment on why: it needs appState, reached via the
+// window.__getAppState() bridge rather than a real import even from ai-assistant-suggestions.js
+// now — but that bridge is never set in a Vitest/jsdom environment, since nothing there loads the
+// real app/dotto-app.jsx that assigns it, so this function still can't be exercised standalone the
+// same way these two appState-free functions can).
 import { escapeHtml, stripHtml } from "../../public/dotto/text-utils.js";
 
 // First real test coverage for these two (public/dotto/text-utils.js, extracted from

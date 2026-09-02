@@ -68,6 +68,7 @@ import { wireCanvasPresence } from "./dotto/lib/canvasPresence";
 import { wireMessagingCanvasPreview } from "./dotto/lib/messagingCanvasPreview";
 import { wireHistoryAutosave } from "./dotto/lib/historyAutosave";
 import { wireSrsConnectionsCore } from "./dotto/lib/srsConnectionsCore";
+import { ensureCoreState } from "./dotto/lib/coreState";
 // Side-effect only, same reasoning as splitPaneManagement/tabManagement above — sets
 // window.__openGameOptionsPanel/fcFlip/etc at module-eval time for the 5 still-vanilla callers
 // that used to import these directly, plus the React->vanilla bridges FlashcardCard.jsx/
@@ -412,7 +413,7 @@ if (typeof window !== "undefined") {
   // store.set, no synchronous DOM read follows it.
   window.__setNavHistory = (paneId, state) => navHistoryStore.storeFor(paneId).set(state);
   // Which pane is active (see app/dotto/PaneZoomBar.jsx) — pushed by switchActivePane
-  // (core-state.js). A plain store.set, no synchronous DOM read follows it.
+  // (app/dotto/lib/coreState.ts). A plain store.set, no synchronous DOM read follows it.
   window.__setActivePaneId = (paneId) => activePaneIdStore.set(paneId);
   // Media-viewer zoom, one per pane (see app/dotto/PaneZoomBar.jsx,
   // shared-canvases-outline.js's renderMediaViewerZoom/setMediaViewerZoom) — pane-keyed for the
@@ -454,6 +455,14 @@ export default function DottoApp({ sections, currentUser }) {
     // window.__dottoSupabase bootstrap above.
     // eslint-disable-next-line react-hooks/immutability
     window.__DOTTO_USER__ = currentUser;
+    // ensureCoreState() (app/dotto/lib/coreState.ts, Phase 4.5 port — was core-state.js)
+    // constructs appState itself, which reads window.__DOTTO_USER__ right above — must run in
+    // this exact same render-body spot, not a plain module-load-time side-effect import (every
+    // other Phase 4.4/4.5 port's own pattern) and not a useEffect either: module evaluation always
+    // completes before the first render, too early for window.__DOTTO_USER__ above; an effect
+    // fires after paint, too late for the same afterInteractive-ordering reason. Idempotent — only
+    // the first call across DottoApp's whole lifetime actually builds anything.
+    ensureCoreState();
   }
 
   // Overwrites app/layout.js's static "Dotto" fallback title once the logged-in user is known —

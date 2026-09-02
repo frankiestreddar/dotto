@@ -1,5 +1,7 @@
 import { clearSearch } from './ai-assistant-suggestions.js';
-import { appState, supabase, switchActivePane } from './core-state.js';
+const appState = window.__getAppState();
+const supabase = window.__dottoSupabase || null;
+const switchActivePane = window.__switchActivePane;
 import { openMessagesPanel } from './messages-schedule.js';
 import { bumpAchievementStat } from './profile-achievements-pricing.js';
 
@@ -35,7 +37,7 @@ import { bumpAchievementStat } from './profile-achievements-pricing.js';
     // Split-screen Stage 8 — each pane now renders its own collaborator bubble (PaneTopBar.jsx)
     // instead of one shared #collab-bubble, but there's still only ONE flyout panel/#collab-panel;
     // these three wrappers retarget appState.collabBubble (a plain, reassignable object property —
-    // see its own comment, core-state.js — unlike canvas/world/etc's `let` bindings) to whichever
+    // see its own comment, app/dotto/lib/coreState.ts — unlike canvas/world/etc's `let` bindings) to whichever
     // pane's own bubble element triggered the interaction, activating that pane first if it wasn't
     // already (same "clicking/hovering a pane's own UI focuses that pane" convention every other
     // per-pane interaction in this codebase follows), then reuses openCollabPanel/closeCollabPanel/
@@ -582,7 +584,7 @@ window.__openCollabPanel = openCollabPanel;
 window.__collabBubblePaneClick = collabBubblePaneClick;
 window.__collabBubblePaneMouseEnter = collabBubblePaneMouseEnter;
 window.__collabBubblePaneMouseLeave = collabBubblePaneMouseLeave;
-// Called from switchActivePane (core-state.js) via this bridge, not a direct import — that
+// Called from switchActivePane (app/dotto/lib/coreState.ts) via this bridge, not a direct import — that
 // function is imported BY this file, so the reverse would be circular (same reasoning as
 // window.__renderTabsPanel, app/dotto/lib/tabManagement.ts).
 window.__renderCollabPill = renderCollabPill;

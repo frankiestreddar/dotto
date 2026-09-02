@@ -6,7 +6,7 @@
 // a third file since they're both used internally by this concern's own functions throughout, and
 // splitting a 2-line function into its own file for architectural purity (when nothing currently
 // needs it as a reactive Zustand selector — appState.folders itself is still a plain mutable
-// object, not a real store, until core-state.js's own Phase 4.5 port) would be premature. See
+// object, not a real store, until core-state.js's own Phase 4.5 port (app/dotto/lib/coreState.ts, done since)) would be premature. See
 // messagingCanvasPreview.ts for the other bundled concern (card-preview/messaging DOM). Reaches
 // every still-vanilla dependency through window bridges; wires its real, module-load-time-only
 // cursor-tracking pointermove listener (against the already-existing canvas element) via
@@ -672,7 +672,7 @@ export function broadcastCursorPositionThrottled(): void {
     },
   });
 }
-// Re-attached per pane (split-screen Stage 4: see registerPaneCanvasListenerSetup, core-state.js),
+// Re-attached per pane (split-screen Stage 4: see registerPaneCanvasListenerSetup, app/dotto/lib/coreState.ts),
 // same as the placement-ghost tracker (app/dotto/lib/copyPaste.ts), so cursor tracking doesn't
 // just stop working when hovering a pane other than pane 0. Deliberately does NOT call
 // switchActivePane here — canvasPresenceChannel/appState.tx/etc are still single global fields

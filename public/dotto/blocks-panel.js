@@ -1,4 +1,6 @@
-import { addMenu, appState, btnAdd, canvas } from './core-state.js';
+const appState = window.__getAppState();
+const addMenu = window.__getAddMenuEl?.();
+const btnAdd = window.__getBtnAddEl?.();
 import { deleteMyCreationItem, openItemDetail } from './library-publish.js';
 
 // ---------- Blocks panel (was Essentials/the Add menu; also absorbed "browse your own library
@@ -259,7 +261,7 @@ function setupContentItemDrag(div, row) {
             const panelRect = addMenu.getBoundingClientRect();
             const overPanel = ue.clientX >= panelRect.left && ue.clientX <= panelRect.right && ue.clientY >= panelRect.top && ue.clientY <= panelRect.bottom;
             if (overPanel) return;
-            const canvasRect = canvas.getBoundingClientRect();
+            const canvasRect = window.__getCanvasEl?.().getBoundingClientRect();
             const overCanvas = ue.clientX >= canvasRect.left && ue.clientX <= canvasRect.right && ue.clientY >= canvasRect.top && ue.clientY <= canvasRect.bottom;
             if (overCanvas) { window.__importSharedCardsAtScreenPoint(item.nodes, ue.clientX, ue.clientY); window.__closeRailView(); }
         };

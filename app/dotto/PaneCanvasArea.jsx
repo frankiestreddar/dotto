@@ -13,7 +13,7 @@ import PaneZoomBar from "./PaneZoomBar";
 // Pane 0 keeps its ORIGINAL, unqualified ids (canvas/world/dot-layer/cursor-overlay/items-layer).
 // globals.css has ~13 rules keyed on those exact ids (#canvas.crosshair, #canvas.mode-data,
 // #world, #dot-layer, #cursor-overlay, and their state-class combinators) — pane-qualifying pane
-// 0's ids too (the way canvas item ids already are, see itemElId, core-state.js) would have
+// 0's ids too (the way canvas item ids already are, see itemElId, app/dotto/lib/coreState.ts) would have
 // silently stopped every one of them from matching, breaking cursor/background/overflow/mode
 // styling app-wide the instant split-screen work started. Every ADDITIONAL pane (paneId >= 1)
 // gets qualified ids instead (canvas-1, etc.), and EVERY pane (0 included) gets a shared

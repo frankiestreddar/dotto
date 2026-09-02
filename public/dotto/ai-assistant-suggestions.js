@@ -1,13 +1,14 @@
 import { updateCommandPalette } from './command-palette.js';
-import { appState, canvas, itemElId } from './core-state.js';
+const appState = window.__getAppState();
+const itemElId = window.__itemElId;
 import { renderChatsList } from './hamburger-collab.js';
 import { commenceSearchOrMnemonic } from './mnemonic-search-matching.js';
 // Phase 4.2 extraction — see text-utils.js's own comment. Re-exported below (not just used
 // internally) so every other file's existing `from './ai-assistant-suggestions.js'` import keeps
 // working unchanged. isLatinScriptText stayed here (not extracted alongside these two) — see
-// text-utils.js's own comment on why: it needs appState, and importing appState here transitively
-// runs core-state.js's own module-level DOM lookups, which a standalone text-utils.js has no
-// other reason to depend on.
+// text-utils.js's own comment on why: it needs appState (now the window.__getAppState() bridge,
+// same as everywhere else in this file, not a real import — but that bridge is never set outside
+// the real running app, which a standalone text-utils.js has no other reason to depend on).
 import { escapeHtml, stripHtml } from './text-utils.js';
 
 
@@ -794,7 +795,7 @@ import { escapeHtml, stripHtml } from './text-utils.js';
                         }
                     }
                 }
-                const canvasRect = canvas.getBoundingClientRect();
+                const canvasRect = window.__getCanvasEl?.().getBoundingClientRect();
                 const overCanvas = ue.clientX >= canvasRect.left && ue.clientX <= canvasRect.right && ue.clientY >= canvasRect.top && ue.clientY <= canvasRect.bottom;
                 if (!overCanvas) return;
                 // opts.onDrop lets a caller replace the default single-template import — used by
@@ -828,7 +829,7 @@ import { escapeHtml, stripHtml } from './text-utils.js';
     }
     function importDotbotResultAtScreenPoint(template, clientX, clientY) {
         window.__saveSnapshot();
-        const rect = canvas.getBoundingClientRect();
+        const rect = window.__getCanvasEl?.().getBoundingClientRect();
         const dropX = Math.round(((clientX - rect.left - appState.tx) / appState.scale) / 28) * 28;
         const dropY = Math.round(((clientY - rect.top - appState.ty) / appState.scale) / 28) * 28;
         // Every caller of this function is Dotbot/AI-originated content (dictionary/answer/
@@ -864,7 +865,7 @@ window.__scrollChatThreadToBottom = scrollChatThreadToBottom;
 window.__typewriterRevealSegments = typewriterRevealSegments;
 // Used by app/dotto/canvasItemBehavior.js's renderStaticTableHTML (Phase 3's fourth relocated
 // piece — the Source database page's own rendering/hover-zone geometry), same reasoning as
-// window.__getAppState (core-state.js).
+// window.__getAppState (app/dotto/lib/coreState.ts).
 window.__escapeHtml = escapeHtml;
 window.__stripHtml = stripHtml;
 // Used by app/dotto/lib/tabManagement.ts's buildAncestorChain (Phase 4.4).

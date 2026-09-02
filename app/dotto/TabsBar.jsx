@@ -388,7 +388,7 @@ export default function TabsBar({ paneId }) {
   // "escapes" reorder-within-row mode entirely — the dragged tab collapses out of the row
   // (.tab-pill-collapsed), a fixed, cursor-following ghost appears, and getting within
   // EDGE_ZONE_PX of a viewport edge (rail-width-aware, same reasoning as canvasViewportCenterX,
-  // core-state.js) reveals that edge's drop-zone. Releasing inside an active zone calls
+  // app/dotto/lib/coreState.ts) reveals that edge's drop-zone. Releasing inside an active zone calls
   // window.__splitPaneWithTab; releasing outside one (still escaped) just cancels — the tab snaps
   // back into the row with no reorder and no split, same as a real browser tab you drag out and
   // drop back onto its own bar.
