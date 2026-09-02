@@ -973,7 +973,7 @@ export function wireMessagingCanvasPreview(): () => void {
   };
 }
 
-// React -> vanilla bridges (see the identical pattern/comment in cards-misc.js) — used by
+// React -> vanilla bridges (see the identical pattern/comment in app/dotto/lib/cardsMisc.ts) — used by
 // TitleCard.jsx/MsgConvo.jsx/SharedCanvasModalBody.jsx/CollabListPanel.jsx/FilesListPanel.jsx/
 // MessagesListPanel.jsx/MarketDetailPanel.jsx/TableCard.jsx, all now real ES imports there instead
 // (same app/dotto/ tree) — kept declared/assigned since still-vanilla callers need them too.

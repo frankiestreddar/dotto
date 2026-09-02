@@ -116,6 +116,12 @@ import "./dotto/lib/outlineTree";
 // per-item from a React layout effect or invoked directly by a caller — so a plain side-effect
 // import is enough, no useEffect/wireX() call needed here.
 import "./dotto/lib/waypointsRenderLoop";
+// Side-effect only — sets window.__shortUrl/__toEmbeddableUrl/__renderChecklistHTML/
+// __renderStatcardHTML/editEmbed/addTask/etc at module-eval time; EmbedCard.jsx/ChecklistCard.jsx
+// import the real functions directly instead (same app/dotto/ tree), but the plain-global names
+// still need to exist for renderChecklistHTML's own generated inline onclick/onchange/oninput
+// attributes and for outlineTree.ts/messagingCanvasPreview.ts's bridge reads.
+import "./dotto/lib/cardsMisc";
 import BlocksPanel from "./dotto/BlocksPanel";
 import CellTagPickerList from "./dotto/CellTagPickerList";
 import ChatsListPanel from "./dotto/ChatsListPanel";

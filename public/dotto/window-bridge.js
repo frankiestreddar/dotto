@@ -20,7 +20,6 @@
 // already established.)
 
 import { handleSearchFocus, handleSearchInput, showAiListView } from './ai-assistant-suggestions.js';
-import { addTask, editEmbed, removeTask, toggleTask, updateTaskDeadline, updateTaskText } from './cards-misc.js';
 import { handleCollabSearch, handleMsgSearch, openCollabPanel } from './friends-presence.js';
 import { hmenuAction } from './hamburger-collab.js';
 import { blurPublishFlowName, commitItemDetailDesc, commitItemDetailTitle, confirmPublishFlow, deleteDetailDraft, focusPublishFlowName, onItemDetailFieldChange, startPublishFlow, unpublishDetailItem, updateDetailItem } from './library-publish.js';
@@ -28,7 +27,6 @@ import { closeDotbotUpgradeModal, closePricingOverlay, openPricingOverlay, showP
 import { setTableAlign } from './card-shortcuts.js';
 import { closeCellTagPicker, closeTagContextMenu, commitTagRename, createTagFromCellPicker, deleteActiveTag, handleTagRenameKeydown, openTagContextMenu, startRenameActiveTag, toggleCellTag, triggerSourceUpload } from './source-tags-ai.js';
 
-window.addTask = addTask;
 window.blurPublishFlowName = blurPublishFlowName;
 window.closeCellTagPicker = closeCellTagPicker;
 window.closeDotbotUpgradeModal = closeDotbotUpgradeModal;
@@ -41,7 +39,6 @@ window.confirmPublishFlow = confirmPublishFlow;
 window.createTagFromCellPicker = createTagFromCellPicker;
 window.deleteActiveTag = deleteActiveTag;
 window.deleteDetailDraft = deleteDetailDraft;
-window.editEmbed = editEmbed;
 window.focusPublishFlowName = focusPublishFlowName;
 window.handleCollabSearch = handleCollabSearch;
 window.handleMsgSearch = handleMsgSearch;
@@ -53,7 +50,6 @@ window.onItemDetailFieldChange = onItemDetailFieldChange;
 window.openCollabPanel = openCollabPanel;
 window.openPricingOverlay = openPricingOverlay;
 window.openTagContextMenu = openTagContextMenu;
-window.removeTask = removeTask;
 window.setTableAlign = setTableAlign;
 window.showAiListView = showAiListView;
 window.showProfileMainView = showProfileMainView;
@@ -61,9 +57,6 @@ window.showProfileSettingsView = showProfileSettingsView;
 window.startPublishFlow = startPublishFlow;
 window.startRenameActiveTag = startRenameActiveTag;
 window.toggleCellTag = toggleCellTag;
-window.toggleTask = toggleTask;
 window.triggerSourceUpload = triggerSourceUpload;
 window.unpublishDetailItem = unpublishDetailItem;
 window.updateDetailItem = updateDetailItem;
-window.updateTaskDeadline = updateTaskDeadline;
-window.updateTaskText = updateTaskText;

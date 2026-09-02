@@ -1,10 +1,20 @@
 "use client";
 
-// Ported from the old renderChecklistHTML (public/dotto/cards-misc.js, now removed) — see
-// EmbedCard.jsx for the pattern this follows (CanvasItemsLayer.jsx's CARD_KIND_COMPONENTS).
-// addTask/toggleTask/updateTaskText/updateTaskDeadline/removeTask all stay vanilla, reached via
-// the same window.* bridge every inline onclick="..." in this app already goes through
-// (window-bridge.js) — no new plumbing needed here, unlike Embed's shortUrl/toEmbeddableUrl.
+import {
+  addTask,
+  removeTask,
+  toggleTask,
+  updateTaskDeadline,
+  updateTaskText,
+} from "./lib/cardsMisc";
+
+// Ported from the old renderChecklistHTML (public/dotto/cards-misc.js, now
+// app/dotto/lib/cardsMisc.ts) — see EmbedCard.jsx for the pattern this follows
+// (CanvasItemsLayer.jsx's CARD_KIND_COMPONENTS). addTask/toggleTask/updateTaskText/
+// updateTaskDeadline/removeTask are also real inline onclick/onchange/oninput targets in
+// renderChecklistHTML's own generated HTML string (mini inline-canvas previews elsewhere), so
+// cardsMisc.ts keeps them as plain window.* globals too — imported here directly since this is
+// the same app/dotto/ tree.
 export default function ChecklistCard({ it }) {
   const total = it.tasks.length;
   const done = it.tasks.filter((t) => t.done).length;
@@ -22,7 +32,7 @@ export default function ChecklistCard({ it }) {
               type="checkbox"
               checked={t.done}
               onMouseDown={(e) => e.stopPropagation()}
-              onChange={() => window.toggleTask(it.id, t.id)}
+              onChange={() => toggleTask(it.id, t.id)}
             />
             {/* contentEditable's live keystrokes are owned by the browser, not React — updateTaskText
                 (vanilla) mutates t.text in place and only schedules an autosave, it never calls
@@ -35,7 +45,7 @@ export default function ChecklistCard({ it }) {
               contentEditable
               suppressContentEditableWarning
               onMouseDown={(e) => e.stopPropagation()}
-              onInput={(e) => window.updateTaskText(it.id, t.id, e.currentTarget)}
+              onInput={(e) => updateTaskText(it.id, t.id, e.currentTarget)}
               style={t.done ? { textDecoration: "line-through", opacity: 0.5 } : undefined}
             >
               {t.text}
@@ -48,12 +58,12 @@ export default function ChecklistCard({ it }) {
               className="checklist-date"
               defaultValue={t.deadline || ""}
               onMouseDown={(e) => e.stopPropagation()}
-              onChange={(e) => window.updateTaskDeadline(it.id, t.id, e.currentTarget)}
+              onChange={(e) => updateTaskDeadline(it.id, t.id, e.currentTarget)}
             />
             <span
               className="checklist-remove"
               onMouseDown={(e) => e.stopPropagation()}
-              onClick={() => window.removeTask(it.id, t.id)}
+              onClick={() => removeTask(it.id, t.id)}
             >
               ✕
             </span>
@@ -63,7 +73,7 @@ export default function ChecklistCard({ it }) {
       <div
         className="checklist-add"
         onMouseDown={(e) => e.stopPropagation()}
-        onClick={() => window.addTask(it.id)}
+        onClick={() => addTask(it.id)}
       >
         + Add task
       </div>

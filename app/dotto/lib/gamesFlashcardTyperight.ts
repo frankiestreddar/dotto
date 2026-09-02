@@ -815,7 +815,7 @@ export function trToggleMode(id: number): void {
   window.__render?.();
 }
 
-// React -> vanilla bridges (see the identical pattern/comment in cards-misc.js) — used by
+// React -> vanilla bridges (see the identical pattern/comment in app/dotto/lib/cardsMisc.ts) — used by
 // GameOptionsPanel.jsx (app/dotto/), shared by FlashcardCard.jsx and TypeRightCard.jsx. Names/
 // shapes preserved exactly from before this port.
 // Guarded: this module's top level is reached during Next's server-side render pass (a

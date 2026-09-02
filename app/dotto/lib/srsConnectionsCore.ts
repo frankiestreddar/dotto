@@ -1941,7 +1941,7 @@ export function wireSrsConnectionsCore(): () => void {
 }
 
 if (typeof window !== "undefined") {
-  // React -> vanilla bridge (see the identical pattern/comment in cards-misc.js) — used by
+  // React -> vanilla bridge (see the identical pattern/comment in app/dotto/lib/cardsMisc.ts) — used by
   // FilterCard.jsx (app/dotto/), which can't import these directly since public/dotto/*.js isn't
   // reachable from app/dotto/.
   window.__applyFilterToRows = applyFilterToRows;

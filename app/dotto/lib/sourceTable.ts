@@ -742,7 +742,7 @@ export function importDelimitedIntoSource(text: string, delim: string): void {
   window.__render?.();
 }
 
-// React -> vanilla bridges (see the identical pattern/comment in cards-misc.js) — used by
+// React -> vanilla bridges (see the identical pattern/comment in app/dotto/lib/cardsMisc.ts) — used by
 // TableCard.jsx (app/dotto/), now real ES imports there instead (same precedent as
 // stopwatch.ts/gamesFlashcardTyperight.ts/MediaCard.jsx) — kept declared/assigned here since
 // still-vanilla callers need them too.

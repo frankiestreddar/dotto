@@ -311,6 +311,16 @@ declare global {
     // app/dotto/lib/outlineTree.ts became the first .ts file to reach them.
     __stripHtml?: (html: string) => string;
     __shortUrl?: (url: string) => string;
+    // app/dotto/lib/cardsMisc.ts (Phase 4.5) — used by app/dotto/lib/messagingCanvasPreview.ts.
+    __toEmbeddableUrl?: (rawUrl: string) => string;
+    // Plain (non-`__`) globals — real inline onclick/onchange/oninput targets built into
+    // cardsMisc.ts's own renderChecklistHTML output, same shape window.pushNotification uses.
+    editEmbed?: (id: number) => void;
+    addTask?: (id: number) => void;
+    toggleTask?: (id: number, tid: number) => void;
+    updateTaskText?: (id: number, tid: number, el: HTMLElement) => void;
+    updateTaskDeadline?: (id: number, tid: number, el: HTMLInputElement) => void;
+    removeTask?: (id: number, tid: number) => void;
     __findItemEl?: (itemId: number, paneId?: number) => HTMLElement | null;
     // app/dotto/lib/coreState.ts — center of the visible canvas viewport in screen-space X (accounts for the
     // hamburger/rail sidebars eating into the left/right edges), used to invert screen->canvas
@@ -597,7 +607,7 @@ declare global {
     __searchKindLabel?: (it: Record<string, unknown>) => string;
     // ai-assistant-suggestions.js
     __countSourceEntries?: (folderId: string) => number;
-    // cards-misc.js
+    // app/dotto/lib/cardsMisc.ts
     __renderChecklistHTML?: (it: Record<string, unknown>) => string;
     __renderStatcardHTML?: (it: Record<string, unknown>) => string;
     // stopwatch.js
@@ -751,7 +761,7 @@ declare global {
     // WatermarkCard.jsx/TitleCard.jsx/WaypointCard.jsx/FilesListPanel.jsx/PaneZoomBar.jsx/
     // SourcesListPanel.jsx/TabsBar.jsx (React -> vanilla) and drawing-connections.js/
     // ai-assistant-suggestions.js/search-orchestration-selection.js/hamburger-collab.js/
-    // app-init.js/mnemonic-search-matching.js/command-verbs.js/cards-misc.js/card-shortcuts.js/
+    // app-init.js/mnemonic-search-matching.js/command-verbs.js/card-shortcuts.js/
     // source-tags-ai.js (vanilla -> React) all reach these.
     __applyCanvasItemWrapperAttrs?: (el: HTMLElement, it: Record<string, unknown>) => void;
     __attachUniversalItemBehavior?: (el: HTMLElement, it: Record<string, unknown>) => void;

@@ -802,10 +802,50 @@
   (6 Phase 4.5 verify scripts plus the dev/prod SSR safety checks). Cleanup closed every pane and
   removed every mock folder created during the run.
   **This closes out Phase 4.5's single riskiest remaining target and the whole phase's real
-  architectural core — 6 of 7 done.** Only `window-bridge.js` remains, still blocked on the paused
-  Phase 4.1 files (its remaining 8 imports all belong to files that pass have never reached);
-  revisiting whether any of those are now unblocked, now that every other Phase 4.5 hub file has
-  landed, is Phase 4.5's own last remaining question before it can close out entirely.
+  architectural core — 6 of 7 done.** Only `window-bridge.js` remains — not a standalone port, but
+  a shim that shrinks as a side effect of porting the 8 vanilla files it re-exports from. Of those
+  8: 4 (`cards-misc.js`, `library-publish.js`, `profile-achievements-pricing.js`,
+  `card-shortcuts.js`) have zero remaining vanilla-to-vanilla dependencies and are immediately
+  portable; the other 4 (`ai-assistant-suggestions.js`, `hamburger-collab.js`,
+  `friends-presence.js`, plus `mnemonic-search-matching.js`/`messages-schedule.js`) form a
+  genuinely circular cluster needing a different approach. `cards-misc.js` (153 lines) done first,
+  to `app/dotto/lib/cardsMisc.ts` — the Embed card (`shortUrl`/`withYoutubeOrigin`/
+  `toEmbeddableUrl`/`editEmbed`) and the Checklist/Statcard cards (`renderChecklistHTML`/
+  `renderStatcardHTML` + `addTask`/`toggleTask`/`updateTaskText`/`updateTaskDeadline`/
+  `removeTask`). The one real design wrinkle: `renderChecklistHTML`'s own generated HTML string
+  has literal `onclick`/`onchange`/`oninput="toggleTask(...)"`-style attributes (consumed by
+  `messagingCanvasPreview.ts`'s mini inline-canvas previews too), so `addTask`/`editEmbed`/
+  `removeTask`/`toggleTask`/`updateTaskDeadline`/`updateTaskText` keep their exact plain
+  (non-`__`) global names in `cardsMisc.ts`'s own bridge block, dual-exposed alongside real named
+  exports — same convention `window.setMediaFromLink`/`window.pushNotification` already
+  established — while `__shortUrl`/`__toEmbeddableUrl`/`__renderChecklistHTML`/
+  `__renderStatcardHTML` stay `__`-prefixed bridges for `outlineTree.ts`/
+  `messagingCanvasPreview.ts` (different lib files). `EmbedCard.jsx`/`ChecklistCard.jsx` (same
+  `app/dotto/` tree) upgraded to real ES imports of the same functions, same "same-tree caller
+  upgrade" precedent as every other Phase 4.5 port. `window-bridge.js`'s own import line and 6
+  re-export lines for these functions removed — it now imports from 7 files instead of 8. One
+  real bug caught mid-port: an initial `const appState = window.__getAppState!();` captured once
+  at this file's own module top level (the pattern `core-state.js`'s port established) crashed
+  with `window.__getAppState is not a function` — unlike every file that pattern was safe for,
+  this file has no `wireX()` of its own (a plain side-effect import, same as
+  `waypoints-render-loop.js`), so its module body runs at import time, before `DottoApp`'s render
+  body has called `ensureCoreState()` and set the bridge. Fixed by reading
+  `window.__getAppState?.()` lazily inside `addTask` (the only function that needs it), same
+  lazy-read pattern `stopwatch.ts` already used for the identical reason. Real Playwright
+  verification against both a dev server and a real production server (`npm run build && npm run
+  start`): `shortUrl`/`toEmbeddableUrl` pure-logic checks; a real Embed card rendering a live
+  YouTube URL's hostname/rewritten iframe src; a real `editEmbed()` click (via `EmbedCard.jsx`'s
+  real import, `window.prompt` overridden in-page) updating `it.embedUrl`; a real Checklist card's
+  checkbox/contentEditable-text/date-input/remove/add all round-tripped through real clicks and
+  typing (via `ChecklistCard.jsx`'s real imports); the same plain-global names independently
+  smoke-tested by calling them directly, matching `renderChecklistHTML`'s own generated-HTML
+  contract; `renderStatcardHTML`'s bridge output checked for the correct computed value/caption.
+  Zero console/page errors in either mode (one real third-party noise source — `player.vimeo.com`'s
+  own CORS/`PresentationRequest` console errors from the real Vimeo iframe the `editEmbed` test
+  intentionally loads — filtered the same way `example.com/test.pdf`/404 noise already was).
+  Regression-verified `core-state.js`'s and `waypoints-render-loop.js`'s own Phase 4.5 scripts
+  clean afterward (the two ports `cardsMisc.ts` most directly sits on top of). Cleanup removed
+  every mock item created.
 - **Phase 4.6 — delete the bridge layer: not started.**
 - **Phase 4.7 — final cleanup & professionalization close-out: not started.**
 
@@ -1827,3 +1867,43 @@ Cleanup closed every pane and removed every mock folder created during the run.
 **This closes out Phase 4.5's single riskiest remaining target and the whole phase's real
 architectural core — 6 of 7 done.** Only `window-bridge.js` remains, still blocked on the paused
 Phase 4.1 files.
+
+**Phase 4.5 (`cards-misc.js` → `app/dotto/lib/cardsMisc.ts`)**: `node --check` on the 3 touched
+vanilla files (`dotto-script.js`, `window-bridge.js`, `drawing-connections.js`, the last for one
+stale comment reference), `eslint` clean, `npm run typecheck` clean, `npm run format:check` clean
+after a `prettier --write` pass run as the actual last step before committing, `rm -rf .next &&
+npm run build` clean, all 32 Vitest tests still green. One real bug caught and fixed mid-port: an
+initial `const appState = window.__getAppState!();` captured once at this file's own module top
+level (following `core-state.js`'s established "capture once, mutate in place" precedent) crashed
+both server-side (`ReferenceError: window is not defined`) and client-side
+(`window.__getAppState is not a function`) — that precedent only holds for files with their own
+`wireX()` deferring initialization past mount; `cardsMisc.ts`, like `waypoints-render-loop.js`, is
+a plain side-effect import with no `wireX()`, so its module body runs at import time, before
+`DottoApp`'s render body has called `ensureCoreState()`. Fixed by reading
+`window.__getAppState?.()` lazily inside `addTask` only (the sole function that needs it), same
+lazy-read pattern `stopwatch.ts` already used for the identical reason. Real production-server
+check (`npm run build && npm run start`): zero console errors or server 500s. Real Playwright
+verification, run against both the dev server and the real production server: bridge-existence
+checks for all 10 bridges this port owns; `shortUrl`/`toEmbeddableUrl` pure-logic checks against a
+real YouTube URL (hostname extraction, embed-URL rewriting with the `origin` param, and a
+non-YouTube/Vimeo URL passing through unchanged); a real Embed card (mock item, `kind: 'embed'`)
+rendering `EmbedCard.jsx`'s real `shortUrl()`/`toEmbeddableUrl()` imports correctly in the DOM
+(header text + iframe `src`); a real `editEmbed()` click round trip (`window.prompt` overridden
+in-page to return a new URL, since native dialogs can't be typed into from `page.evaluate`)
+confirming the click actually reaches the real import and updates `it.embedUrl`; a real Checklist
+card (mock item, `kind: 'checklist'`) round-tripping `toggleTask`/`updateTaskText`/
+`updateTaskDeadline`/`addTask`/`removeTask` through real checkbox clicks, contentEditable typing, a
+native date-input fill, and add/remove button clicks, each verified against the actual
+`appState.folders[...].items[...].tasks` array afterward; a direct smoke test of the same plain
+`window.toggleTask`/etc. globals called independently of the React components, confirming
+`renderChecklistHTML`'s own generated inline `onclick`/`onchange`/`oninput` attributes still have a
+real target to call; and `renderStatcardHTML`'s bridge output checked for the correct computed
+value/caption for a `statKind: 'progress'` item. One real third-party noise source filtered the
+same way `example.com/test.pdf`/404 noise already was: `player.vimeo.com`'s own CORS/
+`PresentationRequest` console errors, from the real Vimeo iframe the `editEmbed()` test
+intentionally loads via `toEmbeddableUrl`'s real Vimeo-rewriting branch — also caught a gap in this
+port's own verify script where `pageerror` events weren't filtered through the same noise regex
+`console` events already were, fixed before the noise could mask a real failure. Regression-verified
+both `verify-phase4-5-corestate-port.js` and `verify-phase4-5-waypointsrenderloop-port.js` clean
+afterward, since `cardsMisc.ts` sits directly on `__getAppState`/`__findItemById`/`__saveSnapshot`/
+`__render` from both. Cleanup removed every mock item created during the run.

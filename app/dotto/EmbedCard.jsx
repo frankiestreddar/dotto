@@ -1,12 +1,13 @@
 "use client";
 
+import { editEmbed, shortUrl, toEmbeddableUrl } from "./lib/cardsMisc";
+
 // First card kind converted to a real Component (canvas-items-react plan, PHASE2_ROADMAP.md) —
 // see CanvasItemsLayer.jsx's CARD_KIND_COMPONENTS. Ported from the old renderEmbedHTML
-// (public/dotto/cards-misc.js, now removed) with the same behavior, just as JSX instead of a
-// template string. editEmbed/shortUrl/toEmbeddableUrl stay vanilla — public/dotto/*.js owns them
-// (editEmbed is called from other places too, and shortUrl/toEmbeddableUrl are real logic, not
-// boilerplate worth duplicating across the app/public boundary) — called here via the
-// window.__shortUrl/window.__toEmbeddableUrl/window.editEmbed bridges (see cards-misc.js).
+// (public/dotto/cards-misc.js, now app/dotto/lib/cardsMisc.ts) with the same behavior, just as
+// JSX instead of a template string. editEmbed is called from other places too (renderChecklistHTML
+// has no relation to this, but the same file also backs a real inline onclick target elsewhere),
+// so it stays a real export here rather than being inlined.
 export default function EmbedCard({ it }) {
   if (!it.embedUrl) {
     return (
@@ -14,7 +15,7 @@ export default function EmbedCard({ it }) {
         className="embed-empty"
         onClick={(e) => {
           e.stopPropagation();
-          window.editEmbed(it.id);
+          editEmbed(it.id);
         }}
       >
         <div className="embed-icon">🌐</div>
@@ -32,13 +33,13 @@ export default function EmbedCard({ it }) {
           outside the iframe, a filled embed card would have no draggable surface at all once a
           URL is set. */}
       <div className="embed-header">
-        <span className="embed-header-url">{window.__shortUrl(it.embedUrl)}</span>
+        <span className="embed-header-url">{shortUrl(it.embedUrl)}</span>
         <div
           className="embed-edit"
           onMouseDown={(e) => e.stopPropagation()}
           onClick={(e) => {
             e.stopPropagation();
-            window.editEmbed(it.id);
+            editEmbed(it.id);
           }}
           title="Edit embed link"
         >
@@ -53,7 +54,7 @@ export default function EmbedCard({ it }) {
           check, or it throws "Error 153" instead of loading. */}
       <iframe
         className="embed-frame"
-        src={window.__toEmbeddableUrl(it.embedUrl)}
+        src={toEmbeddableUrl(it.embedUrl)}
         sandbox="allow-scripts allow-same-origin allow-popups allow-forms allow-popups-to-escape-sandbox"
         loading="lazy"
         referrerPolicy="strict-origin-when-cross-origin"
