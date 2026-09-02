@@ -4,10 +4,10 @@
 // the legacy renderer and the real TableCard.jsx, row/column growth + merging, and the Source
 // page's own image/audio-insert + CSV/TSV import pipeline. TableCard.jsx upgraded from window
 // bridges to real ES imports (same precedent as stopwatch.ts/gamesFlashcardTyperight.ts/
-// MediaCard.jsx), bridges kept only for the still-vanilla callers (search-orchestration-
-// selection.js, table-grid-resize.js, source-tags-ai.js, and canvasItemBehavior.js's/static-HTML's
-// own inline-onclick targets) plus app/dotto/lib/messagingCanvasPreview.ts. Reaches every
-// still-vanilla dependency through window bridges.
+// MediaCard.jsx), bridges kept for the still-vanilla callers (search-orchestration-selection.js,
+// table-grid-resize.js, and canvasItemBehavior.js's/static-HTML's own inline-onclick targets) plus
+// app/dotto/lib/messagingCanvasPreview.ts/app/dotto/lib/sourceTagsAi.ts (both ported since).
+// Reaches every still-vanilla dependency through window bridges.
 
 interface MergedRegion {
   r1: number;
@@ -763,7 +763,7 @@ if (typeof window !== "undefined") {
   window.__colgroupHTML = colgroupHTML;
   // Used by app/dotto/lib/outlineTree.ts's goToOutlineSourceRow (Phase 4.4).
   window.__focusTableCell = focusTableCell;
-  // Used by source-tags-ai.js's triggerSourceUpload (Phase 4.4).
+  // Used by app/dotto/lib/sourceTagsAi.ts's triggerSourceUpload (Phase 4.5).
   window.__importDelimitedIntoSource = importDelimitedIntoSource;
   // Plain (non-`__`) globals — real inline onclick/oninput/onkeydown/onmousedown/onfocus targets
   // built into renderTableHTML's own HTML string, canvasItemBehavior.js's source-page markup, and

@@ -800,10 +800,11 @@ function startConnectionDrag(e, it, el) {
 // cellActionsHTML/buildHeaderPillsHTML/tableCellHTML are pure HTML-string builders used only by
 // renderStaticTableHTML just below; their inline onclick/oninput/onkeydown attribute strings
 // (addTableCol/updateTableCell/handleTableKeydown/etc.) still resolve exactly as before against
-// plain window.fnName globals (window-bridge.js) at click time, regardless of which module built
-// the string — moving the STRING BUILDER doesn't touch how the resulting HTML behaves once
-// parsed, which is what makes this piece markedly lower-risk than setupDraggingAndClicking despite
-// being comparable in size.
+// plain window.fnName globals (set directly by whichever module now owns each one —
+// app/dotto/lib/sourceTable.ts/sourceTagsAi.ts — window-bridge.js itself is gone) at click time,
+// regardless of which module built the string — moving the STRING BUILDER doesn't touch how the
+// resulting HTML behaves once parsed, which is what makes this piece markedly lower-risk than
+// setupDraggingAndClicking despite being comparable in size.
 function cellActionsHTML(itemId, r, c) {
   return `<div class="cell-actions" onmousedown="event.stopPropagation()">
                             <button class="cell-icon-btn cell-add-btn" onclick="event.stopPropagation(); openCellAddMenu(${itemId}, ${r}, ${c}, this)" title="Add image or audio"><img src="assets/icons/add-btn.png" alt=""></button>
@@ -1204,7 +1205,8 @@ export function attachStaticTableHoverZones(container, tableItem) {
   // waiting for a mousemove that may not come for a while if it was closed by clicking elsewhere
   // on the canvas. A plain property on the DOM node itself, not a module export — works
   // unmodified regardless of which module this function lives in (closeCellTagPicker,
-  // source-tags-ai.js, still vanilla, calls it via container._resetRowTagHover(), same as always).
+  // app/dotto/lib/sourceTagsAi.ts now, calls it via container._resetRowTagHover(), same as
+  // always).
   container._resetRowTagHover = () => {
     hoveredRowEl = null;
     wrap.classList.remove("show-row-tag");

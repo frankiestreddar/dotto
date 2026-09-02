@@ -4,6 +4,12 @@ import { useEffect, useRef } from "react";
 import { useSyncExternalStore } from "react";
 import { createPortal } from "react-dom";
 import { cellTagPickerListStore } from "./bridges";
+import {
+  commitTagRename,
+  handleTagRenameKeydown,
+  openTagContextMenu,
+  toggleCellTag,
+} from "./lib/sourceTagsAi";
 import usePortalNode from "./usePortalNode";
 
 const EMPTY_STATE = { rows: [], id: null, r: null };
@@ -30,8 +36,8 @@ function TagRow({ row, id, r }) {
           className="tag-picker-rename-input"
           defaultValue={row.name}
           onClick={(e) => e.stopPropagation()}
-          onKeyDown={(e) => window.__handleTagRenameKeydown(e, row.tagId)}
-          onBlur={(e) => window.__commitTagRename(row.tagId, e.target.value)}
+          onKeyDown={(e) => handleTagRenameKeydown(e, row.tagId)}
+          onBlur={(e) => commitTagRename(row.tagId, e.target.value)}
         />
       </div>
     );
@@ -41,8 +47,8 @@ function TagRow({ row, id, r }) {
     <div
       className={"cell-tag-picker-row" + (row.selected ? " selected" : "")}
       data-tag-id={row.tagId}
-      onClick={() => window.__toggleCellTag(id, r, row.tagId)}
-      onContextMenu={(e) => window.__openTagContextMenu(e, row.tagId)}
+      onClick={() => toggleCellTag(id, r, row.tagId)}
+      onContextMenu={(e) => openTagContextMenu(e, row.tagId)}
     >
       <span className="tag-swatch" style={{ background: row.color }} />
       <span className="tag-picker-name">{row.name}</span>

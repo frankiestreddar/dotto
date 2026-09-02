@@ -9,10 +9,11 @@ import { dateKey } from "./dateKey";
 // Phase 4.1 port — its three external dependencies were dateKey (extracted alongside this, see
 // dateKey.ts's own comment — at the time, messages-schedule.js itself stayed vanilla; it's since
 // been ported too, see app/dotto/lib/messagesSchedule.ts, Phase 4.5), and
-// pushNotification/openPricingOverlay, both already reachable via
-// existing plain window bridges (window.pushNotification, set in notifications.js;
-// window.openPricingOverlay, set in window-bridge.js) without needing either of those files
-// ported first. appState.lastStatsDayKey is a dynamically-added field (never pre-declared in
+// pushNotification/openPricingOverlay, both already reachable via existing plain window bridges
+// (window.pushNotification, now set in app/dotto/lib/notificationsStore.ts;
+// window.openPricingOverlay, now set in app/dotto/lib/profileAchievementsPricing.ts) without
+// needing either of those files ported first. appState.lastStatsDayKey is a dynamically-added
+// field (never pre-declared in
 // app/dotto/lib/coreState.ts's own appState object literal — see this function's own note below), read/written
 // through the existing universal window.__getAppState() bridge like any other live appState touch.
 

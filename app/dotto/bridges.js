@@ -552,8 +552,9 @@ export const msgConvoStore = createStore(null);
 export const sharedCanvasModalStore = createStore(null);
 
 // Item 9's remainder (the Source database page cluster) turned out to have only one clean, low-
-// risk conversion candidate: the cell tag picker's dropdown list (public/dotto/source-tags-ai.js's
-// renderCellTagPickerList) — { rows: [{tagId, name, color, selected, renaming}], id, r }. Genuine
+// risk conversion candidate: the cell tag picker's dropdown list
+// (app/dotto/lib/sourceTagsAi.ts's renderCellTagPickerList) — { rows: [{tagId, name, color,
+// selected, renaming}], id, r }. Genuine
 // JSX, including the rename row's plain <input> (not contentEditable, so none of the
 // caret-regression risk that ruled out converting the Source table's own cells or the Item Detail/
 // Publish Flow contentEditable fields). The rest of the cluster stays vanilla: the Source table

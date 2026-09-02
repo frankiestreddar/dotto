@@ -4,9 +4,11 @@
 // in its own Phase 4.5 port, at which point this file started setting its own
 // window.__escapeHtml/__stripHtml bridges directly (genuinely pure/zero-import, so it can safely
 // do so, same convention srs-algorithm.js already established) — the real remaining vanilla
-// callers (search-panel-history.js, search-orchestration-selection.js, source-tags-ai.js) now
-// import straight from here instead of through ai-assistant-suggestions.js's old re-export. This
-// extraction's own value right now is real test coverage (see text-utils.test.ts) for logic that
+// callers (search-panel-history.js, search-orchestration-selection.js) now import straight from
+// here instead of through ai-assistant-suggestions.js's old re-export (source-tags-ai.js was a
+// third one too, until it was itself ported to app/dotto/lib/sourceTagsAi.ts, Phase 4.5 — it
+// reaches escapeHtml/stripHtml via the window.__escapeHtml/__stripHtml bridges below instead now).
+// This extraction's own value right now is real test coverage (see text-utils.test.ts) for logic that
 // had zero coverage before, and a smaller, focused module ready to move wholesale to app/dotto/lib
 // once nothing vanilla needs it directly anymore.
 //

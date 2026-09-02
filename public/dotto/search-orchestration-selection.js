@@ -3,7 +3,6 @@ import { executeCurrentCommand, setCommandActive } from './command-palette.js';
 const appState = window.__getAppState();
 const parseItemId = window.__parseItemId;
 import { ensureConnections } from './drawing-connections.js';
-import { applyAiAddRowsToSource, createSourceFromAI } from './source-tags-ai.js';
 
 
     // ---------- Orchestrated search: one AI call decides which panels are useful. Canvas
@@ -146,8 +145,8 @@ import { applyAiAddRowsToSource, createSourceFromAI } from './source-tags-ai.js'
         // it again every time a saved chat is reopened would duplicate rows/sources on every view.
         const sourceActionPanel = panels.find(p => p.type === 'source_action');
         if (sourceActionPanel) {
-            if (sourceActionPanel.action === 'create_source') createSourceFromAI(sourceActionPanel.title, sourceActionPanel.columns, sourceActionPanel.rows);
-            else if (sourceActionPanel.action === 'add_rows') applyAiAddRowsToSource(sourceActionPanel.targetIndex, sourceActionPanel.columns, sourceActionPanel.rows);
+            if (sourceActionPanel.action === 'create_source') window.__createSourceFromAI(sourceActionPanel.title, sourceActionPanel.columns, sourceActionPanel.rows);
+            else if (sourceActionPanel.action === 'add_rows') window.__applyAiAddRowsToSource(sourceActionPanel.targetIndex, sourceActionPanel.columns, sourceActionPanel.rows);
         }
         window.__appendChatTurn({ id: 'turn_' + (appState.idCounter++), query, panels, fresh: true });
         // A search can be submitted from either view now — the list view's own top box (starting a
@@ -460,10 +459,10 @@ import { applyAiAddRowsToSource, createSourceFromAI } from './source-tags-ai.js'
 
 export { commenceDotbotSearch, openAddToSourcePopup, selectionToolbarLookUp, showSelectionToolbarFor };
 
-// Not inline-HTML onclick targets (see window-bridge.js's own header comment for why those live
-// there instead) — app/dotto/SelectionToolbar.jsx's two buttons call these directly, same
-// rationale as pushNotification's bridge in notifications.js (Phase 2
-// increment 1).
+// Not inline-HTML onclick targets (those get their own dedicated __-prefixed bridge instead) —
+// app/dotto/SelectionToolbar.jsx's two buttons call these directly, same rationale as
+// pushNotification's bridge in app/dotto/lib/notificationsStore.ts (Phase 2
+// increment 1, ported since).
 window.selectionToolbarLookUp = selectionToolbarLookUp;
 window.openAddToSourcePopup = openAddToSourcePopup;
 // Used by app/dotto/lib/mediaPdfEpub.ts's buildEpubViewer (Phase 4.4) to feed the same

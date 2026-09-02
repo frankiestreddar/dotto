@@ -415,8 +415,30 @@ declare global {
     // global further down (a real inline onclick target too).
     __hideCanvasContextMenu?: () => void;
     __layoutDotLayer?: () => void;
-    // source-tags-ai.js
+    // app/dotto/lib/sourceTagsAi.ts (Phase 4.5 port — was source-tags-ai.js)
     __closeCellTagPicker?: () => void;
+    __openRowTagPicker?: (id: number, r: number, btnEl: HTMLElement) => void;
+    __tagPillsHTML?: (table: Record<string, unknown>, r: number) => string;
+    // search-orchestration-selection.js (still vanilla) — new bridges for this port; it used to
+    // import applyAiAddRowsToSource/createSourceFromAI directly (vanilla-to-vanilla).
+    __applyAiAddRowsToSource?: (
+      targetIndex: number,
+      columns: string[] | undefined,
+      rows: unknown[][],
+    ) => boolean;
+    __createSourceFromAI?: (
+      title: string | undefined,
+      columns: string[] | undefined,
+      rows: unknown[][],
+    ) => boolean;
+    // Plain (non-`__`) globals — real inline onclick/onkeydown targets in
+    // content/fragments/cell-tag-picker.html, set directly by app/dotto/lib/sourceTagsAi.ts.
+    closeCellTagPicker?: () => void;
+    closeTagContextMenu?: () => void;
+    createTagFromCellPicker?: () => void;
+    deleteActiveTag?: () => void;
+    startRenameActiveTag?: () => void;
+    triggerSourceUpload?: () => void;
     // app/dotto/lib/srsConnectionsCore.ts
     __clearDataLinkPending?: () => void;
     // app/dotto/lib/panelsHamburger.ts (Phase 4.5 port — was panels-hamburger.js)
@@ -532,7 +554,9 @@ declare global {
     // app/dotto/lib/sourceTable.ts (Phase 4.4 port — was source-table.js) — React -> vanilla
     // bridges pre-dating this port (TableCard.jsx now imports the technical ones directly instead,
     // being in the same app/dotto/ tree — kept declared/assigned since still-vanilla callers need
-    // them too) plus a new bridge for source-tags-ai.js's still-vanilla triggerSourceUpload.
+    // them too) plus a bridge (__importDelimitedIntoSource) for
+    // app/dotto/lib/sourceTagsAi.ts's triggerSourceUpload (was vanilla-to-vanilla, back when
+    // source-tags-ai.js was still vanilla itself).
     __distributeTableSizing?: (it: Record<string, unknown>, el: HTMLElement) => void;
     __mergeTableCells?: (
       id: number,
@@ -773,8 +797,8 @@ declare global {
     __startBoxSelection?: (e: PointerEvent) => void;
     __syncWaypointToDb?: (folderId: string, it: Record<string, unknown>) => Promise<void>;
     // srsConnectionsCore.ts's own outbound bridges — FilterCard.jsx/canvasItemBehavior.js (React ->
-    // vanilla) and drawing-connections.js/waypoints-render-loop.js/window-bridge.js/app-init.js/
-    // command-verbs.js/source-tags-ai.js/upload-popup.js (vanilla -> React) all reach these.
+    // vanilla) and drawing-connections.js/waypoints-render-loop.js/app-init.js/command-verbs.js/
+    // upload-popup.js (vanilla -> React) all reach these.
     __applyFilterToRows?: (
       item: Record<string, unknown>,
       rows: Record<string, unknown>[],
@@ -815,8 +839,8 @@ declare global {
     // waypoints-render-loop.js) — CanvasItemsLayer.jsx/CanvasCard.jsx/SourceCard.jsx/NoteCard.jsx/
     // WatermarkCard.jsx/TitleCard.jsx/WaypointCard.jsx/FilesListPanel.jsx/PaneZoomBar.jsx/
     // SourcesListPanel.jsx/TabsBar.jsx (React -> vanilla) and drawing-connections.js/
-    // search-orchestration-selection.js/app-init.js/command-verbs.js/
-    // source-tags-ai.js (vanilla -> React) all reach these.
+    // search-orchestration-selection.js/app-init.js/command-verbs.js (vanilla -> React) all reach
+    // these.
     __applyCanvasItemWrapperAttrs?: (el: HTMLElement, it: Record<string, unknown>) => void;
     __attachUniversalItemBehavior?: (el: HTMLElement, it: Record<string, unknown>) => void;
     __attachWatermarkBody?: (
@@ -887,6 +911,14 @@ declare global {
     // app/dotto/canvasItemBehavior.js's setupDraggingAndClicking (Phase 3), same reasoning as
     // window.__getAppState.
     __bringCardToFront?: (it: Record<string, unknown> | undefined, el?: HTMLElement | null) => void;
+    // app/dotto-app.jsx (via cellTagPickerListStore, bridges.js) — used by
+    // app/dotto/lib/sourceTagsAi.ts's renderCellTagPickerList (Phase 4.5 port — was
+    // source-tags-ai.js).
+    __setCellTagPickerList?: (state: {
+      rows: Record<string, unknown>[];
+      id: number | null;
+      r: number | null;
+    }) => void;
 
     // app/dotto-app.jsx (via app/dotto/bridges.js's various stores) — React-facing setters for the
     // Phase 4.5 aiAssistantSuggestions.ts/hamburgerCollab.ts/mnemonicSearchMatching.ts trio.

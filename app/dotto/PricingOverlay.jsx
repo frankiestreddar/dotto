@@ -63,8 +63,9 @@ const PRICING_FEATURE_ROWS = [
 
 function startPlanUpgrade(planId) {
   pricingOverlayStore.set(false);
-  // pushNotification still lives in public/dotto/notifications.js (not migrated
-  // yet) — window-bridged for exactly this call, see public/dotto/window-bridge.js.
+  // pushNotification lives in app/dotto/lib/notificationsStore.ts — reached via its own
+  // window.pushNotification bridge (a vanilla -> React bridge, not the reverse) rather than a
+  // real import, same as every other still-vanilla-facing caller of it.
   window.pushNotification({
     type: "upgrade_unavailable",
     message: "Upgrades aren't available yet — check back soon!",

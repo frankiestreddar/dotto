@@ -5,10 +5,10 @@ const appState = window.__getAppState();
     // ---------- Block-kind metadata helpers ----------
     // The Add-menu UI itself (grid/search/wiring) moved to blocks-panel.js when Essentials was
     // repurposed into the Blocks panel (explicit request) — these three pure lookups are kept here
-    // independently of anything panel-related, still reached the normal way (real ES import) by
-    // source-tags-ai.js, and via window.__kindSize/__kindLabel bridges by
-    // app/dotto/lib/copyPaste.ts/app/dotto/lib/srsConnectionsCore.ts (public/dotto/*.js isn't
-    // reachable from app/dotto/).
+    // independently of anything panel-related, reached via window.__kindSize/__kindLabel bridges by
+    // app/dotto/lib/copyPaste.ts/app/dotto/lib/srsConnectionsCore.ts/app/dotto/lib/sourceTagsAi.ts
+    // (public/dotto/*.js isn't reachable from app/dotto/ — source-tags-ai.js used to import
+    // kindSize directly, real ES import, until it was itself ported).
 
     function kindLabel(kind) {
         // sentence/checklist: no longer creatable from the add-menu (checklist removed from

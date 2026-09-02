@@ -1614,8 +1614,9 @@ export function setMediaViewerZoom(paneId: number, zoom: number): void {
 }
 
 if (typeof window !== "undefined") {
-  // React -> vanilla bridge, the other direction from window-bridge.js (which is specifically the
-  // ~107 auto-generated inline onclick="..." names — see its own header comment). CanvasItem
+  // React -> vanilla bridge, the other direction from a plain inline onclick="..." target (each
+  // now set directly by whichever module owns it, ever since window-bridge.js's own centralized
+  // list emptied out and was deleted — see PHASE4_ROADMAP.md). CanvasItem
   // (app/dotto/CanvasItemsLayer.jsx) calls the first two from a per-item layout effect that runs on
   // every render() call: wrapper attrs and universal behavior (drag/click, aiGenerated badge,
   // right-click) apply to every kind, all of which are now real Components (see

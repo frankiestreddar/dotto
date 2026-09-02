@@ -428,8 +428,8 @@ export function closeSearchCardsModal(): void {
   document.getElementById("search-cards-modal-overlay")?.classList.remove("open");
 }
 
-// Not inline-HTML onclick targets for these two (see window-bridge.js's own header comment for
-// why those live there instead) — window.__addCardsToSearchContext is used by
+// Not inline-HTML onclick targets for these two (those get a plain, non-`__`-prefixed global
+// instead) — window.__addCardsToSearchContext is used by
 // app/dotto/canvasItemBehavior.js's setupDraggingAndClicking (Phase 3). Every other export below
 // keeps the exact plain (non-`__`) global name window-bridge.js used for it before this port:
 // startRenameShelfName/shelfSelectSession/handleShelfSourceRowClick/startRenameShelfSourceRow/

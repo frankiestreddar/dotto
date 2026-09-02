@@ -250,7 +250,9 @@ window.__pointsToLinePath = pointsToLinePath;
 window.__folderIdForConnectedSource = folderIdForConnectedSource;
 // Used by app/dotto/lib/sourceButtonsCursorMode.ts's Shift+X shortcut (Phase 4.4).
 window.__linkSelectedCards = linkSelectedCards;
-// Used by app/dotto/lib/sourceTable.ts's updateTableCell (Phase 4.4).
+// Used by app/dotto/lib/sourceTable.ts's updateTableCell (Phase 4.4) and
+// app/dotto/lib/sourceTagsAi.ts's row-tag functions (Phase 4.5 — was a direct import,
+// vanilla-to-vanilla, until that file was itself ported).
 window.__resolveTableForEdit = resolveTableForEdit;
 // Used by app/dotto/lib/srsConnectionsCore.ts (Phase 4.5) — findLinkedTable/findTableById by
 // CardStreamIO's table/source/folder getOutput+onStream and applySrsUpdateStream;

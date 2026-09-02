@@ -139,6 +139,12 @@ import "./dotto/lib/cardsMisc";
 // PublishFlowName.jsx/ItemDetailFooter.jsx import the real functions directly instead (same
 // app/dotto/ tree).
 import "./dotto/lib/libraryPublish";
+// Side-effect only — sets window.__openRowTagPicker/__tagPillsHTML/__closeCellTagPicker/
+// __applyAiAddRowsToSource/__createSourceFromAI plus the real inline-HTML plain globals
+// (closeCellTagPicker/closeTagContextMenu/createTagFromCellPicker/deleteActiveTag/
+// startRenameActiveTag/triggerSourceUpload) at module-eval time; CellTagPickerList.jsx imports the
+// real functions directly instead (same app/dotto/ tree) for its own TagRow handlers.
+import "./dotto/lib/sourceTagsAi";
 import BlocksPanel from "./dotto/BlocksPanel";
 import CellTagPickerList from "./dotto/CellTagPickerList";
 import ChatsListPanel from "./dotto/ChatsListPanel";
@@ -463,8 +469,9 @@ if (typeof window !== "undefined") {
   // app/dotto/lib/messagingCanvasPreview.ts's openSharedCanvasView) — a plain store.set, no
   // synchronous DOM read follows it.
   window.__setSharedCanvasModal = sharedCanvasModalStore.set;
-  // Cell tag picker dropdown (see app/dotto/CellTagPickerList.jsx, source-tags-ai.js's
-  // renderCellTagPickerList) — a plain store.set, no synchronous DOM read follows it.
+  // Cell tag picker dropdown (see app/dotto/CellTagPickerList.jsx,
+  // app/dotto/lib/sourceTagsAi.ts's renderCellTagPickerList) — a plain store.set, no synchronous
+  // DOM read follows it.
   window.__setCellTagPickerList = cellTagPickerListStore.set;
 }
 

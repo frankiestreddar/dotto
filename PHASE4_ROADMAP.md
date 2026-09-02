@@ -340,7 +340,7 @@
   this port owns directly. Zero console/page errors. Re-checked the account afterward to confirm
   zero residual mock cards/folders. **This closes out Phase 4.4 — every split-out concern and
   remaining DOM-heavy file has now been ported.** Phase 4.5 (architectural/hub files) is next.
-- **Phase 4.5 — architectural/hub files: in progress (6 of 7 done).**
+- **Phase 4.5 — architectural/hub files: done (7 of 7).**
   `panels-hamburger.js` (178 lines) ported first to `app/dotto/lib/panelsHamburger.ts` — the
   permanent rail's shared open/close contract (one sliding `#hamburger-stack` shell, many trigger
   icons) plus the hover/pin panel helper used by the add-menu and per-canvas collaborator flyout.
@@ -1201,6 +1201,74 @@
   deliberately whitelisted with a documented reason.
   **This resolves the last genuinely circular pair.** Of the original 8 `window-bridge.js`-owning
   files, only `source-tags-ai.js` remains.
+  `source-tags-ai.js` (309 lines) done last, closing out the original 8-file `window-bridge.js`
+  dependency list entirely — to `app/dotto/lib/sourceTagsAi.ts`: Dotbot-generated source content
+  (`applyAiAddRowsToSource`/`createSourceFromAI`, driven by the "sourceAction" panel in
+  `app/api/dotbot/orchestrate/route.js`) and the Source page's row-tag system (tag definitions,
+  per-row tag assignment, the row tag picker popover, its rename/delete context menu). 4 real
+  bridges dropped in favor of real same-tree imports into `app/dotto/CellTagPickerList.jsx`
+  (`commitTagRename`/`handleTagRenameKeydown`/`openTagContextMenu`/`toggleCellTag`) — the largest
+  share of a single file's own bridges upgraded to imports this port has done relative to its total
+  export surface. 2 new outbound bridges (`__applyAiAddRowsToSource`/`__createSourceFromAI`) for
+  `search-orchestration-selection.js` (still vanilla), which used to import both directly.
+  **Because this was the last of the 8, `window-bridge.js` itself emptied out entirely as a side
+  effect — deleted outright** (its own header comment's REMOVED-log gets no further entries; the
+  file simply no longer exists), along with its now-dead import in `dotto-script.js`. This closes
+  out the 5th of the original 7 Phase 4.5 sub-items (`panels-hamburger.js`/`live-presence.js`/
+  `history-autosave.js`/`srs-connections-core.js` remainder/`window-bridge.js`/
+  `waypoints-render-loop.js`/`core-state.js` — the last two already done earlier this session, see
+  their own status entries above) — **all 7 of Phase 4.5's original architectural/hub files are now
+  done.** Full repo-wide stale-filename sweep via the established `python3` walk-and-string-search
+  technique for both `source-tags-ai.js` and `window-bridge.js` — fixed current-tense pointers
+  across `app/dotto-app.jsx`, `app/dotto/canvasItemBehavior.js`, `app/dotto/bridges.js`,
+  `app/dotto/PricingOverlay.jsx`, `app/dotto/lib/waypointsRenderLoop.ts`,
+  `app/dotto/lib/profileAchievementsPricing.ts`, `app/dotto/lib/notificationsStore.ts`,
+  `app/dotto/lib/shelfSearch.ts`, `app/dotto/lib/dayChangeAndAdNotifications.ts`,
+  `app/dotto/lib/outlineTree.ts`, `app/dotto/lib/sourceTable.ts`, `app/dotto/lib/vanillaBridges.d.ts`,
+  `public/dotto/search-orchestration-selection.js`, `public/dotto/text-utils.js`,
+  `public/dotto/add-menu.js`, `public/dotto/drawing-connections.js` — left the many genuinely
+  historical/"all previously imported"/"formerly re-exported through window-bridge.js's own
+  centralized inline-handler list" mentions alone across a dozen more files, matching established
+  convention; `INLINE_HANDLER_CHECKLIST.md`/`CONTRIBUTING.md`'s own `window-bridge.js` mentions
+  deliberately left untouched too — their rewrite is explicitly scoped to Phase 4.6, not this port,
+  even though the file they describe is already gone ahead of that schedule.
+  `node --check` on the 6 touched vanilla files (`dotto-script.js`, `search-orchestration-
+  selection.js`, `text-utils.js`, `add-menu.js`, `drawing-connections.js`, plus `window-bridge.js`
+  and `source-tags-ai.js` themselves deleted), `eslint` clean, `npm run typecheck` clean (after
+  adding ambient types for the 2 new outbound bridges, 3 new `__openRowTagPicker`/`__tagPillsHTML`/
+  `__setCellTagPickerList` bridges, and 6 plain-global inline-HTML targets — none of these had ever
+  been typed before, since `source-tags-ai.js`'s own callers were all still vanilla until now),
+  `npm run format:check` clean after a `prettier --write` pass run as the actual last step before
+  committing, `rm -rf .next && npm run build` clean, all 32 Vitest tests still green. Real Playwright
+  verification against both a dev server and a real production server — genuinely new coverage
+  territory: no prior verify script in this migration had ever exercised the Source page's row-tag
+  system (a vanilla-only feature, `folderObj.isSource`'s own render branch in
+  `app/dotto/lib/waypointsRenderLoop.ts`, never a plain on-canvas Table card) at all. Real
+  `isSource`-folder navigation (`window.__applyFolderView`) rendering the actual static table DOM;
+  a real mouse hover over a real `td[data-r][data-c]` cell revealing the real `.row-tag-strip`
+  button (`canvasItemBehavior.js`'s own continuous hover-zone logic, unchanged, exercised
+  end-to-end as this port's real entry point) and a real click correctly opening the picker via
+  `openRowTagPicker`; a real tag created through the picker's static new-tag `<input>` (Enter to
+  submit) correctly assigned to the row and its chip rendered in the real table DOM; a real click
+  on `app/dotto/CellTagPickerList.jsx`'s own row (now a real ES import of `toggleCellTag`)
+  correctly toggling the tag off and clearing its chip; a real right-click → Rename → real
+  `<input>` → Enter → blur round trip (exercising `openTagContextMenu`/`handleTagRenameKeydown`/
+  `commitTagRename`, all real ES imports now) correctly renaming the tag and refreshing its chip; a
+  real Delete via the context menu correctly removing the tag and cleaning up the now-dangling
+  `cellTags` reference; a real Escape from the new-tag input correctly closing the picker via
+  `closeCellTagPicker`; `createSourceFromAI`/`applyAiAddRowsToSource` called via their new bridges
+  with real appState mutation checks (a new source card with the right title/seeded columns/rows;
+  a real row appended to an already-attached source via a mocked `searchCardContext` entry); a real
+  file-picker round trip (`triggerSourceUpload` → a real Playwright `filechooser` event → a real
+  CSV file → `importDelimitedIntoSource`, `sourceTable.ts`'s own already-tested logic) correctly
+  importing a new row end-to-end. Regression-verified `verify-phase4-4-sourcetable-port.js` and
+  `verify-phase4-5-ai-hamburger-mnemonic-port.js` (the latter exercising
+  `search-orchestration-selection.js`'s own real `commenceSearchOrMnemonic`/`commenceDotbotSearch`
+  path this port's edit touched) both clean afterward, in both modes. Zero console/page errors
+  across every script in both modes.
+  **This closes out the original 8-file `window-bridge.js` dependency list, deletes
+  `window-bridge.js` itself, and completes Phase 4.5 (architectural/hub files) in full — all 7 of
+  its original sub-items are now done.**
 - **Phase 4.6 — delete the bridge layer: not started.**
 - **Phase 4.7 — final cleanup & professionalization close-out: not started.**
 

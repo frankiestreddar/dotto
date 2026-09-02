@@ -405,9 +405,10 @@ export function closeDotbotUpgradeModal(): void {
 // Phase 2 increment 1: the overlay itself (rendering, PRICING_PLANS/PRICING_FEATURE_ROWS,
 // startPlanUpgrade) is real React — see app/dotto/PricingOverlay.jsx. These two stay as thin
 // wrappers so every existing caller (the profile menu's "Try Dotto Pro" button via hmenuAction,
-// the paid-tier-ad notification's "Upgrade" button, inline onclick="..." attributes bridged
-// through window-bridge.js) keeps working unmodified — they just flip the React-owned open state
-// (app/dotto/bridges.js) instead of touching the DOM directly.
+// the paid-tier-ad notification's "Upgrade" button, plain window.openPricingOverlay inline
+// onclick="..." attributes, set directly by this file's own bridge block below) keeps working
+// unmodified — they just flip the React-owned open state (app/dotto/bridges.js) instead of
+// touching the DOM directly.
 export function openPricingOverlay(): void {
   window.__closeAllPanels?.(undefined);
   closeProfilePanel();

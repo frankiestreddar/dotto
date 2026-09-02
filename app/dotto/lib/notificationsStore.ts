@@ -151,8 +151,9 @@ export function wireNotifications(): () => void {
   return () => controller.abort();
 }
 
-// Not an inline-HTML onclick target (see window-bridge.js's own header comment for why those live
-// there instead) — plain vanilla-callable bridges for the still-vanilla files that push/query
+// Not an inline-HTML onclick target (those get a plain, non-`__`-prefixed global instead, set
+// directly by whichever file owns them — see e.g. window.pushNotification's own shape) — plain
+// vanilla-callable bridges for the still-vanilla files that push/query
 // notifications (command-verbs.js, command-palette.js) plus
 // app/dotto/lib/srsConnectionsCore.ts, app/dotto/lib/profileAchievementsPricing.ts,
 // app/dotto/lib/cardShortcuts.ts, app/dotto/lib/hamburgerCollab.ts, app/dotto/lib/friendsPresence.ts,
