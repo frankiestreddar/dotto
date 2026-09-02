@@ -3,8 +3,6 @@ import './dotto/drawing-connections.js';
 import './dotto/srs-algorithm.js';
 import './dotto/theme-toggle.js';
 import './dotto/upload-popup.js';
-import './dotto/messages-schedule.js';
-import './dotto/friends-presence.js';
 import './dotto/source-tags-ai.js';
 import './dotto/stopwatch.js';
 import './dotto/search-panel-history.js';

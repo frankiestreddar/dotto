@@ -770,8 +770,8 @@ export function closeSharedCanvasView(): void {
 // the message list are genuine JSX; each canvas-snapshot message's own card content still comes
 // from renderInlineCanvas/renderMsgSnapshotCard, ref-mounted, same reasoning as
 // SharedCanvasModalBody above. Not flushSync'd: every caller (openConvo, sendMsg, the realtime
-// message-insert handler in friends-presence.js) has no synchronous DOM read right after — the
-// scrollTop-to-bottom reset that used to happen here now lives in a useLayoutEffect inside
+// message-insert handler in app/dotto/lib/friendsPresence.ts) has no synchronous DOM read right
+// after — the scrollTop-to-bottom reset that used to happen here now lives in a useLayoutEffect inside
 // MsgConvo.jsx itself, so it stays correctly synchronous with THAT component's own commit
 // regardless of whether the store update that triggered it was flushSync'd.
 export function renderConvoBody(f: Friend): void {

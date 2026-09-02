@@ -1,7 +1,5 @@
 const appState = window.__getAppState();
 const supabase = window.__dottoSupabase || null;
-import { renderMsgList } from './friends-presence.js';
-
 
     // setupDraggingAndClicking moved to app/dotto/canvasItemBehavior.js (Phase 3 of the
     // vanilla->React consolidation — see the migration plan) — the second "canvas core" piece to
@@ -10,7 +8,8 @@ import { renderMsgList } from './friends-presence.js';
     // remaining direct dependent (called from its own up() handler's "drop into active chat"
     // case) — self-contained enough (four more of its own dependencies: renderMsgList,
     // renderConvoBody, sanitizeFlashcardSnapshot, snapshotItem) that it stays vanilla rather than
-    // moving too, reached via a single window.__dispatchSelectedToChat bridge instead.
+    // moving too, reached via a single window.__dispatchSelectedToChat bridge instead. renderMsgList
+    // itself now lives in app/dotto/lib/friendsPresence.ts, reached here via __renderMsgList.
 
     // ---------- Dispatch to Chat Interaction ----------
     async function dispatchSelectedToChat(targetIt) {
@@ -40,7 +39,7 @@ import { renderMsgList } from './friends-presence.js';
         f.messages.push({ id: data.id, senderId: data.sender_id, text: data.body, canvasSnapshot: data.canvas_snapshot, createdAt: data.created_at });
 
         window.__renderConvoBody(f);
-        renderMsgList('');
+        window.__renderMsgList('');
     }
 
 export { dispatchSelectedToChat };

@@ -3,6 +3,11 @@
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import Avatar from "./Avatar";
 import { collabPillStore, navHistoryStore } from "./bridges";
+import {
+  collabBubblePaneClick,
+  collabBubblePaneMouseEnter,
+  collabBubblePaneMouseLeave,
+} from "./lib/friendsPresence";
 import TabsBar from "./TabsBar";
 
 // Module-level, not inline — see CanvasItemsLayer.jsx's identical EMPTY_ITEMS comment for why a
@@ -29,9 +34,9 @@ const PROXIMITY_PX = 100;
 // every other per-pane control in this codebase follows — they're plain vanilla functions, not
 // duplicated here. The collaborator bubble is the one piece with real shared state behind it (a
 // single #collab-panel flyout, not one per pane) — collabBubblePaneClick/MouseEnter/MouseLeave
-// (friends-presence.js) retarget appState.collabBubble (a reassignable object property, not a
-// binding) to THIS bubble's own DOM node before reusing that one shared flyout's existing open/
-// close/position logic unchanged, activating this pane first the same way.
+// (app/dotto/lib/friendsPresence.ts) retarget appState.collabBubble (a reassignable object
+// property, not a binding) to THIS bubble's own DOM node before reusing that one shared flyout's
+// existing open/close/position logic unchanged, activating this pane first the same way.
 export default function PaneTopBar({ paneId, rect }) {
   const paneNavStore = navHistoryStore.storeFor(paneId);
   const nav = useSyncExternalStore(
@@ -139,10 +144,10 @@ export default function PaneTopBar({ paneId, rect }) {
           className={"pane-collab-bubble" + (collab.show ? " show" : "")}
           onClick={(e) => {
             e.stopPropagation();
-            window.__collabBubblePaneClick(paneId, bubbleRef.current);
+            collabBubblePaneClick(paneId, bubbleRef.current);
           }}
-          onMouseEnter={() => window.__collabBubblePaneMouseEnter(paneId, bubbleRef.current)}
-          onMouseLeave={() => window.__collabBubblePaneMouseLeave(bubbleRef.current)}
+          onMouseEnter={() => collabBubblePaneMouseEnter(paneId, bubbleRef.current)}
+          onMouseLeave={() => collabBubblePaneMouseLeave(bubbleRef.current)}
         >
           {collab.collabs.length ? (
             <div className="collab-avatars">

@@ -104,7 +104,7 @@ export function placeCaretEnd(el: HTMLElement): void {
   sel?.removeAllRanges();
   sel?.addRange(range);
 }
-// Pure reimplementation of the vanilla `initials` (friends-presence.js) — plain string logic with
+// Pure reimplementation of `initials` (app/dotto/lib/friendsPresence.ts) — plain string logic with
 // no vanilla-only dependency, same reasoning Avatar.jsx's own identical reimplementation already
 // established (no window.__initials bridge exists by design).
 function initials(name: string): string {
@@ -126,7 +126,8 @@ function initials(name: string): string {
 // collaborator's shared:owner:folderId view resolve to the identical channel name independently
 // (see resolvePresenceFolderKey), so everyone currently on that exact canvas ends up on the same
 // channel regardless of whose canvas it actually is. Reuses the exact same combined
-// presence+broadcast-on-one-channel shape as subscribeToAllFriendMessages (friends-presence.js).
+// presence+broadcast-on-one-channel shape as subscribeToAllFriendMessages
+// (app/dotto/lib/friendsPresence.ts).
 //
 // A small fixed indexed palette (appState.CURSOR_COLORS), keyed by hashing the user's own id
 // rather than anything server-stored, so the same person always gets the same color across

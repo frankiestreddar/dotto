@@ -72,6 +72,8 @@ import { wireProfileAchievementsPricing } from "./dotto/lib/profileAchievementsP
 import { wireCardShortcuts } from "./dotto/lib/cardShortcuts";
 import { wireAiAssistantSuggestions } from "./dotto/lib/aiAssistantSuggestions";
 import { wireHamburgerCollab } from "./dotto/lib/hamburgerCollab";
+import { wireFriendsPresence } from "./dotto/lib/friendsPresence";
+import { wireMessagesSchedule } from "./dotto/lib/messagesSchedule";
 // Side-effect only — sets window.__buildMnemonicErrorEl/commenceSearchOrMnemonic/etc at
 // module-eval time for search-orchestration-selection.js (still vanilla); every other bridge this
 // file used to need was upgraded to a real import by its own same-tree app/dotto/*.jsx consumer.
@@ -398,12 +400,13 @@ if (typeof window !== "undefined") {
   // store.sets, no synchronous DOM read follows either one.
   window.__setProfileLevel = profileLevelStore.set;
   window.__setAchievements = achievementsStore.set;
-  // Messages panel (see app/dotto/MessagesListPanel.jsx, friends-presence.js's renderMsgList/
-  // renderMsgRequests) — same reasoning as __setWaypointsList/__setHubCollabList: both entry
-  // points are real async Supabase calls.
+  // Messages panel (see app/dotto/MessagesListPanel.jsx,
+  // app/dotto/lib/friendsPresence.ts's renderMsgList/renderMsgRequests) — same reasoning as
+  // __setWaypointsList/__setHubCollabList: both entry points are real async Supabase calls.
   window.__setMsgList = msgListStore.set;
   // Per-canvas Collaborations flyout (see app/dotto/CollabListPanel.jsx,
-  // friends-presence.js's renderCollabList) — same reasoning: real async Supabase calls.
+  // app/dotto/lib/friendsPresence.ts's renderCollabList) — same reasoning: real async Supabase
+  // calls.
   window.__setCollabList = collabListStore.set;
   // Marketplace Discover tab's trending list (see app/dotto/MarketDiscoverPanel.jsx,
   // app/dotto/lib/marketplace.ts's renderMarketplaceDiscover) — a plain store.set, no synchronous
@@ -424,10 +427,11 @@ if (typeof window !== "undefined") {
   // app/dotto/lib/libraryPublish.ts's renderItemDetailFooter) — a plain store.set, no synchronous
   // DOM read follows it.
   window.__setItemDetailFooter = itemDetailFooterStore.set;
-  // Collaborators pill, one per pane (see app/dotto/PaneTopBar.jsx, friends-presence.js's
-  // renderCollabPill) — pane-keyed since split-screen Stage 8, same reasoning as
-  // __setBreadcrumbMap/__setTabs below. MUST be flushSync: openCollabPanel (friends-presence.js)
-  // reads the triggering bubble element's `.show` class synchronously right after this runs.
+  // Collaborators pill, one per pane (see app/dotto/PaneTopBar.jsx,
+  // app/dotto/lib/friendsPresence.ts's renderCollabPill) — pane-keyed since split-screen Stage 8,
+  // same reasoning as __setBreadcrumbMap/__setTabs below. MUST be flushSync: openCollabPanel
+  // (app/dotto/lib/friendsPresence.ts) reads the triggering bubble element's `.show` class
+  // synchronously right after this runs.
   window.__setCollabPill = (paneId, state) =>
     flushSync(() => collabPillStore.storeFor(paneId).set(state));
   // Back/forward enabled-state, one per pane (see app/dotto/PaneTopBar.jsx,
@@ -565,6 +569,16 @@ export default function DottoApp({ sections, currentUser }) {
   // app/dotto/lib/hamburgerCollab.ts, for why this needs window.__getDrawSettingsEl
   // (app/dotto/lib/coreState.ts) ready right at wire time.
   useEffect(() => wireHamburgerCollab(), []);
+  // Phase 4.5: the collabPanel mouseleave listener, window.__pinOnInsideClick('collab', ...), the
+  // AFK-activity listeners, and the initial resetAfkTimer() call — see wireFriendsPresence's own
+  // comment, app/dotto/lib/friendsPresence.ts, for why this needs live appState right at wire time
+  // rather than a single readiness check.
+  useEffect(() => wireFriendsPresence(), []);
+  // Phase 4.5: wires the Messages rail icon itself (window.__wireRailIcon,
+  // app/dotto/lib/panelsHamburger.ts) — see wireMessagesSchedule's own comment,
+  // app/dotto/lib/messagesSchedule.ts, for why this needs to poll for both window.__getAppState
+  // AND window.__wireRailIcon rather than a single readiness check.
+  useEffect(() => wireMessagesSchedule(), []);
 
   return (
     <>

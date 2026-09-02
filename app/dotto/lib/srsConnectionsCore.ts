@@ -667,7 +667,7 @@ function handleGlobalKeydown(e: KeyboardEvent): void {
   // (appState.btnSnippets2, distinct from appState.btnSnippets/Files). 'J' (Friends) was free again
   // — the Friends rail button/panel it opened was removed entirely per explicit request (a
   // never-implemented stub, unrelated to the real friend-list/friend-request data model
-  // friends-presence.js still provides for Collaborations/Messages) — now reused for Servers (see
+  // app/dotto/lib/friendsPresence.ts still provides for Collaborations/Messages) — now reused for Servers (see
   // that shortcut's own line, below).
   // Collaborations is 'C' (was 'G', reassigned per explicit request — the bare 'c'/'C'
   // copy-selected-cards shortcut that used to collide with it was removed from historyAutosave.ts

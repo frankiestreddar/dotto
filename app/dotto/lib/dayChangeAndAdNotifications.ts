@@ -7,8 +7,9 @@ import { dateKey } from "./dateKey";
 // nudge, both below.
 //
 // Phase 4.1 port — its three external dependencies were dateKey (extracted alongside this, see
-// dateKey.ts's own comment — messages-schedule.js itself stays vanilla, it has real hub
-// dependencies of its own), and pushNotification/openPricingOverlay, both already reachable via
+// dateKey.ts's own comment — at the time, messages-schedule.js itself stayed vanilla; it's since
+// been ported too, see app/dotto/lib/messagesSchedule.ts, Phase 4.5), and
+// pushNotification/openPricingOverlay, both already reachable via
 // existing plain window bridges (window.pushNotification, set in notifications.js;
 // window.openPricingOverlay, set in window-bridge.js) without needing either of those files
 // ported first. appState.lastStatsDayKey is a dynamically-added field (never pre-declared in

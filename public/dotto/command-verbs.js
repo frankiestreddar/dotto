@@ -1,6 +1,5 @@
 const appState = window.__getAppState();
 const supabase = window.__dottoSupabase || null;
-import { resolveUsernameToUserId } from './friends-presence.js';
 import { generateGlobalId } from './global-ids.js';
 import { CARD_KINDS } from './card-kinds.js';
 
@@ -36,15 +35,16 @@ async function setVisibility(target, visibility) {
 
 // 'invite <username>' — same owner-only guard as setVisibility. Deliberately calls
 // invite_canvas_collaborator directly rather than reusing sendCanvasCollabInvite
-// (friends-presence.js) — that wrapper hardcodes appState.currentFolderId and a UI-panel-specific
-// pending-invite tracker, neither of which fits inviting on an arbitrary canvas by name/id from a
-// command. resolveUsernameToUserId (friends-presence.js) deliberately doesn't require the target
-// to already be a friend, unlike the existing Collaborations-panel flow — that restriction lives
-// entirely in that panel's own UI, not in the RPC itself.
+// (app/dotto/lib/friendsPresence.ts) — that wrapper hardcodes appState.currentFolderId and a
+// UI-panel-specific pending-invite tracker, neither of which fits inviting on an arbitrary canvas
+// by name/id from a command. resolveUsernameToUserId (app/dotto/lib/friendsPresence.ts)
+// deliberately doesn't require the target to already be a friend, unlike the existing
+// Collaborations-panel flow — that restriction lives entirely in that panel's own UI, not in the
+// RPC itself.
 async function inviteUser(target, username) {
     if (!target) return;
     if (target.access !== 'owner') { window.pushNotification({ type: 'command_error', message: `You can only invite people to your own ${target.kind}.` }); return; }
-    const userId = await resolveUsernameToUserId(username);
+    const userId = await window.__resolveUsernameToUserId(username);
     if (!userId) { window.pushNotification({ type: 'command_error', message: `No user found with username "${username}".` }); return; }
     const { error } = await supabase.rpc('invite_canvas_collaborator', { p_folder_id: target.folder_id, p_folder_title: target.title, p_collaborator_id: userId });
     if (error) {

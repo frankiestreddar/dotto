@@ -390,7 +390,7 @@ export const profileLevelStore = createStore({ displayName: "", tierColor: "" })
 // render every cell. Genuine JSX, same reasoning as commandPaletteStore/waypointsListStore.
 export const achievementsStore = createStore([]);
 
-// Messages panel's chat/friend list (public/dotto/friends-presence.js's renderMsgList/
+// Messages panel's chat/friend list (app/dotto/lib/friendsPresence.ts's renderMsgList/
 // renderMsgRequests) — same two-view shape as hubCollabListStore:
 // { view: 'main', requestsCount, matchedFriends, searchResults, query } or
 // { view: 'requests', requests }. Genuine JSX rows (see MessagesListPanel.jsx). Not flushSync'd —
@@ -405,7 +405,7 @@ export const msgListStore = createStore({
   query: "",
 });
 
-// Per-canvas Collaborations flyout (public/dotto/friends-presence.js's renderCollabList) —
+// Per-canvas Collaborations flyout (app/dotto/lib/friendsPresence.ts's renderCollabList) —
 // { rows: [{id, displayName, avatarId, avatarUrl, added, pending, isPresent}], query }. No
 // Requests drill-down of its own (unlike hubCollabListStore/msgListStore above) — adding someone
 // here sends a request that shows as "Requested" until accepted from THEIR OWN hamburger
@@ -466,9 +466,9 @@ export const itemDetailFooterStore = createStore(null);
 // directly by PaneTopBar.jsx (app/dotto/) now, not portalled into a static top-bar.html node —
 // #collab-bubble/#collab-content/#collab-tooltip no longer exist as singular ids, see that file.
 // { show, collabs: [{id, avatarId, avatarUrl, displayName}] (up to 3), moreCount }, pushed by
-// public/dotto/friends-presence.js's renderCollabPill(paneId). MUST be flushSync'd (see
-// app/dotto-app.jsx): openCollabPanel (friends-presence.js) reads the triggering bubble element's
-// `.show` class synchronously right after a caller pushes here.
+// app/dotto/lib/friendsPresence.ts's renderCollabPill(paneId). MUST be flushSync'd (see
+// app/dotto-app.jsx): openCollabPanel (app/dotto/lib/friendsPresence.ts) reads the triggering
+// bubble element's `.show` class synchronously right after a caller pushes here.
 export const collabPillStore = createPaneKeyedStore(() => ({
   show: false,
   collabs: [],

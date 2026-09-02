@@ -3,11 +3,11 @@
 // pricing-overlay open/close wrappers. Reaches every still-vanilla dependency through window
 // bridges — most already existed (window.pushNotification/__closeAllPanels/__setPricingOverlayOpen/
 // __setProfileLevel/__setAchievements/__wireRailIcon/__closeRailView), 3 are new as part of this
-// port (__refreshDotbotUsage/__closeProfilePanel/__openDotbotUpgradeModal — friends-presence.js/
+// port (__refreshDotbotUsage/__closeProfilePanel/__openDotbotUpgradeModal —
 // drawing-connections.js/search-orchestration-selection.js/app-init.js (still vanilla) plus
-// app/dotto/lib/hamburgerCollab.ts/app/dotto/lib/mnemonicSearchMatching.ts (ported since), all of
-// which used to import these 5 functions directly; that vanilla-to-vanilla import no longer
-// reaches across the public/app boundary).
+// app/dotto/lib/hamburgerCollab.ts/app/dotto/lib/mnemonicSearchMatching.ts/
+// app/dotto/lib/friendsPresence.ts (ported since), all of which used to import these 5 functions
+// directly; that vanilla-to-vanilla import no longer reaches across the public/app boundary).
 
 interface Achievement {
   id: string;
@@ -525,9 +525,9 @@ if (typeof window !== "undefined") {
   window.__closePricingOverlay = closePricingOverlay;
   // Used by app/dotto/lib/srsConnectionsCore.ts's global keydown handler's ',' shortcut (Phase 4.5).
   window.__showProfileSettingsView = showProfileSettingsView;
-  // New bridges for this port — friends-presence.js/drawing-connections.js/
-  // search-orchestration-selection.js/app-init.js (still vanilla) plus
-  // app/dotto/lib/hamburgerCollab.ts/app/dotto/lib/mnemonicSearchMatching.ts (ported since) used
+  // New bridges for this port — drawing-connections.js/search-orchestration-selection.js/
+  // app-init.js (still vanilla) plus app/dotto/lib/hamburgerCollab.ts/
+  // app/dotto/lib/mnemonicSearchMatching.ts/app/dotto/lib/friendsPresence.ts (ported since) used
   // to import these 5 directly.
   window.__refreshDotbotUsage = refreshDotbotUsage;
   window.__closeProfilePanel = closeProfilePanel;

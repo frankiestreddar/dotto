@@ -1141,6 +1141,66 @@
   lines, never itself a `window-bridge.js` importer, but a real dependency of `friends-presence.js`)
   still to resolve before `window-bridge.js` itself can be deleted and this sub-effort of Phase 4.5
   closes out.
+  `friends-presence.js` (605 lines) and `messages-schedule.js` (30 lines) done next, together —
+  the last genuinely circular pair (`friends-presence.js` imports `openMessagesPanel` from
+  `messages-schedule.js`; `messages-schedule.js` imports `renderMsgList` from
+  `friends-presence.js`) — to `app/dotto/lib/friendsPresence.ts`/`app/dotto/lib/messagesSchedule.ts`,
+  co-located as real ES modules the same way the ai/hamburger/mnemonic trio resolved its own
+  circularity. `friendsPresence.ts` owns the per-canvas Collaborators bubble/panel (pane-keyed
+  since split-screen Stage 8), canvas-collaboration invite/revoke Supabase RPCs, the Friends/
+  Messages list data (friend requests, chat previews), and friend online/afk/logout presence
+  tracking over Supabase Realtime; `messagesSchedule.ts` owns the thin Messages rail-view open/
+  close/refresh wrappers around `panelsHamburger.ts`'s shared rail shell. 8 real bridges dropped in
+  favor of real same-tree imports (`collabBubblePaneClick`/`collabBubblePaneMouseEnter`/
+  `collabBubblePaneMouseLeave` into `PaneTopBar.jsx`; `openMsgRequestsView`/`backToMsgMain`/
+  `handleAddFriendClick`/`respondToMsgRequest` into `MessagesListPanel.jsx`;
+  `handleCollabAddRemoveClick` into `CollabListPanel.jsx`) — the largest single batch of
+  bridge-to-import upgrades this migration has done in one port. 2 new outbound bridges added for
+  still-vanilla dependents (`__refreshFriendsData`/`__resolveUsernameToUserId`, both used by
+  `app-init.js`'s bootstrap and `command-verbs.js`'s `invite`/`remove` slash-command verbs
+  respectively); `window-bridge.js`'s own dead `window.openCollabPanel` plain-global re-export
+  dropped (confirmed via a repo-wide grep — no real inline `onclick` target left for it, only its
+  `__`-prefixed bridge is still used) rather than carried forward. `window-bridge.js` now imports
+  from only `source-tags-ai.js` — the last of the original 8.
+  Two real, pre-existing product-level gaps found and documented (not fixed, out of scope for a
+  migration port) while writing this port's own real two-account verify script: (1) the
+  `invite_canvas_collaborator` RPC — called with the exact params its own migration
+  (`supabase/migrations/20260808_fix_canvas_collab_reinvite.sql`) defines, unchanged from the
+  original vanilla — returns a PostgREST `PGRST202` "function not found" against the live Supabase
+  project this dev server points at (its own error hint even hints at the differently-named
+  `revoke_canvas_collaboration`, which does exist), meaning either that one migration was never
+  applied to this project or its PostgREST schema cache is stale; (2) `handleFriendPresenceSync`
+  (also unchanged from the original) reads `metas[0].status` off a friend's Realtime Presence
+  state, but re-calling `channel.track()` on an already-tracked presence channel was confirmed,
+  via direct repro against a freshly created account pair, to append a SECOND meta under the same
+  key rather than replacing the first — so a friend's online→afk transition is invisible to
+  `metas[0]` even though the local `track()` call itself fires correctly; the resulting cross-
+  account "X is away" notification never arrives, even though `resetAfkTimer`/
+  `setLocalPresenceStatus` themselves are proven correct (verified directly: `localPresenceStatus`
+  flips and `channel.track({status:'afk'})` visibly adds the new meta on the peer's own copy of the
+  channel). Both confirmed unrelated to this port and out of scope to fix here. Real Playwright
+  verification against both a dev server and a real production server, using two real accounts
+  (the shared primary test account plus a second one created just for this script via a new
+  `setup-test-account2.js`) driven through the actual friend-request → accept → per-canvas-
+  collaborate → chat → presence flow, not mocked appState data — the first Phase 4.5 verify script
+  this migration has needed two real browser contexts/accounts for: a real friend-request search +
+  Add-button send, a real incoming-request notification + Accept flow (confirmed the "haven't
+  heard from this channel yet" vs. "seen already" baseline distinction in `refreshFriendsData`
+  actually works, by establishing account2's baseline before account1's request existed); a real
+  per-canvas Collaborators bubble hover/click/invite (including real-hovering the parent
+  `.pane-breadcrumb-pill` first, since `.pane-collab-bubble` is `max-width:0`/`opacity:0` until
+  hovered, and navigating into a real non-root folder first, since the bubble correctly no-ops on
+  `root`); `__closeMessagesPanel()` correctly closing both the rail panel and an open conversation
+  together; a real chat message insert correctly routing to a "not actively viewing" push
+  notification on the receiving account; a real presence disconnect/reconnect correctly firing
+  "logged off"/"is online" notifications; the AFK local-state verification described above.
+  Regression-verified `verify-phase4-5-ai-hamburger-mnemonic-port.js`,
+  `verify-phase4-5-panelshamburger-port.js`, `verify-phase4-5-profileachievementspricing-port.js`,
+  and `verify-phase4-5-livepresence-port.js` all clean afterward. Zero console/page errors across
+  every script in both modes, beyond the two confirmed-external/pre-existing gaps above, both
+  deliberately whitelisted with a documented reason.
+  **This resolves the last genuinely circular pair.** Of the original 8 `window-bridge.js`-owning
+  files, only `source-tags-ai.js` remains.
 - **Phase 4.6 — delete the bridge layer: not started.**
 - **Phase 4.7 — final cleanup & professionalization close-out: not started.**
 
@@ -2417,3 +2477,94 @@ batch this migration has run for a single port —
 `verify-phase4-5-historyautosave-port.js`/`verify-phase4-5-cardshortcuts-port.js` — all clean
 afterward. Zero console/page errors across every script in both modes, beyond the one confirmed-
 external `502` deliberately whitelisted with a documented reason, not silently swallowed.
+
+**Phase 4.5 (`friends-presence.js`/`messages-schedule.js` → `app/dotto/lib/friendsPresence.ts`/
+`app/dotto/lib/messagesSchedule.ts`)**: `node --check` on the 5 touched vanilla files
+(`dotto-script.js`, `window-bridge.js`, `app-init.js`, `command-verbs.js`, `drag-drop-chat.js`),
+`eslint` clean, `npm run typecheck` clean (after adding ambient types for 5 previously-untyped
+React store setters — `__setCollabList`/`__setCollabPill`/`__setMsgList` — plus the 2 plain-global
+`handleCollabSearch`/`handleMsgSearch` and the 2 new outbound bridges this port needed, and casting
+one cross-file call, `__renderConvoBody`, to the existing `Record<string, unknown>` ambient shape),
+`npm run format:check` clean after a `prettier --write` pass run as the actual last step before
+committing, `rm -rf .next && npm run build` clean, all 32 Vitest tests still green. The last
+genuinely circular pair in this migration, co-located into `app/dotto/lib` the same way the
+ai/hamburger/mnemonic trio resolved its own circularity — `friendsPresence.ts` imports
+`openMessagesPanel` from `messagesSchedule.ts`, which imports `renderMsgList` back, with neither
+binding read at module-evaluation time. 8 real bridges dropped in favor of real same-tree imports
+(`collabBubblePaneClick`/`collabBubblePaneMouseEnter`/`collabBubblePaneMouseLeave` into
+`PaneTopBar.jsx`; `openMsgRequestsView`/`backToMsgMain`/`handleAddFriendClick`/
+`respondToMsgRequest` into `MessagesListPanel.jsx`; `handleCollabAddRemoveClick` into
+`CollabListPanel.jsx`). 2 new outbound bridges (`__refreshFriendsData`/`__resolveUsernameToUserId`)
+for `app-init.js`'s bootstrap and `command-verbs.js`'s `invite`/`remove` verbs respectively.
+`window-bridge.js`'s dead `window.openCollabPanel` plain-global re-export dropped (confirmed via a
+repo-wide grep — no real inline `onclick` target left) rather than carried forward; its
+`handleCollabSearch`/`handleMsgSearch` re-exports also dropped, now set directly by
+`friendsPresence.ts` itself. Full repo-wide stale-filename sweep via the established `python3`
+walk-and-string-search technique (plain `grep` again missed hits due to the known em-dash/locale
+quirk) — fixed current-tense pointers across `app/dotto-app.jsx`, `app/dotto/Avatar.jsx`,
+`app/dotto/bridges.js`, `app/dotto/PaneTopBar.jsx`, `app/dotto/lib/canvasPresence.ts`,
+`app/dotto/lib/profileAchievementsPricing.ts`, `app/dotto/lib/notificationsStore.ts`,
+`app/dotto/lib/dayChangeAndAdNotifications.ts`, `app/dotto/lib/dateKey.ts`,
+`app/dotto/lib/panelsHamburger.ts`, `app/dotto/lib/messagingCanvasPreview.ts`,
+`app/dotto/lib/srsConnectionsCore.ts`, `app/dotto/lib/vanillaBridges.d.ts`,
+`content/fragments/hamburger-stack.html`, `content/fragments/top-bar.html`; left historical/
+past-tense "previously imported these directly" phrasing alone in `vanillaBridges.d.ts` and
+`canvasPresence.ts`, matching established convention.
+
+Two real, pre-existing product-level gaps found and documented (not fixed, confirmed unrelated to
+this port and out of scope for a migration port) while writing this port's own real two-account
+verify script — the first Phase 4.5 verify script this migration has needed two real browser
+contexts/accounts for, driven through an actual friend-request → accept → per-canvas-collaborate
+→ chat → presence flow rather than mocked `appState` data, using a second real test account
+created via a new `setup-test-account2.js`:
+1. `invite_canvas_collaborator` — called with the exact params its own migration
+   (`supabase/migrations/20260808_fix_canvas_collab_reinvite.sql`) defines, unchanged from the
+   original vanilla call site — returns a real PostgREST `PGRST202` "function not found" against
+   the live Supabase project this dev server points at (`NEXT_PUBLIC_SUPABASE_URL`); its own error
+   hint even suggests the differently-named `revoke_canvas_collaboration`, which does exist, as the
+   nearest match. Either that one migration was never applied to this project or its PostgREST
+   schema cache is stale — confirmed genuinely reproducible (not a testing artifact) via direct
+   repro outside the verify script too. Out of scope to fix from an agent session against a live,
+   shared Supabase project without explicit operator action; the verify script instead confirms the
+   call fires with the correct name/params (via the real, documented error it produces) and that
+   the button correctly stays un-pended given the real failure.
+2. `handleFriendPresenceSync` (also unchanged from the original) reads `metas[0].status` off a
+   friend's Realtime Presence state to detect online/afk/offline transitions — but re-calling
+   `channel.track()` on an already-tracked presence channel was confirmed, via direct repro against
+   a freshly created account pair with no prior state (ruling out test-run pollution), to append a
+   SECOND meta under the same key rather than replacing the first, so `metas[0]` keeps reading the
+   stale first ("online") entry and the online→afk transition is never observed by the peer, even
+   though the local side's own `resetAfkTimer`/`setLocalPresenceStatus` are proven correct
+   (`localPresenceStatus` flips to `'afk'` right at `AFK_THRESHOLD_MS`, and `channel.track` visibly
+   adds the new `'afk'` meta on the peer's own copy of the shared channel — both checked directly).
+   The cross-account "X is away" notification itself is what's blocked; the verify script checks
+   the local flip and the track() call's own effect instead of the notification.
+
+Real Playwright verification against both a dev server and a real production server: bridge
+existence for all 12 (`__openCollabPanel`/`__renderCollabPill`/`__syncCanvasCollabTitle`/
+`__closeCollabPanel`/`__renderMsgList`/`__refreshCanvasCollabForCurrentFolder`/
+`__activePaneCollabBubbleEl`/`__refreshFriendsData`/`__resolveUsernameToUserId`/
+`__closeMessagesPanel`/`handleCollabSearch`/`handleMsgSearch`); a real friend-request search + Add
+click, waiting on real button-text state rather than a fixed delay; a real incoming-request
+notification + Accept flow, deliberately establishing account2's own baseline (an empty messages-
+panel open) *before* account1's request existed, confirming `refreshFriendsData`'s "haven't heard
+from this channel yet" vs. "seen already" distinction actually works, not just its happy path; a
+real per-canvas Collaborators bubble hover/click/invite — real-hovering the parent
+`.pane-breadcrumb-pill` first (`.pane-collab-bubble` is `max-width:0`/`opacity:0` until hovered,
+confirmed by direct CSS inspection, not assumed), and navigating into a real non-root folder first
+(the bubble correctly no-ops on `root`, confirmed by checking `appState.currentFolderId` on the
+real shared test account, which defaulted to `'root'`); `__closeMessagesPanel()` correctly closing
+both the rail panel and an open conversation together; a real chat-message insert correctly
+routing to a "not actively viewing" push notification on the receiving account (confirmed the
+panel was actually closed on that side first, to exercise that specific branch rather than the
+already-covered "actively viewing" one); a real presence disconnect (`context.close()`)/reconnect
+correctly firing "logged off"/"is online" notifications; the AFK local-state verification
+described above. Regression-verified `verify-phase4-5-ai-hamburger-mnemonic-port.js`,
+`verify-phase4-5-panelshamburger-port.js`, `verify-phase4-5-profileachievementspricing-port.js`,
+and `verify-phase4-5-livepresence-port.js` all clean afterward (the first hit one real flake on its
+first dev-mode run — a live-suggestions network round trip, same real-network-timing category
+already documented for that script — and passed clean on an immediate re-run, in both modes).
+Zero console/page errors across every script in both modes, beyond the two confirmed-external/
+pre-existing gaps above, both deliberately whitelisted with a documented reason.
+**This resolves the last genuinely circular pair.** Of the original 8 `window-bridge.js`-owning
+files, only `source-tags-ai.js` remains.

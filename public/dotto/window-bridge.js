@@ -17,9 +17,14 @@
 // openTableCellContextMenu originally) were REMOVED again too, for a different reason — Phase 4.4
 // moved their owning file (source-table.js) to app/dotto/lib/sourceTable.ts, which now sets these
 // as plain globals directly, same convention every other inline-onclick target that file owns
-// already established.)
+// already established.
+// handleCollabSearch/handleMsgSearch/openCollabPanel were REMOVED the same way — Phase 4.5 moved
+// their owning file (friends-presence.js) to app/dotto/lib/friendsPresence.ts, which now sets
+// handleCollabSearch/handleMsgSearch as plain globals directly; openCollabPanel's own plain-global
+// re-export here had no real inline-onclick target left (confirmed via a repo-wide grep) and was
+// dropped rather than carried forward — only its __-prefixed bridge (still used by
+// app/dotto/lib/hamburgerCollab.ts) survives.)
 
-import { handleCollabSearch, handleMsgSearch, openCollabPanel } from './friends-presence.js';
 import { closeCellTagPicker, closeTagContextMenu, commitTagRename, createTagFromCellPicker, deleteActiveTag, handleTagRenameKeydown, openTagContextMenu, startRenameActiveTag, toggleCellTag, triggerSourceUpload } from './source-tags-ai.js';
 
 window.closeCellTagPicker = closeCellTagPicker;
@@ -27,10 +32,7 @@ window.closeTagContextMenu = closeTagContextMenu;
 window.commitTagRename = commitTagRename;
 window.createTagFromCellPicker = createTagFromCellPicker;
 window.deleteActiveTag = deleteActiveTag;
-window.handleCollabSearch = handleCollabSearch;
-window.handleMsgSearch = handleMsgSearch;
 window.handleTagRenameKeydown = handleTagRenameKeydown;
-window.openCollabPanel = openCollabPanel;
 window.openTagContextMenu = openTagContextMenu;
 window.startRenameActiveTag = startRenameActiveTag;
 window.toggleCellTag = toggleCellTag;

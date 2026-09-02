@@ -1,5 +1,4 @@
 const appState = window.__getAppState();
-import { refreshCanvasCollabForCurrentFolder, refreshFriendsData, renderCollabPill } from './friends-presence.js';
 
 // Phase 4.3 split (was part of resize-shortcuts-init.js, see PHASE4_ROADMAP.md) — the "init"
 // concern: the one-time bootstrap sequence that actually gets the app showing real content, run
@@ -24,12 +23,12 @@ window.__applyCursorMode();
     // render() above ran before this had any real data, so a landing folder with an actual
     // collaborator could otherwise start out wrongly deciding "no live channel needed" straight
     // from a fresh page load, not just after a later in-app navigation.
-    refreshCanvasCollabForCurrentFolder();
+    window.__refreshCanvasCollabForCurrentFolder?.();
     // A reload that resumed straight back into a shared canvas (see loadWorkspace's own resume
     // logic) reads the same as freshly entering it from the user's point of view — the one-time
     // "Collaborating on..." notification should still fire, not just for the in-session entry
     // points (openSharedCanvas/goToWaypointCard).
     if (appState.folders[appState.currentFolderId] && appState.folders[appState.currentFolderId].isSharedView) window.__announceEnteredCollaboration(appState.currentFolderId);
 })();
-refreshFriendsData().then(() => renderCollabPill());
+window.__refreshFriendsData?.().then(() => window.__renderCollabPill?.());
 window.__refreshDotbotUsage?.();

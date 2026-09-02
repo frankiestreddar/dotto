@@ -7,8 +7,8 @@
 // scrollChatThreadToBottom/showAiChatView/updateChatThread) — see that file's own header comment
 // for why this is safe. Also imports from app/dotto/lib/mnemonicSearchMatching.ts
 // (flashCanvasElement, one-way — that file needs nothing back from here) and reaches
-// friends-presence.js (still vanilla) via the __activePaneCollabBubbleEl bridge (new in this port
-// — openCollabPanel/renderCollabPill were already bridged).
+// app/dotto/lib/friendsPresence.ts via the __activePaneCollabBubbleEl bridge (new in the Phase 4.5
+// friends-presence port — openCollabPanel/renderCollabPill were already bridged).
 
 import {
   openSearchOverlay,

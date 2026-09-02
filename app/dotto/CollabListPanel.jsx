@@ -5,6 +5,7 @@ import { createPortal } from "react-dom";
 import Avatar from "./Avatar";
 import { collabListStore } from "./bridges";
 import { goToCollaboratorCursor } from "./lib/canvasPresence";
+import { handleCollabAddRemoveClick } from "./lib/friendsPresence";
 import usePortalNode from "./usePortalNode";
 
 const EMPTY_STATE = { rows: [], query: "" };
@@ -44,7 +45,7 @@ function CollabRow({ r }) {
         disabled={r.pending}
         onClick={(e) => {
           e.stopPropagation();
-          window.__handleCollabAddRemoveClick(r.id, r.added, r.pending, r.query);
+          handleCollabAddRemoveClick(r.id, r.added, r.pending, r.query);
         }}
       >
         {label}

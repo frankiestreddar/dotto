@@ -289,7 +289,7 @@ declare global {
       points: { x: number; y: number; handleOut: [number, number] | null }[],
     ) => string;
     __pointsToPath?: (pts: [number, number][]) => string;
-    // friends-presence.js
+    // app/dotto/lib/friendsPresence.ts
     __syncCanvasCollabTitle?: (folderId: string, newTitle: string) => Promise<void>;
     // app/dotto/lib/canvasPresence.ts
     __broadcastEditingState?: (isEditing: boolean, targetSelector?: string) => void;
@@ -407,7 +407,7 @@ declare global {
     ) => void;
     // drawing-connections.js
     __linkSelectedCards?: () => void;
-    // friends-presence.js
+    // app/dotto/lib/friendsPresence.ts
     __closeCollabPanel?: () => void;
     // app/dotto/lib/hamburgerCollab.ts
     __dispatchListPanelDelete?: (panel: string, ids: string[]) => void;
@@ -601,6 +601,10 @@ declare global {
     handleHubCollabSearch?: (v: string) => void;
     handleSourcesSearch?: (v: string) => void;
     handleWaypointsSearch?: (v: string) => void;
+    // Plain (non-`__`) globals — real inline oninput targets (content/fragments/collab-panel.html/
+    // hamburger-stack.html), set directly by app/dotto/lib/friendsPresence.ts.
+    handleCollabSearch?: (v: string) => void;
+    handleMsgSearch?: (v: string) => void;
     // app/dotto/lib/coreState.ts — same live-read reasoning as __getCanvasEl/__getWorldEl above.
     __getCursorOverlayEl?: () => HTMLElement | undefined;
     // app/dotto/lib/profileAchievementsPricing.ts
@@ -802,7 +806,7 @@ declare global {
     // comment there for why it must commit synchronously.
     __renderCanvasItems?: (items: Record<string, unknown>[], paneId: number) => void;
     __setMediaViewerZoom?: (paneId: number, state: { show: boolean; zoom: number }) => void;
-    // friends-presence.js
+    // app/dotto/lib/friendsPresence.ts
     __refreshCanvasCollabForCurrentFolder?: () => Promise<void>;
     __renderCollabPill?: () => void;
     // app/dotto/lib/cardShortcuts.ts
@@ -909,6 +913,22 @@ declare global {
     __setRecommendedSearches?: (panel: unknown) => void;
     __setDotbotAnswer?: (state: Record<string, unknown> | null) => void;
 
+    // app/dotto-app.jsx (via app/dotto/bridges.js's various stores) — React-facing setters for
+    // app/dotto/lib/friendsPresence.ts (Phase 4.5 port — was friends-presence.js).
+    __setCollabList?: (state: { rows: Record<string, unknown>[]; query: string }) => void;
+    __setCollabPill?: (
+      paneId: number,
+      state: { show: boolean; collabs: Record<string, unknown>[]; moreCount: number },
+    ) => void;
+    __setMsgList?: (state: {
+      view: string;
+      requestsCount?: number;
+      matchedFriends?: Record<string, unknown>[];
+      searchResults?: Record<string, unknown>[];
+      requests?: Record<string, unknown>[];
+      query?: string;
+    }) => void;
+
     // command-palette.js — new bridge for this port; app/dotto/lib/aiAssistantSuggestions.ts used
     // to import updateCommandPalette directly (vanilla-to-vanilla), which no longer reaches across
     // the public/app boundary now that it's ported.
@@ -916,12 +936,17 @@ declare global {
     // search-orchestration-selection.js — new bridge for this port, same reasoning:
     // app/dotto/lib/mnemonicSearchMatching.ts used to import commenceDotbotSearch directly.
     __commenceDotbotSearch?: (query: string) => void;
-    // friends-presence.js — new bridge for this port; app/dotto/lib/hamburgerCollab.ts used to
-    // import activePaneCollabBubbleEl directly (vanilla-to-vanilla).
+    // app/dotto/lib/friendsPresence.ts — new bridge for the ai/hamburger/mnemonic port;
+    // app/dotto/lib/hamburgerCollab.ts used to import activePaneCollabBubbleEl directly
+    // (vanilla-to-vanilla, back when friends-presence.js was still vanilla itself).
     __activePaneCollabBubbleEl?: () => HTMLElement | undefined;
-    // friends-presence.js — already an established runtime bridge, just never typed here until
-    // app/dotto/lib/hamburgerCollab.ts (Phase 4.5) needed it too.
+    // app/dotto/lib/friendsPresence.ts — already an established runtime bridge, just never typed
+    // here until app/dotto/lib/hamburgerCollab.ts (Phase 4.5) needed it too.
     __openCollabPanel?: (pin?: boolean) => void;
+    // app/dotto/lib/friendsPresence.ts — used by public/dotto/app-init.js's one-time bootstrap.
+    __refreshFriendsData?: () => Promise<void>;
+    // app/dotto/lib/friendsPresence.ts — used by public/dotto/command-verbs.js's inviteUser verb.
+    __resolveUsernameToUserId?: (username: string) => Promise<string | null>;
     // app/dotto/lib/mnemonicSearchMatching.ts — kept as bridges (not upgraded to real imports)
     // since search-orchestration-selection.js (still vanilla) is a real caller alongside
     // SearchSuggestionsPanel.jsx.

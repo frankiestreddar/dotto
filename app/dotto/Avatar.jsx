@@ -2,9 +2,9 @@
 
 import { useState } from "react";
 
-// Pure reimplementation of the vanilla `initials` (public/dotto/friends-presence.js) — plain
-// string logic with no vanilla-only dependency (no appState/DOM access), so it's computed directly
-// here instead of via a window.__ bridge. That matters on first paint specifically: every other
+// Pure reimplementation of `initials` (app/dotto/lib/friendsPresence.ts) — plain string logic with
+// no vanilla-only dependency (no appState/DOM access), so it's computed directly here instead of
+// via a window.__ bridge or a direct import. That matters on first paint specifically: every other
 // window.__ bridge call in these React-owned panels only ever runs after some vanilla-originated
 // store data has already arrived (guaranteeing dotto-script.js, the <Script strategy=
 // "afterInteractive"> bundle that sets those bridges, is already loaded by then) — but Avatar can

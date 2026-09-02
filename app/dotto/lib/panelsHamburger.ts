@@ -48,7 +48,7 @@ function getAppState(): AppState | undefined {
 
 // ---------- Hover/Pin Panel Helper ----------
 // Used by the add-menu and the per-canvas collaborator flyout ('add'/'collab' — see
-// app/dotto/lib/copyPaste.ts/friends-presence.js): hovering the trigger opens them temporarily
+// app/dotto/lib/copyPaste.ts/app/dotto/lib/friendsPresence.ts): hovering the trigger opens them temporarily
 // (closing again once the pointer leaves both the button and the panel), while clicking pins the
 // panel open until the user clicks elsewhere. The permanent rail (below) no longer uses this at
 // all — every rail icon is click-only now, so there's nothing for it to hover-close.

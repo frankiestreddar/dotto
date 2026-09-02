@@ -4,6 +4,12 @@ import { useSyncExternalStore } from "react";
 import { createPortal } from "react-dom";
 import Avatar from "./Avatar";
 import { msgListStore } from "./bridges";
+import {
+  backToMsgMain,
+  handleAddFriendClick,
+  openMsgRequestsView,
+  respondToMsgRequest,
+} from "./lib/friendsPresence";
 import { openConvo } from "./lib/messagingCanvasPreview";
 import usePortalNode from "./usePortalNode";
 
@@ -23,7 +29,7 @@ function RequestsRow({ count }) {
       className="outline-item requests-row"
       onClick={(e) => {
         e.stopPropagation();
-        window.__openMsgRequestsView();
+        openMsgRequestsView();
       }}
     >
       <span className="outline-label">Requests</span>
@@ -33,8 +39,8 @@ function RequestsRow({ count }) {
 }
 
 // Clicking opens the real conversation thread — still vanilla (see renderMsgList's own comment in
-// friends-presence.js for why: that's part of the much larger "Live canvas presence" cluster, not
-// this list).
+// app/dotto/lib/friendsPresence.ts for why: that's part of the much larger "Live canvas presence"
+// cluster, not this list).
 function ChatRow({ f }) {
   return (
     <div className="msg-chat-row" onClick={() => openConvo(f.id)}>
@@ -62,7 +68,7 @@ function AddFriendRow({ u, query }) {
         disabled={u.pending}
         onClick={(e) => {
           e.stopPropagation();
-          window.__handleAddFriendClick(u.id, query);
+          handleAddFriendClick(u.id, query);
         }}
       >
         {u.pending ? "Requested" : "Add"}
@@ -77,7 +83,7 @@ function BackRow() {
       className="requests-back-row"
       onClick={(e) => {
         e.stopPropagation();
-        window.__backToMsgMain();
+        backToMsgMain();
       }}
     >
       <span>&larr;</span>
@@ -97,7 +103,7 @@ function FriendRequestRow({ req }) {
           className="msg-add-btn msg-req-accept"
           onClick={(e) => {
             e.stopPropagation();
-            window.__respondToMsgRequest(req.id, true);
+            respondToMsgRequest(req.id, true);
           }}
         >
           Accept
@@ -106,7 +112,7 @@ function FriendRequestRow({ req }) {
           className="msg-add-btn msg-req-decline"
           onClick={(e) => {
             e.stopPropagation();
-            window.__respondToMsgRequest(req.id, false);
+            respondToMsgRequest(req.id, false);
           }}
         >
           Decline
