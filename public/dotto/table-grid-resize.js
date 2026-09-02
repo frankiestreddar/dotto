@@ -1,5 +1,4 @@
 import { appState, findItemEl } from './core-state.js';
-import { saveSnapshot, scheduleWorkspaceSave } from './history-autosave.js';
 
 // Phase 4.3 split (was part of resize-shortcuts-init.js, see PHASE4_ROADMAP.md) — the "resize"
 // concern: dragging an internal table column/row divider. Separate from setupResizing's corner
@@ -71,7 +70,7 @@ function setupTableGridResizing(el, it) {
 function startTableColResize(e, it, i) {
     e.stopPropagation();
     e.preventDefault();
-    saveSnapshot();
+    window.__saveSnapshot();
     const numCols = it.tableData[0].length;
     const widths = (Array.isArray(it.colWidths) && it.colWidths.length === numCols) ? it.colWidths.slice() : new Array(numCols).fill(100 / numCols);
     const pairTotal = widths[i] + widths[i + 1];
@@ -93,7 +92,7 @@ function startTableColResize(e, it, i) {
         for (let k = 0; k <= i; k++) acc += widths[k];
         if (handles[i]) handles[i].style.left = acc + '%';
     };
-    const up = () => { window.removeEventListener('pointermove', move); window.removeEventListener('pointerup', up); scheduleWorkspaceSave(); };
+    const up = () => { window.removeEventListener('pointermove', move); window.removeEventListener('pointerup', up); window.__scheduleWorkspaceSave(); };
     window.addEventListener('pointermove', move);
     window.addEventListener('pointerup', up);
 }
@@ -104,7 +103,7 @@ function startTableColResize(e, it, i) {
 function startTableRowResize(e, it, i) {
     e.stopPropagation();
     e.preventDefault();
-    saveSnapshot();
+    window.__saveSnapshot();
     const numRows = it.tableData.length;
     const heights = (Array.isArray(it.rowHeights) && it.rowHeights.length === numRows) ? it.rowHeights.slice() : new Array(numRows).fill(100 / numRows);
     const pairTotal = heights[i] + heights[i + 1];
@@ -124,7 +123,7 @@ function startTableRowResize(e, it, i) {
         for (let k = 0; k <= i; k++) acc += heights[k];
         if (handles[i]) handles[i].style.top = acc + '%';
     };
-    const up = () => { window.removeEventListener('pointermove', move); window.removeEventListener('pointerup', up); scheduleWorkspaceSave(); };
+    const up = () => { window.removeEventListener('pointermove', move); window.removeEventListener('pointerup', up); window.__scheduleWorkspaceSave(); };
     window.addEventListener('pointermove', move);
     window.addEventListener('pointerup', up);
 }

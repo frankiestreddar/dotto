@@ -1,5 +1,4 @@
 import { appState } from './core-state.js';
-import { saveSnapshot, scheduleWorkspaceSave } from './history-autosave.js';
 import { render } from './waypoints-render-loop.js';
 
 
@@ -69,7 +68,7 @@ import { render } from './waypoints-render-loop.js';
         const it = window.__findItemById(id); if (!it) return;
         const url = prompt('Embed URL (website or embeddable code snippet link):', it.embedUrl || 'https://');
         if (url === null) return;
-        saveSnapshot();
+        window.__saveSnapshot();
         it.embedUrl = url.trim();
         render();
     }
@@ -114,29 +113,29 @@ import { render } from './waypoints-render-loop.js';
     }
     function addTask(id) {
         const it = window.__findItemById(id); if (!it) return;
-        saveSnapshot();
+        window.__saveSnapshot();
         it.tasks.push({ id: appState.idCounter++, text: '', done: false, deadline: '' });
         render();
     }
     function toggleTask(id, tid) {
         const it = window.__findItemById(id); if (!it) return;
-        saveSnapshot();
+        window.__saveSnapshot();
         const t = it.tasks.find(x => x.id === tid); if (t) t.done = !t.done;
         render();
     }
     function updateTaskText(id, tid, el) {
         const it = window.__findItemById(id); if (!it) return;
         const t = it.tasks.find(x => x.id === tid); if (t) t.text = el.textContent;
-        scheduleWorkspaceSave();
+        window.__scheduleWorkspaceSave();
     }
     function updateTaskDeadline(id, tid, el) {
         const it = window.__findItemById(id); if (!it) return;
         const t = it.tasks.find(x => x.id === tid); if (t) t.deadline = el.value;
-        scheduleWorkspaceSave();
+        window.__scheduleWorkspaceSave();
     }
     function removeTask(id, tid) {
         const it = window.__findItemById(id); if (!it) return;
-        saveSnapshot();
+        window.__saveSnapshot();
         it.tasks = it.tasks.filter(x => x.id !== tid);
         render();
     }

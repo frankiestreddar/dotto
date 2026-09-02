@@ -1,7 +1,6 @@
 import { appState, supabase } from './core-state.js';
 import { resolveUsernameToUserId } from './friends-presence.js';
 import { generateGlobalId } from './global-ids.js';
-import { saveSnapshot } from './history-autosave.js';
 import { openFolder, render } from './waypoints-render-loop.js';
 import { CARD_KINDS } from './card-kinds.js';
 import { deepCloneItem, viewportCenterWorldPoint } from './srs-connections-core.js';
@@ -85,7 +84,7 @@ async function removeUser(target, username) {
 // fields just avoid an extra round trip before the preview itself has loaded).
 function placeTarget(target) {
     if (!target) return;
-    saveSnapshot();
+    window.__saveSnapshot();
     const { w, h } = CARD_KINDS.reference.defaultSize;
     const center = viewportCenterWorldPoint();
     appState.folders[appState.currentFolderId].items.push({
@@ -149,7 +148,7 @@ async function cloneRemoteFolder(ownerId, folderId, accessKind) {
 // deepCloneItem has no way to fetch anything.
 async function copyTarget(target) {
     if (!target) return;
-    saveSnapshot();
+    window.__saveSnapshot();
     let clonedFolderId;
     if (target.access === 'owner') {
         const clone = deepCloneItem({ kind: target.kind === 'source' ? 'source' : 'folder', folderId: target.folder_id });

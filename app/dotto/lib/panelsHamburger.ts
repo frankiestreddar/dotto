@@ -313,16 +313,22 @@ export function wirePanelsHamburger(): () => void {
 // previously imported these directly. __closeRailView/__wireRailIcon/__openRailView/
 // __closeAllPanels were already established bridges (set here now instead of from this file's own
 // vanilla original) — used by app/dotto/lib/copyPaste.ts/marketplace.ts/sourceButtonsCursorMode.ts.
-window.__closeRailView = closeRailView;
-window.__wireRailIcon = wireRailIcon;
-window.__openRailView = openRailView;
-window.__closeAllPanels = closeAllPanels;
-window.__isAnyUiPanelOpen = isAnyUiPanelOpen;
-window.__scheduleHoverClose = scheduleHoverClose;
-window.__pinOnInsideClick = pinOnInsideClick;
-// Plain (non-`__`) globals — real inline oninput targets (content/fragments/hamburger-stack.html),
-// same shape window.pushNotification/window.handleMarketplaceSearch use.
-window.handleFilesSearch = handleFilesSearch;
-window.handleHubCollabSearch = handleHubCollabSearch;
-window.handleSourcesSearch = handleSourcesSearch;
-window.handleWaypointsSearch = handleWaypointsSearch;
+// Guarded: this module's top level is reached during Next's server-side render pass (a
+// pre-existing, project-wide issue across every Phase 4.4/4.5 bridge file, discovered and
+// documented while finishing the history-autosave.js port — see PHASE4_ROADMAP.md), where
+// `window` genuinely does not exist yet.
+if (typeof window !== "undefined") {
+  window.__closeRailView = closeRailView;
+  window.__wireRailIcon = wireRailIcon;
+  window.__openRailView = openRailView;
+  window.__closeAllPanels = closeAllPanels;
+  window.__isAnyUiPanelOpen = isAnyUiPanelOpen;
+  window.__scheduleHoverClose = scheduleHoverClose;
+  window.__pinOnInsideClick = pinOnInsideClick;
+  // Plain (non-`__`) globals — real inline oninput targets (content/fragments/hamburger-stack.html),
+  // same shape window.pushNotification/window.handleMarketplaceSearch use.
+  window.handleFilesSearch = handleFilesSearch;
+  window.handleHubCollabSearch = handleHubCollabSearch;
+  window.handleSourcesSearch = handleSourcesSearch;
+  window.handleWaypointsSearch = handleWaypointsSearch;
+}

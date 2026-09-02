@@ -2,7 +2,6 @@ import { clearSearch, escapeHtml, handleSearchFocus, scrollChatThreadToBottom, s
 import { executeCurrentCommand, setCommandActive } from './command-palette.js';
 import { appState, parseItemId } from './core-state.js';
 import { ensureConnections } from './drawing-connections.js';
-import { saveSnapshot, scheduleWorkspaceSave } from './history-autosave.js';
 import { commenceSearchOrMnemonic } from './mnemonic-search-matching.js';
 import { bumpAchievementStat, openDotbotUpgradeModal, refreshDotbotUsage } from './profile-achievements-pricing.js';
 import { applyAiAddRowsToSource, createSourceFromAI } from './source-tags-ai.js';
@@ -391,9 +390,9 @@ import { render } from './waypoints-render-loop.js';
                 // saveSnapshot/scheduleWorkspaceSave both operate on the whole `folders` object,
                 // not just the current one (see their own definitions) — safe to call here even
                 // when the target source lives in a folder other than the one open right now.
-                saveSnapshot();
+                window.__saveSnapshot();
                 appState.addToSourceTarget.table.tableData.push(cells);
-                scheduleWorkspaceSave();
+                window.__scheduleWorkspaceSave();
                 if (appState.currentFolderId === appState.addToSourceTarget.folder.id) render();
                 closeAddToSourcePopup();
             };

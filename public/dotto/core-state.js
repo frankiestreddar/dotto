@@ -214,7 +214,7 @@
         redoStack: [],
         swTickInterval: null,
         workspaceSaveTimer: null,
-        // Guards against a real, observed data-loss race: loadWorkspace() (history-autosave.js) is
+        // Guards against a real, observed data-loss race: loadWorkspace() (app/dotto/lib/historyAutosave.ts) is
         // an async network round-trip, awaited before the very first render() (resize-shortcuts-
         // init.js) — but the visibilitychange/pagehide listeners that flush an immediate save on
         // tab-hide/close (same file) are registered at plain module-load time, active from the
@@ -533,7 +533,7 @@
         'cardMode', 'modeOverrideKey', 'modeKeyHoldStart',
         'dataLinkPendingId',
         // Added during Stage 3 (live-presence.js/history-autosave.js pane-parameterization),
-        // not the original Stage 1 pass — smoothPanTo (history-autosave.js) clears this specific
+        // not the original Stage 1 pass — smoothPanTo (app/dotto/lib/historyAutosave.ts) clears this specific
         // pending timeout at the top of every call before scheduling its own, so it has to track
         // whichever PANE'S tween is in flight, not a single global handle shared by every pane —
         // otherwise switching panes mid-tween and starting a new tween in the newly-active pane
@@ -665,14 +665,14 @@
         appState.itemResizeBroadcastThrottleId = null; appState.caretBroadcastThrottleId = null;
         setupPaneCanvasListeners(paneId);
         // Sizes this pane's own #dot-layer-{paneId} against the live dotLayer binding (already
-        // repointed above) — layoutDotLayer (history-autosave.js, called via this bridge since
+        // repointed above) — layoutDotLayer (app/dotto/lib/historyAutosave.ts, called via this bridge since
         // that file imports FROM this one) otherwise only ever runs once at page load and on
         // window resize, neither of which fires when a pane is split. Without this the new pane's
         // dot grid box has no explicit size at all and never paints anything.
         window.__layoutDotLayer?.();
     }
 
-    // Brings a pane up to a SAVED state loaded from Supabase (loadWorkspace, history-autosave.js —
+    // Brings a pane up to a SAVED state loaded from Supabase (loadWorkspace, app/dotto/lib/historyAutosave.ts —
     // explicit request: "tabs and window splits should persist across refreshes and log out/
     // login"), rather than the fresh-defaults state initializeNewPane resets a brand-new pane to.
     // Does both halves switchActivePane normally splits across two call sites itself: saves the
@@ -869,6 +869,19 @@ window.__getBtnAddEl = () => btnAdd;
 // element" category as addMenu/btnAdd above.
 window.__getContextMenuEl = () => contextMenu;
 window.__getDrawSettingsEl = () => drawSettings;
+// Used by app/dotto/lib/historyAutosave.ts (Phase 4.5) — same "single, never-reassigned element"
+// category as addMenu/btnAdd/contextMenu above.
+window.__getCanvasContextMenuEl = () => canvasContextMenu;
+window.__getZoomTrackEl = () => zoomTrack;
+window.__getZoomFillEl = () => zoomFill;
+window.__getZoomThumbEl = () => zoomThumb;
+// Used by app/dotto/lib/historyAutosave.ts (Phase 4.5) — same live-read reasoning as
+// __getCanvasEl/__getWorldEl above (reassigned by switchActivePane once a second pane's DOM
+// exists).
+window.__getDotLayerEl = () => dotLayer;
+// Used by app/dotto/lib/historyAutosave.ts's loadWorkspace/restorePaneLayoutAndTabs (Phase 4.5).
+window.__recomputeTopCardZIndex = recomputeTopCardZIndex;
+window.__restorePaneState = restorePaneState;
 // Used by app/dotto/lib/copyPaste.ts's setupPlacementGhostTracking (Phase 4.4) to re-attach its
 // pointermove listener to every future pane's own canvas element, same reasoning as every other
 // registered setup — see this function's own comment above.

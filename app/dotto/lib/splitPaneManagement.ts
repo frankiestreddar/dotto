@@ -94,5 +94,11 @@ export function closePane(paneId: number): void {
   window.__removePaneTabsStore?.(paneId);
 }
 
-window.__splitPaneWithTab = splitPaneWithTab;
-window.__closePane = closePane;
+// Guarded: this module's top level is reached during Next's server-side render pass (a
+// pre-existing, project-wide issue across every Phase 4.4/4.5 bridge file, discovered and
+// documented while finishing the history-autosave.js port — see PHASE4_ROADMAP.md), where
+// `window` genuinely does not exist yet.
+if (typeof window !== "undefined") {
+  window.__splitPaneWithTab = splitPaneWithTab;
+  window.__closePane = closePane;
+}

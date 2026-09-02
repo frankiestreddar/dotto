@@ -158,8 +158,14 @@ export function wireNotifications(): () => void {
 // app/dotto/lib/dayChangeAndAdNotifications.ts, app/dotto/lib/sharedAndPublicCanvasLoading.ts, and
 // PricingOverlay.jsx, which already called window.pushNotification even before this port (see
 // vanillaBridges.d.ts).
-window.pushNotification = (config) => useNotificationsStore.getState().pushNotification(config);
-// card-shortcuts.js's hover-scoped game-card/PDF-page-turn shortcuts gate on this — "its own
-// Enter/Escape handling should win, not compete" — same reasoning the keydown handler above uses.
-window.__hasVisibleNotifications = () =>
-  useNotificationsStore.getState().visibleNotifications.length > 0;
+// Guarded: this module's top level is reached during Next's server-side render pass (a
+// pre-existing, project-wide issue across every Phase 4.4/4.5 bridge file, discovered and
+// documented while finishing the history-autosave.js port — see PHASE4_ROADMAP.md), where
+// `window` genuinely does not exist yet.
+if (typeof window !== "undefined") {
+  window.pushNotification = (config) => useNotificationsStore.getState().pushNotification(config);
+  // card-shortcuts.js's hover-scoped game-card/PDF-page-turn shortcuts gate on this — "its own
+  // Enter/Escape handling should win, not compete" — same reasoning the keydown handler above uses.
+  window.__hasVisibleNotifications = () =>
+    useNotificationsStore.getState().visibleNotifications.length > 0;
+}

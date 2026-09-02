@@ -356,7 +356,7 @@ function doWire(appState: AppState): void {
 
   // Deliberately does NOT close the #hamburger-stack rail panel (Search/Outline/Waypoints/
   // Collaborations/Marketplace/Library/Messages/Sources/Files/Queries/Profile/Add) — per explicit
-  // request, a rail panel now only closes via Escape (closeAllPanels, history-autosave.js) or by
+  // request, a rail panel now only closes via Escape (closeAllPanels, app/dotto/lib/historyAutosave.ts) or by
   // clicking its own already-open icon again (wireRailIcon, app/dotto/lib/panelsHamburger.ts), never by
   // clicking anywhere else. clearSearch() (ai-assistant-suggestions.js) is omitted for the same
   // reason — despite its generic name, its only effect is closing the Queries/AI rail view
@@ -415,8 +415,14 @@ export function wireSourceButtonsCursorMode(): () => void {
 // inline-handler list; now set directly here since this is the sole real caller (real inline
 // onclick target, canvasItemBehavior.js's cell markup) — plain (non-`__`) global, same shape
 // window.handleOutlineSearch/window.pushNotification use.
-window.openCellAddMenu = openCellAddMenu;
-// Vanilla -> React bridges — app/dotto/lib/panelsHamburger.ts/app/dotto/lib/sourceTable.ts/waypoints-render-loop.js/
-// source-tags-ai.js/app-init.js/blocks-panel.js all previously imported these directly.
-window.__closeSourceAddMenu = closeSourceAddMenu;
-window.__applyCursorMode = applyCursorMode;
+// Guarded: this module's top level is reached during Next's server-side render pass (a
+// pre-existing, project-wide issue across every Phase 4.4/4.5 bridge file, discovered and
+// documented while finishing the history-autosave.js port — see PHASE4_ROADMAP.md), where
+// `window` genuinely does not exist yet.
+if (typeof window !== "undefined") {
+  window.openCellAddMenu = openCellAddMenu;
+  // Vanilla -> React bridges — app/dotto/lib/panelsHamburger.ts/app/dotto/lib/sourceTable.ts/waypoints-render-loop.js/
+  // source-tags-ai.js/app-init.js/blocks-panel.js all previously imported these directly.
+  window.__closeSourceAddMenu = closeSourceAddMenu;
+  window.__applyCursorMode = applyCursorMode;
+}

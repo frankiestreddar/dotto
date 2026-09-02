@@ -112,11 +112,17 @@ export function swTogglePause(id: number): void {
 // React -> global bridges (StopwatchCard.jsx imports these functions directly now — a real
 // same-tree import, no bridge needed for that direction) plus vanilla -> TS bridges for
 // stopwatch.js's still-vanilla renderStopwatchHTML (its onclick="swToggleRun(...)" string calls
-// the global by name, same as before this port) and history-autosave.js's ensureSwTicking/swTick
+// the global by name, same as before this port) and app/dotto/lib/historyAutosave.ts's ensureSwTicking/swTick
 // (its own 1s DOM-patch of a running stopwatch's .sw-time text, unchanged by this port).
-window.swToggleRun = swToggleRun;
-window.swTogglePause = swTogglePause;
-window.__swFormatTime = swFormatTime;
-window.__swCurrentElapsedMs = swCurrentElapsedMs as unknown as (
-  it: Record<string, unknown>,
-) => number;
+// Guarded: this module's top level is reached during Next's server-side render pass (a
+// pre-existing, project-wide issue across every Phase 4.4/4.5 bridge file, discovered and
+// documented while finishing the history-autosave.js port — see PHASE4_ROADMAP.md), where
+// `window` genuinely does not exist yet.
+if (typeof window !== "undefined") {
+  window.swToggleRun = swToggleRun;
+  window.swTogglePause = swTogglePause;
+  window.__swFormatTime = swFormatTime;
+  window.__swCurrentElapsedMs = swCurrentElapsedMs as unknown as (
+    it: Record<string, unknown>,
+  ) => number;
+}

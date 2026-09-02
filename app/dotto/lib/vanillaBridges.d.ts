@@ -38,7 +38,7 @@ declare global {
     // app/dotto/lib/stopwatch.ts to reach a stopwatch card's own live item (part of
     // appState.folders, not a separate store). Declared again, in full, further down alongside
     // this port's own other bridges.
-    // history-autosave.js
+    // app/dotto/lib/historyAutosave.ts (Phase 4.5 port — was history-autosave.js)
     __saveSnapshot?: () => void;
     __scheduleWorkspaceSave?: () => void;
     // waypoints-render-loop.js — the global re-render escape hatch.
@@ -60,7 +60,7 @@ declare global {
     // way via its onclick="..." string attributes.
     swToggleRun?: (id: number) => void;
     swTogglePause?: (id: number) => void;
-    // app/dotto/lib/stopwatch.ts — history-autosave.js's ensureSwTicking/swTick (its own 1s
+    // app/dotto/lib/stopwatch.ts — app/dotto/lib/historyAutosave.ts's ensureSwTicking/swTick (its own 1s
     // DOM-patch of a running stopwatch's .sw-time text) and stopwatch.js's renderStopwatchHTML
     // both call these instead of a local function now.
     __swFormatTime?: (ms: number) => string;
@@ -108,7 +108,9 @@ declare global {
     // core-state.js — registers a per-pane canvas-listener setup function, called once for every
     // future pane's own canvas element (see that function's own comment for the real pane-0-only-
     // listener bug this exists to prevent).
-    __registerPaneCanvasListenerSetup?: (fn: (canvasEl: HTMLElement) => void) => void;
+    __registerPaneCanvasListenerSetup?: (
+      fn: (canvasEl: HTMLElement, paneId: number) => void,
+    ) => void;
     // app/dotto/lib/copyPaste.ts (Phase 4.4 port — was copy-paste.js) — vanilla -> React bridges:
     // history-autosave.js's Cmd+C/X/V keydown handler, blocks-panel.js's handleBlockItemClick, and
     // srs-connections-core.js's 'a'-chord/Escape handling already called these as globals before
@@ -180,7 +182,7 @@ declare global {
       items: Record<string, unknown>[] | undefined,
     ) => Record<string, unknown>[];
     __parseSharedFolderKey?: (key: string) => { ownerId: string; remoteFolderId: string };
-    // history-autosave.js — reapplies appState.tx/ty/scale to the canvas transform.
+    // app/dotto/lib/historyAutosave.ts — reapplies appState.tx/ty/scale to the canvas transform.
     __applyTransform?: () => void;
     // Set from app/dotto/lib/sharedAndPublicCanvasLoading.ts itself — declared here because that
     // file both reads and writes these two (self-referential bridge, same as every other
@@ -292,8 +294,8 @@ declare global {
     // hamburger/rail sidebars eating into the left/right edges), used to invert screen->canvas
     // coordinates the same way smoothPanTo/centerOnContent already do.
     __canvasViewportCenterX?: () => number;
-    // history-autosave.js — animates tx/ty/scale to the given target over durationMs (default
-    // 450ms).
+    // app/dotto/lib/historyAutosave.ts — animates tx/ty/scale to the given target over durationMs
+    // (default 450ms).
     __smoothPanTo?: (
       targetTx: number,
       targetTy: number,
@@ -358,8 +360,10 @@ declare global {
     __closeCollabPanel?: () => void;
     // hamburger-collab.js
     __dispatchListPanelDelete?: (panel: string, ids: number[]) => void;
-    // history-autosave.js
+    // app/dotto/lib/historyAutosave.ts — dual-exposed with the plain `hideCanvasContextMenu`
+    // global further down (a real inline onclick target too).
     __hideCanvasContextMenu?: () => void;
+    __layoutDotLayer?: () => void;
     // source-tags-ai.js
     __closeCellTagPicker?: () => void;
     // srs-connections-core.js
@@ -604,5 +608,58 @@ declare global {
     sendMsg?: () => Promise<void>;
     closeSharedCanvasView?: () => void;
     setTitleLevel?: (id: number, level: string | number) => void;
+    // core-state.js — same "single, never-reassigned element" category as addMenu/btnAdd/
+    // contextMenu above.
+    __getCanvasContextMenuEl?: () => HTMLElement | undefined;
+    __getZoomTrackEl?: () => HTMLElement | undefined;
+    __getZoomFillEl?: () => HTMLElement | undefined;
+    __getZoomThumbEl?: () => HTMLElement | undefined;
+    // core-state.js — same live-read reasoning as __getCanvasEl/__getWorldEl above.
+    __getDotLayerEl?: () => HTMLElement | undefined;
+    __recomputeTopCardZIndex?: () => void;
+    __restorePaneState?: (paneId: number, savedFields: Record<string, unknown>) => void;
+    // ai-assistant-suggestions.js
+    __clearSearch?: () => void;
+    // global-ids.js
+    __generateGlobalId?: () => string;
+    // hamburger-collab.js
+    __resolveSharedFolderChain?: (ownerId: string, folderId: string) => Promise<string[] | null>;
+    // profile-achievements-pricing.js
+    __closeDotbotUpgradeModal?: () => void;
+    __closePricingOverlay?: () => void;
+    // srs-connections-core.js
+    __cancelAddingKind?: () => void;
+    __finishPenPolyline?: () => void;
+    // upload-popup.js
+    __closeUploadPopup?: () => void;
+    // app/dotto-app.jsx (via app/dotto/bridges.js's paneLayoutStore) — __setPaneLayout is
+    // flushSync'd (every restored pane's own DOM must exist synchronously before
+    // window.__listPaneIds() is read right after it).
+    __getPaneLayout?: () => Record<string, unknown> | null;
+    __setPaneLayout?: (tree: Record<string, unknown>) => void;
+    // app/dotto/lib/historyAutosave.ts (Phase 4.5 port — was history-autosave.js) — vanilla ->
+    // React bridges: ai-assistant-suggestions.js/card-shortcuts.js/app-init.js/cards-misc.js/
+    // drag-drop-chat.js/drawing-connections.js/hamburger-collab.js/search-orchestration-
+    // selection.js/command-verbs.js/srs-connections-core.js/window-bridge.js/table-grid-resize.js/
+    // source-tags-ai.js/mnemonic-search-matching.js/waypoints-render-loop.js all previously
+    // imported these directly.
+    __loadWorkspace?: () => Promise<boolean>;
+    __saveWorkspaceNow?: () => Promise<void>;
+    __scheduleApplyTransform?: () => void;
+    __ensureSwTicking?: () => void;
+    __updateContextMenuPosition?: () => void;
+    __undo?: () => void;
+    __redo?: () => void;
+    // Plain (non-`__`) globals — real inline onclick/onmouseenter/onmouseleave/oncontextmenu
+    // targets (content/fragments/canvas-context-menu.html, canvasItemBehavior.js's cell markup),
+    // same shape window.pushNotification/window.handleMarketplaceSearch use.
+    undo?: () => void;
+    redo?: () => void;
+    hideCanvasContextMenu?: () => void;
+    deleteContextColumn?: () => void;
+    deleteContextRow?: () => void;
+    highlightContextColumn?: (on: boolean) => void;
+    highlightContextRow?: (on: boolean) => void;
+    openTableCellContextMenu?: (e: MouseEvent, tableId: number, r: number, c: number) => void;
   }
 }

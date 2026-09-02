@@ -1,6 +1,5 @@
 import { appState, supabase } from './core-state.js';
 import { renderMsgList } from './friends-presence.js';
-import { saveSnapshot } from './history-autosave.js';
 
 
     // setupDraggingAndClicking moved to app/dotto/canvasItemBehavior.js (Phase 3 of the
@@ -18,7 +17,7 @@ import { saveSnapshot } from './history-autosave.js';
         const f = appState.friends.find(x => x.id === appState.activeConvoId);
         if (!f) return;
 
-        saveSnapshot();
+        window.__saveSnapshot();
 
         let itemsToShare = [];
         // If targetIt is selected, we share all selected cards. Otherwise, share just this card.

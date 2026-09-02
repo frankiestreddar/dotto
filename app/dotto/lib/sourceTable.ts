@@ -746,34 +746,40 @@ export function importDelimitedIntoSource(text: string, delim: string): void {
 // TableCard.jsx (app/dotto/), now real ES imports there instead (same precedent as
 // stopwatch.ts/gamesFlashcardTyperight.ts/MediaCard.jsx) — kept declared/assigned here since
 // still-vanilla callers need them too.
-window.__distributeTableSizing = distributeTableSizing;
-window.__mergeTableCells = mergeTableCells;
-// Used by app/dotto/canvasItemBehavior.js's setupResizing (a table's first-ever resize rebuilds
-// its body via this legacy string-renderer before switching to userSized layout — see that
-// function's own comment), same reasoning as window.__getAppState (core-state.js).
-window.__renderTableHTML = renderTableHTML;
-// Shared with the relocated renderStaticTableHTML (app/dotto/canvasItemBehavior.js — see the
-// comment above colgroupHTML's own definition) — the on-canvas Table card's own legacy preview
-// renderer (renderTableHTML, just above) also still needs this directly, same-module, unbridged.
-window.__colgroupHTML = colgroupHTML;
-// Used by app/dotto/lib/outlineTree.ts's goToOutlineSourceRow (Phase 4.4).
-window.__focusTableCell = focusTableCell;
-// Used by source-tags-ai.js's triggerSourceUpload (Phase 4.4).
-window.__importDelimitedIntoSource = importDelimitedIntoSource;
-// Plain (non-`__`) globals — real inline onclick/oninput/onkeydown/onmousedown/onfocus targets
-// built into renderTableHTML's own HTML string, canvasItemBehavior.js's source-page markup, and
-// static HTML fragments (source-add-menu.html/audio-record-indicator.html), same shape
-// window.pushNotification/window.handleMarketplaceSearch use. Formerly re-exported through
-// window-bridge.js's own centralized inline-handler list.
-window.updateTableCell = updateTableCell;
-window.handleTableKeydown = handleTableKeydown;
-window.addTableCol = addTableCol;
-window.addTableRow = addTableRow;
-window.handleCellMouseDown = handleCellMouseDown;
-window.renameTableColumn = renameTableColumn;
-window.handleColNameKeydown = handleColNameKeydown;
-window.setLastFocusedCell = setLastFocusedCell;
-window.triggerCellImageUpload = triggerCellImageUpload;
-window.triggerCellAudioUpload = triggerCellAudioUpload;
-window.startCellAudioRecording = startCellAudioRecording;
-window.stopCellAudioRecording = stopCellAudioRecording;
+// Guarded: this module's top level is reached during Next's server-side render pass (a
+// pre-existing, project-wide issue across every Phase 4.4/4.5 bridge file, discovered and
+// documented while finishing the history-autosave.js port — see PHASE4_ROADMAP.md), where
+// `window` genuinely does not exist yet.
+if (typeof window !== "undefined") {
+  window.__distributeTableSizing = distributeTableSizing;
+  window.__mergeTableCells = mergeTableCells;
+  // Used by app/dotto/canvasItemBehavior.js's setupResizing (a table's first-ever resize rebuilds
+  // its body via this legacy string-renderer before switching to userSized layout — see that
+  // function's own comment), same reasoning as window.__getAppState (core-state.js).
+  window.__renderTableHTML = renderTableHTML;
+  // Shared with the relocated renderStaticTableHTML (app/dotto/canvasItemBehavior.js — see the
+  // comment above colgroupHTML's own definition) — the on-canvas Table card's own legacy preview
+  // renderer (renderTableHTML, just above) also still needs this directly, same-module, unbridged.
+  window.__colgroupHTML = colgroupHTML;
+  // Used by app/dotto/lib/outlineTree.ts's goToOutlineSourceRow (Phase 4.4).
+  window.__focusTableCell = focusTableCell;
+  // Used by source-tags-ai.js's triggerSourceUpload (Phase 4.4).
+  window.__importDelimitedIntoSource = importDelimitedIntoSource;
+  // Plain (non-`__`) globals — real inline onclick/oninput/onkeydown/onmousedown/onfocus targets
+  // built into renderTableHTML's own HTML string, canvasItemBehavior.js's source-page markup, and
+  // static HTML fragments (source-add-menu.html/audio-record-indicator.html), same shape
+  // window.pushNotification/window.handleMarketplaceSearch use. Formerly re-exported through
+  // window-bridge.js's own centralized inline-handler list.
+  window.updateTableCell = updateTableCell;
+  window.handleTableKeydown = handleTableKeydown;
+  window.addTableCol = addTableCol;
+  window.addTableRow = addTableRow;
+  window.handleCellMouseDown = handleCellMouseDown;
+  window.renameTableColumn = renameTableColumn;
+  window.handleColNameKeydown = handleColNameKeydown;
+  window.setLastFocusedCell = setLastFocusedCell;
+  window.triggerCellImageUpload = triggerCellImageUpload;
+  window.triggerCellAudioUpload = triggerCellAudioUpload;
+  window.startCellAudioRecording = startCellAudioRecording;
+  window.stopCellAudioRecording = stopCellAudioRecording;
+}

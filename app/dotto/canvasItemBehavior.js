@@ -1,5 +1,7 @@
 "use client";
 
+import { applyTransform, saveSnapshot, scheduleWorkspaceSave } from "./lib/historyAutosave";
+
 // The "continuous pointer-driven pixel math" pieces of canvas core (CONTRIBUTING.md's category
 // name for this — Phase 3 of the vanilla->React consolidation) that have moved out of separate
 // vanilla modules and into app/dotto/ so far: setupResizing (from
@@ -75,7 +77,7 @@ export function setupResizing(el, it) {
       // invisible PDF text layer sitting nearby. preventDefault suppresses that native default
       // outright, so dragging this handle is only ever a resize.
       e.preventDefault();
-      window.__saveSnapshot();
+      saveSnapshot();
       const appState = window.__getAppState();
       if (it.kind === "table" && !it.userSized) {
         it.w = el.offsetWidth;
@@ -187,7 +189,7 @@ export function setupResizing(el, it) {
       const up = () => {
         window.removeEventListener("pointermove", move);
         window.removeEventListener("pointerup", up);
-        window.__scheduleWorkspaceSave();
+        scheduleWorkspaceSave();
       };
       window.addEventListener("pointermove", move);
       window.addEventListener("pointerup", up);
@@ -313,7 +315,7 @@ export function setupDraggingAndClicking(el, it) {
       const downX = e.clientX,
         downY = e.clientY;
 
-      window.__saveSnapshot();
+      saveSnapshot();
 
       // Which card(s) this gesture operates on: the whole selection if the pressed card is part
       // of it, otherwise just this one card.
@@ -521,7 +523,7 @@ export function setupDraggingAndClicking(el, it) {
           autoPanAccumX += screenDx / appState.scale;
           autoPanAccumY += screenDy / appState.scale;
           moved = true;
-          window.__applyTransform();
+          applyTransform();
           applyDraggedPositions();
           checkDropTargets();
         }
@@ -681,7 +683,7 @@ export function renderConnectionsLayer(folderObj, currentItems) {
     hit.addEventListener("pointerdown", (e) => e.stopPropagation());
     hit.addEventListener("click", (e) => {
       e.stopPropagation();
-      window.__saveSnapshot();
+      saveSnapshot();
       folderObj.connections = folderObj.connections.filter((x) => x.id !== c.id);
       window.__render();
     });
@@ -697,7 +699,7 @@ export function renderConnectionsLayer(folderObj, currentItems) {
 // caller is setupDraggingAndClicking's own 'data' mode branch above — a plain function call now
 // that both live in this same file, no bridge needed for that direction at all anymore.
 function startConnectionDrag(e, it, el) {
-  window.__saveSnapshot();
+  saveSnapshot();
   const appState = window.__getAppState();
   const canvas = window.__getCanvasEl();
   const world = window.__getWorldEl();

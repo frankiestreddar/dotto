@@ -324,17 +324,23 @@ export function navForward(paneId?: number): void {
     jumpToHistoryIndex(appState.historyIndex + 1, pane);
 }
 
-window.__breadcrumbMapRowClick = breadcrumbMapRowClick;
-window.__addTab = addTab;
-window.__switchTab = switchTab;
-window.__closeTab = closeTab;
-window.__reorderTab = reorderTab;
-window.__renderTabsPanel = renderTabsPanel;
-window.__jumpToHistoryIndex = jumpToHistoryIndex;
-window.__navBack = navBack;
-window.__navForward = navForward;
-window.__openMediaViewerTab = openMediaViewerTab;
-window.__renderNavArrows = renderNavArrows;
-// waypoints-render-loop.js's own render() is the only real remaining vanilla caller — every other
-// consumer already went through a window bridge before this port.
-window.__renderBreadcrumbMapPanel = renderBreadcrumbMapPanel;
+// Guarded: this module's top level is reached during Next's server-side render pass (a
+// pre-existing, project-wide issue across every Phase 4.4/4.5 bridge file, discovered and
+// documented while finishing the history-autosave.js port — see PHASE4_ROADMAP.md), where
+// `window` genuinely does not exist yet.
+if (typeof window !== "undefined") {
+  window.__breadcrumbMapRowClick = breadcrumbMapRowClick;
+  window.__addTab = addTab;
+  window.__switchTab = switchTab;
+  window.__closeTab = closeTab;
+  window.__reorderTab = reorderTab;
+  window.__renderTabsPanel = renderTabsPanel;
+  window.__jumpToHistoryIndex = jumpToHistoryIndex;
+  window.__navBack = navBack;
+  window.__navForward = navForward;
+  window.__openMediaViewerTab = openMediaViewerTab;
+  window.__renderNavArrows = renderNavArrows;
+  // waypoints-render-loop.js's own render() is the only real remaining vanilla caller — every other
+  // consumer already went through a window bridge before this port.
+  window.__renderBreadcrumbMapPanel = renderBreadcrumbMapPanel;
+}

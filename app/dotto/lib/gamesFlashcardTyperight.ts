@@ -392,15 +392,19 @@ function renderGameOptionsHTML(it: Item): string {
 // used by showInlineCanvasDeleteMenu's own document-level pointerdown listener. Real, module-load-
 // time-only listener attachment — safe to run unconditionally at import time (unlike wireX()
 // elsewhere in this migration) since it only ever touches `document` itself, never a specific
-// element that might not exist yet.
-document.addEventListener("pointerdown", (e) => {
-  document.querySelectorAll<HTMLElement>(".item.options-open").forEach((el) => {
-    if (!el.contains(e.target as Node)) {
-      const id = window.__parseItemId?.(el);
-      if (id != null && !Number.isNaN(id)) closeGameOptionsPanel(id);
-    }
+// element that might not exist yet. Guarded against `document` not existing during Next's
+// server-side render pass (see PHASE4_ROADMAP.md's history-autosave.js entry for how this
+// project-wide issue was found).
+if (typeof document !== "undefined") {
+  document.addEventListener("pointerdown", (e) => {
+    document.querySelectorAll<HTMLElement>(".item.options-open").forEach((el) => {
+      if (!el.contains(e.target as Node)) {
+        const id = window.__parseItemId?.(el);
+        if (id != null && !Number.isNaN(id)) closeGameOptionsPanel(id);
+      }
+    });
   });
-});
+}
 
 // ---------- Flashcard app ----------
 // Cards live directly on the item (it.cards = [{front, back}, ...]). This is a placeholder data
@@ -814,36 +818,42 @@ export function trToggleMode(id: number): void {
 // React -> vanilla bridges (see the identical pattern/comment in cards-misc.js) — used by
 // GameOptionsPanel.jsx (app/dotto/), shared by FlashcardCard.jsx and TypeRightCard.jsx. Names/
 // shapes preserved exactly from before this port.
-window.__cellContentType = cellContentType;
-window.__colHasAnyCloze = colHasAnyCloze;
-window.__normalizeGameSlot = normalizeGameSlot;
-window.__fcCurrentRow = fcCurrentRow;
-window.__fcPlayableCards = fcPlayableCards;
-window.__renderGameFaceBlocksHTML = renderGameFaceBlocksHTML;
-window.__resolveGameFace = resolveGameFace;
-window.__trCurrentCard = trCurrentCard;
-window.__trPlayableCards = trPlayableCards;
-// Vanilla -> React bridges — waypoints-render-loop.js/srs-connections-core.js all previously
-// imported these directly, plus app/dotto/lib/messagingCanvasPreview.ts (ported since — was
-// live-presence.js's own direct import of renderFlashcardHTML/renderTypeRightHTML).
-window.__openGameOptionsPanel = openGameOptionsPanel;
-window.__closeGameOptionsPanel = closeGameOptionsPanel;
-window.__defaultFlashcardDeck = defaultFlashcardDeck;
-window.__renderFlashcardHTML = renderFlashcardHTML;
-window.__renderTypeRightHTML = renderTypeRightHTML;
-// Plain (non-`__`) globals — real inline onclick/oninput/onmouseenter targets built into this
-// file's own HTML strings (renderFlashcardHTML/renderTypeRightHTML/renderGameOptionsHTML) — same
-// shape window.pushNotification/window.handleMarketplaceSearch use. Formerly re-exported through
-// window-bridge.js's own centralized inline-handler list; now assigned directly here since this
-// file is the sole real source for all of them.
-window.setGameColumnSlot = setGameColumnSlot;
-window.addGameColumnSlot = addGameColumnSlot;
-window.removeGameColumnSlot = removeGameColumnSlot;
-window.fcFlip = fcFlip;
-window.fcRate = fcRate;
-window.fcToggleMode = fcToggleMode;
-window.trUpdateInput = trUpdateInput;
-window.trFocusInput = trFocusInput;
-window.trCheck = trCheck;
-window.trNext = trNext;
-window.trToggleMode = trToggleMode;
+// Guarded: this module's top level is reached during Next's server-side render pass (a
+// pre-existing, project-wide issue across every Phase 4.4/4.5 bridge file, discovered and
+// documented while finishing the history-autosave.js port — see PHASE4_ROADMAP.md), where
+// `window` genuinely does not exist yet.
+if (typeof window !== "undefined") {
+  window.__cellContentType = cellContentType;
+  window.__colHasAnyCloze = colHasAnyCloze;
+  window.__normalizeGameSlot = normalizeGameSlot;
+  window.__fcCurrentRow = fcCurrentRow;
+  window.__fcPlayableCards = fcPlayableCards;
+  window.__renderGameFaceBlocksHTML = renderGameFaceBlocksHTML;
+  window.__resolveGameFace = resolveGameFace;
+  window.__trCurrentCard = trCurrentCard;
+  window.__trPlayableCards = trPlayableCards;
+  // Vanilla -> React bridges — waypoints-render-loop.js/srs-connections-core.js all previously
+  // imported these directly, plus app/dotto/lib/messagingCanvasPreview.ts (ported since — was
+  // live-presence.js's own direct import of renderFlashcardHTML/renderTypeRightHTML).
+  window.__openGameOptionsPanel = openGameOptionsPanel;
+  window.__closeGameOptionsPanel = closeGameOptionsPanel;
+  window.__defaultFlashcardDeck = defaultFlashcardDeck;
+  window.__renderFlashcardHTML = renderFlashcardHTML;
+  window.__renderTypeRightHTML = renderTypeRightHTML;
+  // Plain (non-`__`) globals — real inline onclick/oninput/onmouseenter targets built into this
+  // file's own HTML strings (renderFlashcardHTML/renderTypeRightHTML/renderGameOptionsHTML) — same
+  // shape window.pushNotification/window.handleMarketplaceSearch use. Formerly re-exported through
+  // window-bridge.js's own centralized inline-handler list; now assigned directly here since this
+  // file is the sole real source for all of them.
+  window.setGameColumnSlot = setGameColumnSlot;
+  window.addGameColumnSlot = addGameColumnSlot;
+  window.removeGameColumnSlot = removeGameColumnSlot;
+  window.fcFlip = fcFlip;
+  window.fcRate = fcRate;
+  window.fcToggleMode = fcToggleMode;
+  window.trUpdateInput = trUpdateInput;
+  window.trFocusInput = trFocusInput;
+  window.trCheck = trCheck;
+  window.trNext = trNext;
+  window.trToggleMode = trToggleMode;
+}

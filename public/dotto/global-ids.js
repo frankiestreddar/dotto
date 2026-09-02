@@ -5,7 +5,7 @@
 // the new slash-command system (look up/share a canvas or source by id) and faintly displayed on
 // its card. Client-generated (no server round trip needed at creation time, matching every other
 // id in this app), registered into the new global_items table lazily via the normal autosave path
-// (see saveWorkspaceNow, history-autosave.js) — the DB's own unique constraint on global_id is the
+// (see saveWorkspaceNow, app/dotto/lib/historyAutosave.ts) — the DB's own unique constraint on global_id is the
 // actual collision guarantee; this alphabet/length just needs collisions to be rare, not
 // impossible, so a client-only id is never trusted as authoritative until it round-trips.
 const GLOBAL_ID_ALPHABET = '23456789ABCDEFGHJKMNPQRSTVWXYZ'; // no 0/O/1/I/L — unambiguous typed by hand
@@ -18,3 +18,6 @@ function generateGlobalId() {
 }
 
 export { generateGlobalId, GLOBAL_ID_ALPHABET, GLOBAL_ID_LENGTH };
+
+// Used by app/dotto/lib/historyAutosave.ts's saveWorkspaceNow (Phase 4.5).
+window.__generateGlobalId = generateGlobalId;

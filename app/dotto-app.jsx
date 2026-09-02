@@ -66,6 +66,7 @@ import { wireSourceButtonsCursorMode } from "./dotto/lib/sourceButtonsCursorMode
 import { wirePanelsHamburger } from "./dotto/lib/panelsHamburger";
 import { wireCanvasPresence } from "./dotto/lib/canvasPresence";
 import { wireMessagingCanvasPreview } from "./dotto/lib/messagingCanvasPreview";
+import { wireHistoryAutosave } from "./dotto/lib/historyAutosave";
 // Side-effect only, same reasoning as splitPaneManagement/tabManagement above — sets
 // window.__openGameOptionsPanel/fcFlip/etc at module-eval time for the 5 still-vanilla callers
 // that used to import these directly, plus the React->vanilla bridges FlashcardCard.jsx/
@@ -489,6 +490,11 @@ export default function DottoApp({ sections, currentUser }) {
   // app/dotto/lib/messagingCanvasPreview.ts, for why this needs to poll for live appState AND that
   // element already existing rather than a single readiness check.
   useEffect(() => wireMessagingCanvasPreview(), []);
+  // Phase 4.5: undo/redo, workspace autosave, the canvas camera transform, the canvas context
+  // menu, and the global keydown/paste handlers — see wireHistoryAutosave's own comment,
+  // app/dotto/lib/historyAutosave.ts, for why this needs to poll for
+  // window.__getCanvasEl/window.__getDotLayerEl rather than a single readiness check.
+  useEffect(() => wireHistoryAutosave(), []);
 
   return (
     <>

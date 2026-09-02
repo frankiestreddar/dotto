@@ -9,7 +9,7 @@ import { swCurrentElapsedMs, swFormatTime, swTogglePause, swToggleRun } from "./
 // Phase 4.4 — real imports now, not window bridges, since both this component and that module
 // live in the same app/dotto/ tree. stopwatch.ts still sets window.swToggleRun/swTogglePause/
 // __swFormatTime/__swCurrentElapsedMs as bridges of its own, for stopwatch.js's still-vanilla
-// renderStopwatchHTML and history-autosave.js's ensureSwTicking/swTick (its own 1s setInterval
+// renderStopwatchHTML and app/dotto/lib/historyAutosave.ts's ensureSwTicking/swTick (its own 1s setInterval
 // outside React, sometimes patching this card's .sw-time text directly instead of going through
 // render(), which is safe against a React-rendered node for the same "mutate in place, next real
 // render reads current data" reason as the rest of this migration).

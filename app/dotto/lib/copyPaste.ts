@@ -38,7 +38,7 @@ function getAppState(): AppState | undefined {
   return window.__getAppState?.() as unknown as AppState | undefined;
 }
 
-// ---------- Copy / Cut / Paste (Cmd/Ctrl+C / X / V — see history-autosave.js's own keydown
+// ---------- Copy / Cut / Paste (Cmd/Ctrl+C / X / V — see app/dotto/lib/historyAutosave.ts's own keydown
 // handler) ----------
 // Independent of the OS clipboard — an in-memory snapshot of whatever was selected at copy time.
 // A folder/source card's real content lives in folders[] keyed by a live id that a Cut would
@@ -282,8 +282,14 @@ export function prepareAdd(kind: string, statKind?: string | null): void {
   showPlacementGhost(kind);
 }
 
-window.copySelectedCards = copySelectedCards;
-window.cutSelectedCards = cutSelectedCards;
-window.pasteClipboardCards = pasteClipboardCards;
-window.removePlacementGhost = removePlacementGhost;
-window.prepareAdd = prepareAdd;
+// Guarded: this module's top level is reached during Next's server-side render pass (a
+// pre-existing, project-wide issue across every Phase 4.4/4.5 bridge file, discovered and
+// documented while finishing the history-autosave.js port — see PHASE4_ROADMAP.md), where
+// `window` genuinely does not exist yet.
+if (typeof window !== "undefined") {
+  window.copySelectedCards = copySelectedCards;
+  window.cutSelectedCards = cutSelectedCards;
+  window.pasteClipboardCards = pasteClipboardCards;
+  window.removePlacementGhost = removePlacementGhost;
+  window.prepareAdd = prepareAdd;
+}

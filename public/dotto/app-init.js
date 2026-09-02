@@ -1,6 +1,5 @@
 import { appState } from './core-state.js';
 import { refreshCanvasCollabForCurrentFolder, refreshFriendsData, renderCollabPill } from './friends-presence.js';
-import { applyTransform, loadWorkspace } from './history-autosave.js';
 import { refreshDotbotUsage } from './profile-achievements-pricing.js';
 import { updateDrawLayerBtns } from './srs-connections-core.js';
 import { centerOnContent, render } from './waypoints-render-loop.js';
@@ -13,13 +12,13 @@ import { centerOnContent, render } from './waypoints-render-loop.js';
 updateDrawLayerBtns();
 window.__applyCursorMode();
 // Waits for any saved workspace before the first render, so a returning user's real content shows
-// immediately instead of flashing the built-in starter folders first. loadWorkspace() no-ops
+// immediately instead of flashing the built-in starter folders first. window.__loadWorkspace() no-ops
 // instantly if there's no signed-in user or nothing saved yet.
 (async () => {
-    const restoredView = await loadWorkspace();
+    const restoredView = await window.__loadWorkspace();
     render();
     if (!restoredView) centerOnContent();
-    else applyTransform();
+    else window.__applyTransform();
     // Same reasoning as the fix inside refreshCanvasCollabForCurrentFolder itself — the very first
     // render() above ran before this had any real data, so a landing folder with an actual
     // collaborator could otherwise start out wrongly deciding "no live channel needed" straight

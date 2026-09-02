@@ -380,18 +380,24 @@ export function wireMarketplace(): () => void {
 
 // React → vanilla bridges — used by MarketDiscoverPanel.jsx/ItemDetailFooter.jsx (app/dotto/),
 // which can't import this directly since public/dotto/*.js isn't reachable from app/dotto/.
-window.__openMarketDetail = openMarketDetail;
-window.__deployPurchasedTemplate = deployPurchasedTemplate;
-window.__packageSelectedAsTemplate = packageSelectedAsTemplate;
-// Not inline-HTML onclick targets anymore (see window-bridge.js's own header comment for why
-// those live there instead) — window.deployPurchasedTemplate (no `__` prefix) was a genuinely
-// dead vestigial assignment in window-bridge.js before this port (no inline HTML ever called it,
-// only window.__deployPurchasedTemplate above, from ItemDetailFooter.jsx), dropped here rather
-// than recreated. These 3 ARE still real inline onclick targets (hamburger-stack.html), so they
-// keep the plain (non-`__`) global name window-bridge.js used to set.
-window.handleMarketplaceSearch = handleMarketplaceSearch;
-window.closeMarketDetail = closeMarketDetail;
-window.purchaseCurrentMarketItem = purchaseCurrentMarketItem;
-// Vanilla → React bridge — blocks-panel.js/library-publish.js both previously imported this
-// directly; public/dotto/*.js can't import from app/dotto/.
-window.__refreshMyLibrary = refreshMyLibrary;
+// Guarded: this module's top level is reached during Next's server-side render pass (a
+// pre-existing, project-wide issue across every Phase 4.4/4.5 bridge file, discovered and
+// documented while finishing the history-autosave.js port — see PHASE4_ROADMAP.md), where
+// `window` genuinely does not exist yet.
+if (typeof window !== "undefined") {
+  window.__openMarketDetail = openMarketDetail;
+  window.__deployPurchasedTemplate = deployPurchasedTemplate;
+  window.__packageSelectedAsTemplate = packageSelectedAsTemplate;
+  // Not inline-HTML onclick targets anymore (see window-bridge.js's own header comment for why
+  // those live there instead) — window.deployPurchasedTemplate (no `__` prefix) was a genuinely
+  // dead vestigial assignment in window-bridge.js before this port (no inline HTML ever called it,
+  // only window.__deployPurchasedTemplate above, from ItemDetailFooter.jsx), dropped here rather
+  // than recreated. These 3 ARE still real inline onclick targets (hamburger-stack.html), so they
+  // keep the plain (non-`__`) global name window-bridge.js used to set.
+  window.handleMarketplaceSearch = handleMarketplaceSearch;
+  window.closeMarketDetail = closeMarketDetail;
+  window.purchaseCurrentMarketItem = purchaseCurrentMarketItem;
+  // Vanilla → React bridge — blocks-panel.js/library-publish.js both previously imported this
+  // directly; public/dotto/*.js can't import from app/dotto/.
+  window.__refreshMyLibrary = refreshMyLibrary;
+}

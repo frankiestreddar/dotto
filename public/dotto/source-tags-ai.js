@@ -2,7 +2,6 @@ import { kindSize } from './add-menu.js';
 import { escapeHtml, stripHtml } from './ai-assistant-suggestions.js';
 import { appState, canvasViewportCenterX, findItemEl } from './core-state.js';
 import { resolveTableForEdit } from './drawing-connections.js';
-import { saveSnapshot, scheduleWorkspaceSave } from './history-autosave.js';
 import { add } from './srs-connections-core.js';
 import { render } from './waypoints-render-loop.js';
 
@@ -34,7 +33,7 @@ import { render } from './waypoints-render-loop.js';
         if (!ctx || ctx.snapshot.kind !== 'source') return false;
         const folderObj = appState.folders[ctx.snapshot.folderId];
         if (!folderObj) return false;
-        saveSnapshot();
+        window.__saveSnapshot();
         let tableItem = folderObj.items.find(i => i.kind === 'table');
         if (!tableItem) {
             tableItem = { id: appState.idCounter++, x: 28, y: 28, w: 560, h: 360, kind: 'table', tableData: [['']] };
@@ -64,7 +63,7 @@ import { render } from './waypoints-render-loop.js';
         }
         if (ni < newRows.length) tableItem.tableData.push(...newRows.slice(ni));
         render();
-        scheduleWorkspaceSave();
+        window.__scheduleWorkspaceSave();
         return true;
     }
 
@@ -86,7 +85,7 @@ import { render } from './waypoints-render-loop.js';
         folderObj.title = (title || 'New Source').trim().slice(0, 80) || 'New Source';
         folderObj.items[0].tableData = [header, ...(dataRows.length ? dataRows : [new Array(width).fill('')])];
         render();
-        scheduleWorkspaceSave();
+        window.__scheduleWorkspaceSave();
         return true;
     }
 
@@ -196,7 +195,7 @@ import { render } from './waypoints-render-loop.js';
         const colorInput = document.getElementById('cell-tag-picker-new-color');
         const name = nameInput.value.trim();
         if (!name) return;
-        saveSnapshot();
+        window.__saveSnapshot();
         const tag = { id: 'tag_' + appState.idCounter++, name, color: colorInput.value };
         ensureTableTags(it).push(tag);
         const cellTags = ensureCellTags(it);
@@ -211,7 +210,7 @@ import { render } from './waypoints-render-loop.js';
     function toggleCellTag(id, r, tagId) {
         const it = resolveTableForEdit(id); if (!it) return;
         closeTagContextMenu();
-        saveSnapshot();
+        window.__saveSnapshot();
         const cellTags = ensureCellTags(it);
         const set = new Set(cellTags[r] || []);
         if (set.has(tagId)) set.delete(tagId); else set.add(tagId);
@@ -254,7 +253,7 @@ import { render } from './waypoints-render-loop.js';
             const tag = ensureTableTags(it).find(t => t.id === tagId);
             const trimmed = newValue.trim();
             if (tag && trimmed && trimmed !== tag.name) {
-                saveSnapshot();
+                window.__saveSnapshot();
                 tag.name = trimmed;
                 refreshAllRowTagsDom(it);
             }
@@ -266,7 +265,7 @@ import { render } from './waypoints-render-loop.js';
         closeTagContextMenu();
         if (!tagId || !appState.activeTagRow) return;
         const it = resolveTableForEdit(appState.activeTagRow.id); if (!it) return;
-        saveSnapshot();
+        window.__saveSnapshot();
         it.tags = ensureTableTags(it).filter(t => t.id !== tagId);
         const cellTags = ensureCellTags(it);
         Object.keys(cellTags).forEach(rKey => {

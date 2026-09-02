@@ -1149,18 +1149,24 @@ export function wireCanvasPresence(): () => void {
 // directly. goToCollaboratorCursor/broadcastItemResize/broadcastItemDragPositions/findItemById/
 // broadcastEditingState/placeCaretEnd were already established bridges (set here now instead of
 // from this file's own vanilla original).
-window.__findItemById = findItemById;
-window.__placeCaretEnd = placeCaretEnd;
-window.__ensureCanvasPresenceChannel = ensureCanvasPresenceChannel;
-window.__repositionAllRemoteCursors = repositionAllRemoteCursors;
-window.__goToCollaboratorCursor = goToCollaboratorCursor;
-window.__broadcastCursorPositionThrottled = broadcastCursorPositionThrottled;
-window.__broadcastItemDragPositions = broadcastItemDragPositions;
-window.__broadcastItemResize = broadcastItemResize;
-window.__broadcastEditingState = broadcastEditingState;
-window.__queueSyncDiff = queueSyncDiff;
-// Plain (non-`__`) global too — broadcastEditingState is ALSO a real inline onfocus/onblur target
-// (canvasItemBehavior.js's cell markup), same shape window.pushNotification uses; kept alongside
-// the `__` bridge above since real vanilla-JS callers (waypoints-render-loop.js's own .onblur
-// closures) need programmatic access too, not just the inline-HTML-string form.
-window.broadcastEditingState = broadcastEditingState;
+// Guarded: this module's top level is reached during Next's server-side render pass (a
+// pre-existing, project-wide issue across every Phase 4.4/4.5 bridge file, discovered and
+// documented while finishing the history-autosave.js port — see PHASE4_ROADMAP.md), where
+// `window` genuinely does not exist yet.
+if (typeof window !== "undefined") {
+  window.__findItemById = findItemById;
+  window.__placeCaretEnd = placeCaretEnd;
+  window.__ensureCanvasPresenceChannel = ensureCanvasPresenceChannel;
+  window.__repositionAllRemoteCursors = repositionAllRemoteCursors;
+  window.__goToCollaboratorCursor = goToCollaboratorCursor;
+  window.__broadcastCursorPositionThrottled = broadcastCursorPositionThrottled;
+  window.__broadcastItemDragPositions = broadcastItemDragPositions;
+  window.__broadcastItemResize = broadcastItemResize;
+  window.__broadcastEditingState = broadcastEditingState;
+  window.__queueSyncDiff = queueSyncDiff;
+  // Plain (non-`__`) global too — broadcastEditingState is ALSO a real inline onfocus/onblur target
+  // (canvasItemBehavior.js's cell markup), same shape window.pushNotification uses; kept alongside
+  // the `__` bridge above since real vanilla-JS callers (waypoints-render-loop.js's own .onblur
+  // closures) need programmatic access too, not just the inline-HTML-string form.
+  window.broadcastEditingState = broadcastEditingState;
+}

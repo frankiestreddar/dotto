@@ -440,20 +440,26 @@ export function closeSearchCardsModal(): void {
 // openSearchCardsModal/clearSearchCardContext have no confirmed remaining caller (same as before
 // this port — the original file's own comment already flagged clearSearchCardContext as kept
 // "in case something else calls it").
-window.__addCardsToSearchContext = addCardsToSearchContext;
-window.startRenameShelfName = startRenameShelfName;
-window.shelfSelectSession = shelfSelectSession;
-window.handleShelfSourceRowClick = handleShelfSourceRowClick;
-window.startRenameShelfSourceRow = startRenameShelfSourceRow;
-window.filterShelfRows = filterShelfRows;
-window.closeSearchCardsModal = closeSearchCardsModal;
-window.setFilterMode = setFilterMode;
-window.toggleFilterTag = toggleFilterTag;
-window.openSearchCardsModal = openSearchCardsModal;
-window.clearSearchCardContext = clearSearchCardContext;
-// Used by ai-assistant-suggestions.js/search-orchestration-selection.js (multiple call sites
-// each), which previously imported this directly.
-window.__autoGrowSearchInput = autoGrowSearchInput;
-// Used by app/dotto/lib/messagingCanvasPreview.ts's mini inline-canvas previews, which previously
-// imported this directly.
-window.__renderShelfHTML = renderShelfHTML;
+// Guarded: this module's top level is reached during Next's server-side render pass (a
+// pre-existing, project-wide issue across every Phase 4.4/4.5 bridge file, discovered and
+// documented while finishing the history-autosave.js port — see PHASE4_ROADMAP.md), where
+// `window` genuinely does not exist yet.
+if (typeof window !== "undefined") {
+  window.__addCardsToSearchContext = addCardsToSearchContext;
+  window.startRenameShelfName = startRenameShelfName;
+  window.shelfSelectSession = shelfSelectSession;
+  window.handleShelfSourceRowClick = handleShelfSourceRowClick;
+  window.startRenameShelfSourceRow = startRenameShelfSourceRow;
+  window.filterShelfRows = filterShelfRows;
+  window.closeSearchCardsModal = closeSearchCardsModal;
+  window.setFilterMode = setFilterMode;
+  window.toggleFilterTag = toggleFilterTag;
+  window.openSearchCardsModal = openSearchCardsModal;
+  window.clearSearchCardContext = clearSearchCardContext;
+  // Used by ai-assistant-suggestions.js/search-orchestration-selection.js (multiple call sites
+  // each), which previously imported this directly.
+  window.__autoGrowSearchInput = autoGrowSearchInput;
+  // Used by app/dotto/lib/messagingCanvasPreview.ts's mini inline-canvas previews, which previously
+  // imported this directly.
+  window.__renderShelfHTML = renderShelfHTML;
+}

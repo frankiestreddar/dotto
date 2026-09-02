@@ -1,7 +1,6 @@
 import { openSearchOverlay, scrollChatThreadToBottom, showAiChatView, updateChatThread } from './ai-assistant-suggestions.js';
 import { appState, canvasViewportCenterX, drawSettings, findItemEl, supabase } from './core-state.js';
 import { activePaneCollabBubbleEl, openCollabPanel, renderCollabPill } from './friends-presence.js';
-import { saveWorkspaceNow, smoothPanTo } from './history-autosave.js';
 import { flashCanvasElement } from './mnemonic-search-matching.js';
 import { closeProfilePanel, openPricingOverlay } from './profile-achievements-pricing.js';
 import { deleteCanvasCollabsForFolder, deleteWaypointCardEverywhere, expandWaypointCard, folderGlobalId, openFolder, render } from './waypoints-render-loop.js';
@@ -344,7 +343,7 @@ import { deleteCanvasCollabsForFolder, deleteWaypointCardEverywhere, expandWaypo
         const el = findItemEl(it.id);
         const w = el ? el.offsetWidth : (it.w || 28);
         const h = el ? el.offsetHeight : (it.h || 28);
-        smoothPanTo(canvasViewportCenterX() - (it.x + w / 2), window.innerHeight / 2 - (it.y + h / 2), 1);
+        window.__smoothPanTo(canvasViewportCenterX() - (it.x + w / 2), window.innerHeight / 2 - (it.y + h / 2), 1);
         if (el) expandWaypointCard(el, it, { editable: false });
         flashCanvasElement(el);
     }
@@ -561,7 +560,7 @@ import { deleteCanvasCollabsForFolder, deleteWaypointCardEverywhere, expandWaypo
             // before clicking logout) before navigating away, so the next login restores exactly
             // where this session left off — same as pagehide/visibilitychange do for a plain
             // refresh or tab close.
-            saveWorkspaceNow().finally(() => {
+            window.__saveWorkspaceNow().finally(() => {
                 if (supabase) supabase.auth.signOut().finally(() => { window.location.href = '/login'; });
                 else window.location.href = '/login';
             });
@@ -588,3 +587,5 @@ window.__renderFilesList = renderFilesList;
 window.__renderHubCollabList = renderHubCollabList;
 window.__renderSourcesList = renderSourcesList;
 window.__renderWaypointsList = renderWaypointsList;
+// Used by app/dotto/lib/historyAutosave.ts's loadWorkspace (Phase 4.5).
+window.__resolveSharedFolderChain = resolveSharedFolderChain;

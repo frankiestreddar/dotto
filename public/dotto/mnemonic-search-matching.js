@@ -1,6 +1,5 @@
 import { buildAlignedSentenceEls, clearSearch, dotbotErrorMessage, isLatinScriptText, scrollChatThreadToBottom, setupDotbotResultDrag, speakerIconHTML, typewriterReveal, typewriterRevealSegments, updateSearchDropdown } from './ai-assistant-suggestions.js';
 import { appState, canvas } from './core-state.js';
-import { saveSnapshot } from './history-autosave.js';
 import { openDotbotUpgradeModal, refreshDotbotUsage } from './profile-achievements-pricing.js';
 import { commenceDotbotSearch } from './search-orchestration-selection.js';
 import { render } from './waypoints-render-loop.js';
@@ -16,7 +15,7 @@ import { render } from './waypoints-render-loop.js';
     function importMnemonicPairAtScreenPoint(clientX, clientY) {
         const pair = appState.dotbotMnemonicPair;
         if (!pair.text && !pair.image) return;
-        saveSnapshot();
+        window.__saveSnapshot();
         const rect = canvas.getBoundingClientRect();
         const dropX = Math.round(((clientX - rect.left - appState.tx) / appState.scale) / 28) * 28;
         const dropY = Math.round(((clientY - rect.top - appState.ty) / appState.scale) / 28) * 28;

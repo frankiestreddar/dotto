@@ -305,3 +305,6 @@ window.__awardUserPoints = awardUserPoints;
 window.__bumpAchievementStat = bumpAchievementStat;
 // Used by app/dotto/lib/canvasPresence.ts's handleCanvasPresenceSync (Phase 4.5).
 window.__renderAvatarInto = renderAvatarInto;
+// Used by app/dotto/lib/historyAutosave.ts's global Escape keydown handler (Phase 4.5).
+window.__closeDotbotUpgradeModal = closeDotbotUpgradeModal;
+window.__closePricingOverlay = closePricingOverlay;

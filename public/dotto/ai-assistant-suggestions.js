@@ -1,7 +1,6 @@
 import { updateCommandPalette } from './command-palette.js';
 import { appState, canvas, itemElId } from './core-state.js';
 import { renderChatsList } from './hamburger-collab.js';
-import { saveSnapshot, scheduleWorkspaceSave } from './history-autosave.js';
 import { commenceSearchOrMnemonic } from './mnemonic-search-matching.js';
 // Phase 4.2 extraction — see text-utils.js's own comment. Re-exported below (not just used
 // internally) so every other file's existing `from './ai-assistant-suggestions.js'` import keeps
@@ -816,7 +815,7 @@ import { render } from './waypoints-render-loop.js';
     function insertImageIntoCellAt(tableId, r, c, imgHtml) {
         const table = window.__findItemById(tableId);
         if (!table || !table.tableData || !table.tableData[r] || table.tableData[r][c] == null) return false;
-        saveSnapshot();
+        window.__saveSnapshot();
         const cellEl = document.querySelector(`#${itemElId(tableId)} .cell-text[data-r="${r}"][data-c="${c}"]`);
         if (cellEl) {
             cellEl.insertAdjacentHTML('beforeend', imgHtml);
@@ -824,12 +823,12 @@ import { render } from './waypoints-render-loop.js';
         } else {
             table.tableData[r][c] = (table.tableData[r][c] || '') + imgHtml;
         }
-        scheduleWorkspaceSave();
+        window.__scheduleWorkspaceSave();
         render();
         return true;
     }
     function importDotbotResultAtScreenPoint(template, clientX, clientY) {
-        saveSnapshot();
+        window.__saveSnapshot();
         const rect = canvas.getBoundingClientRect();
         const dropX = Math.round(((clientX - rect.left - appState.tx) / appState.scale) / 28) * 28;
         const dropY = Math.round(((clientY - rect.top - appState.ty) / appState.scale) / 28) * 28;
@@ -875,3 +874,5 @@ window.__findParentFolderId = findParentFolderId;
 // openRailView's own AI-view-navigated-away-from check (Phase 4.5).
 window.__refreshAiPanel = refreshAiPanel;
 window.__resetAiSearchState = resetAiSearchState;
+// Used by app/dotto/lib/historyAutosave.ts's global Escape keydown handler (Phase 4.5).
+window.__clearSearch = clearSearch;

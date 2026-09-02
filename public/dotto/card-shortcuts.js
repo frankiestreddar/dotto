@@ -1,5 +1,4 @@
 import { appState, contextMenu, parseItemId } from './core-state.js';
-import { saveSnapshot } from './history-autosave.js';
 import { cascadeDeleteFolderContents, deleteWaypointFromDb, render, renderSelectedOutlines } from './waypoints-render-loop.js';
 
 // Phase 4.3 split (was part of resize-shortcuts-init.js, see PHASE4_ROADMAP.md) — the "shortcuts"
@@ -44,7 +43,7 @@ function deleteSelectedCards() {
         if (hasSrsTable) parts.push("a table's permanently stored spaced-repetition progress");
         if (!confirm(`Deleting will erase ${parts.join(', ')} for good. Delete anyway?`)) return;
     }
-    saveSnapshot();
+    window.__saveSnapshot();
     const idSet = new Set(appState.selectedCardIds);
     const removedWaypoints = items.filter(it => it.kind === 'waypoint');
     // Nested canvases/sources being deleted along with everything inside them (their own
@@ -61,7 +60,7 @@ function deleteSelectedCards() {
 function setTableAlign(align) {
     const id = parseInt(contextMenu.dataset.id);
     const it = window.__findItemById(id); if (!it) return;
-    saveSnapshot();
+    window.__saveSnapshot();
     it.textAlign = align;
     render();
     contextMenu.style.display = 'none'; appState.contextMenuItemId = null;

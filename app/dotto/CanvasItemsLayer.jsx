@@ -72,7 +72,7 @@ const CARD_KIND_COMPONENTS = {
 //
 // That fix had its own side effect worth flagging: every item's function body + effect now re-runs
 // on every render() call, no matter which item actually changed — e.g. a running Stopwatch's own
-// per-second tick (ensureSwTicking/swTick, history-autosave.js) calls render() for the WHOLE
+// per-second tick (ensureSwTicking/swTick, app/dotto/lib/historyAutosave.ts) calls render() for the WHOLE
 // canvas, so every OTHER item's layout effect re-runs too. Harmless here (React's own reconciler
 // still diffs each Component's JSX output and no-ops an unchanged one), but individual Components
 // with an expensive rebuild of their own (CanvasCard's inline preview, MediaCard's PDF/EPUB

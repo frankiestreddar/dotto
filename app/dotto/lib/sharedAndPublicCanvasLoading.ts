@@ -249,7 +249,7 @@ export async function announceEnteredCollaboration(localKey: string): Promise<vo
 // collaboration case above. Same local-namespaced-key reuse trick as the shared: convention,
 // under its own public: prefix — and, critically, NEVER written back anywhere: saveWorkspaceNow's
 // own filter excludes public: keys the same way it already excludes shared: ones
-// (history-autosave.js), and there is no update_public_folder RPC at all. Leaving and coming back
+// (app/dotto/lib/historyAutosave.ts), and there is no update_public_folder RPC at all. Leaving and coming back
 // forgets it completely — nothing about a public view is ever persisted, locally or remotely,
 // matching "obtain" on a public item being a one-off, no-lasting-record read (see the
 // slash-command plan's own "obtain" semantics).
@@ -414,18 +414,24 @@ export function exitSharedCanvasToRoot(): void {
   }
 }
 
-window.__openSharedCanvas = openSharedCanvas;
-window.__resolveReferenceFolderKey = resolveReferenceFolderKey;
-window.__exitSharedCanvasToRoot = exitSharedCanvasToRoot;
-// The rest of these are new as of this port — every one of these 7 callers (app-init.js,
-// command-verbs.js, hamburger-collab.js, history-autosave.js, waypoints-render-loop.js — all still
-// vanilla — plus app/dotto/lib/canvasPresence.ts, ported since) previously imported the function
-// directly; public/dotto/*.js can't import from app/dotto/, so each still-vanilla one switched to
-// calling the matching bridge instead.
-window.__announceEnteredCollaboration = announceEnteredCollaboration;
-window.__openPublicCanvas = openPublicCanvas;
-window.__ensureSharedFolderLoaded = ensureSharedFolderLoaded;
-window.__sharedFolderKey = sharedFolderKey;
-window.__stripSharedFolderIds = stripSharedFolderIds;
-window.__namespaceSharedFolderIds = namespaceSharedFolderIds;
-window.__parseSharedFolderKey = parseSharedFolderKey;
+// Guarded: this module's top level is reached during Next's server-side render pass (a
+// pre-existing, project-wide issue across every Phase 4.4/4.5 bridge file, discovered and
+// documented while finishing the history-autosave.js port — see PHASE4_ROADMAP.md), where
+// `window` genuinely does not exist yet.
+if (typeof window !== "undefined") {
+  window.__openSharedCanvas = openSharedCanvas;
+  window.__resolveReferenceFolderKey = resolveReferenceFolderKey;
+  window.__exitSharedCanvasToRoot = exitSharedCanvasToRoot;
+  // The rest of these are new as of this port — every one of these 7 callers (app-init.js,
+  // command-verbs.js, hamburger-collab.js, history-autosave.js, waypoints-render-loop.js — all still
+  // vanilla — plus app/dotto/lib/canvasPresence.ts, ported since) previously imported the function
+  // directly; public/dotto/*.js can't import from app/dotto/, so each still-vanilla one switched to
+  // calling the matching bridge instead.
+  window.__announceEnteredCollaboration = announceEnteredCollaboration;
+  window.__openPublicCanvas = openPublicCanvas;
+  window.__ensureSharedFolderLoaded = ensureSharedFolderLoaded;
+  window.__sharedFolderKey = sharedFolderKey;
+  window.__stripSharedFolderIds = stripSharedFolderIds;
+  window.__namespaceSharedFolderIds = namespaceSharedFolderIds;
+  window.__parseSharedFolderKey = parseSharedFolderKey;
+}

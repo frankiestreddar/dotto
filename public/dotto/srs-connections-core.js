@@ -3,7 +3,6 @@ import { openSearchOverlay, stripHtml } from './ai-assistant-suggestions.js';
 import { appState, btnAdd, canvas, canvasViewportCenterX, drawBackBtn, drawColorInput, drawEraserBtn, drawFrontBtn, drawPenBtn, drawSettings, drawSizeInput, effectiveMode, findItemEl, registerPaneCanvasListenerSetup, switchActivePane, world, zoomTrack } from './core-state.js';
 import { createConnection, ensureConnections, ensureDrawings, findLinkedTable, findTableById, makeLayerSVG, pathNearPoint, penPointsToPath, pointsToPath } from './drawing-connections.js';
 import { generateGlobalId } from './global-ids.js';
-import { applyTransform, saveSnapshot, scheduleApplyTransform } from './history-autosave.js';
 import { awardUserPoints, bumpAchievementStat, showProfileSettingsView } from './profile-achievements-pricing.js';
 import { toggleTheme } from './theme-toggle.js';
 import { toggleUploadPopup } from './upload-popup.js';
@@ -266,7 +265,7 @@ import { calculateSM2, defaultSrsState, diffRatings } from './srs-algorithm.js';
         clearDataLinkPending();
         if (fromId === it.id) return; // clicked the armed card again — just cancel
         if (!isValidConnection(fromId, it.id)) return;
-        saveSnapshot();
+        window.__saveSnapshot();
         const conns = ensureConnections(appState.folders[appState.currentFolderId]);
         createConnection(conns, fromId, it.id);
         render();
@@ -510,7 +509,7 @@ import { calculateSM2, defaultSrsState, diffRatings } from './srs-algorithm.js';
         // — now reused for Servers (see that shortcut's own line, below).
         // Collaborations is 'C' (was 'G', reassigned per explicit request — the bare 'c'/'C'
         // copy-selected-cards shortcut that used to collide with it was removed from
-        // history-autosave.js at the same time, specifically to free this letter up cleanly, no
+        // app/dotto/lib/historyAutosave.ts at the same time, specifically to free this letter up cleanly, no
         // fallback ambiguity). Routes (was Inbox, renamed per explicit request — its own internal
         // ids/appState fields stayed btnInbox/inboxPanel, same convention as every other rename
         // this session, e.g. Files staying #btn-snippets under the hood) is 'R' (was 'I', freed up
@@ -540,7 +539,7 @@ import { calculateSM2, defaultSrsState, diffRatings } from './srs-algorithm.js';
         if (!isEditingText && (e.key === 'w' || e.key === 'W')) { e.preventDefault(); appState.railBtnWaypoints.click(); return; }
         if (!isEditingText && (e.key === 'c' || e.key === 'C')) { e.preventDefault(); appState.railBtnCollab.click(); return; }
         // Was 'J' (Friends) — reassigned to 'S' per explicit request, freeing 'S' back up in turn
-        // for Snippets2's own move to 'X' below (delete/cut, history-autosave.js's bare 'X', is
+        // for Snippets2's own move to 'X' below (delete/cut, app/dotto/lib/historyAutosave.ts's bare 'X', is
         // guarded off whenever something's selected — see that shortcut's own comment for why).
         if (!isEditingText && (e.key === 's' || e.key === 'S')) { e.preventDefault(); appState.btnServers.click(); return; }
         if (!isEditingText && (e.key === 'h' || e.key === 'H')) { e.preventDefault(); appState.btnCart.click(); return; }
@@ -560,7 +559,7 @@ import { calculateSM2, defaultSrsState, diffRatings } from './srs-algorithm.js';
         // appState.btnSnippets2 is the newer, separate Snippets button (see its own comment,
         // core-state.js) — not appState.btnSnippets, which is actually Files under the hood. Was
         // 'S' (freed up per explicit request for Servers, above) — reassigned to 'X', which
-        // collides with the bare delete/cut shortcut (history-autosave.js, fires whenever
+        // collides with the bare delete/cut shortcut (app/dotto/lib/historyAutosave.ts, fires whenever
         // selectedCardIds is non-empty) whenever something's actually selected; resolved the same
         // way the Z/Cmd+Z collision below was — this handler backs off and lets cut own the key
         // exactly when cut is live (something selected), only opening Snippets otherwise.
@@ -568,7 +567,7 @@ import { calculateSM2, defaultSrsState, diffRatings } from './srs-algorithm.js';
         // Was bare 'z'/'Z', then briefly Cmd/Ctrl+, (matching the Preferences/Settings convention
         // most other apps use) — simplified to bare ',' per a follow-up explicit request. No
         // collision to guard against: nothing else in this codebase binds a bare ',' key, and
-        // Cmd/Ctrl+Z (undo/redo, history-autosave.js) no longer overlaps with this shortcut at all
+        // Cmd/Ctrl+Z (undo/redo, app/dotto/lib/historyAutosave.ts) no longer overlaps with this shortcut at all
         // now that Z itself is free of it too. Settings is no longer its own rail icon (moved into
         // a sub-view of the Profile panel, per an earlier explicit request) — this opens Profile
         // and jumps straight to that sub-view in one step (profileBtn's own click handler, via
@@ -664,7 +663,7 @@ import { calculateSM2, defaultSrsState, diffRatings } from './srs-algorithm.js';
     // its own handleOut, this preview already curves toward the mouse using it, so the segment
     // doesn't visually "snap" from straight to curved the instant the next point actually lands.
     function startPenPolyline(wx, wy) {
-        saveSnapshot();
+        window.__saveSnapshot();
         appState.penPolyline = { points: [{ x: wx, y: wy, handleOut: null }], color: appState.drawColor, layer: appState.drawLayer, width: appState.drawSize };
         const { svg, path } = makeLivePath(appState.drawColor, appState.drawSize, appState.drawLayer);
         appState.liveSvg = svg; appState.livePath = path;
@@ -682,7 +681,7 @@ import { calculateSM2, defaultSrsState, diffRatings } from './srs-algorithm.js';
     }
     // Commits the in-progress polyline (>=2 points) or discards it (a stray single click, undoing
     // the saveSnapshot from startPenPolyline since nothing was actually drawn) — called on Enter
-    // (stays in pen mode, see the keydown handler below), Escape (history-autosave.js's global
+    // (stays in pen mode, see the keydown handler below), Escape (app/dotto/lib/historyAutosave.ts's global
     // handler — pen mode itself is exited separately, by the pre-existing
     // Escape-tap-switches-to-normal-mode logic in app/dotto/lib/sourceButtonsCursorMode.ts), double-click
     // (below), and whenever the pen/eraser/layer toolbar buttons switch mid-line (above).
@@ -707,13 +706,13 @@ import { calculateSM2, defaultSrsState, diffRatings } from './srs-algorithm.js';
     // point-by-point line (pen sub-tool, released with barely any movement — either starting a
     // brand new polyline, or, if one is already in progress, just extending it — see
     // addPenPolylinePoint above). Freehand vs. click is decided lazily inside the move handler
-    // rather than up front, so saveSnapshot() only ever fires once we know which real action is
+    // rather than up front, so window.__saveSnapshot() only ever fires once we know which real action is
     // actually happening.
     function handlePenPointerDown(e) {
         const rect = canvas.getBoundingClientRect();
 
         if (appState.drawTool === 'eraser') {
-            saveSnapshot();
+            window.__saveSnapshot();
             const dwList = ensureDrawings(appState.folders[appState.currentFolderId]);
             const eraseRadius = Math.max(appState.drawSize, 8) / 2;
             const eraseAt = (wx, wy) => {
@@ -771,7 +770,7 @@ import { calculateSM2, defaultSrsState, diffRatings } from './srs-algorithm.js';
             if (!dragStarted) {
                 if (Math.hypot(me.clientX - downX, me.clientY - downY) < PEN_CLICK_THRESHOLD_PX) return;
                 dragStarted = true;
-                saveSnapshot();
+                window.__saveSnapshot();
                 appState.drawing = { points: [[wx0, wy0]], color: appState.drawColor, layer: appState.drawLayer, width: appState.drawSize };
                 const { svg, path } = makeLivePath(appState.drawColor, appState.drawSize, appState.drawLayer);
                 appState.liveSvg = svg; appState.livePath = path;
@@ -849,7 +848,7 @@ import { calculateSM2, defaultSrsState, diffRatings } from './srs-algorithm.js';
 
             let startX = e.clientX - appState.tx, startY = e.clientY - appState.ty;
             document.body.classList.add('dragging');
-            const move = (me) => { appState.tx = me.clientX - startX; appState.ty = me.clientY - startY; applyTransform(); };
+            const move = (me) => { appState.tx = me.clientX - startX; appState.ty = me.clientY - startY; window.__applyTransform(); };
             const up = () => { document.body.classList.remove('dragging'); window.removeEventListener('pointermove', move); window.removeEventListener('pointerup', up); };
             window.addEventListener('pointermove', move); window.addEventListener('pointerup', up);
         });
@@ -884,7 +883,7 @@ import { calculateSM2, defaultSrsState, diffRatings } from './srs-algorithm.js';
                 appState.tx -= e.deltaX;
                 appState.ty -= e.deltaY;
             }
-            scheduleApplyTransform();
+            window.__scheduleApplyTransform();
         }, { passive: false });
     }
     setupCanvasLevelInteractionListeners(canvas, 0);
@@ -900,7 +899,7 @@ import { calculateSM2, defaultSrsState, diffRatings } from './srs-algorithm.js';
         appState.tx = cx - worldX * newScale;
         appState.ty = cy - worldY * newScale;
         appState.scale = newScale;
-        applyTransform();
+        window.__applyTransform();
     }
     zoomTrack.addEventListener('pointerdown', (e) => {
         e.stopPropagation();
@@ -933,11 +932,11 @@ import { calculateSM2, defaultSrsState, diffRatings } from './srs-algorithm.js';
         appState.tx = cx - worldX * newScale;
         appState.ty = cy - worldY * newScale;
         appState.scale = newScale;
-        applyTransform();
+        window.__applyTransform();
     });
 
     function add(kind, x = 100, y = 100, statKind = null) {
-        saveSnapshot();
+        window.__saveSnapshot();
         const { w, h } = kindSize(kind);
         const base = { id: appState.idCounter++, x, y, w, h, kind };
         if (kind === 'title') { base.html = ''; base.level = 1; }
@@ -1304,3 +1303,6 @@ window.__calculateSM2 = calculateSM2;
 window.__defaultSrsState = defaultSrsState;
 // Used by app/dotto/lib/sourceButtonsCursorMode.ts's applyCursorMode (Phase 4.4).
 window.__clearDataLinkPending = clearDataLinkPending;
+// Used by app/dotto/lib/historyAutosave.ts's global Escape keydown handler (Phase 4.5).
+window.__cancelAddingKind = cancelAddingKind;
+window.__finishPenPolyline = finishPenPolyline;

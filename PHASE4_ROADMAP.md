@@ -340,7 +340,7 @@
   this port owns directly. Zero console/page errors. Re-checked the account afterward to confirm
   zero residual mock cards/folders. **This closes out Phase 4.4 — every split-out concern and
   remaining DOM-heavy file has now been ported.** Phase 4.5 (architectural/hub files) is next.
-- **Phase 4.5 — architectural/hub files: in progress (2 of 7 done).**
+- **Phase 4.5 — architectural/hub files: in progress (3 of 7 done).**
   `panels-hamburger.js` (178 lines) ported first to `app/dotto/lib/panelsHamburger.ts` — the
   permanent rail's shared open/close contract (one sliding `#hamburger-stack` shell, many trigger
   icons) plus the hover/pin panel helper used by the add-menu and per-canvas collaborator flyout.
@@ -470,6 +470,85 @@
   a real click put the card into `.editing` mode, since `.format-bar` is `display:none` until
   then) correctly updated both the data (`level`) and the live DOM (`fontSize`). Zero console/page
   errors. Re-checked the account afterward to confirm zero residual mock items/friends.
+  `history-autosave.js` (742 lines, fan-in 22) ported third to `app/dotto/lib/historyAutosave.ts`,
+  kept as one file rather than split, despite the original plan's own "unrelated table-context-menu
+  code splits out and ports separately" language — checked against this file's actual size/coupling
+  first (not assumed from the plan's pre-work wording): at 742 lines with undo/redo, autosave,
+  camera-transform, the context-menu, the global keydown handler, and stopwatch-ticking all calling
+  into each other throughout, this doesn't clear the "genuinely large with cleanly-separable
+  concerns" bar `live-presence.js`'s 1512-line 3-way split did — matches the precedent already set
+  by `sourceButtonsCursorMode.ts` (2 unrelated concerns bundled in one file) and every single-file
+  Phase 4.4 port of comparable size. **No `useHistoryStore` was built**, despite the plan
+  anticipating one ("`saveSnapshot`/`undo`/`redo`/autosave become `useHistoryStore` actions") — same
+  check-before-building discipline as `panels-hamburger.js`/`live-presence.js` above: zero React
+  components read `appState.undoStack`/`redoStack` today, so a store wrapping them would have no
+  real reactive consumer yet; kept the same conservative "plain TS module + window bridges"
+  pattern. 15 real vanilla callers fixed (the 15th, `window-bridge.js`, was missed by the first
+  batch-sed pass and caught by the follow-up per-file `grep` sweep that checks every caller
+  individually, not just the ones the sed batch targeted); 8 real inline-onclick/oncontextmenu
+  targets (`undo`/`redo`/`hideCanvasContextMenu`/`deleteContextColumn`/`deleteContextRow`/
+  `highlightContextColumn`/`highlightContextRow`/`openTableCellContextMenu`) moved off
+  `window-bridge.js`'s old indirection onto direct plain-global assignment, same convention as
+  every recent port — `window-bridge.js` is down to 9 remaining re-exports after this, a running
+  measure of how close it is to empty (Phase 4.5 target 5). `hideCanvasContextMenu` is dual-exposed
+  on purpose — both `window.hideCanvasContextMenu` (a real inline `onclick` target,
+  `content/fragments/canvas-context-menu.html`'s own "Undo"/"Redo" rows) and
+  `window.__hideCanvasContextMenu` (real vanilla-JS callers like `sourceButtonsCursorMode.ts`'s own
+  `window.onclick` handler need programmatic access too) — same dual-exposure shape established for
+  `broadcastEditingState` in the previous port. `canvasItemBehavior.js` (a plain `.js` file,
+  deliberately zero-import before this port) upgraded to a real ES import of `applyTransform`/
+  `saveSnapshot`/`scheduleWorkspaceSave` for its `setupResizing`/`setupDraggingAndClicking` closures
+  — same same-tree-caller-upgrade precedent as every other port this session, but this one had a
+  real consequence caught below. `__registerPaneCanvasListenerSetup`'s ambient type in
+  `vanillaBridges.d.ts` was simply wrong — declared as `(fn: (canvasEl: HTMLElement) => void) =>
+  void` when the real implementation (`core-state.js`'s `registerPaneCanvasListenerSetup`) always
+  calls `fn(canvasEl, paneId)`, a real 2-argument call; `npm run typecheck` caught this immediately
+  once `setupCanvasContextMenu(canvasEl, paneId)` was registered through it — fixed the type to
+  match the real call site, not the other way around.
+  **A second, far more significant bug, project-wide in scope, was caught only by real Playwright
+  browser testing (neither typecheck nor `npm run build` catches it — both stayed clean)**:
+  `canvasItemBehavior.js`'s new import above was the first point in `app/dotto-app.jsx`'s entire
+  module graph where a bridge-setting file's top-level code actually runs during Next's real
+  server-side render pass, and `window`/`document` genuinely don't exist yet at that point in SSR
+  — a real, reproducible `ReferenceError`, confirmed via the dev server's own log
+  (`⨯ ReferenceError: window is not defined at module evaluation (historyAutosave.ts:811:1)`) and a
+  real `GET / 500` on every single request. Bisected with `git stash` against `HEAD` (commit
+  `db6b97a`, before any of this port's changes) to rule out a false positive: **the same crash
+  reproduces identically at `HEAD`, in both `npm run dev` and a real `npm run build && npm run
+  start` production server** — this is a pre-existing, already-shipped bug across this whole
+  migration's bridge-file convention (every `app/dotto/lib/*.ts` port sets `window.__X = fn` at
+  bare module top level, unguarded), not something this specific port introduced; this port's own
+  `canvasItemBehavior.js` change only happened to be what surfaced it, by being the first thing in
+  the import graph to reach an unguarded file's top level this early. Root-caused and fixed
+  properly rather than patched around: every `app/dotto/lib/*.ts` file with a top-level
+  `window.X = ...` assignment (17 files: `canvasPresence.ts`, `copyPaste.ts`,
+  `gamesFlashcardTyperight.ts`, `historyAutosave.ts`, `marketplace.ts`, `mediaPdfEpub.ts`,
+  `messagingCanvasPreview.ts`, `notificationsStore.ts`, `outlineTree.ts`, `panelsHamburger.ts`,
+  `sharedAndPublicCanvasLoading.ts`, `shelfSearch.ts`, `sourceButtonsCursorMode.ts`,
+  `sourceTable.ts`, `splitPaneManagement.ts`, `stopwatch.ts`, `tabManagement.ts`) had its bridge
+  block wrapped in `if (typeof window !== "undefined") { ... }`; `gamesFlashcardTyperight.ts` also
+  had a genuinely different variant of the same bug — a real top-level `document.addEventListener`
+  call (its outside-click-closes-the-options-panel listener), guarded with its own
+  `if (typeof document !== "undefined")` instead. Verified the fix at three levels: `npm run build
+  && npm run start`, real authenticated Playwright reloads (3x) with zero console errors or server
+  500s; a fresh `npm run dev`, same result; and the full `verify-phase4-5-historyautosave-port.js`
+  script passing clean end to end. **This is flagged here prominently, not folded quietly into the
+  bridge-file list above, because it was a real production-affecting bug already live on `main`
+  before this port started** — every authenticated user's first/refreshed page load was hitting a
+  server-side 500 (the client-side app still ultimately worked after hydration recovered from it,
+  which is presumably why it went unnoticed by users and by every prior port's own Playwright
+  verification, none of which happened to check server response status codes or reload from a cold
+  SSR pass the way this port's own bisection did).
+  Real Playwright verification against a fresh dev server: undo/redo via a real card add + real
+  `__undo`/`__redo` round trip (item count checked before/after each step); camera transform via a
+  real mouse-wheel pan (`tx`/`ty` change) and a real Ctrl+wheel zoom (`scale` change); the canvas
+  right-click context menu opened via a real right-click on verified-blank canvas space (a screen
+  point picked via `elementFromPoint`, since a card's own image can intercept the click and stop
+  the event from bubbling to the canvas listener — by design, "cards handle their own contextmenu")
+  and closed via the real `hideCanvasContextMenu()` plain global; and the full autosave/load round
+  trip via a real title edit, `scheduleWorkspaceSave()`, a real page reload, and confirming the new
+  title survived (real Supabase round trip, not a mocked one). Zero console/page errors. Cleanup
+  restored the edited card's original title and removed the mock undo/redo test card.
 - **Phase 4.6 — delete the bridge layer: not started.**
 - **Phase 4.7 — final cleanup & professionalization close-out: not started.**
 
@@ -1335,3 +1414,61 @@ on a no-match query; a real `Escape` keypress closed the open panel via the exis
 handler's `closeAllPanels` call; and `window.__isAnyUiPanelOpen()` was checked at every stage and
 matched the real DOM state throughout. Zero console/page errors. No mock data was created (pure
 UI-interaction test), so no cleanup step was needed.
+
+**Phase 4.5 (`live-presence.js` → `app/dotto/lib/canvasPresence.ts` +
+`app/dotto/lib/messagingCanvasPreview.ts`)**: `node --check` on all touched vanilla files, `eslint`
+clean, `npm run typecheck` clean once `FolderObj`/`Friend` got the same index-signature treatment
+`SrsState`/`CardRow` needed earlier this session, `npm run format:check` clean after a `prettier
+--write` pass, `rm -rf .next && npm run build` clean (this is what caught `renderMsgSnapshotCard`'s
+missing `export` keyword — typecheck alone stayed clean since the file's own internal usage
+already satisfied every type check it runs; only the real bundler, resolving `MsgConvo.jsx`'s
+genuine `import { renderMsgSnapshotCard }` against the module's actual exports, caught the
+mismatch), all 32 Vitest tests still green. Real Playwright verification against a fresh dev
+server, scoped honestly around this shared test account's zero real friends/collaborators (the
+actual multi-client realtime presence path needs a second authenticated account, out of reach for
+a single-account session): all 27 bridges present; every presence/broadcast function's real
+null-channel safety (`ensureCanvasPresenceChannel`/every `broadcast*`/`repositionAllRemoteCursors`/
+`goToCollaboratorCursor` all no-op cleanly against this account's legitimately-`null`
+`canvasPresenceChannel`, not throw); the pure data-transform functions (`snapshotItem`,
+`sanitizeFlashcardSnapshot`, `miniLabelForItem`, `renderMsgSnapshotCard`) called directly and
+checked against real expected output; `renderInlineCanvas` mounted into a real detached DOM node
+and inspected for real structure; a real messaging flow (`openConvo`/`renderConvoBody`/
+`closeConvo`) driven through the real `MsgConvo.jsx` component and a real click on its back
+button, using a tagged mock friend injected after opening the real rail panel (seeding it before
+would have been silently wiped by `refreshMessagesPanel`'s own real Supabase round-trip — caught
+via a real failed run first); and a real `TitleCard.jsx` dropdown change (after a real click into
+`.editing` mode) updated both `level` and the live DOM `fontSize`. Zero console/page errors.
+Re-checked the account afterward to confirm zero residual mock items/friends.
+
+**Phase 4.5 (`history-autosave.js` → `app/dotto/lib/historyAutosave.ts`)**: `node --check` on all 6
+touched vanilla files, `eslint` clean, `npm run typecheck` clean (after fixing
+`__registerPaneCanvasListenerSetup`'s ambient type — it was declared as a 1-argument callback when
+the real `core-state.js` implementation always calls it with 2), `npm run format:check` clean after
+a `prettier --write` pass run as the actual last step before committing, `rm -rf .next && npm run
+build` clean, all 32 Vitest tests still green. **Also caught and fixed a real, pre-existing,
+project-wide production bug this port's own `canvasItemBehavior.js` import happened to surface**:
+every `app/dotto/lib/*.ts` port's bridge-assignment block runs at bare module top level, and
+`canvasItemBehavior.js`'s new import of this port was the first point in `app/dotto-app.jsx`'s
+whole import graph where such a block actually executes during Next's real SSR pass — where
+`window`/`document` don't exist yet, a real `ReferenceError` confirmed via the dev server's own
+log and a real `GET / 500` on every request. Bisected with `git stash` against `HEAD` (commit
+`db6b97a`) to confirm this wasn't specific to this port's own changes: the identical crash
+reproduces at `HEAD` too, in both `npm run dev` and a real `npm run build && npm run start`
+production server — a bug already live on `main`, affecting every authenticated user's first or
+refreshed page load (client-side hydration apparently recovered afterward, which is presumably why
+it went unnoticed by users and by every prior port's own Playwright verification). Fixed properly
+across all 17 affected files (see the Status section entry above for the full list) by guarding
+each bridge block with `if (typeof window !== "undefined") { ... }`
+(`gamesFlashcardTyperight.ts`'s one `document.addEventListener` call got its own `if (typeof
+document !== "undefined")` guard instead), then re-verified at three levels: `npm run build && npm
+run start` with 3 real authenticated Playwright reloads showing zero console errors or server
+500s; a fresh `npm run dev`, same result; and this port's own full verify script passing clean.
+Real Playwright verification of the port itself against a fresh dev server: undo/redo via a real
+card add + real `__undo`/`__redo` round trip, item count checked at each step; camera transform via
+a real mouse-wheel pan (`tx`/`ty` change) and a real Ctrl+wheel zoom (`scale` change); the canvas
+right-click context menu opened via a real right-click on a screen point verified blank via
+`elementFromPoint` (a card's own image can otherwise intercept the click) and closed via the real
+`hideCanvasContextMenu()` plain global; and the full autosave/load round trip via a real title
+edit, `scheduleWorkspaceSave()`, a real page reload, and confirming the new title survived a real
+Supabase round trip. Zero console/page errors. Cleanup restored the edited card's original title
+and removed the mock undo/redo test card.

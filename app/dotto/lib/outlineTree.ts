@@ -555,29 +555,35 @@ export function toggleHamburgerMenu(): void {
   }
 }
 
-window.__kindIconFile = kindIconFile;
-// React → vanilla bridges — used by OutlinePanel.jsx (app/dotto/), which can't import this module
-// directly since public/dotto/*.js isn't reachable from app/dotto/. Same reasoning as
-// window.__goToOutlineItem below.
-window.__goToOutlineSource = goToOutlineSource;
-window.__goToOutlineSourceRow = goToOutlineSourceRow;
-window.__syncOutlineRows = syncOutlineRows;
-// React → vanilla bridge — used by FilesListPanel.jsx (app/dotto/) to navigate to (and flash) a
-// file's own canvas card on click, same primitive the Outline tree's own non-source rows already
-// use for every other card kind.
-window.__goToOutlineItem = goToOutlineItem;
-window.__toggleOutlineCollapse = toggleOutlineCollapse;
-// Vanilla → React bridges — hamburger-collab.js/search-panel-history.js/
-// app/dotto/lib/panelsHamburger.ts/window-bridge.js/waypoints-render-loop.js/srs-connections-core.js
-// all previously imported these directly, plus app/dotto/lib/messagingCanvasPreview.ts (ported
-// since — was live-presence.js's own direct import of kindIconHTML).
-window.__buildOutline = buildOutline;
-window.__kindIconHTML = kindIconHTML;
-window.__rowActionsHTML = rowActionsHTML;
-// Plain (non-`__`) global — the real inline oninput="handleOutlineSearch(this.value)" target
-// (content/fragments/hamburger-stack.html), same shape window.pushNotification/
-// window.handleMarketplaceSearch use. Formerly re-exported through window-bridge.js's own
-// centralized inline-handler list; now assigned directly here since this is the sole real caller.
-window.handleOutlineSearch = handleOutlineSearch;
-window.__setOutlineActive = setOutlineActive;
-window.__toggleHamburgerMenu = toggleHamburgerMenu;
+// Guarded: this module's top level is reached during Next's server-side render pass (a
+// pre-existing, project-wide issue across every Phase 4.4/4.5 bridge file, discovered and
+// documented while finishing the history-autosave.js port — see PHASE4_ROADMAP.md), where
+// `window` genuinely does not exist yet.
+if (typeof window !== "undefined") {
+  window.__kindIconFile = kindIconFile;
+  // React → vanilla bridges — used by OutlinePanel.jsx (app/dotto/), which can't import this module
+  // directly since public/dotto/*.js isn't reachable from app/dotto/. Same reasoning as
+  // window.__goToOutlineItem below.
+  window.__goToOutlineSource = goToOutlineSource;
+  window.__goToOutlineSourceRow = goToOutlineSourceRow;
+  window.__syncOutlineRows = syncOutlineRows;
+  // React → vanilla bridge — used by FilesListPanel.jsx (app/dotto/) to navigate to (and flash) a
+  // file's own canvas card on click, same primitive the Outline tree's own non-source rows already
+  // use for every other card kind.
+  window.__goToOutlineItem = goToOutlineItem;
+  window.__toggleOutlineCollapse = toggleOutlineCollapse;
+  // Vanilla → React bridges — hamburger-collab.js/search-panel-history.js/
+  // app/dotto/lib/panelsHamburger.ts/window-bridge.js/waypoints-render-loop.js/srs-connections-core.js
+  // all previously imported these directly, plus app/dotto/lib/messagingCanvasPreview.ts (ported
+  // since — was live-presence.js's own direct import of kindIconHTML).
+  window.__buildOutline = buildOutline;
+  window.__kindIconHTML = kindIconHTML;
+  window.__rowActionsHTML = rowActionsHTML;
+  // Plain (non-`__`) global — the real inline oninput="handleOutlineSearch(this.value)" target
+  // (content/fragments/hamburger-stack.html), same shape window.pushNotification/
+  // window.handleMarketplaceSearch use. Formerly re-exported through window-bridge.js's own
+  // centralized inline-handler list; now assigned directly here since this is the sole real caller.
+  window.handleOutlineSearch = handleOutlineSearch;
+  window.__setOutlineActive = setOutlineActive;
+  window.__toggleHamburgerMenu = toggleHamburgerMenu;
+}

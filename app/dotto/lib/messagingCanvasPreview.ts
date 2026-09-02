@@ -977,23 +977,29 @@ export function wireMessagingCanvasPreview(): () => void {
 // TitleCard.jsx/MsgConvo.jsx/SharedCanvasModalBody.jsx/CollabListPanel.jsx/FilesListPanel.jsx/
 // MessagesListPanel.jsx/MarketDetailPanel.jsx/TableCard.jsx, all now real ES imports there instead
 // (same app/dotto/ tree) — kept declared/assigned since still-vanilla callers need them too.
-window.__syncColorPicker = syncColorPicker;
-window.__titleFontSize = titleFontSize;
-window.__renderRealCardPreview = renderRealCardPreview;
-window.__renderInlineCanvas = renderInlineCanvas;
-window.__renderMsgSnapshotCard = renderMsgSnapshotCard;
-window.__openSharedCanvasView = openSharedCanvasView;
-window.__miniLabelForItem = miniLabelForItem;
-window.__snapshotItem = snapshotItem;
-window.__sanitizeFlashcardSnapshot = sanitizeFlashcardSnapshot;
-// Vanilla -> React bridges — blocks-panel.js/friends-presence.js/messages-schedule.js/drag-drop-
-// chat.js/library-publish.js/window-bridge.js all previously imported these directly.
-window.__importSharedCardsAtScreenPoint = importSharedCardsAtScreenPoint;
-window.__openConvo = openConvo;
-window.__renderConvoBody = renderConvoBody;
-// Plain (non-`__`) globals — real inline onclick targets (content/fragments/hamburger-stack.html/
-// canvas-modal.html), same shape window.pushNotification/window.handleMarketplaceSearch use.
-window.closeConvo = closeConvo;
-window.sendMsg = sendMsg;
-window.closeSharedCanvasView = closeSharedCanvasView;
-window.setTitleLevel = setTitleLevel;
+// Guarded: this module's top level is reached during Next's server-side render pass (a
+// pre-existing, project-wide issue across every Phase 4.4/4.5 bridge file, discovered and
+// documented while finishing the history-autosave.js port — see PHASE4_ROADMAP.md), where
+// `window` genuinely does not exist yet.
+if (typeof window !== "undefined") {
+  window.__syncColorPicker = syncColorPicker;
+  window.__titleFontSize = titleFontSize;
+  window.__renderRealCardPreview = renderRealCardPreview;
+  window.__renderInlineCanvas = renderInlineCanvas;
+  window.__renderMsgSnapshotCard = renderMsgSnapshotCard;
+  window.__openSharedCanvasView = openSharedCanvasView;
+  window.__miniLabelForItem = miniLabelForItem;
+  window.__snapshotItem = snapshotItem;
+  window.__sanitizeFlashcardSnapshot = sanitizeFlashcardSnapshot;
+  // Vanilla -> React bridges — blocks-panel.js/friends-presence.js/messages-schedule.js/drag-drop-
+  // chat.js/library-publish.js/window-bridge.js all previously imported these directly.
+  window.__importSharedCardsAtScreenPoint = importSharedCardsAtScreenPoint;
+  window.__openConvo = openConvo;
+  window.__renderConvoBody = renderConvoBody;
+  // Plain (non-`__`) globals — real inline onclick targets (content/fragments/hamburger-stack.html/
+  // canvas-modal.html), same shape window.pushNotification/window.handleMarketplaceSearch use.
+  window.closeConvo = closeConvo;
+  window.sendMsg = sendMsg;
+  window.closeSharedCanvasView = closeSharedCanvasView;
+  window.setTitleLevel = setTitleLevel;
+}

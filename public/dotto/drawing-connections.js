@@ -1,5 +1,4 @@
 import { appState } from './core-state.js';
-import { saveSnapshot } from './history-autosave.js';
 import { bumpAchievementStat } from './profile-achievements-pricing.js';
 import { isValidConnection } from './srs-connections-core.js';
 import { render } from './waypoints-render-loop.js';
@@ -89,7 +88,7 @@ import { render } from './waypoints-render-loop.js';
     function linkSelectedCards() {
         if (!appState.folders[appState.currentFolderId] || appState.folders[appState.currentFolderId].isSource) return;
         if (appState.selectedCardIds.length < 2) return;
-        saveSnapshot();
+        window.__saveSnapshot();
         const conns = ensureConnections(appState.folders[appState.currentFolderId]);
         const [sourceId, ...targetIds] = appState.selectedCardIds;
         let madeAny = false;

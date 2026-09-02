@@ -75,3 +75,6 @@ appState.uploadPopupBtn.addEventListener('click', () => {
 });
 
 export { closeUploadPopup, toggleUploadPopup };
+
+// Used by app/dotto/lib/historyAutosave.ts's global Escape keydown handler (Phase 4.5).
+window.__closeUploadPopup = closeUploadPopup;

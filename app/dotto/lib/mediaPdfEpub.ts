@@ -599,13 +599,19 @@ export function buildEpubViewer(it: Item): HTMLElement {
 // imported these directly. buildPdfViewer/buildEpubViewer/renderMediaHTML were already React ->
 // vanilla bridges (see MediaCard.jsx's own updated comment) before this port; names/shapes
 // preserved exactly.
-window.__renderMediaHTML = renderMediaHTML;
-window.__buildPdfViewer = buildPdfViewer;
-window.__buildEpubViewer = buildEpubViewer;
-window.__processMediaFile = processMediaFile;
-// Plain (non-`__`) globals — real inline onclick targets built into renderMediaHTML's own HTML
-// string, same shape window.pushNotification/window.handleMarketplaceSearch use. Formerly
-// re-exported through window-bridge.js's own centralized inline-handler list.
-window.setMediaFromLink = setMediaFromLink;
-window.triggerMediaUpload = triggerMediaUpload;
-window.clearMedia = clearMedia;
+// Guarded: this module's top level is reached during Next's server-side render pass (a
+// pre-existing, project-wide issue across every Phase 4.4/4.5 bridge file, discovered and
+// documented while finishing the history-autosave.js port — see PHASE4_ROADMAP.md), where
+// `window` genuinely does not exist yet.
+if (typeof window !== "undefined") {
+  window.__renderMediaHTML = renderMediaHTML;
+  window.__buildPdfViewer = buildPdfViewer;
+  window.__buildEpubViewer = buildEpubViewer;
+  window.__processMediaFile = processMediaFile;
+  // Plain (non-`__`) globals — real inline onclick targets built into renderMediaHTML's own HTML
+  // string, same shape window.pushNotification/window.handleMarketplaceSearch use. Formerly
+  // re-exported through window-bridge.js's own centralized inline-handler list.
+  window.setMediaFromLink = setMediaFromLink;
+  window.triggerMediaUpload = triggerMediaUpload;
+  window.clearMedia = clearMedia;
+}

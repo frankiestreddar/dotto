@@ -3,7 +3,6 @@ import { appState, btnAdd, canvas, canvasViewportCenterX, contextMenu, itemElId,
 import { ensureDrawings, makeLayerSVG } from './drawing-connections.js';
 import { refreshCanvasCollabForCurrentFolder, renderCollabPill, syncCanvasCollabTitle } from './friends-presence.js';
 import { renderFilesList, renderSourcesList } from './hamburger-collab.js';
-import { applyTransform, ensureSwTicking, saveSnapshot, scheduleWorkspaceSave, updateContextMenuPosition } from './history-autosave.js';
 import { findNextFreeSlot } from './card-shortcuts.js';
 import { closeCellTagPicker } from './source-tags-ai.js';
 import { applyConnections } from './srs-connections-core.js';
@@ -114,7 +113,7 @@ import { applyConnections } from './srs-connections-core.js';
                 it.name = nameEl.textContent.trim();
                 el.classList.remove('waypoint-editing');
                 collapseWaypointCardWidth(el);
-                scheduleWorkspaceSave();
+                window.__scheduleWorkspaceSave();
                 syncWaypointToDb(appState.currentFolderId, it);
             };
             nameEl.onkeydown = (ke) => {
@@ -237,7 +236,7 @@ import { applyConnections } from './srs-connections-core.js';
     // shift-click + Backspace gesture (see deleteSelectedWaypointRows, hamburger-collab.js), where
     // the target folder might not even be loaded yet (a friend's shared canvas never navigated
     // into this session — own canvases are always fully loaded up front, see loadWorkspace).
-    // For an own canvas, mutating appState.folders[...] + scheduleWorkspaceSave() is enough:
+    // For an own canvas, mutating appState.folders[...] + window.__scheduleWorkspaceSave() is enough:
     // saveWorkspaceNow serializes ALL local folders every save cycle, not just the current one, so
     // no navigation is needed. For a shared canvas, load it on demand if not already loaded (same
     // ensureSharedFolderLoaded normal navigation uses), then call update_shared_folder DIRECTLY —
@@ -267,7 +266,7 @@ import { applyConnections } from './srs-connections-core.js';
         await deleteWaypointFromDb(localKey, itemId);
         if (!stillThere) return; // pointer existed, card already gone — nothing left to persist
         if (isOwn) {
-            scheduleWorkspaceSave();
+            window.__scheduleWorkspaceSave();
         } else {
             const { isSharedView, sharedOwnerId, sharedRemoteFolderId, id, ...folderData } = folderObj;
             folderData.items = window.__stripSharedFolderIds(folderData.items);
@@ -411,7 +410,7 @@ import { applyConnections } from './srs-connections-core.js';
         editingClass = editingClass || 'folder-card-title';
         const folderId = it.folderId;
         if (!appState.folders[folderId] || titleEl.contentEditable === 'true') return;
-        saveSnapshot();
+        window.__saveSnapshot();
         const fullTitle = appState.folders[folderId].title;
         const isDefaultTitle = fullTitle === 'New Canvas' || fullTitle === 'New Source';
         if (isDefaultTitle) {
@@ -470,7 +469,7 @@ import { applyConnections } from './srs-connections-core.js';
         };
         titleEl.oninput = () => {
             const liveTitle = titleEl.textContent;
-            if (liveTitle.trim()) { appState.folders[folderId].title = liveTitle; scheduleWorkspaceSave(); }
+            if (liveTitle.trim()) { appState.folders[folderId].title = liveTitle; window.__scheduleWorkspaceSave(); }
         };
         titleEl.onkeydown = (ke) => {
             if (ke.key === 'Enter') { ke.preventDefault(); titleEl.blur(); }
@@ -526,7 +525,7 @@ import { applyConnections } from './srs-connections-core.js';
     // applyConnections, makeLayerSVG, window.__renderConnectionsLayer, etc.) already depends on,
     // rather than threading a paneId through this whole function and everything downstream of it.
     function renderOnce() {
-        scheduleWorkspaceSave();
+        window.__scheduleWorkspaceSave();
         clearSearch();
         // #items-layer (React-owned canvas item cards — see app/dotto/CanvasItemsLayer.jsx) is a
         // stable, permanent child of #world; only its siblings (drawing/connection SVG layers, the
@@ -601,7 +600,7 @@ import { applyConnections } from './srs-connections-core.js';
             btnAdd.style.display = 'none';
             appState.modeToolbar.style.display = 'none';
             zoomControl.style.display = 'none';
-            appState.tx = 0; appState.ty = 0; appState.scale = 1; applyTransform();
+            appState.tx = 0; appState.ty = 0; appState.scale = 1; window.__applyTransform();
             const item = folderObj.mediaItem;
             const viewer = document.createElement('div');
             viewer.className = 'media-viewer-fullscreen';
@@ -636,7 +635,7 @@ import { applyConnections } from './srs-connections-core.js';
             btnAdd.style.display = 'none';
             appState.modeToolbar.style.display = 'none';
             zoomControl.style.display = 'none';
-            appState.tx = 0; appState.ty = 0; appState.scale = 1; applyTransform();
+            appState.tx = 0; appState.ty = 0; appState.scale = 1; window.__applyTransform();
             let tableItem = folderObj.items.find(i => i.kind === 'table');
             if (!tableItem) {
                 tableItem = { id: appState.idCounter++, x: 0, y: 0, w: 0, h: 0, kind: 'table', tableData: [['', ''], ['', ''], ['', ''], ['', '']] };
@@ -701,7 +700,7 @@ import { applyConnections } from './srs-connections-core.js';
 
         // Sync visual selected outlines state
         renderSelectedOutlines();
-        ensureSwTicking();
+        window.__ensureSwTicking();
         // #items-layer's contents were just refreshed above (see window.__renderCanvasItems) — any
         // element a remote collaborator was shown editing (see applyRemoteCursorMode) may be a
         // fresh DOM node now if that item's props actually changed (React reuses unchanged items'
@@ -811,7 +810,7 @@ import { applyConnections } from './srs-connections-core.js';
         }
         b.__noteListenerAbort?.abort();
         const { signal } = (b.__noteListenerAbort = new AbortController());
-        b.onblur = (e) => { if(e.relatedTarget && (e.relatedTarget.closest('.format-bar') || e.relatedTarget.closest('.resize'))) return; el.classList.remove('editing'); it.html = b.innerHTML; appState.currentEditingEl = null; b.contentEditable = false; window.__broadcastEditingState(false); b.scrollTop = 0; scheduleWorkspaceSave(); };
+        b.onblur = (e) => { if(e.relatedTarget && (e.relatedTarget.closest('.format-bar') || e.relatedTarget.closest('.resize'))) return; el.classList.remove('editing'); it.html = b.innerHTML; appState.currentEditingEl = null; b.contentEditable = false; window.__broadcastEditingState(false); b.scrollTop = 0; window.__scheduleWorkspaceSave(); };
         // Live per-keystroke commit+sync — see the identical comment on the title body in
         // attachTitleBody.
         // Live per-keystroke commit + cross-pane mirror — explicit request that text edits be fully
@@ -822,7 +821,7 @@ import { applyConnections } from './srs-connections-core.js';
         // rather than waiting.
         b.oninput = () => {
             it.html = b.innerHTML;
-            scheduleWorkspaceSave();
+            window.__scheduleWorkspaceSave();
             mirrorItemToSiblingPanes(it.id, (el) => { const siblingBody = el.querySelector('.body'); if (siblingBody) siblingBody.innerHTML = it.html; });
         };
         b.onkeydown = (e) => { if (e.key === 'Escape') { e.preventDefault(); b.blur(); } };
@@ -831,7 +830,7 @@ import { applyConnections } from './srs-connections-core.js';
         b.addEventListener('click', () => { window.__syncColorPicker(b); syncNoteFormatButtons(b); }, { signal });
         el.onclick = (e) => {
             e.stopPropagation();
-            if (appState.currentEditingEl !== el) saveSnapshot();
+            if (appState.currentEditingEl !== el) window.__saveSnapshot();
             el.classList.add('editing'); if (!b.isContentEditable) { b.contentEditable = true; window.__placeCaretEnd(b); window.__broadcastEditingState(true, '#' + itemElId(it.id, paneId)); } appState.currentEditingEl = el;
         };
         window.__setupResizing(el, it);
@@ -885,7 +884,7 @@ import { applyConnections } from './srs-connections-core.js';
                 if (it.kind !== 'table') return;
                 contextMenu.style.display = 'flex';
                 appState.contextMenuItemId = it.id;
-                updateContextMenuPosition();
+                window.__updateContextMenuPosition();
                 contextMenu.dataset.id = it.id;
                 const pill = document.getElementById('align-pill');
                 pill.style.display = 'flex';
@@ -911,7 +910,7 @@ import { applyConnections } from './srs-connections-core.js';
     // runs (React commits DOM mutations before firing effects), only its className is what's not
     // set yet.
     function attachWatermarkBody(el, b, it, paneId = appState.activePaneId) {
-        b.onblur = (e) => { el.classList.remove('editing'); it.html = b.innerHTML; appState.currentEditingEl = null; b.contentEditable = false; window.__broadcastEditingState(false); scheduleWorkspaceSave(); };
+        b.onblur = (e) => { el.classList.remove('editing'); it.html = b.innerHTML; appState.currentEditingEl = null; b.contentEditable = false; window.__broadcastEditingState(false); window.__scheduleWorkspaceSave(); };
         // Live per-keystroke commit+sync — see the identical comment on the title body in
         // renderLegacyCardBody.
         // Live per-keystroke commit + cross-pane mirror — explicit request that text edits be fully
@@ -922,13 +921,13 @@ import { applyConnections } from './srs-connections-core.js';
         // rather than waiting.
         b.oninput = () => {
             it.html = b.innerHTML;
-            scheduleWorkspaceSave();
+            window.__scheduleWorkspaceSave();
             mirrorItemToSiblingPanes(it.id, (el) => { const siblingBody = el.querySelector('.body'); if (siblingBody) siblingBody.innerHTML = it.html; });
         };
         b.onkeydown = (e) => { if (e.key === 'Escape') { e.preventDefault(); b.blur(); } };
         el.onclick = (e) => {
             e.stopPropagation();
-            if (appState.currentEditingEl !== el) saveSnapshot();
+            if (appState.currentEditingEl !== el) window.__saveSnapshot();
             el.classList.add('editing'); if (!b.isContentEditable) { b.contentEditable = true; window.__placeCaretEnd(b); window.__broadcastEditingState(true, '#' + itemElId(it.id, paneId)); } appState.currentEditingEl = el;
         };
     }
@@ -950,7 +949,7 @@ import { applyConnections } from './srs-connections-core.js';
     function attachTitleBody(el, b, it, paneId = appState.activePaneId) {
         b.__titleListenerAbort?.abort();
         const { signal } = (b.__titleListenerAbort = new AbortController());
-        b.onblur = (e) => { if(e.relatedTarget && (e.relatedTarget.closest('.format-bar'))) return; el.classList.remove('editing'); it.html = b.innerHTML; appState.currentEditingEl = null; b.contentEditable = false; window.__broadcastEditingState(false); scheduleWorkspaceSave(); };
+        b.onblur = (e) => { if(e.relatedTarget && (e.relatedTarget.closest('.format-bar'))) return; el.classList.remove('editing'); it.html = b.innerHTML; appState.currentEditingEl = null; b.contentEditable = false; window.__broadcastEditingState(false); window.__scheduleWorkspaceSave(); };
         // Live per-keystroke commit+sync — see the identical comment on the note body in
         // renderLegacyCardBody.
         // Live per-keystroke commit + cross-pane mirror — explicit request that text edits be fully
@@ -961,7 +960,7 @@ import { applyConnections } from './srs-connections-core.js';
         // rather than waiting.
         b.oninput = () => {
             it.html = b.innerHTML;
-            scheduleWorkspaceSave();
+            window.__scheduleWorkspaceSave();
             mirrorItemToSiblingPanes(it.id, (el) => { const siblingBody = el.querySelector('.body'); if (siblingBody) siblingBody.innerHTML = it.html; });
         };
         b.onkeydown = (e) => { if (e.key === 'Escape') { e.preventDefault(); b.blur(); } };
@@ -970,7 +969,7 @@ import { applyConnections } from './srs-connections-core.js';
         b.addEventListener('click', () => window.__syncColorPicker(b), { signal });
         el.onclick = (e) => {
             e.stopPropagation();
-            if (appState.currentEditingEl !== el) saveSnapshot();
+            if (appState.currentEditingEl !== el) window.__saveSnapshot();
             el.classList.add('editing'); if (!b.isContentEditable) { b.contentEditable = true; window.__placeCaretEnd(b); window.__broadcastEditingState(true, '#' + itemElId(it.id, paneId)); } appState.currentEditingEl = el;
         };
     }
@@ -1032,7 +1031,7 @@ import { applyConnections } from './srs-connections-core.js';
         const tid = parseItemId(targetEl);
         const target = appState.folders[appState.currentFolderId].items.find(i => i.id === tid);
         if(!target || target.kind !== 'folder') return;
-        saveSnapshot();
+        window.__saveSnapshot();
         source.x = findNextFreeSlot(target.folderId);
         source.y = 28;
         appState.folders[target.folderId].items.push(source);
@@ -1046,7 +1045,7 @@ import { applyConnections } from './srs-connections-core.js';
         appState.scale = 1;
         if (!items.length) {
             appState.tx = canvasViewportCenterX(); appState.ty = window.innerHeight / 2;
-            applyTransform();
+            window.__applyTransform();
             return;
         }
         let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
@@ -1059,7 +1058,7 @@ import { applyConnections } from './srs-connections-core.js';
         const cx = (minX + maxX) / 2, cy = (minY + maxY) / 2;
         appState.tx = canvasViewportCenterX() - cx;
         appState.ty = window.innerHeight / 2 - cy;
-        applyTransform();
+        window.__applyTransform();
     }
 
     // Shared by every navigation entry point (opening a folder, back/forward, breadcrumb ".."):
@@ -1081,7 +1080,7 @@ import { applyConnections } from './srs-connections-core.js';
         if (target && !target.isSource && !target.isMediaViewer) {
             if (target.lastView) {
                 appState.tx = target.lastView.tx; appState.ty = target.lastView.ty; appState.scale = target.lastView.scale;
-                applyTransform();
+                window.__applyTransform();
             } else {
                 centerOnContent();
             }
@@ -1140,7 +1139,7 @@ import { applyConnections } from './srs-connections-core.js';
         if (source.docAspectRatio) item.docAspectRatio = source.docAspectRatio;
         appState.folders[appState.currentFolderId].items.push(item);
         render();
-        scheduleWorkspaceSave();
+        window.__scheduleWorkspaceSave();
     }
 
     // Media-viewer zoom, one per pane (window.__mediaViewerZoomStore, app/dotto/PaneZoomBar.jsx —
@@ -1180,7 +1179,7 @@ import { applyConnections } from './srs-connections-core.js';
         const viewer = canvasEl && canvasEl.querySelector(':scope > .media-viewer-fullscreen');
         if (viewer) viewer.style.setProperty('--viewer-zoom', clamped);
         window.__setMediaViewerZoom(paneId, { show: true, zoom: clamped });
-        scheduleWorkspaceSave();
+        window.__scheduleWorkspaceSave();
     }
 
 export { applyFolderView, applyItemWrapperAttrs, attachFolderCardClick, attachNoteBody, attachSourceCardClick, attachTitleBody, attachUniversalItemBehavior, attachWatermarkBody, attachWaypointCardBody, buildFolderInlineCanvas, cascadeDeleteFolderContents, centerOnContent, deleteCanvasCollabsForFolder, deleteWaypointCardEverywhere, deleteWaypointFromDb, expandWaypointCard, folderGlobalId, folderTitle, openFolder, performMerge, render, renderMediaViewerZoom, renderSelectedOutlines, setMediaViewerZoom, spawnMediaItemAt, startBoxSelection, startRenameFolderCardTitle, syncNoteFormatButtons, syncWaypointToDb };

@@ -1,6 +1,5 @@
 import './dotto/core-state.js';
 import './dotto/add-menu.js';
-import './dotto/history-autosave.js';
 import './dotto/drawing-connections.js';
 import './dotto/srs-connections-core.js';
 import './dotto/theme-toggle.js';
