@@ -10,6 +10,8 @@
 // live appState AND several already-existing DOM elements (modeToolbar, modeButtons,
 // modePopupRows, canvas) right at wire time, not just a bridge function reference.
 
+import { linkSelectedCards } from "./drawingConnections";
+
 interface FolderObj {
   id: string;
   isSource?: boolean;
@@ -300,7 +302,7 @@ function doWire(appState: AppState): void {
       state.selectedCardIds.length >= 2
     ) {
       e.preventDefault();
-      window.__linkSelectedCards?.();
+      linkSelectedCards();
       return;
     }
     // Deletes whatever's currently selected. List-panel selection (Chats/Waypoints/

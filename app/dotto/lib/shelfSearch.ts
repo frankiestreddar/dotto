@@ -10,6 +10,11 @@
 // for them before this port.
 
 import { escapeHtml } from "./textUtils";
+import {
+  ensureConnections,
+  folderIdForConnectedSource,
+  folderTitleForConnectedSource,
+} from "./drawingConnections";
 
 interface Item {
   id: number;
@@ -70,7 +75,7 @@ export function renderShelfHTML(it: Item): string {
   const sessions = it.shelfSessions || [];
   const sourceEntries = Object.keys(it.stackSourceRows || {}).map((sid) => ({
     sourceItemId: Number(sid),
-    title: window.__folderTitleForConnectedSource?.(Number(sid)) ?? "",
+    title: folderTitleForConnectedSource(Number(sid)),
     count: (it.stackSourceRows?.[sid] || []).length,
   }));
   // Own name lives directly on the item (it.shelfName) rather than a folders[] entry — a Stack
@@ -215,7 +220,7 @@ export function handleShelfSourceRowClick(rowEl: HTMLElement, sourceItemId: numb
   }
   appState.shelfRowClickTimer = setTimeout(() => {
     appState.shelfRowClickTimer = null;
-    const folderId = window.__folderIdForConnectedSource?.(sourceItemId);
+    const folderId = folderIdForConnectedSource(sourceItemId);
     if (folderId) window.__openFolder?.(folderId);
   }, 220);
 }
@@ -227,7 +232,7 @@ export function handleShelfSourceRowClick(rowEl: HTMLElement, sourceItemId: numb
 export function startRenameShelfSourceRow(labelEl: HTMLElement, sourceItemId: number): void {
   const appState = getAppState();
   if (labelEl.contentEditable === "true" || !appState) return;
-  const folderId = window.__folderIdForConnectedSource?.(sourceItemId);
+  const folderId = folderIdForConnectedSource(sourceItemId);
   if (!folderId || !appState.folders[folderId]) return;
   window.__saveSnapshot?.();
   const fullTitle = appState.folders[folderId].title || "";
@@ -358,7 +363,7 @@ export function addCardsToSearchContext(ids: number[]): void {
     const snapshot = window.__sanitizeFlashcardSnapshot?.(window.__snapshotItem?.(it) ?? {}, ids);
     if (snapshot) appState.searchCardContext.push({ id, snapshot });
   });
-  const conns = window.__ensureConnections?.(folder) ?? [];
+  const conns = ensureConnections(folder as unknown as Parameters<typeof ensureConnections>[0]);
   conns.forEach((c) => {
     if (!ids.includes(c.fromId) || !ids.includes(c.toId)) return;
     if (appState.searchCardConnections.some((sc) => sc.fromId === c.fromId && sc.toId === c.toId))

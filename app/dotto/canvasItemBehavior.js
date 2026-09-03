@@ -9,6 +9,14 @@ import {
   isValidConnection,
 } from "./lib/srsConnectionsCore";
 import { escapeHtml, stripHtml } from "./lib/textUtils";
+import {
+  computeConnectorPoints,
+  createConnection,
+  ensureConnections,
+  itemRect,
+  makeLayerSVG,
+  pointsToLinePath,
+} from "./lib/drawingConnections";
 
 // The "continuous pointer-driven pixel math" pieces of canvas core (CONTRIBUTING.md's category
 // name for this — Phase 3 of the vanilla->React consolidation) that have moved out of separate
@@ -656,10 +664,10 @@ export function setupDraggingAndClicking(el, it) {
 // listener pattern; there's nothing to make idempotent here since a stale layer is always fully
 // discarded by render()'s own wipe before this is even called again.
 export function renderConnectionsLayer(folderObj, currentItems) {
-  const layer = window.__makeLayerSVG(1);
+  const layer = makeLayerSVG(1);
   layer.classList.add("connections-layer");
   const validIds = new Set(currentItems.map((i) => i.id));
-  const conns = window.__ensureConnections(folderObj);
+  const conns = ensureConnections(folderObj);
   folderObj.connections = conns.filter((c) => validIds.has(c.fromId) && validIds.has(c.toId));
   folderObj.connections.forEach((c) => {
     const fromItem = currentItems.find((i) => i.id === c.fromId);
@@ -667,9 +675,9 @@ export function renderConnectionsLayer(folderObj, currentItems) {
     if (!fromItem || !toItem) return;
     const obstacles = currentItems
       .filter((i) => i.id !== fromItem.id && i.id !== toItem.id)
-      .map(window.__itemRect);
-    const points = window.__computeConnectorPoints(fromItem, toItem, true, obstacles);
-    const d = window.__pointsToLinePath(points);
+      .map(itemRect);
+    const points = computeConnectorPoints(fromItem, toItem, true, obstacles);
+    const d = pointsToLinePath(points);
 
     const visible = document.createElementNS("http://www.w3.org/2000/svg", "path");
     visible.setAttribute("d", d);
@@ -716,7 +724,7 @@ function startConnectionDrag(e, it, el) {
     downY = e.clientY;
   let moved = false;
   const rect = canvas.getBoundingClientRect();
-  const previewSvg = window.__makeLayerSVG(500);
+  const previewSvg = makeLayerSVG(500);
   const previewPath = document.createElementNS("http://www.w3.org/2000/svg", "path");
   previewPath.setAttribute("stroke", "var(--brand)");
   previewPath.setAttribute("stroke-width", "2");
@@ -736,9 +744,9 @@ function startConnectionDrag(e, it, el) {
       wy = (clientY - rect.top - appState.ty) / appState.scale;
     const obstacles = allItems
       .filter((i) => i.id !== it.id && i.id !== hoveredTarget)
-      .map(window.__itemRect);
-    const points = window.__computeConnectorPoints(it, { x: wx, y: wy }, false, obstacles);
-    previewPath.setAttribute("d", window.__pointsToLinePath(points));
+      .map(itemRect);
+    const points = computeConnectorPoints(it, { x: wx, y: wy }, false, obstacles);
+    previewPath.setAttribute("d", pointsToLinePath(points));
   };
   updatePreview(e.clientX, e.clientY);
 
@@ -767,8 +775,8 @@ function startConnectionDrag(e, it, el) {
       .querySelectorAll(".item.link-target-hover, .item.link-target-invalid")
       .forEach((x) => x.classList.remove("link-target-hover", "link-target-invalid"));
     if (hoveredTarget != null && isValidConnection(it.id, hoveredTarget)) {
-      const conns = window.__ensureConnections(appState.folders[appState.currentFolderId]);
-      window.__createConnection(conns, it.id, hoveredTarget);
+      const conns = ensureConnections(appState.folders[appState.currentFolderId]);
+      createConnection(conns, it.id, hoveredTarget);
       window.__render();
     } else if (!moved) {
       // No real drag happened — this was a plain click, so hand off to the click-to-link flow

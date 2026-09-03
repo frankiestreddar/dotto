@@ -7,6 +7,7 @@
 
 import { kindSize } from "./addMenu";
 import { escapeHtml, stripHtml } from "./textUtils";
+import { resolveTableForEdit } from "./drawingConnections";
 
 interface TableItem {
   id: number;
@@ -226,7 +227,7 @@ export function tagPillsHTML(table: TableItem, r: number): string {
 // unambiguously. Falls back to a full render() if nothing matched — the DOM may simply not exist
 // yet.
 function refreshCellTagsDom(id: number, r: number): void {
-  const it = window.__resolveTableForEdit!(id) as unknown as TableItem | undefined;
+  const it = resolveTableForEdit(id) as unknown as TableItem | undefined;
   if (!it) return;
   const cells = document.querySelectorAll(
     `.item-table td[data-origin-table="${id}"][data-r="${r}"][data-c="0"] .cell-tags`,
@@ -252,7 +253,7 @@ function refreshAllRowTagsDom(it: TableItem): void {
 // creating a tag is just type-and-Enter.
 export function openRowTagPicker(id: number, r: number, btnEl: HTMLElement): void {
   const appState = getAppState();
-  const it = window.__resolveTableForEdit!(id);
+  const it = resolveTableForEdit(id);
   if (!it) return;
   // 'rail' — a click on a row's own tag button is exactly the kind of "clicked elsewhere on the
   // canvas" interaction that must no longer close an open rail panel (see window.onclick's own
@@ -282,7 +283,7 @@ function renderCellTagPickerList(): void {
     return;
   }
   const { id, r } = appState.activeTagRow;
-  const it = window.__resolveTableForEdit!(id) as unknown as TableItem | undefined;
+  const it = resolveTableForEdit(id) as unknown as TableItem | undefined;
   if (!it) {
     window.__setCellTagPickerList!({ rows: [], id: null, r: null });
     return;
@@ -307,7 +308,7 @@ export function createTagFromCellPicker(): void {
   const appState = getAppState();
   if (!appState.activeTagRow) return;
   const { id, r } = appState.activeTagRow;
-  const it = window.__resolveTableForEdit!(id) as unknown as TableItem | undefined;
+  const it = resolveTableForEdit(id) as unknown as TableItem | undefined;
   if (!it) return;
   const nameInput = document.getElementById("cell-tag-picker-new-name") as HTMLInputElement;
   const colorInput = document.getElementById("cell-tag-picker-new-color") as HTMLInputElement;
@@ -326,7 +327,7 @@ export function createTagFromCellPicker(): void {
   nameInput.focus();
 }
 export function toggleCellTag(id: number, r: number, tagId: string): void {
-  const it = window.__resolveTableForEdit!(id) as unknown as TableItem | undefined;
+  const it = resolveTableForEdit(id) as unknown as TableItem | undefined;
   if (!it) return;
   closeTagContextMenu();
   window.__saveSnapshot!();
@@ -388,8 +389,7 @@ export function commitTagRename(tagId: string, newValue: string): void {
   if (appState.renamingTagId !== tagId) return; // already cancelled via Escape
   appState.renamingTagId = null;
   if (!appState.activeTagRow) return;
-  const it = window.__resolveTableForEdit!(appState.activeTagRow.id) as unknown as
-    TableItem | undefined;
+  const it = resolveTableForEdit(appState.activeTagRow.id) as unknown as TableItem | undefined;
   if (it) {
     const tag = ensureTableTags(it).find((t) => t.id === tagId);
     const trimmed = newValue.trim();
@@ -406,8 +406,7 @@ export function deleteActiveTag(): void {
   const tagId = appState.contextMenuTagId;
   closeTagContextMenu();
   if (!tagId || !appState.activeTagRow) return;
-  const it = window.__resolveTableForEdit!(appState.activeTagRow.id) as unknown as
-    TableItem | undefined;
+  const it = resolveTableForEdit(appState.activeTagRow.id) as unknown as TableItem | undefined;
   if (!it) return;
   window.__saveSnapshot!();
   it.tags = ensureTableTags(it).filter((t) => t.id !== tagId);

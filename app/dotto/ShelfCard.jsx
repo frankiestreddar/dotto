@@ -5,16 +5,18 @@
 // event attributes (startRenameShelfName/startRenameShelfSourceRow/handleShelfSourceRowClick/
 // filterShelfRows/shelfSelectSession) — `this` in those original attributes becomes
 // e.currentTarget here, same element each maps to. folderTitleForConnectedSource
-// (drawing-connections.js) got a new bridge, same pattern cards-misc.js established.
+// (app/dotto/lib/drawingConnections.ts) is a real import instead, same app/dotto/ tree.
 //
 // filterShelfRows is a direct DOM query/patch (toggles row display via a live search box), never
 // going through React — deliberately unchanged: it doesn't touch `it` at all (purely ephemeral UI
 // state), so there's nothing for a later real render to reconcile against or fight.
+import { folderTitleForConnectedSource } from "./lib/drawingConnections";
+
 export default function ShelfCard({ it }) {
   const sessions = it.shelfSessions || [];
   const sourceEntries = Object.keys(it.stackSourceRows || {}).map((sid) => ({
     sourceItemId: Number(sid),
-    title: window.__folderTitleForConnectedSource(Number(sid)),
+    title: folderTitleForConnectedSource(Number(sid)),
     count: (it.stackSourceRows[sid] || []).length,
   }));
 

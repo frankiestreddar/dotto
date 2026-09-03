@@ -267,28 +267,6 @@ declare global {
     closeMarketDetail?: () => void;
     purchaseCurrentMarketItem?: () => Promise<void>;
     __refreshMyLibrary?: () => Promise<void>;
-    // drawing-connections.js
-    __folderIdForConnectedSource?: (sourceItemId: number) => string | undefined;
-    __folderTitleForConnectedSource?: (sourceItemId: number) => string;
-    __ensureConnections?: (folder: {
-      connections?: { fromId: number; toId: number }[];
-    }) => { fromId: number; toId: number }[];
-    __createConnection?: (
-      conns: { fromId: number; toId: number }[],
-      fromId: number,
-      toId: number,
-    ) => { id: string; fromId: number; toId: number };
-    __makeLayerSVG?: (zIndex: number) => SVGSVGElement;
-    __ensureDrawings?: (folder: {
-      drawings?: Record<string, unknown>[];
-    }) => Record<string, unknown>[];
-    __findLinkedTable?: (fromItem: Record<string, unknown>) => Record<string, unknown> | null;
-    __findTableById?: (tableId: number) => Record<string, unknown> | null;
-    __pathNearPoint?: (d: string, px: number, py: number, radius: number) => boolean;
-    __penPointsToPath?: (
-      points: { x: number; y: number; handleOut: [number, number] | null }[],
-    ) => string;
-    __pointsToPath?: (pts: [number, number][]) => string;
     // app/dotto/lib/friendsPresence.ts
     __syncCanvasCollabTitle?: (folderId: string, newTitle: string) => Promise<void>;
     // app/dotto/lib/canvasPresence.ts
@@ -402,8 +380,6 @@ declare global {
       el: HTMLElement,
       reserve?: number,
     ) => void;
-    // drawing-connections.js
-    __linkSelectedCards?: () => void;
     // app/dotto/lib/friendsPresence.ts
     __closeCollabPanel?: () => void;
     // app/dotto/lib/hamburgerCollab.ts
@@ -541,9 +517,6 @@ declare global {
     clearMedia?: (id: number) => void;
     // app/dotto/lib/canvasPresence.ts — places the caret at the end of an element's content.
     __placeCaretEnd?: (el: HTMLElement) => void;
-    // drawing-connections.js — same as __findItemById, but also reaches a table living in a
-    // different folder than the one currently open (e.g. a flashcard fed via a connected Stack).
-    __resolveTableForEdit?: (id: number) => Record<string, unknown> | undefined;
     // app/dotto/lib/sourceTable.ts (Phase 4.4 port — was source-table.js) — React -> vanilla
     // bridges pre-dating this port (TableCard.jsx now imports the technical ones directly instead,
     // being in the same app/dotto/ tree — kept declared/assigned since still-vanilla callers need

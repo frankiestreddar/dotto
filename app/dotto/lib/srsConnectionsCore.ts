@@ -20,6 +20,17 @@ import { defaultSrsState, diffRatings } from "./srsAlgorithm";
 import { generateGlobalId } from "./globalIds";
 import { kindLabel, kindSize } from "./addMenu";
 import { stripHtml } from "./textUtils";
+import {
+  createConnection,
+  ensureConnections,
+  ensureDrawings,
+  findLinkedTable,
+  findTableById,
+  makeLayerSVG,
+  pathNearPoint,
+  penPointsToPath,
+  pointsToPath,
+} from "./drawingConnections";
 
 interface SrsState {
   interval: number;
@@ -145,7 +156,9 @@ function getSrsForRow(table: Item, rowIndex: number): SrsState {
 function extractCardsFromSource(
   fromItem: Item,
 ): { rows: Record<string, unknown>[]; headers: string[] } | null {
-  const table = window.__findLinkedTable?.(fromItem) as Item | null | undefined;
+  const table = findLinkedTable(
+    fromItem as unknown as Parameters<typeof findLinkedTable>[0],
+  ) as unknown as Item | null;
   const tableData = table?.tableData as string[][] | undefined;
   if (!table || !tableData || tableData.length < 2) return null;
   const rows: Record<string, unknown>[] = [];
@@ -187,8 +200,10 @@ function applySrsUpdateStream(item: Item, payload: StreamPayload): void {
   };
   if (rowIndex == null || !srs) return;
   const table =
-    (originTableId != null && (window.__findTableById?.(originTableId) as Item | null)) ||
-    (window.__findLinkedTable?.(item) as Item | null | undefined);
+    (originTableId != null && (findTableById(originTableId) as unknown as Item | null)) ||
+    (findLinkedTable(
+      item as unknown as Parameters<typeof findLinkedTable>[0],
+    ) as unknown as Item | null);
   if (!table) return;
   // "Mastered" = the SM-2 interval (in days — see calculateSM2) crossing 90+. masteredCounted
   // rides along in this same row-meta blob (persisted with the rest of the workspace JSON via
@@ -286,7 +301,7 @@ export function collectAvailableFilterTags(
   (rows || []).forEach((r) => {
     const originTableId = r.originTableId as number | undefined;
     const originTable =
-      originTableId != null ? (window.__findTableById?.(originTableId) as Item | null) : null;
+      originTableId != null ? (findTableById(originTableId) as unknown as Item | null) : null;
     if (!originTable) return;
     ((r.tags as number[]) || []).forEach((tagId) => {
       if (seen.has(tagId)) return;
@@ -336,7 +351,9 @@ export function isValidConnection(fromId: number, toId: number): boolean {
   const hasMatchingType = fromConfig.outputs.some((outType) => toConfig.inputs!.includes(outType));
   if (!hasMatchingType) return false;
 
-  const conns = (window.__ensureConnections?.(folder) as Connection[]) || [];
+  const conns = ensureConnections(
+    folder as unknown as Parameters<typeof ensureConnections>[0],
+  ) as unknown as Connection[];
 
   // Rule 2.5: a Stack already fed by one category (sessions or sources — see shelfInputCategory)
   // rejects a new connection from the OTHER category outright, even though the streamType-level
@@ -406,9 +423,12 @@ export function handleDataModeClick(it: Item, el: HTMLElement): void {
   if (fromId === it.id) return; // clicked the armed card again — just cancel
   if (!isValidConnection(fromId, it.id)) return;
   window.__saveSnapshot?.();
-  const conns = window.__ensureConnections?.(appState.folders[appState.currentFolderId]) as
-    Connection[] | undefined;
-  if (conns) window.__createConnection?.(conns, fromId, it.id);
+  const conns = ensureConnections(
+    appState.folders[appState.currentFolderId] as unknown as Parameters<
+      typeof ensureConnections
+    >[0],
+  ) as unknown as Connection[];
+  createConnection(conns as unknown as Parameters<typeof createConnection>[0], fromId, it.id);
   window.__render?.();
 }
 
@@ -421,7 +441,9 @@ function propagateCanvasStreams(folderObj: FolderObj): void {
   const appState = getAppState();
   if (!appState) return;
   const items = folderObj.items;
-  const conns = (window.__ensureConnections?.(folderObj) as Connection[]) || [];
+  const conns = ensureConnections(
+    folderObj as unknown as Parameters<typeof ensureConnections>[0],
+  ) as unknown as Connection[];
   const ctx: CardStreamCtx = { folderObj, items, conns };
   const PASSES = 4;
   // Stat cards never persist their own data — they only ever reflect whatever's currently flowing
@@ -883,7 +905,7 @@ function makeLivePath(
   size: number,
   layer: string,
 ): { svg: SVGSVGElement; path: SVGPathElement } {
-  const svg = window.__makeLayerSVG?.(layer === "back" ? 0 : 2) as SVGSVGElement;
+  const svg = makeLayerSVG(layer === "back" ? 0 : 2);
   const path = document.createElementNS("http://www.w3.org/2000/svg", "path") as SVGPathElement;
   path.setAttribute("stroke", color);
   path.setAttribute("stroke-width", String(size));
@@ -904,7 +926,7 @@ function makeLivePath(
 // point is {x, y, handleOut} — handleOut (world coords, or null) is the Illustrator-style bezier
 // handle a click-DRAG pulls out when placing the 2nd point onwards (see handlePenPointerDown's own
 // comment below), curving the segment back to the previous point; penPointsToPath
-// (drawing-connections.js) is what actually turns this into an SVG path, straight-line M/L
+// (app/dotto/lib/drawingConnections.ts) is what actually turns this into an SVG path, straight-line M/L
 // segments where neither endpoint has a handle, C (cubic bezier) where either does. A rubber-band
 // segment from the last placed point to the current mouse position keeps rendering between clicks
 // via this persistent window pointermove listener (unlike a freehand stroke's own move listener
@@ -930,9 +952,7 @@ function startPenPolyline(wx: number, wy: number): void {
     const [mx, my] = toWorldPoint(me, rect);
     appState.livePath!.setAttribute(
       "d",
-      window.__penPointsToPath?.(
-        appState.penPolyline!.points.concat([{ x: mx, y: my, handleOut: null }]),
-      ) || "",
+      penPointsToPath(appState.penPolyline!.points.concat([{ x: mx, y: my, handleOut: null }])),
     );
   };
   appState.penPolylineMoveHandler = move;
@@ -941,10 +961,7 @@ function startPenPolyline(wx: number, wy: number): void {
 function addPenPolylinePoint(wx: number, wy: number, handleOut: [number, number] | null): void {
   const appState = getAppState()!;
   appState.penPolyline!.points.push({ x: wx, y: wy, handleOut: handleOut || null });
-  appState.livePath!.setAttribute(
-    "d",
-    window.__penPointsToPath?.(appState.penPolyline!.points) || "",
-  );
+  appState.livePath!.setAttribute("d", penPointsToPath(appState.penPolyline!.points));
 }
 // Commits the in-progress polyline (>=2 points) or discards it (a stray single click, undoing the
 // saveSnapshot from startPenPolyline since nothing was actually drawn) — called on Enter (stays in
@@ -959,10 +976,10 @@ export function finishPenPolyline(): void {
   appState.penPolylineMoveHandler = null;
   if (appState.penPolyline.points.length > 1) {
     const folder = appState.folders[appState.currentFolderId];
-    (window.__ensureDrawings?.(folder) as Record<string, unknown>[] | undefined)?.push({
+    ensureDrawings(folder as unknown as Parameters<typeof ensureDrawings>[0]).push({
       color: appState.penPolyline.color,
       layer: appState.penPolyline.layer,
-      d: window.__penPointsToPath?.(appState.penPolyline.points),
+      d: penPointsToPath(appState.penPolyline.points),
       width: appState.penPolyline.width,
     });
   } else {
@@ -990,15 +1007,13 @@ export function handlePenPointerDown(e: PointerEvent): void {
 
   if (appState.drawTool === "eraser") {
     window.__saveSnapshot?.();
-    const dwList = window.__ensureDrawings?.(appState.folders[appState.currentFolderId]) as
-      { d: string; width?: number }[] | undefined;
+    const dwList = ensureDrawings(
+      appState.folders[appState.currentFolderId] as unknown as Parameters<typeof ensureDrawings>[0],
+    ) as unknown as { d: string; width?: number }[];
     const eraseRadius = Math.max(appState.drawSize, 8) / 2;
     const eraseAt = (wx: number, wy: number) => {
-      if (!dwList) return;
       for (let i = dwList.length - 1; i >= 0; i--) {
-        if (
-          window.__pathNearPoint?.(dwList[i].d, wx, wy, eraseRadius + (dwList[i].width || 3) / 2)
-        ) {
+        if (pathNearPoint(dwList[i].d, wx, wy, eraseRadius + (dwList[i].width || 3) / 2)) {
           dwList.splice(i, 1);
           window.__render?.();
         }
@@ -1041,9 +1056,9 @@ export function handlePenPointerDown(e: PointerEvent): void {
       const [mx, my] = toWorldPoint(me, rect);
       appState.livePath!.setAttribute(
         "d",
-        window.__penPointsToPath?.(
+        penPointsToPath(
           appState.penPolyline!.points.concat([{ x: wx0, y: wy0, handleOut: [mx, my] }]),
-        ) || "",
+        ),
       );
     };
     const up2 = (ue: PointerEvent) => {
@@ -1081,7 +1096,7 @@ export function handlePenPointerDown(e: PointerEvent): void {
     }
     const [wx, wy] = toWorldPoint(me, rect);
     appState.drawing!.points.push([wx, wy]);
-    appState.livePath!.setAttribute("d", window.__pointsToPath?.(appState.drawing!.points) || "");
+    appState.livePath!.setAttribute("d", pointsToPath(appState.drawing!.points));
   };
   const up = () => {
     window.removeEventListener("pointermove", move as EventListener);
@@ -1089,10 +1104,10 @@ export function handlePenPointerDown(e: PointerEvent): void {
     if (dragStarted) {
       if (appState.drawing!.points.length > 1) {
         const folder = appState.folders[appState.currentFolderId];
-        (window.__ensureDrawings?.(folder) as Record<string, unknown>[] | undefined)?.push({
+        ensureDrawings(folder as unknown as Parameters<typeof ensureDrawings>[0]).push({
           color: appState.drawing!.color,
           layer: appState.drawing!.layer,
-          d: window.__pointsToPath?.(appState.drawing!.points),
+          d: pointsToPath(appState.drawing!.points),
           width: appState.drawing!.width,
         });
       } else {

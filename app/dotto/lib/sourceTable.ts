@@ -11,6 +11,8 @@
 // import too, same app/dotto/lib tree).
 // Reaches every still-vanilla dependency through window bridges.
 
+import { resolveTableForEdit } from "./drawingConnections";
+
 interface MergedRegion {
   r1: number;
   c1: number;
@@ -226,7 +228,7 @@ export function updateTableCell(id: number, r: number, c: number, el: HTMLElemen
   // resolveTableForEdit (not findItemById) — id may belong to a table that lives in a different
   // folder than the one currently open (e.g. a flashcard fed via a source's own subfolder,
   // possibly through a connected Stack — see CardStreamIO.shelf).
-  const it = window.__resolveTableForEdit?.(id) as unknown as Item | undefined;
+  const it = resolveTableForEdit(id) as unknown as Item | undefined;
   if (!it) return;
   it.tableData[r][c] = el.innerHTML;
   window.__scheduleWorkspaceSave?.();

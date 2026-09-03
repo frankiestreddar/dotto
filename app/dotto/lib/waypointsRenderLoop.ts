@@ -22,6 +22,7 @@ import {
   setupDraggingAndClicking,
   setupResizing,
 } from "../canvasItemBehavior";
+import { ensureDrawings, makeLayerSVG } from "./drawingConnections";
 
 interface Item {
   id: number;
@@ -905,9 +906,9 @@ function renderOnce(): void {
 
   window.__applyConnections?.(folderObj);
 
-  const backLayer = window.__makeLayerSVG?.(0)!;
-  const frontLayer = window.__makeLayerSVG?.(2)!;
-  (window.__ensureDrawings?.(folderObj) || []).forEach((dw) => {
+  const backLayer = makeLayerSVG(0);
+  const frontLayer = makeLayerSVG(2);
+  ensureDrawings(folderObj as unknown as Parameters<typeof ensureDrawings>[0]).forEach((dw) => {
     const drawing = dw as { d: string; color: string; width?: number; layer: string };
     const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
     path.setAttribute("d", drawing.d);

@@ -233,34 +233,9 @@ const appState = window.__getAppState();
 
 export { computeConnectorPoints, createConnection, ensureConnections, ensureDrawings, findLinkedTable, findTableById, folderIdForConnectedSource, folderTitleForConnectedSource, itemRect, linkSelectedCards, makeLayerSVG, pathNearPoint, penPointsToPath, pointsToLinePath, pointsToPath, resolveTableForEdit };
 
-// React → vanilla bridge (see the identical pattern/comment in app/dotto/lib/cardsMisc.ts) — used by
-// ShelfCard.jsx (app/dotto/), which can't import this directly since public/dotto/*.js isn't
-// reachable from app/dotto/.
-window.__folderTitleForConnectedSource = folderTitleForConnectedSource;
-// Used by app/dotto/canvasItemBehavior.js's renderConnectionsLayer/startConnectionDrag (Phase 3's
-// third relocated piece — connection-dragging), same reasoning as window.__getAppState
-// (app/dotto/lib/coreState.ts).
-window.__makeLayerSVG = makeLayerSVG;
-window.__ensureConnections = ensureConnections;
-window.__createConnection = createConnection;
-window.__itemRect = itemRect;
-window.__computeConnectorPoints = computeConnectorPoints;
-window.__pointsToLinePath = pointsToLinePath;
-// Used by app/dotto/lib/shelfSearch.ts's handleShelfSourceRowClick/startRenameShelfSourceRow (Phase 4.4).
-window.__folderIdForConnectedSource = folderIdForConnectedSource;
-// Used by app/dotto/lib/sourceButtonsCursorMode.ts's Shift+X shortcut (Phase 4.4).
-window.__linkSelectedCards = linkSelectedCards;
-// Used by app/dotto/lib/sourceTable.ts's updateTableCell (Phase 4.4) and
-// app/dotto/lib/sourceTagsAi.ts's row-tag functions (Phase 4.5 — was a direct import,
-// vanilla-to-vanilla, until that file was itself ported).
-window.__resolveTableForEdit = resolveTableForEdit;
-// Used by app/dotto/lib/srsConnectionsCore.ts (Phase 4.5) — findLinkedTable/findTableById by
-// CardStreamIO's table/source/folder getOutput+onStream and applySrsUpdateStream;
-// pathNearPoint/penPointsToPath/pointsToPath by the pen tool's eraser hit-testing and freehand/
-// point-by-point path rendering; ensureDrawings by the pen tool's own commit step.
-window.__findLinkedTable = findLinkedTable;
-window.__findTableById = findTableById;
-window.__pathNearPoint = pathNearPoint;
-window.__penPointsToPath = penPointsToPath;
-window.__pointsToPath = pointsToPath;
-window.__ensureDrawings = ensureDrawings;
+// No window.__* bridges anymore — this file's own logic was ported to
+// app/dotto/lib/drawingConnections.ts (Phase 4.1 cluster revisit), and every app/dotto/ caller
+// that used to reach these through a bridge now imports the real copy there directly instead.
+// This file stays in place only because search-orchestration-selection.js (still vanilla) imports
+// ensureConnections directly (vanilla-to-vanilla ES import, not a bridge) — deleted once that file
+// is ported too.

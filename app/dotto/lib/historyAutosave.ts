@@ -17,6 +17,7 @@
 
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { generateGlobalId } from "./globalIds";
+import { resolveTableForEdit } from "./drawingConnections";
 
 interface Item {
   id: number;
@@ -674,7 +675,7 @@ export function deleteContextRow(): void {
   const ctx = appState?.contextMenuTableCtx;
   hideCanvasContextMenu();
   if (!ctx) return;
-  const it = window.__resolveTableForEdit?.(ctx.tableId) as unknown as Item | undefined;
+  const it = resolveTableForEdit(ctx.tableId) as unknown as Item | undefined;
   if (!it?.tableData || ctx.r === 0 || it.tableData.length <= 2) return;
   saveSnapshot();
   it.tableData.splice(ctx.r, 1);
