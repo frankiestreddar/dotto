@@ -362,10 +362,6 @@ declare global {
     handleOutlineSearch?: (query: string) => void;
     __setOutlineActive?: (idx: number) => void;
     __toggleHamburgerMenu?: () => void;
-    // app/dotto-app.jsx (via app/dotto/bridges.js's outlineStore) — React-facing setter, flushSync'd
-    // (OutlinePanel.jsx's own useLayoutEffect syncs real DOM nodes back via __syncOutlineRows
-    // synchronously right after, so the commit must already be flushed).
-    __setOutlineState?: (state: { rows: unknown[]; query: string }) => void;
     // app/dotto/lib/coreState.ts — the single, never-reassigned #context-menu/#draw-settings elements, same
     // "not appState properties" category as __getAddMenuEl/__getBtnAddEl above.
     __getContextMenuEl?: () => HTMLElement | undefined;
@@ -858,20 +854,6 @@ declare global {
       id: number | null;
       r: number | null;
     }) => void;
-
-    __setHubCollabList?: (state: {
-      view: string;
-      requestsCount?: number;
-      ownedShown?: unknown[];
-      sharedShown?: unknown[];
-      requests?: unknown[];
-      query?: string;
-    }) => void;
-    __setWaypointsList?: (state: { rows: unknown[]; query: string }) => void;
-    __setSourcesList?: (state: { rows: unknown[]; query: string }) => void;
-    __setFilesList?: (state: { rows: unknown[]; query: string }) => void;
-    __setChatsList?: (rows: { id: string; title: string; updated_at: string }[]) => void;
-    __setListPanelSelection?: (state: { panel: string | null; ids: Set<string> }) => void;
 
     // app/dotto-app.jsx (via app/dotto/bridges.js's various stores) — React-facing setters for
     // app/dotto/lib/friendsPresence.ts (Phase 4.5 port — was friends-presence.js).

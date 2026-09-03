@@ -10,15 +10,11 @@ import {
   breadcrumbMapStore,
   canvasItemsStore,
   cellTagPickerListStore,
-  chatsListStore,
   closeLeafInTree,
   collabListStore,
   collabPillStore,
   extensionsListStore,
-  filesListStore,
-  hubCollabListStore,
   itemDetailFooterStore,
-  listPanelSelectionStore,
   listPaneIds,
   marketDetailStore,
   marketDiscoverStore,
@@ -26,12 +22,10 @@ import {
   msgConvoStore,
   msgListStore,
   navHistoryStore,
-  outlineStore,
   paneLayoutStore,
   splitLeafInTree,
   profileLevelStore,
   sharedCanvasModalStore,
-  sourcesListStore,
   tabsStore,
   waypointsListStore,
 } from "./dotto/bridges";
@@ -340,36 +334,11 @@ if (typeof window !== "undefined") {
   // PHASE4_ROADMAP.md) — see app/dotto/lib/chatThreadStore.ts, commandPaletteStore.ts,
   // searchSuggestionsStore.ts, and addToSourcePopupStore.ts for each store's own comment on why
   // its producers still wrap every setState call in flushSync.
-  // Hamburger menu's Outline panel (see app/dotto/OutlinePanel.jsx, app/dotto/lib/outlineTree.ts's
-  // buildOutline/handleOutlineSearch) — MUST be flushSync: buildOutline's own scrollTop restore,
-  // and toggleHamburgerMenu's setOutlineActive(0) call right after buildOutline() returns, both
-  // need OutlinePanel.jsx's real DOM (and its own layout effect, which calls
-  // window.__syncOutlineRows) already committed.
-  window.__setOutlineState = (state) => flushSync(() => outlineStore.set(state));
-  // Hamburger menu's Waypoints panel (see app/dotto/WaypointsListPanel.jsx,
-  // app/dotto/lib/hamburgerCollab.ts's renderWaypointsList) — a plain store.set, not flushSync'd: the fetch
-  // it follows is async (a real network round-trip), so there's no synchronous DOM read racing
-  // this the way there was for the search panels.
-  window.__setWaypointsList = waypointsListStore.set;
-  // Hamburger menu's Sources panel (see app/dotto/SourcesListPanel.jsx,
-  // app/dotto/lib/hamburgerCollab.ts's renderSourcesList) — a plain store.set, no synchronous DOM read follows
-  // it (it's called from render() itself, not a click handler expecting an immediate reflection).
-  window.__setSourcesList = sourcesListStore.set;
-  // Hamburger menu's Files panel (see app/dotto/FilesListPanel.jsx, app/dotto/lib/hamburgerCollab.ts's
-  // renderFilesList) — copied from __setSourcesList just above per explicit request; same
-  // reasoning (a plain store.set, no synchronous DOM read follows it).
-  window.__setFilesList = filesListStore.set;
-  // Hamburger menu's Chats panel (see app/dotto/ChatsListPanel.jsx, app/dotto/lib/hamburgerCollab.ts's
-  // renderChatsList) — same reasoning as __setWaypointsList: a real async Supabase call.
-  window.__setChatsList = chatsListStore.set;
-  // Hamburger menu's Collaborations panel (see app/dotto/HubCollabListPanel.jsx,
-  // app/dotto/lib/hamburgerCollab.ts's renderHubCollabList/renderHubCollabRequests) — same reasoning as
-  // __setWaypointsList: both entry points are real async Supabase calls.
-  window.__setHubCollabList = hubCollabListStore.set;
-  // Shift-click-to-select state for the Chats/Waypoints/Collaborations hamburger list panels (see
-  // listPanelSelectionStore's own comment) — plain store.set, no synchronous DOM read follows a
-  // selection toggle either.
-  window.__setListPanelSelection = listPanelSelectionStore.set;
+  // Hamburger menu's Outline/Waypoints/Sources/Files/Chats/Collaborations list panels, and their
+  // shared shift-click selection state, all migrated to real Zustand (Zustand migration plan,
+  // batch 4, see PHASE4_ROADMAP.md) — see app/dotto/lib/outlineStore.ts, waypointsListStore.ts,
+  // sourcesListStore.ts, filesListStore.ts, chatsListStore.ts, hubCollabListStore.ts, and
+  // listPanelSelectionStore.ts for each store's own comment on flushSync requirements.
   // Profile panel (see app/dotto/ProfileLevelPill.jsx/AchievementsGrid.jsx,
   // app/dotto/lib/profileAchievementsPricing.ts's renderProfileLevel/renderSpriteGrid) — plain
   // store.sets, no synchronous DOM read follows either one.
@@ -377,7 +346,7 @@ if (typeof window !== "undefined") {
   window.__setAchievements = achievementsStore.set;
   // Messages panel (see app/dotto/MessagesListPanel.jsx,
   // app/dotto/lib/friendsPresence.ts's renderMsgList/renderMsgRequests) — same reasoning as
-  // __setWaypointsList/__setHubCollabList: both entry points are real async Supabase calls.
+  // useWaypointsListStore/useHubCollabListStore: both entry points are real async Supabase calls.
   window.__setMsgList = msgListStore.set;
   // Per-canvas Collaborations flyout (see app/dotto/CollabListPanel.jsx,
   // app/dotto/lib/friendsPresence.ts's renderCollabList) — same reasoning: real async Supabase

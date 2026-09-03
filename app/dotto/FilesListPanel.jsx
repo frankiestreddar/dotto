@@ -1,16 +1,13 @@
 "use client";
 
-import { useRef, useState, useSyncExternalStore } from "react";
+import { useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { computePaneRects, filesListStore, paneLayoutStore } from "./bridges";
+import { computePaneRects, paneLayoutStore } from "./bridges";
+import { useFilesListStore } from "./lib/filesListStore";
 import { findItemById } from "./lib/canvasPresence";
 import { spawnMediaItemAt } from "./lib/waypointsRenderLoop";
 import RowActions from "./RowActions";
 import usePortalNode from "./usePortalNode";
-
-// Module-level, not inline — see CanvasItemsLayer.jsx's identical EMPTY_ITEMS comment for why a
-// fresh object literal as the getServerSnapshot fallback trips React's "should be cached" warning.
-const EMPTY_STATE = { rows: [], query: "" };
 
 // Below this many px of pointer movement, a pointerdown-then-up still counts as a plain click
 // (open/navigate) rather than a drag — same threshold shape as TabsBar.jsx's own DRAG_THRESHOLD_PX.
@@ -206,11 +203,7 @@ function FileRow({ r }) {
 // the full reasoning and why it refreshes on every render() rather than just on panel-open/
 // search-input (same as Sources/Outline/Tabs/Breadcrumb already do).
 export default function FilesListPanel() {
-  const state = useSyncExternalStore(
-    filesListStore.subscribe,
-    filesListStore.getSnapshot,
-    () => EMPTY_STATE,
-  );
+  const state = useFilesListStore();
   const portalNode = usePortalNode("files-panel-content");
 
   if (!portalNode) return null;

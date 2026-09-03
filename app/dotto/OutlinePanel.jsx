@@ -1,14 +1,10 @@
 "use client";
 
-import { useLayoutEffect, useSyncExternalStore } from "react";
+import { useLayoutEffect } from "react";
 import { createPortal } from "react-dom";
-import { outlineStore } from "./bridges";
+import { useOutlineStore } from "./lib/outlineStore";
 import RowActions from "./RowActions";
 import usePortalNode from "./usePortalNode";
-
-// Module-level, not inline — see CanvasItemsLayer.jsx's identical EMPTY_ITEMS comment for why a
-// fresh object literal as the getServerSnapshot fallback trips React's "should be cached" warning.
-const EMPTY_STATE = { rows: [], query: "" };
 
 // Same mask-image icon shape kindIconHTML (app/dotto/lib/outlineTree.ts) already builds for every
 // other outline-icon use — window.__kindIconFile resolves the kind(+level)->filename mapping,
@@ -103,14 +99,10 @@ function OutlineRow({ r }) {
 // appState.outlineRows (untouched by this migration), so every time the row list changes, the
 // portal's freshly-committed .outline-item children are handed back to vanilla via
 // window.__syncOutlineRows — a layout effect (not a plain effect) so this happens synchronously,
-// before buildOutline's own flushSync call (app/dotto-app.jsx's window.__setOutlineState) returns
-// and toggleHamburgerMenu's setOutlineActive(0) call runs immediately after it.
+// before buildOutline's own flushSync'd useOutlineStore.setState call returns and
+// toggleHamburgerMenu's setOutlineActive(0) call runs immediately after it.
 export default function OutlinePanel() {
-  const state = useSyncExternalStore(
-    outlineStore.subscribe,
-    outlineStore.getSnapshot,
-    () => EMPTY_STATE,
-  );
+  const state = useOutlineStore();
   const portalNode = usePortalNode("hmenu-outline-container");
 
   useLayoutEffect(() => {

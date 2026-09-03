@@ -1,9 +1,9 @@
 "use client";
 
-import { useSyncExternalStore } from "react";
 import { createPortal } from "react-dom";
 import Avatar from "./Avatar";
-import { hubCollabListStore, listPanelSelectionStore } from "./bridges";
+import { useHubCollabListStore } from "./lib/hubCollabListStore";
+import { useListPanelSelectionStore } from "./lib/listPanelSelectionStore";
 import RowActions from "./RowActions";
 import usePortalNode from "./usePortalNode";
 import {
@@ -13,11 +13,7 @@ import {
   respondToHubCollabRequest,
 } from "./lib/hamburgerCollab";
 
-// Module-level, not inline — see CanvasItemsLayer.jsx's identical EMPTY_ITEMS comment for why a
-// fresh object literal as the getServerSnapshot fallback trips React's "should be cached" warning.
-const EMPTY_STATE = { view: "main", requestsCount: 0, ownedShown: [], sharedShown: [], query: "" };
 const EMPTY_IDS = new Set();
-const EMPTY_SELECTION = { panel: null, ids: EMPTY_IDS };
 
 function folderIconStyle() {
   const url = `/assets/icons/${window.__kindIconFile("folder")}`;
@@ -177,16 +173,8 @@ function RequestRow({ req }) {
 // ITSELF (vs. outline/waypoints) and which sub-view is showing (hubCollabView) stay vanilla —
 // this component only owns the row list for whichever view is currently active.
 export default function HubCollabListPanel() {
-  const state = useSyncExternalStore(
-    hubCollabListStore.subscribe,
-    hubCollabListStore.getSnapshot,
-    () => EMPTY_STATE,
-  );
-  const selection = useSyncExternalStore(
-    listPanelSelectionStore.subscribe,
-    listPanelSelectionStore.getSnapshot,
-    () => EMPTY_SELECTION,
-  );
+  const state = useHubCollabListStore();
+  const selection = useListPanelSelectionStore();
   const selectedIds = selection.panel === "collaborations" ? selection.ids : EMPTY_IDS;
   const portalNode = usePortalNode("hub-collab-list");
 

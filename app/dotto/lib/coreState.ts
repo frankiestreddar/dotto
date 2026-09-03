@@ -468,8 +468,8 @@ export function ensureCoreState(): void {
     placementGhost: null,
     selectedCardIds: [],
     // Shift-click-to-select state for the Chats/Waypoints/Collaborations hamburger list panels —
-    // vanilla owns this as the source of truth, mirrored into React's listPanelSelectionStore
-    // (bridges.js) via window.__setListPanelSelection whenever it changes.
+    // vanilla owns this as the source of truth, mirrored into React's useListPanelSelectionStore
+    // (app/dotto/lib/listPanelSelectionStore.ts) whenever it changes.
     listPanelSelection: { panel: null, ids: new Set() },
     // The card "armed" by a first click in data mode, awaiting a second click on a different card
     // to complete the link.

@@ -1,17 +1,13 @@
 "use client";
 
-import { useSyncExternalStore } from "react";
 import { createPortal } from "react-dom";
-import { listPanelSelectionStore, waypointsListStore } from "./bridges";
+import { useWaypointsListStore } from "./lib/waypointsListStore";
+import { useListPanelSelectionStore } from "./lib/listPanelSelectionStore";
 import RowActions from "./RowActions";
 import usePortalNode from "./usePortalNode";
 import { goToWaypointCard } from "./lib/hamburgerCollab";
 
-// Module-level, not inline — see CanvasItemsLayer.jsx's identical EMPTY_ITEMS comment for why a
-// fresh object literal as the getServerSnapshot fallback trips React's "should be cached" warning.
-const EMPTY_STATE = { rows: [], query: "" };
 const EMPTY_IDS = new Set();
-const EMPTY_SELECTION = { panel: null, ids: EMPTY_IDS };
 
 // Same `${owner_id}-${folder_id}-${item_id}` key used as this row's React `key` below AND as the
 // shift-click selection id (see app/dotto/lib/hamburgerCollab.ts's waypointRowKey, which must stay
@@ -60,16 +56,8 @@ function WaypointRow({ r, selected, index }) {
 // the outline/hub-collab panels) stays a vanilla classList toggle, unrelated to this — this
 // component only owns the row list.
 export default function WaypointsListPanel() {
-  const state = useSyncExternalStore(
-    waypointsListStore.subscribe,
-    waypointsListStore.getSnapshot,
-    () => EMPTY_STATE,
-  );
-  const selection = useSyncExternalStore(
-    listPanelSelectionStore.subscribe,
-    listPanelSelectionStore.getSnapshot,
-    () => EMPTY_SELECTION,
-  );
+  const state = useWaypointsListStore();
+  const selection = useListPanelSelectionStore();
   const selectedIds = selection.panel === "waypoints" ? selection.ids : EMPTY_IDS;
   const portalNode = usePortalNode("waypoints-list");
 

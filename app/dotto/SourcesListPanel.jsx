@@ -1,15 +1,11 @@
 "use client";
 
-import { useEffect, useRef, useState, useSyncExternalStore } from "react";
+import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { sourcesListStore } from "./bridges";
+import { useSourcesListStore } from "./lib/sourcesListStore";
 import { openFolder, startRenameFolderCardTitle } from "./lib/waypointsRenderLoop";
 import RowActions from "./RowActions";
 import usePortalNode from "./usePortalNode";
-
-// Module-level, not inline — see CanvasItemsLayer.jsx's identical EMPTY_ITEMS comment for why a
-// fresh object literal as the getServerSnapshot fallback trips React's "should be cached" warning.
-const EMPTY_STATE = { rows: [], query: "" };
 
 // .outline-item/.search-history-icon/.outline-label — the same row structure #chats-list's rows
 // and #search-panel-content's rows use (ChatsListPanel.jsx/app/dotto/lib/searchPanelHistory.ts), both sharing
@@ -104,11 +100,7 @@ function SourceRow({ r, altHeld }) {
 // only reachable here now, by holding Option and hovering a row, which swaps that row's name for
 // its id (SourceRow above).
 export default function SourcesListPanel() {
-  const state = useSyncExternalStore(
-    sourcesListStore.subscribe,
-    sourcesListStore.getSnapshot,
-    () => EMPTY_STATE,
-  );
+  const state = useSourcesListStore();
   const portalNode = usePortalNode("sources-panel-content");
   const [altHeld, setAltHeld] = useState(false);
 

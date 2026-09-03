@@ -6,7 +6,9 @@
 // existed, 5 are new as part of this port (__canvasViewportCenterX/__smoothPanTo/
 // __flashCanvasElement/__focusTableCell/__expandWaypointCard).
 
+import { flushSync } from "react-dom";
 import { stripHtml } from "./textUtils";
+import { useOutlineStore } from "./outlineStore";
 
 interface Item {
   id: number;
@@ -134,7 +136,7 @@ function outlineLabel(item: Item): string {
   return txt || "(untitled heading)";
 }
 
-interface OutlineRow {
+export interface OutlineRow {
   id: number | string;
   rowKind: "source" | "item";
   itemKind: string;
@@ -443,7 +445,7 @@ function computeCurrentOutlineRows(ignoreCollapse?: boolean): OutlineRow[] {
 // toggleHamburgerMenu's own panel-open callback, the outline search input's own Enter-to-refocus
 // flow if any) keeps the original always-start-fresh behavior, which is exactly what a
 // just-opened panel should do.
-// Pushes into outlineStore (window.__setOutlineState, app/dotto-app.jsx — MUST be flushSync: this
+// Pushes into useOutlineStore (see its own comment for why every call here is flushSync'd: this
 // function's own scrollTop restore below, and toggleHamburgerMenu's setOutlineActive(0) call
 // right after this returns, both need OutlinePanel.jsx's real DOM already committed) — React owns
 // the row markup now (see OutlinePanel.jsx), this function only computes what to show and hands
@@ -460,7 +462,7 @@ export function buildOutline(preserveState?: boolean): void {
   // (below, after the tree exists again) so an in-progress search survives.
   if (!preserveState && appState.outlineSearchInput) appState.outlineSearchInput.value = "";
 
-  window.__setOutlineState?.({ rows: computeCurrentOutlineRows(), query: "" });
+  flushSync(() => useOutlineStore.setState({ rows: computeCurrentOutlineRows(), query: "" }));
 
   if (preserveState) {
     if (savedQuery) handleOutlineSearch(savedQuery);
@@ -487,7 +489,7 @@ export function handleOutlineSearch(query: string): void {
   // row to filter against. See renderHeadingSubtree's own comment.
   const rows = computeCurrentOutlineRows(!!q);
   const filtered = q ? rows.filter((r) => r.label.toLowerCase().includes(q)) : rows;
-  window.__setOutlineState?.({ rows: filtered, query: q });
+  flushSync(() => useOutlineStore.setState({ rows: filtered, query: q }));
 }
 
 // Navigates the live canvas to a card's containing folder and centers on it. Used for every

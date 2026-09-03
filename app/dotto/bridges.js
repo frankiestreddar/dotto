@@ -228,67 +228,11 @@ export function closeLeafInTree(tree, paneId) {
 // app/dotto/lib/chatThreadStore.ts, commandPaletteStore.ts, searchSuggestionsStore.ts, and
 // addToSourcePopupStore.ts.
 
-// Hamburger menu's Waypoints panel (app/dotto/lib/hamburgerCollab.ts's renderWaypointsList) —
-// { rows: [{owner_id, folder_id, item_id, name}], query } — genuine JSX rows (see
-// WaypointsListPanel.jsx), same reasoning as commandPaletteStore: simple icon+label+onclick rows,
-// no per-row widget state worth keeping vanilla. `query` rides along just to pick the right empty-
-// state message ("No waypoints yet." vs "No matching waypoints."), matching the original.
-export const waypointsListStore = createStore({ rows: [], query: "" });
-
-// Hamburger menu's Outline panel (app/dotto/lib/outlineTree.ts's buildOutline/
-// handleOutlineSearch) — { rows, query }, one row per canvas card/heading/nested-canvas/source (or,
-// on a source page, one row per data row — see computeOutlineRows/computeSourceOutlineRows for the
-// row shapes). Genuine JSX rows (see OutlinePanel.jsx), same "no natural content-parameter
-// boundary" case CONTRIBUTING.md names as this migration's Phase 1 — the first vanilla list panel
-// converted where the existing keyboard-nav (app/dotto/lib/srsConnectionsCore.ts's ArrowUp/ArrowDown/Enter
-// block) still needs real DOM nodes handed back to it (see syncOutlineRows/window.__syncOutlineRows,
-// called from OutlinePanel.jsx's own layout effect) rather than owning that DOM itself.
-export const outlineStore = createStore({ rows: [], query: "" });
-
-// Hamburger menu's Sources panel (app/dotto/lib/hamburgerCollab.ts's renderSourcesList) —
-// { rows: [{id, folderId, title, globalId, onCanvas, active}] , query }, one row per source folder
-// account-wide (current-canvas ones sorted first). Genuine JSX rows (see SourcesListPanel.jsx),
-// same reasoning as chatsListStore below. Not flushSync'd — a plain store.set, no synchronous DOM
-// read follows a render()-driven update.
-export const sourcesListStore = createStore({ rows: [], query: "" });
-
-// Hamburger menu's Files panel (app/dotto/lib/hamburgerCollab.ts's renderFilesList) — structurally
-// identical to sourcesListStore just above (copied from it per explicit request), just
-// { rows: [{id, folderId, itemId, title, onCanvas}], query }, one row per uploaded kind:'media' item
-// account-wide (current-canvas ones sorted first). See FilesListPanel.jsx.
-export const filesListStore = createStore({ rows: [], query: "" });
-
-// Hamburger menu's Chats panel (app/dotto/lib/hamburgerCollab.ts's renderChatsList) — a plain
-// array of { id, title, updated_at } rows (see ChatsListPanel.jsx), no search/query state (v1: no
-// search box, unlike Waypoints/Collaborations above — a saved-chat list is likely short enough not
-// to need one yet). Row click reopens that conversation in the search palette — see
-// window.__openSavedChat.
-export const chatsListStore = createStore([]);
-
-// Hamburger menu's Collaborations panel (app/dotto/lib/hamburgerCollab.ts's renderHubCollabList/
-// renderHubCollabRequests) — two views sharing #hub-collab-list, same as the vanilla version:
-// { view: 'main', requestsCount, ownedShown, sharedShown, query } or
-// { view: 'requests', requests }. Genuine JSX rows (see HubCollabListPanel.jsx), same reasoning as
-// waypointsListStore. Not flushSync'd on the bridge (app/dotto-app.jsx) — both entry points are
-// real async Supabase calls, so there's no synchronous DOM read to race.
-export const hubCollabListStore = createStore({
-  view: "main",
-  requestsCount: 0,
-  ownedShown: [],
-  sharedShown: [],
-  query: "",
-});
-
-// Shift-click-to-select + Backspace-to-delete state for the Chats/Waypoints/Collaborations
-// hamburger list panels (app/dotto/lib/hamburgerCollab.ts's window.__toggleListPanelSelection).
-// One shared store, not three — openHubSubpanel (app/dotto/lib/panelsHamburger.ts) already enforces exactly
-// one hub-subpanel open at a time, so `panel` (which list the ids belong to) doubles as the
-// disambiguation a Backspace handler needs for free, no separate "which panel is active"
-// bookkeeping. Collaborations' two row kinds (owned vs. shared-with-me) share this same `ids` Set
-// with an "owned:"/"shared:" id prefix to avoid any collision between the two id spaces. `ids` is
-// a real Set (not an array) purely for O(1) has()/toggle() in each row's render — never mutated in
-// place, always replaced wholesale via .set() like every other store here.
-export const listPanelSelectionStore = createStore({ panel: null, ids: new Set() });
+// Hamburger menu's Outline/Waypoints/Sources/Files/Chats/Collaborations list panels, and their
+// shared shift-click selection state, all migrated to real Zustand (Zustand migration plan,
+// batch 4, see PHASE4_ROADMAP.md) — see app/dotto/lib/outlineStore.ts, waypointsListStore.ts,
+// sourcesListStore.ts, filesListStore.ts, chatsListStore.ts, hubCollabListStore.ts, and
+// listPanelSelectionStore.ts.
 
 // Profile panel's level pill (app/dotto/lib/profileAchievementsPricing.ts's renderProfileLevel)
 // — { displayName, tierColor }, updated once at init and again live after awardUserPoints. Text +

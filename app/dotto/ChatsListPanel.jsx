@@ -1,17 +1,13 @@
 "use client";
 
-import { useSyncExternalStore } from "react";
 import { createPortal } from "react-dom";
-import { chatsListStore, listPanelSelectionStore } from "./bridges";
+import { useChatsListStore } from "./lib/chatsListStore";
+import { useListPanelSelectionStore } from "./lib/listPanelSelectionStore";
 import RowActions from "./RowActions";
 import usePortalNode from "./usePortalNode";
 import { openSavedChat } from "./lib/hamburgerCollab";
 
-// Module-level, not inline — see CanvasItemsLayer.jsx's identical EMPTY_ITEMS comment for why a
-// fresh array literal as the getServerSnapshot fallback trips React's "should be cached" warning.
-const EMPTY_ROWS = [];
 const EMPTY_IDS = new Set();
-const EMPTY_SELECTION = { panel: null, ids: EMPTY_IDS };
 
 function ChatRow({ r, selected }) {
   return (
@@ -44,16 +40,8 @@ function ChatRow({ r, selected }) {
 // WaypointsListPanel.jsx (a plain flex-item container, safe to portal into directly), minus the
 // query-dependent empty-state message since this panel has no search box for v1.
 export default function ChatsListPanel() {
-  const rows = useSyncExternalStore(
-    chatsListStore.subscribe,
-    chatsListStore.getSnapshot,
-    () => EMPTY_ROWS,
-  );
-  const selection = useSyncExternalStore(
-    listPanelSelectionStore.subscribe,
-    listPanelSelectionStore.getSnapshot,
-    () => EMPTY_SELECTION,
-  );
+  const rows = useChatsListStore();
+  const selection = useListPanelSelectionStore();
   const selectedIds = selection.panel === "chats" ? selection.ids : EMPTY_IDS;
   const portalNode = usePortalNode("chats-list");
 

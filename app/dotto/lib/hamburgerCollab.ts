@@ -19,6 +19,12 @@ import {
 } from "./aiAssistantSuggestions";
 import { flashCanvasElement } from "./mnemonicSearchMatching";
 import { useChatThreadStore } from "./chatThreadStore";
+import { useWaypointsListStore } from "./waypointsListStore";
+import { useSourcesListStore } from "./sourcesListStore";
+import { useFilesListStore } from "./filesListStore";
+import { useChatsListStore } from "./chatsListStore";
+import { useHubCollabListStore } from "./hubCollabListStore";
+import { useListPanelSelectionStore } from "./listPanelSelectionStore";
 
 interface Item {
   id: number;
@@ -34,7 +40,7 @@ interface FolderObj {
   isSharedView?: boolean;
 }
 
-interface IncomingCanvasRequest {
+export interface IncomingCanvasRequest {
   id: string;
   folderId: string;
   folderTitle: string;
@@ -44,7 +50,7 @@ interface IncomingCanvasRequest {
   ownerAvatarUrl: string | null;
   status: string;
 }
-interface OwnedCanvasCollab {
+export interface OwnedCanvasCollab {
   folderId: string;
   folderTitle: string;
   collaborators: {
@@ -84,7 +90,7 @@ interface AppState {
   idCounter: number;
 }
 
-interface WaypointRow {
+export interface WaypointRow {
   owner_id: string;
   folder_id: string;
   item_id: number;
@@ -292,17 +298,23 @@ export async function renderHubCollabList(query?: string): Promise<void> {
           (appState.folders[sharedKey] && appState.folders[sharedKey].title) || c.folderTitle,
       };
     });
-  window.__setHubCollabList?.({
-    view: "main",
-    requestsCount: appState.incomingCanvasRequests.length,
-    ownedShown,
-    sharedShown,
-    query: q,
-  });
+  useHubCollabListStore.setState(
+    {
+      view: "main",
+      requestsCount: appState.incomingCanvasRequests.length,
+      ownedShown,
+      sharedShown,
+      query: q,
+    },
+    true,
+  );
 }
 function renderHubCollabRequests(): void {
   const appState = getAppState();
-  window.__setHubCollabList?.({ view: "requests", requests: appState.incomingCanvasRequests });
+  useHubCollabListStore.setState(
+    { view: "requests", requests: appState.incomingCanvasRequests },
+    true,
+  );
 }
 // Wired up from HubCollabListPanel.jsx's JSX handlers — see that file for the row shapes these
 // feed.
@@ -360,7 +372,7 @@ export async function renderWaypointsList(query?: string): Promise<void> {
   const supabase = getSupabase();
   const q = (query || "").trim().toLowerCase();
   if (!supabase || !appState.currentUser.id) {
-    window.__setWaypointsList?.({ rows: [], query: q });
+    useWaypointsListStore.setState({ rows: [], query: q });
     return;
   }
   const { data, error } = await supabase
@@ -370,7 +382,7 @@ export async function renderWaypointsList(query?: string): Promise<void> {
     .order("updated_at", { ascending: false });
   if (error) {
     console.error("[waypoints] failed to load waypoints:", error);
-    window.__setWaypointsList?.({ rows: [], query: q });
+    useWaypointsListStore.setState({ rows: [], query: q });
     return;
   }
   const rows = ((data as WaypointRow[]) || []).filter(
@@ -382,7 +394,7 @@ export async function renderWaypointsList(query?: string): Promise<void> {
   // jump straight to row N by index, matching whatever this same sorted-and-filtered order the
   // panel is actually showing.
   appState.lastWaypointsRows = rows;
-  window.__setWaypointsList?.({ rows, query: q });
+  useWaypointsListStore.setState({ rows, query: q });
 }
 // Matches WaypointsListPanel.jsx's own `key={...}` computation exactly — reused here as the
 // shift-click selection id for waypoint rows.
@@ -419,7 +431,7 @@ export function renderSourcesList(query?: string): void {
     }))
     .filter((r) => !q || r.title.toLowerCase().includes(q))
     .sort((a, b) => (b.onCanvas === a.onCanvas ? 0 : b.onCanvas ? 1 : -1));
-  window.__setSourcesList?.({ rows, query: q });
+  useSourcesListStore.setState({ rows, query: q });
 }
 // Files panel — every uploaded file across the user's ENTIRE account, not just the current
 // canvas: every kind:'media' item with a real mediaSrc, found by walking every folder's own
@@ -464,7 +476,7 @@ export function renderFilesList(query?: string): void {
   const filtered = Array.from(byFileKey.values())
     .filter((r) => !q || r.title.toLowerCase().includes(q))
     .sort((a, b) => (b.onCanvas === a.onCanvas ? 0 : b.onCanvas ? 1 : -1));
-  window.__setFilesList?.({ rows: filtered, query: q });
+  useFilesListStore.setState({ rows: filtered, query: q });
 }
 // Hamburger menu's Chats panel — every saved Dotbot conversation belonging to this user, most
 // recently updated first. Returns the fetched rows (in addition to pushing them into
@@ -477,7 +489,7 @@ export async function renderChatsList(): Promise<
   const appState = getAppState();
   const supabase = getSupabase();
   if (!supabase || !appState.currentUser.id) {
-    window.__setChatsList?.([]);
+    useChatsListStore.setState([], true);
     return [];
   }
   const { data, error } = await supabase
@@ -487,10 +499,10 @@ export async function renderChatsList(): Promise<
     .order("updated_at", { ascending: false });
   if (error) {
     console.error("[chats] failed to load conversations:", error);
-    window.__setChatsList?.([]);
+    useChatsListStore.setState([], true);
     return [];
   }
-  window.__setChatsList?.(data || []);
+  useChatsListStore.setState(data || [], true);
   return data || [];
 }
 // Pans to and briefly expands (read-only "peek") a waypoint card already present in the
@@ -637,8 +649,7 @@ export async function openSavedChat(conversationId: string): Promise<void> {
 // one hub-subpanel open at a time, so `panel` doubles as the disambiguation a single Backspace
 // handler needs. Vanilla owns this as the source of truth (appState.listPanelSelection,
 // coreState.ts — same convention as appState.selectedCardIds for canvas cards), mirrored into
-// React's listPanelSelectionStore via window.__setListPanelSelection purely so the list rows can
-// show a highlight.
+// React's useListPanelSelectionStore purely so the list rows can show a highlight.
 export function toggleListPanelSelection(panel: string, id: string): void {
   const appState = getAppState();
   const current = appState.listPanelSelection;
@@ -646,7 +657,7 @@ export function toggleListPanelSelection(panel: string, id: string): void {
   if (ids.has(id)) ids.delete(id);
   else ids.add(id);
   appState.listPanelSelection = { panel, ids };
-  window.__setListPanelSelection?.(appState.listPanelSelection);
+  useListPanelSelectionStore.setState(appState.listPanelSelection);
 }
 // Shift+click-DRAG "paint select" across a list panel's rows, extending the existing shift+click
 // toggle above — holding Shift and dragging the pointer across multiple rows now toggles every
@@ -680,7 +691,7 @@ function setupListPanelDragSelect(container: HTMLElement | null, panel: string):
 export function clearListPanelSelection(): void {
   const appState = getAppState();
   appState.listPanelSelection = { panel: null, ids: new Set() };
-  window.__setListPanelSelection?.(appState.listPanelSelection);
+  useListPanelSelectionStore.setState(appState.listPanelSelection);
 }
 // Also clears currentConversationId/the visible chat thread if the deleted set includes the
 // conversation currently open in the search palette — otherwise the next follow-up message would
