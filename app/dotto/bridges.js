@@ -234,16 +234,9 @@ export function closeLeafInTree(tree, paneId) {
 // sourcesListStore.ts, filesListStore.ts, chatsListStore.ts, hubCollabListStore.ts, and
 // listPanelSelectionStore.ts.
 
-// Profile panel's level pill (app/dotto/lib/profileAchievementsPricing.ts's renderProfileLevel)
-// — { displayName, tierColor }, updated once at init and again live after awardUserPoints. Text +
-// background color move together as one store value — see ProfileLevelPill.jsx.
-export const profileLevelStore = createStore({ displayName: "", tierColor: "" });
-
-// Profile panel's achievement spritebook (renderSpriteGrid) — just the array of unlocked
-// achievement ids; window.__ACHIEVEMENTS/__SPRITE_TOTAL_COUNT (bridged as plain constants, not
-// through a store, since they never change) supply everything else AchievementsGrid.jsx needs to
-// render every cell. Genuine JSX, same reasoning as commandPaletteStore/waypointsListStore.
-export const achievementsStore = createStore([]);
+// Profile panel's level pill and achievement spritebook both migrated to real Zustand (Zustand
+// migration plan, batch 5, see PHASE4_ROADMAP.md) — see app/dotto/lib/profileLevelStore.ts and
+// achievementsStore.ts.
 
 // Messages panel's chat/friend list (app/dotto/lib/friendsPresence.ts's renderMsgList/
 // renderMsgRequests) — same two-view shape as hubCollabListStore:

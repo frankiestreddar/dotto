@@ -1,12 +1,9 @@
 "use client";
 
 import { useLayoutEffect } from "react";
-import { useSyncExternalStore } from "react";
 import { createPortal } from "react-dom";
-import { profileLevelStore } from "./bridges";
+import { useProfileLevelStore } from "./lib/profileLevelStore";
 import usePortalNode from "./usePortalNode";
-
-const EMPTY_LEVEL = { displayName: "", tierColor: "" };
 
 // Portals the level text into #profile-level-pill (content/fragments/profile-panel.html — its own
 // inner .profile-level-pill-text span was removed from the static markup so this doesn't
@@ -14,11 +11,7 @@ const EMPTY_LEVEL = { displayName: "", tierColor: "" };
 // itself, not JSX props — createPortal only ever owns the target's CHILDREN, never its own
 // attributes, same as CommandPalette.jsx's #search-command-palette style.display handling.
 export default function ProfileLevelPill() {
-  const level = useSyncExternalStore(
-    profileLevelStore.subscribe,
-    profileLevelStore.getSnapshot,
-    () => EMPTY_LEVEL,
-  );
+  const level = useProfileLevelStore();
   const portalNode = usePortalNode("profile-level-pill");
 
   useLayoutEffect(() => {

@@ -1,12 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import { useSyncExternalStore } from "react";
 import { createPortal } from "react-dom";
-import { achievementsStore } from "./bridges";
+import { useAchievementsStore } from "./lib/achievementsStore";
 import usePortalNode from "./usePortalNode";
-
-const EMPTY_UNLOCKED = [];
 
 // Static asset grid, dropped into /public/sprites by hand: the first 8 cells are the
 // achievement-tied sprites, each showing its own locked/unlocked art (sprite-N-locked.png /
@@ -36,11 +33,7 @@ function SpriteCell({ index, achievements, unlockedSet }) {
 // (see app/dotto/lib/profileAchievementsPricing.ts's own comment) since they never change; only
 // the unlocked-ids list is real store state.
 export default function AchievementsGrid() {
-  const unlockedIds = useSyncExternalStore(
-    achievementsStore.subscribe,
-    achievementsStore.getSnapshot,
-    () => EMPTY_UNLOCKED,
-  );
+  const unlockedIds = useAchievementsStore();
   const portalNode = usePortalNode("profile-sprite-grid");
 
   if (!portalNode) return null;

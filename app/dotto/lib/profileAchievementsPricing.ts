@@ -1,19 +1,22 @@
 // Phase 4.5 port of public/dotto/profile-achievements-pricing.js: the Profile panel (level pill,
 // avatar rendering, Dotbot usage bars), the achievement/spritebook system, and the
 // pricing-overlay open/close wrappers. Reaches every still-vanilla dependency through window
-// bridges — most already existed (window.pushNotification/__closeAllPanels/
-// __setProfileLevel/__setAchievements/__wireRailIcon/__closeRailView), 3 are new as part of this
-// port (__refreshDotbotUsage/__closeProfilePanel/__openDotbotUpgradeModal — all vanilla at the
-// time across drawing-connections.js/search-orchestration-selection.js/app-init.js, plus
-// app/dotto/lib/hamburgerCollab.ts/app/dotto/lib/mnemonicSearchMatching.ts/
-// app/dotto/lib/friendsPresence.ts (ported earlier still); the first three have all since been
-// ported too (to drawingConnections.ts/searchOrchestrationSelection.ts/appInit.ts) but still
-// reach these 3 through the bridge rather than a real import — worth a fresh same-tree-upgrade
-// pass later, not bundled into this port). openPricingOverlay/closePricingOverlay below reach
-// usePricingOverlayStore as a real import instead, since it was migrated to Zustand (Zustand
-// migration plan, batch 1, see PHASE4_ROADMAP.md).
+// bridges — most already existed (window.pushNotification/__closeAllPanels/__wireRailIcon/
+// __closeRailView), 3 are new as part of this port (__refreshDotbotUsage/__closeProfilePanel/
+// __openDotbotUpgradeModal — all vanilla at the time across drawing-connections.js/search-
+// orchestration-selection.js/app-init.js, plus app/dotto/lib/hamburgerCollab.ts/
+// app/dotto/lib/mnemonicSearchMatching.ts/app/dotto/lib/friendsPresence.ts (ported earlier
+// still); the first three have all since been ported too (to drawingConnections.ts/
+// searchOrchestrationSelection.ts/appInit.ts) but still reach these 3 through the bridge rather
+// than a real import — worth a fresh same-tree-upgrade pass later, not bundled into this port).
+// openPricingOverlay/closePricingOverlay/renderProfileLevel/renderSpriteGrid below reach
+// usePricingOverlayStore/useProfileLevelStore/useAchievementsStore as real imports instead, since
+// they've since migrated to Zustand (Zustand migration plan, batches 1 and 5, see
+// PHASE4_ROADMAP.md).
 
 import { usePricingOverlayStore } from "./pricingOverlayStore";
+import { useProfileLevelStore } from "./profileLevelStore";
+import { useAchievementsStore } from "./achievementsStore";
 
 interface Achievement {
   id: string;
@@ -140,13 +143,13 @@ function levelTierColor(tierIndex: number): string {
   return `hsl(${hue}, 62%, 38%)`;
 }
 
-// Real React state now (see app/dotto/ProfileLevelPill.jsx, profileLevelStore) — text + background
-// color both move together as one store value.
+// Real React state now (see app/dotto/ProfileLevelPill.jsx, useProfileLevelStore) — text +
+// background color both move together as one store value.
 function renderProfileLevel(): void {
   const appState = getAppState();
   if (!appState.currentUser.id) return;
   const lvl = calculateUserLevel(appState.currentUser.totalScore);
-  window.__setProfileLevel!({
+  useProfileLevelStore.setState({
     displayName: lvl.displayName,
     tierColor: levelTierColor(lvl.tierIndex),
   });
@@ -235,7 +238,7 @@ export async function bumpAchievementStat(
   }
 }
 
-// Real React state now (see app/dotto/AchievementsGrid.jsx, achievementsStore) — genuine JSX
+// Real React state now (see app/dotto/AchievementsGrid.jsx, useAchievementsStore) — genuine JSX
 // cells: the first 8 are the achievement-tied sprites, each showing its own locked/unlocked art
 // (sprite-N-locked.png / sprite-N.png) based on unlockedAchievementIds; every cell after that has
 // no achievement at all, so it always shows the shared unknown-sprite.png regardless of any state.
@@ -244,7 +247,7 @@ export async function bumpAchievementStat(
 // only unlockedAchievementIds actually varies over a session.
 function renderSpriteGrid(): void {
   const appState = getAppState();
-  window.__setAchievements!(Array.from(appState.unlockedAchievementIds));
+  useAchievementsStore.setState(Array.from(appState.unlockedAchievementIds), true);
 }
 
 // Profile shares the permanent rail's one shell/pinned-state (see openRailView,
@@ -432,8 +435,8 @@ function doWire(): () => void {
 
   // React → vanilla bridges — used by AchievementsGrid.jsx (app/dotto/), which can't import these
   // directly since public/dotto/*.js isn't reachable from app/dotto/. True constants (never
-  // reassigned after init), unlike window.__setProfileLevel/__setAchievements (app/dotto-app.jsx),
-  // which are store setters for the parts that actually vary. Set here (not at module scope, and
+  // reassigned after init), unlike useProfileLevelStore/useAchievementsStore's own setState calls
+  // above, which cover the parts that actually vary. Set here (not at module scope, and
   // not behind a plain readiness check) since appState is only genuinely available once doWire()
   // itself runs — a module-scope `if (window.__getAppState)` check would always be false, since
   // module eval always runs before DottoApp's own render body (where window.__getAppState gets

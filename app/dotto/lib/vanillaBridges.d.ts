@@ -580,13 +580,10 @@ declare global {
       avatar: { id: number; url: string | null },
       fallbackText: string,
     ) => void;
-    // app/dotto-app.jsx (via app/dotto/bridges.js's profileLevelStore/achievementsStore) —
-    // React-facing setters, plain store.sets, no synchronous DOM read follows either.
-    __setProfileLevel?: (state: { displayName: string; tierColor: string }) => void;
-    __setAchievements?: (unlockedIds: string[]) => void;
     // React -> vanilla bridges — used by AchievementsGrid.jsx (app/dotto/), which can't import
     // these directly since public/dotto/*.js isn't reachable from app/dotto/. True constants
-    // (never reassigned after init), unlike __setProfileLevel/__setAchievements above.
+    // (never reassigned after init), unlike useProfileLevelStore/useAchievementsStore's own
+    // setState calls (app/dotto/lib/profileAchievementsPricing.ts).
     __ACHIEVEMENTS?: {
       id: string;
       statKey: string;

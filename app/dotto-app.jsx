@@ -4,7 +4,6 @@ import { useEffect } from "react";
 import { flushSync } from "react-dom";
 import { createClient } from "@/lib/supabase/client";
 import {
-  achievementsStore,
   activePaneIdStore,
   blocksViewStore,
   breadcrumbMapStore,
@@ -24,10 +23,8 @@ import {
   navHistoryStore,
   paneLayoutStore,
   splitLeafInTree,
-  profileLevelStore,
   sharedCanvasModalStore,
   tabsStore,
-  waypointsListStore,
 } from "./dotto/bridges";
 import AchievementsGrid from "./dotto/AchievementsGrid";
 import AddToSourcePopup from "./dotto/AddToSourcePopup";
@@ -339,11 +336,9 @@ if (typeof window !== "undefined") {
   // batch 4, see PHASE4_ROADMAP.md) — see app/dotto/lib/outlineStore.ts, waypointsListStore.ts,
   // sourcesListStore.ts, filesListStore.ts, chatsListStore.ts, hubCollabListStore.ts, and
   // listPanelSelectionStore.ts for each store's own comment on flushSync requirements.
-  // Profile panel (see app/dotto/ProfileLevelPill.jsx/AchievementsGrid.jsx,
-  // app/dotto/lib/profileAchievementsPricing.ts's renderProfileLevel/renderSpriteGrid) — plain
-  // store.sets, no synchronous DOM read follows either one.
-  window.__setProfileLevel = profileLevelStore.set;
-  window.__setAchievements = achievementsStore.set;
+  // Profile panel's level pill and achievement spritebook (see app/dotto/ProfileLevelPill.jsx/
+  // AchievementsGrid.jsx) both migrated to real Zustand (Zustand migration plan, batch 5, see
+  // PHASE4_ROADMAP.md) — see app/dotto/lib/profileLevelStore.ts/achievementsStore.ts.
   // Messages panel (see app/dotto/MessagesListPanel.jsx,
   // app/dotto/lib/friendsPresence.ts's renderMsgList/renderMsgRequests) — same reasoning as
   // useWaypointsListStore/useHubCollabListStore: both entry points are real async Supabase calls.
