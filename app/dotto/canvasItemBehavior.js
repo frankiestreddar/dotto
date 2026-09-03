@@ -41,7 +41,7 @@ import {
 
 // Correct minimum for one axis (width or height) of a table whose column/row split might be
 // UNEVEN — dragging one divider rewrites the WHOLE colWidths/rowHeights array (see
-// startTableColResize/startTableRowResize, table-grid-resize.js), and a freshly added
+// startTableColResize/startTableRowResize, app/dotto/lib/tableGridResize.ts), and a freshly added
 // column/row's own "average of existing" default (see growGridSizingForNewEntry, app/dotto/lib/sourceTable.ts)
 // can leave the split uneven even without any single entry being individually dragged. Just
 // checking count*unitMinPx (assuming every entry gets an equal share) isn't enough on its own: if

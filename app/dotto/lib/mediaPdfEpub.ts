@@ -152,10 +152,10 @@ export function setMediaFromLink(id: number): void {
     window.__render?.();
   });
 }
-// The actual file-to-item pipeline, split out from triggerMediaUpload below so upload-popup.js's
-// own dropzone (a file already in hand, from a click-to-pick or a real drag-and-drop — no native
-// picker of its own) can reuse it without needing to fake a change event on a file input just to
-// get here.
+// The actual file-to-item pipeline, split out from triggerMediaUpload below so
+// app/dotto/lib/uploadPopup.ts's own dropzone (a file already in hand, from a click-to-pick or a
+// real drag-and-drop — no native picker of its own) can reuse it without needing to fake a change
+// event on a file input just to get here.
 export function processMediaFile(id: number, file: File | undefined | null): void {
   if (!file) return;
   const isPdf = file.type === "application/pdf" || /\.pdf$/i.test(file.name);

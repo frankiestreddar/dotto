@@ -329,7 +329,7 @@ function computeOutlineRows(
   // under it (a group item OR a child heading); collapsing hides both. ignoreCollapse (set by
   // handleOutlineSearch while a query is active) makes every heading render fully expanded
   // regardless of its own collapsed state, same "search overrides collapse" behavior the Blocks
-  // panel's own folders get (toggleBlocksFolderCollapse's own comment, blocks-panel.js) —
+  // panel's own folders get (toggleBlocksFolderCollapse's own comment, app/dotto/lib/blocksPanel.ts) —
   // otherwise a real match hidden under a collapsed heading could never surface while searching.
   function renderHeadingSubtree(heading: Item, subIndent: number) {
     const groupItems = headingGroups.get(heading.id) || [];

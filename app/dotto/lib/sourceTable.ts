@@ -5,8 +5,10 @@
 // page's own image/audio-insert + CSV/TSV import pipeline. TableCard.jsx upgraded from window
 // bridges to real ES imports (same precedent as stopwatch.ts/gamesFlashcardTyperight.ts/
 // MediaCard.jsx), bridges kept for the still-vanilla callers (search-orchestration-selection.js,
-// table-grid-resize.js, and canvasItemBehavior.js's/static-HTML's own inline-onclick targets) plus
-// app/dotto/lib/messagingCanvasPreview.ts/app/dotto/lib/sourceTagsAi.ts (both ported since).
+// and canvasItemBehavior.js's/static-HTML's own inline-onclick targets) plus
+// app/dotto/lib/messagingCanvasPreview.ts/app/dotto/lib/sourceTagsAi.ts/
+// app/dotto/lib/tableGridResize.ts (all ported since — the last of these upgraded to a real
+// import too, same app/dotto/lib tree).
 // Reaches every still-vanilla dependency through window bridges.
 
 interface MergedRegion {
@@ -98,7 +100,7 @@ export function renderTableHTML(it: Item): string {
 // browser grabs focus on a contentEditable element the instant mousedown fires, before there's any
 // way to know yet whether this gesture is a click or the start of a drag. This tracks real pointer
 // movement after mousedown and blurs the cell the moment it crosses TABLE_CELL_DRAG_THRESHOLD_PX,
-// handing the gesture over to the wrapper's own whole-card drag system (drag-drop-chat.js's
+// handing the gesture over to the wrapper's own whole-card drag system (canvasItemBehavior.js's
 // setupDraggingAndClicking, already listening on the same pointerdown via bubbling — completely
 // unaffected by anything here, it was already tracking this same gesture in parallel the whole
 // time). A plain click (no meaningful movement before mouseup) never blurs anything, so normal
@@ -182,7 +184,7 @@ export function handleColNameKeydown(e: KeyboardEvent, id: number, colIndex: num
   }
 }
 // Even split by default — unless it.rowHeights (set by dragging an individual row divider, see
-// startTableRowResize/table-grid-resize.js) holds one real percentage per row, in which case each
+// startTableRowResize/app/dotto/lib/tableGridResize.ts) holds one real percentage per row, in which case each
 // row gets that percentage of the table's current rendered height instead. Recomputing this off
 // the CURRENT wrap.clientHeight every call (rather than caching pixel heights) is what lets a
 // custom row split scale for free whenever the corner handle later changes the table's overall

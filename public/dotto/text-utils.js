@@ -3,7 +3,7 @@
 // PHASE4_ROADMAP.md). ai-assistant-suggestions.js itself moved to app/dotto/lib/aiAssistantSuggestions.ts
 // in its own Phase 4.5 port, at which point this file started setting its own
 // window.__escapeHtml/__stripHtml bridges directly (genuinely pure/zero-import, so it can safely
-// do so, same convention srs-algorithm.js already established) — the real remaining vanilla
+// do so, same convention app/dotto/lib/srsAlgorithm.ts already established) — the real remaining vanilla
 // callers (search-panel-history.js, search-orchestration-selection.js) now import straight from
 // here instead of through ai-assistant-suggestions.js's old re-export (source-tags-ai.js was a
 // third one too, until it was itself ported to app/dotto/lib/sourceTagsAi.ts, Phase 4.5 — it
@@ -46,8 +46,9 @@ function escapeHtml(s) {
 
 export { escapeHtml, stripHtml };
 
-// Sets its own bridges directly — genuinely pure/zero-import, same convention srs-algorithm.js
-// already established. Used by app/dotto/lib/outlineTree.ts/app/dotto/lib/srsConnectionsCore.ts
+// Sets its own bridges directly — genuinely pure/zero-import, same convention
+// app/dotto/lib/srsAlgorithm.ts already established. Used by
+// app/dotto/lib/outlineTree.ts/app/dotto/lib/srsConnectionsCore.ts
 // (window.__stripHtml) and app/dotto/canvasItemBehavior.js's renderStaticTableHTML
 // (window.__escapeHtml), plus app/dotto/lib/aiAssistantSuggestions.ts itself, none of which can
 // import this directly since public/dotto/*.js isn't reachable from app/dotto/.

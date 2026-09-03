@@ -266,8 +266,11 @@ export function wireCopyPaste(): () => void {
   };
 }
 
-// The only caller (handleBlockItemClick, blocks-panel.js) is only ever reached while the Blocks
-// panel itself is the open rail view, so closeRailView here always closes that panel.
+// One real caller (handleBlockItemClick, app/dotto/lib/blocksPanel.ts) is only ever reached while
+// the Blocks panel itself is the open rail view, so closeRailView here always closes that panel —
+// plus a real inline onclick="prepareAdd('folder')" target (content/dotto-markup.html), which is
+// why this stays a plain (non-`__`) global rather than a real ES import for blocksPanel.ts's own
+// call.
 export function prepareAdd(kind: string, statKind?: string | null): void {
   const appState = getAppState();
   if (!appState) return;
@@ -276,7 +279,7 @@ export function prepareAdd(kind: string, statKind?: string | null): void {
   window.__closeRailView?.();
   window.__getCanvasEl?.()?.classList.add("crosshair");
   // Starting to place any card kind exits pen mode, same as opening the Blocks panel itself
-  // already does (refreshBlocksPanel, blocks-panel.js) — was setDrawMode(false).
+  // already does (refreshBlocksPanel, app/dotto/lib/blocksPanel.ts) — was setDrawMode(false).
   if (appState.cardMode === "pen") {
     appState.cardMode = "normal";
     window.__applyCursorMode?.();

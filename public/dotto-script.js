@@ -1,13 +1,4 @@
 import './dotto/add-menu.js';
 import './dotto/drawing-connections.js';
-import './dotto/srs-algorithm.js';
-import './dotto/theme-toggle.js';
-import './dotto/upload-popup.js';
-import './dotto/stopwatch.js';
 import './dotto/search-panel-history.js';
 import './dotto/search-orchestration-selection.js';
-import './dotto/drag-drop-chat.js';
-import './dotto/blocks-panel.js';
-import './dotto/extensions-panel.js';
-import './dotto/table-grid-resize.js';
-import './dotto/app-init.js';

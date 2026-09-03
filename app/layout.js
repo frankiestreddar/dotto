@@ -31,14 +31,14 @@ export default function RootLayout({ children }) {
             async/defer/type=module) so it runs synchronously as the browser parses this <head>,
             before <body> renders.
             Explicit request: the site should follow the OS light/dark preference live, but a
-            choice made via the Settings switch or the \ shortcut (see theme-toggle.js's own
-            setTheme/toggleTheme) always wins over that until cleared. localStorage's 'dotto-theme'
-            key is used ONLY to record that explicit override — its mere presence (not just its
-            value) is what "an override exists" means, so an unset key here means "no explicit
-            choice yet, use the live OS preference" rather than defaulting to a fixed theme.
-            Wrapped in try/catch since localStorage/matchMedia can throw or be unavailable in some
-            private-browsing configurations — falls back to dark, matching theme-toggle.js's own
-            fallback for the same case. */}
+            choice made via the Settings switch or the \ shortcut (see
+            app/dotto/lib/themeToggle.ts's own setTheme/toggleTheme) always wins over that until
+            cleared. localStorage's 'dotto-theme' key is used ONLY to record that explicit
+            override — its mere presence (not just its value) is what "an override exists" means,
+            so an unset key here means "no explicit choice yet, use the live OS preference" rather
+            than defaulting to a fixed theme. Wrapped in try/catch since localStorage/matchMedia
+            can throw or be unavailable in some private-browsing configurations — falls back to
+            dark, matching app/dotto/lib/themeToggle.ts's own fallback for the same case. */}
         <script
           dangerouslySetInnerHTML={{
             __html: `(function(){try{var s=localStorage.getItem('dotto-theme');document.documentElement.dataset.theme=(s==='light'||s==='dark')?s:((window.matchMedia&&window.matchMedia('(prefers-color-scheme: light)').matches)?'light':'dark');}catch(e){document.documentElement.dataset.theme='dark';}})();`,

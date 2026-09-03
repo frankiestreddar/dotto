@@ -864,30 +864,29 @@ export function wireFriendsPresence(): () => void {
 // documented while finishing the history-autosave.js port — see PHASE4_ROADMAP.md), where
 // `window` genuinely does not exist yet.
 if (typeof window !== "undefined") {
-  // React → vanilla bridges — used by app-init.js/command-verbs.js/drag-drop-chat.js
-  // (public/dotto/), which can't import these directly now that this file lives in
-  // app/dotto/lib. collabBubblePaneClick/collabBubblePaneMouseEnter/collabBubblePaneMouseLeave
+  // React → vanilla bridge — used by public/dotto/command-verbs.js, which can't import these
+  // directly. collabBubblePaneClick/collabBubblePaneMouseEnter/collabBubblePaneMouseLeave
   // (PaneTopBar.jsx), openMsgRequestsView/backToMsgMain/handleAddFriendClick/respondToMsgRequest
   // (MessagesListPanel.jsx), and handleCollabAddRemoveClick (CollabListPanel.jsx) have no bridge
-  // here — their only consumer is a real import instead, same app/dotto/ tree.
+  // here — their only consumer is a real import instead, same app/dotto/ tree; same for
+  // refreshCanvasCollabForCurrentFolder/refreshFriendsData/renderCollabPill's own former callers
+  // in app/dotto/lib/appInit.ts, and renderMsgList's own former caller in
+  // app/dotto/lib/dragDropChat.ts (all ported since, all now real imports here too).
   window.__openCollabPanel = openCollabPanel;
   // Called from switchActivePane (coreState.ts) via this bridge, not a direct import — that
-  // function is imported BY this file, so the reverse would be circular.
+  // function is imported BY this file, so the reverse would be circular. Also used by
+  // app/dotto/lib/hamburgerCollab.ts/app/dotto/lib/waypointsRenderLoop.ts.
   window.__renderCollabPill = renderCollabPill;
   // Used by app/dotto/lib/shelfSearch.ts's startRenameShelfSourceRow (Phase 4.4).
   window.__syncCanvasCollabTitle = syncCanvasCollabTitle;
   // Used by app/dotto/lib/sourceButtonsCursorMode.ts's window.onclick handler (Phase 4.4).
   window.__closeCollabPanel = closeCollabPanel;
-  // Used by app/dotto/lib/messagingCanvasPreview.ts's closeConvo (Phase 4.5), and by
-  // public/dotto/drag-drop-chat.js's dispatchSelectedToChat.
+  // Used by app/dotto/lib/messagingCanvasPreview.ts's closeConvo (Phase 4.5).
   window.__renderMsgList = renderMsgList;
-  // Used by app/dotto/lib/waypointsRenderLoop.ts's applyFolderView (Phase 4.5), and by
-  // public/dotto/app-init.js's one-time bootstrap.
+  // Used by app/dotto/lib/waypointsRenderLoop.ts's applyFolderView (Phase 4.5).
   window.__refreshCanvasCollabForCurrentFolder = refreshCanvasCollabForCurrentFolder;
   // Used by app/dotto/lib/hamburgerCollab.ts's handleOwnedHubCollabRowClick (Phase 4.5).
   window.__activePaneCollabBubbleEl = activePaneCollabBubbleEl;
-  // Used by public/dotto/app-init.js's one-time bootstrap.
-  window.__refreshFriendsData = refreshFriendsData;
   // Used by public/dotto/command-verbs.js's inviteUser verb.
   window.__resolveUsernameToUserId = resolveUsernameToUserId;
   // Plain (non-`__`) globals — real inline oninput targets in

@@ -933,7 +933,7 @@ function renderOnce(): void {
   // (dotto-app.jsx), so every item's wrapper div (and, via each CanvasItem's useLayoutEffect, its
   // body content — see renderLegacyCardInto below) already exists in the DOM by the time this
   // call returns, matching the old synchronous createElement+appendChild guarantee callers like
-  // the alt-duplicate-drag path in drag-drop-chat.js depend on.
+  // the alt-duplicate-drag path in canvasItemBehavior.js depend on.
   window.__renderCanvasItems?.(currentItems, appState.activePaneId);
 
   world.appendChild(frontLayer);

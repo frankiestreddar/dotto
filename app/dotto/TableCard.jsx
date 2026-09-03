@@ -11,6 +11,7 @@ import {
   updateTableCell,
 } from "./lib/sourceTable";
 import { placeCaretEnd } from "./lib/canvasPresence";
+import { setupTableGridResizing } from "./lib/tableGridResize";
 
 // Ported from the old renderTableHTML (now app/dotto/lib/sourceTable.ts, Phase 4.4 — reached here
 // as real ES imports since both files live in the same app/dotto/ tree; the window bridges/plain
@@ -31,7 +32,7 @@ import { placeCaretEnd } from "./lib/canvasPresence";
 // any way to know yet whether this gesture is a click or the start of a drag. This tracks real
 // pointer movement after mousedown and blurs the cell the moment it crosses
 // TABLE_CELL_DRAG_THRESHOLD_PX, handing the gesture over to the wrapper's own whole-card drag
-// system (drag-drop-chat.js's setupDraggingAndClicking, already listening on the same
+// system (canvasItemBehavior.js's setupDraggingAndClicking, already listening on the same
 // pointerdown via bubbling — completely unaffected by anything here, it was already tracking this
 // same gesture in parallel the whole time). A plain click (no meaningful movement before mouseup)
 // never blurs anything, so normal editing is untouched.
@@ -106,7 +107,7 @@ export default function TableCard({ it, paneId }) {
       requestAnimationFrame(() => distributeTableSizing(it, el));
     }
     setupResizing(el, it);
-    window.__setupTableGridResizing(el, it);
+    setupTableGridResizing(el, it);
   });
 
   const numCols = it.tableData[0].length;
@@ -116,8 +117,8 @@ export default function TableCard({ it, paneId }) {
   // trying to preserve old customization across it) — same fallback shape distributeTableSizing
   // (app/dotto/lib/sourceTable.ts) already uses for rows. Only ever WRITTEN to it.colWidths/it.rowHeights by
   // actually dragging a divider (see startTableColResize/startTableRowResize,
-  // table-grid-resize.js); this fallback is purely a render-time computation, nothing here
-  // persists it.
+  // app/dotto/lib/tableGridResize.ts); this fallback is purely a render-time computation, nothing
+  // here persists it.
   const colWidths =
     Array.isArray(it.colWidths) && it.colWidths.length === numCols
       ? it.colWidths
@@ -232,7 +233,7 @@ export default function TableCard({ it, paneId }) {
                 is in fixed table-layout with real percentage column widths; before that
                 (table-layout:auto, browser-determined widths) these percentages wouldn't match
                 anything on screen. No onPointerDown/stopPropagation needed here — the whole-card
-                drag system (drag-drop-chat.js's setupDraggingAndClicking) is a native listener on
+                drag system (canvasItemBehavior.js's setupDraggingAndClicking) is a native listener on
                 the card wrapper itself, which fires during real DOM bubbling before React's
                 delegated synthetic handlers ever run, so a React-level stopPropagation on this
                 element couldn't have stopped it anyway; it's exempted by class name inside that

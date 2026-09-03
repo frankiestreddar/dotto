@@ -1,8 +1,9 @@
 // Phase 4.5 port of public/dotto/srs-connections-core.js. calculateSM2/defaultSrsState/
 // diffRatings (SM-2 spaced repetition) were already extracted to srs-algorithm.js in Phase 4.2 and
-// stay there — genuinely pure, zero-import, and still needed by a still-vanilla caller
-// (srs-algorithm.js itself now sets window.__calculateSM2/__defaultSrsState/__diffRatings
-// directly, since it can safely set its own bridges). What's left here: the canvas data-conduit
+// stayed there through this port — genuinely pure, zero-import, so still reached via window
+// bridges at the time. Since ported to app/dotto/lib/srsAlgorithm.ts in Phase 4.1 (once nothing
+// vanilla needed it directly anymore), reached here via real ES imports instead now. What's left
+// here: the canvas data-conduit
 // connection system (isValidConnection/CardStreamIO/propagateCanvasStreams), click-to-link
 // (handleDataModeClick), canvas item creation (add/createNewSource/deepCloneItem), the pen/eraser
 // drawing tool, the zoom-track drag/dblclick handlers, the draw toolbar, and the single largest
@@ -14,6 +15,8 @@
 // is assigned inside that same wire step (it mutates the live appState object, so it can't run at
 // module-evaluation time the way it used to at vanilla module-load time — appState doesn't exist
 // yet then).
+
+import { defaultSrsState, diffRatings } from "./srsAlgorithm";
 
 interface SrsState {
   interval: number;
@@ -126,7 +129,7 @@ function ensureSrsMeta(table: Item): Record<number, SrsState> {
 }
 function getSrsForRow(table: Item, rowIndex: number): SrsState {
   const meta = ensureSrsMeta(table);
-  if (!meta[rowIndex]) meta[rowIndex] = window.__defaultSrsState?.() as SrsState;
+  if (!meta[rowIndex]) meta[rowIndex] = defaultSrsState() as SrsState;
   return meta[rowIndex];
 }
 // Returns { rows, headers } (or null) rather than a bare rows array — `headers` is the table's own
@@ -797,7 +800,7 @@ function handleGlobalKeydown(e: KeyboardEvent): void {
     window.__showProfileSettingsView?.();
     return;
   }
-  // Not a rail icon (see upload-popup.js) — toggleUploadPopup() is a plain classList toggle on its
+  // Not a rail icon (see app/dotto/lib/uploadPopup.ts) — toggleUploadPopup() is a plain classList toggle on its
   // own independent #upload-popup, not an openRailView('...', ...).click() call like every
   // shortcut above it.
   if (!isEditingText && (e.key === "u" || e.key === "U")) {
@@ -1709,7 +1712,7 @@ function buildCardStreamIO(): Record<string, CardStreamIOConfig> {
               makeStreamPayload(originId, "performance", {
                 seen: ((l.seen as number) || 0) - ((b.seen as number) || 0),
                 totalCards: l.totalCards,
-                ratings: window.__diffRatings?.(
+                ratings: diffRatings(
                   l.ratings as Record<string, number>,
                   b.ratings as Record<string, number>,
                 ),

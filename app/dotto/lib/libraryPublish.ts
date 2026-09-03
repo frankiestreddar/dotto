@@ -2,10 +2,13 @@
 // (Purchased / My Creations = drafts+published) and the Publish Flow (draft -> published). Was
 // Library's item detail view — relocated into #add-menu (content/fragments/hamburger-stack.html)
 // along with the rest of "browse your own library content" when Library was repurposed into
-// Plugins. refreshBlocksPanel/createBlocksFolder/etc. (blocks-panel.js, still vanilla) are reached
-// via window.__refreshBlocksPanel rather than a direct import — blocks-panel.js itself calls
-// openItemDetail/deleteMyCreationItem via the __openItemDetail/__deleteMyCreationItem bridges
-// below, a direct import back would be circular. ItemDetailTitle.jsx/PublishFlowName.jsx/
+// Plugins. refreshBlocksPanel (app/dotto/lib/blocksPanel.ts, ported since — was blocks-panel.js)
+// is reached via window.__refreshBlocksPanel rather than a direct import — blocksPanel.ts itself
+// calls openItemDetail/deleteMyCreationItem via the __openItemDetail/__deleteMyCreationItem
+// bridges below, a direct import back would be circular (kept as bridges in both directions
+// deliberately, even after blocks-panel.js itself left the vanilla tree, rather than newly
+// co-locating and resolving it — see blocksPanel.ts's own header comment).
+// ItemDetailTitle.jsx/PublishFlowName.jsx/
 // ItemDetailFooter.jsx (same app/dotto/ tree) now import their functions directly instead of going
 // through window bridges.
 
@@ -220,9 +223,9 @@ export async function unpublishDetailItem(): Promise<void> {
 }
 
 // Core delete, shared by deleteDetailDraft (the detail view's own button, drafts only,
-// ItemDetailFooter.jsx's existing gating) and deleteMyCreationItem (blocks-panel.js's row-level
-// hover delete button, which can target either a draft OR a published item — My Creations is
-// drafts+published combined).
+// ItemDetailFooter.jsx's existing gating) and deleteMyCreationItem (app/dotto/lib/blocksPanel.ts's
+// row-level hover delete button, which can target either a draft OR a published item — My
+// Creations is drafts+published combined).
 async function deleteMarketplaceListing(
   id: string,
   folderKey: "drafts" | "published",
@@ -252,7 +255,7 @@ export async function deleteDetailDraft(): Promise<void> {
 // Row-level delete (Blocks panel's hover delete button on a My Creations item, not gated on
 // appState.detailItem/detailSourceFolder the way deleteDetailDraft is — this is called directly
 // from a list row, no need to have clicked into the item detail view first). folderKey is
-// 'drafts' or 'published', resolved by the caller via resolveItemStatus (blocks-panel.js).
+// 'drafts' or 'published', resolved by the caller via resolveItemStatus (app/dotto/lib/blocksPanel.ts).
 export async function deleteMyCreationItem(
   item: MarketplaceItem,
   folderKey: "drafts" | "published",
@@ -354,9 +357,11 @@ export async function confirmPublishFlow(): Promise<void> {
 // documented while finishing the history-autosave.js port — see PHASE4_ROADMAP.md), where
 // `window` genuinely does not exist yet.
 if (typeof window !== "undefined") {
-  // Used by app/dotto/lib/marketplace.ts (different lib file, so stays a bridge) and by
-  // blocks-panel.js (still vanilla, reached via bridge rather than a direct import since it can't
-  // reach app/dotto/lib/*.ts and importing back the other way would be circular).
+  // __openItemDetail used by app/dotto/lib/marketplace.ts too; both bridges used by
+  // app/dotto/lib/blocksPanel.ts (a different lib file, reached via a bridge rather than a direct
+  // import specifically because blocksPanel.ts itself calls refreshBlocksPanel via this same
+  // bridge convention — a direct import back would be circular; see blocksPanel.ts's own header
+  // comment).
   window.__openItemDetail = openItemDetail;
   window.__deleteMyCreationItem = deleteMyCreationItem;
   // Plain (non-`__`) globals — real inline oninput/onclick targets in

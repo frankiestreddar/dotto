@@ -3,7 +3,11 @@
 // Typeright apps built on top of it. Three React components (FlashcardCard.jsx/TypeRightCard.jsx/
 // GameOptionsPanel.jsx) already consumed a subset of these as React->vanilla bridges before this
 // port — those bridge names/shapes are preserved exactly, just reassigned from here now. Reaches
-// every still-vanilla dependency through window bridges.
+// every still-vanilla dependency through window bridges. calculateSM2/defaultSrsState are real ES
+// imports instead (same app/dotto/lib tree as app/dotto/lib/srsAlgorithm.ts, once that file was
+// ported too).
+
+import { calculateSM2, defaultSrsState } from "./srsAlgorithm";
 
 type GameMode = "plain" | "blank" | "extract";
 interface GameSlot {
@@ -543,10 +547,10 @@ export function fcRate(id: number, rating: string): void {
   const card = fcCurrentRow(it, playable);
   if (card && appState) {
     const quality = appState.SM2_QUALITY[rating];
-    const nextSrs = window.__calculateSM2?.(
-      Object.assign({}, card.srs || window.__defaultSrsState?.()),
+    const nextSrs = calculateSM2(
+      Object.assign({}, card.srs || defaultSrsState()),
       quality,
-    ) as SrsState | undefined;
+    ) as SrsState;
     card.srs = nextSrs;
     // originTableId (carried on every card since extractCardsFromSource set it) makes sure this
     // update finds its way back to the row's real home table even when a filter card or a merged
@@ -757,10 +761,10 @@ export function trCheck(id: number): void {
 
   // ---- Same SM-2 pipeline as flashcard's fcRate.
   const quality = appState.SM2_QUALITY[rating];
-  const nextSrs = window.__calculateSM2?.(
-    Object.assign({}, card.srs || window.__defaultSrsState?.()),
+  const nextSrs = calculateSM2(
+    Object.assign({}, card.srs || defaultSrsState()),
     quality,
-  ) as SrsState | undefined;
+  ) as SrsState;
   card.srs = nextSrs;
   if (card.rowIndex != null && nextSrs) {
     it.pendingSrsUpdate = {

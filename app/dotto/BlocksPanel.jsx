@@ -3,13 +3,22 @@
 import { useEffect, useRef, useSyncExternalStore } from "react";
 import { createPortal } from "react-dom";
 import { blocksViewStore } from "./bridges";
+import {
+  createBlocksFolder,
+  deleteBlockContentItem,
+  deleteBlocksFolder,
+  handleBlockItemClick,
+  setupContentItemDrag,
+  toggleBlocksFolderCollapse,
+} from "./lib/blocksPanel";
 import RowActions from "./RowActions";
 import usePortalNode from "./usePortalNode";
 
 // Folder row — Essentials/Purchased/My Creations/user-created folders, all always shown at once
 // (no drill-down navigation the way Library's old folder-picker/items views worked — see
-// blocksViewStore's own comment, bridges.js). data-folder-id is how blocks-panel.js's drag-into-
-// folder hit-testing (folderRowElAtPoint) finds a valid drop target under the pointer; only
+// blocksViewStore's own comment, bridges.js). data-folder-id is how
+// app/dotto/lib/blocksPanel.ts's drag-into-folder hit-testing (folderRowElAtPoint) finds a valid
+// drop target under the pointer; only
 // present at all for genuinely deletable (i.e. real user-created) folders since those are the only
 // valid drop targets anyway (Purchased/Essentials/My Creations never accept a drop, matching the
 // explicit request this feature was built against).
@@ -32,7 +41,7 @@ function BlockFolderRow({ row }) {
           className={"blocks-folder-toggle" + (row.collapsed ? " collapsed" : "")}
           onClick={(e) => {
             e.stopPropagation();
-            window.__toggleBlocksFolderCollapse(row.key);
+            toggleBlocksFolderCollapse(row.key);
           }}
           title={row.collapsed ? "Expand" : "Collapse"}
         >
@@ -41,7 +50,7 @@ function BlockFolderRow({ row }) {
       )}
       <span className="blocks-folder-label">{row.label}</span>
       <span className="blocks-folder-count">{row.count}</span>
-      {row.deletable && <RowActions onDelete={() => window.__deleteBlocksFolder(row.key)} />}
+      {row.deletable && <RowActions onDelete={() => deleteBlocksFolder(row.key)} />}
     </div>
   );
 }
@@ -54,7 +63,7 @@ function BlockEssentialsRow({ row }) {
     <div
       className="blocks-item"
       style={{ "--blocks-indent": "16px" }}
-      onClick={() => window.__handleBlockItemClick(row.kind, row.statKind)}
+      onClick={() => handleBlockItemClick(row.kind, row.statKind)}
     >
       <img className="blocks-item-icon" src={row.icon} alt="" onError={(e) => e.target.remove()} />
       <span className="blocks-item-label">{row.label}</span>
@@ -63,8 +72,8 @@ function BlockEssentialsRow({ row }) {
 }
 
 // Purchased/My-Creations/custom-folder item — a packaged template. No plain onClick: the drag
-// handler attached below (window.__setupContentItemDrag, blocks-panel.js) already opens the item
-// detail view itself on a release that never crossed the drag threshold, same as the old
+// handler attached below (setupContentItemDrag, app/dotto/lib/blocksPanel.ts) already opens the
+// item detail view itself on a release that never crossed the drag threshold, same as the old
 // LibraryItemRow's draft rows did — generalized here to every content-item row, not just drafts,
 // since drag-into-folder (explicit request) now needs to work for all of them.
 function BlockContentRow({ row }) {
@@ -72,10 +81,11 @@ function BlockContentRow({ row }) {
 
   useEffect(() => {
     if (!row.draggable || !ref.current) return;
-    // window.__setupContentItemDrag returns a cleanup (removes the listener it just added) — row
-    // is a fresh object every computeBlocksRows call (blocks-panel.js), so this effect re-runs on
-    // every re-render; without the cleanup, listeners would just keep stacking up on this node.
-    return window.__setupContentItemDrag(ref.current, row);
+    // setupContentItemDrag returns a cleanup (removes the listener it just added) — row is a
+    // fresh object every computeBlocksRows call (app/dotto/lib/blocksPanel.ts), so this effect
+    // re-runs on every re-render; without the cleanup, listeners would just keep stacking up on
+    // this node.
+    return setupContentItemDrag(ref.current, row);
   }, [row]);
 
   return (
@@ -88,14 +98,14 @@ function BlockContentRow({ row }) {
         <div className="blocks-item-title">{row.item.title}</div>
         <div className="blocks-item-count">{row.item.count || 0} cards packaged</div>
       </div>
-      {row.deletable && <RowActions onDelete={() => window.__deleteBlockContentItem(row)} />}
+      {row.deletable && <RowActions onDelete={() => deleteBlockContentItem(row)} />}
     </div>
   );
 }
 
 function BlockNewFolderRow() {
   return (
-    <div className="blocks-new-folder-row" onClick={() => window.__createBlocksFolder()}>
+    <div className="blocks-new-folder-row" onClick={() => createBlocksFolder()}>
       <span>+</span>
       <span>New folder</span>
     </div>

@@ -74,6 +74,10 @@ import { wireAiAssistantSuggestions } from "./dotto/lib/aiAssistantSuggestions";
 import { wireHamburgerCollab } from "./dotto/lib/hamburgerCollab";
 import { wireFriendsPresence } from "./dotto/lib/friendsPresence";
 import { wireMessagesSchedule } from "./dotto/lib/messagesSchedule";
+import { wireAppInit } from "./dotto/lib/appInit";
+import { wireExtensionsPanel } from "./dotto/lib/extensionsPanel";
+import { wireUploadPopup } from "./dotto/lib/uploadPopup";
+import { wireBlocksPanel } from "./dotto/lib/blocksPanel";
 // Side-effect only — sets window.__buildMnemonicErrorEl/commenceSearchOrMnemonic/etc at
 // module-eval time for search-orchestration-selection.js (still vanilla); every other bridge this
 // file used to need was upgraded to a real import by its own same-tree app/dotto/*.jsx consumer.
@@ -134,11 +138,19 @@ import "./dotto/lib/waypointsRenderLoop";
 // attributes and for outlineTree.ts/messagingCanvasPreview.ts's bridge reads.
 import "./dotto/lib/cardsMisc";
 // Side-effect only — sets window.__openItemDetail/__deleteMyCreationItem/onItemDetailFieldChange/
-// confirmPublishFlow at module-eval time for blocks-panel.js (still vanilla) and
-// content/fragments/hamburger-stack.html's inline oninput/onclick targets; ItemDetailTitle.jsx/
+// confirmPublishFlow at module-eval time for app/dotto/lib/blocksPanel.ts (kept as a bridge
+// deliberately — see that file's own header comment for why a direct import would be circular)
+// and content/fragments/hamburger-stack.html's inline oninput/onclick targets; ItemDetailTitle.jsx/
 // PublishFlowName.jsx/ItemDetailFooter.jsx import the real functions directly instead (same
 // app/dotto/ tree).
 import "./dotto/lib/libraryPublish";
+// Side-effect only — sets window.__calculateSM2/__defaultSrsState/__diffRatings at module-eval
+// time for still-vanilla/still-bridge-only callers; genuinely pure/zero-import, same reasoning
+// srs-algorithm.js already established.
+import "./dotto/lib/srsAlgorithm";
+// Side-effect only — sets window.__dispatchSelectedToChat at module-eval time; its only real
+// caller (app/dotto/canvasItemBehavior.js) is a plain .js file, not same-tree.
+import "./dotto/lib/dragDropChat";
 // Side-effect only — sets window.__openRowTagPicker/__tagPillsHTML/__closeCellTagPicker/
 // __applyAiAddRowsToSource/__createSourceFromAI plus the real inline-HTML plain globals
 // (closeCellTagPicker/closeTagContextMenu/createTagFromCellPicker/deleteActiveTag/
@@ -283,7 +295,7 @@ if (typeof window !== "undefined") {
   // plan) — render() (app/dotto/lib/waypointsRenderLoop.ts) calls this in place of its old world.innerHTML=''
   // rebuild, passing appState.activePaneId explicitly (split-screen Stage 4 — canvasItemsStore is
   // pane-keyed now, see bridges.js: each pane shows its own folder's items independently).
-  // MUST commit synchronously: at least one caller (drag-drop-chat.js's alt-duplicate-drag) does
+  // MUST commit synchronously: at least one caller (canvasItemBehavior.js's alt-duplicate-drag) does
   // `render(); findItemEl(id)` immediately afterward and depends on that node already existing. A
   // plain store.set(...) here would only schedule the update (React 18+ batches/defers updates
   // triggered outside of React's own event handlers to a microtask), so this wraps it in flushSync
@@ -421,7 +433,7 @@ if (typeof window !== "undefined") {
   // Marketplace item detail view (see app/dotto/MarketDetailPanel.jsx, app/dotto/lib/marketplace.ts's
   // openMarketDetail/closeMarketDetail) — a plain store.set, no synchronous DOM read follows it.
   window.__setMarketDetail = marketDetailStore.set;
-  // Blocks panel's list content (see app/dotto/BlocksPanel.jsx, blocks-panel.js's
+  // Blocks panel's list content (see app/dotto/BlocksPanel.jsx, app/dotto/lib/blocksPanel.ts's
   // computeBlocksRows/refreshBlocksPanel — was Library/LibraryPanel.jsx's role before Essentials/
   // Library were repurposed into Blocks/Extensions) — a plain store.set, no synchronous DOM read
   // follows it.
@@ -586,6 +598,22 @@ export default function DottoApp({ sections, currentUser }) {
   // app/dotto/lib/messagesSchedule.ts, for why this needs to poll for both window.__getAppState
   // AND window.__wireRailIcon rather than a single readiness check.
   useEffect(() => wireMessagesSchedule(), []);
+  // Phase 4.1: the Extensions/Upload/Blocks wiring, all newly-portable leaf files — order among
+  // these three doesn't matter (none depend on each other). Extensions/Blocks are real rail panels
+  // (each polls for window.__getAppState AND window.__wireRailIcon, Blocks also
+  // window.__getAddMenuEl/__getBtnAddEl, same multi-bridge poll shape
+  // app/dotto/lib/profileAchievementsPricing.ts's own wireProfileAchievementsPricing established);
+  // Upload is its own independent floating popup (see wireUploadPopup's own comment) and only
+  // needs the single window.__getAppState readiness check.
+  useEffect(() => wireExtensionsPanel(), []);
+  useEffect(() => wireUploadPopup(), []);
+  useEffect(() => wireBlocksPanel(), []);
+  // Phase 4.1: the one-time app bootstrap sequence (load workspace, first render, center camera)
+  // — deliberately the LAST wireX() call in this whole list, same "everything it calls must
+  // already be wired up" ordering guarantee app-init.js's own original position in
+  // dotto-script.js's import order relied on. See wireAppInit's own comment,
+  // app/dotto/lib/appInit.ts.
+  useEffect(() => wireAppInit(), []);
 
   return (
     <>

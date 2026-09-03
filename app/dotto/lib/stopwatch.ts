@@ -1,15 +1,22 @@
 // Phase 4.4 port of public/dotto/stopwatch.js's swFormatTime/swCurrentElapsedMs/swToggleRun/
 // swTogglePause (itself a Phase 4.3 split of stopwatch-search-notifications.js — see
-// PHASE4_ROADMAP.md). renderStopwatchHTML stays vanilla in stopwatch.js —
-// app/dotto/lib/messagingCanvasPreview.ts's mini inline-canvas previews still call it directly —
-// so this isn't a Zustand-store port like
-// notifications.js: a stopwatch card's own fields (swElapsedMs, swRunning, ...) live on the same
-// `it` object every other item field does, inside appState.folders
+// PHASE4_ROADMAP.md). renderStopwatchHTML (below) is the rest of stopwatch.js, ported here too in
+// Phase 4.1 once it became the last vanilla file blocking nothing but its own move — kept as an
+// HTML-string builder rather than folded into StopwatchCard.jsx, since
+// app/dotto/lib/messagingCanvasPreview.ts's mini inline-canvas previews need real markup strings,
+// not a React component, same "string builder + separate real component, same underlying data"
+// split cardsMisc.ts's renderChecklistHTML/ChecklistCard.jsx already established. This isn't a
+// Zustand-store port like notifications.js: a stopwatch card's own fields (swElapsedMs, swRunning,
+// ...) live on the same `it` object every other item field does, inside appState.folders
 // (app/dotto/lib/coreState.ts), which stays the single source of truth — appState itself is a
 // plain mutable object even after its own Phase 4.5 port, not a reactive store. This just moves the
 // PURE/mutating LOGIC to TS, reaching that live item — and every other still-vanilla dependency —
 // through the existing window.__getAppState()/window.__findItemById() etc. bridges, same pattern
-// every Phase 4.1 port already established.
+// every Phase 4.1 port already established. diffRatings itself is a real ES import now (same
+// app/dotto/lib tree as app/dotto/lib/srsAlgorithm.ts, once that file was ported too — no bridge
+// needed for this specific dependency, unlike the still-vanilla ones above).
+
+import { diffRatings } from "./srsAlgorithm";
 
 export interface StopwatchItem {
   id: number;
@@ -71,7 +78,10 @@ export function swToggleRun(id: number): void {
           delta: {
             seen: (l.seen || 0) - (b.seen || 0),
             totalCards: l.totalCards,
-            ratings: window.__diffRatings?.(l.ratings, b.ratings),
+            ratings: diffRatings(
+              l.ratings as Record<string, number>,
+              b.ratings as Record<string, number>,
+            ),
           },
         };
       });
@@ -110,11 +120,21 @@ export function swTogglePause(id: number): void {
   window.__render?.();
 }
 
-// React -> global bridges (StopwatchCard.jsx imports these functions directly now — a real
-// same-tree import, no bridge needed for that direction) plus vanilla -> TS bridges for
-// stopwatch.js's still-vanilla renderStopwatchHTML (its onclick="swToggleRun(...)" string calls
-// the global by name, same as before this port) and app/dotto/lib/historyAutosave.ts's ensureSwTicking/swTick
-// (its own 1s DOM-patch of a running stopwatch's .sw-time text, unchanged by this port).
+// ---------- Stopwatch card (mini HTML preview) ----------
+export function renderStopwatchHTML(it: StopwatchItem): string {
+  return `<div class="sw-row" onmousedown="event.stopPropagation()">
+            <button class="sw-btn sw-startstop" onclick="swToggleRun(${it.id})" title="${it.swRunning ? "Stop" : "Start"}">${it.swRunning ? "⏹" : "▶"}</button>
+            <button class="sw-btn sw-pauseplay" onclick="swTogglePause(${it.id})" ${it.swRunning ? "" : "disabled"} title="${it.swPaused ? "Resume" : "Pause"}">${it.swPaused ? "▶" : "⏸"}</button>
+            <div class="sw-time">${swFormatTime(swCurrentElapsedMs(it))}</div>
+        </div>`;
+}
+
+// React -> global bridges (StopwatchCard.jsx/messagingCanvasPreview.ts import these functions
+// directly now — a real same-tree import, no bridge needed for that direction) plus vanilla -> TS
+// bridges for swToggleRun/swTogglePause's own onclick="..." string calls (renderStopwatchHTML's
+// own generated HTML above still needs them as plain globals, called by name) and
+// app/dotto/lib/historyAutosave.ts's ensureSwTicking/swTick (its own 1s DOM-patch of a running
+// stopwatch's .sw-time text, unchanged by this port).
 // Guarded: this module's top level is reached during Next's server-side render pass (a
 // pre-existing, project-wide issue across every Phase 4.4/4.5 bridge file, discovered and
 // documented while finishing the history-autosave.js port — see PHASE4_ROADMAP.md), where

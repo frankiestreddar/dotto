@@ -427,23 +427,26 @@ export const marketDiscoverStore = createStore([]);
 // machinery with switchCartTab/openItemDetail/startPublishFlow elsewhere in this cluster.
 export const marketDetailStore = createStore(null);
 
-// Blocks panel's list content (public/dotto/blocks-panel.js's computeBlocksRows/refreshBlocksPanel)
+// Blocks panel's list content (app/dotto/lib/blocksPanel.ts's computeBlocksRows/refreshBlocksPanel)
 // — was libraryViewStore/Library's own discriminated-union-of-views shape before Essentials/
 // Library were repurposed into Blocks/Plugins (explicit request); Blocks shows every folder's
 // contents at once now (no drill-down navigation), so this is just a flat row array, same
 // convention as outlineStore/computeOutlineRows: [{ rowKind: 'folder', key, label, deletable,
 // count } | { rowKind: 'block-item', kind, statKind, label, icon } | { rowKind: 'content-item',
 // item, status, folderKey, deletable, draggable } | { rowKind: 'new-folder' }]. Genuine JSX rows —
-// drag-into-folder (setupContentItemDrag), opening the item detail view (openItemDetail), and
-// folder/item CRUD all stay vanilla, invoked via window.__ bridges from row handlers, see
-// BlocksPanel.jsx.
+// drag-into-folder (setupContentItemDrag) and folder/item CRUD are all real ES imports from
+// blocksPanel.ts now (same app/dotto/ tree, see BlocksPanel.jsx); opening the item detail view
+// (openItemDetail) still goes through a window.__ bridge, since that one lives in
+// app/dotto/lib/libraryPublish.ts and a direct import back would be circular (see blocksPanel.ts's
+// own header comment).
 export const blocksViewStore = createStore([]);
 
 // Extensions panel's list content (was Library's own role before the repurposing above — see
 // blocksViewStore's comment; was going to be called "Plugins" before an explicit follow-up rename)
 // — just a flat array of installed extensions, [{id, label}], rendered as rectangular pills rather
-// than item cards (explicit request). Currently seeded with two dummy entries (blocks-panel.js has
-// no real extension system to back this yet) — see ExtensionsPanel.jsx.
+// than item cards (explicit request). Currently seeded with two dummy entries
+// (app/dotto/lib/blocksPanel.ts has no real extension system to back this yet) — see
+// ExtensionsPanel.jsx.
 export const extensionsListStore = createStore([
   { id: "extension-1", label: "Plugin 1" },
   { id: "extension-2", label: "Plugin 2" },

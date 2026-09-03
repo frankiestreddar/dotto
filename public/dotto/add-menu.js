@@ -3,8 +3,9 @@ const appState = window.__getAppState();
 
 
     // ---------- Block-kind metadata helpers ----------
-    // The Add-menu UI itself (grid/search/wiring) moved to blocks-panel.js when Essentials was
-    // repurposed into the Blocks panel (explicit request) — these three pure lookups are kept here
+    // The Add-menu UI itself (grid/search/wiring) moved to app/dotto/lib/blocksPanel.ts when
+    // Essentials was repurposed into the Blocks panel (explicit request) — these three pure
+    // lookups are kept here
     // independently of anything panel-related, reached via window.__kindSize/__kindLabel bridges by
     // app/dotto/lib/copyPaste.ts/app/dotto/lib/srsConnectionsCore.ts/app/dotto/lib/sourceTagsAi.ts
     // (public/dotto/*.js isn't reachable from app/dotto/ — source-tags-ai.js used to import

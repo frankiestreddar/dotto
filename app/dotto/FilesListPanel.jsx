@@ -77,7 +77,7 @@ function clearDropHighlights() {
 // Drag gesture (explicit request: "dragging a file from the sidebar onto canvas places it on
 // canvas. dragging into the tab bar adds it as a full tab, switching to it automatically") — plain
 // pointerdown/move/up, same convention every other drag in this codebase uses (TabsBar.jsx's own
-// tab-drag-to-split, blocks-panel.js's setupContentItemDrag), never native HTML5 DnD. Below
+// tab-drag-to-split, app/dotto/lib/blocksPanel.ts's setupContentItemDrag), never native HTML5 DnD. Below
 // DRAG_THRESHOLD_PX still counts as a click (suppressClickRef, same pattern TabRow/TabsBar.jsx
 // already uses); past it, a floating label ghost follows the cursor and every pane is hit-tested
 // each move for whether the cursor is over that pane's own breadcrumb pill (drop → open as a

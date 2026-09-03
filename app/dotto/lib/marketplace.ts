@@ -5,8 +5,8 @@
 // __refreshBlocksPanel/__dottoSupabase), 6 are new as part of this port (__getAddMenuEl/
 // __getBtnAddEl, __wireRailIcon/__openRailView, __snapshotItem/__sanitizeFlashcardSnapshot).
 // "Browse your own library content" (drafts/published/purchased/custom folders) already moved to
-// the Blocks panel (blocks-panel.js) when Library was repurposed into Plugins — this file is
-// Discover/purchase-flow only, untouched by that move.
+// the Blocks panel (app/dotto/lib/blocksPanel.ts, ported since — was blocks-panel.js) when Library
+// was repurposed into Plugins — this file is Discover/purchase-flow only, untouched by that move.
 
 interface Item {
   id: number;
@@ -137,7 +137,7 @@ async function refreshMarketplaceListings(): Promise<void> {
 }
 
 // Populates userLibrary.{drafts,published,purchased} from Supabase — called by refreshBlocksPanel
-// (blocks-panel.js) every time the Blocks panel opens.
+// (app/dotto/lib/blocksPanel.ts) every time the Blocks panel opens.
 export async function refreshMyLibrary(): Promise<void> {
   const appState = getAppState();
   const supabase = window.__dottoSupabase;

@@ -11,6 +11,8 @@
 // dead code — CARD_KINDS[kind]?.icon lookup, never called anywhere but its own definition) was
 // dropped rather than carried over. Reaches every still-vanilla dependency through window bridges.
 
+import { renderStopwatchHTML, type StopwatchItem } from "./stopwatch";
+
 interface Item {
   id: number;
   kind: string;
@@ -281,7 +283,7 @@ export function renderRealCardPreview(it: Item): HTMLElement {
   } else if (it.kind === "statcard") {
     el.innerHTML = window.__renderStatcardHTML?.(it as unknown as Record<string, unknown>) ?? "";
   } else if (it.kind === "stopwatch") {
-    el.innerHTML = window.__renderStopwatchHTML?.(it as unknown as Record<string, unknown>) ?? "";
+    el.innerHTML = renderStopwatchHTML(it as unknown as StopwatchItem);
   } else if (it.kind === "shelf") {
     el.innerHTML = window.__renderShelfHTML?.(it as unknown as Record<string, unknown>) ?? "";
   } else {

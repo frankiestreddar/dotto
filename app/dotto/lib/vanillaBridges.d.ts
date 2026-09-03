@@ -52,17 +52,11 @@ declare global {
     // that never needed these declared until a real .ts file touched them here).
     __getCanvasEl?: () => HTMLElement | undefined;
     __getWorldEl?: () => HTMLElement | undefined;
-    // srs-algorithm.js (sets this bridge itself — genuinely pure/zero-import, so it can safely do
-    // so directly, no longer re-exported through srs-connections-core.js, gone as of its own
-    // Phase 4.5 port) — needed by app/dotto/lib/stopwatch.ts's swToggleRun to archive a finished
-    // session's rating deltas; public/dotto/*.js isn't reachable from app/dotto/ even for an
-    // otherwise-pure function.
-    __diffRatings?: (live: unknown, base: unknown) => Record<string, number> | undefined;
     // app/dotto/lib/stopwatch.ts (Phase 4.4 port — was stopwatch.js) — vanilla -> React bridges,
     // not React -> vanilla like most entries here: StopwatchCard.jsx's own onClick already called
-    // these as globals before the port (same shape window.pushNotification uses), and
-    // stopwatch.js's still-vanilla renderStopwatchHTML calls swToggleRun/swTogglePause the same
-    // way via its onclick="..." string attributes.
+    // these as globals before the port (same shape window.pushNotification uses), and this same
+    // file's own renderStopwatchHTML (ported in since, Phase 4.1) calls swToggleRun/swTogglePause
+    // the same way via its onclick="..." string attributes.
     swToggleRun?: (id: number) => void;
     swTogglePause?: (id: number) => void;
     // app/dotto/lib/stopwatch.ts — app/dotto/lib/historyAutosave.ts's ensureSwTicking/swTick (its own 1s
@@ -231,13 +225,21 @@ declare global {
       snapshot: Record<string, unknown>,
       batchItemIds: number[],
     ) => Record<string, unknown>;
+    // app/dotto/lib/dragDropChat.ts (Phase 4.1 port — was drag-drop-chat.js) — used by
+    // app/dotto/canvasItemBehavior.js's own up() handler ("drop into active chat" case).
+    __dispatchSelectedToChat?: (targetIt: Record<string, unknown>) => Promise<void>;
     // app/dotto-app.jsx (via app/dotto/bridges.js's marketDiscoverStore/marketDetailStore) —
     // React-facing setters, plain store.set (no flushSync — nothing reads their DOM synchronously
     // right after).
     __setMarketDiscover?: (items: Record<string, unknown>[]) => void;
     __setMarketDetail?: (item: Record<string, unknown> | null) => void;
-    // blocks-panel.js
+    // app/dotto/lib/blocksPanel.ts (Phase 4.1 port — was blocks-panel.js)
     __refreshBlocksPanel?: () => void;
+    // app/dotto-app.jsx (via app/dotto/bridges.js's blocksViewStore) — React-facing setter, plain
+    // store.set, no synchronous DOM read follows it.
+    __setBlocksView?: (rows: Record<string, unknown>[]) => void;
+    // Plain (non-`__`) global — real inline oninput target in content/fragments/hamburger-stack.html.
+    handleBlocksSearchInput?: (value: string) => void;
     // app/dotto/lib/libraryPublish.ts (Phase 4.5 port — was library-publish.js)
     __openItemDetail?: (item: Record<string, unknown>, folder: string) => void;
     __deleteMyCreationItem?: (
@@ -462,10 +464,6 @@ declare global {
       delta?: number,
       absolute?: boolean,
     ) => Promise<void>;
-    // srs-algorithm.js (sets this bridge itself, same reasoning as __diffRatings above) — used by
-    // app/dotto/lib/gamesFlashcardTyperight.ts's fcRate/trCheck.
-    __calculateSM2?: (card: Record<string, unknown>, quality: number) => Record<string, unknown>;
-    __defaultSrsState?: () => Record<string, unknown>;
     // app/dotto/lib/gamesFlashcardTyperight.ts (Phase 4.4 port — was games-flashcard-typeright.js)
     // — React -> vanilla bridges pre-dating this port (FlashcardCard.jsx/TypeRightCard.jsx now
     // import these directly instead, being in the same app/dotto/ tree; GameOptionsPanel.jsx does
@@ -558,6 +556,14 @@ declare global {
     // app/dotto/lib/sourceTagsAi.ts's triggerSourceUpload (was vanilla-to-vanilla, back when
     // source-tags-ai.js was still vanilla itself).
     __distributeTableSizing?: (it: Record<string, unknown>, el: HTMLElement) => void;
+    // app/dotto/lib/tableGridResize.ts (Phase 4.1 port — was table-grid-resize.js) — plain
+    // constant bridges (not functions), same convention window.__ACHIEVEMENTS
+    // (app/dotto/lib/profileAchievementsPricing.ts) already established, so
+    // app/dotto/canvasItemBehavior.js's setupResizing can stay in exact pixel-floor agreement.
+    // setupTableGridResizing itself has no bridge — TableCard.jsx (its only real caller) imports
+    // it directly instead, same app/dotto/ tree.
+    __TABLE_COL_MIN_PX?: number;
+    __TABLE_ROW_MIN_PX?: number;
     __mergeTableCells?: (
       id: number,
       regionA: { r1: number; c1: number; r2: number; c2: number },
@@ -686,8 +692,6 @@ declare global {
     // app/dotto/lib/cardsMisc.ts
     __renderChecklistHTML?: (it: Record<string, unknown>) => string;
     __renderStatcardHTML?: (it: Record<string, unknown>) => string;
-    // stopwatch.js
-    __renderStopwatchHTML?: (it: Record<string, unknown>) => string;
     // app/dotto/lib/messagingCanvasPreview.ts (Phase 4.5 port — was part of live-presence.js) —
     // React -> vanilla bridges pre-dating this port (TitleCard.jsx/MsgConvo.jsx/
     // SharedCanvasModalBody.jsx/CollabListPanel.jsx/FilesListPanel.jsx/MessagesListPanel.jsx/
@@ -975,8 +979,6 @@ declare global {
     // app/dotto/lib/friendsPresence.ts — already an established runtime bridge, just never typed
     // here until app/dotto/lib/hamburgerCollab.ts (Phase 4.5) needed it too.
     __openCollabPanel?: (pin?: boolean) => void;
-    // app/dotto/lib/friendsPresence.ts — used by public/dotto/app-init.js's one-time bootstrap.
-    __refreshFriendsData?: () => Promise<void>;
     // app/dotto/lib/friendsPresence.ts — used by public/dotto/command-verbs.js's inviteUser verb.
     __resolveUsernameToUserId?: (username: string) => Promise<string | null>;
     // app/dotto/lib/mnemonicSearchMatching.ts — kept as bridges (not upgraded to real imports)

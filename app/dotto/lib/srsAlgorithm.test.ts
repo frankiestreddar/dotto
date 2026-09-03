@@ -1,22 +1,10 @@
 import { describe, expect, it } from "vitest";
-// Vitest runs in Node, not the browser — it isn't bound by the "public/ can't be imported by app/"
-// convention that governs the real running app (that constraint is about what the BROWSER can
-// resolve at runtime via a plain <Script> tag, not about test tooling). A relative import
-// straight into public/dotto/ is exactly how this file's own logic gets real coverage while it's
-// still vanilla-side (see srs-algorithm.js's own comment on why it hasn't moved to app/dotto/lib
-// yet — genuinely pure/zero-import and low-priority to move on its own, now that its last real
-// vanilla dependent, srs-connections-core.js, has itself been ported, Phase 4.5).
-// allowJs lets TypeScript infer real types straight from the plain JS source, no declaration file
-// or ts-expect-error needed.
-import { calculateSM2, defaultSrsState, diffRatings } from "../../public/dotto/srs-algorithm.js";
-// (test/vanilla/srs-algorithm.test.ts -> ../../public/dotto/srs-algorithm.js — kept OUT of
-// public/dotto/ itself despite colocating with source being this project's usual test
-// convention, since Next.js serves everything under public/ as a real static asset; a .test.ts
-// file living there would be publicly fetchable in production for no reason.)
+import { calculateSM2, defaultSrsState, diffRatings } from "./srsAlgorithm";
 
-// First real test coverage for the SM-2 spaced-repetition algorithm (public/dotto/srs-algorithm.js,
-// extracted from srs-connections-core.js in Phase 4.2) — zero coverage existed anywhere before
-// this, despite it being the scheduling logic behind every flashcard/table-backed game in the app.
+// First real test coverage for the SM-2 spaced-repetition algorithm, extracted from
+// srs-connections-core.js in Phase 4.2 and moved to app/dotto/lib in Phase 4.1 (see
+// srsAlgorithm.ts's own comment) — zero coverage existed anywhere before Phase 4.2, despite it
+// being the scheduling logic behind every flashcard/table-backed game in the app.
 
 describe("defaultSrsState", () => {
   it("returns a fresh, never-reviewed state", () => {

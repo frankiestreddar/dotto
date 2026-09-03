@@ -322,7 +322,7 @@
          whole time (id/wiring stays #btn-add/#add-menu, same "id stays, display name changes"
          convention as every other rename in this file). Overhauled (explicit request) from a flat
          grid of block-type tiles into a folder-tree list, styled like the Outline panel — see
-         BlocksPanel.jsx/blocks-panel.js. It absorbed the "browse your own library content" half of
+         BlocksPanel.jsx/app/dotto/lib/blocksPanel.ts. It absorbed the "browse your own library content" half of
          what the Library panel (now Plugins, see #library-panel above) used to do: an Essentials
          folder (every block type, with Canvas/Source folded in as its own first two ordinary items
          instead of the two specially-styled pinned rows this used to have), a Purchased folder,
@@ -347,7 +347,7 @@
                 <input id="add-menu-search-input" class="hub-subpanel-search" type="text" placeholder="Search blocks..." oninput="handleBlocksSearchInput(this.value)">
                 <span class="hub-subpanel-search-hint">Enter</span>
             </div>
-            <!-- Built fresh every time the panel opens (see refreshBlocksPanel, blocks-panel.js) —
+            <!-- Built fresh every time the panel opens (see refreshBlocksPanel, app/dotto/lib/blocksPanel.ts) —
                  folders + their contents, indented below each, all always shown at once (no
                  drill-down navigation the way Library's old folder-picker/items views worked). -->
             <div id="blocks-list-container"></div>
@@ -484,7 +484,7 @@
                      light.png/dark.png flank a checkbox-driven switch. Unlike the old rail button
                      (which showed the theme clicking it would SWITCH TO), a switch is a state
                      indicator by convention — checked means dark is currently active, per
-                     theme-toggle.js's own syncThemeSwitch, which also owns the change handler,
+                     app/dotto/lib/themeToggle.ts's own syncThemeSwitch, which also owns the change handler,
                      localStorage persistence, and initial checked state.
                      #theme-switch-track's own .on class (not a :checked sibling-selector, which an
                      earlier version relied on and which never actually transitioned — the checkbox's
@@ -494,7 +494,7 @@
                      JS-class-driven pattern already used everywhere else in this app (.rail-btn.active,
                      the mode-toolbar's .expanded, etc.) rather than a pure-CSS pseudo-class trick. The
                      checkbox itself stays for real keyboard/click/focus accessibility — clicking
-                     anywhere in this label still toggles it natively — theme-toggle.js's own change
+                     anywhere in this label still toggles it natively — app/dotto/lib/themeToggle.ts's own change
                      listener is what then keeps the .on class in sync with it. .settings-switch-row
                      (was named .settings-theme-switch; kept the more generic name from when the
                      Sidebar Mode row below briefly reused this same layout for its own switch, before
