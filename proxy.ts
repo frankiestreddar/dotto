@@ -1,10 +1,10 @@
 import { createServerClient } from "@supabase/ssr";
-import { NextResponse } from "next/server";
+import { NextResponse, type NextRequest } from "next/server";
 
 // Standard Supabase SSR proxy (renamed from `middleware` in Next.js 16):
 // rotates the session cookie before it expires. `getUser()`'s return value
 // is unused here on purpose — calling it is what triggers the refresh.
-export async function proxy(request) {
+export async function proxy(request: NextRequest): Promise<NextResponse> {
   let response = NextResponse.next({ request });
 
   // Not configured yet (anon key pending) — pass through rather than crash

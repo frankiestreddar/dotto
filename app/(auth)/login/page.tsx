@@ -1,11 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useState, type CSSProperties, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { signIn } from "@/lib/auth";
 
-const inputStyle = {
+const inputStyle: CSSProperties = {
   width: "100%",
   background: "#1a1a1a",
   border: "1px solid var(--card-border)",
@@ -25,7 +25,7 @@ export default function LoginPage() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
-  async function handleSubmit(e) {
+  async function handleSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setError("");
     setLoading(true);
@@ -34,7 +34,7 @@ export default function LoginPage() {
       router.push("/");
       router.refresh();
     } catch (err) {
-      setError(err.message || "Something went wrong signing in.");
+      setError(err instanceof Error ? err.message : "Something went wrong signing in.");
     } finally {
       setLoading(false);
     }

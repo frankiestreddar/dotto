@@ -1,11 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useState, type CSSProperties, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { signUp } from "@/lib/auth";
 
-const inputStyle = {
+const inputStyle: CSSProperties = {
   width: "100%",
   background: "#1a1a1a",
   border: "1px solid var(--card-border)",
@@ -18,7 +18,7 @@ const inputStyle = {
   boxSizing: "border-box",
 };
 
-const labelStyle = {
+const labelStyle: CSSProperties = {
   display: "flex",
   flexDirection: "column",
   gap: 6,
@@ -30,7 +30,7 @@ const labelStyle = {
 // least once — hovering a red dot reveals a short reason via .auth-validity-tooltip (see
 // globals.css). Kept local to this file rather than a shared component — no shared component
 // library exists for the auth pages, each one is self-contained.
-function ValidityDot({ show, ok, reason }) {
+function ValidityDot({ show, ok, reason }: { show: boolean; ok: boolean; reason?: string }) {
   if (!show) return null;
   return (
     <div className={`auth-validity-dot ${ok ? "ok" : "bad"}`}>
@@ -62,7 +62,7 @@ export default function RegisterPage() {
 
   const canSubmit = passwordStatus.ok && confirmStatus.ok;
 
-  async function handleSubmit(e) {
+  async function handleSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setError("");
     if (!canSubmit) return;
@@ -83,7 +83,7 @@ export default function RegisterPage() {
       }
       setSubmitted(true);
     } catch (err) {
-      setError(err.message || "Something went wrong signing up.");
+      setError(err instanceof Error ? err.message : "Something went wrong signing up.");
     } finally {
       setLoading(false);
     }

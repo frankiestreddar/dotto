@@ -1,6 +1,12 @@
 import { createClient } from "./supabase/client";
 
-export async function signUp({ email, password, username }) {
+interface SignUpParams {
+  email: string;
+  password: string;
+  username?: string;
+}
+
+export async function signUp({ email, password, username }: SignUpParams) {
   const supabase = createClient();
   const { data, error } = await supabase.auth.signUp({
     email,
@@ -16,14 +22,19 @@ export async function signUp({ email, password, username }) {
   return data;
 }
 
-export async function signIn({ email, password }) {
+interface SignInParams {
+  email: string;
+  password: string;
+}
+
+export async function signIn({ email, password }: SignInParams) {
   const supabase = createClient();
   const { data, error } = await supabase.auth.signInWithPassword({ email, password });
   if (error) throw error;
   return data;
 }
 
-export async function signOut() {
+export async function signOut(): Promise<void> {
   const supabase = createClient();
   const { error } = await supabase.auth.signOut();
   if (error) throw error;
