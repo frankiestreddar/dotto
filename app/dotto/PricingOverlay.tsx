@@ -6,7 +6,18 @@ import { usePricingOverlayStore } from "./lib/pricingOverlayStore";
 // codebase yet, so the paid CTAs surface a "coming soon" notification instead of pretending to
 // start a real checkout (see startPlanUpgrade below). Moved out of appState (public/dotto/core-
 // state.js) since this is pure presentation data with zero coupling to the rest of the app.
-const PRICING_PLANS = [
+interface PricingPlan {
+  id: string;
+  name: string;
+  price: string;
+  period: string;
+  tagline: string;
+  cta: string;
+  current?: boolean;
+  featured?: boolean;
+}
+
+const PRICING_PLANS: PricingPlan[] = [
   {
     id: "free",
     name: "Free",
@@ -38,7 +49,7 @@ const PRICING_PLANS = [
 // Each row's `values` is [free, pro, polyglot] — same index lines up across all three cards. A
 // falsy value means that plan doesn't get this feature; it's still shown (greyed, with a dash)
 // using whichever plan's value is truthy, so the row reads the same across all 3 cards.
-const PRICING_FEATURE_ROWS = [
+const PRICING_FEATURE_ROWS: { values: (string | null)[] }[] = [
   { values: ["100 canvas blocks", "500 canvas blocks", "Unlimited canvas blocks"] },
   { values: ["30 Dotbot searches / 6h", "150 Dotbot searches / 6h", "Unlimited Dotbot searches"] },
   {
@@ -60,12 +71,12 @@ const PRICING_FEATURE_ROWS = [
   { values: [null, null, "Early access to new features"] },
 ];
 
-function startPlanUpgrade(planId) {
+function startPlanUpgrade(planId: string) {
   usePricingOverlayStore.setState(false);
   // pushNotification lives in app/dotto/lib/notificationsStore.ts — reached via its own
   // window.pushNotification bridge (a vanilla -> React bridge, not the reverse) rather than a
   // real import, same as every other still-vanilla-facing caller of it.
-  window.pushNotification({
+  window.pushNotification?.({
     type: "upgrade_unavailable",
     message: "Upgrades aren't available yet — check back soon!",
   });
