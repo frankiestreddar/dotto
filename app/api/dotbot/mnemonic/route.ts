@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+import { NextResponse, type NextRequest } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { getGroqClient, GROQ_TEXT_MODEL, GROQ_REASONING_EFFORT } from "@/lib/groq";
 import {
@@ -7,7 +7,7 @@ import {
   spendGenerationCredits,
 } from "@/lib/dotbot";
 
-export async function POST(request) {
+export async function POST(request: NextRequest) {
   const { word } = await request.json();
   if (!word || !word.trim()) {
     return NextResponse.json({ error: "empty_word" }, { status: 400 });
@@ -26,7 +26,11 @@ export async function POST(request) {
     return NextResponse.json({ error: "no_credits" }, { status: 402 });
   }
 
-  let target_word, translation, keyword, sentence, image_scene;
+  let target_word: string,
+    translation: string,
+    keyword: string,
+    sentence: string,
+    image_scene: string;
   try {
     // No temperature override here (unlike the other routes' deliberate 0.2) — a mnemonic story
     // is meant to be vivid and creative, not deterministic linguistic output, so it's left at
@@ -46,13 +50,14 @@ export async function POST(request) {
       // this leaves generous headroom rather than the tighter budget a capped-length field would
       // need, to avoid truncating mid-JSON and breaking the parse below.
       max_tokens: 300,
-      // "none" — see lib/groq.js. A short mnemonic needs no multi-step reasoning, and with a
+      // "none" — see lib/groq.ts. A short mnemonic needs no multi-step reasoning, and with a
       // tight token budget an invisible thinking pass could easily crowd out the mnemonic itself
       // (the same failure mode this app hit when its text routes ran on Gemini, before migrating
       // to Groq).
       reasoning_effort: GROQ_REASONING_EFFORT,
     });
-    const parsed = JSON.parse(completion.choices[0].message.content);
+    const content = completion.choices[0].message.content ?? "{}";
+    const parsed = JSON.parse(content);
     target_word = typeof parsed.target_word === "string" ? parsed.target_word.trim() : "";
     translation = typeof parsed.translation === "string" ? parsed.translation.trim() : "";
     keyword = typeof parsed.keyword === "string" ? parsed.keyword.trim() : "";

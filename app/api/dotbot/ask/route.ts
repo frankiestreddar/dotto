@@ -1,9 +1,9 @@
-import { NextResponse } from "next/server";
+import { NextResponse, type NextRequest } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { getGroqClient, GROQ_TEXT_MODEL, GROQ_REASONING_EFFORT } from "@/lib/groq";
 import { DOTBOT_SYSTEM_PROMPT, peekSearchCredits, spendSearchCredits } from "@/lib/dotbot";
 
-export async function POST(request) {
+export async function POST(request: NextRequest) {
   const { question } = await request.json();
   if (!question || !question.trim()) {
     return NextResponse.json({ error: "empty_question" }, { status: 400 });
@@ -22,7 +22,7 @@ export async function POST(request) {
     return NextResponse.json({ error: "no_credits" }, { status: 402 });
   }
 
-  let answer;
+  let answer: string | undefined;
   try {
     const completion = await groq.chat.completions.create({
       model: GROQ_TEXT_MODEL,
@@ -32,7 +32,7 @@ export async function POST(request) {
       ],
       max_tokens: 500,
       temperature: 0.2, // deterministic linguistic Q&A, not creative writing
-      reasoning_effort: GROQ_REASONING_EFFORT, // "none" — see lib/groq.js
+      reasoning_effort: GROQ_REASONING_EFFORT, // "none" — see lib/groq.ts
     });
     answer = completion.choices[0].message.content?.trim();
   } catch (err) {

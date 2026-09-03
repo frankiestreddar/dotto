@@ -1,4 +1,6 @@
-import { Type } from "@google/genai";
+import { Type, type Schema } from "@google/genai";
+import type { SupabaseClient } from "@supabase/supabase-js";
+import type { Database } from "./supabase/database.types";
 
 // Dotbot's persona. Shared across every route so its behavior is consistent
 // regardless of which of the three use cases (linguistics/platform Q&A,
@@ -241,7 +243,7 @@ Keep suggestions short and meaningfully different from each other, not near-dupl
 
 // Shared by "examples.sentences[].alignment" and "answerBlocks[].alignment" (for type:"example"
 // blocks) — see the prompt's detailed description of the substring-matching contract this backs.
-const ALIGNMENT_SCHEMA = {
+const ALIGNMENT_SCHEMA: Schema = {
   type: Type.ARRAY,
   nullable: true,
   description:
@@ -262,7 +264,14 @@ const ALIGNMENT_SCHEMA = {
   },
 };
 
-export const DOTBOT_ORCHESTRATE_SCHEMA = {
+// NOTE (found while converting this file to TypeScript, not changed as part of that conversion):
+// DOTBOT_ORCHESTRATE_SCHEMA/DOTBOT_SUGGEST_SCHEMA below are dead code — grep confirms zero
+// importers anywhere in app/. Every Groq-based route uses response_format:{type:"json_object"}
+// instead (see lib/groq.ts's own comment on why: json_schema mode is unreliable on the current
+// model), with the desired shape spelled out in prose in the system prompts above instead. These
+// two constants are leftover from before the Gemini→Groq migration — real technical debt, but
+// deleting them wasn't part of this typing pass.
+export const DOTBOT_ORCHESTRATE_SCHEMA: Schema = {
   type: Type.OBJECT,
   required: ["dotbotText", "canHelp"],
   properties: {
@@ -490,7 +499,7 @@ export const DOTBOT_ORCHESTRATE_SCHEMA = {
   },
 };
 
-export const DOTBOT_SUGGEST_SCHEMA = {
+export const DOTBOT_SUGGEST_SCHEMA: Schema = {
   type: Type.OBJECT,
   required: ["suggestions"],
   properties: {
@@ -502,13 +511,19 @@ export const DOTBOT_SUGGEST_SCHEMA = {
   },
 };
 
+type Supabase = SupabaseClient<Database>;
+
 // Two independent pools, split from what used to be one shared daily pool: "search" backs
 // text-answer actions (ask/orchestrate) and resets every 6 hours; "generation" backs the
 // heavier mnemonic/image actions and resets monthly. Both follow the same cheap
 // peek-before-spend shape — a non-deducting read to gate whether it's even worth attempting a
 // generation, avoiding a wasted Gemini call — and each RPC mirrors its own lazy reset logic
 // (see the deduct_search_credits/deduct_generation_credits migration).
-export async function peekSearchCredits(supabase, userId, amount) {
+export async function peekSearchCredits(
+  supabase: Supabase,
+  userId: string,
+  amount: number,
+): Promise<boolean> {
   const { data, error } = await supabase
     .from("profiles")
     .select("search_credits_remaining, search_credits_reset_at")
@@ -516,8 +531,9 @@ export async function peekSearchCredits(supabase, userId, amount) {
     .single();
   if (error || !data) return false;
   const sixHoursAgo = new Date(Date.now() - 6 * 60 * 60 * 1000).toISOString();
-  const remaining = data.search_credits_reset_at < sixHoursAgo ? 30 : data.search_credits_remaining;
-  return remaining >= amount;
+  const remaining =
+    (data.search_credits_reset_at ?? "") < sixHoursAgo ? 30 : data.search_credits_remaining;
+  return (remaining ?? 0) >= amount;
 }
 
 // Powers the two-tier Dotbot memory feature — "plan" gates whether cross-conversation memory
@@ -525,7 +541,10 @@ export async function peekSearchCredits(supabase, userId, amount) {
 // "dotbotMemory" is the existing remembered text (if any) to inject as context. Fails closed to
 // "free"/no memory rather than throwing, same defensive posture as peekSearchCredits — a lookup
 // failure here should degrade to "treat as free plan," never block the request.
-export async function getDotbotProfile(supabase, userId) {
+export async function getDotbotProfile(
+  supabase: Supabase,
+  userId: string,
+): Promise<{ plan: string; dotbotMemory: string | null }> {
   const { data, error } = await supabase
     .from("profiles")
     .select("plan, dotbot_memory")
@@ -535,11 +554,19 @@ export async function getDotbotProfile(supabase, userId) {
   return { plan: data.plan || "free", dotbotMemory: data.dotbot_memory || null };
 }
 
+interface CreditResult {
+  ok: boolean;
+  reason?: "error" | "no_credits";
+}
+
 // Actually commits the spend, atomically, via the deduct_search_credits RPC (SECURITY DEFINER,
 // scoped to auth.uid() internally). Call this only AFTER a generation has already succeeded —
 // never before — so a failed generation (model error, quota, etc.) never costs the user
 // anything.
-export async function spendSearchCredits(supabase, amount) {
+export async function spendSearchCredits(
+  supabase: Supabase,
+  amount: number,
+): Promise<CreditResult> {
   const { data, error } = await supabase.rpc("deduct_search_credits", { p_amount: amount });
   if (error) {
     console.error("[dotbot] search credit deduction failed:", error);
@@ -548,7 +575,11 @@ export async function spendSearchCredits(supabase, amount) {
   return data ? { ok: true } : { ok: false, reason: "no_credits" };
 }
 
-export async function peekGenerationCredits(supabase, userId, amount) {
+export async function peekGenerationCredits(
+  supabase: Supabase,
+  userId: string,
+  amount: number,
+): Promise<boolean> {
   const { data, error } = await supabase
     .from("profiles")
     .select("generation_credits_remaining, generation_credits_reset_at")
@@ -557,11 +588,14 @@ export async function peekGenerationCredits(supabase, userId, amount) {
   if (error || !data) return false;
   const monthAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
   const remaining =
-    data.generation_credits_reset_at < monthAgo ? 100 : data.generation_credits_remaining;
-  return remaining >= amount;
+    (data.generation_credits_reset_at ?? "") < monthAgo ? 100 : data.generation_credits_remaining;
+  return (remaining ?? 0) >= amount;
 }
 
-export async function spendGenerationCredits(supabase, amount) {
+export async function spendGenerationCredits(
+  supabase: Supabase,
+  amount: number,
+): Promise<CreditResult> {
   const { data, error } = await supabase.rpc("deduct_generation_credits", { p_amount: amount });
   if (error) {
     console.error("[dotbot] generation credit deduction failed:", error);

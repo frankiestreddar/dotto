@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+import { NextResponse, type NextRequest } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import {
   getHfApiKey,
@@ -9,7 +9,7 @@ import {
 } from "@/lib/huggingface";
 import { peekGenerationCredits, spendGenerationCredits } from "@/lib/dotbot";
 
-export async function POST(request) {
+export async function POST(request: NextRequest) {
   const { image_scene } = await request.json();
   if (!image_scene || !image_scene.trim()) {
     return NextResponse.json({ error: "empty_text" }, { status: 400 });
@@ -29,14 +29,14 @@ export async function POST(request) {
   }
 
   // image_scene is the mnemonic route's short literal action description (see
-  // DOTBOT_MNEMONIC_SYSTEM_PROMPT in lib/dotbot.js) — the pixel-art style wrapper is applied in
+  // DOTBOT_MNEMONIC_SYSTEM_PROMPT in lib/dotbot.ts) — the pixel-art style wrapper is applied in
   // buildPixelArtPrompt, not here, so every caller of this route gets the same consistent look.
   const styledPrompt = buildPixelArtPrompt(image_scene);
 
-  let b64, mimeType;
+  let b64: string | undefined, mimeType: string | undefined;
   try {
     // fal-ai's own request shape ({"prompt": ...}), not the generic HF "inputs" field — see
-    // lib/huggingface.js for why this specific provider/endpoint/LoRA. Response is JSON with a
+    // lib/huggingface.ts for why this specific provider/endpoint/LoRA. Response is JSON with a
     // hosted image URL (fal.media), not raw image bytes.
     const response = await fetch(HF_IMAGE_ENDPOINT, {
       method: "POST",
@@ -48,7 +48,7 @@ export async function POST(request) {
       // panel width with height following automatically (see .search-image-result-card img in
       // app/globals.css), rather than a square crop. loras is fast-sdxl's own field for merging a
       // LoRA onto the base SDXL checkpoint before generation — see PIXEL_ART_LORA in
-      // lib/huggingface.js for which one and why.
+      // lib/huggingface.ts for which one and why.
       body: JSON.stringify({
         prompt: styledPrompt,
         image_size: { width: 1024, height: 576 },
@@ -77,7 +77,7 @@ export async function POST(request) {
     const arrayBuffer = await imgResponse.arrayBuffer();
 
     // Even with the pixel-art LoRA and prompt wording doing a lot of the work already (see
-    // lib/huggingface.js), pixelateToSprite forces the actual chunky sprite look as a
+    // lib/huggingface.ts), pixelateToSprite forces the actual chunky sprite look as a
     // deterministic post-process: downscale to a small pixel grid, then back up with
     // nearest-neighbor, baked into real PNG bytes rather than relying on prompt wording or
     // display-time CSS.

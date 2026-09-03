@@ -1,6 +1,6 @@
 import Groq from "groq-sdk";
 
-let client = null;
+let client: Groq | null = null;
 
 // Lazy singleton — returns null rather than throwing when unconfigured, so importing this module
 // is always safe even before GROQ_API_KEY is set.
@@ -15,7 +15,7 @@ let client = null;
 // Not guaranteed to fully resolve it alone — some reports describe IP-range blocks that needed
 // Groq support to manually whitelist (via the response's cf-ray header) even after this — but it's
 // a real, evidenced first thing to try, not a guess.
-export function getGroqClient() {
+export function getGroqClient(): Groq | null {
   if (!process.env.GROQ_API_KEY) return null;
   if (!client) {
     client = new Groq({

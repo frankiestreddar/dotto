@@ -5,7 +5,7 @@ import sharp from "sharp";
 // Inference API needs no client library — a plain authenticated fetch to its router (see the
 // route) — so this module just centralizes the key/endpoint/prompt-building the same way
 // lib/groq.js does for its own provider.
-export function getHfApiKey() {
+export function getHfApiKey(): string | null {
   return process.env.HUGGINGFACE_API_KEY || null;
 }
 
@@ -75,8 +75,15 @@ const STYLE_PREFIX =
 // Even with strong wording and the pixel-art LoRA applied, SDXL doesn't reliably produce a
 // genuine low-res pixel mosaic entirely on its own — pixelateToSprite below does the actual
 // pixelation as a deterministic post-process rather than leaving it entirely up to the model.
-export function buildPixelArtPrompt(imageScene) {
+export function buildPixelArtPrompt(imageScene: string): string {
   return `${STYLE_PREFIX}, ${imageScene}`;
+}
+
+interface PixelateOptions {
+  width: number;
+  height: number;
+  pixelGridWidth: number;
+  pixelGridHeight: number;
 }
 
 // Turns whatever the model actually generated into genuine pixel art: downscale to a small pixel
@@ -88,9 +95,9 @@ export function buildPixelArtPrompt(imageScene) {
 // regardless of how close the model's own raw output gets on its own.
 // PNG, not JPEG — JPEG's compression softens the hard block edges a pixel-art mosaic depends on.
 export async function pixelateToSprite(
-  imageBuffer,
-  { width, height, pixelGridWidth, pixelGridHeight },
-) {
+  imageBuffer: Buffer,
+  { width, height, pixelGridWidth, pixelGridHeight }: PixelateOptions,
+): Promise<Buffer> {
   const small = await sharp(imageBuffer)
     .resize(pixelGridWidth, pixelGridHeight, { kernel: "lanczos3" })
     .toBuffer();
