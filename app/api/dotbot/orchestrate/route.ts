@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+import { NextResponse, type NextRequest } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { getGroqClient, GROQ_TEXT_MODEL, GROQ_REASONING_EFFORT } from "@/lib/groq";
 import {
@@ -9,7 +9,9 @@ import {
   peekSearchCredits,
   spendSearchCredits,
 } from "@/lib/dotbot";
-// DOTBOT_ORCHESTRATE_SCHEMA (still defined in lib/dotbot.js, deliberately left untouched) isn't
+import type { SupabaseClient } from "@supabase/supabase-js";
+import type { Database } from "@/lib/supabase/database.types";
+// DOTBOT_ORCHESTRATE_SCHEMA (still defined in lib/dotbot.ts, deliberately left untouched) isn't
 // imported here anymore — Groq's chat completion API has no equivalent of Gemini's structured
 // responseSchema parameter. The desired shape is instead conveyed entirely through
 // DOTBOT_ORCHESTRATE_SYSTEM_PROMPT's own prose description (already comprehensive) plus
@@ -17,7 +19,7 @@ import {
 // the schema was already just a secondary technical constraint on top of that prose, never the
 // only source of truth (see buildPanels(), which never trusted it blindly either).
 
-const MAX_LIST_LEN = 5; // sentences / dictionary entries — defensive cap, schema alone isn't trusted (see lib/dotbot.js)
+const MAX_LIST_LEN = 5; // sentences / dictionary entries — defensive cap, schema alone isn't trusted (see lib/dotbot.ts)
 const MAX_WORD_LEN = 60; // headword/transliteration/grammarTags/language — defensive cap regardless of prompt behavior
 const MAX_IPA_LEN = 80;
 const MAX_DEF_LEN = 220; // a single definition, one sense only — should always be well under 15 words in practice
@@ -28,7 +30,7 @@ const MAX_CARD_TEXT_LEN = 300; // one card's describeCardForAI() text — a note
 const MAX_SOURCE_COLS = 10; // sourceAction.columns / an attached source's headers — a source is never just 2 columns, but still bounded
 const MAX_SOURCE_ROWS = 150; // sourceAction.rows — matches the cap stated in the prompt, enforced here regardless of prompt compliance
 const MAX_SOURCE_CELL_LEN = 200; // one generated cell's text
-const MAX_ALIGNMENT_PAIRS = 24; // per sentence — full word-for-word coverage now (see lib/dotbot.js), not just a pedagogically useful subset, so longer sentences need real headroom here
+const MAX_ALIGNMENT_PAIRS = 24; // per sentence — full word-for-word coverage now (see lib/dotbot.ts), not just a pedagogically useful subset, so longer sentences need real headroom here
 const MAX_ALIGNMENT_PHRASE_LEN = 80;
 const MAX_GRAMMAR_TAGS = 4; // per dictionary entry — part of speech plus a few notable properties, each renders as its own pill
 const MAX_ANSWER_BLOCKS = 12;
@@ -39,50 +41,71 @@ const MAX_INLINE_MARKERS = 20; // {{dictionary:N}}/{{example:N}}/{{translation}}
 const MAX_CONVERSATION_SUMMARY_LEN = 700; // chars — defensive cap regardless of the prompt's own "under 100 words" instruction
 const MAX_USER_MEMORY_LEN = 600; // chars — same defensive-cap convention, for "userMemoryUpdate"
 
+type Supabase = SupabaseClient<Database>;
+
+interface AlignmentPair {
+  sourcePhrase: string;
+  targetPhrase: string;
+}
+
+interface SanitizedSentence {
+  text: string;
+  translation: string;
+  romanization: string;
+  alignment: AlignmentPair[];
+}
+
+interface MarkerContext {
+  dictEntryCount: number;
+  exampleCount: number;
+  hasTranslation: boolean;
+}
+
 // {sourcePhrase, targetPhrase} pairs for word-for-word highlighting between a sentence's "text"
-// and "translation" — see lib/dotbot.js's ALIGNMENT_SCHEMA. Only shape/length is validated here;
+// and "translation" — see lib/dotbot.ts's ALIGNMENT_SCHEMA. Only shape/length is validated here;
 // whether each phrase actually appears verbatim in its sentence is checked client-side (which
 // needs to search for it anyway to know where to highlight), and silently skipped if not found.
-function sanitizeAlignment(a) {
+function sanitizeAlignment(a: unknown): AlignmentPair[] {
   if (!Array.isArray(a)) return [];
   return a
-    .map((p) => {
+    .map((p): AlignmentPair | null => {
       if (!p || typeof p !== "object") return null;
-      const sourcePhrase = String(p.sourcePhrase || "")
+      const sourcePhrase = String((p as Record<string, unknown>).sourcePhrase || "")
         .trim()
         .slice(0, MAX_ALIGNMENT_PHRASE_LEN);
-      const targetPhrase = String(p.targetPhrase || "")
+      const targetPhrase = String((p as Record<string, unknown>).targetPhrase || "")
         .trim()
         .slice(0, MAX_ALIGNMENT_PHRASE_LEN);
       if (!sourcePhrase || !targetPhrase) return null;
       return { sourcePhrase, targetPhrase };
     })
-    .filter(Boolean)
+    .filter((p): p is AlignmentPair => p !== null)
     .slice(0, MAX_ALIGNMENT_PAIRS);
 }
 
 // A {text, translation, romanization, alignment} example sentence, or null — shared by
 // standalone "examples.sentences" and "answerBlocks[].type==='example'" (dictionary entries no
-// longer carry their own sentences — see lib/dotbot.js). "romanization" is a Latin-script
+// longer carry their own sentences — see lib/dotbot.ts). "romanization" is a Latin-script
 // transliteration of "text", present only when the model decided "text" isn't already Latin
 // script (same convention as the dictionary headword's "transliteration" field) — its mere
 // presence/absence is what the client uses to decide whether to show a transliteration line, so
 // no separate script-detection is needed there.
-function sanitizeSentence(s) {
+function sanitizeSentence(s: unknown): SanitizedSentence | null {
   if (!s || typeof s !== "object") return null;
-  const text = String(s.text || "")
+  const obj = s as Record<string, unknown>;
+  const text = String(obj.text || "")
     .trim()
     .slice(0, MAX_DEF_LEN);
   if (!text) return null;
   return {
     text,
-    translation: s.translation ? String(s.translation).trim().slice(0, MAX_DEF_LEN) : text,
-    romanization: s.romanization ? String(s.romanization).trim().slice(0, MAX_DEF_LEN) : "",
-    alignment: sanitizeAlignment(s.alignment),
+    translation: obj.translation ? String(obj.translation).trim().slice(0, MAX_DEF_LEN) : text,
+    romanization: obj.romanization ? String(obj.romanization).trim().slice(0, MAX_DEF_LEN) : "",
+    alignment: sanitizeAlignment(obj.alignment),
   };
 }
 
-// Strips any {{dictionary:N}}/{{example:N}}/{{translation}} inline marker (see lib/dotbot.js's
+// Strips any {{dictionary:N}}/{{example:N}}/{{translation}} inline marker (see lib/dotbot.ts's
 // "Inline references" guidance) whose reference doesn't actually exist among THIS response's own
 // already-sanitized dictionary/examples/translation panels — same "never trust the model's indices
 // blindly" convention as sanitizeAlignment above. An invalid marker is replaced with '' (a minor
@@ -90,7 +113,10 @@ function sanitizeSentence(s) {
 // sentence); valid markers pass through completely untouched as literal text, since dotbotText/
 // answerBlocks[].content stay plain strings all the way to the client (see parseInlineMarkers,
 // app/dotto/lib/mnemonicSearchMatching.ts).
-function sanitizeInlineMarkers(text, { dictEntryCount, exampleCount, hasTranslation }) {
+function sanitizeInlineMarkers(
+  text: string,
+  { dictEntryCount, exampleCount, hasTranslation }: MarkerContext,
+): string {
   if (!text) return text;
   let count = 0;
   return text.replace(
@@ -116,14 +142,14 @@ function sanitizeInlineMarkers(text, { dictEntryCount, exampleCount, hasTranslat
 // string (the user message's content) rather than Gemini's {role,parts} contents array, since
 // Groq's chat completion API takes a flat OpenAI-style messages array instead.
 function buildContents(
-  query,
-  canvasMatches,
-  cardContext,
-  cardConnections,
-  sourceContext,
-  existingSummary,
-  existingMemory,
-) {
+  query: string,
+  canvasMatches: unknown[] | undefined,
+  cardContext: unknown,
+  cardConnections: unknown,
+  sourceContext: unknown,
+  existingSummary: string | null,
+  existingMemory: string | null,
+): string {
   const contextLine =
     canvasMatches && canvasMatches.length
       ? `Canvas matches found: ${JSON.stringify(canvasMatches)}`
@@ -161,13 +187,19 @@ function buildContents(
       // "sourceAction.targetIndex" straight back at one.
       if (Array.isArray(sourceContext) && sourceContext.length) {
         const sources = sourceContext
-          .filter((s) => s && typeof s === "object" && Number.isFinite(s.index))
+          .filter(
+            (s) =>
+              s && typeof s === "object" && Number.isFinite((s as Record<string, unknown>).index),
+          )
           .slice(0, MAX_CARD_CONTEXT);
         if (sources.length) {
           cardBlock += `\n\nSources attached to this query (numbered to match the cards above):\n${sources
             .map((s) => {
-              const headers = Array.isArray(s.headers) ? s.headers.slice(0, MAX_SOURCE_COLS) : [];
-              return `${s.index}. Columns: ${JSON.stringify(headers)}; ${Number(s.rowCount) || 0} data rows.`;
+              const src = s as Record<string, unknown>;
+              const headers = Array.isArray(src.headers)
+                ? src.headers.slice(0, MAX_SOURCE_COLS)
+                : [];
+              return `${src.index}. Columns: ${JSON.stringify(headers)}; ${Number(src.rowCount) || 0} data rows.`;
             })
             .join("\n")}`;
         }
@@ -186,26 +218,35 @@ function buildContents(
 // answer_blocks' prose paragraphs are taken close to verbatim (they're already the closest thing
 // to "what Dotbot said"), and canvas_results/source_action (not prose, nothing to summarize into
 // conversation memory) are skipped entirely.
-function summarizeAssistantContent(panels) {
+function summarizeAssistantContent(panels: unknown): string {
   if (!Array.isArray(panels)) return "";
-  const parts = [];
+  const parts: string[] = [];
   for (const p of panels) {
     if (!p || typeof p !== "object") continue;
-    if (p.type === "dotbot_text" && p.text) {
-      parts.push(p.text);
-    } else if (p.type === "answer_blocks" && Array.isArray(p.blocks)) {
-      for (const b of p.blocks) {
-        if (b && b.type === "text" && b.content) parts.push(b.content);
+    const panel = p as Record<string, unknown>;
+    if (panel.type === "dotbot_text" && panel.text) {
+      parts.push(String(panel.text));
+    } else if (panel.type === "answer_blocks" && Array.isArray(panel.blocks)) {
+      for (const b of panel.blocks) {
+        if (b && b.type === "text" && b.content) parts.push(String(b.content));
       }
-    } else if (p.type === "dictionary" && Array.isArray(p.entries)) {
-      for (const e of p.entries) {
+    } else if (panel.type === "dictionary" && Array.isArray(panel.entries)) {
+      for (const e of panel.entries) {
         if (e && e.word && e.definition) parts.push(`${e.word}: ${e.definition}`);
       }
-    } else if (p.type === "translation" && p.sourceWord && p.targetWord) {
-      parts.push(`${p.sourceWord} (${p.sourceLanguage}) = ${p.targetWord} (${p.targetLanguage})`);
+    } else if (panel.type === "translation" && panel.sourceWord && panel.targetWord) {
+      parts.push(
+        `${panel.sourceWord} (${panel.sourceLanguage}) = ${panel.targetWord} (${panel.targetLanguage})`,
+      );
     }
   }
   return parts.join(" ").trim().slice(0, MAX_HISTORY_TEXT_LEN);
+}
+
+interface ConversationHistory {
+  messages: { role: "user" | "assistant"; content: string }[];
+  summary: string | null;
+  truncated: boolean;
 }
 
 // Loads the most recent prior turns of an existing conversation (RLS already scopes this to the
@@ -222,7 +263,10 @@ function summarizeAssistantContent(panels) {
 // saved chat (see openSavedChat, app/dotto/lib/hamburgerCollab.ts) both flow through this exact
 // same path — the summary is always read fresh from the DB per-request, never client-cached, so
 // reopening needs no special-casing at all.
-async function loadConversationHistory(supabase, conversationId) {
+async function loadConversationHistory(
+  supabase: Supabase,
+  conversationId: string | null | undefined,
+): Promise<ConversationHistory> {
   if (!conversationId) return { messages: [], summary: null, truncated: false };
   // Secondary sort on "role" descending is a tiebreaker for rows with an identical created_at
   // ("user" > "assistant" alphabetically, so descending puts user first) — append_dotbot_turn now
@@ -256,14 +300,12 @@ async function loadConversationHistory(supabase, conversationId) {
     .map((m) => {
       const content =
         m.role === "user"
-          ? String((m.content && m.content.query) || "").trim()
+          ? String((m.content && (m.content as Record<string, unknown>).query) || "").trim()
           : summarizeAssistantContent(m.content);
-      return content ? { role: m.role, content } : null;
+      return content ? { role: m.role as "user" | "assistant", content } : null;
     })
-    .filter(Boolean);
-  const summary = conversationRes.error
-    ? null
-    : (conversationRes.data && conversationRes.data.conversation_summary) || null;
+    .filter((m): m is { role: "user" | "assistant"; content: string } => m !== null);
+  const summary = conversationRes.error ? null : conversationRes.data?.conversation_summary || null;
   return { messages, summary, truncated: (count || 0) > MAX_HISTORY_MESSAGES };
 }
 
@@ -274,52 +316,62 @@ async function loadConversationHistory(supabase, conversationId) {
 // (see renderOrchestrateResult) since a written answer takes priority when present, but the
 // prompt has it reference the dictionary card ("as shown above") rather than repeat it, so this
 // order is mostly informational.
-function buildPanels(parsed, hasCanvasMatches) {
-  const panels = [];
+//
+// `parsed` is the model's raw JSON response — deliberately left untyped (the whole point of every
+// field access below is defensively re-validating it field-by-field rather than trusting its
+// shape, per this route's own "never trust structured output blindly" convention), and the
+// returned panels array is similarly heterogeneous by design (a real discriminated union of ~8
+// panel shapes) — narrowly typing either would just recreate this function's own body as a type.
+function buildPanels(
+  parsed: Record<string, any>,
+  hasCanvasMatches: boolean,
+): Record<string, any>[] {
+  const panels: Record<string, any>[] = [];
 
   // One entry per distinct sense (e.g. "tear" verb vs. noun) — not one entry with multiple
-  // definitions, see the prompt/schema comments in lib/dotbot.js. Entries no longer carry their
+  // definitions, see the prompt/schema comments in lib/dotbot.ts. Entries no longer carry their
   // own example sentences — "examples" below always covers that instead, shown alongside
   // whichever entry is current, so there's only ever one set of sentences to keep in sync.
   const dictArr = Array.isArray(parsed.dictionary) ? parsed.dictionary : [];
   const entries = dictArr
-    .map((d) => {
+    .map((d: unknown) => {
       if (!d || typeof d !== "object") return null;
-      const word = String(d.word || "")
+      const obj = d as Record<string, unknown>;
+      const word = String(obj.word || "")
         .trim()
         .slice(0, MAX_WORD_LEN);
-      const definition = String(d.definition || "")
+      const definition = String(obj.definition || "")
         .trim()
         .slice(0, MAX_DEF_LEN);
       if (!word || !definition) return null;
-      const grammarTags = Array.isArray(d.grammarTags)
-        ? d.grammarTags
-            .filter((t) => typeof t === "string" && t.trim())
-            .map((t) => t.trim().slice(0, MAX_WORD_LEN))
+      const grammarTags = Array.isArray(obj.grammarTags)
+        ? obj.grammarTags
+            .filter((t: unknown) => typeof t === "string" && t.trim())
+            .map((t: string) => t.trim().slice(0, MAX_WORD_LEN))
             .slice(0, MAX_GRAMMAR_TAGS)
         : [];
       return {
         word,
-        transliteration: d.transliteration
-          ? String(d.transliteration).trim().slice(0, MAX_WORD_LEN)
+        transliteration: obj.transliteration
+          ? String(obj.transliteration).trim().slice(0, MAX_WORD_LEN)
           : "",
-        ipa: d.ipa
-          ? String(d.ipa)
+        ipa: obj.ipa
+          ? String(obj.ipa)
               .trim()
               .replace(/^\/+|\/+$/g, "")
               .slice(0, MAX_IPA_LEN)
           : "",
-        language: d.language ? String(d.language).trim().slice(0, MAX_WORD_LEN) : "",
+        language: obj.language ? String(obj.language).trim().slice(0, MAX_WORD_LEN) : "",
         grammarTags,
         definition,
       };
     })
-    .filter(Boolean)
+    .filter((e: unknown): e is Record<string, unknown> => e !== null)
     .slice(0, MAX_LIST_LEN);
   if (entries.length) panels.push({ type: "dictionary", entries });
 
   // Its own small panel, rendered above "dictionary" client-side (see renderOrchestrateResult) —
-  // only for direct translation-style queries, see lib/dotbot.js.
+  // only for direct translation-style queries, see lib/dotbot.ts.
   const tr = parsed.translation;
   if (tr && typeof tr === "object") {
     const sourceWord = String(tr.sourceWord || "")
@@ -345,10 +397,13 @@ function buildPanels(parsed, hasCanvasMatches) {
   const ex = parsed.examples;
   if (ex && typeof ex === "object") {
     const sentences = Array.isArray(ex.sentences)
-      ? ex.sentences.map(sanitizeSentence).filter(Boolean).slice(0, MAX_LIST_LEN)
+      ? ex.sentences
+          .map(sanitizeSentence)
+          .filter((s: SanitizedSentence | null): s is SanitizedSentence => s !== null)
+          .slice(0, MAX_LIST_LEN)
       : [];
     if (sentences.length) {
-      const panel = { type: "examples", sentences };
+      const panel: Record<string, any> = { type: "examples", sentences };
       // Powers each sentence's own TTS button client-side (see buildExamplesCard) — falls back
       // to the default English voice if omitted, same as it always did before TTS existed here.
       if (ex.language) panel.language = String(ex.language).trim().slice(0, MAX_WORD_LEN);
@@ -360,7 +415,7 @@ function buildPanels(parsed, hasCanvasMatches) {
 
   // Validated against THIS response's own entries/sentences/tr (computed just above) — see
   // sanitizeInlineMarkers.
-  const markerContext = {
+  const markerContext: MarkerContext = {
     dictEntryCount: entries.length,
     exampleCount: panels.some((p) => p.type === "examples")
       ? panels.find((p) => p.type === "examples").sentences.length
@@ -372,38 +427,43 @@ function buildPanels(parsed, hasCanvasMatches) {
   if (text) panels.push({ type: "dotbot_text", text });
 
   // An in-depth grammar/explanation answer, ordered blocks of prose + highlighted example
-  // sentences — see lib/dotbot.js. Omitted entirely for a simple lookup, where dotbotText above
+  // sentences — see lib/dotbot.ts. Omitted entirely for a simple lookup, where dotbotText above
   // is the whole answer.
   const ab = parsed.answerBlocks;
   if (Array.isArray(ab) && ab.length) {
     const blocks = ab
-      .map((b) => {
+      .map((b: unknown) => {
         if (!b || typeof b !== "object") return null;
-        if (b.type === "text") {
+        const obj = b as Record<string, unknown>;
+        if (obj.type === "text") {
           const content = sanitizeInlineMarkers(
-            String(b.content || "")
+            String(obj.content || "")
               .trim()
               .slice(0, MAX_BLOCK_TEXT_LEN),
             markerContext,
           );
           return content ? { type: "text", content } : null;
         }
-        if (b.type === "example") {
-          const bText = String(b.text || "")
+        if (obj.type === "example") {
+          const bText = String(obj.text || "")
             .trim()
             .slice(0, MAX_DEF_LEN);
           if (!bText) return null;
           return {
             type: "example",
             text: bText,
-            translation: b.translation ? String(b.translation).trim().slice(0, MAX_DEF_LEN) : bText,
-            romanization: b.romanization ? String(b.romanization).trim().slice(0, MAX_DEF_LEN) : "",
-            alignment: sanitizeAlignment(b.alignment),
+            translation: obj.translation
+              ? String(obj.translation).trim().slice(0, MAX_DEF_LEN)
+              : bText,
+            romanization: obj.romanization
+              ? String(obj.romanization).trim().slice(0, MAX_DEF_LEN)
+              : "",
+            alignment: sanitizeAlignment(obj.alignment),
           };
         }
         return null;
       })
-      .filter(Boolean)
+      .filter((b: unknown): b is Record<string, unknown> => b !== null)
       .slice(0, MAX_ANSWER_BLOCKS);
     if (blocks.length) panels.push({ type: "answer_blocks", blocks });
   }
@@ -414,8 +474,8 @@ function buildPanels(parsed, hasCanvasMatches) {
   // topics redirect for the off-topic/casual-chat canHelp:false cases).
   if (Array.isArray(parsed.recommendedSearches)) {
     const queries = parsed.recommendedSearches
-      .filter((q) => typeof q === "string" && q.trim())
-      .map((q) => q.trim().slice(0, MAX_WORD_LEN * 3))
+      .filter((q: unknown) => typeof q === "string" && q.trim())
+      .map((q: string) => q.trim().slice(0, MAX_WORD_LEN * 3))
       .slice(0, MAX_RECOMMENDED);
     // "...continues" the trailing-off intro sentence as its own fragment for a successful answer
     // (or a plainer lead-in for the off-topic/casual-chat redirect cases) — see the prompt's own
@@ -436,24 +496,28 @@ function buildPanels(parsed, hasCanvasMatches) {
   if (sa && typeof sa === "object" && (sa.type === "add_rows" || sa.type === "create_source")) {
     const columns = Array.isArray(sa.columns)
       ? sa.columns
-          .filter((c) => typeof c === "string" && c.trim())
-          .map((c) => c.trim().slice(0, MAX_WORD_LEN))
+          .filter((c: unknown) => typeof c === "string" && c.trim())
+          .map((c: string) => c.trim().slice(0, MAX_WORD_LEN))
           .slice(0, MAX_SOURCE_COLS)
       : [];
     const rows = Array.isArray(sa.rows)
       ? sa.rows
           .slice(0, MAX_SOURCE_ROWS)
-          .map((r) => {
-            const cells = Array.isArray(r && r.cells) ? r.cells : Array.isArray(r) ? r : [];
-            return cells
+          .map((r: unknown) => {
+            const cells = Array.isArray((r as Record<string, unknown>)?.cells)
+              ? (r as Record<string, unknown>).cells
+              : Array.isArray(r)
+                ? r
+                : [];
+            return (cells as unknown[])
               .filter((c) => typeof c === "string" || typeof c === "number")
               .map((c) => String(c).trim().slice(0, MAX_SOURCE_CELL_LEN))
               .slice(0, MAX_SOURCE_COLS);
           })
-          .filter((r) => r.length && r.some((c) => c))
+          .filter((r: string[]) => r.length && r.some((c) => c))
       : [];
     if (rows.length) {
-      const panel = { type: "source_action", action: sa.type, columns, rows };
+      const panel: Record<string, any> = { type: "source_action", action: sa.type, columns, rows };
       if (sa.type === "add_rows")
         panel.targetIndex = Number.isFinite(sa.targetIndex) ? sa.targetIndex : 1;
       if (sa.type === "create_source")
@@ -465,7 +529,7 @@ function buildPanels(parsed, hasCanvasMatches) {
   return panels;
 }
 
-export async function POST(request) {
+export async function POST(request: NextRequest) {
   const {
     query,
     canvasMatches,
@@ -508,7 +572,7 @@ export async function POST(request) {
 
   // Both instruction blocks are appended only when actually warranted, so a short conversation on
   // the free plan pays zero extra prompt tokens for either — see each constant's own comment
-  // (lib/dotbot.js) for why.
+  // (lib/dotbot.ts) for why.
   const systemPrompt =
     DOTBOT_ORCHESTRATE_SYSTEM_PROMPT +
     (truncated ? DOTBOT_CONVERSATION_SUMMARY_INSTRUCTIONS : "") +
@@ -560,13 +624,14 @@ export async function POST(request) {
       // creative writing, and low temperature also reduces the odds of the model drifting into
       // the free-form-text failure mode json_object mode doesn't fully guard against on its own.
       temperature: 0.2,
-      // "none" — see lib/groq.js. This is single-turn panel selection, not multi-step reasoning,
+      // "none" — see lib/groq.ts. This is single-turn panel selection, not multi-step reasoning,
       // and thinking mode would otherwise spend part of max_tokens on an invisible reasoning pass
       // before ever writing the actual JSON (the same failure class this app hit when its text
       // routes ran on Gemini, before migrating to Groq).
       reasoning_effort: GROQ_REASONING_EFFORT,
     });
-    const parsed = JSON.parse(completion.choices[0].message.content);
+    const content = completion.choices[0].message.content ?? "{}";
+    const parsed = JSON.parse(content);
     // Pure server-side metadata, never pushed into the client-visible panels array (unlike every
     // real panel type, these are invisible to the user) — extracted here, capped defensively the
     // same way every other field in buildPanels is, regardless of the prompt's own length
@@ -584,7 +649,9 @@ export async function POST(request) {
     return { panels: buildPanels(parsed, hasCanvasMatches), conversationSummary, userMemoryUpdate };
   };
 
-  let panels, conversationSummary, userMemoryUpdate;
+  let panels: Record<string, any>[],
+    conversationSummary: string | null,
+    userMemoryUpdate: string | null;
   try {
     ({ panels, conversationSummary, userMemoryUpdate } = await generateOnce());
   } catch (err) {
@@ -616,7 +683,7 @@ export async function POST(request) {
   // (Promise.all, not fire-and-forget — no verified background-job mechanism exists in this
   // codebase, and this is a single indexed UPDATE by primary key, negligible latency next to the
   // Groq call it's already stacked after), only when there's actually something new to write.
-  let conversationId = requestedConversationId || null;
+  let conversationId: string | null = requestedConversationId || null;
   const [{ data: persistedConversationId, error: persistError }, memoryResult] = await Promise.all([
     supabase.rpc("append_dotbot_turn", {
       p_conversation_id: requestedConversationId || null,
