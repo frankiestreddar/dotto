@@ -8,6 +8,10 @@
 // window.__addTab/__switchTab/etc bridges TabsBar.jsx/PaneTopBar.jsx already called, which just
 // flip source from vanilla to here.
 
+import { useNavHistoryStore } from "./navHistoryStore";
+import { useBreadcrumbMapStore } from "./breadcrumbMapStore";
+import { useTabsStore } from "./tabsStore";
+
 interface Tab {
   id: string;
   folderId: string;
@@ -84,7 +88,9 @@ export function renderBreadcrumbMapPanel(paneId?: number): void {
   const pane = paneId ?? appState.activePaneId;
   const folderObj = appState.folders[appState.currentFolderId];
   if (!folderObj) {
-    window.__setBreadcrumbMap?.(pane, { hasMore: false, root: null, parent: null, current: null });
+    useBreadcrumbMapStore
+      .storeFor(pane)
+      .setState({ hasMore: false, root: null, parent: null, current: null });
     return;
   }
   const showSyntheticRoot = folderObj.isSharedView;
@@ -104,7 +110,9 @@ export function renderBreadcrumbMapPanel(paneId?: number): void {
   const current = chain[chain.length - 1] || null;
   const parent = chain.length >= 2 ? chain[chain.length - 2] : null;
   const root = chain.length > 2 ? chain[0] : null;
-  window.__setBreadcrumbMap?.(pane, { hasMore: chain.length > 2, root, parent, current });
+  useBreadcrumbMapStore
+    .storeFor(pane)
+    .setState({ hasMore: chain.length > 2, root, parent, current });
 }
 
 // Wired up from TabsBar.jsx's ActiveTabTrail ellipsis/parent onClick — a non-current segment's
@@ -155,7 +163,7 @@ export function renderTabsPanel(paneId?: number): void {
     folderId: t.folderId,
     label: (appState.folders[t.folderId] && appState.folders[t.folderId].title) || "Untitled",
   }));
-  window.__setTabs?.(pane, { tabs: snapshot, activeTabId: appState.activeTabId });
+  useTabsStore.storeFor(pane).setState({ tabs: snapshot, activeTabId: appState.activeTabId });
 }
 
 // paneId (split-screen Stage 7 — each pane has its own breadcrumb pill/tab row now, explicit
@@ -282,7 +290,7 @@ export function renderNavArrows(paneId?: number): void {
   const appState = getAppState();
   if (!appState) return;
   const pane = paneId ?? appState.activePaneId;
-  window.__setNavHistory?.(pane, {
+  useNavHistoryStore.storeFor(pane).setState({
     canGoBack: appState.historyIndex > 0,
     canGoForward: appState.historyIndex < appState.historyStack.length - 1,
   });

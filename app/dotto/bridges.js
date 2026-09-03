@@ -248,73 +248,12 @@ export function closeLeafInTree(tree, paneId) {
 // see app/dotto/lib/marketDiscoverStore.ts, marketDetailStore.ts, blocksViewStore.ts,
 // extensionsListStore.ts, and itemDetailFooterStore.ts.
 
-// Collaborators pill, now one per pane (split-screen Stage 8 — was a single shared store tied to
-// whichever pane happened to be active, per the same "each pane needs its own copy, not one shared
-// trigger" correction that made tabsStore/breadcrumbMapStore pane-keyed in Stage 7). Rendered
-// directly by PaneTopBar.jsx (app/dotto/) now, not portalled into a static top-bar.html node —
-// #collab-bubble/#collab-content/#collab-tooltip no longer exist as singular ids, see that file.
-// { show, collabs: [{id, avatarId, avatarUrl, displayName}] (up to 3), moreCount }, pushed by
-// app/dotto/lib/friendsPresence.ts's renderCollabPill(paneId). MUST be flushSync'd (see
-// app/dotto-app.jsx): openCollabPanel (app/dotto/lib/friendsPresence.ts) reads the triggering
-// bubble element's `.show` class synchronously right after a caller pushes here.
-export const collabPillStore = createPaneKeyedStore(() => ({
-  show: false,
-  collabs: [],
-  moreCount: 0,
-}));
-
-// Back/forward enabled-state, one per pane (split-screen Stage 8) — { canGoBack, canGoForward },
-// pushed by app/dotto/lib/tabManagement.ts's renderNavArrows(paneId) (called from
-// render()'s per-frame loop for the active pane, and from jumpToHistoryIndex/switchActivePane for
-// immediate feedback). Replaces the old singular #btn-back/#btn-forward .disabled assignments
-// (app/dotto/lib/waypointsRenderLoop.ts) now that PaneTopBar.jsx renders its own back/forward buttons per pane.
-export const navHistoryStore = createPaneKeyedStore(() => ({
-  canGoBack: false,
-  canGoForward: false,
-}));
-
-// Which pane is currently active — a plain, non-pane-keyed store (there's only ever one answer,
-// unlike everything else pane-keyed here). Backs PaneZoomBar.jsx's own "only show for the pane you
-// last clicked into" requirement (explicit request) — everything else in this codebase reads
-// appState.activePaneId directly off the vanilla side, which isn't reactive; this is the one place
-// so far that needs an active REACT re-render when it changes. Pushed by switchActivePane
-// (app/dotto/lib/coreState.ts) via window.__setActivePaneId.
-export const activePaneIdStore = createStore(0);
-
-// Media-viewer full-screen zoom, one per pane (mirrors navHistoryStore/collabPillStore's own
-// per-pane reasoning) — { show, zoom }. show is true only while that pane's own CURRENT folder is a
-// synthetic isMediaViewer one (window.__openMediaViewerTab, app/dotto/lib/tabManagement.ts); zoom is a
-// plain multiplier (1 = 100%, i.e. the document at exactly the window's own width — explicit spec).
-// Pushed by renderMediaViewerZoom(paneId)/setMediaViewerZoom (app/dotto/lib/waypointsRenderLoop.ts). zoom itself
-// actually lives on the synthetic folder object (folderObj.viewerZoom), not here — this store is
-// just the React-facing mirror of it, same "vanilla owns the real data, this is the push target"
-// split every other pane-keyed store in this file already follows.
-export const mediaViewerZoomStore = createPaneKeyedStore(() => ({ show: false, zoom: 1 }));
-
-// Compact "…/parent/current" breadcrumb trail for a pane's own active tab (see
-// app/dotto/TabsBar.jsx's ActiveTabTrail, app/dotto/lib/tabManagement.ts's
-// renderBreadcrumbMapPanel) — { hasMore, root, parent, current }, each of `root`/`parent`/
-// `current` either null or {label, folderId, isSyntheticRoot}. Pane-keyed since split-screen Stage
-// 7 (each pane gets its own breadcrumb pill now, explicit request — was a single shared store,
-// which only ever reflected whichever pane was CURRENTLY active, so an inactive pane's own pill
-// had nothing correct to show). Not flushSync'd — a plain store.set, same reasoning as
-// chatsListStore/waypointsListStore: no synchronous DOM read follows a navigation-driven update.
-export const breadcrumbMapStore = createPaneKeyedStore(() => ({
-  hasMore: false,
-  root: null,
-  parent: null,
-  current: null,
-}));
-
-// Canvas tabs, next to each pane's own breadcrumb pill (see app/dotto/TabsBar.jsx,
-// app/dotto/lib/tabManagement.ts's renderTabsPanel/addTab/switchTab/closeTab) —
-// { tabs: [{id, folderId, label}], activeTabId }. Each tab is a lightweight bookmark of a folder
-// location, not an independent history/camera context — see renderTabsPanel's own comment for why.
-// Pane-keyed since split-screen Stage 7, same reasoning as breadcrumbMapStore just above — each
-// pane now renders its own <TabsBar paneId={paneId}/> instance (PaneCanvasArea.jsx) instead of one
-// shared instance tied to whichever pane happens to be active. Not flushSync'd — same reasoning as
-// breadcrumbMapStore: a plain store.set, no synchronous DOM read follows a navigation-driven update.
-export const tabsStore = createPaneKeyedStore(() => ({ tabs: [], activeTabId: null }));
+// The per-pane collaborators pill, back/forward nav state, active-pane id, media-viewer zoom,
+// breadcrumb trail, and canvas tabs all migrated to real Zustand (Zustand migration plan, batch 9,
+// see PHASE4_ROADMAP.md) — see app/dotto/lib/collabPillStore.ts, navHistoryStore.ts,
+// activePaneIdStore.ts, mediaViewerZoomStore.ts, breadcrumbMapStore.ts, and tabsStore.ts. The
+// pane-keyed ones are now built on app/dotto/lib/paneKeyedStore.ts's real-Zustand redesign of
+// createPaneKeyedStore above, rather than that hand-rolled version.
 
 // First slice of item 11's "Live canvas presence + real-time content sync" grab-bag (see
 // PHASE2_ROADMAP.md — that section needed a 3-way split before extraction): the messaging/

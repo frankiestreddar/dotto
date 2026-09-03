@@ -24,6 +24,8 @@
 // wiring — ensureCoreState() runs synchronously during render, well before any other file's own
 // wireX() poll could possibly find these bridges missing, so there's no gap to poll across.
 
+import { useActivePaneIdStore } from "./activePaneIdStore";
+
 interface PaneState {
   currentFolderId?: string;
   [key: string]: unknown;
@@ -173,8 +175,9 @@ function switchActivePane(paneId: number): void {
   // reflect its own historyIndex/currentFolderId either.
   window.__renderNavArrows?.();
   window.__renderCollabPill?.();
-  // Lets PaneZoomBar.jsx react to which pane is active.
-  window.__setActivePaneId?.(paneId);
+  // No current subscriber reads this (see useActivePaneIdStore's own comment for why) — kept for
+  // whichever future per-pane-active-state need reaches for it again.
+  useActivePaneIdStore.setState(paneId);
   window.__renderMediaViewerZoom?.(paneId);
 }
 

@@ -1,22 +1,12 @@
 "use client";
 
-import { useEffect, useRef, useState, useSyncExternalStore } from "react";
+import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import {
-  allowedEdgesForPane,
-  breadcrumbMapStore,
-  computePaneRects,
-  paneLayoutStore,
-  tabsStore,
-} from "./bridges";
+import { allowedEdgesForPane, computePaneRects, paneLayoutStore } from "./bridges";
+import { useBreadcrumbMapStore } from "./lib/breadcrumbMapStore";
+import { useTabsStore } from "./lib/tabsStore";
 import { startRenameFolderCardTitle } from "./lib/waypointsRenderLoop";
 import usePortalNode from "./usePortalNode";
-
-// Module-level, not inline — see CanvasItemsLayer.jsx's identical EMPTY_ITEMS comment for why a
-// fresh object/array literal as the getServerSnapshot fallback trips React's "should be cached"
-// warning.
-const EMPTY_BREADCRUMB = { hasMore: false, root: null, parent: null, current: null };
-const EMPTY_TABS = { tabs: [], activeTabId: null };
 
 // Below this many px of horizontal pointer movement, a pointerdown-then-up on a tab still counts
 // as a plain click (switch tab / rename) rather than a drag-to-reorder — same "was this a click or
@@ -212,14 +202,9 @@ function TabRow({
   const suppressClickRef = useRef(false);
   // This pane's own breadcrumb store slot (split-screen Stage 7 — breadcrumbMapStore is pane-keyed
   // now, one slot per pane, not a single shared store) — .storeFor(paneId) is stable across
-  // renders (createPaneKeyedStore caches it), so this is safe to call directly in render, same as
-  // every other pane-keyed store consumer in this codebase (CanvasItemsLayer.jsx, BlocksPanel.jsx).
-  const paneBreadcrumbStore = breadcrumbMapStore.storeFor(paneId);
-  const bc = useSyncExternalStore(
-    paneBreadcrumbStore.subscribe,
-    paneBreadcrumbStore.getSnapshot,
-    () => EMPTY_BREADCRUMB,
-  );
+  // renders (see app/dotto/lib/paneKeyedStore.ts's own comment), so calling it directly in render
+  // is safe, same as every other pane-keyed store consumer in this codebase.
+  const bc = useBreadcrumbMapStore.storeFor(paneId)();
   // Cached in state, corrected DURING render (React's documented "adjusting state" pattern —
   // https://react.dev/learn/you-might-not-need-an-effect#adjusting-some-state-when-a-prop-changes
   // — a conditional setState call in the render body itself, not inside an effect, which would
@@ -370,14 +355,9 @@ function TabRow({
 // tabsStore slot already reflects.
 export default function TabsBar({ paneId }) {
   // This pane's own tabs store slot (split-screen Stage 7 — tabsStore is pane-keyed now, one slot
-  // per pane, not a single shared store). .storeFor(paneId) is stable across renders
-  // (createPaneKeyedStore caches it), safe to call directly in render.
-  const paneTabsStore = tabsStore.storeFor(paneId);
-  const { tabs, activeTabId } = useSyncExternalStore(
-    paneTabsStore.subscribe,
-    paneTabsStore.getSnapshot,
-    () => EMPTY_TABS,
-  );
+  // per pane, not a single shared store). .storeFor(paneId) is stable across renders (see
+  // app/dotto/lib/paneKeyedStore.ts's own comment), safe to call directly in render.
+  const { tabs, activeTabId } = useTabsStore.storeFor(paneId)();
   const portalNode = usePortalNode("pane-tabs-" + paneId);
 
   // Drag-to-reorder — see TabRow's own comment for why this is plain pointer tracking rather than

@@ -131,26 +131,6 @@ declare global {
     // and lands on the user's own real root, used by app/dotto/lib/tabManagement.ts's
     // breadcrumbMapRowClick for its synthetic Root row.
     __exitSharedCanvasToRoot?: () => void;
-    // app/dotto-app.jsx (via app/dotto/bridges.js's pane-keyed stores) — React-facing setters,
-    // called from vanilla/TS with fresh data on every navigation; not flushSync'd (no synchronous
-    // DOM read races them the way canvasItemsStore's own setter has to guard against).
-    __setBreadcrumbMap?: (
-      paneId: number,
-      state: {
-        hasMore: boolean;
-        root: { label: string; folderId: string; isSyntheticRoot: boolean } | null;
-        parent: { label: string; folderId: string; isSyntheticRoot: boolean } | null;
-        current: { label: string; folderId: string; isSyntheticRoot: boolean } | null;
-      },
-    ) => void;
-    __setTabs?: (
-      paneId: number,
-      state: { tabs: { id: string; folderId: string; label: string }[]; activeTabId: string },
-    ) => void;
-    __setNavHistory?: (
-      paneId: number,
-      state: { canGoBack: boolean; canGoForward: boolean },
-    ) => void;
     // app/dotto/lib/tabManagement.ts (Phase 4.4 port — was tab-management.js) — vanilla -> React
     // bridges: TabsBar.jsx/PaneTopBar.jsx already called these as globals before the port; only
     // __renderBreadcrumbMapPanel is new (waypoints-render-loop.js's render() was the one real
@@ -743,7 +723,6 @@ declare global {
     // bridges.js (via app/dotto-app.jsx, flushSync-wrapped) — see __renderCanvasItems's own
     // comment there for why it must commit synchronously.
     __renderCanvasItems?: (items: Record<string, unknown>[], paneId: number) => void;
-    __setMediaViewerZoom?: (paneId: number, state: { show: boolean; zoom: number }) => void;
     // app/dotto/lib/friendsPresence.ts
     __refreshCanvasCollabForCurrentFolder?: () => Promise<void>;
     __renderCollabPill?: () => void;
@@ -818,20 +797,10 @@ declare global {
       unlockedAchievementIds?: string[];
       [key: string]: unknown;
     };
-    // app/dotto-app.jsx (via activePaneIdStore, bridges.js) — lets PaneZoomBar.jsx react to which
-    // pane is active.
-    __setActivePaneId?: (paneId: number) => void;
     // app/dotto/lib/coreState.ts (Phase 4.5 port — was core-state.js) — used by
     // app/dotto/canvasItemBehavior.js's setupDraggingAndClicking (Phase 3), same reasoning as
     // window.__getAppState.
     __bringCardToFront?: (it: Record<string, unknown> | undefined, el?: HTMLElement | null) => void;
-
-    // app/dotto-app.jsx (via app/dotto/bridges.js's various stores) — React-facing setters for
-    // app/dotto/lib/friendsPresence.ts (Phase 4.5 port — was friends-presence.js).
-    __setCollabPill?: (
-      paneId: number,
-      state: { show: boolean; collabs: Record<string, unknown>[]; moreCount: number },
-    ) => void;
 
     // app/dotto/lib/friendsPresence.ts — new bridge for the ai/hamburger/mnemonic port;
     // app/dotto/lib/hamburgerCollab.ts used to import activePaneCollabBubbleEl directly

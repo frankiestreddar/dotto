@@ -1,12 +1,8 @@
 "use client";
 
-import { useEffect, useState, useSyncExternalStore } from "react";
-import { mediaViewerZoomStore } from "./bridges";
+import { useEffect, useState } from "react";
+import { useMediaViewerZoomStore } from "./lib/mediaViewerZoomStore";
 import { setMediaViewerZoom } from "./lib/waypointsRenderLoop";
-
-// Module-level, not inline — see CanvasItemsLayer.jsx's identical EMPTY_ITEMS comment for why a
-// fresh object literal as the getServerSnapshot fallback trips React's "should be cached" warning.
-const EMPTY_ZOOM = { show: false, zoom: 1 };
 
 const ZOOM_STEP = 0.25;
 
@@ -34,12 +30,7 @@ const ZOOM_STEP = 0.25;
 // property directly rather than going through a full render(), so clicking +/- doesn't reset an
 // <iframe> PDF's or epub.js's own internal scroll position on every click.
 export default function PaneZoomBar({ paneId, rect }) {
-  const paneZoomStore = mediaViewerZoomStore.storeFor(paneId);
-  const zoomState = useSyncExternalStore(
-    paneZoomStore.subscribe,
-    paneZoomStore.getSnapshot,
-    () => EMPTY_ZOOM,
-  );
+  const zoomState = useMediaViewerZoomStore.storeFor(paneId)();
   const [hovered, setHovered] = useState(false);
 
   useEffect(() => {

@@ -23,6 +23,7 @@ import {
   setupResizing,
 } from "../canvasItemBehavior";
 import { ensureDrawings, makeLayerSVG } from "./drawingConnections";
+import { useMediaViewerZoomStore } from "./mediaViewerZoomStore";
 
 interface Item {
   id: number;
@@ -1578,7 +1579,7 @@ export function renderMediaViewerZoom(paneId?: number): void {
       ? appState.currentFolderId
       : appState.panes[paneId]?.currentFolderId;
   const folderObj = folderId ? appState.folders[folderId] : undefined;
-  window.__setMediaViewerZoom?.(paneId, {
+  useMediaViewerZoomStore.storeFor(paneId).setState({
     show: !!(folderObj && folderObj.isMediaViewer),
     zoom: (folderObj && folderObj.viewerZoom) || 1,
   });
@@ -1610,7 +1611,7 @@ export function setMediaViewerZoom(paneId: number, zoom: number): void {
   const canvasEl = document.getElementById(window.__paneElId?.("canvas", paneId) || "");
   const viewer = canvasEl && canvasEl.querySelector(":scope > .media-viewer-fullscreen");
   if (viewer) (viewer as HTMLElement).style.setProperty("--viewer-zoom", String(clamped));
-  window.__setMediaViewerZoom?.(paneId, { show: true, zoom: clamped });
+  useMediaViewerZoomStore.storeFor(paneId).setState({ show: true, zoom: clamped });
   window.__scheduleWorkspaceSave?.();
 }
 

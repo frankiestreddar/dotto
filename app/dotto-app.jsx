@@ -4,18 +4,17 @@ import { useEffect } from "react";
 import { flushSync } from "react-dom";
 import { createClient } from "@/lib/supabase/client";
 import {
-  activePaneIdStore,
-  breadcrumbMapStore,
   canvasItemsStore,
   closeLeafInTree,
-  collabPillStore,
   listPaneIds,
-  mediaViewerZoomStore,
-  navHistoryStore,
   paneLayoutStore,
   splitLeafInTree,
-  tabsStore,
 } from "./dotto/bridges";
+import { useBreadcrumbMapStore } from "./dotto/lib/breadcrumbMapStore";
+import { useCollabPillStore } from "./dotto/lib/collabPillStore";
+import { useMediaViewerZoomStore } from "./dotto/lib/mediaViewerZoomStore";
+import { useNavHistoryStore } from "./dotto/lib/navHistoryStore";
+import { useTabsStore } from "./dotto/lib/tabsStore";
 import AchievementsGrid from "./dotto/AchievementsGrid";
 import AddToSourcePopup from "./dotto/AddToSourcePopup";
 import {
@@ -284,15 +283,16 @@ if (typeof window !== "undefined") {
   window.__closePaneInLayout = (paneId) =>
     flushSync(() => paneLayoutStore.set(closeLeafInTree(paneLayoutStore.getSnapshot(), paneId)));
   // Drops a closed pane's own items/tabs/breadcrumb stores (see createPaneKeyedStore's own
-  // comment, bridges.js) so they don't just leak forever once closePane
-  // (app/dotto/lib/splitPaneManagement.ts) actually closes a pane.
+  // comment, bridges.js, and app/dotto/lib/paneKeyedStore.ts's redesigned Zustand version) so they
+  // don't just leak forever once closePane (app/dotto/lib/splitPaneManagement.ts) actually closes
+  // a pane.
   window.__removePaneItemsStore = (paneId) => canvasItemsStore.remove(paneId);
   window.__removePaneTabsStore = (paneId) => {
-    tabsStore.remove(paneId);
-    breadcrumbMapStore.remove(paneId);
-    navHistoryStore.remove(paneId);
-    collabPillStore.remove(paneId);
-    mediaViewerZoomStore.remove(paneId);
+    useTabsStore.remove(paneId);
+    useBreadcrumbMapStore.remove(paneId);
+    useNavHistoryStore.remove(paneId);
+    useCollabPillStore.remove(paneId);
+    useMediaViewerZoomStore.remove(paneId);
   };
   // Temporary dev-only trigger (split-screen Stage 4 — "Ship WITHOUT the drag-to-split gesture
   // yet") for exercising a real second pane ahead of Stage 5's actual drag-to-split UI. Splits the
@@ -338,34 +338,11 @@ if (typeof window !== "undefined") {
   // Detail footer all migrated to real Zustand (Zustand migration plan, batch 7, see
   // PHASE4_ROADMAP.md) — see app/dotto/lib/marketDiscoverStore.ts, marketDetailStore.ts,
   // blocksViewStore.ts, extensionsListStore.ts, and itemDetailFooterStore.ts.
-  // Collaborators pill, one per pane (see app/dotto/PaneTopBar.jsx,
-  // app/dotto/lib/friendsPresence.ts's renderCollabPill) — pane-keyed since split-screen Stage 8,
-  // same reasoning as __setBreadcrumbMap/__setTabs below. MUST be flushSync: openCollabPanel
-  // (app/dotto/lib/friendsPresence.ts) reads the triggering bubble element's `.show` class
-  // synchronously right after this runs.
-  window.__setCollabPill = (paneId, state) =>
-    flushSync(() => collabPillStore.storeFor(paneId).set(state));
-  // Back/forward enabled-state, one per pane (see app/dotto/PaneTopBar.jsx,
-  // app/dotto/lib/tabManagement.ts's renderNavArrows) — pane-keyed for the same reason. A plain
-  // store.set, no synchronous DOM read follows it.
-  window.__setNavHistory = (paneId, state) => navHistoryStore.storeFor(paneId).set(state);
-  // Which pane is active (see app/dotto/PaneZoomBar.jsx) — pushed by switchActivePane
-  // (app/dotto/lib/coreState.ts). A plain store.set, no synchronous DOM read follows it.
-  window.__setActivePaneId = (paneId) => activePaneIdStore.set(paneId);
-  // Media-viewer zoom, one per pane (see app/dotto/PaneZoomBar.jsx,
-  // shared-canvases-outline.js's renderMediaViewerZoom/setMediaViewerZoom) — pane-keyed for the
-  // same reason as __setNavHistory above. A plain store.set, no synchronous DOM read follows it.
-  window.__setMediaViewerZoom = (paneId, state) => mediaViewerZoomStore.storeFor(paneId).set(state);
-  // Breadcrumb pill — the compact "…/parent/current" trail for one pane's own active tab (see
-  // app/dotto/TabsBar.jsx, app/dotto/lib/tabManagement.ts's renderBreadcrumbMapPanel, called from
-  // every render()) — pane-keyed since split-screen Stage 7 (each pane gets its own breadcrumb
-  // pill now), so this takes the paneId explicitly rather than being tabsStore.set directly. A
-  // plain store.set, no synchronous DOM read follows it.
-  window.__setBreadcrumbMap = (paneId, state) => breadcrumbMapStore.storeFor(paneId).set(state);
-  // Canvas tabs (see app/dotto/TabsBar.jsx, app/dotto/lib/tabManagement.ts's renderTabsPanel, called
-  // from every render() alongside the breadcrumb map above) — pane-keyed for the same reason. A
-  // plain store.set, no synchronous DOM read follows it.
-  window.__setTabs = (paneId, state) => tabsStore.storeFor(paneId).set(state);
+  // The per-pane collaborators pill, back/forward nav state, active-pane id, media-viewer zoom,
+  // breadcrumb trail, and canvas tabs all migrated to real Zustand (Zustand migration plan,
+  // batch 9, see PHASE4_ROADMAP.md) — see app/dotto/lib/collabPillStore.ts, navHistoryStore.ts,
+  // activePaneIdStore.ts, mediaViewerZoomStore.ts, breadcrumbMapStore.ts, and tabsStore.ts (the
+  // pane-keyed ones now built on app/dotto/lib/paneKeyedStore.ts's redesigned factory).
   // Cell tag picker dropdown (see app/dotto/CellTagPickerList.jsx,
   // app/dotto/lib/sourceTagsAi.ts's renderCellTagPickerList) migrated to real Zustand (Zustand
   // migration plan, batch 8, see PHASE4_ROADMAP.md) — see app/dotto/lib/cellTagPickerListStore.ts.

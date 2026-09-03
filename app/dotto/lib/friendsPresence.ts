@@ -8,9 +8,11 @@
 // bodies (never at module-evaluation time), same as every other circular pair this migration has
 // already carried over safely.
 
+import { flushSync } from "react-dom";
 import { openMessagesPanel } from "./messagesSchedule";
 import { useCollabListStore } from "./collabListStore";
 import { useMsgListStore } from "./msgListStore";
+import { useCollabPillStore } from "./collabPillStore";
 
 interface Friend {
   id: string;
@@ -348,7 +350,9 @@ export function renderCollabPill(paneId?: number): void {
   // shared with you isn't yours to invite further collaborators on.
   if (!folderObj || appState.currentFolderId === "root" || folderObj.isSharedView) {
     closeCollabPanel();
-    window.__setCollabPill?.(pid, { show: false, collabs: [], moreCount: 0 });
+    flushSync(() =>
+      useCollabPillStore.storeFor(pid).setState({ show: false, collabs: [], moreCount: 0 }),
+    );
     return;
   }
   const collabIds = folderObj.collaborators || [];
@@ -361,11 +365,13 @@ export function renderCollabPill(paneId?: number): void {
     avatarUrl: f.avatarUrl || null,
     displayName: f.displayName,
   }));
-  window.__setCollabPill?.(pid, {
-    show: true,
-    collabs: shown,
-    moreCount: Math.max(0, collabs.length - 3),
-  });
+  flushSync(() =>
+    useCollabPillStore.storeFor(pid).setState({
+      show: true,
+      collabs: shown,
+      moreCount: Math.max(0, collabs.length - 3),
+    }),
+  );
 }
 
 // `friends` / incoming / outgoing requests are loaded from Supabase (`profiles` + `friendships`)

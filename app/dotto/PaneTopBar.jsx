@@ -1,19 +1,15 @@
 "use client";
 
-import { useEffect, useRef, useState, useSyncExternalStore } from "react";
+import { useEffect, useRef, useState } from "react";
 import Avatar from "./Avatar";
-import { collabPillStore, navHistoryStore } from "./bridges";
+import { useCollabPillStore } from "./lib/collabPillStore";
+import { useNavHistoryStore } from "./lib/navHistoryStore";
 import {
   collabBubblePaneClick,
   collabBubblePaneMouseEnter,
   collabBubblePaneMouseLeave,
 } from "./lib/friendsPresence";
 import TabsBar from "./TabsBar";
-
-// Module-level, not inline — see CanvasItemsLayer.jsx's identical EMPTY_ITEMS comment for why a
-// fresh object literal as the getServerSnapshot fallback trips React's "should be cached" warning.
-const EMPTY_NAV = { canGoBack: false, canGoForward: false };
-const EMPTY_COLLAB = { show: false, collabs: [], moreCount: 0 };
 
 // Same TOP_BAR_PROXIMITY_PX/distance-to-rect/touch-then-leave-stays-collapsed state machine that
 // used to live as a single global mousemove listener in resize-shortcuts-init.js (see that file's
@@ -38,18 +34,8 @@ const PROXIMITY_PX = 100;
 // property, not a binding) to THIS bubble's own DOM node before reusing that one shared flyout's
 // existing open/close/position logic unchanged, activating this pane first the same way.
 export default function PaneTopBar({ paneId, rect }) {
-  const paneNavStore = navHistoryStore.storeFor(paneId);
-  const nav = useSyncExternalStore(
-    paneNavStore.subscribe,
-    paneNavStore.getSnapshot,
-    () => EMPTY_NAV,
-  );
-  const paneCollabStore = collabPillStore.storeFor(paneId);
-  const collab = useSyncExternalStore(
-    paneCollabStore.subscribe,
-    paneCollabStore.getSnapshot,
-    () => EMPTY_COLLAB,
-  );
+  const nav = useNavHistoryStore.storeFor(paneId)();
+  const collab = useCollabPillStore.storeFor(paneId)();
 
   const pillRef = useRef(null);
   const bubbleRef = useRef(null);
