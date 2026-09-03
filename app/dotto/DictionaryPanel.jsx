@@ -1,8 +1,7 @@
 "use client";
 
 import { useLayoutEffect } from "react";
-import { useSyncExternalStore } from "react";
-import { dictionaryPanelStore } from "./bridges";
+import { useDictionaryPanelStore } from "./lib/dictionaryPanelStore";
 import { buildDictionaryCard } from "./lib/mnemonicSearchMatching";
 
 // Mounts buildDictionaryCard's vanilla-built card into #search-dictionary — see TranslationPanel.jsx
@@ -10,11 +9,7 @@ import { buildDictionaryCard } from "./lib/mnemonicSearchMatching";
 // real internal widget (multi-sense cycling via a closured `index`, hover-reveal side arrows, its
 // own drag-to-canvas wiring) — left fully vanilla rather than rewritten as JSX for this pass.
 export default function DictionaryPanel() {
-  const panel = useSyncExternalStore(
-    dictionaryPanelStore.subscribe,
-    dictionaryPanelStore.getSnapshot,
-    () => null,
-  );
+  const panel = useDictionaryPanelStore();
 
   useLayoutEffect(() => {
     const el = document.getElementById("search-dictionary");

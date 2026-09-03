@@ -11,6 +11,7 @@
 // commenceSearchOrMnemonic the other) — same reasoning, neither side reads the other at
 // module-evaluation time.
 
+import { flushSync } from "react-dom";
 import {
   buildAlignedSentenceEls,
   clearSearch,
@@ -23,6 +24,12 @@ import {
   typewriterRevealSegments,
   updateSearchDropdown,
 } from "./aiAssistantSuggestions";
+import { useTranslationPanelStore } from "./translationPanelStore";
+import { useDictionaryPanelStore } from "./dictionaryPanelStore";
+import { useExamplesPanelStore } from "./examplesPanelStore";
+import { useRecommendedSearchesStore } from "./recommendedSearchesStore";
+import { useDotbotAnswerStore } from "./dotbotAnswerStore";
+import { useImageResultStore } from "./imageResultStore";
 import { commenceDotbotSearch } from "./searchOrchestrationSelection";
 
 interface MnemonicTemplate {
@@ -240,15 +247,21 @@ export function buildImageResultCard(imageDataUrl: string): HTMLElement {
   });
   return card;
 }
+// This and the other 5 search-dropdown result-panel setState calls in this file
+// (dictionary/examples/translation/recommended/dotbotAnswer below) all need flushSync, same
+// reasoning as canvasItemsStore (app/dotto-app.jsx): updateSearchDropdown
+// (app/dotto/lib/aiAssistantSuggestions.ts) reads each panel's real DOM node's style.display
+// synchronously right after calling into this file — without flushSync that read would race the
+// consuming component's own layout effect that actually sets style.display.
 function renderImageResultLoading(): void {
   const appState = getAppState();
   if (!appState.searchImageResult) return;
-  window.__setImageResult?.({ status: "loading" });
+  flushSync(() => useImageResultStore.setState({ status: "loading" }));
 }
 function renderImageResultError(reason: string): void {
   const appState = getAppState();
   if (!appState.searchImageResult) return;
-  window.__setImageResult?.({ status: "error", reason });
+  flushSync(() => useImageResultStore.setState({ status: "error", reason }));
   if (reason === "no_credits") {
     appState.dotbotUpgradePromptedForFullness = true;
     window.__openDotbotUpgradeModal?.();
@@ -257,7 +270,7 @@ function renderImageResultError(reason: string): void {
 function renderImageResultPanel(imageDataUrl: string): void {
   const appState = getAppState();
   if (!appState.searchImageResult) return;
-  window.__setImageResult?.({ status: "success", imageDataUrl });
+  flushSync(() => useImageResultStore.setState({ status: "success", imageDataUrl }));
 }
 async function generateMnemonicImage(imageScene: string): Promise<void> {
   renderImageResultLoading();
@@ -421,7 +434,7 @@ async function speakText(
     if (btnEl) btnEl.classList.remove("loading");
   }
 }
-interface DictionaryEntry {
+export interface DictionaryEntry {
   word?: string;
   language?: string;
   transliteration?: string;
@@ -465,7 +478,7 @@ function parseInlineMarkers(text: string): InlineSegment[] {
 export function stripInlineMarkers(text: string): string {
   return text.replace(/\{\{(dictionary|example):\d+\}\}|\{\{translation\}\}/g, "");
 }
-interface DictionaryPanelData {
+export interface DictionaryPanelData {
   entries: DictionaryEntry[];
 }
 // One card, showing one sense/entry at a time. The drag payload uses getters so dragging always
@@ -606,7 +619,7 @@ export function buildDictionaryCard(
 // single referenced sentence can be shown inline — see startSequencedTurnReveal — without the
 // rest of that panel's sentences or its color-toggle chrome, which doesn't belong floating
 // mid-answer). `language` is the panel's own language field, same TTS fallback as before.
-interface ExampleSentence {
+export interface ExampleSentence {
   text?: string;
   translation?: string;
   romanization?: string;
@@ -638,7 +651,7 @@ export function buildExampleSentenceEl(s: ExampleSentence, language: string): HT
   });
   return wrap;
 }
-interface ExamplesPanelData {
+export interface ExamplesPanelData {
   language?: string;
   sentences: ExampleSentence[];
 }
@@ -651,7 +664,7 @@ export function buildExamplesCard(panel: ExamplesPanelData): HTMLElement {
   });
   return card;
 }
-interface TranslationPanelData {
+export interface TranslationPanelData {
   sourceWord?: string;
   sourceLanguage?: string;
   targetWord?: string;
@@ -699,22 +712,22 @@ export function renderTranslationPanel(panel: TranslationPanelData | null): void
   const appState = getAppState();
   if (!appState.searchTranslation) return;
   if (!panel || !panel.sourceWord || !panel.targetWord) {
-    window.__setTranslationPanel?.(null);
+    flushSync(() => useTranslationPanelStore.setState(null));
     return;
   }
-  window.__setTranslationPanel?.(panel);
+  flushSync(() => useTranslationPanelStore.setState(panel));
 }
 export function renderDictionaryPanel(panel: DictionaryPanelData | null): void {
   if (!panel || !panel.entries || !panel.entries.length) {
-    window.__setDictionaryPanel?.(null);
+    flushSync(() => useDictionaryPanelStore.setState(null));
     return;
   }
-  window.__setDictionaryPanel?.(panel);
+  flushSync(() => useDictionaryPanelStore.setState(panel));
 }
 export function renderExamplesPanel(panel: ExamplesPanelData | null): void {
-  window.__setExamplesPanel?.(panel || null);
+  flushSync(() => useExamplesPanelStore.setState(panel || null));
 }
-interface RecommendedPanelData {
+export interface RecommendedPanelData {
   intro?: string;
   queries: string[];
 }
@@ -754,10 +767,10 @@ export function renderRecommendedSearchesPanel(panel: RecommendedPanelData | nul
   const appState = getAppState();
   if (!appState.searchRecommended) return;
   if (!panel || !panel.queries || !panel.queries.length) {
-    window.__setRecommendedSearches?.(null);
+    flushSync(() => useRecommendedSearchesStore.setState(null));
     return;
   }
-  window.__setRecommendedSearches?.(panel);
+  flushSync(() => useRecommendedSearchesStore.setState(panel));
 }
 // Dotbot's written answer — just another panel like dictionary/examples, not a chat surface.
 // Height grows naturally with the (typed-out) text as it wraps; draggable onto the canvas like
@@ -769,14 +782,14 @@ export function renderRecommendedSearchesPanel(panel: RecommendedPanelData | nul
 // character-by-character reveal across mixed prose/highlighted-example content isn't worth the
 // complexity here. `answerBlocksLanguage` powers each example pill's own TTS button, same
 // convention as buildExamplesCard.
-interface AnswerBlock {
+export interface AnswerBlock {
   type: "text" | "example";
   content?: string;
   text?: string;
   romanization?: string;
   translation?: string;
 }
-interface AnswerBlocksPanelData {
+export interface AnswerBlocksPanelData {
   blocks: AnswerBlock[];
 }
 export function renderDotbotAnswerPanel(
@@ -784,14 +797,16 @@ export function renderDotbotAnswerPanel(
   answerBlocksPanel?: AnswerBlocksPanelData | null,
   answerBlocksLanguage?: string,
 ): void {
-  window.__setDotbotAnswer?.(
-    text
-      ? {
-          text,
-          answerBlocksPanel: answerBlocksPanel || null,
-          answerBlocksLanguage: answerBlocksLanguage || "",
-        }
-      : null,
+  flushSync(() =>
+    useDotbotAnswerStore.setState(
+      text
+        ? {
+            text,
+            answerBlocksPanel: answerBlocksPanel || null,
+            answerBlocksLanguage: answerBlocksLanguage || "",
+          }
+        : null,
+    ),
   );
 }
 // Builds the short intro text element (not yet revealed — see startDotbotAnswerReveal) and wires

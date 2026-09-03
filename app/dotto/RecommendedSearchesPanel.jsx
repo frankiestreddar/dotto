@@ -1,18 +1,13 @@
 "use client";
 
 import { useLayoutEffect } from "react";
-import { useSyncExternalStore } from "react";
-import { recommendedSearchesStore } from "./bridges";
+import { useRecommendedSearchesStore } from "./lib/recommendedSearchesStore";
 import { buildRecommendedSearchesRows } from "./lib/mnemonicSearchMatching";
 
 // Mounts buildRecommendedSearchesRows's vanilla-built rows into #search-recommended — see
 // TranslationPanel.jsx for the full reasoning (identical pattern, different panel/builder).
 export default function RecommendedSearchesPanel() {
-  const panel = useSyncExternalStore(
-    recommendedSearchesStore.subscribe,
-    recommendedSearchesStore.getSnapshot,
-    () => null,
-  );
+  const panel = useRecommendedSearchesStore();
 
   useLayoutEffect(() => {
     const el = document.getElementById("search-recommended");

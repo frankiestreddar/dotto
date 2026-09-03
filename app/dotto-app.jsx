@@ -17,13 +17,9 @@ import {
   collabListStore,
   collabPillStore,
   commandPaletteStore,
-  dictionaryPanelStore,
-  dotbotAnswerStore,
-  examplesPanelStore,
   extensionsListStore,
   filesListStore,
   hubCollabListStore,
-  imageResultStore,
   itemDetailFooterStore,
   listPanelSelectionStore,
   listPaneIds,
@@ -37,12 +33,10 @@ import {
   paneLayoutStore,
   splitLeafInTree,
   profileLevelStore,
-  recommendedSearchesStore,
   searchSuggestionsStore,
   sharedCanvasModalStore,
   sourcesListStore,
   tabsStore,
-  translationPanelStore,
   waypointsListStore,
 } from "./dotto/bridges";
 import AchievementsGrid from "./dotto/AchievementsGrid";
@@ -337,22 +331,13 @@ if (typeof window !== "undefined") {
     window.__initializeNewPane(1, "root");
     window.__render();
   };
-  // Search-dropdown result panels (see app/dotto/TranslationPanel.jsx and friends,
-  // app/dotto/lib/mnemonicSearchMatching.ts). Unlike the notification stack (app/dotto/lib/
-  // notificationsStore.ts — a plain Zustand store now, React reads it directly with no
-  // window-bridge write needed at all), these DO need flushSync — updateSearchDropdown
-  // (app/dotto/lib/aiAssistantSuggestions.ts) reads
-  // each panel's real DOM node's style.display synchronously right after calling its
-  // render*Panel function (see renderOrchestrateResult, app/dotto/lib/searchOrchestrationSelection.ts, which
-  // calls several of these back-to-back and then updateSearchDropdown once at the end) — without
-  // flushSync that read would race the layout effect that actually sets style.display, same bug
-  // flushSync already exists to prevent for canvasItemsStore above.
-  window.__setTranslationPanel = (panel) => flushSync(() => translationPanelStore.set(panel));
-  window.__setDictionaryPanel = (panel) => flushSync(() => dictionaryPanelStore.set(panel));
-  window.__setExamplesPanel = (panel) => flushSync(() => examplesPanelStore.set(panel));
-  window.__setRecommendedSearches = (panel) => flushSync(() => recommendedSearchesStore.set(panel));
-  window.__setDotbotAnswer = (answer) => flushSync(() => dotbotAnswerStore.set(answer));
-  window.__setImageResult = (state) => flushSync(() => imageResultStore.set(state));
+  // The six search-dropdown result panels (translationPanelStore/dictionaryPanelStore/
+  // examplesPanelStore/recommendedSearchesStore/dotbotAnswerStore/imageResultStore) all migrated
+  // to real Zustand (Zustand migration plan, batch 2, see PHASE4_ROADMAP.md) — their producer
+  // (app/dotto/lib/mnemonicSearchMatching.ts) now calls each store's own setState directly,
+  // still wrapped in flushSync there for the same reason these bridges used to need it:
+  // updateSearchDropdown (app/dotto/lib/aiAssistantSuggestions.ts) reads each panel's real DOM
+  // node's style.display synchronously right after.
   // #search-chat-thread (see app/dotto/ChatThread.jsx, chatThreadStore's own comment above) — the
   // persisted multi-turn conversation shown above the search input, entirely separate from the six
   // single-owner panels right above (canvas matches/commands/suggestions below the input are

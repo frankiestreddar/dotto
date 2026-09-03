@@ -218,38 +218,10 @@ export function closeLeafInTree(tree, paneId) {
   return tree;
 }
 
-// Search-dropdown result panels (app/dotto/lib/mnemonicSearchMatching.ts) — each a single-owner
-// static container (#search-translation/#search-dictionary/etc.), unlike searchSuggestionsStore
-// below, which is shared by multiple producers and needs its own discriminated-union design.
-// null means "nothing to show" (matches each panel's own
-// display:none default) — the actual card content
-// still comes from a vanilla builder (buildTranslationCard/buildDictionaryCard/etc., several of
-// them small self-contained widgets with their own internal cycling/drag state), mounted by a
-// plain side-effect component (TranslationPanel.jsx and friends) rather than a portal, since
-// there's no list to key/diff — one blob of vanilla-built content, wholesale-replaced each time,
-// same as before, just triggered by React state instead of a direct DOM write.
-//
-// All six __set* bridges for these (app/dotto-app.jsx) wrap their store.set in flushSync, unlike
-// the ported notification stack (app/dotto/lib/notificationsStore.ts, a plain Zustand store
-// rather than a flushSync'd bridge like these) — updateSearchDropdown (app/dotto/lib/aiAssistantSuggestions.ts)
-// reads each panel's real DOM node's style.display SYNCHRONOUSLY right after calling its
-// render*Panel function (see renderOrchestrateResult in app/dotto/lib/searchOrchestrationSelection.ts,
-// which calls several of these back-to-back and then updateSearchDropdown once at the end) —
-// without flushSync, that read would race the layout effect that actually sets style.display and
-// could see a stale value, exactly the bug flushSync already exists to prevent for canvasItemsStore.
-export const translationPanelStore = createStore(null);
-export const dictionaryPanelStore = createStore(null);
-export const examplesPanelStore = createStore(null);
-export const recommendedSearchesStore = createStore(null);
-// { text, answerBlocksPanel, answerBlocksLanguage } | null — combines what were originally two
-// separate vanilla functions (renderDotbotAnswerPanel/renderAnswerBlocksPanel) into one store:
-// the second always ran immediately after the first, appending into the SAME container the first
-// had just cleared, so they were never really two independent panels — see
-// DotbotAnswerPanel.jsx and renderDotbotAnswerPanel's own updated comment.
-export const dotbotAnswerStore = createStore(null);
-// { status: 'loading' | 'error' | 'success', reason, imageDataUrl } | null — the mnemonic image
-// result panel's three mutually-exclusive states, see ImageResultPanel.jsx.
-export const imageResultStore = createStore(null);
+// The six search-dropdown result panels (translationPanelStore/dictionaryPanelStore/
+// examplesPanelStore/recommendedSearchesStore/dotbotAnswerStore/imageResultStore) migrated to
+// real Zustand (Zustand migration plan, batch 2, see PHASE4_ROADMAP.md) — see
+// app/dotto/lib/translationPanelStore.ts and its 5 siblings.
 
 // #search-chat-thread (app/dotto/lib/searchOrchestrationSelection.ts) — a persisted, multi-turn
 // Dotbot conversation shown ABOVE the search input (chat-app style), entirely separate from the

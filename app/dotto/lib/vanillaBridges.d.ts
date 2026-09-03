@@ -891,12 +891,6 @@ declare global {
     __setFilesList?: (state: { rows: unknown[]; query: string }) => void;
     __setChatsList?: (rows: { id: string; title: string; updated_at: string }[]) => void;
     __setListPanelSelection?: (state: { panel: string | null; ids: Set<string> }) => void;
-    __setImageResult?: (state: Record<string, unknown> | null) => void;
-    __setTranslationPanel?: (panel: unknown) => void;
-    __setDictionaryPanel?: (panel: unknown) => void;
-    __setExamplesPanel?: (panel: unknown) => void;
-    __setRecommendedSearches?: (panel: unknown) => void;
-    __setDotbotAnswer?: (state: Record<string, unknown> | null) => void;
 
     // app/dotto-app.jsx (via app/dotto/bridges.js's various stores) — React-facing setters for
     // app/dotto/lib/friendsPresence.ts (Phase 4.5 port — was friends-presence.js).
