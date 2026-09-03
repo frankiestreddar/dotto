@@ -5,12 +5,11 @@ import { useState } from "react";
 // Pure reimplementation of `initials` (app/dotto/lib/friendsPresence.ts) — plain string logic with
 // no vanilla-only dependency (no appState/DOM access), so it's computed directly here instead of
 // via a window.__ bridge or a direct import. That matters on first paint specifically: every other
-// window.__ bridge call in these React-owned panels only ever runs after some vanilla-originated
-// store data has already arrived (guaranteeing dotto-script.js, the <Script strategy=
-// "afterInteractive"> bundle that sets those bridges, is already loaded by then) — but Avatar can
-// render on the very FIRST commit (see ProfileIdentity.jsx/ProfileAvatarSm.jsx, gated on nothing
-// but a document.getElementById lookup), which can beat that script's load, throwing
-// "window.__initials is not a function".
+// window.__ bridge call in these React-owned panels only ever runs after some other component's
+// own store data has already arrived (guaranteeing whichever module actually sets that bridge has
+// already evaluated by then) — but Avatar can render on the very FIRST commit (see
+// ProfileIdentity.jsx/ProfileAvatarSm.jsx, gated on nothing but a document.getElementById lookup),
+// which can beat that module's own evaluation, throwing "window.__initials is not a function".
 function initials(name) {
   return (name || "")
     .split(" ")

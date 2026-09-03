@@ -24,10 +24,10 @@ export default function RootLayout({ children }) {
             exactly the "external changing data" case React's own hydration-mismatch warning
             describes, and exactly what that prop exists for. Scoped to just this one
             element/attribute, not a blanket suppression.
-            Applies the theme to <html> synchronously, before anything paints — this app's
-            vanilla-JS bootstrap (dotto-script.js) loads via <Script strategy="afterInteractive">
-            in dotto-app.jsx, well after hydration, which would otherwise mean a visible flash of
-            the wrong theme on every load. Deliberately a plain blocking <script> (no
+            Applies the theme to <html> synchronously, before anything paints — the real switch
+            (app/dotto/lib/themeToggle.ts) only wires up from a useEffect (HamburgerMenu.jsx),
+            which fires well after hydration, which would otherwise mean a visible flash of the
+            wrong theme on every load. Deliberately a plain blocking <script> (no
             async/defer/type=module) so it runs synchronously as the browser parses this <head>,
             before <body> renders.
             Explicit request: the site should follow the OS light/dark preference live, but a

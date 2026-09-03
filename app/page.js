@@ -64,8 +64,9 @@ export default async function Home() {
   if (streakResult.ok) loginStreak = streakResult.streak;
 
   // Requires supabase/migrations/20260730_add_achievements.sql to have been applied. Feeds the
-  // spritebook's per-user lock state (see renderSpriteGrid in public/dotto-script.js) so it shows
-  // correctly on first paint, before any in-session bumpAchievementStat call could populate it.
+  // spritebook's per-user lock state (see renderSpriteGrid in
+  // app/dotto/lib/profileAchievementsPricing.ts) so it shows correctly on first paint, before any
+  // in-session bumpAchievementStat call could populate it.
   const { data: achievementRows } = await supabase
     .from("user_achievements")
     .select("achievement_id")

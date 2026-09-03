@@ -1316,7 +1316,40 @@
   **This closes out the original 8-file `window-bridge.js` dependency list, deletes
   `window-bridge.js` itself, and completes Phase 4.5 (architectural/hub files) in full — all 7 of
   its original sub-items are now done.**
-- **Phase 4.6 — delete the bridge layer: not started.**
+- **Phase 4.6 — delete the bridge layer: mechanical half done, full bridge-layer removal
+  deliberately deferred.** Explicit scoping decision when this phase started: the original plan
+  bundled two very different things into one phase — (a) low-risk mechanical cleanup now that
+  `public/dotto/` is empty (remove the vanilla `<Script>` tag from `app/dotto-app.jsx`, delete the
+  now-pointless `public/dotto-script.js`, rewrite `CONTRIBUTING.md`/`README.md`'s architecture
+  sections, delete the now-obsolete `INLINE_HANDLER_CHECKLIST.md`), and (b) replacing `bridges.js`'s
+  `createStore` with real Zustand and eliminating `window.__*` globals **app-wide** — a
+  simultaneous, whole-tree change touching every already-ported file's own bridge layer and every
+  React component at once, categorically different in kind and risk from every file-by-file port
+  this migration has done so far. Given (b)'s size and blast radius, explicitly asked and got (a)
+  only for this pass — (b) stays on the roadmap, not abandoned, but deserves its own scoping/
+  planning pass rather than starting inline off a plan drafted long before Phase 4.1 even finished.
+  (a) is done: `<Script src="/dotto-script.js" type="module" strategy="afterInteractive">` and its
+  now-unused `next/script` import removed from `app/dotto-app.jsx`; `public/dotto-script.js`
+  deleted (already just an empty placeholder file, per Phase 4.1's own closing note); a dozen or so
+  now-broken present-tense comments referencing the deleted Script tag/dotto-script.js as if it
+  still ran were fixed across `app/dotto-app.jsx`, `app/layout.js`, `app/page.js`, `Avatar.jsx`,
+  `coreState.ts`, `vanillaBridges.d.ts`, `lib/leveling.js`, `lib/dotbot.js`, and
+  `app/api/dotbot/orchestrate/route.js` (each pointed at wherever the real duplicate/caller
+  actually lives now, not left dangling); `CONTRIBUTING.md` and `README.md` rewritten in full —
+  both used to describe a "two layers, bridged together" architecture that's now false; both now
+  describe the real current shape (one TypeScript+React tree, `window.__*`/`createStore` as
+  explicitly-flagged known technical debt rather than a structural boundary) and point at (b) as
+  still-scheduled future work, not silently dropped; `INLINE_HANDLER_CHECKLIST.md` deleted (its
+  entire subject, `window-bridge.js`, was itself deleted back in the Phase 4.5 `source-tags-ai.js`
+  port). `node --check` (moot, no vanilla files touched), `eslint`/`npm run typecheck`/`npm run
+  format:check` clean, `rm -rf .next && npm run build` clean, all 32 Vitest tests green. Real
+  Playwright verification against a real dev server: the app loads with zero console errors and a
+  real working `appState`/canvas; confirmed the `<script src="/dotto-script.js">` tag is genuinely
+  gone from the rendered DOM (not just the JSX source); the theme toggle (the one piece of bootstrap
+  code most plausibly sensitive to the Script tag's removal, since `app/layout.js`'s own blocking
+  inline theme script explicitly used to justify its own timing against it) still flips
+  `document.documentElement.dataset.theme` correctly end-to-end. Regression-verified
+  `verify-phase4-1-search-panel-history-port.js` clean afterward. Zero console/page errors.
 - **Phase 4.7 — final cleanup & professionalization close-out: not started.**
 
 ## Why this phase exists
@@ -2837,3 +2870,46 @@ empty.** This directly unblocks Phase 4.6 (delete `bridges.js`'s `createStore` m
 the vanilla `<Script>` tag from `app/dotto-app.jsx`, delete `public/dotto/` and the now-empty
 `public/dotto-script.js`, rewrite `CONTRIBUTING.md`/`README.md`'s architecture sections, delete
 `INLINE_HANDLER_CHECKLIST.md`), which nothing further is blocking now.
+
+**Phase 4.6 (mechanical half — see the Status section above for the explicit scoping decision)**:
+removed `<Script src="/dotto-script.js" type="module" strategy="afterInteractive">` and its
+now-unused `next/script` import from `app/dotto-app.jsx`; deleted `public/dotto-script.js` (an
+empty placeholder since Phase 4.1's own closing commit) and `INLINE_HANDLER_CHECKLIST.md` (its
+entire subject, `window-bridge.js`, was itself deleted back in the Phase 4.5 `source-tags-ai.js`
+port — confirmed via git history before deleting, not assumed); fixed roughly a dozen now-broken
+present-tense comments that referenced the deleted Script tag or `dotto-script.js` as if it still
+ran, across `app/dotto-app.jsx` (3 spots — the module-level `window.__dottoSupabase`/
+`window.__setPricingOverlayOpen` bootstrap comments and the render-body `window.__DOTTO_USER__`
+one), `app/layout.js` (the blocking inline theme script's own justification), `app/page.js` and
+`lib/dotbot.js`/`lib/leveling.js`/`app/api/dotbot/orchestrate/route.js` (four "see X in
+dotto-script.js" pointers, each redirected to wherever that function's real duplicate/caller
+actually lives now — `profileAchievementsPricing.ts`, `mnemonicSearchMatching.ts`,
+`shelfSearch.ts`, `searchOrchestrationSelection.ts` respectively, each confirmed by grep before
+retargeting, not guessed), `app/dotto/lib/coreState.ts` (2 spots) and `vanillaBridges.d.ts` (1) —
+all previously justified their own render-body-not-effect timing against "the vanilla script's own
+load," when the real reason in every case was a same-render-body caller (`ensureCoreState()`)
+needing the value synchronously; `Avatar.jsx`'s own similar comment reworded the same way (the
+race is against whichever module sets a given bridge, not a vanilla script's load). Rewrote
+`CONTRIBUTING.md` (full rewrite — the "two layers, bridged together" framing, the vanilla-side
+file-shape conventions section, and the step-by-step vanilla-bridging instructions in "Adding a new
+piece of React-owned UI" were all describing an architecture that no longer exists; replaced with
+what's actually true now: one TypeScript+React tree, `window.__*`/`createStore` explicitly named as
+known technical debt with a same-tree-import-first default going forward, not a structural
+boundary) and `README.md` (Architecture + Project structure sections, same reasoning; corrected the
+stale "no automated test suite exists yet" QA_CHECKLIST.md characterization along the way — a real
+Vitest unit suite and a real, if still-small, Playwright `e2e/` suite both exist now, confirmed via
+`package.json`'s own scripts and reading `e2e/smoke.spec.ts`/`e2e/global-setup.ts`/
+`e2e/authenticated/canvas.spec.ts` directly rather than assumed). `eslint`/`npm run
+typecheck`/`npm run format:check` clean, `rm -rf .next && npm run build` clean, all 32 Vitest tests
+green. Real Playwright verification against a real dev server (killed a stray leftover process
+squatting on port 3000 from an earlier run first, confirmed via the `⚠ Port 3000 is in use`
+warning rather than assuming a clean environment): the app loads with a real working
+`appState`/canvas and zero console errors; `document.querySelector('script[src="/dotto-script.js"]')`
+confirmed `null` — genuinely gone from the rendered DOM, not just the JSX source; the theme toggle
+(reached via a real `#btn-profile` → `#profile-settings-btn` → `#theme-switch-input` click
+sequence, the one piece of bootstrap code most plausibly sensitive to the Script tag's removal,
+since `app/layout.js`'s own blocking inline theme script explicitly used to justify its timing
+against it) still flips `document.documentElement.dataset.theme` correctly end-to-end.
+Regression-verified `verify-phase4-1-search-panel-history-port.js` clean afterward. Zero
+console/page errors. **The full `createStore`→Zustand replacement and app-wide `window.__*`
+elimination remain open, deliberately deferred — not silently dropped.**

@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect } from "react";
-import Script from "next/script";
 import { flushSync } from "react-dom";
 import { createClient } from "@/lib/supabase/client";
 import {
@@ -228,28 +227,25 @@ import CanvasContextMenu from "./dotto/sections/CanvasContextMenu";
 //      organizational (confirmed no CSS/JS in the original relies on these
 //      containers being direct children of <body> or on their exact sibling
 //      order via `:nth-child`), so this is still zero behavior change.
-//   2. public/dotto-script.js is no longer the whole app in one classic
-//      script — it's now a thin ES module entry point that just imports
-//      every file under public/dotto/ (in the original file's own top-to-
-//      bottom order — see PHASE2_ROADMAP.md Phase 1) plus a generated
-//      window-bridge.js at the end, which is what makes every inline
-//      onclick="..." attribute above still resolve: real ES modules don't
-//      attach their top-level functions to `window` the way a classic
-//      script did, so window-bridge.js explicitly does that for every name
-//      actually called by name from HTML. `type="module"` on the <Script>
-//      tag below is the one change that makes the browser load it as such.
+//   2. public/dotto-script.js used to be a thin ES module entry point that
+//      imported every remaining file under public/dotto/ — Phase 4.1's own
+//      closing port (PHASE4_ROADMAP.md) emptied that surface out entirely,
+//      so the <Script> tag that used to load it (and window-bridge.js,
+//      which made every inline onclick="..." attribute above resolve
+//      against a real `window` assignment, the way a classic script did for
+//      free) are both gone now. Every inline handler resolves against a
+//      real plain-global assignment (`window.foo = ...`) set directly by
+//      whichever app/dotto/lib/*.ts file owns it instead — same shape, just
+//      set from here on.
 //
-// Phase 2 will continue by peeling pieces of dotto-script.js into real React
-// state/hooks, subsystem by subsystem (see PHASE2_ROADMAP.md), replacing
-// this shim a bit at a time rather than all at once.
-//
-// dotto-script.js's entry point can't top-level `import` the Supabase client
-// itself without creating a real dependency edge into app/ from public/ (and
-// every module it loads still expects a plain global, not an import, since
-// they were mechanically extracted from the original classic script — see
-// Phase 1 in PHASE2_ROADMAP.md). Instead this component — which hydrates
-// before the afterInteractive script runs — hangs a shared client on
-// `window` for it to use, alongside the signed-in user's profile.
+// dotto-script.js's own (now-removed) entry point could never top-level
+// `import` the Supabase client itself without creating a real dependency
+// edge into app/ from public/. Nothing loads before this component anymore,
+// but window.__dottoSupabase remains: it's still the one bridge every
+// ported file's own module-eval-time code reads before this component's own
+// (passive) useEffect below would get a chance to assign it via props/
+// context instead — same "set during module eval, not an effect" timing
+// window.__setupResizing/window.__setPricingOverlayOpen below need too.
 if (typeof window !== "undefined" && !window.__dottoSupabase) {
   window.__dottoSupabase = createClient();
 }
@@ -286,7 +282,7 @@ if (typeof window !== "undefined") {
 // openPricingOverlay/closePricingOverlay still exist unchanged for every existing caller (inline
 // onclick="..." attributes, other ES modules) — they just call this instead of touching the DOM
 // directly now. Same "set during module eval, not an effect" timing as window.__dottoSupabase
-// above: vanilla code (via afterInteractive dotto-script.js) needs this to exist as soon as it
+// above: some other component's own module-eval-time code needs this to exist as soon as it
 // might call it, and effects run after paint, too late relative to that ordering guarantee.
 if (typeof window !== "undefined") {
   window.__setPricingOverlayOpen = pricingOverlayStore.set;
@@ -497,10 +493,10 @@ export default function DottoApp({ sections, currentUser }) {
   // same as the window.__dottoSupabase bootstrap above.
   if (typeof window !== "undefined") {
     // Deliberately not moved into an effect (which the react-hooks/immutability rule below
-    // would otherwise want) — dotto-script.js's afterInteractive <Script> tag needs
-    // window.__DOTTO_USER__ set before it runs, and setting it during render (not after paint,
-    // which an effect would do) is what guarantees that ordering — same reasoning as the
-    // window.__dottoSupabase bootstrap above.
+    // would otherwise want) — ensureCoreState() right below reads window.__DOTTO_USER__
+    // synchronously, in this same render-body spot, and setting it during render (not after
+    // paint, which an effect would do) is what guarantees it's already there — same reasoning as
+    // the window.__dottoSupabase bootstrap above.
     // eslint-disable-next-line react-hooks/immutability
     window.__DOTTO_USER__ = currentUser;
     // ensureCoreState() (app/dotto/lib/coreState.ts, Phase 4.5 port — was core-state.js)
@@ -508,8 +504,9 @@ export default function DottoApp({ sections, currentUser }) {
     // this exact same render-body spot, not a plain module-load-time side-effect import (every
     // other Phase 4.4/4.5 port's own pattern) and not a useEffect either: module evaluation always
     // completes before the first render, too early for window.__DOTTO_USER__ above; an effect
-    // fires after paint, too late for the same afterInteractive-ordering reason. Idempotent — only
-    // the first call across DottoApp's whole lifetime actually builds anything.
+    // fires after paint, too late — window.__DOTTO_USER__ needs to already be set by the time
+    // this line runs. Idempotent — only the first call across DottoApp's whole lifetime actually
+    // builds anything.
     ensureCoreState();
   }
 
@@ -773,7 +770,6 @@ export default function DottoApp({ sections, currentUser }) {
       <ErrorBoundary name="AchievementsGrid">
         <AchievementsGrid />
       </ErrorBoundary>
-      <Script src="/dotto-script.js" type="module" strategy="afterInteractive" />
     </>
   );
 }

@@ -1,133 +1,131 @@
 # Contributing
 
 This describes how the codebase is structured today and how to add to it — not migration history
-(see `PHASE2_ROADMAP.md` for that, and for why some things below are vanilla by design rather than
-oversight).
+(see `PHASE4_ROADMAP.md` for that, and for why some things below are shaped the way they are
+rather than by oversight).
 
-## The two-layer architecture
+## The architecture today
 
-The app is split into two cooperating layers:
+The app is one cohesive React + TypeScript codebase under `app/dotto/`:
 
-- **`public/dotto/*.js`** — ~30 vanilla ES modules, no bundler, loaded as one `<Script
-  type="module">`. This is where the app's behavior and shared state (`appState`,
-  `public/dotto/core-state.js`) live — canvas rendering, drag/resize/select, connections, live
-  collaboration, the Source database page, and more. Staying vanilla for now is a deliberate
-  sequencing choice, not a verdict that it's fine forever — see "A note on the architecture itself"
-  below for the real plan.
-- **`app/dotto/*.jsx`** — real React components, one per converted subsystem (overlays, dropdown
-  panels, list panels, every canvas card kind). Each one portals into an *existing* static DOM node
-  from `content/fragments/*.html` rather than owning new markup.
+- **`app/dotto/lib/*.ts`** — plain TypeScript modules holding the app's behavior and logic: canvas
+  rendering, drag/resize/select, connections, live collaboration, the Source database page, and
+  more. `app/dotto/lib/coreState.ts` owns the `appState` singleton these mostly read/mutate.
+- **`app/dotto/*.jsx`** — real React components, one per subsystem (overlays, dropdown panels,
+  list panels, every canvas card kind). Most portal into an *existing* static DOM node from
+  `content/fragments/*.html` rather than owning new markup — a holdover from when that markup was
+  hand-authored HTML the vanilla layer built around, kept because it still works and there's no
+  reason to churn it.
 
-They talk to each other through `window.__*` — never a normal `import`, since `public/dotto/*.js`
-can't import from `app/` (no bundler on that side) and the reverse would create a real dependency
-edge this migration deliberately avoided.
+There is no separate vanilla/bundler-less layer anymore — `public/dotto/` (the ~30-odd vanilla ES
+modules this app used to ship as a raw `<Script type="module">` bundle) was fully retired in
+Phase 4.1 (see `PHASE4_ROADMAP.md`). Everything is real TypeScript now, type-checked, and reachable
+by a normal `import`.
 
-## Adding a new piece of React-owned UI
+### `window.__*` — still around, now an internal convention, not a layer boundary
 
-Follow this shape — every component in `app/dotto/` does, and `bridges.js`'s own per-store
-comments are the closest thing to a style guide, worth skimming before you add one:
+A lot of modules still reach each other through `window.__*` rather than a plain `import`. That
+convention predates the full React/TS consolidation — it used to be load-bearing, the only way
+code on either side of the vanilla/React split could reach across it. That reason is gone, but the
+convention itself hasn't been fully retired yet: `bridges.js`'s hand-rolled `createStore` (not a
+real state library), and every existing `window.__*` bridge between now-React/TS modules, are
+still exactly what they were before. **This is known, tracked technical debt, not the intended
+end state** — see "A note on the architecture itself" below.
 
-1. **Add a store** to `app/dotto/bridges.js`: `export const myThingStore = createStore(initialValue);`
-   with a short comment describing the shape and, if it's a list, why it's genuine JSX rows vs. a
-   vanilla-built widget mounted via ref (see "Should this be React?" below for that call).
-2. **Bridge vanilla → React** in `app/dotto-app.jsx`, inside the `if (typeof window !==
-   "undefined") { ... }` block: `window.__setMyThing = myThingStore.set;`. Wrap it in `flushSync`
-   only if some vanilla code reads the DOM *synchronously* right after calling it — e.g.
-   `window.__renderCanvasItems = (items) => flushSync(() => canvasItemsStore.set(items));`
-   (`app/dotto-app.jsx`) exists because `render()`'s caller sometimes does
-   `document.getElementById('item-'+id)` immediately after. If nothing reads the DOM synchronously
-   after your bridge call, skip `flushSync` — it's not free, and most stores don't need it.
-3. **Write the component** in `app/dotto/YourThing.jsx`:
-   - `usePortalNode("existing-dom-id")` (`app/dotto/usePortalNode.js`) to resolve the static target
-     node from mount. Never create new DOM structure — always portal into something already in
-     `content/fragments/*.html`.
-   - `useSyncExternalStore(myThingStore.subscribe, myThingStore.getSnapshot, () => fallback)` to
-     read the store.
-   - `createPortal(<your JSX/>, portalNode)`. If a list item's own content needs real vanilla DOM
-     (an existing builder function, not worth re-expressing as JSX — see below), mount it via a
-     `useRef` + `useLayoutEffect` sub-component, same pattern as `InlineCanvasPreview` in
-     `MarketDetailPanel.jsx`.
-4. **Bridge React → vanilla**: any vanilla function your component needs to call gets
-   `window.__fnName = fnName;` at the bottom of the vanilla file that owns it. Never touch
-   `public/dotto/window-bridge.js` — that file is auto-generated for a different purpose (the
-   ~107 functions still called by name from inline `onclick="..."` HTML attributes) and hand-
-   editing it breaks its own "provably complete" guarantee (see its own header comment).
-5. **Mount it** in `app/dotto-app.jsx`, wrapped in `<ErrorBoundary name="YourThing">` — every
-   top-level piece is, so one crash can't take the rest of the app down.
+Practically, today:
+- **When adding a new same-tree caller** (an `app/dotto/lib/*.ts` or `app/dotto/*.jsx` file that
+  needs something from another file in the same tree, with no real circularity), **import it
+  directly.** Don't reach for a new `window.__*` bridge just because that used to be the pattern —
+  a plain `import` is simpler, type-checked, and the standing direction of travel. If you're
+  touching a file that still calls an existing sibling through a bridge for no reason other than
+  history (its old vanilla-side caller is long gone), upgrading that one call site to a real
+  import while you're there is welcome, not scope creep — see `PHASE4_ROADMAP.md`'s own closing
+  entries for many examples of this exact upgrade, file by file.
+- **A few bridges are deliberately kept as bridges even between two TS/React files**, either
+  because of a genuine circular import between two files that would otherwise both need to load
+  before the other (documented case by case — see e.g. `drawingConnections.ts`'s and
+  `srsConnectionsCore.ts`'s own header comments), or because a handful of "hub" accessors
+  (`window.__getAppState`, `window.__saveSnapshot`, `window.__render`, `window.__findItemById`,
+  `window.pushNotification`, and a few others) are called from dozens of files each and have
+  stayed bridges throughout the whole migration by established convention, to avoid a
+  combinatorial explosion of import edges — not because importing them directly would be wrong.
+- **`bridges.js`'s `createStore`** is still how React components subscribe to state a `lib/*.ts`
+  module owns (`useSyncExternalStore(myStore.subscribe, myStore.getSnapshot, ...)` reading a store
+  a `window.__setMyThing = myStore.set;` assignment writes to). New React-facing state should
+  follow this same shape for now, matching every existing store — see `bridges.js`'s own per-store
+  comments, still the closest thing to a style guide for this pattern.
+- **Real inline `onclick="..."`/`oninput="..."` targets** — HTML strings some modules still build
+  directly (a source table's cells, the search-history list, a few others) — need a plain,
+  non-`__`-prefixed global (`window.fnName = fnName;`), same shape `window.pushNotification` uses.
+  This is different from the bridge convention above and isn't going away just because the vanilla
+  layer did — it's how a real inline-HTML-attribute string resolves a function at click time,
+  regardless of which layer defines it.
 
-### Should this be React?
+## Should this be a real component vs. a raw HTML-string builder?
 
-For a **new** piece of UI: yes, essentially always — that's the default in this section above, and
-it's the shape of nearly every component in `app/dotto/`.
+For **new** UI: a real component, essentially always.
 
-For **existing vanilla code** you're just touching in passing (not planning to redesign): don't
-convert it as a drive-by. Not because it's fine to stay vanilla forever — the end goal is one
-cohesive React codebase, see "A note on the architecture itself" below — but because converting it
-*properly* is real, deliberate work, and doing it halfway while you're really there for an
-unrelated feature produces the opposite of a professional codebase: a half-migrated mess with two
-competing patterns for the same thing. Three categories that specifically need doing properly
-rather than opportunistically, all with precedent in this codebase (see `PHASE2_ROADMAP.md`):
+For **existing HTML-string-building code** you're just touching in passing (not planning to
+redesign): don't convert it as a drive-by, for the same reason this has always applied — converting
+it *properly* is real, deliberate work, and doing it halfway while you're there for something
+unrelated produces two competing patterns for the same thing instead of one clean one. The
+categories that specifically need doing properly rather than opportunistically (all with precedent
+in this codebase — see `PHASE4_ROADMAP.md`):
 - **contentEditable fields** (Item Detail's title, the Publish Flow view, the Source table's
-  cells) — a real conversion here means adopting an actual rich-text/contentEditable approach that
+  cells) — a real conversion means adopting an actual rich-text/contentEditable approach that
   doesn't fight React's diffing (a library like Lexical/Slate/TipTap, or a carefully-designed
   uncontrolled-ref pattern), not wrapping the existing DOM-string logic in JSX and hoping the caret
-  behaves. Worth doing right, as its own scoped piece of the full consolidation.
+  behaves.
 - **Continuous pointer-driven pixel math** (drag, resize, connection-dragging, hover-zone
-  geometry) — a real conversion means React-owned components with ref-based imperative escape
-  hatches for the hot path (same technique used today, just living inside components instead of a
-  separate global-bridge module system), designed and tested as a unit, not bolted on piecemeal.
-- **No natural content-parameter boundary** (the hamburger menu's Outline panel is the standing
-  example) — needs an actual design pass (what should its React-owned state even look like?), not
-  a mechanical port of the existing recursive DOM-building function.
+  geometry) — already lives as component-local imperative code with ref-based escape hatches
+  (`canvasItemBehavior.js` is the reference example, see below) — extending it in place, not
+  bridging it further apart, is the right move here.
+- **No natural content-parameter boundary** (the hamburger menu's Outline panel was the standing
+  example before its own Phase 4.4 port) — needs an actual design pass for what its owned state
+  should look like, not a mechanical wrap of a recursive DOM-building function in JSX.
 
-If you're doing focused, scoped work on one of these areas specifically (not a drive-by touch),
-that's exactly the kind of subsystem-sized slice the full consolidation should be built from — flag
-it and do it properly rather than avoiding it by default.
+## Writing imperative canvas code safely
 
-## Working in `public/dotto/*.js`
-
-Most new backend-touching or canvas-behavior features will still live here, extending the existing
-pattern, not converting it. Conventions to match:
-- File shape: imports → `// ---------- Section ----------` comment → functions → one alphabetized
-  `export { ... };` → `window.__*` bridge assignments at the bottom with a comment naming which
-  React component uses each one.
-- Error handling: `if (error) { console.error('[tag] context:', error); ... }` — a short bracketed
-  subsystem tag, always logged, never swallowed silently.
-- State lives on `appState` (`core-state.js`), not module-level `let`s.
-
-`setupDraggingAndClicking`/`setupResizing` (`drag-drop-chat.js`/`resize-shortcuts-init.js`) are the
-reference example for writing vanilla code that operates on React-owned DOM nodes safely: they use
+`setupDraggingAndClicking`/`setupResizing` (`app/dotto/canvasItemBehavior.js`) are the reference
+example for writing imperative code that operates on React-owned DOM nodes safely: they use
 `AbortController`-based idempotent re-registration (`el.__dragListenerAbort = new
 AbortController()`) so `CanvasItemsLayer.jsx`'s layout effect can safely re-run them on every
 render without leaking listeners. Copy that pattern if you're wiring new imperative behavior onto
 `#items-layer`'s cards.
 
+Error handling convention throughout `app/dotto/lib/*.ts`: `if (error) { console.error('[tag]
+context:', error); ... }` — a short bracketed subsystem tag, always logged, never swallowed
+silently.
+
 ## Verification before committing
 
-- `node --check path/to/file.js` on every vanilla file you touched.
-- `npx eslint path/to/files...` on everything touched, vanilla and React.
-- `npm run build` — confirms the Next.js/React side compiles and SSRs cleanly.
-- This environment can't run a real browser. Anything touching interactive behavior still owes a
-  manual click-through — don't claim more confidence than a design read actually earned.
+- `npx eslint path/to/files...` on everything touched.
+- `npm run typecheck` — the whole point of having real types; don't skip it.
+- `npm run format:check` (or `prettier --write` the files you touched) before committing.
+- `npm run test` — Vitest unit tests for anything with real logic coverage.
+- `rm -rf .next && npm run build` — confirms the app compiles and SSRs cleanly. Never run this
+  concurrently with a live `npm run dev` — they share a `.next` cache and will corrupt each other.
+- Anything touching interactive behavior owes real browser verification, not just a design read —
+  this environment can drive a real Playwright browser against a real dev/production server; use
+  it rather than claiming confidence a static read didn't actually earn.
 
 ## A note on the architecture itself
 
-The vanilla/React split, and the `window.__*` bridge mechanism connecting the two halves, is a
-well-executed *migration scaffold* — not necessarily what a team would design building this app
-from scratch. Keeping high-frequency pointer-driven canvas work (drag, resize, connections,
-hover-zone math) outside React's reconciliation is genuinely good practice, matching real canvas-
-app architecture (Figma/tldraw/Excalidraw-style) — that part isn't a compromise. The mechanism
-itself is: a from-scratch build would more likely keep everything in one React tree (with the same
-imperative escape hatches implemented as component-local refs, not a separate global-bridge module
-system), use a real state library (Zustand/Valtio/Jotai) instead of the hand-rolled `createStore`
-here, and have zero `window.__*` global functions.
+The full vanilla/React split is gone — every file is real TypeScript now. What's left of the
+original *migration scaffold* is narrower but still real: `bridges.js`'s hand-rolled `createStore`
+instead of a proper state library (Zustand/Valtio/Jotai), and `window.__*` as the mechanism a good
+number of same-tree modules still use to reach each other instead of a plain `import`. Neither is
+wrong exactly — the imperative, outside-React canvas-core work (drag/resize/connections/hover-zone
+math) staying outside React's reconciliation is genuinely good practice, matching real canvas-app
+architecture (Figma/tldraw/Excalidraw-style), not a compromise — but `window.__*` as a *general*
+cross-module convention, and a hand-rolled store instead of a real one, are exactly the kind of
+thing a from-scratch build wouldn't do.
 
-Collapsing the two layers into one cohesive React architecture is planned, not optional — the goal
-is a codebase that reads as intentionally, professionally built end to end, not one with a
-permanent "legacy vanilla half." It's scheduled to happen before external developers are onboarded
-or this ships, as its own dedicated initiative — not something to chip away at opportunistically
-alongside unrelated feature work, since a half-converted state (some canvas interactions React,
-some still vanilla, mid-migration) would read as *less* professional than the current, consistent
-split does. When it happens, plan it fresh at that time rather than off a plan drafted long before,
-and expect it to need the same incremental, subsystem-by-subsystem discipline this migration used
-(arguably more, given how much imperative canvas-core logic it touches), not a single pass.
+Finishing that collapse — replacing `createStore` with real Zustand, and converting the remaining
+`window.__*` bridges (the ones that are genuinely just historical, not the deliberately-kept
+circular/hub-accessor cases above) into plain imports or props — is still on the roadmap, not
+abandoned. It's deliberately its own dedicated initiative rather than something to chip away at
+opportunistically alongside unrelated feature work, given how many files and call sites it touches
+simultaneously — plan it properly when it's actually scheduled, with the same incremental,
+verified-at-every-step discipline the rest of this migration used, rather than assuming a plan
+drafted well before it's underway still fits.

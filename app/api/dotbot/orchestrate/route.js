@@ -109,7 +109,8 @@ function sanitizeInlineMarkers(text, { dictEntryCount, exampleCount, hasTranslat
 // One query's contents, appended as the final user turn after any prior conversation history
 // (see loadConversationHistory/generateOnce below — a query can now be a follow-up continuing an
 // earlier exchange, not always a fresh independent one). cardContext/cardConnections are the
-// cards the user dragged into the search box (see addCardsToSearchContext in dotto-script.js) —
+// cards the user dragged into the search box (see addCardsToSearchContext in
+// app/dotto/lib/shelfSearch.ts) —
 // already reduced to short plain-text descriptions client-side, so this just re-caps defensively
 // and appends them as a labeled block the prompt tells the model how to use. Returns a plain
 // string (the user message's content) rather than Gemini's {role,parts} contents array, since
@@ -156,7 +157,8 @@ function buildContents(
       }
       // Numbered to match the card list just above (both built client-side from the same
       // searchCardContext array, in the same order — see describeCardForAI's caller in
-      // dotto-script.js) so the model can point "sourceAction.targetIndex" straight back at one.
+      // app/dotto/lib/searchOrchestrationSelection.ts) so the model can point
+      // "sourceAction.targetIndex" straight back at one.
       if (Array.isArray(sourceContext) && sourceContext.length) {
         const sources = sourceContext
           .filter((s) => s && typeof s === "object" && Number.isFinite(s.index))
@@ -266,7 +268,8 @@ async function loadConversationHistory(supabase, conversationId) {
 }
 
 // Turns the model's { dictionary, examples, dotbotText, showCanvasResults } response into the
-// flat, ordered `panels` array the client already renders (see dotto-script.js). dotbot_text is
+// flat, ordered `panels` array the client already renders (see renderOrchestrateResult,
+// app/dotto/lib/searchOrchestrationSelection.ts). dotbot_text is
 // listed last here — the client renders it as the top/first panel regardless of array order
 // (see renderOrchestrateResult) since a written answer takes priority when present, but the
 // prompt has it reference the dictionary card ("as shown above") rather than repeat it, so this

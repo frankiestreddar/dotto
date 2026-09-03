@@ -11,9 +11,9 @@
 // plain module-load-time side-effect import (the pattern outlineTree.ts/shelfSearch.ts/
 // waypointsRenderLoop.ts/etc all use), because appState.currentUser depends on
 // window.__DOTTO_USER__, which dotto-app.jsx deliberately sets INSIDE DottoApp's own render body
-// (not at module eval, not in an effect — see that file's own comment on why: dotto-script.js's
-// afterInteractive <Script> tag needs it ready before that script runs, and setting it during
-// render, not after paint, is what guarantees that ordering) — module evaluation always completes
+// (not at module eval, not in an effect — see that file's own comment on why: ensureCoreState()
+// itself, called right after in that same render body, needs it ready already, and setting it
+// during render, not after paint, is what guarantees that ordering) — module evaluation always completes
 // BEFORE the first render call, so a plain side-effect import here would run too early and
 // construct appState.currentUser from the guest fallback every time, even for a real logged-in
 // user. Instead this exports ensureCoreState(), called from DottoApp's own render body immediately
@@ -370,8 +370,9 @@ let initialized = false;
 // Phase 4.4/4.5 port, and NOT deferred to a useEffect/wireX() poll either. Both would be wrong
 // here: a plain side-effect import would run during module evaluation, before ANY render — too
 // early for window.__DOTTO_USER__, which dotto-app.jsx deliberately sets during render specifically
-// to be ready before dotto-script.js's afterInteractive tag fires; a useEffect would run AFTER
-// paint, too late for that same reason. This needs the exact same synchronous render-body timing
+// so this function (called right after, in that same render body) can read it synchronously; a
+// useEffect would run AFTER paint, too late for that same reason. This needs the exact same
+// synchronous render-body timing
 // window.__DOTTO_USER__ itself uses. Idempotent — DottoApp re-renders many times over its
 // lifetime, but appState must only ever be constructed once.
 export function ensureCoreState(): void {

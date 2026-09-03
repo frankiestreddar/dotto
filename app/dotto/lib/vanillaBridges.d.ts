@@ -836,8 +836,8 @@ declare global {
       itemId: number | string,
     ) => Promise<void>;
     // app/dotto-app.jsx — set inline during DottoApp's own render body (not an effect, not module
-    // eval — see that file's own comment for why: dotto-script.js's afterInteractive <Script> tag,
-    // and app/dotto/lib/coreState.ts's own ensureCoreState(), both need this ready before they run).
+    // eval — see that file's own comment for why: app/dotto/lib/coreState.ts's own
+    // ensureCoreState(), called right after in that same render body, needs this ready first).
     __DOTTO_USER__?: {
       id: string | null;
       username: string;
