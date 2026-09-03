@@ -55,13 +55,13 @@ export default async function Home() {
   // just granted THIS load in the score the page renders, rather than waiting for a refresh.
   let totalScore = profile?.total_score ?? 0;
   const bonus = await awardDailyLoginBonus(supabase, user.id);
-  if (bonus.ok) totalScore = bonus.totalScore;
+  if (bonus.ok) totalScore = bonus.totalScore ?? totalScore;
 
   // Not idempotent-and-skippable like the bonus above — runs every load and always reflects the
   // current streak (see bump_login_streak).
   let loginStreak = profile?.login_streak ?? 0;
   const streakResult = await bumpLoginStreak(supabase, user.id);
-  if (streakResult.ok) loginStreak = streakResult.streak;
+  if (streakResult.ok) loginStreak = streakResult.streak ?? loginStreak;
 
   // Requires supabase/migrations/20260730_add_achievements.sql to have been applied. Feeds the
   // spritebook's per-user lock state (see renderSpriteGrid in

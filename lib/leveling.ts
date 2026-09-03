@@ -1,3 +1,6 @@
+import type { SupabaseClient } from "@supabase/supabase-js";
+import type { Database } from "./supabase/database.types";
+
 // 20-tier / 9-sub-rank (180 total sub-level) user progression system. Schema this depends on
 // (profiles.total_score, profiles.last_daily_bonus_at, the award_user_points and
 // award_daily_login_bonus RPCs) lives in
@@ -40,13 +43,25 @@ const BASE_POINTS = 100;
 // Cumulative score required to REACH absolute sub-level L (1-180). L=1 costs 0 (everyone starts
 // there); each level after that compounds by GROWTH_RATE off a BASE_POINTS unit, via the
 // standard geometric-series sum: sum_{i=0}^{n-1} base*rate^i = base*(rate^n - 1)/(rate - 1).
-function scoreRequiredForLevel(level) {
+function scoreRequiredForLevel(level: number): number {
   if (level <= 1) return 0;
   return Math.floor((BASE_POINTS * (Math.pow(GROWTH_RATE, level - 1) - 1)) / (GROWTH_RATE - 1));
 }
 
+export interface UserLevel {
+  totalScore: number;
+  absoluteLevel: number;
+  tierIndex: number;
+  tierName: string;
+  subRank: number;
+  displayName: string;
+  currentLevelScore: number;
+  nextLevelScore: number;
+  progressPercentage: number;
+}
+
 // Derives full level details from a user's cumulative total_score (profiles.total_score).
-export function calculateUserLevel(score) {
+export function calculateUserLevel(score: number | null | undefined): UserLevel {
   const totalScore = Math.max(0, Math.floor(score || 0));
 
   // Highest absolute level (1-180) whose threshold the score has met — capped at 180, a score
@@ -84,14 +99,28 @@ export function calculateUserLevel(score) {
   };
 }
 
+type Supabase = SupabaseClient<Database>;
+
+interface RpcResult {
+  ok: boolean;
+  reason?: "error" | "already_claimed";
+  totalScore?: number;
+  streak?: number;
+}
+
 // Centralized score-award entry point — every app action that grants points (chat message,
 // canvas block, flashcard flip, daily login, achievement unlock, ...) should go through this
 // (server-side call sites) or its app/dotto/lib/profileAchievementsPricing.ts duplicate
 // (client-side call sites) rather than touching profiles.total_score directly, so scoring always
 // goes through the atomic, audited award_user_points RPC. `supabase` is an already-created client
 // (browser or server) —
-// this module doesn't construct one itself, matching lib/dotbot.js's credit-spend functions.
-export async function awardUserPoints(supabase, userId, actionType, points) {
+// this module doesn't construct one itself, matching lib/dotbot.ts's credit-spend functions.
+export async function awardUserPoints(
+  supabase: Supabase,
+  userId: string,
+  actionType: string,
+  points: number,
+): Promise<RpcResult> {
   const { data, error } = await supabase.rpc("award_user_points", {
     p_user_id: userId,
     p_action_type: actionType,
@@ -107,7 +136,11 @@ export async function awardUserPoints(supabase, userId, actionType, points) {
 // Awards the daily-login bonus if it hasn't already been claimed within the last 20 hours (see
 // award_daily_login_bonus's own idempotency check) — safe to call unconditionally on every page
 // load. Returns { ok: true, totalScore } only when the bonus was actually granted this call.
-export async function awardDailyLoginBonus(supabase, userId, points = 20) {
+export async function awardDailyLoginBonus(
+  supabase: Supabase,
+  userId: string,
+  points = 20,
+): Promise<RpcResult> {
   const { data, error } = await supabase.rpc("award_daily_login_bonus", {
     p_user_id: userId,
     p_points: points,
@@ -124,7 +157,7 @@ export async function awardDailyLoginBonus(supabase, userId, points = 20) {
 // supabase/migrations/20260725_add_login_streak.sql for the actual continuity logic. Unlike
 // awardDailyLoginBonus this isn't idempotent-and-skippable; it's meant to run once per page load
 // and always returns the current streak value (whether or not it changed this call).
-export async function bumpLoginStreak(supabase, userId) {
+export async function bumpLoginStreak(supabase: Supabase, userId: string): Promise<RpcResult> {
   const { data, error } = await supabase.rpc("bump_login_streak", {
     p_user_id: userId,
   });
