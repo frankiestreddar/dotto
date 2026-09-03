@@ -6,6 +6,8 @@
 // both files living in the same app/dotto/ tree — see that component's own updated comment).
 // Reaches every still-vanilla dependency through window bridges.
 
+import { escapeHtml } from "./textUtils";
+
 interface Item {
   id: number;
   mediaUploading?: boolean;
@@ -75,7 +77,7 @@ function findItemById(id: number): Item | undefined {
 export function renderMediaHTML(it: Item): string {
   if (it.mediaUploading) {
     return `<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;gap:8px;color:var(--ink-soft);width:100%;">
-                <div style="font-size:13px;">Uploading ${window.__escapeHtml?.(it.mediaName || "file")}…</div>
+                <div style="font-size:13px;">Uploading ${escapeHtml(it.mediaName || "file")}…</div>
             </div>`;
   }
   if (!it.mediaSrc) {

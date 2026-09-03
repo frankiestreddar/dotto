@@ -8,6 +8,7 @@ import {
   handlePenPointerDown,
   isValidConnection,
 } from "./lib/srsConnectionsCore";
+import { escapeHtml, stripHtml } from "./lib/textUtils";
 
 // The "continuous pointer-driven pixel math" pieces of canvas core (CONTRIBUTING.md's category
 // name for this — Phase 3 of the vanilla->React consolidation) that have moved out of separate
@@ -820,7 +821,7 @@ function buildHeaderPillsHTML(colNames, colOptsFn) {
       return `
             <div class="col-name-slot" data-c="${ci}">
                 <div class="col-name-pill">
-                    <input type="text" class="col-name-input" data-c="${ci}" value="${window.__escapeHtml(window.__stripHtml(name || ""))}" placeholder="Column ${ci + 1}" oninput="${oninput}"${onkeydown ? ` onkeydown="${onkeydown}"` : ""}>
+                    <input type="text" class="col-name-input" data-c="${ci}" value="${escapeHtml(stripHtml(name || ""))}" placeholder="Column ${ci + 1}" oninput="${oninput}"${onkeydown ? ` onkeydown="${onkeydown}"` : ""}>
                 </div>
             </div>`;
     })

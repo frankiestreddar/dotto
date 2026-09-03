@@ -1,19 +1,10 @@
 import { describe, expect, it } from "vitest";
-// See srs-algorithm.test.ts's own comment on why a plain relative import straight into
-// public/dotto/ works fine from Vitest (a Node test runner, not the browser) despite the "public/
-// can't be imported by app/" convention that governs the real running app. text-utils.js
-// deliberately only holds escapeHtml/stripHtml (not the third original candidate,
-// isLatinScriptText — see that file's own comment on why: it needs appState, reached via the
-// window.__getAppState() bridge rather than a real import even from
-// app/dotto/lib/aiAssistantSuggestions.ts now — but that bridge is never set in a Vitest/jsdom
-// environment, since nothing there loads the
-// real app/dotto-app.jsx that assigns it, so this function still can't be exercised standalone the
-// same way these two appState-free functions can).
-import { escapeHtml, stripHtml } from "../../public/dotto/text-utils.js";
+import { escapeHtml, stripHtml } from "./textUtils";
 
-// First real test coverage for these two (public/dotto/text-utils.js, extracted from
-// ai-assistant-suggestions.js in Phase 4.2) — zero coverage existed anywhere before this, despite
-// escapeHtml/stripHtml being called from 7+ and 6+ other vanilla files respectively.
+// First real test coverage for these two (originally public/dotto/text-utils.js, extracted from
+// ai-assistant-suggestions.js in Phase 4.2, ported here in Phase 4.1's cluster revisit) — zero
+// coverage existed anywhere before this, despite escapeHtml/stripHtml being called from 7+ and 6+
+// other files respectively.
 
 describe("escapeHtml", () => {
   it("escapes the five HTML-significant characters", () => {

@@ -8,6 +8,7 @@
 // ported too).
 
 import { calculateSM2, defaultSrsState } from "./srsAlgorithm";
+import { escapeHtml, stripHtml } from "./textUtils";
 
 type GameMode = "plain" | "blank" | "extract";
 interface GameSlot {
@@ -154,7 +155,7 @@ function effectiveGameSlots(it: Item, side: "front" | "back", colCount: number):
 // that passes this, checked across every row rather than just a sample one.
 export function colHasAnyCloze(it: Item, i: number): boolean {
   return (it.cards || []).some(
-    (row) => Array.isArray(row.cells) && hasCloze(window.__stripHtml?.(row.cells[i] || "") ?? ""),
+    (row) => Array.isArray(row.cells) && hasCloze(stripHtml(row.cells[i] || "")),
   );
 }
 // Resolves one row + one side into an ordered list of {col, type, text, html} blocks — one per
@@ -180,13 +181,13 @@ export function resolveGameFace(it: Item, row: CardRow, side: "front" | "back"):
     const html = cells[i] || "";
     const type = cellContentType(html);
     if (type === "text") {
-      const text = window.__stripHtml?.(html) ?? "";
+      const text = stripHtml(html);
       if (slot.mode === "blank") return { col: i, type: "text", text: clozeBlankText(text), html };
       if (slot.mode === "extract")
         return { col: i, type: "text", text: clozeAnswerText(text), html };
       return { col: i, type: "text", text: clozeUnwrapText(text), html };
     }
-    return { col: i, type, text: window.__stripHtml?.(html) ?? "", html };
+    return { col: i, type, text: stripHtml(html), html };
   });
 }
 // Which column indices have a non-plain mode set, across both sides of this game card — a row must
@@ -212,7 +213,7 @@ function gamePlayableCards(it: Item): CardRow[] {
   if (!clozeCols.length) return cards;
   return cards.filter((row) => {
     if (!Array.isArray(row.cells)) return true; // placeholder deck — no columns to check
-    return clozeCols.every((ci) => hasCloze(window.__stripHtml?.(row.cells![ci] || "") ?? ""));
+    return clozeCols.every((ci) => hasCloze(stripHtml(row.cells![ci] || "")));
   });
 }
 export function renderGameFaceBlocksHTML(blocks: FaceBlock[] | undefined): string {
@@ -220,7 +221,7 @@ export function renderGameFaceBlocksHTML(blocks: FaceBlock[] | undefined): strin
   return blocks
     .map((b) => {
       if (b.type === "image" || b.type === "audio") return b.html;
-      return `<div class="game-face-line">${window.__escapeHtml?.(b.text) ?? b.text}</div>`;
+      return `<div class="game-face-line">${escapeHtml(b.text)}</div>`;
     })
     .join("");
 }
@@ -354,8 +355,7 @@ function renderGameOptionsHTML(it: Item): string {
   const optionsHTML = (slot: GameSlot): string => {
     let html = "";
     for (let i = 0; i < colCount; i++) {
-      const name =
-        window.__escapeHtml?.(headers[i] || `Column ${i + 1}`) ?? (headers[i] || `Column ${i + 1}`);
+      const name = escapeHtml(headers[i] || `Column ${i + 1}`);
       html += `<option value="${i}"${i === slot.col && slot.mode === "plain" ? " selected" : ""}>${name}</option>`;
       if (colHasAnyCloze(it, i)) {
         html += `<optgroup label="${name} — cloze">`;
@@ -688,8 +688,8 @@ export function renderTypeRightHTML(it: Item): string {
   // Grade colors the INPUT itself (green/orange/red) — no separate feedback pill below it.
   const grade = checked ? it.trLastGrade : null;
   const inputGradeClass = grade ? ` tr-input-${grade}` : "";
-  const escapedInput = window.__escapeHtml?.(it.trInput || "") ?? (it.trInput || "");
-  const escapedAnswer = window.__escapeHtml?.(correctAnswer) ?? correctAnswer;
+  const escapedInput = escapeHtml(it.trInput || "");
+  const escapedAnswer = escapeHtml(correctAnswer);
   const itemElId = window.__itemElId?.(it.id) ?? "";
   return `<div class="item-face" onmouseenter="trFocusInput(${it.id})">
                 <div class="tr-top" onmousedown="event.stopPropagation()">

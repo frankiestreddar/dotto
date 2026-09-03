@@ -6,6 +6,7 @@
 // commit).
 
 import { kindSize } from "./addMenu";
+import { escapeHtml, stripHtml } from "./textUtils";
 
 interface TableItem {
   id: number;
@@ -54,7 +55,7 @@ function getAppState(): AppState {
 function aiRowToCells(row: unknown[], width: number): string[] {
   const cells = new Array(width).fill("");
   (row || []).slice(0, width).forEach((c, i) => {
-    cells[i] = window.__escapeHtml!(String(c == null ? "" : c));
+    cells[i] = escapeHtml(String(c == null ? "" : c));
   });
   return cells;
 }
@@ -92,7 +93,7 @@ export function applyAiAddRowsToSource(
     } as unknown as TableItem;
     folderObj.items.push(tableItem as unknown as FolderObj["items"][number]);
   }
-  const isCellEmpty = (c: string) => !window.__stripHtml!(c || "").trim();
+  const isCellEmpty = (c: string) => !stripHtml(c || "").trim();
   const headerBlank = tableItem.tableData[0].every(isCellEmpty);
   let width = tableItem.tableData[0].length;
   // Only ever adopts the model's proposed column names into a still-placeholder header — an
@@ -101,7 +102,7 @@ export function applyAiAddRowsToSource(
     width = Math.max(1, Math.min(appState.AI_SOURCE_MAX_COLS, columns.length));
     tableItem.tableData[0] = new Array(width)
       .fill("")
-      .map((_, i) => window.__escapeHtml!(columns[i] || `Column ${i + 1}`));
+      .map((_, i) => escapeHtml(columns[i] || `Column ${i + 1}`));
     for (let ri = 1; ri < tableItem.tableData.length; ri++) {
       const row = tableItem.tableData[ri];
       tableItem.tableData[ri] = new Array(width).fill("").map((_, ci) => row[ci] || "");
@@ -151,7 +152,7 @@ export function createSourceFromAI(
   );
   const header = new Array(width)
     .fill("")
-    .map((_, i) => window.__escapeHtml!((columns && columns[i]) || `Column ${i + 1}`));
+    .map((_, i) => escapeHtml((columns && columns[i]) || `Column ${i + 1}`));
   const dataRows = (rows || [])
     .slice(0, appState.AI_SOURCE_MAX_ROWS)
     .map((r) => aiRowToCells(r, width));
@@ -215,7 +216,7 @@ export function tagPillsHTML(table: TableItem, r: number): string {
     .map((tagId) => {
       const tag = tags.find((t) => t.id === tagId);
       if (!tag) return "";
-      return `<span class="tag-chip" style="--chip-color:${tag.color}" title="${window.__escapeHtml!(tag.name)}"><span class="tag-chip-name">${window.__escapeHtml!(tag.name)}</span></span>`;
+      return `<span class="tag-chip" style="--chip-color:${tag.color}" title="${escapeHtml(tag.name)}"><span class="tag-chip-name">${escapeHtml(tag.name)}</span></span>`;
     })
     .join("");
 }

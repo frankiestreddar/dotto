@@ -2,8 +2,8 @@
 // placeholder, live-suggestions, the AI panel's list/chat views), Dotbot's typewriter reveal +
 // height-transition machinery shared by #search-dropdown/#search-chat-thread, and a few small
 // helpers (countSourceEntries, findParentFolderId, isLatinScriptText, escapeHtml/stripHtml — the
-// last two now owned by text-utils.js, reached via its own __escapeHtml/__stripHtml bridges since
-// this file no longer duplicates them).
+// last two now owned by app/dotto/lib/textUtils.ts, real ES imports since this file no longer
+// duplicates them).
 //
 // Genuinely circular with app/dotto/lib/hamburgerCollab.ts (renderChatsList) and
 // app/dotto/lib/mnemonicSearchMatching.ts (commenceSearchOrMnemonic) — all three moved to
@@ -15,6 +15,7 @@
 
 import { renderChatsList } from "./hamburgerCollab";
 import { commenceSearchOrMnemonic } from "./mnemonicSearchMatching";
+import { stripHtml } from "./textUtils";
 
 interface AppState {
   searchInput: HTMLTextAreaElement;
@@ -65,9 +66,7 @@ export function countSourceEntries(folderId: string): number {
   const f = appState.folders[folderId];
   const tableItem = f && (f.items || []).find((i) => i.kind === "table");
   if (!tableItem || !tableItem.tableData) return 0;
-  return tableItem.tableData
-    .slice(1)
-    .filter((row) => row.some((cell) => window.__stripHtml?.(cell))).length;
+  return tableItem.tableData.slice(1).filter((row) => row.some((cell) => stripHtml(cell))).length;
 }
 
 // The TRUE structural parent of a folder — the folder that actually contains a folder/source card

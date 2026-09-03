@@ -19,6 +19,7 @@
 import { defaultSrsState, diffRatings } from "./srsAlgorithm";
 import { generateGlobalId } from "./globalIds";
 import { kindLabel, kindSize } from "./addMenu";
+import { stripHtml } from "./textUtils";
 
 interface SrsState {
   interval: number;
@@ -150,10 +151,10 @@ function extractCardsFromSource(
   const rows: Record<string, unknown>[] = [];
   tableData.forEach((r, rowIndex) => {
     if (rowIndex === 0) return; // header row
-    if (!r.some((c) => (window.__stripHtml?.(c || "") || "").trim() !== "")) return; // skip blank rows
+    if (!r.some((c) => stripHtml(c || "").trim() !== "")) return; // skip blank rows
     rows.push({
-      front: window.__stripHtml?.(r[0] || ""),
-      back: window.__stripHtml?.((r.length > 1 ? r[1] : r[0]) || ""),
+      front: stripHtml(r[0] || ""),
+      back: stripHtml((r.length > 1 ? r[1] : r[0]) || ""),
       cells: r.slice(),
       rowIndex,
       // originTableId lets a downstream consumer (an srsUpdate flowing back, or a filter card)
@@ -168,7 +169,7 @@ function extractCardsFromSource(
     });
   });
   if (!rows.length) return null;
-  return { rows, headers: tableData[0].map((h) => window.__stripHtml?.(h || "") || "") };
+  return { rows, headers: tableData[0].map((h) => stripHtml(h || "")) };
 }
 
 // Applies an inbound 'srsUpdate' payload (pushed back by a downstream flashcard after a grading

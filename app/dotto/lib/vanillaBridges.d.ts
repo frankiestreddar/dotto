@@ -301,8 +301,6 @@ declare global {
     ) => HTMLElement;
     // app/dotto/lib/coreState.ts
     __itemElId?: (id: number, paneId?: number) => string;
-    // text-utils.js
-    __escapeHtml?: (str: string) => string;
     // app/dotto/lib/shelfSearch.ts (Phase 4.4 port — was shelf-search.js) — vanilla -> React
     // bridges: startRenameShelfName/shelfSelectSession/handleShelfSourceRowClick/
     // startRenameShelfSourceRow/filterShelfRows are real inline onclick="..." targets inside
@@ -325,9 +323,8 @@ declare global {
     __addCardsToSearchContext?: (ids: number[]) => void;
     __autoGrowSearchInput?: () => void;
     __renderShelfHTML?: (it: Record<string, unknown>) => string;
-    // text-utils.js / cards-misc.js / app/dotto/lib/coreState.ts — already-existing bridges, untyped until
-    // app/dotto/lib/outlineTree.ts became the first .ts file to reach them.
-    __stripHtml?: (html: string) => string;
+    // cards-misc.js / app/dotto/lib/coreState.ts — already-existing bridge, untyped until
+    // app/dotto/lib/outlineTree.ts became the first .ts file to reach it.
     __shortUrl?: (url: string) => string;
     // app/dotto/lib/cardsMisc.ts (Phase 4.5) — used by app/dotto/lib/messagingCanvasPreview.ts.
     __toEmbeddableUrl?: (rawUrl: string) => string;

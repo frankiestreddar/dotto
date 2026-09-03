@@ -13,6 +13,7 @@
 
 import { renderStopwatchHTML, type StopwatchItem } from "./stopwatch";
 import { searchKindLabel } from "./addMenu";
+import { escapeHtml, stripHtml } from "./textUtils";
 
 interface Item {
   id: number;
@@ -130,12 +131,12 @@ export function renderMsgSnapshotCard(item: Item): HTMLElement {
       const row = document.createElement("div");
       row.className = "snap-checklist-row";
       row.innerHTML = `<input type="checkbox" ${t.done ? "checked" : ""} disabled>
-                    <span class="snap-checklist-text" style="${t.done ? "text-decoration:line-through;opacity:.5;" : ""}">${window.__escapeHtml?.(t.text || "Task")}</span>`;
+                    <span class="snap-checklist-text" style="${t.done ? "text-decoration:line-through;opacity:.5;" : ""}">${escapeHtml(t.text || "Task")}</span>`;
       rowsWrap.appendChild(row);
     });
     card.appendChild(rowsWrap);
   } else if (item.kind === "embed") {
-    card.innerHTML += `<div class="flex items-center gap-2"><span class="text-sm">🌐</span><span class="font-semibold truncate">${window.__escapeHtml?.(item.embedUrl ? (window.__shortUrl?.(item.embedUrl) ?? "") : "Embed")}</span></div>`;
+    card.innerHTML += `<div class="flex items-center gap-2"><span class="text-sm">🌐</span><span class="font-semibold truncate">${escapeHtml(item.embedUrl ? (window.__shortUrl?.(item.embedUrl) ?? "") : "Embed")}</span></div>`;
   } else if (item.kind === "media") {
     if (item.mediaSrc) {
       const tag =
@@ -147,7 +148,7 @@ export function renderMsgSnapshotCard(item: Item): HTMLElement {
       card.innerHTML += `<div class="text-[11px] text-slate-500 italic">Empty media card</div>`;
     }
   } else if (item.kind === "watermark") {
-    card.innerHTML += `<div class="text-xs opacity-50 italic">${window.__escapeHtml?.(item.html || "Watermark text")}</div>`;
+    card.innerHTML += `<div class="text-xs opacity-50 italic">${escapeHtml(item.html || "Watermark text")}</div>`;
   } else {
     // Default note / text card
     const body = document.createElement("div");
@@ -229,7 +230,7 @@ export function miniLabelForItem(item: Item): string {
   if (item.kind === "folder" || item.kind === "source") {
     return (item.folderId && appState?.folders[item.folderId]?.title) || "Folder";
   }
-  const text = window.__stripHtml?.(item.html || "") ?? "";
+  const text = stripHtml(item.html || "");
   return text
     ? text.slice(0, 24)
     : item.kind

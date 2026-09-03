@@ -9,6 +9,8 @@
 // filterShelfRows) keep their exact plain (non-`__`) names, same convention window-bridge.js used
 // for them before this port.
 
+import { escapeHtml } from "./textUtils";
+
 interface Item {
   id: number;
   kind: string;
@@ -78,7 +80,7 @@ export function renderShelfHTML(it: Item): string {
   // hardcoded string, so the placeholder and the eventual real name render through the exact same
   // markup.
   const nameHTML = it.shelfName
-    ? `<div class="shelf-header" onclick="event.stopPropagation(); startRenameShelfName(this, ${it.id})">${window.__escapeHtml?.(it.shelfName)}</div>`
+    ? `<div class="shelf-header" onclick="event.stopPropagation(); startRenameShelfName(this, ${it.id})">${escapeHtml(it.shelfName)}</div>`
     : `<div class="shelf-header crumb-placeholder" data-placeholder="Stack" onclick="event.stopPropagation(); startRenameShelfName(this, ${it.id})"></div>`;
   // Clicking anywhere in the pill (not just its label) opens that source's own page — the same
   // static-source view its real card opens into (see handleShelfSourceRowClick/openFolder), not
@@ -90,7 +92,7 @@ export function renderShelfHTML(it: Item): string {
         .map(
           (s) => `
                 <div class="shelf-source-row" onclick="event.stopPropagation(); handleShelfSourceRowClick(this, ${s.sourceItemId})">
-                    <span class="shelf-row-label" data-source-id="${s.sourceItemId}" ondblclick="event.stopPropagation(); startRenameShelfSourceRow(this, ${s.sourceItemId})" title="Double-click to rename">${window.__escapeHtml?.(s.title)}</span>
+                    <span class="shelf-row-label" data-source-id="${s.sourceItemId}" ondblclick="event.stopPropagation(); startRenameShelfSourceRow(this, ${s.sourceItemId})" title="Double-click to rename">${escapeHtml(s.title)}</span>
                     <span class="shelf-row-meta">${s.count} ${s.count === 1 ? "entry" : "entries"}</span>
                 </div>`,
         )

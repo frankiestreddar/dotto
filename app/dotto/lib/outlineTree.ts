@@ -6,6 +6,8 @@
 // existed, 5 are new as part of this port (__canvasViewportCenterX/__smoothPanTo/
 // __flashCanvasElement/__focusTableCell/__expandWaypointCard).
 
+import { stripHtml } from "./textUtils";
+
 interface Item {
   id: number;
   kind: string;
@@ -401,7 +403,7 @@ function computeSourceOutlineRows(folder: FolderObj): OutlineRow[] {
       itemKind: "sourceRow",
       indent: 0,
       number: ri,
-      label: window.__stripHtml?.(row[0]) || "Untitled",
+      label: stripHtml(row[0]) || "Untitled",
       tableItemId: tableItem.id,
       parentFolderId: folder.id,
     } as unknown as OutlineRow;
