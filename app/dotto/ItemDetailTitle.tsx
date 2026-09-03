@@ -6,7 +6,7 @@ import { commitItemDetailTitle, onItemDetailFieldChange } from "./lib/libraryPub
 
 // Real React ownership of the Item Detail view's title field — CONTRIBUTING.md's "contentEditable
 // fields" category, converted via the decided uncontrolled-ref pattern rather than a rich-text
-// library: none of Phase 2's three fields (this one, PublishFlowName.jsx, the Source table's
+// library: none of Phase 2's three fields (this one, PublishFlowName.tsx, the Source table's
 // cells) do any actual text formatting, just plain-text auto-sizing input, so a library would be
 // pure overhead. This component renders its contentEditable div exactly once — no props, no
 // state — so React never re-diffs its content out from under an in-progress edit; every read/

@@ -4,7 +4,7 @@ import { createPortal } from "react-dom";
 import usePortalNode from "./usePortalNode";
 import { blurPublishFlowName, focusPublishFlowName } from "./lib/libraryPublish";
 
-// Same uncontrolled-ref reasoning as ItemDetailTitle.jsx — renders once,
+// Same uncontrolled-ref reasoning as ItemDetailTitle.tsx — renders once,
 // app/dotto/lib/libraryPublish.ts's own document.getElementById('publish-flow-name') reads/writes
 // (startPublishFlow/focusPublishFlowName/blurPublishFlowName/confirmPublishFlow) keep working
 // unmodified, called via real imports below (same app/dotto/ tree). onMouseDown's preventDefault
