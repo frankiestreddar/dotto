@@ -2,7 +2,7 @@
 
 import { useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { computePaneRects, paneLayoutStore } from "./bridges";
+import { computePaneRects, usePaneLayoutStore } from "./lib/paneLayoutStore";
 import { useFilesListStore } from "./lib/filesListStore";
 import { findItemById } from "./lib/canvasPresence";
 import { spawnMediaItemAt } from "./lib/waypointsRenderLoop";
@@ -21,7 +21,7 @@ function getPaneRectsPx() {
   const viewportEl = document.querySelector(".pane-grid-viewport");
   if (!viewportEl) return [];
   const vp = viewportEl.getBoundingClientRect();
-  return computePaneRects(paneLayoutStore.getSnapshot()).map(({ paneId, rect }) => ({
+  return computePaneRects(usePaneLayoutStore.getState()).map(({ paneId, rect }) => ({
     paneId,
     x: vp.left + rect.x * vp.width,
     y: vp.top + rect.y * vp.height,

@@ -1316,40 +1316,90 @@
   **This closes out the original 8-file `window-bridge.js` dependency list, deletes
   `window-bridge.js` itself, and completes Phase 4.5 (architectural/hub files) in full — all 7 of
   its original sub-items are now done.**
-- **Phase 4.6 — delete the bridge layer: mechanical half done, full bridge-layer removal
-  deliberately deferred.** Explicit scoping decision when this phase started: the original plan
-  bundled two very different things into one phase — (a) low-risk mechanical cleanup now that
-  `public/dotto/` is empty (remove the vanilla `<Script>` tag from `app/dotto-app.jsx`, delete the
-  now-pointless `public/dotto-script.js`, rewrite `CONTRIBUTING.md`/`README.md`'s architecture
-  sections, delete the now-obsolete `INLINE_HANDLER_CHECKLIST.md`), and (b) replacing `bridges.js`'s
-  `createStore` with real Zustand and eliminating `window.__*` globals **app-wide** — a
-  simultaneous, whole-tree change touching every already-ported file's own bridge layer and every
-  React component at once, categorically different in kind and risk from every file-by-file port
-  this migration has done so far. Given (b)'s size and blast radius, explicitly asked and got (a)
-  only for this pass — (b) stays on the roadmap, not abandoned, but deserves its own scoping/
-  planning pass rather than starting inline off a plan drafted long before Phase 4.1 even finished.
-  (a) is done: `<Script src="/dotto-script.js" type="module" strategy="afterInteractive">` and its
+- **Phase 4.6 — delete the bridge layer: DONE — both (a) mechanical cleanup and (b) the
+  `createStore`→Zustand migration.** Explicit scoping decision when this phase started: the
+  original plan bundled two very different things into one phase — (a) low-risk mechanical cleanup
+  now that `public/dotto/` is empty (remove the vanilla `<Script>` tag from `app/dotto-app.jsx`,
+  delete the now-pointless `public/dotto-script.js`, rewrite `CONTRIBUTING.md`/`README.md`'s
+  architecture sections, delete the now-obsolete `INLINE_HANDLER_CHECKLIST.md`), and (b) replacing
+  `bridges.js`'s `createStore`/`createPaneKeyedStore` with real Zustand — a simultaneous,
+  whole-tree change touching every already-ported file's own bridge layer and every React
+  component at once, categorically different in kind and risk from every file-by-file port this
+  migration has done so far. Given (b)'s size and blast radius, (a) landed first on its own pass;
+  (b) got its own dedicated scoping/planning pass afterward rather than starting inline off a plan
+  drafted long before Phase 4.1 even finished — see below for how it was actually scoped and
+  carried out, and note the correction to (b)'s original framing.
+
+  (a): `<Script src="/dotto-script.js" type="module" strategy="afterInteractive">` and its
   now-unused `next/script` import removed from `app/dotto-app.jsx`; `public/dotto-script.js`
   deleted (already just an empty placeholder file, per Phase 4.1's own closing note); a dozen or so
   now-broken present-tense comments referencing the deleted Script tag/dotto-script.js as if it
   still ran were fixed across `app/dotto-app.jsx`, `app/layout.js`, `app/page.js`, `Avatar.jsx`,
   `coreState.ts`, `vanillaBridges.d.ts`, `lib/leveling.js`, `lib/dotbot.js`, and
-  `app/api/dotbot/orchestrate/route.js` (each pointed at wherever the real duplicate/caller
-  actually lives now, not left dangling); `CONTRIBUTING.md` and `README.md` rewritten in full —
-  both used to describe a "two layers, bridged together" architecture that's now false; both now
-  describe the real current shape (one TypeScript+React tree, `window.__*`/`createStore` as
-  explicitly-flagged known technical debt rather than a structural boundary) and point at (b) as
-  still-scheduled future work, not silently dropped; `INLINE_HANDLER_CHECKLIST.md` deleted (its
-  entire subject, `window-bridge.js`, was itself deleted back in the Phase 4.5 `source-tags-ai.js`
-  port). `node --check` (moot, no vanilla files touched), `eslint`/`npm run typecheck`/`npm run
-  format:check` clean, `rm -rf .next && npm run build` clean, all 32 Vitest tests green. Real
-  Playwright verification against a real dev server: the app loads with zero console errors and a
-  real working `appState`/canvas; confirmed the `<script src="/dotto-script.js">` tag is genuinely
-  gone from the rendered DOM (not just the JSX source); the theme toggle (the one piece of bootstrap
-  code most plausibly sensitive to the Script tag's removal, since `app/layout.js`'s own blocking
-  inline theme script explicitly used to justify its own timing against it) still flips
-  `document.documentElement.dataset.theme` correctly end-to-end. Regression-verified
-  `verify-phase4-1-search-panel-history-port.js` clean afterward. Zero console/page errors.
+  `app/api/dotbot/orchestrate/route.js`; `CONTRIBUTING.md`/`README.md` rewritten to describe the
+  real current shape; `INLINE_HANDLER_CHECKLIST.md` deleted (its subject, `window-bridge.js`, was
+  itself deleted back in the Phase 4.5 `source-tags-ai.js` port).
+
+  (b): a 10-batch, 39-store migration off `bridges.js`'s hand-rolled `createStore`/
+  `createPaneKeyedStore` mechanism onto real Zustand, one store (or small related batch) at a
+  time, each store getting its own new file under `app/dotto/lib/`, each batch independently
+  verified (`eslint`/`typecheck`/`format`/build/Vitest, plus a real Playwright script against a
+  real dev server exercising every store's actual live path) and committed/pushed on its own —
+  batch order, lowest-risk first: (1) `pricingOverlayStore`/`selectionToolbarStore`; (2) the 6
+  search-dropdown result panels (`translationPanelStore` and 5 siblings — discovered mostly dead
+  code, no live producer besides `imageResultStore`, since the real Dotbot chat flow had already
+  moved to `chatThreadStore`); (3) `chatThreadStore`/`commandPaletteStore`/
+  `searchSuggestionsStore`/`addToSourcePopupStore` (first array-shaped store, `chatThreadStore` —
+  surfaced a real Zustand correctness trap: its default `setState` does an `Object.assign` merge
+  for object/array next-states unless `replace:true` is passed, and merging two arrays produces a
+  plain `{0:...,1:...}` object, not a real array; every array-shaped store from here on passes
+  `true` explicitly); (4) the 7 hamburger menu list panels (`waypointsListStore` and siblings,
+  `listPanelSelectionStore` shared by 3 components); (5) `profileLevelStore`/`achievementsStore`
+  (also caught and fixed a real leftover bug from batch 4: an unused, dangling `waypointsListStore`
+  import in `app/dotto-app.jsx` that neither eslint nor the build had caught, since `bridges.js`
+  was plain JS with no static named-export check); (6) `msgListStore`/`collabListStore`/
+  `msgConvoStore`/`sharedCanvasModalStore`; (7) `marketDiscoverStore`/`marketDetailStore`/
+  `blocksViewStore`/`extensionsListStore`/`itemDetailFooterStore`; (8) `cellTagPickerListStore`,
+  the Source page's one clean conversion candidate; (9) the 6 per-pane UI stores
+  (`collabPillStore`/`navHistoryStore`/`mediaViewerZoomStore`/`breadcrumbMapStore`/`tabsStore`,
+  all pane-keyed, plus plain `activePaneIdStore`) — introduced `app/dotto/lib/paneKeyedStore.ts`,
+  a redesigned pane-keyed factory keeping the exact `Map<paneId, store>` shape but building each
+  pane's store on real `create()` internally, consumed as `xStore.storeFor(paneId)()`; caught and
+  fixed a second real bug here too — `app/dotto-app.jsx`'s `window.__removePaneTabsStore` handler
+  (a genuinely live caller, from `splitPaneManagement.ts`'s `closePane`) still called `.remove()`
+  on the old bridge bindings after their imports would have been removed; (10) `paneLayoutStore`/
+  `canvasItemsStore`, done last as the highest-risk pair — `paneLayoutStore` has the widest blast
+  radius of any store in the plan (besides `PaneGrid.jsx`'s real subscription, also read
+  imperatively via `.getState()` by `TabsBar.jsx` and `FilesListPanel.jsx`), and `canvasItemsStore`
+  is the hot-path, flushSync'd canvas-item renderer. `bridges.js` and `bridges.test.ts` (whose 2
+  tests were retargeted from `pricingOverlayStore` to `paneLayoutStore` back in batch 1, so the
+  file needed exactly one edit for the whole migration and stayed green throughout) are both
+  deleted outright in this batch's own commit, along with a repo-wide sweep fixing every comment
+  still pointing at `bridges.js` for a store's own documentation (`globals.css`,
+  `splitPaneManagement.ts`, and ~15 other files).
+
+  **Correction to (b)'s original framing**: the plan as originally scoped described this as
+  "eliminating `window.__*` globals app-wide." That was wrong going in and stayed wrong throughout
+  — confirmed by a full audit of `vanillaBridges.d.ts` before batch 1 started: of ~384 typed
+  bridges, only 40 were ever store setters (the actual scope of this migration); the remaining
+  ~247 split into (a) genuine "universal hub" accessors (`__getAppState`, `__saveSnapshot`,
+  `__render`, `__findItemById`, `pushNotification`, and similar wide-fan-out clusters) kept as
+  bridges by long-standing convention to avoid a combinatorial explosion of import edges — not
+  migration debt; (b) plain non-`__`-prefixed globals backing real inline `onclick="..."` HTML-
+  string attributes — a different, permanent mechanism, not going away; (c) genuine
+  same-tree-upgrade debt (a bridge whose only remaining caller could just import it directly) —
+  real technical debt, but heterogeneous, continuing to be chipped away at opportunistically as
+  other work touches those files, not a blocking sweep. `CONTRIBUTING.md` and `README.md` updated
+  to reflect this corrected picture.
+
+  Verification bar held for all 10 batches: `eslint`/`npm run typecheck`/`npm run format:check`
+  clean, `rm -rf .next && npm run build` clean, all Vitest tests green, and a real Playwright
+  script per batch against a real dev server — including seeding synthetic test data directly
+  where this workspace's real Supabase-backed tables were genuinely empty (the marketplace's
+  trending list, a Source page row tag), and exercising real multi-pane split/close for batch 9/10
+  specifically to prove the redesigned pane-keyed factory produces genuinely independent per-pane
+  state. Regression-checked every earlier batch's own verify script whenever a later batch touched
+  a shared producer file. Zero console/page errors across all 10 batches.
 - **Phase 4.7 — final cleanup & professionalization close-out: not started.**
 
 ## Why this phase exists
@@ -2911,5 +2961,7 @@ sequence, the one piece of bootstrap code most plausibly sensitive to the Script
 since `app/layout.js`'s own blocking inline theme script explicitly used to justify its timing
 against it) still flips `document.documentElement.dataset.theme` correctly end-to-end.
 Regression-verified `verify-phase4-1-search-panel-history-port.js` clean afterward. Zero
-console/page errors. **The full `createStore`→Zustand replacement and app-wide `window.__*`
-elimination remain open, deliberately deferred — not silently dropped.**
+console/page errors. **The full `createStore`→Zustand replacement was deliberately deferred out of
+this pass, not abandoned — see this phase's own closing entry above for how it was later carried
+out as its own 10-batch initiative, and the correction to the original "app-wide `window.__*`
+elimination" framing.**

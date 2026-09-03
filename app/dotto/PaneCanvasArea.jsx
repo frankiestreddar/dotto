@@ -55,7 +55,7 @@ function paneQualifyHtml(html, paneId) {
   return out.replace(`id="canvas-${paneId}"`, `id="canvas-${paneId}" data-pane-id="${paneId}"`);
 }
 
-// rect is {x,y,w,h} in fractional [0,1] viewport coordinates (paneLayoutStore, bridges.js),
+// rect is {x,y,w,h} in fractional [0,1] viewport coordinates (see app/dotto/lib/paneLayoutStore.ts),
 // relative to PaneGrid's own .pane-grid-viewport wrapper — which already reserves the same rail/
 // hmenu space #canvas's own CSS always did (see globals.css), so a single, unsplit pane's rect
 // (the full box, {x:0,y:0,w:1,h:1}) lands exactly where #canvas always rendered, with zero visual

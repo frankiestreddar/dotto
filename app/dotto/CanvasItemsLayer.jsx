@@ -1,8 +1,8 @@
 "use client";
 
-import { useLayoutEffect, useRef, useSyncExternalStore } from "react";
+import { useLayoutEffect, useRef } from "react";
 import { createPortal } from "react-dom";
-import { canvasItemsStore } from "./bridges";
+import { useCanvasItemsStore } from "./lib/canvasItemsStore";
 import { applyItemWrapperAttrs, attachUniversalItemBehavior } from "./lib/waypointsRenderLoop";
 import usePortalNode from "./usePortalNode";
 import CanvasCard from "./CanvasCard";
@@ -23,12 +23,6 @@ import TitleCard from "./TitleCard";
 import TypeRightCard from "./TypeRightCard";
 import WatermarkCard from "./WatermarkCard";
 import WaypointCard from "./WaypointCard";
-
-// Module-level, not inline in the hook call below — useSyncExternalStore's getServerSnapshot must
-// return a referentially stable value across calls, or React reads it as never settling ("the
-// result of getServerSnapshot should be cached to avoid an infinite loop"). A fresh `() => []`
-// array literal every render trips that same warning SelectionToolbar.jsx originally had.
-const EMPTY_ITEMS = [];
 
 // Every card kind maps to a real Component now — see PHASE2_ROADMAP.md's migration order for how
 // each one got here. A future new kind gets added here (and nowhere else in this file).
@@ -106,8 +100,7 @@ function CanvasItem({ it, paneId }) {
 // existing single-pane behavior (and any test/debug code written before this stage) keeps working
 // unchanged.
 export default function CanvasItemsLayer({ paneId = 0 }) {
-  const store = canvasItemsStore.storeFor(paneId);
-  const items = useSyncExternalStore(store.subscribe, store.getSnapshot, () => EMPTY_ITEMS);
+  const items = useCanvasItemsStore.storeFor(paneId)();
   // #items-layer is part of #world's static markup (rendered elsewhere via dangerouslySetInnerHTML)
   // so it doesn't exist in the DOM yet on this component's own first render — only resolvable once,
   // after mount. The one-extra-render cost the lint rule warns about here is unavoidable for

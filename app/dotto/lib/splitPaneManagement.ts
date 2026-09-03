@@ -5,7 +5,7 @@
 // so porting it needed zero caller updates anywhere else, just the bridge's own source flipping
 // from vanilla to TS. Every one of its own dependencies (appState, initializeNewPane,
 // switchActivePane, renderTabsPanel, applyFolderView, render, plus the pane-layout-tree helpers in
-// bridges.js) was already reachable through an existing window bridge except applyFolderView,
+// app/dotto/lib/paneLayoutStore.ts) was already reachable through an existing window bridge except applyFolderView,
 // which got a new one (window.__applyFolderView, waypoints-render-loop.js) as part of this port —
 // same "add the missing bridge, don't restructure the vanilla side" approach every prior port used.
 
@@ -30,7 +30,7 @@ interface AppState {
 // either bisect the tab's own pane (the common case) or quarter a DIFFERENT already-open pane
 // while dragging a tab out of the active one's bar. edge is one of 'left'|'right'|'top'|'bottom'
 // against THAT pane's own box, not the viewport's.
-// splitLeafInTree/window.__splitPaneInLayout (bridges.js) do the actual tree surgery — this
+// splitLeafInTree/window.__splitPaneInLayout (app/dotto/lib/paneLayoutStore.ts) do the actual tree surgery — this
 // function's own job is just the tab-bookkeeping side, same shape as closeTab's own "always keep
 // at least one tab" guard/next-active-tab logic (a pane can't be left with zero tabs). The new
 // pane deliberately does NOT inherit its target's camera/selection/history — initializeNewPane
@@ -74,7 +74,7 @@ export function splitPaneWithTab(
 // Closes a pane and re-merges its space into whichever OTHER pane/pair it was split from — the
 // user's own explicit choice for Stage 6's "what happens when a quartered pane closes" product
 // question ("re-merge into its sibling", not "leave a gap"). closeLeafInTree/
-// window.__closePaneInLayout (bridges.js) computes the resulting tree; this function's own job is
+// window.__closePaneInLayout (app/dotto/lib/paneLayoutStore.ts) computes the resulting tree; this function's own job is
 // the appState side: reassigning activePaneId first if the closed pane WAS active (so
 // switchActivePane still has a live pane to swap OUT of before that pane's own saved slot gets
 // dropped), then dropping its now-orphaned appState.panes slot and its items/tabs/breadcrumb

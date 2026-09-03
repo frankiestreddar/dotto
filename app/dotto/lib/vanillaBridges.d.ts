@@ -74,8 +74,8 @@ declare global {
     // app/dotto/lib/tabManagement.ts — pushes appState.tabs/activeTabId into React; called after a
     // tab-bookkeeping mutation that doesn't itself trigger a render().
     __renderTabsPanel?: (paneId?: number) => void;
-    // app/dotto/bridges.js (via app/dotto-app.jsx) — pane-layout-tree helpers, all already
-    // React-callable bridges before any Phase 4.4 port needed them.
+    // app/dotto/lib/paneLayoutStore.ts (via app/dotto-app.jsx) — pane-layout-tree helpers, all
+    // already React-callable bridges before any Phase 4.4 port needed them.
     __countPanes?: () => number;
     __listPaneIds?: () => number[];
     __splitPaneInLayout?: (
@@ -651,9 +651,9 @@ declare global {
     __finishPenPolyline?: () => void;
     // upload-popup.js
     __closeUploadPopup?: () => void;
-    // app/dotto-app.jsx (via app/dotto/bridges.js's paneLayoutStore) — __setPaneLayout is
-    // flushSync'd (every restored pane's own DOM must exist synchronously before
-    // window.__listPaneIds() is read right after it).
+    // app/dotto-app.jsx (via app/dotto/lib/paneLayoutStore.ts's usePaneLayoutStore) —
+    // __setPaneLayout is flushSync'd (every restored pane's own DOM must exist synchronously
+    // before window.__listPaneIds() is read right after it).
     __getPaneLayout?: () => Record<string, unknown> | null;
     __setPaneLayout?: (tree: Record<string, unknown>) => void;
     // app/dotto/lib/historyAutosave.ts (Phase 4.5 port — was history-autosave.js) — vanilla ->
@@ -720,8 +720,8 @@ declare global {
     __paneElId?: (staticId: string, paneId?: number) => string;
     __otherPanesViewingFolder?: (folderId: string, excludePaneId: number) => number[];
     __mirrorItemToSiblingPanes?: (itemId: number, apply: (el: HTMLElement) => void) => void;
-    // bridges.js (via app/dotto-app.jsx, flushSync-wrapped) — see __renderCanvasItems's own
-    // comment there for why it must commit synchronously.
+    // app/dotto/lib/canvasItemsStore.ts (via app/dotto-app.jsx, flushSync-wrapped) — see
+    // __renderCanvasItems's own comment there for why it must commit synchronously.
     __renderCanvasItems?: (items: Record<string, unknown>[], paneId: number) => void;
     // app/dotto/lib/friendsPresence.ts
     __refreshCanvasCollabForCurrentFolder?: () => Promise<void>;

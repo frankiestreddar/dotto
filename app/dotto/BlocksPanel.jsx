@@ -16,7 +16,7 @@ import usePortalNode from "./usePortalNode";
 
 // Folder row — Essentials/Purchased/My Creations/user-created folders, all always shown at once
 // (no drill-down navigation the way Library's old folder-picker/items views worked — see
-// blocksViewStore's own comment, bridges.js). data-folder-id is how
+// app/dotto/lib/blocksViewStore.ts's own comment). data-folder-id is how
 // app/dotto/lib/blocksPanel.ts's drag-into-folder hit-testing (folderRowElAtPoint) finds a valid
 // drop target under the pointer; only
 // present at all for genuinely deletable (i.e. real user-created) folders since those are the only
@@ -121,7 +121,7 @@ function BlockRow({ row }) {
 
 // Portals into #blocks-list-container (content/fragments/hamburger-stack.html, #add-menu — the
 // Blocks panel's real id under the hood, was Essentials/the Add menu before this overhaul). See
-// blocksViewStore's own comment (bridges.js) for the row shape/where it's computed.
+// app/dotto/lib/blocksViewStore.ts's own comment for the row shape/where it's computed.
 export default function BlocksPanel() {
   const rows = useBlocksViewStore();
   const portalNode = usePortalNode("blocks-list-container");

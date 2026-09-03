@@ -25,7 +25,7 @@ const ZOOM_STEP = 0.25;
 // so hovering it still reads as "inside."
 // zoom itself is a plain multiplier (1 = 100%) stored on the media-viewer's own synthetic folder
 // object (folderObj.viewerZoom) — mediaViewerZoomStore is just this component's own reactive mirror
-// of it (see that store's own comment, bridges.js). setMediaViewerZoom
+// of it (see app/dotto/lib/mediaViewerZoomStore.ts's own comment). setMediaViewerZoom
 // (app/dotto/lib/waypointsRenderLoop.ts) restyles the already-live viewer element's own --viewer-zoom custom
 // property directly rather than going through a full render(), so clicking +/- doesn't reset an
 // <iframe> PDF's or epub.js's own internal scroll position on every click.

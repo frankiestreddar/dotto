@@ -26,11 +26,16 @@ by a normal `import`.
 
 A lot of modules still reach each other through `window.__*` rather than a plain `import`. That
 convention predates the full React/TS consolidation — it used to be load-bearing, the only way
-code on either side of the vanilla/React split could reach across it. That reason is gone, but the
-convention itself hasn't been fully retired yet: `bridges.js`'s hand-rolled `createStore` (not a
-real state library), and every existing `window.__*` bridge between now-React/TS modules, are
-still exactly what they were before. **This is known, tracked technical debt, not the intended
-end state** — see "A note on the architecture itself" below.
+code on either side of the vanilla/React split could reach across it. That reason is gone. Every
+store a React component subscribes to has since migrated off the old hand-rolled `createStore`
+mechanism onto real Zustand (`app/dotto/lib/*Store.ts`, one file per store — see the Zustand
+migration plan's closing entry in `PHASE4_ROADMAP.md`); `bridges.js` itself is deleted. What
+remains is a wide layer of plain `window.__*` accessor/setter bridges between still-separate
+`lib/*.ts` modules — some of that is genuine same-tree-upgrade debt (a bridge whose only remaining
+caller could just import it directly), and some of it is permanent by design (see the two
+deliberately-kept categories below). **The same-tree-upgrade slice is real, tracked debt — the
+hub-accessor and inline-`onclick`-target categories are not** — see "A note on the architecture
+itself" below.
 
 Practically, today:
 - **When adding a new same-tree caller** (an `app/dotto/lib/*.ts` or `app/dotto/*.jsx` file that
@@ -49,11 +54,18 @@ Practically, today:
   `window.pushNotification`, and a few others) are called from dozens of files each and have
   stayed bridges throughout the whole migration by established convention, to avoid a
   combinatorial explosion of import edges — not because importing them directly would be wrong.
-- **`bridges.js`'s `createStore`** is still how React components subscribe to state a `lib/*.ts`
-  module owns (`useSyncExternalStore(myStore.subscribe, myStore.getSnapshot, ...)` reading a store
-  a `window.__setMyThing = myStore.set;` assignment writes to). New React-facing state should
-  follow this same shape for now, matching every existing store — see `bridges.js`'s own per-store
-  comments, still the closest thing to a style guide for this pattern.
+- **New React-facing state is a real Zustand store**, its own file under `app/dotto/lib/`
+  (`export const useMyThingStore = create<MyThingState>(() => initialValue)`), consumed directly
+  (`useMyThingStore()` in the component, `useMyThingStore.setState(next)` in the producer) — no
+  bridge needed unless the producer genuinely can't import the store directly (a circular-import
+  case). Any store whose value is an array needs `useMyThingStore.setState(next, true)` — the
+  `true` forces a full replace; Zustand's default merge behavior for object/array next-states
+  (`Object.assign`) silently turns an array into a plain `{0:...,1:...}` object otherwise (see
+  `app/dotto/lib/chatThreadStore.ts`'s own comment for the full mechanics). A store one component
+  needs *per pane* (not one shared instance) uses `app/dotto/lib/paneKeyedStore.ts`'s
+  `createPaneKeyedStore` factory instead of a bare `create()` — see e.g.
+  `app/dotto/lib/tabsStore.ts` for the pattern, consumed as `useMyStore.storeFor(paneId)()`. Pick
+  any existing `app/dotto/lib/*Store.ts` file as a template — they're intentionally uniform.
 - **Real inline `onclick="..."`/`oninput="..."` targets** — HTML strings some modules still build
   directly (a source table's cells, the search-history list, a few others) — need a plain,
   non-`__`-prefixed global (`window.fnName = fnName;`), same shape `window.pushNotification` uses.
@@ -111,21 +123,22 @@ silently.
 
 ## A note on the architecture itself
 
-The full vanilla/React split is gone — every file is real TypeScript now. What's left of the
-original *migration scaffold* is narrower but still real: `bridges.js`'s hand-rolled `createStore`
-instead of a proper state library (Zustand/Valtio/Jotai), and `window.__*` as the mechanism a good
-number of same-tree modules still use to reach each other instead of a plain `import`. Neither is
-wrong exactly — the imperative, outside-React canvas-core work (drag/resize/connections/hover-zone
-math) staying outside React's reconciliation is genuinely good practice, matching real canvas-app
-architecture (Figma/tldraw/Excalidraw-style), not a compromise — but `window.__*` as a *general*
-cross-module convention, and a hand-rolled store instead of a real one, are exactly the kind of
-thing a from-scratch build wouldn't do.
+The full vanilla/React split is gone — every file is real TypeScript now, and every store a React
+component subscribes to is real Zustand (`bridges.js` and its hand-rolled `createStore`/
+`createPaneKeyedStore` mechanism are deleted entirely — see the Zustand migration plan's closing
+entry in `PHASE4_ROADMAP.md` for how that 10-batch, 39-store migration was carried out). What's
+left of the original *migration scaffold* is narrower: `window.__*` as the mechanism a number of
+same-tree modules still use to reach each other instead of a plain `import`. That's not uniformly
+wrong — the imperative, outside-React canvas-core work (drag/resize/connections/hover-zone math)
+staying outside React's reconciliation is genuinely good practice, matching real canvas-app
+architecture (Figma/tldraw/Excalidraw-style), not a compromise, and a handful of hub accessors
+(`window.__getAppState` and similar) and every inline-`onclick`/`oninput` target are permanent by
+design, not debt — but `window.__*` as a *general* cross-module convention for two files that
+could just import each other directly is exactly the kind of thing a from-scratch build wouldn't
+do.
 
-Finishing that collapse — replacing `createStore` with real Zustand, and converting the remaining
-`window.__*` bridges (the ones that are genuinely just historical, not the deliberately-kept
-circular/hub-accessor cases above) into plain imports or props — is still on the roadmap, not
-abandoned. It's deliberately its own dedicated initiative rather than something to chip away at
-opportunistically alongside unrelated feature work, given how many files and call sites it touches
-simultaneously — plan it properly when it's actually scheduled, with the same incremental,
-verified-at-every-step discipline the rest of this migration used, rather than assuming a plan
-drafted well before it's underway still fits.
+Finishing that — converting the remaining `window.__*` bridges that are genuinely just historical
+(not the deliberately-kept circular/hub-accessor/inline-onclick cases above) into plain imports —
+is real, heterogeneous debt, but small enough per call site to keep chipping away at opportunistically
+alongside unrelated feature work (see "When adding a new same-tree caller" above), rather than
+needing its own dedicated initiative the way the Zustand migration did.

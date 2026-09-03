@@ -1,7 +1,6 @@
 "use client";
 
-import { useSyncExternalStore } from "react";
-import { computePaneRects, computeSplitDividers, paneLayoutStore } from "./bridges";
+import { computePaneRects, computeSplitDividers, usePaneLayoutStore } from "./lib/paneLayoutStore";
 import PaneCanvasArea from "./PaneCanvasArea";
 
 // Split-screen Stage 4 (see the split-screen plan) — replaces the single, always-full-viewport
@@ -18,24 +17,16 @@ import PaneCanvasArea from "./PaneCanvasArea";
 // startConnectionDrag, resize handles, ...) still just reads canvas/world/appState.tx and friends
 // ambiently, assuming whichever pane is "active" is already correct by the time it runs.
 export default function PaneGrid({ html }) {
-  // getServerSnapshot: paneLayoutStore.getSnapshot itself, not a separately-declared fallback
-  // array — a fallback with the same VALUES but a different object reference would make React
-  // detect a server/client mismatch immediately after hydration (Object.is comparison) and force
-  // an extra re-render to "sync up", replacing dangerouslySetInnerHTML's content a second time —
-  // wiping PaneCanvasArea's own imperatively-applied position style before it could ever be seen,
-  // a real bug caught via a MutationObserver trace (~500ms after mount, exactly matching the
-  // timing of React's post-hydration store-mismatch check). Reusing the store's own getter for all
-  // three arguments means server and client agree exactly, first render, no mismatch, no extra
-  // pass.
-  // The store itself now holds a split TREE, not a flat rect list (Stage 6 — see paneLayoutStore's
-  // own comment, bridges.js). computePaneRects walks it fresh on every render into the flat
-  // [{ paneId, rect }] this component actually needs — cheap (at most 4 leaves) and simpler than
-  // trying to memoize a derivation this small.
-  const tree = useSyncExternalStore(
-    paneLayoutStore.subscribe,
-    paneLayoutStore.getSnapshot,
-    paneLayoutStore.getSnapshot,
-  );
+  // Zustand's own getInitialState() (what useStore's SSR snapshot reads) already matches the
+  // store's real initial value ({type:"leaf",paneId:0}) — no separate module-level fallback
+  // constant needed the way the old useSyncExternalStore call required (see
+  // ProfileLevelPill.jsx/SelectionToolbar.jsx's identical comment for the server/client hydration
+  // mismatch this avoids).
+  // The store itself holds a split TREE, not a flat rect list (Stage 6 — see usePaneLayoutStore's
+  // own comment, app/dotto/lib/paneLayoutStore.ts). computePaneRects walks it fresh on every
+  // render into the flat [{ paneId, rect }] this component actually needs — cheap (at most 4
+  // leaves) and simpler than trying to memoize a derivation this small.
+  const tree = usePaneLayoutStore();
   const panes = computePaneRects(tree);
   const dividers = computeSplitDividers(tree);
 

@@ -7,7 +7,7 @@ import usePortalNode from "./usePortalNode";
 // Portals into #extensions-list-container (content/fragments/hamburger-stack.html, #library-panel
 // — the Extensions panel's real id under the hood, was Library before this repurposing). Just
 // installed-extension pills, rectangular rather than item cards (explicit request) — no click
-// behavior yet, nothing to click into (extensionsListStore, bridges.js, is dummy data for now).
+// behavior yet, nothing to click into (see app/dotto/lib/extensionsListStore.ts, dummy data for now).
 export default function ExtensionsPanel() {
   const extensions = useExtensionsListStore();
   const portalNode = usePortalNode("extensions-list-container");

@@ -1570,7 +1570,7 @@ export function spawnMediaItemAt(
 // pane is currently active while called from render()'s per-frame loop, but also called explicitly
 // from switchActivePane (app/dotto/lib/coreState.ts) so a newly-active pane's own zoom doesn't wait a frame.
 // Reads the REAL zoom value off the folder object itself (folderObj.viewerZoom) — this store is
-// just the React-facing mirror of it (see its own comment, bridges.js).
+// just the React-facing mirror of it (see app/dotto/lib/mediaViewerZoomStore.ts's own comment).
 export function renderMediaViewerZoom(paneId?: number): void {
   const appState = getAppState()!;
   paneId = paneId ?? appState.activePaneId;

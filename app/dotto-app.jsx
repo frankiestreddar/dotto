@@ -3,17 +3,17 @@
 import { useEffect } from "react";
 import { flushSync } from "react-dom";
 import { createClient } from "@/lib/supabase/client";
-import {
-  canvasItemsStore,
-  closeLeafInTree,
-  listPaneIds,
-  paneLayoutStore,
-  splitLeafInTree,
-} from "./dotto/bridges";
 import { useBreadcrumbMapStore } from "./dotto/lib/breadcrumbMapStore";
+import { useCanvasItemsStore } from "./dotto/lib/canvasItemsStore";
 import { useCollabPillStore } from "./dotto/lib/collabPillStore";
 import { useMediaViewerZoomStore } from "./dotto/lib/mediaViewerZoomStore";
 import { useNavHistoryStore } from "./dotto/lib/navHistoryStore";
+import {
+  closeLeafInTree,
+  listPaneIds,
+  splitLeafInTree,
+  usePaneLayoutStore,
+} from "./dotto/lib/paneLayoutStore";
 import { useTabsStore } from "./dotto/lib/tabsStore";
 import AchievementsGrid from "./dotto/AchievementsGrid";
 import AddToSourcePopup from "./dotto/AddToSourcePopup";
@@ -254,39 +254,50 @@ if (typeof window !== "undefined") {
 if (typeof window !== "undefined") {
   // Canvas items layer (see app/dotto/CanvasItemsLayer.jsx, PHASE2_ROADMAP.md's canvas-items-react
   // plan) — render() (app/dotto/lib/waypointsRenderLoop.ts) calls this in place of its old world.innerHTML=''
-  // rebuild, passing appState.activePaneId explicitly (split-screen Stage 4 — canvasItemsStore is
-  // pane-keyed now, see bridges.js: each pane shows its own folder's items independently).
-  // MUST commit synchronously: at least one caller (canvasItemBehavior.js's alt-duplicate-drag) does
-  // `render(); findItemEl(id)` immediately afterward and depends on that node already existing. A
-  // plain store.set(...) here would only schedule the update (React 18+ batches/defers updates
-  // triggered outside of React's own event handlers to a microtask), so this wraps it in flushSync
-  // to force the commit — and, since each CanvasItem's own body-building happens in a
-  // useLayoutEffect (synchronous, pre-paint), flushSync flushes that too, before this returns.
+  // rebuild, passing appState.activePaneId explicitly (split-screen Stage 4 — useCanvasItemsStore
+  // is pane-keyed, see app/dotto/lib/canvasItemsStore.ts: each pane shows its own folder's items
+  // independently). MUST commit synchronously: at least one caller (canvasItemBehavior.js's
+  // alt-duplicate-drag) does `render(); findItemEl(id)` immediately afterward and depends on that
+  // node already existing. A plain setState(...) here would only schedule the update (React 18+
+  // batches/defers updates triggered outside of React's own event handlers to a microtask), so
+  // this wraps it in flushSync to force the commit — and, since each CanvasItem's own
+  // body-building happens in a useLayoutEffect (synchronous, pre-paint), flushSync flushes that
+  // too, before this returns. `true` (replace) as setState's second argument — array-shaped state,
+  // see useCanvasItemsStore's own comment for why the default merge would silently corrupt it.
   window.__renderCanvasItems = (items, paneId) =>
-    flushSync(() => canvasItemsStore.storeFor(paneId).set(items));
+    flushSync(() => useCanvasItemsStore.storeFor(paneId).setState(items, true));
   // Pane layout (split-screen Stage 4+, see app/dotto/PaneGrid.jsx) — the tree itself, plus the
-  // split/close operations on it (Stage 6 — see paneLayoutStore's own comment, bridges.js, for why
-  // this became a real tree instead of a flat rect list). All flushSync'd for the same reason
-  // __renderCanvasItems is: a caller that splits or closes a pane needs that pane's own
-  // #canvas-{paneId}/#world-{paneId}/etc DOM to actually exist (or stop existing) immediately
-  // afterward, not just scheduled for a later batched update.
-  window.__setPaneLayout = (tree) => flushSync(() => paneLayoutStore.set(tree));
-  window.__getPaneLayout = () => paneLayoutStore.getSnapshot();
-  window.__listPaneIds = () => listPaneIds(paneLayoutStore.getSnapshot());
-  window.__countPanes = () => listPaneIds(paneLayoutStore.getSnapshot()).length;
+  // split/close operations on it (Stage 6 — see usePaneLayoutStore's own comment,
+  // app/dotto/lib/paneLayoutStore.ts, for why this became a real tree instead of a flat rect
+  // list). All flushSync'd for the same reason __renderCanvasItems is: a caller that splits or
+  // closes a pane needs that pane's own #canvas-{paneId}/#world-{paneId}/etc DOM to actually
+  // exist (or stop existing) immediately afterward, not just scheduled for a later batched update.
+  // `true` (replace) as setState's second argument on every call — the tree alternates between
+  // "leaf" ({type,paneId}) and "split" ({type,direction,children}) shapes with different key
+  // sets, so Zustand's default Object.assign merge would leak stale fields (a lingering
+  // `direction`/`children` from a previous split state onto a freshly-closed-back-to-one-leaf
+  // tree) across the transition — same class of bug as the array-shaped stores, just for objects
+  // with varying keys instead (see hubCollabListStore.ts/msgListStore.ts's own comments for the
+  // batch-4/6 precedent).
+  window.__setPaneLayout = (tree) => flushSync(() => usePaneLayoutStore.setState(tree, true));
+  window.__getPaneLayout = () => usePaneLayoutStore.getState();
+  window.__listPaneIds = () => listPaneIds(usePaneLayoutStore.getState());
+  window.__countPanes = () => listPaneIds(usePaneLayoutStore.getState()).length;
   window.__splitPaneInLayout = (targetPaneId, newPaneId, edge) =>
     flushSync(() =>
-      paneLayoutStore.set(
-        splitLeafInTree(paneLayoutStore.getSnapshot(), targetPaneId, newPaneId, edge),
+      usePaneLayoutStore.setState(
+        splitLeafInTree(usePaneLayoutStore.getState(), targetPaneId, newPaneId, edge),
+        true,
       ),
     );
   window.__closePaneInLayout = (paneId) =>
-    flushSync(() => paneLayoutStore.set(closeLeafInTree(paneLayoutStore.getSnapshot(), paneId)));
-  // Drops a closed pane's own items/tabs/breadcrumb stores (see createPaneKeyedStore's own
-  // comment, bridges.js, and app/dotto/lib/paneKeyedStore.ts's redesigned Zustand version) so they
-  // don't just leak forever once closePane (app/dotto/lib/splitPaneManagement.ts) actually closes
-  // a pane.
-  window.__removePaneItemsStore = (paneId) => canvasItemsStore.remove(paneId);
+    flushSync(() =>
+      usePaneLayoutStore.setState(closeLeafInTree(usePaneLayoutStore.getState(), paneId), true),
+    );
+  // Drops a closed pane's own items/tabs/breadcrumb stores (see app/dotto/lib/paneKeyedStore.ts's
+  // own comment) so they don't just leak forever once closePane
+  // (app/dotto/lib/splitPaneManagement.ts) actually closes a pane.
+  window.__removePaneItemsStore = (paneId) => useCanvasItemsStore.remove(paneId);
   window.__removePaneTabsStore = (paneId) => {
     useTabsStore.remove(paneId);
     useBreadcrumbMapStore.remove(paneId);

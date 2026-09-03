@@ -94,9 +94,9 @@ export function openItemDetail(item: MarketplaceItem, sourceFolder: string): voi
   renderItemDetailFooter();
 }
 
-// Real React state now (see app/dotto/ItemDetailFooter.jsx, itemDetailFooterStore) — a natural,
-// self-contained discriminated union, unlike the rest of this view (see that store's own comment
-// in bridges.js for why the form fields stay vanilla).
+// Real React state now (see app/dotto/ItemDetailFooter.jsx, useItemDetailFooterStore) — a
+// natural, self-contained discriminated union, unlike the rest of this view (see
+// app/dotto/lib/itemDetailFooterStore.ts's own comment for why the form fields stay vanilla).
 function renderItemDetailFooter(): void {
   const appState = getAppState();
   useItemDetailFooterStore.setState({

@@ -256,7 +256,7 @@ export async function commenceDotbotSearch(query: string): Promise<void> {
 }
 
 // Appends one turn (the query just asked + the panels Dotbot answered with) to the persisted
-// chat thread above the search input — see chatThreadStore's own comment (app/dotto/bridges.js)
+// chat thread above the search input — see app/dotto/lib/chatThreadStore.ts's own comment
 // for the full architecture, and ChatThread.jsx for how a turn's panels get built into their
 // own DOM subtree using the same vanilla builders every individual panel type always used.
 // #search-dropdown (canvas matches/"/"-commands/live suggestions) is untouched by any of this —

@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { allowedEdgesForPane, computePaneRects, paneLayoutStore } from "./bridges";
+import { allowedEdgesForPane, computePaneRects, usePaneLayoutStore } from "./lib/paneLayoutStore";
 import { useBreadcrumbMapStore } from "./lib/breadcrumbMapStore";
 import { useTabsStore } from "./lib/tabsStore";
 import { startRenameFolderCardTitle } from "./lib/waypointsRenderLoop";
@@ -22,8 +22,9 @@ const EDGE_ZONE_PX = 80;
 
 // Split-screen Stage 6 — every currently-open pane's own screen box, in real pixels, for hit-
 // testing during a drag ("which pane is the cursor over right now, and how close is it to which of
-// THAT pane's own 4 edges"). Reads paneLayoutStore directly rather than through a bridge (this file
-// already lives in the same React tree/module graph as bridges.js, unlike the vanilla side) and
+// THAT pane's own 4 edges"). Reads usePaneLayoutStore directly rather than through a bridge (this
+// file already lives in the same React tree/module graph as app/dotto/lib/paneLayoutStore.ts,
+// unlike the vanilla side) and
 // .pane-grid-viewport's own live bounding box rather than window.innerWidth/--rail-width math, so
 // this stays correct through the hamburger-panel-open width reservation (globals.css) without
 // having to duplicate that CSS's own arithmetic here.
@@ -31,7 +32,7 @@ function getPaneRectsPx() {
   const viewportEl = document.querySelector(".pane-grid-viewport");
   if (!viewportEl) return [];
   const vp = viewportEl.getBoundingClientRect();
-  return computePaneRects(paneLayoutStore.getSnapshot()).map(({ paneId, rect }) => ({
+  return computePaneRects(usePaneLayoutStore.getState()).map(({ paneId, rect }) => ({
     paneId,
     x: vp.left + rect.x * vp.width,
     y: vp.top + rect.y * vp.height,
@@ -430,9 +431,9 @@ export default function TabsBar({ paneId }) {
 
     // Split-screen Stage 6 — hit-test every currently-open pane's own box (not just the two
     // viewport halves), find whichever one the cursor is nearest, then check proximity to only
-    // THAT pane's own currently-LEGAL edges (allowedEdgesForPane, bridges.js — Stage 9, explicit
-    // correction: dropping on a pane that's already part of a row/column pair, on the SAME
-    // direction as that existing split, used to be allowed and produced 3+ panes side by side
+    // THAT pane's own currently-LEGAL edges (allowedEdgesForPane, app/dotto/lib/paneLayoutStore.ts
+    // — Stage 9, explicit correction: dropping on a pane that's already part of a row/column pair,
+    // on the SAME direction as that existing split, used to be allowed and produced 3+ panes side by side
     // instead of quartering — only the perpendicular edges may ever show a zone now, growing
     // strictly toward a clean 2x2). Capped: once 4 panes already exist, no edge zone can activate
     // at all (window.__countPanes, app/dotto/lib/splitPaneManagement.ts is the actual authority; this just
@@ -459,7 +460,7 @@ export default function TabsBar({ paneId }) {
           return !best || dist < best.dist ? { ...p, dist } : best;
         }, null);
       if (hovered) {
-        const allowed = allowedEdgesForPane(paneLayoutStore.getSnapshot(), hovered.paneId);
+        const allowed = allowedEdgesForPane(usePaneLayoutStore.getState(), hovered.paneId);
         const distances = {
           left: clientX - hovered.x,
           right: hovered.x + hovered.width - clientX,

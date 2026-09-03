@@ -37,11 +37,12 @@ One cohesive React + TypeScript codebase under `app/dotto/`:
 
 There's no separate vanilla/bundler-less layer anymore (there used to be — see
 `PHASE4_ROADMAP.md` for that history). A number of modules still reach each other through
-`window.__*` (`app/dotto/bridges.js`'s own `createStore` mechanism, plus plain bridge functions)
-rather than a normal `import` — that convention predates the full consolidation and is known,
-tracked technical debt rather than the intended end state; see `CONTRIBUTING.md` for the full
-picture of what's deliberately kept as a bridge vs. what should just be a real import going
-forward.
+`window.__*` bridge functions rather than a normal `import` — every store a React component
+subscribes to is real Zustand now (`app/dotto/lib/*Store.ts`, one file per store; see
+`app/dotto/lib/paneKeyedStore.ts` for the per-pane variant), but a wide layer of plain
+`window.__*` accessor/setter bridges between still-separate `lib/*.ts` modules remains — see
+`CONTRIBUTING.md` for the full picture of what's deliberately kept as a bridge (universal hub
+accessors, inline-`onclick` targets) vs. what's real same-tree-upgrade debt.
 
 `app/dotto-app.jsx` is the app's own composition root: it renders the 18 static markup fragments
 (`content/fragments/*.html`, one per top-level section of the original page), wires up the
@@ -49,7 +50,7 @@ remaining `window.__*` bridges, and mounts every React component, each wrapped i
 `<ErrorBoundary>` so a crash in one small piece can't take the whole app down.
 
 See `CONTRIBUTING.md` before adding a new feature — it walks through the current conventions and
-links back to the specific examples in `bridges.js` to copy.
+links back to specific store examples (`app/dotto/lib/*Store.ts`) to copy.
 
 ## Project structure
 
@@ -58,7 +59,7 @@ app/
   layout.js            root layout — fonts, <head> links, imports globals.css
   page.js               Server Component — reads Supabase session/profile + content/fragments/*.html, passes to DottoApp
   dotto-app.jsx          Client component — the app's own composition root, described above
-  dotto/                 React components for every subsystem, plus bridges.js and usePortalNode.js
+  dotto/                 React components for every subsystem, plus usePortalNode.js
   dotto/lib/              plain TypeScript modules — most of the app's actual behavior lives here
   dotto/sections/         18 named shell components (one per top-level page section), each rendering a static fragment
   api/dotbot/             API routes backing the AI assistant (ask/orchestrate/mnemonic/image/suggest/tts)

@@ -650,7 +650,7 @@ body:has(#hamburger-stack.open):not([data-sidebar-mode="overlay"]) .item.static-
   justify-self: start;
 }
 /* Notification stack, bottom-left — explicit redesign (see notificationsStore's own comment,
-       app/dotto/bridges.js, for the full "before" picture: was a single top-center pill, one at a
+       app/dotto/lib/notificationsStore.ts, for the full "before" picture: was a single top-center pill, one at a
        time, swapping places with #top-bar-center; briefly a top-right stack sliding in from the
        right before THIS follow-up request remirrored it to bottom-left, sliding from the left).
        Fully React-rendered (NotificationBar.jsx), no static portal markup. The wrapper itself is
@@ -1687,7 +1687,7 @@ body:has(#hamburger-stack.open):not([data-sidebar-mode="overlay"]) .item.static-
        .pane-breadcrumb-pill's own comment). Grows/shrinks smoothly (max-width/padding/opacity, all
        transitioned together) rather than a hard display toggle — PaneTopBar.jsx only ever toggles
        the .show CLASS (pushed by friends-presence.js's renderCollabPill(paneId), see
-       app/dotto/bridges.js's collabPillStore), matching its own retargetable-appState.collabBubble
+       app/dotto/lib/collabPillStore.ts), matching its own retargetable-appState.collabBubble
        plumbing in friends-presence.js. max-width:0/220px (was width:auto via display:none) is the
        standard "animate a flex item's width toward its natural size" trick — 220px is a generous cap
        past this section's real content width (a handful of small avatars plus a +N pill, or the
@@ -4691,7 +4691,7 @@ body:has(#collab-panel.open) .pane-collab-bubble:hover .collab-tooltip {
   background: var(--card);
 }
 /* Dividing line between panes (explicit request) — one per split node (PaneGrid.jsx's
-       computeSplitDividers, bridges.js), positioned at the fractional boundary between that
+       computeSplitDividers, app/dotto/lib/paneLayoutStore.ts), positioned at the fractional boundary between that
        split's two children. translate(-50%) centers the line's own thickness ON that boundary
        coordinate rather than starting the line there, so it reads as a shared edge between the
        two panes rather than belonging to one side. z-index 200, same as .pane-close-btn — above

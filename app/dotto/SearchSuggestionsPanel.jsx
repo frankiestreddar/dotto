@@ -11,7 +11,7 @@ import {
 } from "./lib/mnemonicSearchMatching";
 
 // Mounts whichever of #search-suggestions' 5 producers is currently active — see
-// searchSuggestionsStore's own comment in bridges.js for the full producer list and why this is a
+// app/dotto/lib/searchSuggestionsStore.ts's own comment for the full producer list and why this is a
 // discriminated union. Every kind's content stays vanilla-built (typewriter reveals, drag-to-
 // canvas wiring), same "return null, mutate in an effect" pattern as TranslationPanel.jsx and
 // friends — there's no list to key/diff here, just one blob of content wholesale-replaced each
