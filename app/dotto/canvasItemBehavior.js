@@ -17,6 +17,7 @@ import {
   makeLayerSVG,
   pointsToLinePath,
 } from "./lib/drawingConnections";
+import { colgroupHTML } from "./lib/sourceTable";
 
 // The "continuous pointer-driven pixel math" pieces of canvas core (CONTRIBUTING.md's category
 // name for this — Phase 3 of the vanilla->React consolidation) that have moved out of separate
@@ -860,7 +861,7 @@ function tableCellHTML(cell, r, c, opts) {
 // Stack card (see CardStreamIO.shelf) reading its 'sourceRows' output.
 export function renderStaticTableHTML(it, folderId) {
   const numCols = it.tableData[0].length;
-  const cg = window.__colgroupHTML(numCols);
+  const cg = colgroupHTML(numCols);
   const headerPills = buildHeaderPillsHTML(it.tableData[0], (ci) => ({
     oninput: `renameTableColumn(${it.id}, ${ci}, this.value)`,
     onkeydown: `handleColNameKeydown(event, ${it.id}, ${ci})`,

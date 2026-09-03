@@ -16,6 +16,7 @@
 import { renderChatsList } from "./hamburgerCollab";
 import { commenceSearchOrMnemonic } from "./mnemonicSearchMatching";
 import { stripHtml } from "./textUtils";
+import { updateCommandPalette } from "./commandPalette";
 
 interface AppState {
   searchInput: HTMLTextAreaElement;
@@ -509,13 +510,13 @@ function hideDotbotResultPanels(): void {
 export function handleSearchInput(value: string): void {
   window.__autoGrowSearchInput?.();
   const appState = getAppState();
-  // Slash commands (command-palette.js) take over the box entirely — none of the normal
-  // live-suggestion machinery below applies, and any of its panels left over from before "/" was
-  // typed need clearing so they don't linger behind the command palette.
+  // Slash commands (app/dotto/lib/commandPalette.ts) take over the box entirely — none of the
+  // normal live-suggestion machinery below applies, and any of its panels left over from before
+  // "/" was typed need clearing so they don't linger behind the command palette.
   if (value.startsWith("/")) {
     hideDotbotResultPanels();
     window.__setSearchSuggestions?.(null);
-    window.__updateCommandPalette?.(value);
+    updateCommandPalette(value);
     updateSearchDropdown();
     return;
   }
@@ -964,19 +965,14 @@ if (typeof window !== "undefined") {
   // ChatTurn (app/dotto/ChatThread.jsx) and SearchSuggestionsPanel.jsx used to call
   // __buildLiveSuggestionsRows directly via a window bridge (public/dotto/*.js wasn't reachable
   // from app/dotto/) — now a real ES import instead, same app/dotto/ tree, so that one bridge was
-  // dropped. updateChatThread/scrollChatThreadToBottom/updateSearchDropdown/showAiChatView keep
-  // their own bridges below though — search-orchestration-selection.js (still vanilla) is a real
-  // caller of all four, reached only through these now that its old direct import of this file no
-  // longer crosses the public/app boundary.
+  // dropped. updateChatThread/scrollChatThreadToBottom/updateSearchDropdown/showAiChatView were
+  // the same story once app/dotto/lib/searchOrchestrationSelection.ts (their one remaining real
+  // caller) was itself ported — all four bridges dropped too.
   window.__findParentFolderId = findParentFolderId;
   window.__refreshAiPanel = refreshAiPanel;
   window.__resetAiSearchState = resetAiSearchState;
   window.__clearSearch = clearSearch;
   window.__openSearchOverlay = openSearchOverlay;
-  window.__updateChatThread = updateChatThread;
-  window.__scrollChatThreadToBottom = scrollChatThreadToBottom;
-  window.__updateSearchDropdown = updateSearchDropdown;
-  window.__showAiChatView = showAiChatView;
   // Plain (non-`__`) globals — real inline oninput/onfocus/onclick targets in
   // content/fragments/hamburger-stack.html and content/dotto-markup.html.
   window.handleSearchFocus = handleSearchFocus;

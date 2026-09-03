@@ -153,13 +153,14 @@ export function wireNotifications(): () => void {
 
 // Not an inline-HTML onclick target (those get a plain, non-`__`-prefixed global instead, set
 // directly by whichever file owns them — see e.g. window.pushNotification's own shape) — plain
-// vanilla-callable bridges for the still-vanilla files that push/query
-// notifications (command-verbs.js, command-palette.js) plus
-// app/dotto/lib/srsConnectionsCore.ts, app/dotto/lib/profileAchievementsPricing.ts,
-// app/dotto/lib/cardShortcuts.ts, app/dotto/lib/hamburgerCollab.ts, app/dotto/lib/friendsPresence.ts,
+// vanilla-callable bridges kept for the many files that push/query notifications this way
+// (app/dotto/lib/commandVerbs.ts, app/dotto/lib/commandPalette.ts, app/dotto/lib/srsConnectionsCore.ts,
+// app/dotto/lib/profileAchievementsPricing.ts, app/dotto/lib/cardShortcuts.ts,
+// app/dotto/lib/hamburgerCollab.ts, app/dotto/lib/friendsPresence.ts,
 // app/dotto/lib/dayChangeAndAdNotifications.ts, app/dotto/lib/sharedAndPublicCanvasLoading.ts, and
 // PricingOverlay.jsx, which already called window.pushNotification even before this port (see
-// vanillaBridges.d.ts).
+// vanillaBridges.d.ts)) — none of these were revisited for a same-tree upgrade during their own
+// individual ports, pushNotification stays a universal bridge throughout.
 // Guarded: this module's top level is reached during Next's server-side render pass (a
 // pre-existing, project-wide issue across every Phase 4.4/4.5 bridge file, discovered and
 // documented while finishing the history-autosave.js port — see PHASE4_ROADMAP.md), where

@@ -39,7 +39,7 @@ const EMPTY_TURNS = [];
 // sibling turn being appended right after it) does NOT remount this one or refire its effect.
 // That's what makes `turn.fresh` safe to read only once, on mount, rather than needing its own
 // "already consumed" guard — it's only ever true for the turn that was just live-appended
-// (chatThreadStore/__appendChatTurn, search-orchestration-selection.js), never for turns restored
+// (chatThreadStore/__appendChatTurn, app/dotto/lib/searchOrchestrationSelection.ts), never for turns restored
 // from history (chatThreadStore/__setChatThread, the sidebar reopen flow), which render with
 // `fresh` false/omitted so they show fully settled immediately instead of re-typewriter-ing text
 // that was already delivered in a past session.
@@ -67,7 +67,7 @@ function ChatTurn({ turn }) {
     const translationPanel = panels.find((p) => p.type === "translation") || null;
     const recommendedPanel = panels.find((p) => p.type === "recommended_searches") || null;
     const answerBlocksPanel = panels.find((p) => p.type === "answer_blocks") || null;
-    // Same lookup renderOrchestrateResult (search-orchestration-selection.js) already does for
+    // Same lookup renderOrchestrateResult (app/dotto/lib/searchOrchestrationSelection.ts) already does for
     // the answer_blocks continuation's example pills' own TTS language.
     const answerLanguage =
       (dictPanel && dictPanel.entries && dictPanel.entries[0] && dictPanel.entries[0].language) ||

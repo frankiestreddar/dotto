@@ -459,12 +459,6 @@ if (typeof window !== "undefined") {
   window.__tagPillsHTML = tagPillsHTML as (table: Record<string, unknown>, r: number) => string;
   // Used by app/dotto/lib/waypointsRenderLoop.ts/sourceButtonsCursorMode.ts/historyAutosave.ts.
   window.__closeCellTagPicker = closeCellTagPicker;
-  // New bridges for public/dotto/search-orchestration-selection.js's sourceAction panel handling
-  // (still vanilla) — it used to import applyAiAddRowsToSource/createSourceFromAI directly
-  // (vanilla-to-vanilla), which no longer reaches across the public/app boundary now that this
-  // file is ported.
-  window.__applyAiAddRowsToSource = applyAiAddRowsToSource;
-  window.__createSourceFromAI = createSourceFromAI;
   // Plain (non-`__`) globals — real inline onclick/onkeydown targets in
   // content/fragments/cell-tag-picker.html; window-bridge.js used to set these from this file's
   // own vanilla exports, now set directly instead, same convention every other ported file with

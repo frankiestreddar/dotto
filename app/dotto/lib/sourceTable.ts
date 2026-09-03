@@ -4,8 +4,8 @@
 // the legacy renderer and the real TableCard.jsx, row/column growth + merging, and the Source
 // page's own image/audio-insert + CSV/TSV import pipeline. TableCard.jsx upgraded from window
 // bridges to real ES imports (same precedent as stopwatch.ts/gamesFlashcardTyperight.ts/
-// MediaCard.jsx), bridges kept for the still-vanilla callers (search-orchestration-selection.js,
-// and canvasItemBehavior.js's/static-HTML's own inline-onclick targets) plus
+// MediaCard.jsx), bridges kept for canvasItemBehavior.js's/static-HTML's own real inline-onclick
+// targets (permanently bridge-shaped by design, not upgrade candidates) plus
 // app/dotto/lib/messagingCanvasPreview.ts/app/dotto/lib/sourceTagsAi.ts/
 // app/dotto/lib/tableGridResize.ts (all ported since — the last of these upgraded to a real
 // import too, same app/dotto/lib tree).
@@ -97,7 +97,7 @@ export function renderTableHTML(it: Item): string {
 // each other and render() (app/dotto/lib/waypointsRenderLoop.ts). colgroupHTML just above stays here —
 // renderTableHTML (the on-canvas Table card's own legacy preview renderer, still used by
 // app/dotto/lib/messagingCanvasPreview.ts) needs it too — reached from the relocated
-// renderStaticTableHTML via window.__colgroupHTML.
+// renderStaticTableHTML via a real import now (app/dotto/canvasItemBehavior.js, same app/dotto/ tree).
 // A click and drag on a cell should move the whole card, never focus/edit that cell — but the
 // browser grabs focus on a contentEditable element the instant mousedown fires, before there's any
 // way to know yet whether this gesture is a click or the start of a drag. This tracks real pointer
@@ -761,10 +761,6 @@ if (typeof window !== "undefined") {
   // its body via this legacy string-renderer before switching to userSized layout — see that
   // function's own comment), same reasoning as window.__getAppState (app/dotto/lib/coreState.ts).
   window.__renderTableHTML = renderTableHTML;
-  // Shared with the relocated renderStaticTableHTML (app/dotto/canvasItemBehavior.js — see the
-  // comment above colgroupHTML's own definition) — the on-canvas Table card's own legacy preview
-  // renderer (renderTableHTML, just above) also still needs this directly, same-module, unbridged.
-  window.__colgroupHTML = colgroupHTML;
   // Used by app/dotto/lib/outlineTree.ts's goToOutlineSourceRow (Phase 4.4).
   window.__focusTableCell = focusTableCell;
   // Used by app/dotto/lib/sourceTagsAi.ts's triggerSourceUpload (Phase 4.5).

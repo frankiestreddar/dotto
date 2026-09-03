@@ -489,7 +489,7 @@ export async function POST(request) {
   }
 
   // A follow-up continuing an existing thread (requestedConversationId set by the client — see
-  // appState.currentConversationId, public/dotto/search-orchestration-selection.js) vs. a fresh
+  // appState.currentConversationId, app/dotto/lib/searchOrchestrationSelection.ts) vs. a fresh
   // one. RLS-scoped read, so a stale/foreign id just resolves to no history rather than a leak —
   // treated the same as starting fresh in that case.
   const {

@@ -71,6 +71,7 @@ import { wireSrsConnectionsCore } from "./dotto/lib/srsConnectionsCore";
 import { wireProfileAchievementsPricing } from "./dotto/lib/profileAchievementsPricing";
 import { wireCardShortcuts } from "./dotto/lib/cardShortcuts";
 import { wireAiAssistantSuggestions } from "./dotto/lib/aiAssistantSuggestions";
+import { wireSearchOrchestrationSelection } from "./dotto/lib/searchOrchestrationSelection";
 import { wireHamburgerCollab } from "./dotto/lib/hamburgerCollab";
 import { wireFriendsPresence } from "./dotto/lib/friendsPresence";
 import { wireMessagesSchedule } from "./dotto/lib/messagesSchedule";
@@ -78,10 +79,12 @@ import { wireAppInit } from "./dotto/lib/appInit";
 import { wireExtensionsPanel } from "./dotto/lib/extensionsPanel";
 import { wireUploadPopup } from "./dotto/lib/uploadPopup";
 import { wireBlocksPanel } from "./dotto/lib/blocksPanel";
-// Side-effect only — sets window.__buildMnemonicErrorEl/commenceSearchOrMnemonic/etc at
-// module-eval time for search-orchestration-selection.js (still vanilla); every other bridge this
-// file used to need was upgraded to a real import by its own same-tree app/dotto/*.jsx consumer.
-// No wireX() of its own (every top-level statement here is a plain function declaration).
+// Side-effect only — sets this module's own bridges (__buildMnemonicErrorEl/etc) at module-eval
+// time. Every real consumer (SearchSuggestionsPanel.jsx, app/dotto/lib/searchOrchestrationSelection.ts)
+// now real-imports what it needs directly instead, same app/dotto tree — this bare import may be
+// fully redundant at this point, kept rather than risk a subtle evaluation-order regression
+// without a dedicated pass to verify it. No wireX() of its own (every top-level statement here is
+// a plain function declaration).
 import "./dotto/lib/mnemonicSearchMatching";
 import { ensureCoreState } from "./dotto/lib/coreState";
 // Side-effect only, same reasoning as splitPaneManagement/tabManagement above — sets
@@ -151,11 +154,11 @@ import "./dotto/lib/srsAlgorithm";
 // Side-effect only — sets window.__dispatchSelectedToChat at module-eval time; its only real
 // caller (app/dotto/canvasItemBehavior.js) is a plain .js file, not same-tree.
 import "./dotto/lib/dragDropChat";
-// Side-effect only — sets window.__openRowTagPicker/__tagPillsHTML/__closeCellTagPicker/
-// __applyAiAddRowsToSource/__createSourceFromAI plus the real inline-HTML plain globals
-// (closeCellTagPicker/closeTagContextMenu/createTagFromCellPicker/deleteActiveTag/
-// startRenameActiveTag/triggerSourceUpload) at module-eval time; CellTagPickerList.jsx imports the
-// real functions directly instead (same app/dotto/ tree) for its own TagRow handlers.
+// Side-effect only — sets window.__openRowTagPicker/__tagPillsHTML/__closeCellTagPicker plus the
+// real inline-HTML plain globals (closeCellTagPicker/closeTagContextMenu/createTagFromCellPicker/
+// deleteActiveTag/startRenameActiveTag/triggerSourceUpload) at module-eval time;
+// CellTagPickerList.jsx imports the real functions directly instead (same app/dotto/ tree) for its
+// own TagRow handlers.
 import "./dotto/lib/sourceTagsAi";
 import BlocksPanel from "./dotto/BlocksPanel";
 import CellTagPickerList from "./dotto/CellTagPickerList";
@@ -288,7 +291,7 @@ if (typeof window !== "undefined") {
 if (typeof window !== "undefined") {
   window.__setPricingOverlayOpen = pricingOverlayStore.set;
   // Phase 2 increment 2: same pattern, for the text-selection toolbar shell — see
-  // app/dotto/SelectionToolbar.jsx and search-orchestration-selection.js's
+  // app/dotto/SelectionToolbar.jsx and app/dotto/lib/searchOrchestrationSelection.ts's
   // showSelectionToolbarFor/hideSelectionToolbar.
   window.__setSelectionToolbarState = selectionToolbarStore.set;
   // Canvas items layer (see app/dotto/CanvasItemsLayer.jsx, PHASE2_ROADMAP.md's canvas-items-react
@@ -352,7 +355,7 @@ if (typeof window !== "undefined") {
   // window-bridge write needed at all), these DO need flushSync — updateSearchDropdown
   // (app/dotto/lib/aiAssistantSuggestions.ts) reads
   // each panel's real DOM node's style.display synchronously right after calling its
-  // render*Panel function (see renderOrchestrateResult, search-orchestration-selection.js, which
+  // render*Panel function (see renderOrchestrateResult, app/dotto/lib/searchOrchestrationSelection.ts, which
   // calls several of these back-to-back and then updateSearchDropdown once at the end) — without
   // flushSync that read would race the layout effect that actually sets style.display, same bug
   // flushSync already exists to prevent for canvasItemsStore above.
@@ -371,15 +374,15 @@ if (typeof window !== "undefined") {
   window.__setChatThread = (turns) => flushSync(() => chatThreadStore.set(turns));
   window.__appendChatTurn = (turn) =>
     flushSync(() => chatThreadStore.set([...chatThreadStore.getSnapshot(), turn]));
-  // #search-command-palette (see app/dotto/CommandPalette.jsx, command-palette.js's
+  // #search-command-palette (see app/dotto/CommandPalette.jsx, app/dotto/lib/commandPalette.ts's
   // updateCommandPalette) — same flushSync reasoning as the six above. Specifically also needs it
   // for a second reason: it's a real portal (see commandPaletteStore's own comment in bridges.js),
-  // and search-orchestration-selection.js's command-mode keydown branches read its rows via
-  // querySelectorAll synchronously right after this is called.
+  // and app/dotto/lib/searchOrchestrationSelection.ts's command-mode keydown branches read its
+  // rows via querySelectorAll synchronously right after this is called.
   window.__setCommandPalette = (state) => flushSync(() => commandPaletteStore.set(state));
   window.__setSearchSuggestions = (state) => flushSync(() => searchSuggestionsStore.set(state));
   // Add-to-source popup (see app/dotto/AddToSourcePopup.jsx, addToSourcePopupStore) — MUST be
-  // flushSync: openAddToSourcePopup (search-orchestration-selection.js) calls
+  // flushSync: openAddToSourcePopup (app/dotto/lib/searchOrchestrationSelection.ts) calls
   // renderAddToSourcePopup immediately after this, which looks the div up by id and needs it to
   // already exist in the DOM.
   window.__setAddToSourcePopupOpen = (state) => flushSync(() => addToSourcePopupStore.set(state));
@@ -583,6 +586,12 @@ export default function DottoApp({ sections, currentUser }) {
   // comment, app/dotto/lib/aiAssistantSuggestions.ts, for why this needs live appState right at
   // wire time (to read appState.searchInput) rather than a single readiness check.
   useEffect(() => wireAiAssistantSuggestions(), []);
+  // Phase 4.1 cluster revisit (file #11/11, closes out the cluster): the selection toolbar's
+  // document-level selectionchange/pointerdown listeners, the add-to-source popup's own
+  // outside-click listener, and #search-input's slash-command/Enter keydown handling — see
+  // wireSearchOrchestrationSelection's own comment for why this needs live appState right at wire
+  // time too.
+  useEffect(() => wireSearchOrchestrationSelection(), []);
   // Phase 4.5: the three list panels' shift+drag "paint select" listeners and the draw-settings
   // panel's click-stop-propagation — see wireHamburgerCollab's own comment,
   // app/dotto/lib/hamburgerCollab.ts, for why this needs window.__getDrawSettingsEl

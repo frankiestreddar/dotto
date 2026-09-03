@@ -7,6 +7,7 @@
 // Reaches every still-vanilla dependency through window bridges.
 
 import { escapeHtml } from "./textUtils";
+import { showSelectionToolbarFor } from "./searchOrchestrationSelection";
 
 interface Item {
   id: number;
@@ -580,7 +581,7 @@ export function buildEpubViewer(it: Item): HTMLElement {
         if (!iframeEl) return;
         const iframeRect = iframeEl.getBoundingClientRect();
         const rangeRect = range.getBoundingClientRect();
-        window.__showSelectionToolbarFor?.(range, container, {
+        showSelectionToolbarFor(range, container, {
           left: iframeRect.left + rangeRect.left,
           top: iframeRect.top + rangeRect.top,
           width: rangeRect.width,

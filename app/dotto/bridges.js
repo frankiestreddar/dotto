@@ -31,8 +31,8 @@ export const pricingOverlayStore = createStore(false);
 
 // Text-selection toolbar shell (Phase 2 increment 2) — {isOpen, left, top}, richer than
 // pricingOverlayStore's plain boolean since this one also carries the toolbar's already-clamped
-// screen position. See public/dotto/search-orchestration-selection.js's showSelectionToolbarFor/
-// hideSelectionToolbar for the vanilla side that still owns WHEN to show/hide and WHERE.
+// screen position. See app/dotto/lib/searchOrchestrationSelection.ts's showSelectionToolbarFor/
+// hideSelectionToolbar for the side that still owns WHEN to show/hide and WHERE.
 export const selectionToolbarStore = createStore({ isOpen: false, left: 0, top: 0 });
 
 // Pane-keyed variant of createStore, split-screen Stage 4 (see the split-screen plan) — each pane
@@ -240,10 +240,10 @@ export function closeLeafInTree(tree, paneId) {
 // the ported notification stack (app/dotto/lib/notificationsStore.ts, a plain Zustand store
 // rather than a flushSync'd bridge like these) — updateSearchDropdown (app/dotto/lib/aiAssistantSuggestions.ts)
 // reads each panel's real DOM node's style.display SYNCHRONOUSLY right after calling its
-// render*Panel function (see renderOrchestrateResult in search-orchestration-selection.js, which
-// calls several of these back-to-back and then updateSearchDropdown once at the end) — without
-// flushSync, that read would race the layout effect that actually sets style.display and could
-// see a stale value, exactly the bug flushSync already exists to prevent for canvasItemsStore.
+// render*Panel function (see renderOrchestrateResult in app/dotto/lib/searchOrchestrationSelection.ts,
+// which calls several of these back-to-back and then updateSearchDropdown once at the end) —
+// without flushSync, that read would race the layout effect that actually sets style.display and
+// could see a stale value, exactly the bug flushSync already exists to prevent for canvasItemsStore.
 export const translationPanelStore = createStore(null);
 export const dictionaryPanelStore = createStore(null);
 export const examplesPanelStore = createStore(null);
@@ -258,7 +258,7 @@ export const dotbotAnswerStore = createStore(null);
 // result panel's three mutually-exclusive states, see ImageResultPanel.jsx.
 export const imageResultStore = createStore(null);
 
-// #search-chat-thread (public/dotto/search-orchestration-selection.js) — a persisted, multi-turn
+// #search-chat-thread (app/dotto/lib/searchOrchestrationSelection.ts) — a persisted, multi-turn
 // Dotbot conversation shown ABOVE the search input (chat-app style), entirely separate from the
 // six single-owner panel stores above, which stay exactly as they are for canvas
 // matches/commands/suggestions below the input. Array of turns: { id, query, panels, fresh } —
@@ -276,7 +276,7 @@ export const imageResultStore = createStore(null);
 // updateSearchDropdown's own flushSync dependency.
 export const chatThreadStore = createStore([]);
 
-// #search-command-palette (public/dotto/command-palette.js's updateCommandPalette) —
+// #search-command-palette (app/dotto/lib/commandPalette.ts's updateCommandPalette) —
 // { rows: [...] } | null, the slash-command live suggestions list. Genuine JSX rows, portaled via
 // createPortal unlike the single-owner panels above, since there IS real list identity here (real
 // list identity, clicked rows need their own onClick) — see CommandPalette.jsx.
@@ -286,9 +286,10 @@ export const chatThreadStore = createStore([]);
 // React's fiber tree from the actual DOM and risk a crash on the next update). Plain attribute
 // reads/writes on the node itself (style.display, querySelectorAll for the existing keyboard-nav
 // code) are fine — React's portal only owns the CHILDREN, never the target node's own attributes.
-// Row selection (click, or Enter on an arrow-selected row) always calls back into vanilla via
-// window.__selectCommandRow (command-palette.js) rather than executing anything in the component
-// itself, same "React renders, vanilla owns the app-state mutation" split as every other bridge here.
+// Row selection (click, or Enter on an arrow-selected row) always calls back into
+// selectCommandRow (app/dotto/lib/commandPalette.ts, a real import from both callers now) rather
+// than executing anything in the component itself, same "React renders, the lib module owns the
+// app-state mutation" split every other portal store here follows too.
 export const commandPaletteStore = createStore(null);
 
 // #search-suggestions — shared by 5 different producers across 3 files (live AI suggestions, the
@@ -305,7 +306,7 @@ export const commandPaletteStore = createStore(null);
 // true for #search-command-palette, see above).
 export const searchSuggestionsStore = createStore(null);
 
-// Add-to-source popup (public/dotto/search-orchestration-selection.js) — {isOpen, left, top},
+// Add-to-source popup (app/dotto/lib/searchOrchestrationSelection.ts) — {isOpen, left, top},
 // same shape as selectionToolbarStore, for the same reason: this popup isn't nested inside any
 // static markup fragment (the original code appended it straight onto document.body), so it
 // doesn't need a portal — React renders it independently, same as PricingOverlay/SelectionToolbar.
@@ -351,7 +352,7 @@ export const filesListStore = createStore({ rows: [], query: "" });
 // array of { id, title, updated_at } rows (see ChatsListPanel.jsx), no search/query state (v1: no
 // search box, unlike Waypoints/Collaborations above — a saved-chat list is likely short enough not
 // to need one yet). Row click reopens that conversation in the search palette — see
-// window.__openSavedChat, search-orchestration-selection.js.
+// window.__openSavedChat.
 export const chatsListStore = createStore([]);
 
 // Hamburger menu's Collaborations panel (app/dotto/lib/hamburgerCollab.ts's renderHubCollabList/

@@ -691,7 +691,7 @@ export function folderTitle(folderId: string): string {
   return (appState?.folders[folderId] && appState.folders[folderId].title) || "";
 }
 
-// Same reasoning as folderTitle above, for the new global-id display (global-ids.js) —
+// Same reasoning as folderTitle above, for the new global-id display (app/dotto/lib/globalIds.ts) —
 // CanvasCard/SourceCard read this directly, no store needed since they already re-render on every
 // canvas update.
 export function folderGlobalId(folderId: string): string {

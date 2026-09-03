@@ -4,11 +4,12 @@ import { useLayoutEffect, useSyncExternalStore } from "react";
 import { createPortal } from "react-dom";
 import { commandPaletteStore } from "./bridges";
 import usePortalNode from "./usePortalNode";
+import { selectCommandRow } from "./lib/commandPalette";
 
 // One suggestion row — kind autocomplete ("/source", "/canvas"), an id lookup, or an own-tree
-// name match (see command-palette.js's buildCommandRows for the three row shapes). data-index
-// drives the existing keyboard-nav technique (querySelectorAll + classList,
-// search-orchestration-selection.js's setCommandActive).
+// name match (see app/dotto/lib/commandPalette.ts's buildOwnCommandRows for the three row
+// shapes). data-index drives the existing keyboard-nav technique (querySelectorAll + classList,
+// app/dotto/lib/searchOrchestrationSelection.ts's setCommandActive).
 function CommandRow({ row, index }) {
   return (
     <div
@@ -16,7 +17,7 @@ function CommandRow({ row, index }) {
       data-index={index}
       onClick={(e) => {
         e.stopPropagation();
-        window.__selectCommandRow(row);
+        selectCommandRow(row);
       }}
     >
       <span className="command-palette-row-label">{row.label}</span>

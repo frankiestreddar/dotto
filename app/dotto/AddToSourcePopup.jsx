@@ -10,7 +10,7 @@ const CLOSED_STATE = { isOpen: false, left: 0, top: 0 };
 // The popup element itself — not nested inside any static markup fragment (the original vanilla
 // code appended it straight onto document.body), so this renders independently, same as
 // PricingOverlay/SelectionToolbar, rather than portaling into a fixed slot. No JSX children and no
-// mount effect: renderAddToSourcePopup (public/dotto/search-orchestration-selection.js) builds the
+// mount effect: renderAddToSourcePopup (app/dotto/lib/searchOrchestrationSelection.ts) builds the
 // actual content directly against this div's id once it exists — see addToSourcePopupStore's own
 // comment in bridges.js for why that's guaranteed by the time it runs.
 export default function AddToSourcePopup() {

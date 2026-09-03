@@ -392,18 +392,6 @@ declare global {
     __closeCellTagPicker?: () => void;
     __openRowTagPicker?: (id: number, r: number, btnEl: HTMLElement) => void;
     __tagPillsHTML?: (table: Record<string, unknown>, r: number) => string;
-    // search-orchestration-selection.js (still vanilla) — new bridges for this port; it used to
-    // import applyAiAddRowsToSource/createSourceFromAI directly (vanilla-to-vanilla).
-    __applyAiAddRowsToSource?: (
-      targetIndex: number,
-      columns: string[] | undefined,
-      rows: unknown[][],
-    ) => boolean;
-    __createSourceFromAI?: (
-      title: string | undefined,
-      columns: string[] | undefined,
-      rows: unknown[][],
-    ) => boolean;
     // Plain (non-`__`) globals — real inline onclick/onkeydown targets in
     // content/fragments/cell-tag-picker.html, set directly by app/dotto/lib/sourceTagsAi.ts.
     closeCellTagPicker?: () => void;
@@ -491,14 +479,6 @@ declare global {
     trCheck?: (id: number) => void;
     trNext?: (id: number) => void;
     trToggleMode?: (id: number) => void;
-    // search-orchestration-selection.js — used by app/dotto/lib/mediaPdfEpub.ts's buildEpubViewer
-    // to feed the "select text -> Add to source"/"Look up" flow from inside an EPUB's own
-    // same-origin iframe.
-    __showSelectionToolbarFor?: (
-      range: Range,
-      host: HTMLElement,
-      rectOverride?: { left: number; top: number; width: number; height: number },
-    ) => void;
     // app/dotto/lib/mediaPdfEpub.ts (Phase 4.4 port — was media-pdf-epub.js) — React -> vanilla
     // bridges pre-dating this port (MediaCard.jsx now imports these directly instead, being in the
     // same app/dotto/ tree — kept declared/assigned since app/dotto/lib/messagingCanvasPreview.ts's
@@ -538,7 +518,6 @@ declare global {
       regionB: { r1: number; c1: number; r2: number; c2: number },
     ) => void;
     __renderTableHTML?: (it: Record<string, unknown>) => string;
-    __colgroupHTML?: (numCols: number) => string;
     __importDelimitedIntoSource?: (text: string, delim: string) => void;
     // Plain (non-`__`) globals — real inline onclick/oninput/onkeydown/onmousedown/onfocus targets
     // built into sourceTable.ts's own renderTableHTML output, canvasItemBehavior.js's source-page
@@ -563,12 +542,6 @@ declare global {
     // icon.
     __refreshAiPanel?: () => void;
     __resetAiSearchState?: () => void;
-    // app/dotto/lib/aiAssistantSuggestions.ts — used by search-orchestration-selection.js (still
-    // vanilla), which used to import these 4 directly.
-    __updateChatThread?: () => void;
-    __scrollChatThreadToBottom?: () => void;
-    __updateSearchDropdown?: () => void;
-    __showAiChatView?: () => void;
     // app/dotto/lib/hamburgerCollab.ts (Phase 4.5 port — was hamburger-collab.js) — used by
     // app/dotto/lib/panelsHamburger.ts's openRailView/wireRailIcon calls.
     __clearListPanelSelection?: () => void;
@@ -764,8 +737,9 @@ declare global {
     __startBoxSelection?: (e: PointerEvent) => void;
     __syncWaypointToDb?: (folderId: string, it: Record<string, unknown>) => Promise<void>;
     // srsConnectionsCore.ts's own outbound bridges — FilterCard.jsx/canvasItemBehavior.js (React ->
-    // vanilla) and drawing-connections.js/waypoints-render-loop.js/app-init.js/command-verbs.js/
-    // upload-popup.js (vanilla -> React) all reach these.
+    // vanilla) plus drawingConnections.ts/waypointsRenderLoop.ts/appInit.ts/commandVerbs.ts/
+    // uploadPopup.ts (all vanilla at the time, ported since) reach these; not yet revisited for a
+    // same-tree upgrade pass of their own.
     __applyFilterToRows?: (
       item: Record<string, unknown>,
       rows: Record<string, unknown>[],
@@ -805,9 +779,9 @@ declare global {
     // waypointsRenderLoop.ts's own outbound bridges (Phase 4.5 port — was
     // waypoints-render-loop.js) — CanvasItemsLayer.jsx/CanvasCard.jsx/SourceCard.jsx/NoteCard.jsx/
     // WatermarkCard.jsx/TitleCard.jsx/WaypointCard.jsx/FilesListPanel.jsx/PaneZoomBar.jsx/
-    // SourcesListPanel.jsx/TabsBar.jsx (React -> vanilla) and drawing-connections.js/
-    // search-orchestration-selection.js/app-init.js/command-verbs.js (vanilla -> React) all reach
-    // these.
+    // SourcesListPanel.jsx/TabsBar.jsx (React -> vanilla) plus drawingConnections.ts/
+    // searchOrchestrationSelection.ts/appInit.ts/commandVerbs.ts (all vanilla at the time, ported
+    // since) reach these; not yet revisited for a same-tree upgrade pass of their own.
     __applyCanvasItemWrapperAttrs?: (el: HTMLElement, it: Record<string, unknown>) => void;
     __attachUniversalItemBehavior?: (el: HTMLElement, it: Record<string, unknown>) => void;
     __attachWatermarkBody?: (
@@ -887,11 +861,26 @@ declare global {
       r: number | null;
     }) => void;
 
+    // app/dotto-app.jsx (via selectionToolbarStore/addToSourcePopupStore, app/dotto/bridges.js) —
+    // React-facing setters, used by app/dotto/lib/searchOrchestrationSelection.ts.
+    // __setAddToSourcePopupOpen is flushSync'd (see its own comment there for why: the popup div
+    // must already exist in the DOM before renderAddToSourcePopup runs right after).
+    __setSelectionToolbarState?: (state: { isOpen: boolean; left: number; top: number }) => void;
+    __setAddToSourcePopupOpen?: (state: { isOpen: boolean; left: number; top: number }) => void;
     // app/dotto-app.jsx (via app/dotto/bridges.js's various stores) — React-facing setters for the
     // Phase 4.5 aiAssistantSuggestions.ts/hamburgerCollab.ts/mnemonicSearchMatching.ts trio.
     __setCommandPalette?: (state: { rows: Record<string, unknown>[] } | null) => void;
     __setSearchSuggestions?: (state: Record<string, unknown> | null) => void;
     __setChatThread?: (turns: { id: string; query: string; panels: unknown }[]) => void;
+    // app/dotto-app.jsx (via chatThreadStore, app/dotto/bridges.js) — appends one turn rather
+    // than replacing the whole thread, used by app/dotto/lib/searchOrchestrationSelection.ts's
+    // renderOrchestrateResult.
+    __appendChatTurn?: (turn: {
+      id: string;
+      query: string;
+      panels: Record<string, unknown>[];
+      fresh: boolean;
+    }) => void;
     __setHubCollabList?: (state: {
       view: string;
       requestsCount?: number;
@@ -928,13 +917,6 @@ declare global {
       query?: string;
     }) => void;
 
-    // command-palette.js — new bridge for this port; app/dotto/lib/aiAssistantSuggestions.ts used
-    // to import updateCommandPalette directly (vanilla-to-vanilla), which no longer reaches across
-    // the public/app boundary now that it's ported.
-    __updateCommandPalette?: (value: string) => void;
-    // search-orchestration-selection.js — new bridge for this port, same reasoning:
-    // app/dotto/lib/mnemonicSearchMatching.ts used to import commenceDotbotSearch directly.
-    __commenceDotbotSearch?: (query: string) => void;
     // app/dotto/lib/friendsPresence.ts — new bridge for the ai/hamburger/mnemonic port;
     // app/dotto/lib/hamburgerCollab.ts used to import activePaneCollabBubbleEl directly
     // (vanilla-to-vanilla, back when friends-presence.js was still vanilla itself).
@@ -942,11 +924,6 @@ declare global {
     // app/dotto/lib/friendsPresence.ts — already an established runtime bridge, just never typed
     // here until app/dotto/lib/hamburgerCollab.ts (Phase 4.5) needed it too.
     __openCollabPanel?: (pin?: boolean) => void;
-    // app/dotto/lib/mnemonicSearchMatching.ts — kept as bridges (not upgraded to real imports)
-    // since search-orchestration-selection.js (still vanilla) is a real caller alongside
-    // SearchSuggestionsPanel.jsx.
-    __buildMnemonicErrorEl?: (reason: string) => HTMLElement;
-    __commenceSearchOrMnemonic?: (query: string) => void;
     // Plain (non-`__`) globals — real inline oninput/onfocus/onclick targets in
     // content/fragments/hamburger-stack.html and content/dotto-markup.html.
     handleSearchFocus?: () => void;

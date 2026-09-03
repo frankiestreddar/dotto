@@ -3,57 +3,59 @@
 ## Status
 
 - **Phase 4.0 — tooling & safety net: done.** See checklist below.
-- **Phase 4.1 — leaf-first vanilla→React port: revisited now that Phase 4.5 is fully done — 12 of
-  ~23 files done, 1 real interdependent 11-file cluster remains.** First 3 files ported back when
-  this phase was still active (`rail-tooltip-expand.js`, `sidebar-mode-toggle.js`,
-  `dotbot-schedule-notifications.js`), then paused — every other original candidate was genuinely
-  blocked by still-vanilla hub dependencies (`core-state.js`, `live-presence.js`,
-  `history-autosave.js`, `panels-hamburger.js`'s `wireRailIcon`, `waypoints-render-loop.js`,
-  `srs-connections-core.js`, `shared-canvases-outline.js`, `friends-presence.js`,
-  `window-bridge.js`) — see its own section below. **Now that Phase 4.5 (all architectural/hub
-  files) is fully done, every one of those blockers has landed** — re-auditing the remaining
-  vanilla surface against the same two-sided rule found 9 more files genuinely portable with zero
-  remaining blockers, all ported together in one batch: `theme-toggle.js` →
-  `app/dotto/lib/themeToggle.ts`, `srs-algorithm.js` → `app/dotto/lib/srsAlgorithm.ts`,
-  `app-init.js` → `app/dotto/lib/appInit.ts`, `drag-drop-chat.js` →
-  `app/dotto/lib/dragDropChat.ts`, `table-grid-resize.js` → `app/dotto/lib/tableGridResize.ts`,
-  `upload-popup.js` → `app/dotto/lib/uploadPopup.ts`, `extensions-panel.js` →
-  `app/dotto/lib/extensionsPanel.ts`, `stopwatch.js`'s own remaining `renderStopwatchHTML` folded
-  into the already-existing `app/dotto/lib/stopwatch.ts` (its `swFormatTime`/`swToggleRun`/etc. had
-  already moved there in Phase 4.4), and `blocks-panel.js` → `app/dotto/lib/blocksPanel.ts` (the
-  largest of the 9, 288 lines). `blocksPanel.ts`/`libraryPublish.ts`/`marketplace.ts` are a
-  genuinely circular trio (documented in `libraryPublish.ts`'s own header comment from its earlier
-  port) — kept as bridges in both directions deliberately rather than newly co-locating and
-  resolving it, since the other two files are already-shipped and stable; every other bridge this
-  batch's own files needed (`refreshMyLibrary`/`openItemDetail`/`deleteMyCreationItem`, all
-  one-directional, no cycle) stayed bridges for the same "don't touch already-stable files beyond
-  what's needed" reasoning. 8 same-tree React callers upgraded to real imports
-  (`BlocksPanel.jsx`'s `createBlocksFolder`/`deleteBlocksFolder`/`toggleBlocksFolderCollapse`/
-  `deleteBlockContentItem`/`handleBlockItemClick`/`setupContentItemDrag`;
-  `TableCard.jsx`'s `setupTableGridResizing`); found and upgraded 5 more same-tree
-  vanilla→vanilla-turned-app/dotto/lib bridge crossings while sweeping stale filename references
-  afterward — `srsAlgorithm.ts`'s `calculateSM2`/`defaultSrsState`/`diffRatings` (now real imports
-  in `gamesFlashcardTyperight.ts`/`stopwatch.ts`/`srsConnectionsCore.ts`, dropping those 3 bridges
-  entirely, zero remaining callers), `friendsPresence.ts`'s `refreshCanvasCollabForCurrentFolder`/
-  `refreshFriendsData`/`renderCollabPill` (now real imports in the new `appInit.ts`, dropping
-  `__refreshFriendsData` entirely) and `renderMsgList` (now a real import in the new
-  `dragDropChat.ts`), and `sourceTable.ts`'s `distributeTableSizing` (now a real import in the new
-  `tableGridResize.ts`). `window.prepareAdd`/`window.__setupResizing`/`setupDraggingAndClicking`-
-  style historical/inline-onclick-target globals deliberately left as bridges — see each one's own
-  comment for why. **Remaining vanilla surface is now exactly one connected component: 11 files**
-  (`command-parser.js`/`command-target-lookup.js`/`command-verbs.js`/`command-palette.js`/
-  `card-kinds.js`/`global-ids.js`/`add-menu.js`/`text-utils.js`/`drawing-connections.js`/
-  `search-panel-history.js`/`search-orchestration-selection.js`) with real vanilla-to-vanilla `import`
-  statements among themselves — no true cycles (a DAG), but every file in it is blocked by a
-  sibling still inside it, so it can't be peeled one file at a time under the two-sided rule; will
-  need either a coordinated multi-file port of the whole cluster (or a real sub-chain) in one PR,
-  same technique the friends-presence/messages-schedule pair and the ai/hamburger/mnemonic trio
-  already used for their own circular clusters. One real, pre-existing, unrelated bug found and
-  left alone (out of scope for this port, flagged for a future tiny fix): `command-verbs.js`'s
-  `removeUser()` calls `resolveUsernameToUserId(username)` with no `window.__` prefix (every other
-  call site in that file, including `inviteUser`, correctly uses
-  `window.__resolveUsernameToUserId`) — will throw a real `ReferenceError` the first time a
-  `/canvas … remove <user>` or `/source … remove <user>` slash command actually runs.
+- **Phase 4.1 — leaf-first vanilla→React port: DONE. All ~23 original vanilla files ported,
+  `public/dotto/` is now empty.** First 3 files ported back when this phase was still active
+  (`rail-tooltip-expand.js`, `sidebar-mode-toggle.js`, `dotbot-schedule-notifications.js`), then
+  paused — every other original candidate was genuinely blocked by still-vanilla hub dependencies
+  (`core-state.js`, `live-presence.js`, `history-autosave.js`, `panels-hamburger.js`'s
+  `wireRailIcon`, `waypoints-render-loop.js`, `srs-connections-core.js`,
+  `shared-canvases-outline.js`, `friends-presence.js`, `window-bridge.js`) — see its own section
+  below. Once Phase 4.5 (all architectural/hub files) finished, every one of those blockers had
+  landed, unblocking 9 more files in one batch (`theme-toggle.js`, `srs-algorithm.js`,
+  `app-init.js`, `drag-drop-chat.js`, `table-grid-resize.js`, `upload-popup.js`,
+  `extensions-panel.js`, `stopwatch.js`'s own remaining piece, `blocks-panel.js`). That left
+  exactly one connected component: an 11-file DAG (`command-parser.js` →
+  `command-target-lookup.js`/`command-verbs.js` → `command-palette.js`, `card-kinds.js`,
+  `global-ids.js`, `add-menu.js`, `text-utils.js`, `drawing-connections.js`,
+  `search-panel-history.js`, `search-orchestration-selection.js`) — no true cycles among the 11
+  themselves, but every file blocked by a sibling still inside it, so it needed a coordinated
+  multi-file port rather than a leaf-first peel: write all 11 new `app/dotto/lib/*.ts` files first
+  (each real-importing its already-ported siblings), only cutting the vanilla originals over — and
+  deleting them — once the last file (`search-orchestration-selection.js`, the one remaining real
+  consumer of the still-unwired `commandPalette.ts`) was ready too. `add-menu.js` and
+  `search-panel-history.js` had zero remaining vanilla callers partway through and were deleted
+  immediately on their own ports (the latter needed `wireSearchPanelHistory()` invented from
+  scratch — zero appState dependency, called from `HamburgerMenu.jsx`'s own mount effect, same
+  shape `wireThemeToggle`/`wireSidebarModeToggle` established); `text-utils.js`/
+  `drawing-connections.js`/`command-palette.js`/`command-parser.js`/`command-target-lookup.js`/
+  `command-verbs.js`/`card-kinds.js`/`global-ids.js` all stayed in place (bridges dropped, but the
+  file itself kept for its still-vanilla vanilla-to-vanilla importer) until the final cutover.
+  `drawingConnections.ts` and `srsConnectionsCore.ts` are genuinely circular (`isValidConnection`
+  one way, 9 exports the other) — both real imports, same precedent the ai/hamburger/mnemonic trio
+  set; `searchOrchestrationSelection.ts` and `mnemonicSearchMatching.ts` are circular the same way
+  (`commenceSearchOrMnemonic`/`commenceDotbotSearch`). `search-orchestration-selection.js` needed
+  `wireSearchOrchestrationSelection()` invented from scratch too — the appState-poll shape
+  `wireAiAssistantSuggestions` established (needs live `appState.searchInput` right at wire time),
+  called from `app/dotto-app.jsx`'s own central mount-effect list. A real, pre-existing bug
+  (`command-verbs.js`'s `removeUser()` calling `resolveUsernameToUserId` with no `window.__`
+  prefix) turned out to be unavoidable to fix rather than deferrable: TypeScript's compile-time
+  name resolution rejects an undeclared identifier outright, so porting the file at all forced the
+  one-character fix (adding the prefix, matching `inviteUser`'s already-correct sibling call) as a
+  direct consequence of the language change, not a deliberate behavior change bundled in. A second
+  real bug was found and fixed the same way: `CommandTarget.access` (`commandTargetLookup.ts`) was
+  typed `"owner" | "collaborator"`, missing `"public"` even though `resolve_global_id`
+  (`20260813_add_global_id_resolution.sql`) genuinely returns it for a globally-visible item the
+  caller doesn't own or collaborate on — confirmed by reading the migration, not assumed. Roughly
+  20 same-tree bridge→real-import upgrades landed across the cluster's own exports as each file's
+  real callers went same-tree (full list in the per-file closing entries below); a further handful
+  of bridges the cluster's files call *into* (`__openDotbotUpgradeModal`, `__refreshDotbotUsage`/
+  `__closeProfilePanel`, `pushNotification`) were deliberately left as bridges — multi-file,
+  outside this cluster's own scope, flagged in-comment as a future same-tree-upgrade pass rather
+  than bundled in here. Extensive repo-wide stale-reference sweeps after each file (and one final
+  comprehensive pass after the last) fixed present-tense pointers to now-moved files across
+  `app/dotto-app.jsx`, `bridges.js`, and ~15 other files; historical/past-tense phrasing
+  ("previously imported", "used to call") was deliberately left alone throughout, per this
+  project's own established convention for this kind of comment.
 - **Phase 4.2 — utility extraction from hub files: done.** All 3 original targets addressed: SM-2
   (`calculateSM2`/`defaultSrsState`/`diffRatings`, from `srs-connections-core.js` into
   `public/dotto/srs-algorithm.js`), `escapeHtml`/`stripHtml` (from `ai-assistant-suggestions.js`
@@ -2745,3 +2747,93 @@ vanilla files are now done.** Exactly one connected component remains: the 11-fi
 `search-panel-history.js`/`search-orchestration-selection.js` cluster — needs a coordinated
 multi-file port, not a leaf-first approach, before Phase 4.6 (which requires `public/dotto/` to be
 fully empty) can start.
+
+**Phase 4.1: the 11-file command/search cluster (closes out Phase 4.1 entirely)**: ported in
+dependency order, each new `app/dotto/lib/*.ts` file real-importing its already-ported siblings,
+with the vanilla originals cut over and deleted only once each one's own last real caller (vanilla
+or bridge) was gone — `command-parser.js`/`card-kinds.js`/`global-ids.js`/`command-target-lookup.js`
+→ `commandParser.ts`/`cardKinds.ts`/`globalIds.ts`/`commandTargetLookup.ts` (all zero-caller pure
+logic, written first, kept dormant in-tree until the files that use them were ready);
+`command-verbs.js` → `commandVerbs.ts` (the unavoidable `removeUser()` prefix fix and the
+`CommandTarget.access` `"public"` type gap, both described above); `command-palette.js` →
+`commandPalette.ts` (written but left unwired — its own real callers, `CommandPalette.jsx` and
+`aiAssistantSuggestions.ts`'s `handleSearchInput`, stayed on the old bridges until
+`search-orchestration-selection.js`, the last vanilla-to-vanilla importer of the old file, was
+itself ported); `add-menu.js` → `app/dotto/lib/addMenu.ts` (zero remaining callers immediately —
+deleted on the spot, its 3 exports (`kindSize`/`kindLabel`/`searchKindLabel`) upgraded to real
+imports in `copyPaste.ts`/`srsConnectionsCore.ts`/`sourceTagsAi.ts`/`messagingCanvasPreview.ts`,
+`resolveUsernameToUserId` upgraded the same way once `commandVerbs.ts` was its only remaining
+caller); `text-utils.js` → `textUtils.ts` (9 real-import upgrades across
+`sourceTagsAi.ts`/`shelfSearch.ts`/`mediaPdfEpub.ts`/`messagingCanvasPreview.ts`/`outlineTree.ts`/
+`aiAssistantSuggestions.ts`/`srsConnectionsCore.ts`/`gamesFlashcardTyperight.ts`/
+`canvasItemBehavior.js`, vanilla file kept alive for `search-orchestration-selection.js`'s own
+still-vanilla import); `drawing-connections.js` → `drawingConnections.ts` (all 16 exports, largest
+single port in the cluster — the `srsConnectionsCore.ts` circularity described above, plus real
+imports across `ShelfCard.jsx`/`shelfSearch.ts`/`sourceButtonsCursorMode.ts`/`sourceTagsAi.ts`/
+`sourceTable.ts`/`historyAutosave.ts`/`waypointsRenderLoop.ts`/`canvasItemBehavior.js`, and
+`createConnection`'s own `window.__bumpAchievementStat` upgraded to a real import from
+`profileAchievementsPricing.ts` along the way); `search-panel-history.js` →
+`searchPanelHistory.ts` (invented `wireSearchPanelHistory()`, zero remaining callers, deleted
+immediately); `search-orchestration-selection.js` → `searchOrchestrationSelection.ts` (the closing
+file — invented `wireSearchOrchestrationSelection()`, the `mnemonicSearchMatching.ts` circularity
+described above, `commandPalette.ts` wired into React for the first time via this file's own
+slash-command keydown handling, plus a further ~10 same-tree upgrades found while closing out:
+`updateChatThread`/`scrollChatThreadToBottom`/`updateSearchDropdown`/`showAiChatView`
+(`aiAssistantSuggestions.ts`), `buildMnemonicErrorEl`/`commenceSearchOrMnemonic`
+(`mnemonicSearchMatching.ts`, the latter now a real circular import instead of a bridge),
+`applyAiAddRowsToSource`/`createSourceFromAI` (`sourceTagsAi.ts`), and `colgroupHTML`
+(`sourceTable.ts`, upgraded in both this file and `canvasItemBehavior.js`) — each dropped its own
+now-dead bridge and ambient type). `public/dotto/` is now fully empty; `public/dotto-script.js` is
+left in place but empty (its own `<Script>` tag in `app/dotto-app.jsx`, and `bridges.js`'s
+`createStore` mechanism, are Phase 4.6's own closing task, not bundled in here).
+
+`node --check` on every touched vanilla file at each step (moot once a file's deleted), `eslint`
+clean, `npm run typecheck` clean throughout (caught the `CommandTarget.access` type gap and the
+`removeUser()` compile error immediately, exactly the kind of real bug TypeScript adoption is
+expected to surface), `npm run format:check` clean after a `prettier --write` pass each time,
+`rm -rf .next && npm run build` clean at every commit boundary, all 32+7 Vitest tests green
+(`textUtils.test.ts` replaced `test/vanilla/text-utils.test.ts` 1:1, same colocation convention
+`srsAlgorithm.test.ts` established). Real Playwright verification against both a dev server and a
+real production build, one script per file (`verify-phase4-1-command-verbs-addmenu-port.js`,
+`verify-phase4-1-text-utils-port.js`, `verify-phase4-1-drawing-connections-port.js`,
+`verify-phase4-1-search-panel-history-port.js`,
+`verify-phase4-1-search-orchestration-selection-port.js`): `kindSize`/`kindLabel` exercised via a
+real placement-ghost size check and a real `sentence`-kind card's generic-branch html; `escapeHtml`/
+`stripHtml` via a real outline-panel row label built from HTML-significant test content;
+`ensureConnections`/`createConnection`/`isValidConnection` via a real Shift+X link between a
+`source` and a `flashcard` (a plain `note`→`note` pair was tried first and correctly rejected by
+`isValidConnection`'s own CardStreamIO-driven validation, not a bug); the connector-line renderer
+(`computeConnectorPoints`/`itemRect`/`pointsToLinePath`/`makeLayerSVG`) via the real rendered SVG
+path; the pen tool's point-by-point polyline, freehand drag-drawing, and the eraser, all inside a
+freshly-created empty test folder rather than the shared test account's own crowded root (~150
+items from prior sessions' runs kept putting real click/drag coordinates on unrelated cards or
+toolbar buttons instead of blank canvas — confirmed via direct `elementFromPoint` repro before
+switching approach, not assumed); the search-history panel's empty state, a real submitted query
+round-tripping through `escapeHtml`/`rowActionsHTML` and `localStorage`, and a row click re-filling
+the search box — all working directly against the panel's own static markup regardless of its
+own open/closed visibility, same reasoning the outline panel's own verify script established;
+slash-command live suggestions (`/` showing the `/source`/`/canvas` kind rows, `/canvas <name>`
+resolving a real own-tree match) newly wired through `commandPalette.ts` for the first time,
+clicking a suggestion row through `CommandPalette.jsx`'s real-imported `selectCommandRow` actually
+navigating into the target canvas (`obtainTarget`, `commandVerbs.ts`); a real text selection inside
+a note's contentEditable body (entered via a real click-to-edit first, matching real usage — a
+note isn't contentEditable until its own onclick handler flips it) triggering the selection
+toolbar via the `selectionchange` listener this port's own `doWire()` registers; the add-to-source
+popup opening with a real resolved source target and closing via a real outside-click (confirmed
+by checking the popup element is removed from the DOM entirely once React's own `isOpen` flips
+false, not merely hidden). Two real test-script bugs found and fixed along the way, not app bugs:
+the pen/freehand tests originally used the shared account's crowded canvas and kept landing on
+real pre-existing cards or the draw-mode toolbar itself; and `__scheduleWorkspaceSave` (debounced)
+never flushed before `browser.close()` killed the connection between runs, leaving orphaned test
+folders behind across repeated runs of the same script — fixed by switching cleanup to the
+explicit, awaited `__saveWorkspaceNow` instead, confirmed via a direct repro that the debounced
+version was the actual cause before landing the fix. Regression-verified
+`verify-phase4-1-command-verbs-addmenu-port.js` and `verify-phase4-1-drawing-connections-port.js`
+both clean after the final file's own wide-blast-radius changes (`canvasItemBehavior.js`
+touched again for the `colgroupHTML` upgrade). Zero console/page errors across every script in
+both modes.
+**Phase 4.1 is now fully done — every original vanilla file has been ported, `public/dotto/` is
+empty.** This directly unblocks Phase 4.6 (delete `bridges.js`'s `createStore` mechanism, remove
+the vanilla `<Script>` tag from `app/dotto-app.jsx`, delete `public/dotto/` and the now-empty
+`public/dotto-script.js`, rewrite `CONTRIBUTING.md`/`README.md`'s architecture sections, delete
+`INLINE_HANDLER_CHECKLIST.md`), which nothing further is blocking now.

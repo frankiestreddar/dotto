@@ -2,6 +2,7 @@
 
 import { useSyncExternalStore } from "react";
 import { selectionToolbarStore } from "./bridges";
+import { openAddToSourcePopup, selectionToolbarLookUp } from "./lib/searchOrchestrationSelection";
 
 // Module-level, not inline in the hook call below — useSyncExternalStore's getServerSnapshot is
 // expected to return a referentially stable value across calls (it's used to detect real changes
@@ -32,14 +33,14 @@ export default function SelectionToolbar() {
       <button
         type="button"
         className="selection-toolbar-btn"
-        onClick={() => window.openAddToSourcePopup()}
+        onClick={() => openAddToSourcePopup()}
       >
         Add to...
       </button>
       <button
         type="button"
         className="selection-toolbar-btn"
-        onClick={() => window.selectionToolbarLookUp()}
+        onClick={() => selectionToolbarLookUp()}
       >
         Look up
       </button>

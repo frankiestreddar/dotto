@@ -17,9 +17,8 @@ import {
 // canvas wiring), same "return null, mutate in an effect" pattern as TranslationPanel.jsx and
 // friends — there's no list to key/diff here, just one blob of content wholesale-replaced each
 // time. 'mnemonic-error' and 'dotbot-error' intentionally share the same builder
-// (buildMnemonicErrorEl, also kept as a window.__buildMnemonicErrorEl bridge for
-// search-orchestration-selection.js, still vanilla) — see renderDotbotOrchestrateError's own
-// comment in search-orchestration-selection.js for why they're really the same shape.
+// (buildMnemonicErrorEl) — see renderDotbotOrchestrateError's own comment in
+// app/dotto/lib/searchOrchestrationSelection.ts for why they're really the same shape.
 export default function SearchSuggestionsPanel() {
   const state = useSyncExternalStore(
     searchSuggestionsStore.subscribe,

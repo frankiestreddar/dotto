@@ -6,8 +6,10 @@
 // Genuinely circular with app/dotto/lib/aiAssistantSuggestions.ts (clearSearch/dotbotErrorMessage/
 // isLatinScriptText/scrollChatThreadToBottom/setupDotbotResultDrag/speakerIconHTML/
 // typewriterReveal/typewriterRevealSegments/updateSearchDropdown/buildAlignedSentenceEls) — see
-// that file's own header comment for why this is safe. Reaches search-orchestration-selection.js
-// (still vanilla) via the new __commenceDotbotSearch bridge.
+// that file's own header comment for why this is safe. Also genuinely circular with
+// app/dotto/lib/searchOrchestrationSelection.ts (commenceDotbotSearch one way,
+// commenceSearchOrMnemonic the other) — same reasoning, neither side reads the other at
+// module-evaluation time.
 
 import {
   buildAlignedSentenceEls,
@@ -21,6 +23,7 @@ import {
   typewriterRevealSegments,
   updateSearchDropdown,
 } from "./aiAssistantSuggestions";
+import { commenceDotbotSearch } from "./searchOrchestrationSelection";
 
 interface MnemonicTemplate {
   w: number;
@@ -94,8 +97,8 @@ function importMnemonicPairAtScreenPoint(clientX: number, clientY: number): void
 // #search-suggestions' content is real React state now (see app/dotto/SearchSuggestionsPanel.jsx,
 // searchSuggestionsStore) — it's shared by 5 different producers across 3 files (live AI
 // suggestions, this mnemonic story/loading/error trio, and the orchestrate error in
-// search-orchestration-selection.js), so the store holds a small discriminated union rather than
-// one plain value. Each variant's own build stays vanilla; render just decides which one to show.
+// app/dotto/lib/searchOrchestrationSelection.ts), so the store holds a small discriminated union
+// rather than one plain value. Each variant's own build stays vanilla; render just decides which one to show.
 // buildMnemonicResultCard/startMnemonicResultReveal split the same way
 // buildDotbotAnswerTextEl/startDotbotAnswerReveal do, for the same reason (typewriterReveal needs
 // the element already connected to the DOM).
@@ -368,7 +371,7 @@ export function commenceSearchOrMnemonic(query: string): void {
     renderOwnMnemonicThenImage(intent.mnemonicText);
     return;
   }
-  window.__commenceDotbotSearch?.(query);
+  commenceDotbotSearch(query);
 }
 
 // Same brief highlight every "jump to this item" action lands on it with — the hamburger menu's
@@ -1070,13 +1073,6 @@ export function startSequencedTurnReveal(
 // called) or this guarded bridge-assignment block, same shape waypointsRenderLoop.ts's own port
 // established.
 if (typeof window !== "undefined") {
-  // Used by srsConnectionsCore.ts's/search-orchestration-selection.js's own error-panel path
-  // (buildMnemonicErrorEl only — every other bridge here had its only consumer, a same-tree
-  // app/dotto/*.jsx component, upgraded to a real import instead).
-  window.__buildMnemonicErrorEl = buildMnemonicErrorEl;
   // Used by outlineTree.ts's goToOutlineItem (Phase 4.4).
   window.__flashCanvasElement = flashCanvasElement;
-  // search-orchestration-selection.js (still vanilla) used to import commenceSearchOrMnemonic
-  // directly — that vanilla-to-vanilla import no longer reaches across the public/app boundary.
-  window.__commenceSearchOrMnemonic = commenceSearchOrMnemonic;
 }

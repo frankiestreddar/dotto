@@ -3,11 +3,13 @@
 // pricing-overlay open/close wrappers. Reaches every still-vanilla dependency through window
 // bridges — most already existed (window.pushNotification/__closeAllPanels/__setPricingOverlayOpen/
 // __setProfileLevel/__setAchievements/__wireRailIcon/__closeRailView), 3 are new as part of this
-// port (__refreshDotbotUsage/__closeProfilePanel/__openDotbotUpgradeModal —
-// drawing-connections.js/search-orchestration-selection.js/app-init.js (still vanilla) plus
+// port (__refreshDotbotUsage/__closeProfilePanel/__openDotbotUpgradeModal — all vanilla at the
+// time across drawing-connections.js/search-orchestration-selection.js/app-init.js, plus
 // app/dotto/lib/hamburgerCollab.ts/app/dotto/lib/mnemonicSearchMatching.ts/
-// app/dotto/lib/friendsPresence.ts (ported since), all of which used to import these 5 functions
-// directly; that vanilla-to-vanilla import no longer reaches across the public/app boundary).
+// app/dotto/lib/friendsPresence.ts (ported earlier still); the first three have all since been
+// ported too (to drawingConnections.ts/searchOrchestrationSelection.ts/appInit.ts) but still
+// reach these 3 through the bridge rather than a real import — worth a fresh same-tree-upgrade
+// pass later, not bundled into this port).
 
 interface Achievement {
   id: string;
@@ -526,10 +528,8 @@ if (typeof window !== "undefined") {
   window.__closePricingOverlay = closePricingOverlay;
   // Used by app/dotto/lib/srsConnectionsCore.ts's global keydown handler's ',' shortcut (Phase 4.5).
   window.__showProfileSettingsView = showProfileSettingsView;
-  // New bridges for this port — drawing-connections.js/search-orchestration-selection.js/
-  // app-init.js (still vanilla) plus app/dotto/lib/hamburgerCollab.ts/
-  // app/dotto/lib/mnemonicSearchMatching.ts/app/dotto/lib/friendsPresence.ts (ported since) used
-  // to import these 5 directly.
+  // New bridges for this port — see this file's own header comment for the full caller list and
+  // current status.
   window.__refreshDotbotUsage = refreshDotbotUsage;
   window.__closeProfilePanel = closeProfilePanel;
   window.__openDotbotUpgradeModal = openDotbotUpgradeModal;

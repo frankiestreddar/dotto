@@ -315,9 +315,9 @@ export async function ensurePublicFolderLoaded(localKey: string): Promise<boolea
   injectPublicFolder(ownerId, remoteFolderId, data as { title?: string; items: Item[] });
   return true;
 }
-// Entry point for the future "/source|canvas <id>" obtain command on a public item that isn't the
-// caller's own and isn't shared with them (see command-verbs.js, not built yet — this PR is
-// plumbing only, nothing calls this yet). Unlike openSharedCanvas, never announces a collaboration
+// Entry point for the "/source|canvas <id> obtain" command on a public item that isn't the
+// caller's own and isn't shared with them (see app/dotto/lib/commandVerbs.ts's obtainTarget,
+// reached through the __openPublicCanvas bridge below). Unlike openSharedCanvas, never announces a collaboration
 // (this isn't one) — reuses preSharedViewState purely as "where to resume when backing out of
 // someone else's read-only content," the same resume slot a shared view uses, since the two cases
 // need identical resume behavior and there's no reason to duplicate it.
@@ -363,7 +363,7 @@ export async function openPublicCanvas(
 // Resolves whichever LOCAL key currently represents (ownerId, folderId) for THIS viewer — their
 // own bare folder id, the shared: namespaced key (if they have collaboration access), or the
 // public: namespaced key (if it's public and they don't otherwise have access) — used by
-// ReferenceCard.jsx (the 'place' command's read-only reference card, command-verbs.js) to find/
+// ReferenceCard.jsx (the 'place' command's read-only reference card, app/dotto/lib/commandVerbs.ts) to find/
 // load whatever it should preview. Deliberately re-checked fresh every time, never cached: a
 // reference card needs to reflect an access change (revoked, or flipped back to private after
 // being placed) the next time it loads, not whatever was true when it was first placed — see the
@@ -423,11 +423,12 @@ if (typeof window !== "undefined") {
   window.__resolveReferenceFolderKey = resolveReferenceFolderKey;
   window.__exitSharedCanvasToRoot = exitSharedCanvasToRoot;
   // The rest of these are new as of this port — every one of these 7 callers (app-init.js,
-  // command-verbs.js, history-autosave.js, waypoints-render-loop.js — all still vanilla — plus
-  // app/dotto/lib/canvasPresence.ts and app/dotto/lib/hamburgerCollab.ts, both ported since)
-  // previously imported the function
-  // directly; public/dotto/*.js can't import from app/dotto/, so each still-vanilla one switched to
-  // calling the matching bridge instead.
+  // command-verbs.js, history-autosave.js, waypoints-render-loop.js — all vanilla at the time,
+  // since ported to appInit.ts/commandVerbs.ts/historyAutosave.ts/waypointsRenderLoop.ts — plus
+  // app/dotto/lib/canvasPresence.ts and app/dotto/lib/hamburgerCollab.ts, both ported earlier
+  // still) previously imported the function directly; public/dotto/*.js can't import from
+  // app/dotto/, so each still-vanilla one switched to calling the matching bridge instead at the
+  // time. Worth a fresh same-tree-upgrade pass later, not bundled into this port.
   window.__announceEnteredCollaboration = announceEnteredCollaboration;
   window.__openPublicCanvas = openPublicCanvas;
   window.__ensureSharedFolderLoaded = ensureSharedFolderLoaded;
