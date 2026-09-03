@@ -9,6 +9,8 @@
 // already carried over safely.
 
 import { openMessagesPanel } from "./messagesSchedule";
+import { useCollabListStore } from "./collabListStore";
+import { useMsgListStore } from "./msgListStore";
 
 interface Friend {
   id: string;
@@ -286,7 +288,7 @@ export async function renderCollabList(query?: string): Promise<void> {
   // COLLAB_LIST_MAX more from recency/conversation.
   if (q) {
     const results = appState.friends.filter((f) => f.displayName.toLowerCase().includes(q));
-    window.__setCollabList?.({ rows: results.map(toRow), query: q });
+    useCollabListStore.setState({ rows: results.map(toRow), query: q });
     return;
   }
 
@@ -315,7 +317,7 @@ export async function renderCollabList(query?: string): Promise<void> {
       merged.push(c);
     }
   }
-  window.__setCollabList?.({ rows: merged.map(toRow), query: "" });
+  useCollabListStore.setState({ rows: merged.map(toRow), query: "" });
 }
 // Wired up from CollabListPanel.jsx's Add/Remove button handler.
 export async function handleCollabAddRemoveClick(
@@ -610,23 +612,29 @@ export async function renderMsgList(query?: string): Promise<void> {
       pending: appState.outgoingPendingIds.has(u.id),
     }));
   }
-  window.__setMsgList?.({
-    view: "main",
-    requestsCount: appState.incomingRequests.length,
-    matchedFriends,
-    searchResults,
-    query: q,
-  });
+  useMsgListStore.setState(
+    {
+      view: "main",
+      requestsCount: appState.incomingRequests.length,
+      matchedFriends,
+      searchResults,
+      query: q,
+    },
+    true,
+  );
 }
 function renderMsgRequests(): void {
   const appState = getAppState();
-  window.__setMsgList?.({
-    view: "requests",
-    requests: appState.incomingRequests.map((req) => ({
-      id: req.id,
-      username: req.requester.username,
-    })),
-  });
+  useMsgListStore.setState(
+    {
+      view: "requests",
+      requests: appState.incomingRequests.map((req) => ({
+        id: req.id,
+        username: req.requester.username,
+      })),
+    },
+    true,
+  );
 }
 // Wired up from MessagesListPanel.jsx's JSX handlers.
 export function openMsgRequestsView(): void {

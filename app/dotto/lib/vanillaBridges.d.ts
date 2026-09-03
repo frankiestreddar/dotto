@@ -644,11 +644,6 @@ declare global {
     __renderConvoBody?: (f: Record<string, unknown>) => void;
     __closeMessagesPanel?: () => void;
     __renderMsgList?: (query: string) => void;
-    // app/dotto-app.jsx (via app/dotto/bridges.js's msgConvoStore/sharedCanvasModalStore) —
-    // React-facing setters, plain store.set (no flushSync — see renderConvoBody/openSharedCanvasView's
-    // own comments for why neither needs it).
-    __setMsgConvo?: (state: Record<string, unknown> | null) => void;
-    __setSharedCanvasModal?: (state: Record<string, unknown> | null) => void;
     // Plain (non-`__`) globals — real inline onclick targets (content/fragments/hamburger-
     // stack.html/canvas-modal.html), same shape window.pushNotification/
     // window.handleMarketplaceSearch use.
@@ -854,19 +849,10 @@ declare global {
 
     // app/dotto-app.jsx (via app/dotto/bridges.js's various stores) — React-facing setters for
     // app/dotto/lib/friendsPresence.ts (Phase 4.5 port — was friends-presence.js).
-    __setCollabList?: (state: { rows: Record<string, unknown>[]; query: string }) => void;
     __setCollabPill?: (
       paneId: number,
       state: { show: boolean; collabs: Record<string, unknown>[]; moreCount: number },
     ) => void;
-    __setMsgList?: (state: {
-      view: string;
-      requestsCount?: number;
-      matchedFriends?: Record<string, unknown>[];
-      searchResults?: Record<string, unknown>[];
-      requests?: Record<string, unknown>[];
-      query?: string;
-    }) => void;
 
     // app/dotto/lib/friendsPresence.ts — new bridge for the ai/hamburger/mnemonic port;
     // app/dotto/lib/hamburgerCollab.ts used to import activePaneCollabBubbleEl directly

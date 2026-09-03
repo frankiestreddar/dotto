@@ -1,10 +1,9 @@
 "use client";
 
 import { useLayoutEffect, useRef } from "react";
-import { useSyncExternalStore } from "react";
 import { createPortal } from "react-dom";
 import Avatar from "./Avatar";
-import { msgConvoStore } from "./bridges";
+import { useMsgConvoStore } from "./lib/msgConvoStore";
 import {
   openSharedCanvasView,
   renderInlineCanvas,
@@ -58,11 +57,7 @@ function MsgItem({ m, isMine }) {
 // flex-direction:column-reverse (see globals.css), that's what pins the view to the bottom
 // (newest message) exactly like the original insertBefore-prepending did.
 export default function MsgConvo() {
-  const state = useSyncExternalStore(
-    msgConvoStore.subscribe,
-    msgConvoStore.getSnapshot,
-    () => null,
-  );
+  const state = useMsgConvoStore();
   const avatarNode = usePortalNode("msg-convo-avatar");
   const titleNode = usePortalNode("msg-convo-title");
   const bodyNode = usePortalNode("msg-convo-body");

@@ -1,9 +1,8 @@
 "use client";
 
 import { useLayoutEffect, useRef } from "react";
-import { useSyncExternalStore } from "react";
 import { createPortal } from "react-dom";
-import { sharedCanvasModalStore } from "./bridges";
+import { useSharedCanvasModalStore } from "./lib/sharedCanvasModalStore";
 import { renderMsgSnapshotCard } from "./lib/messagingCanvasPreview";
 import usePortalNode from "./usePortalNode";
 
@@ -28,11 +27,7 @@ function SnapshotCardMount({ item }) {
 // #canvas-modal-body itself is now an inner wrapper's className instead, so the portal never
 // writes to the target node's own attributes.
 export default function SharedCanvasModalBody() {
-  const state = useSyncExternalStore(
-    sharedCanvasModalStore.subscribe,
-    sharedCanvasModalStore.getSnapshot,
-    () => null,
-  );
+  const state = useSharedCanvasModalStore();
   const portalNode = usePortalNode("canvas-modal-body");
 
   if (!portalNode || !state) return null;

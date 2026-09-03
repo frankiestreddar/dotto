@@ -14,8 +14,10 @@
 import { renderStopwatchHTML, type StopwatchItem } from "./stopwatch";
 import { searchKindLabel } from "./addMenu";
 import { escapeHtml, stripHtml } from "./textUtils";
+import { useSharedCanvasModalStore } from "./sharedCanvasModalStore";
+import { useMsgConvoStore } from "./msgConvoStore";
 
-interface Item {
+export interface Item {
   id: number;
   kind: string;
   x: number;
@@ -752,7 +754,8 @@ export function importSharedCardsAtScreenPoint(
   window.__closeMessagesPanel?.();
 }
 
-// Real React state now (see app/dotto/SharedCanvasModalBody.jsx, sharedCanvasModalStore) — the
+// Real React state now (see app/dotto/SharedCanvasModalBody.jsx, useSharedCanvasModalStore —
+// migrated to Zustand, Zustand migration plan batch 6, see PHASE4_ROADMAP.md) — the
 // list itself is genuine JSX-owned, but each item's own card content still comes from
 // renderMsgSnapshotCard (below), ref-mounted — same "vanilla builds live DOM, React just mounts
 // it" pattern as InlineCanvasPreview, since that function builds real per-kind DOM (tables,
@@ -762,7 +765,7 @@ export function importSharedCardsAtScreenPoint(
 export function openSharedCanvasView(items: Item[]): void {
   const titleEl = document.getElementById("canvas-modal-title");
   if (titleEl) titleEl.textContent = "Shared Card";
-  window.__setSharedCanvasModal?.({ items } as unknown as Record<string, unknown>);
+  useSharedCanvasModalStore.setState({ items });
   document.getElementById("canvas-modal-overlay")?.classList.add("open");
 }
 // Real inline onclick target (content/fragments/canvas-modal.html) — plain global, no underscore.
@@ -770,7 +773,8 @@ export function closeSharedCanvasView(): void {
   document.getElementById("canvas-modal-overlay")?.classList.remove("open");
 }
 
-// Real React state now (see app/dotto/MsgConvo.jsx, msgConvoStore) — the header (avatar/title) and
+// Real React state now (see app/dotto/MsgConvo.jsx, useMsgConvoStore — migrated to Zustand,
+// Zustand migration plan batch 6, see PHASE4_ROADMAP.md) — the header (avatar/title) and
 // the message list are genuine JSX; each canvas-snapshot message's own card content still comes
 // from renderInlineCanvas/renderMsgSnapshotCard, ref-mounted, same reasoning as
 // SharedCanvasModalBody above. Not flushSync'd: every caller (openConvo, sendMsg, the realtime
@@ -779,13 +783,13 @@ export function closeSharedCanvasView(): void {
 // MsgConvo.jsx itself, so it stays correctly synchronous with THAT component's own commit
 // regardless of whether the store update that triggered it was flushSync'd.
 export function renderConvoBody(f: Friend): void {
-  window.__setMsgConvo?.({
+  useMsgConvoStore.setState({
     friendId: f.id,
-    displayName: f.displayName,
+    displayName: f.displayName || "",
     avatarId: f.avatarId ?? 0,
     avatarUrl: f.avatarUrl || null,
     messages: f.messages,
-  } as unknown as Record<string, unknown>);
+  });
 }
 export function openConvo(friendId: string): void {
   const appState = getAppState();

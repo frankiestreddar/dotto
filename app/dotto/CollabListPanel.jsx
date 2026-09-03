@@ -1,14 +1,11 @@
 "use client";
 
-import { useSyncExternalStore } from "react";
 import { createPortal } from "react-dom";
 import Avatar from "./Avatar";
-import { collabListStore } from "./bridges";
+import { useCollabListStore } from "./lib/collabListStore";
 import { goToCollaboratorCursor } from "./lib/canvasPresence";
 import { handleCollabAddRemoveClick } from "./lib/friendsPresence";
 import usePortalNode from "./usePortalNode";
-
-const EMPTY_STATE = { rows: [], query: "" };
 
 // A live presence dot + clickable name only makes sense for someone who's both an actual
 // collaborator here AND currently present on this exact canvas right now (r.isPresent, computed
@@ -57,11 +54,7 @@ function CollabRow({ r }) {
 // Portals into #collab-list (content/fragments/collab-panel.html) — a plain flex-item container,
 // safe to portal into directly, same as #waypoints-list/#hub-collab-list/#msg-list.
 export default function CollabListPanel() {
-  const state = useSyncExternalStore(
-    collabListStore.subscribe,
-    collabListStore.getSnapshot,
-    () => EMPTY_STATE,
-  );
+  const state = useCollabListStore();
   const portalNode = usePortalNode("collab-list");
 
   if (!portalNode) return null;

@@ -1,9 +1,8 @@
 "use client";
 
-import { useSyncExternalStore } from "react";
 import { createPortal } from "react-dom";
 import Avatar from "./Avatar";
-import { msgListStore } from "./bridges";
+import { useMsgListStore } from "./lib/msgListStore";
 import {
   backToMsgMain,
   handleAddFriendClick,
@@ -12,16 +11,6 @@ import {
 } from "./lib/friendsPresence";
 import { openConvo } from "./lib/messagingCanvasPreview";
 import usePortalNode from "./usePortalNode";
-
-// Module-level, not inline — see CanvasItemsLayer.jsx's identical EMPTY_ITEMS comment for why a
-// fresh object literal as the getServerSnapshot fallback trips React's "should be cached" warning.
-const EMPTY_STATE = {
-  view: "main",
-  requestsCount: 0,
-  matchedFriends: [],
-  searchResults: [],
-  query: "",
-};
 
 function RequestsRow({ count }) {
   return (
@@ -125,11 +114,7 @@ function FriendRequestRow({ req }) {
 // Portals into #msg-list (content/fragments/messages-panel.html) — a plain flex-item container,
 // safe to portal into directly, same as #waypoints-list/#hub-collab-list.
 export default function MessagesListPanel() {
-  const state = useSyncExternalStore(
-    msgListStore.subscribe,
-    msgListStore.getSnapshot,
-    () => EMPTY_STATE,
-  );
+  const state = useMsgListStore();
   const portalNode = usePortalNode("msg-list");
 
   if (!portalNode) return null;

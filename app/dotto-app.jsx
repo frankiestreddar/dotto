@@ -10,7 +10,6 @@ import {
   canvasItemsStore,
   cellTagPickerListStore,
   closeLeafInTree,
-  collabListStore,
   collabPillStore,
   extensionsListStore,
   itemDetailFooterStore,
@@ -18,12 +17,9 @@ import {
   marketDetailStore,
   marketDiscoverStore,
   mediaViewerZoomStore,
-  msgConvoStore,
-  msgListStore,
   navHistoryStore,
   paneLayoutStore,
   splitLeafInTree,
-  sharedCanvasModalStore,
   tabsStore,
 } from "./dotto/bridges";
 import AchievementsGrid from "./dotto/AchievementsGrid";
@@ -339,14 +335,11 @@ if (typeof window !== "undefined") {
   // Profile panel's level pill and achievement spritebook (see app/dotto/ProfileLevelPill.jsx/
   // AchievementsGrid.jsx) both migrated to real Zustand (Zustand migration plan, batch 5, see
   // PHASE4_ROADMAP.md) — see app/dotto/lib/profileLevelStore.ts/achievementsStore.ts.
-  // Messages panel (see app/dotto/MessagesListPanel.jsx,
-  // app/dotto/lib/friendsPresence.ts's renderMsgList/renderMsgRequests) — same reasoning as
-  // useWaypointsListStore/useHubCollabListStore: both entry points are real async Supabase calls.
-  window.__setMsgList = msgListStore.set;
-  // Per-canvas Collaborations flyout (see app/dotto/CollabListPanel.jsx,
-  // app/dotto/lib/friendsPresence.ts's renderCollabList) — same reasoning: real async Supabase
-  // calls.
-  window.__setCollabList = collabListStore.set;
+  // Messages panel's list (MessagesListPanel.jsx), the per-canvas Collaborations flyout
+  // (CollabListPanel.jsx), the open conversation thread (MsgConvo.jsx), and the Shared Card
+  // preview modal (SharedCanvasModalBody.jsx) all migrated to real Zustand (Zustand migration
+  // plan, batch 6, see PHASE4_ROADMAP.md) — see app/dotto/lib/msgListStore.ts, collabListStore.ts,
+  // msgConvoStore.ts, and sharedCanvasModalStore.ts.
   // Marketplace Discover tab's trending list (see app/dotto/MarketDiscoverPanel.jsx,
   // app/dotto/lib/marketplace.ts's renderMarketplaceDiscover) — a plain store.set, no synchronous
   // DOM read follows it.
@@ -394,14 +387,6 @@ if (typeof window !== "undefined") {
   // from every render() alongside the breadcrumb map above) — pane-keyed for the same reason. A
   // plain store.set, no synchronous DOM read follows it.
   window.__setTabs = (paneId, state) => tabsStore.storeFor(paneId).set(state);
-  // Open conversation thread (see app/dotto/MsgConvo.jsx, app/dotto/lib/messagingCanvasPreview.ts's
-  // renderConvoBody) — a plain store.set, no synchronous DOM read follows it (the scroll-to-bottom
-  // reset lives in a useLayoutEffect inside MsgConvo.jsx itself instead).
-  window.__setMsgConvo = msgConvoStore.set;
-  // Shared Card preview modal's body (see app/dotto/SharedCanvasModalBody.jsx,
-  // app/dotto/lib/messagingCanvasPreview.ts's openSharedCanvasView) — a plain store.set, no
-  // synchronous DOM read follows it.
-  window.__setSharedCanvasModal = sharedCanvasModalStore.set;
   // Cell tag picker dropdown (see app/dotto/CellTagPickerList.jsx,
   // app/dotto/lib/sourceTagsAi.ts's renderCellTagPickerList) — a plain store.set, no synchronous
   // DOM read follows it.

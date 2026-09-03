@@ -238,28 +238,10 @@ export function closeLeafInTree(tree, paneId) {
 // migration plan, batch 5, see PHASE4_ROADMAP.md) — see app/dotto/lib/profileLevelStore.ts and
 // achievementsStore.ts.
 
-// Messages panel's chat/friend list (app/dotto/lib/friendsPresence.ts's renderMsgList/
-// renderMsgRequests) — same two-view shape as hubCollabListStore:
-// { view: 'main', requestsCount, matchedFriends, searchResults, query } or
-// { view: 'requests', requests }. Genuine JSX rows (see MessagesListPanel.jsx). Not flushSync'd —
-// both entry points are real async Supabase calls. The actual conversation thread (openConvo/
-// renderConvoBody) stays vanilla — part of the much larger "Live canvas presence" cluster
-// (PHASE2_ROADMAP.md item 11), not this list.
-export const msgListStore = createStore({
-  view: "main",
-  requestsCount: 0,
-  matchedFriends: [],
-  searchResults: [],
-  query: "",
-});
-
-// Per-canvas Collaborations flyout (app/dotto/lib/friendsPresence.ts's renderCollabList) —
-// { rows: [{id, displayName, avatarId, avatarUrl, added, pending, isPresent}], query }. No
-// Requests drill-down of its own (unlike hubCollabListStore/msgListStore above) — adding someone
-// here sends a request that shows as "Requested" until accepted from THEIR OWN hamburger
-// Collaborations panel. Genuine JSX rows, same reasoning as the others. Not flushSync'd — both
-// refreshFriendsData/refreshCanvasCollabForCurrentFolder are real async Supabase calls.
-export const collabListStore = createStore({ rows: [], query: "" });
+// Messages panel's chat/friend list, the per-canvas Collaborations flyout, the open conversation
+// thread, and the Shared Card preview modal all migrated to real Zustand (Zustand migration plan,
+// batch 6, see PHASE4_ROADMAP.md) — see app/dotto/lib/msgListStore.ts, collabListStore.ts,
+// msgConvoStore.ts, and sharedCanvasModalStore.ts.
 
 // Marketplace "Discover" tab's trending list (app/dotto/lib/marketplace.ts's
 // renderMarketplaceDiscover) — the already-filtered array of items. Genuine JSX rows, same
@@ -386,21 +368,9 @@ export const tabsStore = createPaneKeyedStore(() => ({ tabs: [], activeTabId: nu
 // updates, same "canvas-core-adjacent, migrate last" reasoning as canvas core itself, not a list
 // with any natural React-owned identity.
 //
-// Open conversation thread (app/dotto/lib/messagingCanvasPreview.ts's openConvo/renderConvoBody) —
-// { friendId, displayName, avatarId, avatarUrl, messages } | null. Genuine JSX for the header
-// (Avatar.jsx) and each plain-text message bubble; each canvas-snapshot message's own card
-// content is ref-mounted vanilla DOM (renderInlineCanvas/renderMsgSnapshotCard) — see
-// MsgConvo.jsx. Not flushSync'd — no caller reads the DOM synchronously right after; the
-// scroll-to-bottom reset that used to happen inline now lives in a useLayoutEffect inside
-// MsgConvo.jsx itself, so it's correctly synchronous with that component's own commit regardless.
-export const msgConvoStore = createStore(null);
-
-// Shared Card preview modal's body (app/dotto/lib/messagingCanvasPreview.ts's openSharedCanvasView) —
-// { items } | null. Genuine JSX list, each item's own card content ref-mounted the same way as
-// MsgConvo's canvas-snapshot messages (renderMsgSnapshotCard) — see SharedCanvasModalBody.jsx. The
-// modal shell's own open/close class toggle and title text stay vanilla (plain attribute writes
-// on the shell, not on anything React portals into).
-export const sharedCanvasModalStore = createStore(null);
+// The open conversation thread (msgConvoStore) and Shared Card preview modal
+// (sharedCanvasModalStore) also migrated to real Zustand in this same batch 6 — see
+// app/dotto/lib/msgConvoStore.ts and sharedCanvasModalStore.ts.
 
 // Item 9's remainder (the Source database page cluster) turned out to have only one clean, low-
 // risk conversion candidate: the cell tag picker's dropdown list
