@@ -1,11 +1,8 @@
 "use client";
 
-import { useSyncExternalStore } from "react";
 import { createPortal } from "react-dom";
-import { marketDiscoverStore } from "./bridges";
+import { useMarketDiscoverStore } from "./lib/marketDiscoverStore";
 import usePortalNode from "./usePortalNode";
-
-const EMPTY_ITEMS = [];
 
 function MarketItemRow({ item }) {
   return (
@@ -26,11 +23,7 @@ function MarketItemRow({ item }) {
 // Portals into #market-list-container (content/fragments/hamburger-stack.html, #cart-panel) — a
 // plain flex-item container, safe to portal into directly, same as #waypoints-list and friends.
 export default function MarketDiscoverPanel() {
-  const items = useSyncExternalStore(
-    marketDiscoverStore.subscribe,
-    marketDiscoverStore.getSnapshot,
-    () => EMPTY_ITEMS,
-  );
+  const items = useMarketDiscoverStore();
   const portalNode = usePortalNode("market-list-container");
 
   if (!portalNode) return null;

@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useRef, useSyncExternalStore } from "react";
+import { useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
-import { blocksViewStore } from "./bridges";
+import { useBlocksViewStore } from "./lib/blocksViewStore";
 import {
   createBlocksFolder,
   deleteBlockContentItem,
@@ -123,11 +123,7 @@ function BlockRow({ row }) {
 // Blocks panel's real id under the hood, was Essentials/the Add menu before this overhaul). See
 // blocksViewStore's own comment (bridges.js) for the row shape/where it's computed.
 export default function BlocksPanel() {
-  const rows = useSyncExternalStore(
-    blocksViewStore.subscribe,
-    blocksViewStore.getSnapshot,
-    blocksViewStore.getSnapshot,
-  );
+  const rows = useBlocksViewStore();
   const portalNode = usePortalNode("blocks-list-container");
 
   if (!portalNode) return null;

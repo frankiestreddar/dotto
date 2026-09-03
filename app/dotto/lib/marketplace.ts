@@ -8,6 +8,9 @@
 // the Blocks panel (app/dotto/lib/blocksPanel.ts, ported since — was blocks-panel.js) when Library
 // was repurposed into Plugins — this file is Discover/purchase-flow only, untouched by that move.
 
+import { useMarketDiscoverStore } from "./marketDiscoverStore";
+import { useMarketDetailStore } from "./marketDetailStore";
+
 interface Item {
   id: number;
   kind: string;
@@ -18,7 +21,7 @@ interface FolderObj {
   items: Item[];
 }
 
-interface MarketplaceItem {
+export interface MarketplaceItem {
   id: string;
   title: string;
   description: string;
@@ -197,7 +200,7 @@ function renderMarketplaceDiscover(): void {
       item.description.toLowerCase().includes(q) ||
       (item.tagline || "").toLowerCase().includes(q),
   );
-  window.__setMarketDiscover?.(filtered);
+  useMarketDiscoverStore.setState(filtered, true);
 }
 
 // #market-detail-content's content is real React state (see app/dotto/MarketDetailPanel.jsx,
@@ -211,7 +214,7 @@ export function openMarketDetail(item: MarketplaceItem): void {
   appState.selectedMarketItem = item;
   document.getElementById("view-discover")?.classList.remove("active");
   document.getElementById("market-detail-view")?.classList.add("active");
-  window.__setMarketDetail?.(item);
+  useMarketDetailStore.setState(item);
 }
 
 export function closeMarketDetail(): void {
@@ -220,7 +223,7 @@ export function closeMarketDetail(): void {
   appState.selectedMarketItem = null;
   document.getElementById("market-detail-view")?.classList.remove("active");
   document.getElementById("view-discover")?.classList.add("active");
-  window.__setMarketDetail?.(null);
+  useMarketDetailStore.setState(null);
 }
 
 export async function purchaseCurrentMarketItem(): Promise<void> {

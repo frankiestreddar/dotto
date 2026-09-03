@@ -243,55 +243,10 @@ export function closeLeafInTree(tree, paneId) {
 // batch 6, see PHASE4_ROADMAP.md) — see app/dotto/lib/msgListStore.ts, collabListStore.ts,
 // msgConvoStore.ts, and sharedCanvasModalStore.ts.
 
-// Marketplace "Discover" tab's trending list (app/dotto/lib/marketplace.ts's
-// renderMarketplaceDiscover) — the already-filtered array of items. Genuine JSX rows, same
-// reasoning as the other list panels. openMarketDetail/the rest of the marketplace/library
-// cluster stay in this pattern for now — see marketplace.ts's own comment for why this is one
-// self-contained slice, not the whole roadmap item 8 at once.
-export const marketDiscoverStore = createStore([]);
-
-// Marketplace item detail view's content (app/dotto/lib/marketplace.ts's openMarketDetail/
-// closeMarketDetail) — the selected item, or null. Text fields as real JSX; the canvas preview
-// (renderInlineCanvas) stays vanilla-built, mounted via a ref — see MarketDetailPanel.jsx. Which
-// VIEW is showing (#view-discover vs #market-detail-view) stays a vanilla classList toggle, shared
-// machinery with switchCartTab/openItemDetail/startPublishFlow elsewhere in this cluster.
-export const marketDetailStore = createStore(null);
-
-// Blocks panel's list content (app/dotto/lib/blocksPanel.ts's computeBlocksRows/refreshBlocksPanel)
-// — was libraryViewStore/Library's own discriminated-union-of-views shape before Essentials/
-// Library were repurposed into Blocks/Plugins (explicit request); Blocks shows every folder's
-// contents at once now (no drill-down navigation), so this is just a flat row array, same
-// convention as outlineStore/computeOutlineRows: [{ rowKind: 'folder', key, label, deletable,
-// count } | { rowKind: 'block-item', kind, statKind, label, icon } | { rowKind: 'content-item',
-// item, status, folderKey, deletable, draggable } | { rowKind: 'new-folder' }]. Genuine JSX rows —
-// drag-into-folder (setupContentItemDrag) and folder/item CRUD are all real ES imports from
-// blocksPanel.ts now (same app/dotto/ tree, see BlocksPanel.jsx); opening the item detail view
-// (openItemDetail) still goes through a window.__ bridge, since that one lives in
-// app/dotto/lib/libraryPublish.ts and a direct import back would be circular (see blocksPanel.ts's
-// own header comment).
-export const blocksViewStore = createStore([]);
-
-// Extensions panel's list content (was Library's own role before the repurposing above — see
-// blocksViewStore's comment; was going to be called "Plugins" before an explicit follow-up rename)
-// — just a flat array of installed extensions, [{id, label}], rendered as rectangular pills rather
-// than item cards (explicit request). Currently seeded with two dummy entries
-// (app/dotto/lib/blocksPanel.ts has no real extension system to back this yet) — see
-// ExtensionsPanel.jsx.
-export const extensionsListStore = createStore([
-  { id: "extension-1", label: "Plugin 1" },
-  { id: "extension-2", label: "Plugin 2" },
-]);
-
-// Item Detail view's footer button set (app/dotto/lib/libraryPublish.ts's renderItemDetailFooter)
-// — { sourceFolder: 'drafts'|'published'|'purchased', itemId, dirty } | null. A natural,
-// self-contained discriminated union (same "compute state, render 1-3 buttons" shape as
-// ImageResultPanel), unlike the rest of the Item Detail/Publish Flow views: the title/price/desc
-// fields (contentEditable title, autosave-on-blur for drafts, disabled-until-dirty tracking for
-// published) and the entire Publish Flow form (including focusPublishFlowName's manual caret/
-// scroll positioning) stay vanilla — no acute bug in any of it, and converting contentEditable
-// fields to React state risks regressing caret behavior for zero behavior gain, same reasoning as
-// the hamburger menu's Outline panel exception (see PHASE2_ROADMAP.md item 6).
-export const itemDetailFooterStore = createStore(null);
+// Marketplace Discover/Detail panels, the Blocks panel, the Extensions panel, and the Item Detail
+// footer all migrated to real Zustand (Zustand migration plan, batch 7, see PHASE4_ROADMAP.md) —
+// see app/dotto/lib/marketDiscoverStore.ts, marketDetailStore.ts, blocksViewStore.ts,
+// extensionsListStore.ts, and itemDetailFooterStore.ts.
 
 // Collaborators pill, now one per pane (split-screen Stage 8 — was a single shared store tied to
 // whichever pane happened to be active, per the same "each pane needs its own copy, not one shared

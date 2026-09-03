@@ -5,17 +5,12 @@ import { flushSync } from "react-dom";
 import { createClient } from "@/lib/supabase/client";
 import {
   activePaneIdStore,
-  blocksViewStore,
   breadcrumbMapStore,
   canvasItemsStore,
   cellTagPickerListStore,
   closeLeafInTree,
   collabPillStore,
-  extensionsListStore,
-  itemDetailFooterStore,
   listPaneIds,
-  marketDetailStore,
-  marketDiscoverStore,
   mediaViewerZoomStore,
   navHistoryStore,
   paneLayoutStore,
@@ -340,25 +335,10 @@ if (typeof window !== "undefined") {
   // preview modal (SharedCanvasModalBody.jsx) all migrated to real Zustand (Zustand migration
   // plan, batch 6, see PHASE4_ROADMAP.md) — see app/dotto/lib/msgListStore.ts, collabListStore.ts,
   // msgConvoStore.ts, and sharedCanvasModalStore.ts.
-  // Marketplace Discover tab's trending list (see app/dotto/MarketDiscoverPanel.jsx,
-  // app/dotto/lib/marketplace.ts's renderMarketplaceDiscover) — a plain store.set, no synchronous
-  // DOM read follows it.
-  window.__setMarketDiscover = marketDiscoverStore.set;
-  // Marketplace item detail view (see app/dotto/MarketDetailPanel.jsx, app/dotto/lib/marketplace.ts's
-  // openMarketDetail/closeMarketDetail) — a plain store.set, no synchronous DOM read follows it.
-  window.__setMarketDetail = marketDetailStore.set;
-  // Blocks panel's list content (see app/dotto/BlocksPanel.jsx, app/dotto/lib/blocksPanel.ts's
-  // computeBlocksRows/refreshBlocksPanel — was Library/LibraryPanel.jsx's role before Essentials/
-  // Library were repurposed into Blocks/Extensions) — a plain store.set, no synchronous DOM read
-  // follows it.
-  window.__setBlocksView = blocksViewStore.set;
-  // Extensions panel's list content (see app/dotto/ExtensionsPanel.jsx) — dummy data for now, a
-  // plain store.set, no synchronous DOM read follows it.
-  window.__setExtensionsList = extensionsListStore.set;
-  // Item Detail view's footer button set (see app/dotto/ItemDetailFooter.jsx,
-  // app/dotto/lib/libraryPublish.ts's renderItemDetailFooter) — a plain store.set, no synchronous
-  // DOM read follows it.
-  window.__setItemDetailFooter = itemDetailFooterStore.set;
+  // Marketplace Discover/Detail panels, the Blocks panel, the Extensions panel, and the Item
+  // Detail footer all migrated to real Zustand (Zustand migration plan, batch 7, see
+  // PHASE4_ROADMAP.md) — see app/dotto/lib/marketDiscoverStore.ts, marketDetailStore.ts,
+  // blocksViewStore.ts, extensionsListStore.ts, and itemDetailFooterStore.ts.
   // Collaborators pill, one per pane (see app/dotto/PaneTopBar.jsx,
   // app/dotto/lib/friendsPresence.ts's renderCollabPill) — pane-keyed since split-screen Stage 8,
   // same reasoning as __setBreadcrumbMap/__setTabs below. MUST be flushSync: openCollabPanel

@@ -226,16 +226,8 @@ declare global {
     // app/dotto/lib/dragDropChat.ts (Phase 4.1 port — was drag-drop-chat.js) — used by
     // app/dotto/canvasItemBehavior.js's own up() handler ("drop into active chat" case).
     __dispatchSelectedToChat?: (targetIt: Record<string, unknown>) => Promise<void>;
-    // app/dotto-app.jsx (via app/dotto/bridges.js's marketDiscoverStore/marketDetailStore) —
-    // React-facing setters, plain store.set (no flushSync — nothing reads their DOM synchronously
-    // right after).
-    __setMarketDiscover?: (items: Record<string, unknown>[]) => void;
-    __setMarketDetail?: (item: Record<string, unknown> | null) => void;
     // app/dotto/lib/blocksPanel.ts (Phase 4.1 port — was blocks-panel.js)
     __refreshBlocksPanel?: () => void;
-    // app/dotto-app.jsx (via app/dotto/bridges.js's blocksViewStore) — React-facing setter, plain
-    // store.set, no synchronous DOM read follows it.
-    __setBlocksView?: (rows: Record<string, unknown>[]) => void;
     // Plain (non-`__`) global — real inline oninput target in content/fragments/hamburger-stack.html.
     handleBlocksSearchInput?: (value: string) => void;
     // app/dotto/lib/libraryPublish.ts (Phase 4.5 port — was library-publish.js)
@@ -243,11 +235,6 @@ declare global {
     __deleteMyCreationItem?: (
       item: Record<string, unknown>,
       folderKey: "drafts" | "published",
-    ) => void;
-    // app/dotto-app.jsx (via app/dotto/bridges.js's itemDetailFooterStore) — React-facing setter,
-    // plain store.set, no synchronous DOM read follows it.
-    __setItemDetailFooter?: (
-      state: { sourceFolder: string | null; itemId: string; dirty: boolean } | null,
     ) => void;
     // Plain (non-`__`) globals — real inline oninput/onclick targets in
     // content/fragments/hamburger-stack.html.

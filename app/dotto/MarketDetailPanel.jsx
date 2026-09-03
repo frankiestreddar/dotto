@@ -1,9 +1,8 @@
 "use client";
 
 import { useLayoutEffect, useRef } from "react";
-import { useSyncExternalStore } from "react";
 import { createPortal } from "react-dom";
-import { marketDetailStore } from "./bridges";
+import { useMarketDetailStore } from "./lib/marketDetailStore";
 import { renderInlineCanvas } from "./lib/messagingCanvasPreview";
 import usePortalNode from "./usePortalNode";
 
@@ -26,11 +25,7 @@ function InlineCanvasPreview({ item }) {
 // Portals into #market-detail-content (content/fragments/hamburger-stack.html, #cart-panel) — a
 // plain scroll-area container, safe to portal into directly, same as the other panels this wave.
 export default function MarketDetailPanel() {
-  const item = useSyncExternalStore(
-    marketDetailStore.subscribe,
-    marketDetailStore.getSnapshot,
-    () => null,
-  );
+  const item = useMarketDetailStore();
   const portalNode = usePortalNode("market-detail-content");
 
   if (!portalNode || !item) return null;

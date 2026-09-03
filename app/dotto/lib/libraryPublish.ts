@@ -12,6 +12,8 @@
 // ItemDetailFooter.jsx (same app/dotto/ tree) now import their functions directly instead of going
 // through window bridges.
 
+import { useItemDetailFooterStore } from "./itemDetailFooterStore";
+
 interface MarketplaceItem {
   id: string;
   title: string;
@@ -97,7 +99,7 @@ export function openItemDetail(item: MarketplaceItem, sourceFolder: string): voi
 // in bridges.js for why the form fields stay vanilla).
 function renderItemDetailFooter(): void {
   const appState = getAppState();
-  window.__setItemDetailFooter!({
+  useItemDetailFooterStore.setState({
     sourceFolder: appState.detailSourceFolder,
     itemId: appState.detailItem!.id,
     dirty: appState.detailSourceFolder === "published" ? isDetailDirty() : false,

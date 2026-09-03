@@ -14,6 +14,8 @@
 // pre-existing decision rather than newly co-locating and resolving it, since both other files are
 // already-shipped and stable.
 
+import { useBlocksViewStore } from "./blocksViewStore";
+
 interface AddMenuItem {
   kind: string;
   statKind?: string;
@@ -57,7 +59,7 @@ interface FolderRow {
 interface NewFolderRow {
   rowKind: "new-folder";
 }
-type BlocksRow = BlockItemRow | ContentItemRow | FolderRow | NewFolderRow;
+export type BlocksRow = BlockItemRow | ContentItemRow | FolderRow | NewFolderRow;
 
 interface AppState {
   ADD_MENU_DATA: Record<string, { label: string; categoryDesc: string; items: AddMenuItem[] }>;
@@ -235,9 +237,7 @@ export function computeBlocksRows(query: string): BlocksRow[] {
 
 function pushBlocksView(): void {
   const appState = getAppState();
-  window.__setBlocksView!(
-    computeBlocksRows(appState.addMenuSearchQuery) as unknown as Record<string, unknown>[],
-  );
+  useBlocksViewStore.setState(computeBlocksRows(appState.addMenuSearchQuery), true);
 }
 
 // The onOpen callback for window.__wireRailIcon('add', ...) below — replaces resetAddMenuPanel

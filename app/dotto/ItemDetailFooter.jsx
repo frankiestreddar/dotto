@@ -1,8 +1,7 @@
 "use client";
 
-import { useSyncExternalStore } from "react";
 import { createPortal } from "react-dom";
-import { itemDetailFooterStore } from "./bridges";
+import { useItemDetailFooterStore } from "./lib/itemDetailFooterStore";
 import usePortalNode from "./usePortalNode";
 import {
   deleteDetailDraft,
@@ -21,11 +20,7 @@ import {
 // directly (same app/dotto/ tree) instead of the window.__ bridges those functions used to be
 // reached through.
 export default function ItemDetailFooter() {
-  const state = useSyncExternalStore(
-    itemDetailFooterStore.subscribe,
-    itemDetailFooterStore.getSnapshot,
-    () => null,
-  );
+  const state = useItemDetailFooterStore();
   const portalNode = usePortalNode("item-detail-footer");
 
   if (!portalNode || !state) return null;
