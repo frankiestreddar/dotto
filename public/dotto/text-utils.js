@@ -2,9 +2,9 @@
 // ai-assistant-suggestions.js (Phase 4.2 of the vanilla->React consolidation, see
 // PHASE4_ROADMAP.md), themselves ported to app/dotto/lib/textUtils.ts (Phase 4.1 cluster revisit)
 // once every app/dotto/ caller could reach them via a real import instead of a bridge. This file
-// stays in place only for its 2 remaining real vanilla-to-vanilla ES-import callers
-// (search-panel-history.js, search-orchestration-selection.js) — deleted once those two are ported
-// too, at which point app/dotto/lib/textUtils.ts becomes the sole copy.
+// stays in place only for its 1 remaining real vanilla-to-vanilla ES-import caller
+// (search-orchestration-selection.js) — deleted once that file is ported too, at which point
+// app/dotto/lib/textUtils.ts becomes the sole copy.
 //
 // isLatinScriptText, defined right alongside these two in the original file, was deliberately
 // NOT brought along despite being similarly self-contained in spirit — it reads
@@ -43,6 +43,5 @@ export { escapeHtml, stripHtml };
 // No window.__escapeHtml/__stripHtml bridges anymore — this file's own logic was ported to
 // app/dotto/lib/textUtils.ts (Phase 4.1 cluster revisit), and every app/dotto/ caller that used to
 // reach these two through the bridge now imports the real copy there directly instead. This file
-// stays in place only because search-panel-history.js/search-orchestration-selection.js (still
-// vanilla) import it directly (vanilla-to-vanilla ES import, not a bridge) — deleted once those
-// two are ported too.
+// stays in place only because search-orchestration-selection.js (still vanilla) imports it
+// directly (vanilla-to-vanilla ES import, not a bridge) — deleted once that file is ported too.

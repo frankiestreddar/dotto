@@ -876,7 +876,7 @@ const BRIDGE_POLL_INTERVAL_MS = 100;
 
 // Every searchbox in the app does this — per explicit request, not just Queries' own
 // #search-input (which is all this ever drove originally). #search-panel-search
-// (search-panel-history.js) is the other one so far; both are plain elements with a
+// (app/dotto/lib/searchPanelHistory.ts) is the other one so far; both are plain elements with a
 // `.placeholder` property, set identically here regardless of which, so adding a future box just
 // means adding its selector below.
 function doWire(): void {

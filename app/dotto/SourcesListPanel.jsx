@@ -12,7 +12,7 @@ import usePortalNode from "./usePortalNode";
 const EMPTY_STATE = { rows: [], query: "" };
 
 // .outline-item/.search-history-icon/.outline-label — the same row structure #chats-list's rows
-// and #search-panel-content's rows use (ChatsListPanel.jsx/search-panel-history.js), both sharing
+// and #search-panel-content's rows use (ChatsListPanel.jsx/app/dotto/lib/searchPanelHistory.ts), both sharing
 // .panel-history-list's own row override — matches this panel too, since #sources-panel-content
 // carries that same class (see hamburger-stack.html). source.png reused from SourceCard.jsx/the
 // old rail icon. No shift-click multi-select (unlike Waypoints/Collaborations/Chats) — deleting a

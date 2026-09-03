@@ -29,7 +29,7 @@ function ChatRow({ r, selected }) {
       }}
     >
       {/* .search-history-icon (globals.css) reused as-is — same row structure #search-panel's own
-          history rows use (search-panel-history.js), both sharing .panel-history-list's row
+          history rows use (app/dotto/lib/searchPanelHistory.ts), both sharing .panel-history-list's row
           override, just with query.png instead of search.png. Row itself is .outline-item, not a
           bespoke class, so it keeps working with setupListPanelDragSelect's shift-click-drag
           selection (data-select-id/.outline-item-selected above). */}

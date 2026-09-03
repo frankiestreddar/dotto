@@ -2,9 +2,9 @@
 // ai-assistant-suggestions.js (Phase 4.2 of the vanilla->React consolidation, see
 // PHASE4_ROADMAP.md), ported here from public/dotto/text-utils.js as file #8 of the 11-file
 // command/search cluster (Phase 4.1 revisit). public/dotto/text-utils.js itself stays in place
-// for now — search-panel-history.js/search-orchestration-selection.js (files #10/#11, still
-// vanilla) import straight from it via a real ES import, not a bridge — and gets deleted once
-// those two are ported too, at which point this becomes the sole copy.
+// for now — search-orchestration-selection.js (file #11, still vanilla) imports straight from it
+// via a real ES import, not a bridge — and gets deleted once that file is ported too, at which
+// point this becomes the sole copy.
 //
 // isLatinScriptText, defined right alongside these two in the original file, was deliberately NOT
 // brought along despite being similarly self-contained in spirit — it reads

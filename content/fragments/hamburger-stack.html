@@ -49,7 +49,7 @@
          #search-panel-search is a plain <input>, not a growing <textarea> like #search-input —
          this box still doesn't execute a real search yet (per explicit statement), so there's no
          multi-line typing/dropdown machinery to justify one, just the same recent-term history
-         (search-panel-history.js) as before, now rendered as .outline-item rows (matching
+         (app/dotto/lib/searchPanelHistory.ts) as before, now rendered as .outline-item rows (matching
          #chats-list's own, ChatsListPanel.jsx) instead of the old .search-history-row markup.
          Heading/description reuse #ai-panel's own shared classes verbatim (globals.css), just with
          this panel's own text: "Search", "Find anything across your canvases." The hero thumbnail
