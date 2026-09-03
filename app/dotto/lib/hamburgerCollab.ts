@@ -10,6 +10,7 @@
 // app/dotto/lib/friendsPresence.ts via the __activePaneCollabBubbleEl bridge (new in the Phase 4.5
 // friends-presence port — openCollabPanel/renderCollabPill were already bridged).
 
+import { flushSync } from "react-dom";
 import {
   openSearchOverlay,
   scrollChatThreadToBottom,
@@ -17,6 +18,7 @@ import {
   updateChatThread,
 } from "./aiAssistantSuggestions";
 import { flashCanvasElement } from "./mnemonicSearchMatching";
+import { useChatThreadStore } from "./chatThreadStore";
 
 interface Item {
   id: number;
@@ -625,7 +627,7 @@ export async function openSavedChat(conversationId: string): Promise<void> {
       pendingUserQuery = null;
     }
   });
-  window.__setChatThread?.(turns);
+  flushSync(() => useChatThreadStore.setState(turns, true));
   showAiChatView();
   updateChatThread();
   scrollChatThreadToBottom();
@@ -698,7 +700,7 @@ async function deleteSelectedChats(ids: string[]): Promise<void> {
   // panel's input box to the bottom of what's now a blank thread.
   if (ids.includes(appState.currentConversationId!)) {
     appState.currentConversationId = null;
-    window.__setChatThread?.([]);
+    flushSync(() => useChatThreadStore.setState([], true));
     updateChatThread();
   }
   clearListPanelSelection();

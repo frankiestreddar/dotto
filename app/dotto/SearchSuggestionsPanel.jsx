@@ -1,8 +1,7 @@
 "use client";
 
 import { useLayoutEffect } from "react";
-import { useSyncExternalStore } from "react";
-import { searchSuggestionsStore } from "./bridges";
+import { useSearchSuggestionsStore } from "./lib/searchSuggestionsStore";
 import { buildLiveSuggestionsRows } from "./lib/aiAssistantSuggestions";
 import {
   buildMnemonicErrorEl,
@@ -20,11 +19,7 @@ import {
 // (buildMnemonicErrorEl) — see renderDotbotOrchestrateError's own comment in
 // app/dotto/lib/searchOrchestrationSelection.ts for why they're really the same shape.
 export default function SearchSuggestionsPanel() {
-  const state = useSyncExternalStore(
-    searchSuggestionsStore.subscribe,
-    searchSuggestionsStore.getSnapshot,
-    () => null,
-  );
+  const state = useSearchSuggestionsStore();
 
   useLayoutEffect(() => {
     const el = document.getElementById("search-suggestions");

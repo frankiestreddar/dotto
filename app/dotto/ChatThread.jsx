@@ -1,8 +1,8 @@
 "use client";
 
-import { useLayoutEffect, useRef, useSyncExternalStore } from "react";
+import { useLayoutEffect, useRef } from "react";
 import { createPortal } from "react-dom";
-import { chatThreadStore } from "./bridges";
+import { useChatThreadStore } from "./lib/chatThreadStore";
 import usePortalNode from "./usePortalNode";
 import { updateChatThread } from "./lib/aiAssistantSuggestions";
 import {
@@ -15,12 +15,6 @@ import {
   startSequencedTurnReveal,
   stripInlineMarkers,
 } from "./lib/mnemonicSearchMatching";
-
-// Module-level, not inline — see CanvasItemsLayer.jsx's identical EMPTY_ITEMS comment for why a
-// fresh array literal as the getServerSnapshot fallback trips React's "should be cached" warning
-// (a new [] every render never === the previous one, so useSyncExternalStore treats it as an
-// unstable snapshot and loops).
-const EMPTY_TURNS = [];
 
 // One turn = the user's own query (rendered here for the first time ever — previously the input's
 // value was just cleared after sending, never shown as a message anywhere) + that turn's assistant
@@ -39,10 +33,10 @@ const EMPTY_TURNS = [];
 // sibling turn being appended right after it) does NOT remount this one or refire its effect.
 // That's what makes `turn.fresh` safe to read only once, on mount, rather than needing its own
 // "already consumed" guard — it's only ever true for the turn that was just live-appended
-// (chatThreadStore/__appendChatTurn, app/dotto/lib/searchOrchestrationSelection.ts), never for turns restored
-// from history (chatThreadStore/__setChatThread, the sidebar reopen flow), which render with
-// `fresh` false/omitted so they show fully settled immediately instead of re-typewriter-ing text
-// that was already delivered in a past session.
+// (useChatThreadStore, app/dotto/lib/searchOrchestrationSelection.ts's renderOrchestrateResult),
+// never for turns restored from history (the sidebar reopen flow, app/dotto/lib/hamburgerCollab.ts's
+// openSavedChat), which render with `fresh` false/omitted so they show fully settled immediately
+// instead of re-typewriter-ing text that was already delivered in a past session.
 function ChatTurn({ turn }) {
   const assistantRef = useRef(null);
 
@@ -121,16 +115,13 @@ function ChatTurn({ turn }) {
   );
 }
 
-// Portals into #search-chat-thread (content/fragments/search-overlay.html) — see chatThreadStore's
-// own comment in app/dotto/bridges.js for the full architecture. A genuine JSX list (real turn
-// identity, keyed by turn.id) like CommandPalette.jsx, not a single-owner side-effect component
-// like DotbotAnswerPanel.jsx and friends, which this retires for AI content.
+// Portals into #search-chat-thread (content/fragments/search-overlay.html) — see
+// useChatThreadStore's own comment (app/dotto/lib/chatThreadStore.ts) for the full architecture.
+// A genuine JSX list (real turn identity, keyed by turn.id) like CommandPalette.jsx, not a
+// single-owner side-effect component like DotbotAnswerPanel.jsx and friends, which this retires
+// for AI content.
 export default function ChatThread() {
-  const turns = useSyncExternalStore(
-    chatThreadStore.subscribe,
-    chatThreadStore.getSnapshot,
-    () => EMPTY_TURNS,
-  );
+  const turns = useChatThreadStore();
   const portalNode = usePortalNode("search-chat-thread");
 
   if (!portalNode) return null;

@@ -13,6 +13,8 @@ import {
   searchAccessibleByNameAll,
   searchOwnTreeByNameAll,
 } from "./commandTargetLookup";
+import { flushSync } from "react-dom";
+import { useCommandPaletteStore } from "./commandPaletteStore";
 
 interface AppState {
   commandSuggestDebounceTimer: ReturnType<typeof setTimeout> | undefined;
@@ -26,7 +28,7 @@ function getAppState(): AppState {
   return window.__getAppState!() as unknown as AppState;
 }
 
-type CommandRow =
+export type CommandRow =
   | { type: "kind"; key: string; kind: string; label: string; sublabel: string }
   | { type: "own"; key: string; kind: string; folderId: string; label: string; sublabel: string }
   | {
@@ -96,9 +98,9 @@ function buildOwnCommandRows(parsed: ParsedCommand | null): CommandRow[] {
 // the same way scheduleLiveSuggestions debounces the AI suggestions fetch
 // (app/dotto/lib/aiAssistantSuggestions.ts), and merged into whatever own-tree rows are already
 // showing rather than replacing them, since both can legitimately have matches at once.
-// Re-derives the own-tree rows fresh at merge time (cheap/synchronous) instead of trying to read
-// the store back — there's no read bridge for it, only window.__setCommandPalette (write-only,
-// same as every other store).
+// Re-derives the own-tree rows fresh at merge time (cheap/synchronous) instead of reading
+// useCommandPaletteStore's own current state back — simpler than reconstructing which of its two
+// producers (this one vs. updateCommandPalette below) most recently wrote it.
 function scheduleSharedCommandSuggestions(parsed: ParsedCommand | null): void {
   const appState = getAppState();
   clearTimeout(appState.commandSuggestDebounceTimer);
@@ -126,9 +128,7 @@ function scheduleSharedCommandSuggestions(parsed: ParsedCommand | null): void {
       label: m.title || "(untitled)",
       sublabel: `Shared • ${m.kind === "source" ? "Source" : "Canvas"}`,
     }));
-    window.__setCommandPalette!({
-      rows: [...ownRows, ...sharedRows] as unknown as Record<string, unknown>[],
-    });
+    flushSync(() => useCommandPaletteStore.setState({ rows: [...ownRows, ...sharedRows] }));
   }, 250);
 }
 
@@ -153,8 +153,8 @@ export function updateCommandPalette(value: string): ParsedCommand | null {
   const parsed = parseCommandInput(value);
   appState.commandActiveIndex = -1;
   clearTimeout(appState.commandSuggestDebounceTimer); // a stale in-flight shared search must never clobber this fresh set of rows once it lands
-  window.__setCommandPalette!(
-    parsed ? { rows: buildOwnCommandRows(parsed) as unknown as Record<string, unknown>[] } : null,
+  flushSync(() =>
+    useCommandPaletteStore.setState(parsed ? { rows: buildOwnCommandRows(parsed) } : null),
   );
   scheduleSharedCommandSuggestions(parsed);
   return parsed;

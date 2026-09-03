@@ -6,17 +6,14 @@ import { createClient } from "@/lib/supabase/client";
 import {
   achievementsStore,
   activePaneIdStore,
-  addToSourcePopupStore,
   blocksViewStore,
   breadcrumbMapStore,
   canvasItemsStore,
   cellTagPickerListStore,
   chatsListStore,
-  chatThreadStore,
   closeLeafInTree,
   collabListStore,
   collabPillStore,
-  commandPaletteStore,
   extensionsListStore,
   filesListStore,
   hubCollabListStore,
@@ -33,7 +30,6 @@ import {
   paneLayoutStore,
   splitLeafInTree,
   profileLevelStore,
-  searchSuggestionsStore,
   sharedCanvasModalStore,
   sourcesListStore,
   tabsStore,
@@ -338,27 +334,12 @@ if (typeof window !== "undefined") {
   // still wrapped in flushSync there for the same reason these bridges used to need it:
   // updateSearchDropdown (app/dotto/lib/aiAssistantSuggestions.ts) reads each panel's real DOM
   // node's style.display synchronously right after.
-  // #search-chat-thread (see app/dotto/ChatThread.jsx, chatThreadStore's own comment above) — the
-  // persisted multi-turn conversation shown above the search input, entirely separate from the six
-  // single-owner panels right above (canvas matches/commands/suggestions below the input are
-  // unaffected). flushSync for the same reason as those: the new independent chat-thread
-  // height-transition function (app/dotto/lib/aiAssistantSuggestions.ts) reads #search-chat-thread's real
-  // scrollHeight synchronously right after a turn is appended/restored.
-  window.__setChatThread = (turns) => flushSync(() => chatThreadStore.set(turns));
-  window.__appendChatTurn = (turn) =>
-    flushSync(() => chatThreadStore.set([...chatThreadStore.getSnapshot(), turn]));
-  // #search-command-palette (see app/dotto/CommandPalette.jsx, app/dotto/lib/commandPalette.ts's
-  // updateCommandPalette) — same flushSync reasoning as the six above. Specifically also needs it
-  // for a second reason: it's a real portal (see commandPaletteStore's own comment in bridges.js),
-  // and app/dotto/lib/searchOrchestrationSelection.ts's command-mode keydown branches read its
-  // rows via querySelectorAll synchronously right after this is called.
-  window.__setCommandPalette = (state) => flushSync(() => commandPaletteStore.set(state));
-  window.__setSearchSuggestions = (state) => flushSync(() => searchSuggestionsStore.set(state));
-  // Add-to-source popup (see app/dotto/AddToSourcePopup.jsx, addToSourcePopupStore) — MUST be
-  // flushSync: openAddToSourcePopup (app/dotto/lib/searchOrchestrationSelection.ts) calls
-  // renderAddToSourcePopup immediately after this, which looks the div up by id and needs it to
-  // already exist in the DOM.
-  window.__setAddToSourcePopupOpen = (state) => flushSync(() => addToSourcePopupStore.set(state));
+  // #search-chat-thread (ChatThread.jsx), #search-command-palette (CommandPalette.jsx),
+  // #search-suggestions (SearchSuggestionsPanel.jsx), and the add-to-source popup
+  // (AddToSourcePopup.jsx) all migrated to real Zustand (Zustand migration plan, batch 3, see
+  // PHASE4_ROADMAP.md) — see app/dotto/lib/chatThreadStore.ts, commandPaletteStore.ts,
+  // searchSuggestionsStore.ts, and addToSourcePopupStore.ts for each store's own comment on why
+  // its producers still wrap every setState call in flushSync.
   // Hamburger menu's Outline panel (see app/dotto/OutlinePanel.jsx, app/dotto/lib/outlineTree.ts's
   // buildOutline/handleOutlineSearch) — MUST be flushSync: buildOutline's own scrollTop restore,
   // and toggleHamburgerMenu's setOutlineActive(0) call right after buildOutline() returns, both

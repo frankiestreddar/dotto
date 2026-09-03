@@ -223,66 +223,10 @@ export function closeLeafInTree(tree, paneId) {
 // real Zustand (Zustand migration plan, batch 2, see PHASE4_ROADMAP.md) — see
 // app/dotto/lib/translationPanelStore.ts and its 5 siblings.
 
-// #search-chat-thread (app/dotto/lib/searchOrchestrationSelection.ts) — a persisted, multi-turn
-// Dotbot conversation shown ABOVE the search input (chat-app style), entirely separate from the
-// six single-owner panel stores above, which stay exactly as they are for canvas
-// matches/commands/suggestions below the input. Array of turns: { id, query, panels, fresh } —
-// `panels` is the same raw panel array the orchestrate route returns (and
-// supabase/migrations/20260819_add_dotbot_conversations.sql persists verbatim as
-// dotbot_messages.content) rather than pre-split per panel type, so ChatThread.jsx can dispatch on
-// it exactly like renderOrchestrateResult already does for the single-turn panels above. `fresh`
-// is true only for a turn just appended from a LIVE response (drives ChatTurn's one-time
-// typewriter reveal + drag-to-canvas wiring on mount); turns restored from history (reopening a
-// saved chat, see the reopen-flow bridge) render with `fresh` false/omitted so they show fully
-// settled immediately, never re-typewriter. Like commandPaletteStore below, __setChatThread/
-// __appendChatTurn (app/dotto-app.jsx) are flushSync'd — the new independent chat-thread
-// height-transition function (app/dotto/lib/aiAssistantSuggestions.ts) reads #search-chat-thread's real
-// scrollHeight synchronously right after appending a turn, same reasoning as
-// updateSearchDropdown's own flushSync dependency.
-export const chatThreadStore = createStore([]);
-
-// #search-command-palette (app/dotto/lib/commandPalette.ts's updateCommandPalette) —
-// { rows: [...] } | null, the slash-command live suggestions list. Genuine JSX rows, portaled via
-// createPortal unlike the single-owner panels above, since there IS real list identity here (real
-// list identity, clicked rows need their own onClick) — see CommandPalette.jsx.
-// IMPORTANT: because this is a real portal (React tracks its children), nothing outside
-// CommandPalette.jsx may touch #search-command-palette's innerHTML/children directly — always go
-// through window.__setCommandPalette(null) to clear it, never a raw DOM write (that would desync
-// React's fiber tree from the actual DOM and risk a crash on the next update). Plain attribute
-// reads/writes on the node itself (style.display, querySelectorAll for the existing keyboard-nav
-// code) are fine — React's portal only owns the CHILDREN, never the target node's own attributes.
-// Row selection (click, or Enter on an arrow-selected row) always calls back into
-// selectCommandRow (app/dotto/lib/commandPalette.ts, a real import from both callers now) rather
-// than executing anything in the component itself, same "React renders, the lib module owns the
-// app-state mutation" split every other portal store here follows too.
-export const commandPaletteStore = createStore(null);
-
-// #search-suggestions — shared by 5 different producers across 3 files (live AI suggestions, the
-// mnemonic story/loading/error trio, and an orchestrate error), so this holds a small discriminated
-// union ({kind, ...}) rather than one plain value —
-// only ONE of them is ever shown at a time, unlike the ported notification stack
-// (app/dotto/lib/notificationsStore.ts), which is a genuine multi-item stack. See
-// renderMnemonicResultCard's own comment in app/dotto/lib/mnemonicSearchMatching.ts
-// for the full producer list, and SearchSuggestionsPanel.jsx for how each kind is built. Unlike
-// commandPaletteStore above, this one is NOT a portal (every kind's content stays 100%
-// vanilla-built, mounted the same "return null, mutate in an effect" way as
-// TranslationPanel.jsx/DictionaryPanel.jsx/etc.) — so, same as those, direct DOM clears from
-// elsewhere are harmless as long as they only ever touch this SPECIFIC node's children (never
-// true for #search-command-palette, see above).
-export const searchSuggestionsStore = createStore(null);
-
-// Add-to-source popup (app/dotto/lib/searchOrchestrationSelection.ts) — {isOpen, left, top},
-// same shape as useSelectionToolbarStore (app/dotto/lib/selectionToolbarStore.ts), for the same
-// reason: this popup isn't nested inside any
-// static markup fragment (the original code appended it straight onto document.body), so it
-// doesn't need a portal — React renders it independently, same as PricingOverlay/SelectionToolbar.
-// The popup's actual CONTENT (source search, the entry row, its own drag-free inline editing)
-// stays fully vanilla, built by renderAddToSourcePopup directly against
-// document.getElementById('add-to-source-popup') — see AddToSourcePopup.jsx and
-// openAddToSourcePopup's own comment for why no mount effect is needed: __setAddToSourcePopupOpen
-// is flushSync'd, so the div already exists by the time openAddToSourcePopup calls
-// renderAddToSourcePopup right after.
-export const addToSourcePopupStore = createStore({ isOpen: false, left: 0, top: 0 });
+// #search-chat-thread, #search-command-palette, #search-suggestions, and the add-to-source popup
+// all migrated to real Zustand (Zustand migration plan, batch 3, see PHASE4_ROADMAP.md) — see
+// app/dotto/lib/chatThreadStore.ts, commandPaletteStore.ts, searchSuggestionsStore.ts, and
+// addToSourcePopupStore.ts.
 
 // Hamburger menu's Waypoints panel (app/dotto/lib/hamburgerCollab.ts's renderWaypointsList) —
 // { rows: [{owner_id, folder_id, item_id, name}], query } — genuine JSX rows (see

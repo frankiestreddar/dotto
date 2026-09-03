@@ -1,8 +1,8 @@
 "use client";
 
-import { useLayoutEffect, useSyncExternalStore } from "react";
+import { useLayoutEffect } from "react";
 import { createPortal } from "react-dom";
-import { commandPaletteStore } from "./bridges";
+import { useCommandPaletteStore } from "./lib/commandPaletteStore";
 import usePortalNode from "./usePortalNode";
 import { selectCommandRow } from "./lib/commandPalette";
 
@@ -32,11 +32,7 @@ function CommandRow({ row, index }) {
 // display:block/none (driven by the layout effect below) participates in exactly like every
 // other panel there.
 export default function CommandPalette() {
-  const state = useSyncExternalStore(
-    commandPaletteStore.subscribe,
-    commandPaletteStore.getSnapshot,
-    () => null,
-  );
+  const state = useCommandPaletteStore();
   const portalNode = usePortalNode("search-command-palette");
 
   useLayoutEffect(() => {

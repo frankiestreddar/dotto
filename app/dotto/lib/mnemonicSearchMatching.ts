@@ -30,9 +30,10 @@ import { useExamplesPanelStore } from "./examplesPanelStore";
 import { useRecommendedSearchesStore } from "./recommendedSearchesStore";
 import { useDotbotAnswerStore } from "./dotbotAnswerStore";
 import { useImageResultStore } from "./imageResultStore";
+import { useSearchSuggestionsStore } from "./searchSuggestionsStore";
 import { commenceDotbotSearch } from "./searchOrchestrationSelection";
 
-interface MnemonicTemplate {
+export interface MnemonicTemplate {
   w: number;
   h: number;
   html: string;
@@ -136,7 +137,13 @@ function renderMnemonicResultCard(
   content: { typeText?: string },
   options?: { canvasItem?: MnemonicTemplate },
 ): void {
-  window.__setSearchSuggestions?.({ kind: "mnemonic-result", content, options: options || null });
+  flushSync(() =>
+    useSearchSuggestionsStore.setState({
+      kind: "mnemonic-result",
+      content,
+      options: options || null,
+    }),
+  );
   updateSearchDropdown();
 }
 // A terminal-style typing loop for "AI is working" states: types one word out character by
@@ -194,7 +201,7 @@ export function buildMnemonicLoadingEl(): HTMLElement {
 function renderMnemonicLoading(): void {
   const appState = getAppState();
   appState.dotbotMnemonicPair = { text: null, image: null };
-  window.__setSearchSuggestions?.({ kind: "mnemonic-loading" });
+  flushSync(() => useSearchSuggestionsStore.setState({ kind: "mnemonic-loading" }));
   updateSearchDropdown();
 }
 export function buildMnemonicErrorEl(reason: string): HTMLElement {
@@ -205,7 +212,7 @@ export function buildMnemonicErrorEl(reason: string): HTMLElement {
 }
 function renderMnemonicError(reason: string): void {
   const appState = getAppState();
-  window.__setSearchSuggestions?.({ kind: "mnemonic-error", reason });
+  flushSync(() => useSearchSuggestionsStore.setState({ kind: "mnemonic-error", reason }));
   updateSearchDropdown();
   if (reason === "no_credits") {
     appState.dotbotUpgradePromptedForFullness = true;

@@ -859,25 +859,6 @@ declare global {
       r: number | null;
     }) => void;
 
-    // app/dotto-app.jsx (via addToSourcePopupStore, app/dotto/bridges.js) — React-facing setter,
-    // used by app/dotto/lib/searchOrchestrationSelection.ts. flushSync'd (see its own comment
-    // there for why: the popup div must already exist in the DOM before renderAddToSourcePopup
-    // runs right after).
-    __setAddToSourcePopupOpen?: (state: { isOpen: boolean; left: number; top: number }) => void;
-    // app/dotto-app.jsx (via app/dotto/bridges.js's various stores) — React-facing setters for the
-    // Phase 4.5 aiAssistantSuggestions.ts/hamburgerCollab.ts/mnemonicSearchMatching.ts trio.
-    __setCommandPalette?: (state: { rows: Record<string, unknown>[] } | null) => void;
-    __setSearchSuggestions?: (state: Record<string, unknown> | null) => void;
-    __setChatThread?: (turns: { id: string; query: string; panels: unknown }[]) => void;
-    // app/dotto-app.jsx (via chatThreadStore, app/dotto/bridges.js) — appends one turn rather
-    // than replacing the whole thread, used by app/dotto/lib/searchOrchestrationSelection.ts's
-    // renderOrchestrateResult.
-    __appendChatTurn?: (turn: {
-      id: string;
-      query: string;
-      panels: Record<string, unknown>[];
-      fresh: boolean;
-    }) => void;
     __setHubCollabList?: (state: {
       view: string;
       requestsCount?: number;

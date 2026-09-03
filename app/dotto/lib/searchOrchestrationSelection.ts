@@ -12,6 +12,7 @@
 // established for the ai/hamburger/mnemonic trio and drawingConnections.ts<->srsConnectionsCore.ts,
 // since neither side reads the other at module-evaluation time.
 
+import { flushSync } from "react-dom";
 import { escapeHtml, stripHtml } from "./textUtils";
 import { executeCurrentCommand, setCommandActive } from "./commandPalette";
 import { ensureConnections } from "./drawingConnections";
@@ -25,6 +26,9 @@ import {
 import { applyAiAddRowsToSource, createSourceFromAI } from "./sourceTagsAi";
 import { colgroupHTML } from "./sourceTable";
 import { useSelectionToolbarStore } from "./selectionToolbarStore";
+import { useSearchSuggestionsStore } from "./searchSuggestionsStore";
+import { useChatThreadStore } from "./chatThreadStore";
+import { useAddToSourcePopupStore } from "./addToSourcePopupStore";
 
 interface Item {
   id: number;
@@ -97,7 +101,7 @@ function getAppState(): AppState {
 // extraction), just triggered by a different flow.
 function renderDotbotOrchestrateError(reason: string): void {
   const appState = getAppState();
-  window.__setSearchSuggestions!({ kind: "dotbot-error", reason });
+  flushSync(() => useSearchSuggestionsStore.setState({ kind: "dotbot-error", reason }));
   updateSearchDropdown();
   if (reason === "no_credits") {
     appState.dotbotUpgradePromptedForFullness = true;
@@ -180,7 +184,7 @@ export async function commenceDotbotSearch(query: string): Promise<void> {
     appState.searchImageResult.innerHTML = "";
     appState.searchImageResult.style.display = "none";
   }
-  window.__setSearchSuggestions!(null);
+  flushSync(() => useSearchSuggestionsStore.setState(null));
   if (appState.searchRecommended) {
     appState.searchRecommended.innerHTML = "";
     appState.searchRecommended.style.display = "none";
@@ -282,7 +286,15 @@ function renderOrchestrateResult(query: string, panels: Record<string, unknown>[
         sourceActionPanel.rows as unknown[][],
       );
   }
-  window.__appendChatTurn?.({ id: "turn_" + appState.idCounter++, query, panels, fresh: true });
+  flushSync(() =>
+    useChatThreadStore.setState(
+      [
+        ...useChatThreadStore.getState(),
+        { id: "turn_" + appState.idCounter++, query, panels, fresh: true },
+      ],
+      true,
+    ),
+  );
   // A search can be submitted from either view now — the list view's own top box (starting a
   // fresh conversation) or the chat view's bottom box (a follow-up, already showing) — this
   // is what actually brings the conversation on screen for the former; a safe no-op for the
@@ -425,17 +437,16 @@ function findDefaultSourceForItem(hostEl: HTMLElement | null): SourceFolderTarge
   return anySourceFolder ? { folder: anySourceFolder, table: tableOf(anySourceFolder)! } : null;
 }
 // The popup element itself is real React state now (see app/dotto/AddToSourcePopup.jsx,
-// addToSourcePopupStore) — existence/position/visibility all move together as one {isOpen,
+// useAddToSourcePopupStore) — existence/position/visibility all move together as one {isOpen,
 // left, top}, same shape as useSelectionToolbarStore (app/dotto/lib/selectionToolbarStore.ts).
-// window.__setAddToSourcePopupOpen
-// (app/dotto-app.jsx) wraps its store.set in flushSync so the div already exists in the DOM
+// Every call site here wraps its setState in flushSync so the div already exists in the DOM
 // by the time openAddToSourcePopup calls renderAddToSourcePopup right after (below) — that
 // function, and every rebuild it triggers internally (source search, source pick), still
 // build the popup's actual CONTENT fully vanilla, same "React owns the shell, vanilla owns a
 // self-contained widget's internals" split as buildDictionaryCard.
 function closeAddToSourcePopup(): void {
   const appState = getAppState();
-  window.__setAddToSourcePopupOpen!({ isOpen: false, left: 0, top: 0 });
+  flushSync(() => useAddToSourcePopupStore.setState({ isOpen: false, left: 0, top: 0 }));
   appState.addToSourceTarget = null;
 }
 // Rebuilt from scratch on every change (source search, source pick) — this popup's whole
@@ -561,9 +572,9 @@ export function openAddToSourcePopup(): void {
         Math.min(window.innerHeight - estPopupHeight - 8, Math.round(rect.top + rect.height + 10)),
       )
     : window.innerHeight / 2 - estPopupHeight / 2;
-  // flushSync'd (see window.__setAddToSourcePopupOpen, app/dotto-app.jsx) — the div must
+  // flushSync'd (see useAddToSourcePopupStore's own comment) — the div must
   // already exist in the DOM before renderAddToSourcePopup below can find it.
-  window.__setAddToSourcePopupOpen!({ isOpen: true, left, top });
+  flushSync(() => useAddToSourcePopupStore.setState({ isOpen: true, left, top }));
   renderAddToSourcePopup(text);
 }
 

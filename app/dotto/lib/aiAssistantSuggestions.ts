@@ -13,10 +13,14 @@
 // safe the same way live-presence.js/shelf-search.js's own pre-existing circular import always
 // was.
 
+import { flushSync } from "react-dom";
 import { renderChatsList } from "./hamburgerCollab";
 import { commenceSearchOrMnemonic } from "./mnemonicSearchMatching";
 import { stripHtml } from "./textUtils";
 import { updateCommandPalette } from "./commandPalette";
+import { useCommandPaletteStore } from "./commandPaletteStore";
+import { useSearchSuggestionsStore } from "./searchSuggestionsStore";
+import { useChatThreadStore } from "./chatThreadStore";
 
 interface AppState {
   searchInput: HTMLTextAreaElement;
@@ -170,7 +174,7 @@ export function resetAiSearchState(): void {
   // on the next update. Every other panel here renders no JSX children of its own (returns null,
   // only ever touches its node from its own effect), so a direct clear is harmless for those —
   // see hideDotbotResultPanels' own comment for the full reasoning.
-  window.__setCommandPalette?.(null);
+  flushSync(() => useCommandPaletteStore.setState(null));
   if (appState.searchTranslation) {
     appState.searchTranslation.innerHTML = "";
     appState.searchTranslation.style.display = "none";
@@ -183,7 +187,7 @@ export function resetAiSearchState(): void {
     appState.searchImageResult.innerHTML = "";
     appState.searchImageResult.style.display = "none";
   }
-  window.__setSearchSuggestions?.(null);
+  flushSync(() => useSearchSuggestionsStore.setState(null));
   if (appState.searchRecommended) {
     appState.searchRecommended.innerHTML = "";
     appState.searchRecommended.style.display = "none";
@@ -215,7 +219,7 @@ export function resetAiSearchState(): void {
     appState.searchChatThread.style.overflow = "auto";
     appState.searchChatThread.classList.remove("visible", "thread-settled");
   }
-  window.__setChatThread?.([]);
+  flushSync(() => useChatThreadStore.setState([], true));
   showAiListView(); // always land back on the list view (not mid-conversation) next open
   appState.searchInput.blur();
 }
@@ -249,7 +253,7 @@ export function showAiListView(): void {
   // typed into the list view's own box should never silently continue whatever conversation was
   // just left.
   appState.currentConversationId = null;
-  window.__setChatThread?.([]);
+  flushSync(() => useChatThreadStore.setState([], true));
   updateChatThread();
   renderChatsList();
 }
@@ -515,12 +519,12 @@ export function handleSearchInput(value: string): void {
   // "/" was typed need clearing so they don't linger behind the command palette.
   if (value.startsWith("/")) {
     hideDotbotResultPanels();
-    window.__setSearchSuggestions?.(null);
+    flushSync(() => useSearchSuggestionsStore.setState(null));
     updateCommandPalette(value);
     updateSearchDropdown();
     return;
   }
-  window.__setCommandPalette?.(null);
+  flushSync(() => useCommandPaletteStore.setState(null));
   const folderObj = appState.folders[appState.currentFolderId];
   if (!folderObj) return;
   hideDotbotResultPanels();
@@ -534,7 +538,7 @@ export function handleSearchInput(value: string): void {
   if (appState.currentConversationId) {
     if (appState.dotbotSuggestDebounceTimer) clearTimeout(appState.dotbotSuggestDebounceTimer);
     if (appState.dotbotSuggestAbortController) appState.dotbotSuggestAbortController.abort();
-    window.__setSearchSuggestions?.(null);
+    flushSync(() => useSearchSuggestionsStore.setState(null));
   } else {
     scheduleLiveSuggestions(value, !!folderObj.isSource);
   }
@@ -553,7 +557,7 @@ export function handleSearchFocus(): void {
   const appState = getAppState();
   const v = appState.searchInput.value.trim();
   if (v !== "") return;
-  window.__setSearchSuggestions?.(null);
+  flushSync(() => useSearchSuggestionsStore.setState(null));
   updateSearchDropdown();
 }
 
@@ -564,7 +568,7 @@ function scheduleLiveSuggestions(value: string, isSourceFolder: boolean): void {
   if (appState.dotbotSuggestAbortController) appState.dotbotSuggestAbortController.abort();
   const q = value.trim();
   if (q.length < 2) {
-    window.__setSearchSuggestions?.(null);
+    flushSync(() => useSearchSuggestionsStore.setState(null));
     updateSearchDropdown();
     return;
   }
@@ -629,7 +633,7 @@ export function buildLiveSuggestionsRows(suggestions: string[]): DocumentFragmen
   return frag;
 }
 function renderLiveSuggestions(suggestions: string[]): void {
-  window.__setSearchSuggestions?.({ kind: "live-suggestions", suggestions });
+  flushSync(() => useSearchSuggestionsStore.setState({ kind: "live-suggestions", suggestions }));
   updateSearchDropdown();
 }
 
