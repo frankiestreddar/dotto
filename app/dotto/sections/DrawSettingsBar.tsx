@@ -4,6 +4,6 @@ import MarkupSection from "./MarkupSection";
 
 // Shell markup for "draw-settings", migrated verbatim from Dotto.html.
 // See content/fragments/draw-settings.html for the source HTML.
-export default function DrawSettingsBar({ html }) {
+export default function DrawSettingsBar({ html }: { html: string }) {
   return <MarkupSection html={html} />;
 }

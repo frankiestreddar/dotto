@@ -1,6 +1,15 @@
 "use client";
 
-import { Component } from "react";
+import { Component, type ErrorInfo, type ReactNode } from "react";
+
+interface ErrorBoundaryProps {
+  name?: string;
+  children: ReactNode;
+}
+
+interface ErrorBoundaryState {
+  hasError: boolean;
+}
 
 // A crash in any ONE of these small, independent React-owned pieces (see dotto-app.jsx, every
 // <ErrorBoundary> wrapping a single sibling) no longer takes the ENTIRE app down with it. Without
@@ -17,17 +26,17 @@ import { Component } from "react";
 // already achieves. A future pass could render a small inline error indicator for panels where
 // "silently disappears" would be confusing (e.g. the canvas item layer) — not attempted here, this
 // is deliberately the minimal safety net, not a polished error-UI pass.
-export default class ErrorBoundary extends Component {
-  constructor(props) {
+export default class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
+  constructor(props: ErrorBoundaryProps) {
     super(props);
     this.state = { hasError: false };
   }
 
-  static getDerivedStateFromError() {
+  static getDerivedStateFromError(): ErrorBoundaryState {
     return { hasError: true };
   }
 
-  componentDidCatch(error, info) {
+  componentDidCatch(error: Error, info: ErrorInfo) {
     console.error(
       `[ErrorBoundary${this.props.name ? ` ${this.props.name}` : ""}] caught:`,
       error,

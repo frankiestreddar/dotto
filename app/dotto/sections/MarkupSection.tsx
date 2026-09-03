@@ -9,6 +9,6 @@
 // none of the original CSS or script traverses upward from these
 // container ids (checked for `body >`, `:nth-child`, `.closest()` /
 // `.parentElement` usage against them), so it does not change behavior.
-export default function MarkupSection({ html, className }) {
+export default function MarkupSection({ html, className }: { html: string; className?: string }) {
   return <div className={className} dangerouslySetInnerHTML={{ __html: html }} />;
 }

@@ -8,7 +8,7 @@ import { wireSearchPanelHistory } from "../lib/searchPanelHistory";
 
 // Shell markup for "hamburger-stack", migrated verbatim from Dotto.html.
 // See content/fragments/hamburger-stack.html for the source HTML.
-export default function HamburgerMenu({ html }) {
+export default function HamburgerMenu({ html }: { html: string }) {
   // Phase 4.1: sidebar-mode-toggle.js's wiring now runs from here instead of the vanilla bundle
   // (see wireSidebarModeToggle's own comment) — real DOM elements from the markup above already
   // exist by the time this effect runs, same timing the old afterInteractive script relied on.
