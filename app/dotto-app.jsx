@@ -36,11 +36,9 @@ import {
   outlineStore,
   paneLayoutStore,
   splitLeafInTree,
-  pricingOverlayStore,
   profileLevelStore,
   recommendedSearchesStore,
   searchSuggestionsStore,
-  selectionToolbarStore,
   sharedCanvasModalStore,
   sourcesListStore,
   tabsStore,
@@ -245,7 +243,7 @@ import CanvasContextMenu from "./dotto/sections/CanvasContextMenu";
 // ported file's own module-eval-time code reads before this component's own
 // (passive) useEffect below would get a chance to assign it via props/
 // context instead — same "set during module eval, not an effect" timing
-// window.__setupResizing/window.__setPricingOverlayOpen below need too.
+// window.__setupResizing below needs too.
 if (typeof window !== "undefined" && !window.__dottoSupabase) {
   window.__dottoSupabase = createClient();
 }
@@ -277,19 +275,13 @@ if (typeof window !== "undefined") {
   window.__layoutSourceTableColumns = layoutSourceTableColumns;
 }
 
-// Phase 2 increment 1: the pricing overlay is the first subsystem converted to real React state
-// (see app/dotto/PricingOverlay.jsx). app/dotto/lib/profileAchievementsPricing.ts's
-// openPricingOverlay/closePricingOverlay still exist unchanged for every existing caller (inline
-// onclick="..." attributes, other ES modules) — they just call this instead of touching the DOM
-// directly now. Same "set during module eval, not an effect" timing as window.__dottoSupabase
-// above: some other component's own module-eval-time code needs this to exist as soon as it
-// might call it, and effects run after paint, too late relative to that ordering guarantee.
+// pricingOverlayStore and selectionToolbarStore (Phase 2 increments 1-2) were the first two
+// subsystems converted to real React state — both migrated to real Zustand since (Zustand
+// migration plan, batch 1, see PHASE4_ROADMAP.md): PricingOverlay.jsx/SelectionToolbar.jsx and
+// their respective producers (app/dotto/lib/profileAchievementsPricing.ts,
+// app/dotto/lib/searchOrchestrationSelection.ts) now import usePricingOverlayStore/
+// useSelectionToolbarStore directly, no bridge needed.
 if (typeof window !== "undefined") {
-  window.__setPricingOverlayOpen = pricingOverlayStore.set;
-  // Phase 2 increment 2: same pattern, for the text-selection toolbar shell — see
-  // app/dotto/SelectionToolbar.jsx and app/dotto/lib/searchOrchestrationSelection.ts's
-  // showSelectionToolbarFor/hideSelectionToolbar.
-  window.__setSelectionToolbarState = selectionToolbarStore.set;
   // Canvas items layer (see app/dotto/CanvasItemsLayer.jsx, PHASE2_ROADMAP.md's canvas-items-react
   // plan) — render() (app/dotto/lib/waypointsRenderLoop.ts) calls this in place of its old world.innerHTML=''
   // rebuild, passing appState.activePaneId explicitly (split-screen Stage 4 — canvasItemsStore is

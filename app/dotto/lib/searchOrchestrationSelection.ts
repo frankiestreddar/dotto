@@ -24,6 +24,7 @@ import {
 } from "./aiAssistantSuggestions";
 import { applyAiAddRowsToSource, createSourceFromAI } from "./sourceTagsAi";
 import { colgroupHTML } from "./sourceTable";
+import { useSelectionToolbarStore } from "./selectionToolbarStore";
 
 interface Item {
   id: number;
@@ -299,7 +300,7 @@ function renderOrchestrateResult(query: string, panels: Record<string, unknown>[
 // override in globals.css), so this can't fire for arbitrary page chrome.
 function hideSelectionToolbar(): void {
   const appState = getAppState();
-  window.__setSelectionToolbarState!({ isOpen: false, left: 0, top: 0 });
+  useSelectionToolbarStore.setState({ isOpen: false, left: 0, top: 0 });
   appState.selectionToolbarRange = null;
   appState.selectionToolbarHostEl = null;
 }
@@ -331,7 +332,7 @@ export function showSelectionToolbarFor(
   let left = Math.round(rect.left + rect.width / 2 - toolbarWidth / 2);
   left = Math.max(8, Math.min(left, window.innerWidth - toolbarWidth - 8));
   const top = Math.max(8, Math.round(rect.top - 40));
-  window.__setSelectionToolbarState!({ isOpen: true, left, top });
+  useSelectionToolbarStore.setState({ isOpen: true, left, top });
 }
 // Always phrased as an explicit meaning/translation question — never just the bare selected
 // text — so the orchestrate model reliably returns the "dictionary" panel (its own prompt,
@@ -425,7 +426,8 @@ function findDefaultSourceForItem(hostEl: HTMLElement | null): SourceFolderTarge
 }
 // The popup element itself is real React state now (see app/dotto/AddToSourcePopup.jsx,
 // addToSourcePopupStore) — existence/position/visibility all move together as one {isOpen,
-// left, top}, same shape as selectionToolbarStore. window.__setAddToSourcePopupOpen
+// left, top}, same shape as useSelectionToolbarStore (app/dotto/lib/selectionToolbarStore.ts).
+// window.__setAddToSourcePopupOpen
 // (app/dotto-app.jsx) wraps its store.set in flushSync so the div already exists in the DOM
 // by the time openAddToSourcePopup calls renderAddToSourcePopup right after (below) — that
 // function, and every rebuild it triggers internally (source search, source pick), still

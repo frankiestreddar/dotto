@@ -1,7 +1,7 @@
 // Phase 4.5 port of public/dotto/profile-achievements-pricing.js: the Profile panel (level pill,
 // avatar rendering, Dotbot usage bars), the achievement/spritebook system, and the
 // pricing-overlay open/close wrappers. Reaches every still-vanilla dependency through window
-// bridges — most already existed (window.pushNotification/__closeAllPanels/__setPricingOverlayOpen/
+// bridges — most already existed (window.pushNotification/__closeAllPanels/
 // __setProfileLevel/__setAchievements/__wireRailIcon/__closeRailView), 3 are new as part of this
 // port (__refreshDotbotUsage/__closeProfilePanel/__openDotbotUpgradeModal — all vanilla at the
 // time across drawing-connections.js/search-orchestration-selection.js/app-init.js, plus
@@ -9,7 +9,11 @@
 // app/dotto/lib/friendsPresence.ts (ported earlier still); the first three have all since been
 // ported too (to drawingConnections.ts/searchOrchestrationSelection.ts/appInit.ts) but still
 // reach these 3 through the bridge rather than a real import — worth a fresh same-tree-upgrade
-// pass later, not bundled into this port).
+// pass later, not bundled into this port). openPricingOverlay/closePricingOverlay below reach
+// usePricingOverlayStore as a real import instead, since it was migrated to Zustand (Zustand
+// migration plan, batch 1, see PHASE4_ROADMAP.md).
+
+import { usePricingOverlayStore } from "./pricingOverlayStore";
 
 interface Achievement {
   id: string;
@@ -409,15 +413,15 @@ export function closeDotbotUpgradeModal(): void {
 // wrappers so every existing caller (the profile menu's "Try Dotto Pro" button via hmenuAction,
 // the paid-tier-ad notification's "Upgrade" button, plain window.openPricingOverlay inline
 // onclick="..." attributes, set directly by this file's own bridge block below) keeps working
-// unmodified — they just flip the React-owned open state (app/dotto/bridges.js) instead of
-// touching the DOM directly.
+// unmodified — they just flip the React-owned open state (usePricingOverlayStore,
+// app/dotto/lib/pricingOverlayStore.ts) instead of touching the DOM directly.
 export function openPricingOverlay(): void {
   window.__closeAllPanels?.(undefined);
   closeProfilePanel();
-  window.__setPricingOverlayOpen!(true);
+  usePricingOverlayStore.setState(true);
 }
 export function closePricingOverlay(): void {
-  window.__setPricingOverlayOpen!(false);
+  usePricingOverlayStore.setState(false);
 }
 
 const BRIDGE_WAIT_TIMEOUT_MS = 30000;
@@ -537,8 +541,8 @@ if (typeof window !== "undefined") {
   // content/fragments/hamburger-stack.html/canvas-modal.html, same shape window.pushNotification
   // uses. closePricingOverlay's own old plain-global re-export (window-bridge.js) was genuinely
   // dead — grepped for a real caller anywhere (inline HTML, any component) and found none
-  // (PricingOverlay.jsx closes itself directly via pricingOverlayStore.set(false); the only real
-  // caller of closePricingOverlay at all is historyAutosave.ts's Escape handler, via the
+  // (PricingOverlay.jsx closes itself directly via usePricingOverlayStore.setState(false); the
+  // only real caller of closePricingOverlay at all is historyAutosave.ts's Escape handler, via the
   // __-prefixed bridge above) — not carried forward.
   window.openPricingOverlay = openPricingOverlay;
   window.closeDotbotUpgradeModal = closeDotbotUpgradeModal;

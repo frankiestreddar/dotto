@@ -1,22 +1,13 @@
 "use client";
 
-import { useSyncExternalStore } from "react";
-import { selectionToolbarStore } from "./bridges";
+import { useSelectionToolbarStore } from "./lib/selectionToolbarStore";
 import { openAddToSourcePopup, selectionToolbarLookUp } from "./lib/searchOrchestrationSelection";
 
-// Module-level, not inline in the hook call below — useSyncExternalStore's getServerSnapshot is
-// expected to return a referentially stable value across calls (it's used to detect real changes
-// during hydration); a fresh `() => ({...})` object literal every render looks like the snapshot
-// changing on every check, which is exactly what triggers React's "getServerSnapshot should be
-// cached to avoid an infinite loop" warning.
-const CLOSED_STATE = { isOpen: false, left: 0, top: 0 };
-
 export default function SelectionToolbar() {
-  const state = useSyncExternalStore(
-    selectionToolbarStore.subscribe,
-    selectionToolbarStore.getSnapshot,
-    () => CLOSED_STATE,
-  );
+  // Zustand's own getInitialState() (what useStore's SSR snapshot reads) already matches the
+  // store's real initial value ({isOpen: false, left: 0, top: 0}) — no separate module-level
+  // fallback constant needed the way the old useSyncExternalStore call required.
+  const state = useSelectionToolbarStore();
 
   if (!state.isOpen) return null;
 

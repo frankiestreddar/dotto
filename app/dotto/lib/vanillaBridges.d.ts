@@ -584,12 +584,10 @@ declare global {
       avatar: { id: number; url: string | null },
       fallbackText: string,
     ) => void;
-    // app/dotto-app.jsx (via app/dotto/bridges.js's profileLevelStore/achievementsStore/
-    // pricingOverlayStore) — React-facing setters, plain store.sets, no synchronous DOM read
-    // follows any of them.
+    // app/dotto-app.jsx (via app/dotto/bridges.js's profileLevelStore/achievementsStore) —
+    // React-facing setters, plain store.sets, no synchronous DOM read follows either.
     __setProfileLevel?: (state: { displayName: string; tierColor: string }) => void;
     __setAchievements?: (unlockedIds: string[]) => void;
-    __setPricingOverlayOpen?: (open: boolean) => void;
     // React -> vanilla bridges — used by AchievementsGrid.jsx (app/dotto/), which can't import
     // these directly since public/dotto/*.js isn't reachable from app/dotto/. True constants
     // (never reassigned after init), unlike __setProfileLevel/__setAchievements above.
@@ -861,11 +859,10 @@ declare global {
       r: number | null;
     }) => void;
 
-    // app/dotto-app.jsx (via selectionToolbarStore/addToSourcePopupStore, app/dotto/bridges.js) —
-    // React-facing setters, used by app/dotto/lib/searchOrchestrationSelection.ts.
-    // __setAddToSourcePopupOpen is flushSync'd (see its own comment there for why: the popup div
-    // must already exist in the DOM before renderAddToSourcePopup runs right after).
-    __setSelectionToolbarState?: (state: { isOpen: boolean; left: number; top: number }) => void;
+    // app/dotto-app.jsx (via addToSourcePopupStore, app/dotto/bridges.js) — React-facing setter,
+    // used by app/dotto/lib/searchOrchestrationSelection.ts. flushSync'd (see its own comment
+    // there for why: the popup div must already exist in the DOM before renderAddToSourcePopup
+    // runs right after).
     __setAddToSourcePopupOpen?: (state: { isOpen: boolean; left: number; top: number }) => void;
     // app/dotto-app.jsx (via app/dotto/bridges.js's various stores) — React-facing setters for the
     // Phase 4.5 aiAssistantSuggestions.ts/hamburgerCollab.ts/mnemonicSearchMatching.ts trio.

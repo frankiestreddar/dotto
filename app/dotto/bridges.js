@@ -24,16 +24,9 @@ function createStore(initialValue) {
   };
 }
 
-// Pricing/upgrade overlay (Phase 2 increment 1, the first subsystem converted) — a plain boolean.
-// See app/dotto/lib/profileAchievementsPricing.ts's openPricingOverlay/closePricingOverlay for
-// the vanilla callers (inline onclick="..." attributes, other ES modules) that still trigger this.
-export const pricingOverlayStore = createStore(false);
-
-// Text-selection toolbar shell (Phase 2 increment 2) — {isOpen, left, top}, richer than
-// pricingOverlayStore's plain boolean since this one also carries the toolbar's already-clamped
-// screen position. See app/dotto/lib/searchOrchestrationSelection.ts's showSelectionToolbarFor/
-// hideSelectionToolbar for the side that still owns WHEN to show/hide and WHERE.
-export const selectionToolbarStore = createStore({ isOpen: false, left: 0, top: 0 });
+// pricingOverlayStore and selectionToolbarStore (Phase 2 increments 1-2) migrated to real Zustand
+// — see app/dotto/lib/pricingOverlayStore.ts/app/dotto/lib/selectionToolbarStore.ts (Zustand
+// migration plan, batch 1, PHASE4_ROADMAP.md).
 
 // Pane-keyed variant of createStore, split-screen Stage 4 (see the split-screen plan) — each pane
 // shows its own folder's items (and, since Stage 7, its own tabs/breadcrumb trail) independently,
@@ -307,7 +300,8 @@ export const commandPaletteStore = createStore(null);
 export const searchSuggestionsStore = createStore(null);
 
 // Add-to-source popup (app/dotto/lib/searchOrchestrationSelection.ts) — {isOpen, left, top},
-// same shape as selectionToolbarStore, for the same reason: this popup isn't nested inside any
+// same shape as useSelectionToolbarStore (app/dotto/lib/selectionToolbarStore.ts), for the same
+// reason: this popup isn't nested inside any
 // static markup fragment (the original code appended it straight onto document.body), so it
 // doesn't need a portal — React renders it independently, same as PricingOverlay/SelectionToolbar.
 // The popup's actual CONTENT (source search, the entry row, its own drag-free inline editing)

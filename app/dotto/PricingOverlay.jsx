@@ -1,7 +1,6 @@
 "use client";
 
-import { useSyncExternalStore } from "react";
-import { pricingOverlayStore } from "./bridges";
+import { usePricingOverlayStore } from "./lib/pricingOverlayStore";
 
 // Placeholder prices/taglines/features — no real billing/subscription system exists in this
 // codebase yet, so the paid CTAs surface a "coming soon" notification instead of pretending to
@@ -62,7 +61,7 @@ const PRICING_FEATURE_ROWS = [
 ];
 
 function startPlanUpgrade(planId) {
-  pricingOverlayStore.set(false);
+  usePricingOverlayStore.setState(false);
   // pushNotification lives in app/dotto/lib/notificationsStore.ts — reached via its own
   // window.pushNotification bridge (a vanilla -> React bridge, not the reverse) rather than a
   // real import, same as every other still-vanilla-facing caller of it.
@@ -73,25 +72,25 @@ function startPlanUpgrade(planId) {
 }
 
 export default function PricingOverlay() {
-  // getSnapshot always starts false on both server and first client render (the overlay is never
-  // open on load), so there's nothing to reconcile — no getServerSnapshot mismatch risk.
-  const isOpen = useSyncExternalStore(
-    pricingOverlayStore.subscribe,
-    pricingOverlayStore.getSnapshot,
-    () => false,
-  );
+  // Zustand's own getInitialState() (what useStore's SSR snapshot reads) is `false`, matching the
+  // overlay never being open on load — no getServerSnapshot mismatch risk, same as before.
+  const isOpen = usePricingOverlayStore();
 
   if (!isOpen) return null;
 
   return (
-    <div id="pricing-overlay" className="open" onClick={() => pricingOverlayStore.set(false)}>
+    <div
+      id="pricing-overlay"
+      className="open"
+      onClick={() => usePricingOverlayStore.setState(false)}
+    >
       <div className="pricing-page" onClick={(e) => e.stopPropagation()}>
         <div className="pricing-page-header">
           <div className="pricing-page-title">Upgrade your plan</div>
           <button
             className="pricing-page-close"
             type="button"
-            onClick={() => pricingOverlayStore.set(false)}
+            onClick={() => usePricingOverlayStore.setState(false)}
           >
             ✕
           </button>
