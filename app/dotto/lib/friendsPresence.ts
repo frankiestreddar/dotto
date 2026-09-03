@@ -541,8 +541,9 @@ async function searchDiscoverableUsers(
 }
 
 // Exact-match counterpart to searchDiscoverableUsers above, for the slash-command "invite
-// <username>"/"remove <username>" verbs (command-verbs.js) — those need to resolve one exact
-// username typed as a command argument, not a fuzzy list to pick from. Deliberately doesn't
+// <username>"/"remove <username>" verbs (app/dotto/lib/commandVerbs.ts) — those need to resolve
+// one exact username typed as a command argument, not a fuzzy list to pick from. Deliberately
+// doesn't
 // require the target to already be a friend (unlike the existing Collaborations-panel invite
 // flow, which only lists friends) — that restriction lives entirely in that panel's own UI, not
 // in invite_canvas_collaborator itself, so a command can bypass it correctly rather than working
@@ -864,14 +865,15 @@ export function wireFriendsPresence(): () => void {
 // documented while finishing the history-autosave.js port — see PHASE4_ROADMAP.md), where
 // `window` genuinely does not exist yet.
 if (typeof window !== "undefined") {
-  // React → vanilla bridge — used by public/dotto/command-verbs.js, which can't import these
-  // directly. collabBubblePaneClick/collabBubblePaneMouseEnter/collabBubblePaneMouseLeave
+  // React → vanilla bridge — used by still-vanilla callers that can't import these directly.
+  // collabBubblePaneClick/collabBubblePaneMouseEnter/collabBubblePaneMouseLeave
   // (PaneTopBar.jsx), openMsgRequestsView/backToMsgMain/handleAddFriendClick/respondToMsgRequest
   // (MessagesListPanel.jsx), and handleCollabAddRemoveClick (CollabListPanel.jsx) have no bridge
   // here — their only consumer is a real import instead, same app/dotto/ tree; same for
   // refreshCanvasCollabForCurrentFolder/refreshFriendsData/renderCollabPill's own former callers
-  // in app/dotto/lib/appInit.ts, and renderMsgList's own former caller in
-  // app/dotto/lib/dragDropChat.ts (all ported since, all now real imports here too).
+  // in app/dotto/lib/appInit.ts, renderMsgList's own former caller in
+  // app/dotto/lib/dragDropChat.ts, and resolveUsernameToUserId's own former caller in
+  // app/dotto/lib/commandVerbs.ts (all ported since, all now real imports here too).
   window.__openCollabPanel = openCollabPanel;
   // Called from switchActivePane (coreState.ts) via this bridge, not a direct import — that
   // function is imported BY this file, so the reverse would be circular. Also used by
@@ -887,8 +889,6 @@ if (typeof window !== "undefined") {
   window.__refreshCanvasCollabForCurrentFolder = refreshCanvasCollabForCurrentFolder;
   // Used by app/dotto/lib/hamburgerCollab.ts's handleOwnedHubCollabRowClick (Phase 4.5).
   window.__activePaneCollabBubbleEl = activePaneCollabBubbleEl;
-  // Used by public/dotto/command-verbs.js's inviteUser verb.
-  window.__resolveUsernameToUserId = resolveUsernameToUserId;
   // Plain (non-`__`) globals — real inline oninput targets in
   // content/fragments/collab-panel.html/hamburger-stack.html.
   window.handleCollabSearch = handleCollabSearch;

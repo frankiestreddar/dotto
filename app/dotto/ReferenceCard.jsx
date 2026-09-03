@@ -4,7 +4,7 @@ import { useLayoutEffect, useRef, useState } from "react";
 import { buildFolderInlineCanvas } from "./lib/waypointsRenderLoop";
 
 // Read-only live reference to another canvas/source (see the "/source|canvas ... place" command,
-// command-verbs.js) — reuses the exact same inline-preview rendering CanvasCard.jsx uses for its
+// app/dotto/lib/commandVerbs.ts) — reuses the exact same inline-preview rendering CanvasCard.jsx uses for its
 // own nested-folder preview (buildFolderInlineCanvas), just pointed at whichever local
 // key currently represents the referenced item (own/shared:/public:) instead of a plain local
 // folderId. That key is re-resolved fresh every time this component (re)mounts — see
@@ -16,7 +16,7 @@ import { buildFolderInlineCanvas } from "./lib/waypointsRenderLoop";
 export default function ReferenceCard({ it }) {
   const previewWrapRef = useRef(null);
   // Starts "loading" and only ever moves forward to 'unavailable'/'loaded' below — refOwnerId/
-  // refFolderId are fixed at creation time for a given card (see placeTarget, command-verbs.js),
+  // refFolderId are fixed at creation time for a given card (see placeTarget, app/dotto/lib/commandVerbs.ts),
   // so this effect's dependency array never actually changes for an existing card in practice;
   // there's no real "go back to loading" transition to handle, just the one resolution per mount.
   const [status, setStatus] = useState("loading"); // 'loading' | 'unavailable' | 'loaded'

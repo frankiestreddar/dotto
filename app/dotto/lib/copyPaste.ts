@@ -1,9 +1,13 @@
 // Phase 4.4 port of public/dotto/copy-paste.js: copy/cut/paste, the add-menu "placement ghost"
 // preview, and prepareAdd (arming a placement). Reaches every still-vanilla dependency through
 // window bridges — most already existed (window.__getCanvasEl/__getWorldEl/__findItemById/
-// __saveSnapshot/__render/__renderSelectedOutlines), 5 are new as part of this port
-// (__closeRailView, __applyCursorMode, __kindSize, __deleteSelectedCards,
-// __registerPaneCanvasListenerSetup — see each one's own vanilla-side comment for why).
+// __saveSnapshot/__render/__renderSelectedOutlines), plus 4 new as part of this port
+// (__closeRailView, __applyCursorMode, __deleteSelectedCards,
+// __registerPaneCanvasListenerSetup — see each one's own vanilla-side comment for why). kindSize
+// is a real import instead (app/dotto/lib/addMenu.ts, Phase 4.1 port — was add-menu.js), same
+// app/dotto/lib tree.
+
+import { kindSize } from "./addMenu";
 
 interface AppState {
   idCounter: number;
@@ -154,7 +158,7 @@ function placementGhostWorldPos(clientX: number, clientY: number, kind: string) 
   const appState = getAppState();
   const canvasEl = window.__getCanvasEl?.();
   const rect = canvasEl?.getBoundingClientRect();
-  const { w, h } = window.__kindSize?.(kind) ?? { w: 0, h: 0 };
+  const { w, h } = kindSize(kind);
   const tx = appState?.tx ?? 0;
   const ty = appState?.ty ?? 0;
   const scale = appState?.scale ?? 1;
@@ -169,7 +173,7 @@ function showPlacementGhost(kind: string): void {
   removePlacementGhost();
   const appState = getAppState();
   if (!appState) return;
-  const { w, h } = window.__kindSize?.(kind) ?? { w: 0, h: 0 };
+  const { w, h } = kindSize(kind);
   const ghost = document.createElement("div");
   ghost.id = "placement-ghost";
   ghost.className = `item ${kind}`;

@@ -17,6 +17,8 @@
 // yet then).
 
 import { defaultSrsState, diffRatings } from "./srsAlgorithm";
+import { generateGlobalId } from "./globalIds";
+import { kindLabel, kindSize } from "./addMenu";
 
 interface SrsState {
   interval: number;
@@ -1151,7 +1153,7 @@ function setupCanvasLevelInteractionListeners(canvasEl: HTMLElement, paneId: num
 
     if (appState.addingKind) {
       const rect = canvasEl.getBoundingClientRect();
-      const { w, h } = window.__kindSize?.(appState.addingKind) || { w: 0, h: 0 };
+      const { w, h } = kindSize(appState.addingKind);
       const x =
         Math.round(((e.clientX - rect.left - appState.tx) / appState.scale - w / 2) / 28) * 28;
       const y =
@@ -1276,7 +1278,7 @@ export function add(kind: string, x = 100, y = 100, statKind: string | null = nu
   const appState = getAppState();
   if (!appState) return;
   window.__saveSnapshot?.();
-  const { w, h } = window.__kindSize?.(kind) || { w: 0, h: 0 };
+  const { w, h } = kindSize(kind);
   const base: Item = { id: appState.idCounter++, x, y, w, h, kind };
   if (kind === "title") {
     base.html = "";
@@ -1291,7 +1293,7 @@ export function add(kind: string, x = 100, y = 100, statKind: string | null = nu
       items: [],
       drawings: [],
       collaborators: [],
-      globalId: window.__generateGlobalId?.(),
+      globalId: generateGlobalId(),
     };
     base.folderId = fid;
   } else if (kind === "source") {
@@ -1320,7 +1322,7 @@ export function add(kind: string, x = 100, y = 100, statKind: string | null = nu
       ],
       drawings: [],
       collaborators: [],
-      globalId: window.__generateGlobalId?.(),
+      globalId: generateGlobalId(),
     };
     base.folderId = fid;
   } else if (kind === "table") {
@@ -1382,7 +1384,7 @@ export function add(kind: string, x = 100, y = 100, statKind: string | null = nu
   } else if (kind === "waypoint") {
     base.creatorId = appState.currentUser.id;
   } else {
-    base.html = kind === "note" ? "" : `<strong>${window.__kindLabel?.(kind)}</strong>`;
+    base.html = kind === "note" ? "" : `<strong>${kindLabel(kind)}</strong>`;
   }
   appState.folders[appState.currentFolderId].items.push(base);
   window.__render?.();
@@ -1402,7 +1404,7 @@ export function add(kind: string, x = 100, y = 100, statKind: string | null = nu
 // the panel's own list just needs its own render hook wired to pick that up too, see
 // panelsHamburger.ts/app/dotto/lib/hamburgerCollab.ts.
 export function createNewSource(): void {
-  const { w, h } = window.__kindSize?.("source") || { w: 0, h: 0 };
+  const { w, h } = kindSize("source");
   const center = viewportCenterWorldPoint();
   const x = Math.round((center.x - w / 2) / 28) * 28;
   const y = Math.round((center.y - h / 2) / 28) * 28;
@@ -1431,7 +1433,7 @@ export function deepCloneItem(it: Item): Item {
     const newFolder: FolderObj = JSON.parse(JSON.stringify(srcFolder));
     newFolder.id = newFid;
     newFolder.collaborators = []; // a duplicate starts with no collaborators of its own
-    newFolder.globalId = window.__generateGlobalId?.(); // a duplicate is independent content, not the same shareable item
+    newFolder.globalId = generateGlobalId(); // a duplicate is independent content, not the same shareable item
     delete newFolder.isSharedView;
     delete newFolder.sharedOwnerId;
     delete newFolder.sharedRemoteFolderId;

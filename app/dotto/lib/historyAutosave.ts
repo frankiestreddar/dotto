@@ -16,6 +16,7 @@
 // using the same bridge-readiness poll every other Phase 4.4/4.5 port with real DOM wiring has used.
 
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { generateGlobalId } from "./globalIds";
 
 interface Item {
   id: number;
@@ -191,7 +192,7 @@ export async function saveWorkspaceNow(): Promise<void> {
   }
   // Backfills globalId (global-ids.js) on any local folder that doesn't have one yet.
   for (const id in localFolders) {
-    if (!localFolders[id].globalId) localFolders[id].globalId = window.__generateGlobalId?.();
+    if (!localFolders[id].globalId) localFolders[id].globalId = generateGlobalId();
   }
   const resumeFolderId = appState.preSharedViewState
     ? appState.preSharedViewState.currentFolderId

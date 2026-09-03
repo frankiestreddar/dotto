@@ -100,8 +100,6 @@ declare global {
     __closeRailView?: () => void;
     // app/dotto/lib/sourceButtonsCursorMode.ts
     __applyCursorMode?: () => void;
-    // add-menu.js — a card kind's default {w, h} for the placement ghost.
-    __kindSize?: (kind: string) => { w: number; h: number };
     // app/dotto/lib/cardShortcuts.ts (Phase 4.5 port — was card-shortcuts.js)
     __deleteSelectedCards?: () => void;
     // Plain (non-`__`) global — real inline onclick target in content/dotto-markup.html and
@@ -685,8 +683,6 @@ declare global {
     // via this bridge since it's a different lib file) need programmatic access too, not just the
     // inline-HTML-string form.
     broadcastEditingState?: (isEditing: boolean, targetSelector?: string) => void;
-    // add-menu.js
-    __searchKindLabel?: (it: Record<string, unknown>) => string;
     // app/dotto/lib/aiAssistantSuggestions.ts
     __countSourceEntries?: (folderId: string) => number;
     // app/dotto/lib/cardsMisc.ts
@@ -746,8 +742,6 @@ declare global {
     __restorePaneState?: (paneId: number, savedFields: Record<string, unknown>) => void;
     // app/dotto/lib/aiAssistantSuggestions.ts
     __clearSearch?: () => void;
-    // global-ids.js
-    __generateGlobalId?: () => string;
     // app/dotto/lib/hamburgerCollab.ts
     __resolveSharedFolderChain?: (ownerId: string, folderId: string) => Promise<string[] | null>;
     // app/dotto/lib/profileAchievementsPricing.ts (Phase 4.5 port — was profile-achievements-pricing.js)
@@ -793,7 +787,6 @@ declare global {
     // Used by app/dotto/lib/srsConnectionsCore.ts (Phase 4.5 port — was srs-connections-core.js)
     // — add-menu.js/ai-assistant-suggestions.js/profile-achievements-pricing.js/theme-toggle.js/
     // upload-popup.js/waypoints-render-loop.js all previously imported these directly.
-    __kindLabel?: (kind: string) => string;
     __openSearchOverlay?: () => void;
     __showProfileSettingsView?: () => void;
     __toggleTheme?: () => void;
@@ -979,8 +972,6 @@ declare global {
     // app/dotto/lib/friendsPresence.ts — already an established runtime bridge, just never typed
     // here until app/dotto/lib/hamburgerCollab.ts (Phase 4.5) needed it too.
     __openCollabPanel?: (pin?: boolean) => void;
-    // app/dotto/lib/friendsPresence.ts — used by public/dotto/command-verbs.js's inviteUser verb.
-    __resolveUsernameToUserId?: (username: string) => Promise<string | null>;
     // app/dotto/lib/mnemonicSearchMatching.ts — kept as bridges (not upgraded to real imports)
     // since search-orchestration-selection.js (still vanilla) is a real caller alongside
     // SearchSuggestionsPanel.jsx.

@@ -12,6 +12,7 @@
 // dropped rather than carried over. Reaches every still-vanilla dependency through window bridges.
 
 import { renderStopwatchHTML, type StopwatchItem } from "./stopwatch";
+import { searchKindLabel } from "./addMenu";
 
 interface Item {
   id: number;
@@ -96,7 +97,7 @@ export function renderMsgSnapshotCard(item: Item): HTMLElement {
 
   const header = document.createElement("div");
   header.className = "snap-header";
-  header.textContent = window.__searchKindLabel?.(item) ?? "";
+  header.textContent = searchKindLabel(item);
   card.appendChild(header);
 
   if (item.kind === "title") {

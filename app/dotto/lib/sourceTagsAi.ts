@@ -5,6 +5,8 @@
 // from — closing this port out empties window-bridge.js entirely (see its own deletion, this
 // commit).
 
+import { kindSize } from "./addMenu";
+
 interface TableItem {
   id: number;
   tableData: string[][];
@@ -134,7 +136,7 @@ export function createSourceFromAI(
   rows: unknown[][],
 ): boolean {
   const appState = getAppState();
-  const { w, h } = window.__kindSize!("source");
+  const { w, h } = kindSize("source");
   const cx = window.__canvasViewportCenterX!();
   const cy = window.innerHeight / 2;
   const x = Math.round((((cx - appState.tx) / appState.scale - w / 2) / 28) * 28);
