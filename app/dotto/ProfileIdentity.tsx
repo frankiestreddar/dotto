@@ -20,15 +20,18 @@ export default function ProfileIdentity() {
   // per-node checks below dropped it. Guard explicitly instead of relying on that side effect.
   if (typeof window === "undefined") return null;
 
-  const user = window.__DOTTO_USER__ || {};
+  const user = window.__DOTTO_USER__ || ({} as NonNullable<typeof window.__DOTTO_USER__>);
   const displayName = user.displayName || "";
-  const avatar = { id: user.avatarId ?? 0, url: user.avatarUrl || null };
+  const avatar = {
+    id: (user.avatarId as number | string | undefined) ?? 0,
+    url: (user.avatarUrl as string | null | undefined) || null,
+  };
 
   return (
     <>
       {avatarNode && createPortal(<Avatar bare avatar={avatar} name={displayName} />, avatarNode)}
       {usernameNode && createPortal(displayName, usernameNode)}
-      {streakNode && createPortal(user.loginStreak || 0, streakNode)}
+      {streakNode && createPortal(String(user.loginStreak || 0), streakNode)}
     </>
   );
 }

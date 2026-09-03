@@ -8,15 +8,20 @@ import { useState } from "react";
 // window.__ bridge call in these React-owned panels only ever runs after some other component's
 // own store data has already arrived (guaranteeing whichever module actually sets that bridge has
 // already evaluated by then) — but Avatar can render on the very FIRST commit (see
-// ProfileIdentity.jsx/ProfileAvatarSm.jsx, gated on nothing but a document.getElementById lookup),
+// ProfileIdentity.tsx/ProfileAvatarSm.tsx, gated on nothing but a document.getElementById lookup),
 // which can beat that module's own evaluation, throwing "window.__initials is not a function".
-function initials(name) {
+function initials(name: string | undefined): string {
   return (name || "")
     .split(" ")
     .map((w) => w[0])
     .join("")
     .slice(0, 2)
     .toUpperCase();
+}
+
+export interface AvatarInfo {
+  id?: number | string;
+  url?: string | null;
 }
 
 // Real JSX equivalent of renderAvatarInto (app/dotto/lib/profileAchievementsPricing.ts) — same
@@ -28,7 +33,17 @@ function initials(name) {
 // `bare` skips that wrapper entirely — for callers portaling into an EXISTING static element that
 // already provides its own frame (e.g. #profile-avatar/#profile-avatar-sm), where an extra
 // wrapper div would be a spurious nesting level, not just a styling no-op.
-export default function Avatar({ avatar, name, className, bare }) {
+export default function Avatar({
+  avatar,
+  name,
+  className,
+  bare,
+}: {
+  avatar?: AvatarInfo | null;
+  name?: string;
+  className?: string;
+  bare?: boolean;
+}) {
   const [failed, setFailed] = useState(false);
   const src = (avatar && avatar.url) || `/assets/avatar/avatar-${(avatar && avatar.id) || 0}.png`;
   const content = failed ? (

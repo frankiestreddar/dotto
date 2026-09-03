@@ -24,7 +24,10 @@
 // literal copy of this same markup (share button only — none of those vanilla rows are deletable or
 // openable yet, so rowActionsHTML() didn't need the same onDelete/onOpen extension). Keep both in
 // sync if this ever changes.
-export default function RowActions({ onOpen, onDelete } = {}) {
+export default function RowActions({
+  onOpen,
+  onDelete,
+}: { onOpen?: () => void; onDelete?: () => void } = {}) {
   return (
     <div className="outline-item-actions">
       {onOpen && (
