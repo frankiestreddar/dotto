@@ -7,7 +7,6 @@ import {
   activePaneIdStore,
   breadcrumbMapStore,
   canvasItemsStore,
-  cellTagPickerListStore,
   closeLeafInTree,
   collabPillStore,
   listPaneIds,
@@ -368,9 +367,8 @@ if (typeof window !== "undefined") {
   // plain store.set, no synchronous DOM read follows it.
   window.__setTabs = (paneId, state) => tabsStore.storeFor(paneId).set(state);
   // Cell tag picker dropdown (see app/dotto/CellTagPickerList.jsx,
-  // app/dotto/lib/sourceTagsAi.ts's renderCellTagPickerList) — a plain store.set, no synchronous
-  // DOM read follows it.
-  window.__setCellTagPickerList = cellTagPickerListStore.set;
+  // app/dotto/lib/sourceTagsAi.ts's renderCellTagPickerList) migrated to real Zustand (Zustand
+  // migration plan, batch 8, see PHASE4_ROADMAP.md) — see app/dotto/lib/cellTagPickerListStore.ts.
 }
 
 export default function DottoApp({ sections, currentUser }) {

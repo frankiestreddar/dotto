@@ -8,6 +8,7 @@
 import { kindSize } from "./addMenu";
 import { escapeHtml, stripHtml } from "./textUtils";
 import { resolveTableForEdit } from "./drawingConnections";
+import { useCellTagPickerListStore } from "./cellTagPickerListStore";
 
 interface TableItem {
   id: number;
@@ -279,13 +280,13 @@ export function openRowTagPicker(id: number, r: number, btnEl: HTMLElement): voi
 function renderCellTagPickerList(): void {
   const appState = getAppState();
   if (!appState.activeTagRow) {
-    window.__setCellTagPickerList!({ rows: [], id: null, r: null });
+    useCellTagPickerListStore.setState({ rows: [], id: null, r: null });
     return;
   }
   const { id, r } = appState.activeTagRow;
   const it = resolveTableForEdit(id) as unknown as TableItem | undefined;
   if (!it) {
-    window.__setCellTagPickerList!({ rows: [], id: null, r: null });
+    useCellTagPickerListStore.setState({ rows: [], id: null, r: null });
     return;
   }
   const tags = ensureTableTags(it);
@@ -297,7 +298,7 @@ function renderCellTagPickerList(): void {
     selected: assigned.has(t.id),
     renaming: t.id === appState.renamingTagId,
   }));
-  window.__setCellTagPickerList!({ rows, id, r });
+  useCellTagPickerListStore.setState({ rows, id, r });
   // The divider above the new-tag input only makes sense once there's something above it — a
   // plain sibling of #cell-tag-picker-list, not something React portals into.
   document

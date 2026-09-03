@@ -825,14 +825,6 @@ declare global {
     // app/dotto/canvasItemBehavior.js's setupDraggingAndClicking (Phase 3), same reasoning as
     // window.__getAppState.
     __bringCardToFront?: (it: Record<string, unknown> | undefined, el?: HTMLElement | null) => void;
-    // app/dotto-app.jsx (via cellTagPickerListStore, bridges.js) — used by
-    // app/dotto/lib/sourceTagsAi.ts's renderCellTagPickerList (Phase 4.5 port — was
-    // source-tags-ai.js).
-    __setCellTagPickerList?: (state: {
-      rows: Record<string, unknown>[];
-      id: number | null;
-      r: number | null;
-    }) => void;
 
     // app/dotto-app.jsx (via app/dotto/bridges.js's various stores) — React-facing setters for
     // app/dotto/lib/friendsPresence.ts (Phase 4.5 port — was friends-presence.js).

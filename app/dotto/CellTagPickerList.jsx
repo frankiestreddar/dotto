@@ -1,9 +1,8 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import { useSyncExternalStore } from "react";
 import { createPortal } from "react-dom";
-import { cellTagPickerListStore } from "./bridges";
+import { useCellTagPickerListStore } from "./lib/cellTagPickerListStore";
 import {
   commitTagRename,
   handleTagRenameKeydown,
@@ -11,8 +10,6 @@ import {
   toggleCellTag,
 } from "./lib/sourceTagsAi";
 import usePortalNode from "./usePortalNode";
-
-const EMPTY_STATE = { rows: [], id: null, r: null };
 
 function TagRow({ row, id, r }) {
   const inputRef = useRef(null);
@@ -62,11 +59,7 @@ function TagRow({ row, id, r }) {
 // hide/position, the new-tag row, and the tag-context-menu are all plain sibling static markup
 // this component never touches.
 export default function CellTagPickerList() {
-  const state = useSyncExternalStore(
-    cellTagPickerListStore.subscribe,
-    cellTagPickerListStore.getSnapshot,
-    () => EMPTY_STATE,
-  );
+  const state = useCellTagPickerListStore();
   const portalNode = usePortalNode("cell-tag-picker-list");
 
   if (!portalNode) return null;
