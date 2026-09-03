@@ -1,8 +1,16 @@
 "use client";
 
-import { useState, useRef, useEffect, useCallback } from "react";
+import {
+  useState,
+  useRef,
+  useEffect,
+  useCallback,
+  type ChangeEvent,
+  type SyntheticEvent,
+} from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import type { Json } from "@/lib/supabase/database.types";
 
 const AGES = ["young", "adult", "old"];
 const AGE_LABELS = ["Young", "Adult", "Old"];
@@ -33,15 +41,22 @@ const RAINBOW_STOPS = [
 // Fraction of the slider's width the grayscale ramp occupies (1 of the 8 total segments above) —
 // used to translate a hue (0-360°) into the right position past that ramp, and back.
 const GRAY_SEGMENT_FRACTION = 1 / 8;
-function hueToT(hueDeg) {
+function hueToT(hueDeg: number): number {
   return GRAY_SEGMENT_FRACTION + (hueDeg / 360) * (1 - GRAY_SEGMENT_FRACTION);
+}
+
+interface Category {
+  key: string;
+  label: string;
+  count: number;
+  default: number;
 }
 
 // mouth/eyes/nose are fixed (always mouth-1/eyes-1/nose-1, uncolored) — no user choice, so they
 // aren't in this list and never get a picker. Every other category allows "none" (option 0 — no
 // layer drawn), toggled by clicking its already-selected option again; `default` is just the
 // option it starts on (hair/shirt start with something picked, facewear/hat start empty).
-const CATEGORIES = [
+const CATEGORIES: Category[] = [
   { key: "hair", label: "Hair", count: 4, default: 1 },
   { key: "facewear", label: "Facewear", count: 4, default: 0 },
   { key: "shirt", label: "Shirt", count: 4, default: 1 },
@@ -57,15 +72,25 @@ const PAIR_ROWS = [
 const ASSET_BASE = "/assets/avatar/build";
 const CANVAS_SIZE = 1080;
 
-function randomChoice(arr) {
+function randomChoice<T>(arr: T[]): T {
   return arr[Math.floor(Math.random() * arr.length)];
 }
 
-// Same status dot as the register page (see app/(auth)/register/page.js) — copied rather than
+// Same status dot as the register page (see app/(auth)/register/page.tsx) — copied rather than
 // shared, matching the auth pages' convention of each page being self-contained. Extended here
 // with a third "pending" (grey) state, used only by the username field below since it's the only
 // one with an async (debounced) check worth showing a distinct "still working on it" state for.
-function ValidityDot({ show, ok, pending, reason }) {
+function ValidityDot({
+  show,
+  ok,
+  pending,
+  reason,
+}: {
+  show: boolean;
+  ok: boolean;
+  pending?: boolean;
+  reason?: string;
+}) {
   if (!show) return null;
   const cls = pending ? "pending" : ok ? "ok" : "bad";
   return (
@@ -85,20 +110,30 @@ function ValidityDot({ show, ok, pending, reason }) {
 // below) so its circle never overhangs past either end of the track, instead of a plain `X%`
 // (which centers the thumb ON the 0%/100% points, letting half of it hang off the track edge).
 const STOP_THUMB_R = 8;
-function clampedLeft(pct, radiusPx) {
+function clampedLeft(pct: number, radiusPx: number): string {
   return `calc(${radiusPx}px + ${pct / 100} * (100% - ${radiusPx * 2}px))`;
 }
 
-function StopSlider({ stops, labels, value, onChange }) {
-  const trackRef = useRef(null);
-  const [dragPct, setDragPct] = useState(null); // 0-100 while actively dragging, else null
-  const stopPct = (i) => (stops.length > 1 ? (i / (stops.length - 1)) * 100 : 0);
+function StopSlider({
+  stops,
+  labels,
+  value,
+  onChange,
+}: {
+  stops: string[];
+  labels: string[];
+  value: string;
+  onChange: (v: string) => void;
+}) {
+  const trackRef = useRef<HTMLDivElement>(null);
+  const [dragPct, setDragPct] = useState<number | null>(null); // 0-100 while actively dragging, else null
+  const stopPct = (i: number) => (stops.length > 1 ? (i / (stops.length - 1)) * 100 : 0);
 
-  function pctFromClientX(clientX) {
-    const rect = trackRef.current.getBoundingClientRect();
+  function pctFromClientX(clientX: number): number {
+    const rect = trackRef.current!.getBoundingClientRect();
     return Math.min(100, Math.max(0, ((clientX - rect.left) / rect.width) * 100));
   }
-  function nearestIndex(pct) {
+  function nearestIndex(pct: number): number {
     return Math.round((pct / 100) * (stops.length - 1));
   }
 
@@ -109,16 +144,16 @@ function StopSlider({ stops, labels, value, onChange }) {
   // still-nearest stop while lingering inside one zone is harmless — React bails out of the
   // redraw when the value hasn't actually changed. Releasing mid-drag leaves dragPct null again,
   // so the thumb's visual position falls back to whatever was last committed (i.e. it snaps).
-  function handlePointerDown(e) {
+  function handlePointerDown(e: React.PointerEvent<HTMLDivElement>) {
     e.preventDefault();
-    const commit = (pct) => {
+    const commit = (pct: number) => {
       setDragPct(pct);
       const i = nearestIndex(pct);
       if (stops[i] !== undefined) onChange(stops[i]);
     };
     commit(pctFromClientX(e.clientX));
-    const move = (me) => commit(pctFromClientX(me.clientX));
-    const up = (ue) => {
+    const move = (me: PointerEvent) => commit(pctFromClientX(me.clientX));
+    const up = (ue: PointerEvent) => {
       commit(pctFromClientX(ue.clientX));
       setDragPct(null);
       window.removeEventListener("pointermove", move);
@@ -153,23 +188,23 @@ function StopSlider({ stops, labels, value, onChange }) {
   );
 }
 
-function hexToRgb(hex) {
+function hexToRgb(hex: string): number[] {
   const n = parseInt(hex.slice(1), 16);
   return [(n >> 16) & 255, (n >> 8) & 255, n & 255];
 }
-function rgbToHex(rgb) {
+function rgbToHex(rgb: number[]): string {
   return "#" + rgb.map((v) => Math.round(v).toString(16).padStart(2, "0")).join("");
 }
 // A color's hue, in degrees (0-360) — pass through hueToT to get the matching position along
 // RAINBOW_STOPS's hue-sweep portion. Used to position the skin-tone slider's thumb under a preset
 // swatch (whose color comes from SKIN_COLORS, not the rainbow itself) after clicking it.
-function hexHue(hex) {
+function hexHue(hex: string): number {
   const [r, g, b] = hexToRgb(hex).map((v) => v / 255);
   const max = Math.max(r, g, b);
   const min = Math.min(r, g, b);
   const d = max - min;
   if (d === 0) return 0;
-  let h;
+  let h: number;
   if (max === r) h = ((g - b) / d) % 6;
   else if (max === g) h = (b - r) / d + 2;
   else h = (r - g) / d + 4;
@@ -178,7 +213,7 @@ function hexHue(hex) {
 }
 // Linearly interpolates across a list of hex color stops at position t (0-1) — used by every
 // ColorGradientSlider (skin tone + all four part colors), always sampling RAINBOW_STOPS.
-function interpolateStops(stops, t) {
+function interpolateStops(stops: string[], t: number): string {
   const segments = stops.length - 1;
   const scaled = Math.min(segments, Math.max(0, t * segments));
   const i = Math.min(segments - 1, Math.floor(scaled));
@@ -202,11 +237,19 @@ const GRADIENT_THUMB_R_DRAGGING = 15; // half of the grown 30px size
 // scrubs the color, like the precision-drag behavior in Photoshop/Figma sliders.
 const PRECISION_HALVING_DISTANCE_PX = 80;
 
-function ColorGradientSlider({ stops, t, onChange }) {
-  const trackRef = useRef(null);
+function ColorGradientSlider({
+  stops,
+  t,
+  onChange,
+}: {
+  stops: string[];
+  t: number;
+  onChange: (t: number) => void;
+}) {
+  const trackRef = useRef<HTMLDivElement>(null);
   const [dragging, setDragging] = useState(false);
-  function tFromClientX(clientX) {
-    const rect = trackRef.current.getBoundingClientRect();
+  function tFromClientX(clientX: number): number {
+    const rect = trackRef.current!.getBoundingClientRect();
     return Math.min(1, Math.max(0, (clientX - rect.left) / rect.width));
   }
   // The initial click jumps the thumb straight to the clicked position (dy is 0 right after a
@@ -215,16 +258,16 @@ function ColorGradientSlider({ stops, t, onChange }) {
   // rather than recomputing an absolute position from the drag's start point — that's what lets
   // sensitivity change smoothly mid-drag (as the cursor moves further from the track) without the
   // thumb jumping when the vertical distance changes.
-  function handlePointerDown(e) {
+  function handlePointerDown(e: React.PointerEvent<HTMLDivElement>) {
     e.preventDefault();
     setDragging(true);
     document.body.classList.add("avatar-color-dragging");
-    const rect = trackRef.current.getBoundingClientRect();
+    const rect = trackRef.current!.getBoundingClientRect();
     const centerY = rect.top + rect.height / 2;
     let curT = tFromClientX(e.clientX);
     let lastX = e.clientX;
     onChange(curT);
-    const move = (me) => {
+    const move = (me: PointerEvent) => {
       const dy = Math.abs(me.clientY - centerY);
       const sensitivity = Math.pow(0.5, dy / PRECISION_HALVING_DISTANCE_PX);
       curT = Math.min(1, Math.max(0, curT + ((me.clientX - lastX) * sensitivity) / rect.width));
@@ -263,10 +306,10 @@ function ColorGradientSlider({ stops, t, onChange }) {
 
 // Each asset is referenced repeatedly as config changes (e.g. re-picking a color redraws the
 // same image) — cached by src so it's only ever fetched/decoded once.
-const imageCache = new Map();
-function loadImage(src) {
-  if (imageCache.has(src)) return imageCache.get(src);
-  const p = new Promise((resolve, reject) => {
+const imageCache = new Map<string, Promise<HTMLImageElement>>();
+function loadImage(src: string): Promise<HTMLImageElement> {
+  if (imageCache.has(src)) return imageCache.get(src)!;
+  const p = new Promise<HTMLImageElement>((resolve, reject) => {
     const img = new Image();
     img.onload = () => resolve(img);
     img.onerror = reject;
@@ -288,11 +331,16 @@ function loadImage(src) {
 // darkest swatch stayed pale; "hard-light" screens — lightens toward white — wherever the image
 // is above 50% grey, and since this asset's mean is ~89%, nearly every pixel hit that branch and
 // washed out toward white regardless of the target color.)
-function drawRecolored(ctx, img, color, size) {
+function drawRecolored(
+  ctx: CanvasRenderingContext2D,
+  img: HTMLImageElement,
+  color: string,
+  size: number,
+): void {
   const tmp = document.createElement("canvas");
   tmp.width = size;
   tmp.height = size;
-  const tctx = tmp.getContext("2d");
+  const tctx = tmp.getContext("2d")!;
   tctx.fillStyle = color;
   tctx.fillRect(0, 0, size, size);
   tctx.globalCompositeOperation = "multiply";
@@ -302,13 +350,31 @@ function drawRecolored(ctx, img, color, size) {
   ctx.drawImage(tmp, 0, 0, size, size);
 }
 
+interface PartState {
+  option: number;
+  colorT: number;
+}
+type PartsState = Record<string, PartState>;
+
+interface AvatarConfig {
+  age: string;
+  bodyType: string;
+  skinColor: string;
+  parts: PartsState;
+}
+
+interface Layer {
+  src: string;
+  color: string | null;
+}
+
 // Bottom-to-top stacking order — an assumption pending real art (see the plan this was built
 // from); trivially reorderable, it's just this array. mouth/eyes/nose are fixed at option 1 with
 // color:null (drawn raw, no recolor — see the redraw loop) since they have no user-facing choice.
-function buildLayerList(config) {
+function buildLayerList(config: AvatarConfig): Layer[] {
   const { age, bodyType, skinColor, parts } = config;
-  const layers = [{ src: `${ASSET_BASE}/${age}-${bodyType}.png`, color: skinColor }];
-  const partColor = (key) => interpolateStops(RAINBOW_STOPS, parts[key].colorT);
+  const layers: Layer[] = [{ src: `${ASSET_BASE}/${age}-${bodyType}.png`, color: skinColor }];
+  const partColor = (key: string) => interpolateStops(RAINBOW_STOPS, parts[key].colorT);
   if (parts.shirt.option > 0)
     layers.push({
       src: `${ASSET_BASE}/shirt-${parts.shirt.option}.png`,
@@ -331,7 +397,7 @@ function buildLayerList(config) {
 
 export default function AvatarSetupPage() {
   const router = useRouter();
-  const canvasRef = useRef(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
   const [age, setAge] = useState("adult");
   const [bodyType, setBodyType] = useState("slim");
   const [skinColor, setSkinColor] = useState(SKIN_COLORS[2]);
@@ -343,7 +409,7 @@ export default function AvatarSetupPage() {
   // colorT (0-1) is this part's position along RAINBOW_STOPS — the only place its color is ever
   // set is the gradient slider, so there's no separate hex field to keep in sync (unlike skin
   // tone, which also has discrete presets to reconcile against).
-  const [parts, setParts] = useState(() =>
+  const [parts, setParts] = useState<PartsState>(() =>
     Object.fromEntries(CATEGORIES.map((c) => [c.key, { option: c.default, colorT: 0.3 }])),
   );
   const [saving, setSaving] = useState(false);
@@ -354,7 +420,7 @@ export default function AvatarSetupPage() {
   // register page; validation rules (format/length/availability) are the same as they were there.
   const [usernameInput, setUsernameInput] = useState("");
   const [usernameFocused, setUsernameFocused] = useState(false);
-  const [usernameAvailable, setUsernameAvailable] = useState(null); // null = not yet confirmed
+  const [usernameAvailable, setUsernameAvailable] = useState<boolean | null>(null); // null = not yet confirmed
   // false the instant usernameInput changes (typing, or the focus-triggered "@") — grey/"pending"
   // dot state — and only flips true again once 500ms have passed with no further change, at
   // which point the dot resolves to a real red/green. Every keystroke restarts this from scratch.
@@ -401,7 +467,7 @@ export default function AvatarSetupPage() {
     };
   }, [usernameInput, username, usernameFormatValid, usernameLongEnough]);
 
-  const usernameStatus = !usernameFormatValid
+  const usernameStatus: { ok: boolean; reason?: string } = !usernameFormatValid
     ? { ok: false, reason: "use abc & 123" }
     : !usernameLongEnough
       ? { ok: false, reason: "too short" }
@@ -417,7 +483,7 @@ export default function AvatarSetupPage() {
     setUsernameFocused(false);
     if (usernameInput === "@") setUsernameInput(""); // back to placeholder if nothing was typed
   }
-  function handleUsernameChange(e) {
+  function handleUsernameChange(e: ChangeEvent<HTMLInputElement>) {
     // "@" is real text the user can't delete — any edit that would drop it (backspacing to
     // empty, selecting-all-and-typing, pasting over it, etc.) gets corrected right back to a
     // single leading "@" here, so from the user's perspective it never actually goes away.
@@ -427,15 +493,15 @@ export default function AvatarSetupPage() {
   // The "@" is permanent, so the cursor/selection is never allowed to land in front of it — every
   // click, keyboard nav (Home, arrow-left, etc.), or selection change that would put either edge
   // at position 0 gets nudged to position 1 (right after the "@") instead.
-  function handleUsernameSelect(e) {
-    const el = e.target;
+  function handleUsernameSelect(e: SyntheticEvent<HTMLInputElement>) {
+    const el = e.currentTarget;
     if (!el.value) return;
-    const start = Math.max(1, el.selectionStart);
-    const end = Math.max(1, el.selectionEnd);
+    const start = Math.max(1, el.selectionStart ?? 0);
+    const end = Math.max(1, el.selectionEnd ?? 0);
     if (start !== el.selectionStart || end !== el.selectionEnd) el.setSelectionRange(start, end);
   }
 
-  const config = { age, bodyType, skinColor, parts };
+  const config: AvatarConfig = { age, bodyType, skinColor, parts };
 
   // JSON.stringify as the dependency key sidesteps manually listing every nested field of
   // `parts` — a plain, valid way to react to deep changes in a moderately-sized config object.
@@ -445,7 +511,7 @@ export default function AvatarSetupPage() {
   const redraw = useCallback(async () => {
     const canvas = canvasRef.current;
     if (!canvas) return;
-    const ctx = canvas.getContext("2d");
+    const ctx = canvas.getContext("2d")!;
     ctx.clearRect(0, 0, CANVAS_SIZE, CANVAS_SIZE);
     for (const layer of buildLayerList(config)) {
       try {
@@ -464,15 +530,15 @@ export default function AvatarSetupPage() {
     redraw();
   }, [redraw]);
 
-  function setPart(key, patch) {
+  function setPart(key: string, patch: Partial<PartState>) {
     setParts((prev) => ({ ...prev, [key]: { ...prev[key], ...patch } }));
   }
 
-  function selectSkinPreset(i) {
+  function selectSkinPreset(i: number) {
     setSkinColor(SKIN_COLORS[i]);
     setSkinSliderT(hueToT(hexHue(SKIN_COLORS[i])));
   }
-  function handleSkinSlider(t) {
+  function handleSkinSlider(t: number) {
     setSkinSliderT(t);
     setSkinColor(interpolateStops(RAINBOW_STOPS, t));
   }
@@ -501,8 +567,8 @@ export default function AvatarSetupPage() {
     }
     setSaving(true);
     try {
-      const canvas = canvasRef.current;
-      const blob = await new Promise((resolve) => canvas.toBlob(resolve, "image/png"));
+      const canvas = canvasRef.current!;
+      const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, "image/png"));
       if (!blob) throw new Error("Couldn't render the avatar image.");
 
       const supabase = createClient();
@@ -524,14 +590,19 @@ export default function AvatarSetupPage() {
 
       const { error: updateError } = await supabase
         .from("profiles")
-        .update({ username, display_name: username, avatar_url: avatarUrl, avatar_config: config })
+        .update({
+          username,
+          display_name: username,
+          avatar_url: avatarUrl,
+          avatar_config: config as unknown as Json,
+        })
         .eq("id", user.id);
       if (updateError) throw updateError;
 
       router.push("/");
       router.refresh();
     } catch (err) {
-      setError(err.message || "Something went wrong saving your avatar.");
+      setError(err instanceof Error ? err.message : "Something went wrong saving your avatar.");
       setSaving(false);
     }
   }
@@ -601,7 +672,7 @@ export default function AvatarSetupPage() {
             {PAIR_ROWS.map((pairKeys) => (
               <div className="avatar-setup-pair-row" key={pairKeys.join("-")}>
                 {pairKeys.map((key) => {
-                  const cat = CATEGORIES.find((c) => c.key === key);
+                  const cat = CATEGORIES.find((c) => c.key === key)!;
                   return (
                     <div className="avatar-setup-pair-col" key={cat.key}>
                       <div className="avatar-setup-section-label">{cat.label}</div>
@@ -621,7 +692,7 @@ export default function AvatarSetupPage() {
                                 src={`${ASSET_BASE}/${cat.key}-${n}.png`}
                                 alt=""
                                 onError={(e) => {
-                                  e.target.style.visibility = "hidden";
+                                  (e.target as HTMLImageElement).style.visibility = "hidden";
                                 }}
                               />
                             </button>
