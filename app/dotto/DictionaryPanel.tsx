@@ -4,7 +4,7 @@ import { useLayoutEffect } from "react";
 import { useDictionaryPanelStore } from "./lib/dictionaryPanelStore";
 import { buildDictionaryCard } from "./lib/mnemonicSearchMatching";
 
-// Mounts buildDictionaryCard's vanilla-built card into #search-dictionary — see TranslationPanel.jsx
+// Mounts buildDictionaryCard's vanilla-built card into #search-dictionary — see TranslationPanel.tsx
 // for the full reasoning (identical pattern, different panel/builder). buildDictionaryCard owns a
 // real internal widget (multi-sense cycling via a closured `index`, hover-reveal side arrows, its
 // own drag-to-canvas wiring) — left fully vanilla rather than rewritten as JSX for this pass.

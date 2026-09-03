@@ -5,7 +5,7 @@ import { useRecommendedSearchesStore } from "./lib/recommendedSearchesStore";
 import { buildRecommendedSearchesRows } from "./lib/mnemonicSearchMatching";
 
 // Mounts buildRecommendedSearchesRows's vanilla-built rows into #search-recommended — see
-// TranslationPanel.jsx for the full reasoning (identical pattern, different panel/builder).
+// TranslationPanel.tsx for the full reasoning (identical pattern, different panel/builder).
 export default function RecommendedSearchesPanel() {
   const panel = useRecommendedSearchesStore();
 
