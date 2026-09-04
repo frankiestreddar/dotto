@@ -1,10 +1,12 @@
 "use client";
 
 import { useLayoutEffect, useRef } from "react";
+import type { ComponentType } from "react";
 import { createPortal } from "react-dom";
 import { useCanvasItemsStore } from "./lib/canvasItemsStore";
 import { applyItemWrapperAttrs, attachUniversalItemBehavior } from "./lib/waypointsRenderLoop";
 import usePortalNode from "./usePortalNode";
+import type { Item } from "./lib/messagingCanvasPreview";
 import CanvasCard from "./CanvasCard";
 import ChecklistCard from "./ChecklistCard";
 import EmbedCard from "./EmbedCard";
@@ -26,25 +28,36 @@ import WaypointCard from "./WaypointCard";
 
 // Every card kind maps to a real Component now — see PHASE2_ROADMAP.md's migration order for how
 // each one got here. A future new kind gets added here (and nowhere else in this file).
-const CARD_KIND_COMPONENTS = {
-  checklist: ChecklistCard,
-  embed: EmbedCard,
-  filter: FilterCard,
-  flashcard: FlashcardCard,
-  folder: CanvasCard,
-  media: MediaCard,
-  note: NoteCard,
-  reference: ReferenceCard,
-  sentence: SentenceCard,
-  shelf: ShelfCard,
-  source: SourceCard,
-  statcard: StatcardCard,
-  stopwatch: StopwatchCard,
-  table: TableCard,
-  title: TitleCard,
-  typeright: TypeRightCard,
-  watermark: WatermarkCard,
-  waypoint: WaypointCard,
+//
+// Cast to a common ComponentType<CardProps> per entry: each card component's own prop type only
+// declares `paneId` when it actually reads it (SentenceCard/StatcardCard/EmbedCard/FilterCard/
+// ChecklistCard/ReferenceCard/ShelfCard/StopwatchCard/FlashcardCard take just `it`), but this
+// dispatch table always passes both — an unused extra prop is harmless at runtime (React/JS just
+// ignores it), so this is a type-level-only accommodation for the map's necessarily wider common
+// calling convention, not a behavior change.
+interface CardProps {
+  it: Item;
+  paneId?: number;
+}
+const CARD_KIND_COMPONENTS: Record<string, ComponentType<CardProps>> = {
+  checklist: ChecklistCard as ComponentType<CardProps>,
+  embed: EmbedCard as ComponentType<CardProps>,
+  filter: FilterCard as ComponentType<CardProps>,
+  flashcard: FlashcardCard as ComponentType<CardProps>,
+  folder: CanvasCard as ComponentType<CardProps>,
+  media: MediaCard as ComponentType<CardProps>,
+  note: NoteCard as ComponentType<CardProps>,
+  reference: ReferenceCard as ComponentType<CardProps>,
+  sentence: SentenceCard as ComponentType<CardProps>,
+  shelf: ShelfCard as ComponentType<CardProps>,
+  source: SourceCard as ComponentType<CardProps>,
+  statcard: StatcardCard as ComponentType<CardProps>,
+  stopwatch: StopwatchCard as ComponentType<CardProps>,
+  table: TableCard as ComponentType<CardProps>,
+  title: TitleCard as ComponentType<CardProps>,
+  typeright: TypeRightCard as ComponentType<CardProps>,
+  watermark: WatermarkCard as ComponentType<CardProps>,
+  waypoint: WaypointCard as ComponentType<CardProps>,
 };
 
 // One canvas item's wrapper <div>. React's job is creating/keying/removing this node and owning
@@ -73,8 +86,8 @@ const CARD_KIND_COMPONENTS = {
 // still diffs each Component's JSX output and no-ops an unchanged one), but individual Components
 // with an expensive rebuild of their own (CanvasCard's inline preview, MediaCard's PDF/EPUB
 // viewer) gate that specific work behind their own dependency array — see their own comments.
-function CanvasItem({ it, paneId }) {
-  const ref = useRef(null);
+function CanvasItem({ it, paneId }: { it: Item; paneId?: number }) {
+  const ref = useRef<HTMLDivElement>(null);
   const Component = CARD_KIND_COMPONENTS[it.kind];
 
   useLayoutEffect(() => {
@@ -84,7 +97,7 @@ function CanvasItem({ it, paneId }) {
   });
 
   return (
-    <div ref={ref} id={window.__itemElId(it.id, paneId)}>
+    <div ref={ref} id={window.__itemElId!(it.id, paneId)}>
       {Component ? <Component it={it} paneId={paneId} /> : null}
     </div>
   );
@@ -99,8 +112,11 @@ function CanvasItem({ it, paneId }) {
 // mounted per pane (see PaneCanvasArea.jsx) — split-screen Stage 4; paneId defaults to 0 so
 // existing single-pane behavior (and any test/debug code written before this stage) keeps working
 // unchanged.
-export default function CanvasItemsLayer({ paneId = 0 }) {
-  const items = useCanvasItemsStore.storeFor(paneId)();
+export default function CanvasItemsLayer({ paneId = 0 }: { paneId?: number }) {
+  // useCanvasItemsStore is typed as Record<string, unknown>[] (canvasItemsStore.ts) — a
+  // deliberately loose element type since the store itself is kind-agnostic; cast to the shared,
+  // stricter Item type here at the one boundary where a real item shape is actually needed.
+  const items = useCanvasItemsStore.storeFor(paneId)() as unknown as Item[];
   // #items-layer is part of #world's static markup (rendered elsewhere via dangerouslySetInnerHTML)
   // so it doesn't exist in the DOM yet on this component's own first render — only resolvable once,
   // after mount. The one-extra-render cost the lint rule warns about here is unavoidable for
