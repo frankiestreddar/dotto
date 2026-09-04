@@ -3,6 +3,7 @@
 import { createPortal } from "react-dom";
 import Avatar from "./Avatar";
 import { useMsgListStore } from "./lib/msgListStore";
+import type { MsgListChatRow, MsgListRequestRow, MsgListSearchResultRow } from "./lib/msgListStore";
 import {
   backToMsgMain,
   handleAddFriendClick,
@@ -12,7 +13,7 @@ import {
 import { openConvo } from "./lib/messagingCanvasPreview";
 import usePortalNode from "./usePortalNode";
 
-function RequestsRow({ count }) {
+function RequestsRow({ count }: { count: number }) {
   return (
     <div
       className="outline-item requests-row"
@@ -30,7 +31,7 @@ function RequestsRow({ count }) {
 // Clicking opens the real conversation thread — still vanilla (see renderMsgList's own comment in
 // app/dotto/lib/friendsPresence.ts for why: that's part of the much larger "Live canvas presence"
 // cluster, not this list).
-function ChatRow({ f }) {
+function ChatRow({ f }: { f: MsgListChatRow }) {
   return (
     <div className="msg-chat-row" onClick={() => openConvo(f.id)}>
       <Avatar
@@ -46,7 +47,7 @@ function ChatRow({ f }) {
   );
 }
 
-function AddFriendRow({ u, query }) {
+function AddFriendRow({ u, query }: { u: MsgListSearchResultRow; query: string }) {
   return (
     <div className="msg-add-row">
       <div className="msg-chat-meta">
@@ -81,7 +82,7 @@ function BackRow() {
   );
 }
 
-function FriendRequestRow({ req }) {
+function FriendRequestRow({ req }: { req: MsgListRequestRow }) {
   return (
     <div className="msg-add-row">
       <div className="msg-chat-meta">

@@ -4,6 +4,7 @@ import { useLayoutEffect, useRef } from "react";
 import { createPortal } from "react-dom";
 import Avatar from "./Avatar";
 import { useMsgConvoStore } from "./lib/msgConvoStore";
+import type { ConvoMessage } from "./lib/msgConvoStore";
 import {
   openSharedCanvasView,
   renderInlineCanvas,
@@ -16,25 +17,26 @@ import usePortalNode from "./usePortalNode";
 // same "vanilla builds live DOM, React just mounts it via ref" pattern as InlineCanvasPreview,
 // since those build real per-kind DOM (tables, checklists, media), not something worth
 // re-expressing as JSX. Keyed by m.id in the parent, so this only ever mounts once per message.
-function MsgSnapshotMount({ m }) {
-  const ref = useRef(null);
+function MsgSnapshotMount({ m }: { m: ConvoMessage }) {
+  const ref = useRef<HTMLDivElement>(null);
   useLayoutEffect(() => {
     const mount = ref.current;
     if (!mount) return;
-    if (m.canvasSnapshot.length > 1) {
-      mount.appendChild(renderInlineCanvas(m.canvasSnapshot));
+    const snapshot = m.canvasSnapshot!;
+    if (snapshot.length > 1) {
+      mount.appendChild(renderInlineCanvas(snapshot));
     } else {
       const snapBox = document.createElement("div");
       snapBox.className = "msg-canvas-snapshot";
-      snapBox.appendChild(renderMsgSnapshotCard(m.canvasSnapshot[0]));
-      snapBox.onclick = () => openSharedCanvasView(m.canvasSnapshot);
+      snapBox.appendChild(renderMsgSnapshotCard(snapshot[0]));
+      snapBox.onclick = () => openSharedCanvasView(snapshot);
       mount.appendChild(snapBox);
     }
   }, [m]);
   return <div ref={ref} />;
 }
 
-function MsgItem({ m, isMine }) {
+function MsgItem({ m, isMine }: { m: ConvoMessage; isMine: boolean }) {
   const wrapperClass = "flex flex-col " + (isMine ? "items-end" : "items-start") + " w-full";
   if (m.canvasSnapshot) {
     return (

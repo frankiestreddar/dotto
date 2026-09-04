@@ -4,14 +4,15 @@ import { useLayoutEffect, useRef } from "react";
 import { createPortal } from "react-dom";
 import { useSharedCanvasModalStore } from "./lib/sharedCanvasModalStore";
 import { renderMsgSnapshotCard } from "./lib/messagingCanvasPreview";
+import type { Item } from "./lib/messagingCanvasPreview";
 import usePortalNode from "./usePortalNode";
 
 // Each item's own card content still comes from renderMsgSnapshotCard
 // (app/dotto/lib/messagingCanvasPreview.ts) — same "vanilla builds live DOM, React just mounts it
 // via ref" pattern as MsgConvo's canvas-snapshot messages, since that function builds real per-kind
 // DOM (tables, checklists, media), not something worth re-expressing as JSX.
-function SnapshotCardMount({ item }) {
-  const ref = useRef(null);
+function SnapshotCardMount({ item }: { item: Item }) {
+  const ref = useRef<HTMLDivElement>(null);
   useLayoutEffect(() => {
     const mount = ref.current;
     if (!mount) return;

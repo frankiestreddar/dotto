@@ -3,6 +3,7 @@
 import { createPortal } from "react-dom";
 import Avatar from "./Avatar";
 import { useCollabListStore } from "./lib/collabListStore";
+import type { CollabListRow } from "./lib/collabListStore";
 import { goToCollaboratorCursor } from "./lib/canvasPresence";
 import { handleCollabAddRemoveClick } from "./lib/friendsPresence";
 import usePortalNode from "./usePortalNode";
@@ -10,7 +11,7 @@ import usePortalNode from "./usePortalNode";
 // A live presence dot + clickable name only makes sense for someone who's both an actual
 // collaborator here AND currently present on this exact canvas right now (r.isPresent, computed
 // in renderCollabList) — not just anyone in the friends list.
-function CollabRow({ r }) {
+function CollabRow({ r }: { r: CollabListRow & { query: string } }) {
   const label = r.added ? "Remove" : r.pending ? "Requested" : "Add";
   const nameClass = "collab-row-name" + (r.isPresent ? " collab-row-name-live" : "");
 
