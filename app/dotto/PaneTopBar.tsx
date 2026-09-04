@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import Avatar from "./Avatar";
 import { useCollabPillStore } from "./lib/collabPillStore";
 import { useNavHistoryStore } from "./lib/navHistoryStore";
+import type { PaneRect } from "./lib/paneLayoutStore";
 import {
   collabBubblePaneClick,
   collabBubblePaneMouseEnter,
@@ -33,23 +34,23 @@ const PROXIMITY_PX = 100;
 // (app/dotto/lib/friendsPresence.ts) retarget appState.collabBubble (a reassignable object
 // property, not a binding) to THIS bubble's own DOM node before reusing that one shared flyout's
 // existing open/close/position logic unchanged, activating this pane first the same way.
-export default function PaneTopBar({ paneId, rect }) {
+export default function PaneTopBar({ paneId, rect }: { paneId: number; rect: PaneRect }) {
   const nav = useNavHistoryStore.storeFor(paneId)();
   const collab = useCollabPillStore.storeFor(paneId)();
 
-  const pillRef = useRef(null);
-  const bubbleRef = useRef(null);
+  const pillRef = useRef<HTMLDivElement>(null);
+  const bubbleRef = useRef<HTMLDivElement>(null);
   const [expanded, setExpanded] = useState(false);
 
   useEffect(() => {
     let zoneUsed = false;
     let wasOverPill = false;
-    function distanceToRect(x, y, r) {
+    function distanceToRect(x: number, y: number, r: DOMRect) {
       const dx = Math.max(r.left - x, 0, x - r.right);
       const dy = Math.max(r.top - y, 0, y - r.bottom);
       return Math.hypot(dx, dy);
     }
-    function handleMove(e) {
+    function handleMove(e: MouseEvent) {
       const el = pillRef.current;
       if (!el) return;
       const r = el.getBoundingClientRect();
@@ -105,7 +106,7 @@ export default function PaneTopBar({ paneId, rect }) {
           className="btn"
           title="Back"
           disabled={!nav.canGoBack}
-          onClick={() => window.__navBack(paneId)}
+          onClick={() => window.__navBack!(paneId)}
         >
           <img
             className="pane-nav-arrow-img pane-nav-arrow-back"
@@ -118,7 +119,7 @@ export default function PaneTopBar({ paneId, rect }) {
           className="btn"
           title="Forward"
           disabled={!nav.canGoForward}
-          onClick={() => window.__navForward(paneId)}
+          onClick={() => window.__navForward!(paneId)}
         >
           <img className="pane-nav-arrow-img" src="/assets/icons/arrow.png" alt="" />
         </button>
@@ -130,10 +131,10 @@ export default function PaneTopBar({ paneId, rect }) {
           className={"pane-collab-bubble" + (collab.show ? " show" : "")}
           onClick={(e) => {
             e.stopPropagation();
-            collabBubblePaneClick(paneId, bubbleRef.current);
+            collabBubblePaneClick(paneId, bubbleRef.current!);
           }}
-          onMouseEnter={() => collabBubblePaneMouseEnter(paneId, bubbleRef.current)}
-          onMouseLeave={() => collabBubblePaneMouseLeave(bubbleRef.current)}
+          onMouseEnter={() => collabBubblePaneMouseEnter(paneId, bubbleRef.current!)}
+          onMouseLeave={() => collabBubblePaneMouseLeave(bubbleRef.current!)}
         >
           {collab.collabs.length ? (
             <div className="collab-avatars">
@@ -164,7 +165,7 @@ export default function PaneTopBar({ paneId, rect }) {
           title="New tab"
           onClick={(e) => {
             e.stopPropagation();
-            window.__addTab(paneId);
+            window.__addTab!(paneId);
           }}
         >
           <img className="pane-tab-add-img" src="/assets/icons/add.png" alt="" />

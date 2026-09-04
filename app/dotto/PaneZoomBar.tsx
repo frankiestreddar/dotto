@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useMediaViewerZoomStore } from "./lib/mediaViewerZoomStore";
 import { setMediaViewerZoom } from "./lib/waypointsRenderLoop";
+import type { PaneRect } from "./lib/paneLayoutStore";
 
 const ZOOM_STEP = 0.25;
 
@@ -24,18 +25,18 @@ const ZOOM_STEP = 0.25;
 // rect check doesn't care about that layering: the bar's own box sits within the same canvas rect,
 // so hovering it still reads as "inside."
 // zoom itself is a plain multiplier (1 = 100%) stored on the media-viewer's own synthetic folder
-// object (folderObj.viewerZoom) — mediaViewerZoomStore is just this component's own reactive mirror
+// object (folderObj.viewerZoom), not here — this store is just this component's own reactive mirror
 // of it (see app/dotto/lib/mediaViewerZoomStore.ts's own comment). setMediaViewerZoom
 // (app/dotto/lib/waypointsRenderLoop.ts) restyles the already-live viewer element's own --viewer-zoom custom
 // property directly rather than going through a full render(), so clicking +/- doesn't reset an
 // <iframe> PDF's or epub.js's own internal scroll position on every click.
-export default function PaneZoomBar({ paneId, rect }) {
+export default function PaneZoomBar({ paneId, rect }: { paneId: number; rect: PaneRect }) {
   const zoomState = useMediaViewerZoomStore.storeFor(paneId)();
   const [hovered, setHovered] = useState(false);
 
   useEffect(() => {
     const canvasId = paneId === 0 ? "canvas" : "canvas-" + paneId;
-    function handleMove(e) {
+    function handleMove(e: MouseEvent) {
       const canvasEl = document.getElementById(canvasId);
       if (!canvasEl) return;
       const r = canvasEl.getBoundingClientRect();
