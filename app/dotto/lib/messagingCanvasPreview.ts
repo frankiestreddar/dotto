@@ -80,6 +80,23 @@ export interface Item {
   stackSourceRows?: Record<string, unknown[]>;
   shelfName?: string;
   shelfSelectedId?: string;
+  // GameOptionsPanel/FlashcardCard/TypeRightCard.tsx — gamesFlashcardTyperight.ts's own local
+  // (unexported) Item interface declares the equivalent fields; these components cast to that
+  // stricter type at each call site (via Parameters<typeof fn>[0]) rather than this file importing
+  // and re-exposing it.
+  gameConfig?: unknown;
+  gameHeaders?: string[];
+  fcMode?: string;
+  trMode?: string;
+  trLastGrade?: string | null;
+  // MediaCard.tsx — mediaPdfEpub.ts's own local Item interface has the equivalent fields (mostly
+  // already declared above); mediaUploading is the one addition it alone needs.
+  mediaUploading?: boolean;
+  // TableCard.tsx — sourceTable.ts's own local Item interface has the equivalent fields.
+  mergedCells?: { r1: number; c1: number; r2: number; c2: number }[];
+  colWidths?: number[];
+  rowHeights?: number[];
+  textAlign?: string;
   [key: string]: unknown;
 }
 interface FolderObj {

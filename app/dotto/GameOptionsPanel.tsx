@@ -8,6 +8,11 @@ import {
   removeGameColumnSlot,
   setGameColumnSlot,
 } from "./lib/gamesFlashcardTyperight";
+import type { Item } from "./lib/messagingCanvasPreview";
+
+type GameItem = Parameters<typeof colHasAnyCloze>[0];
+type GameSlot = ReturnType<typeof normalizeGameSlot>;
+type CardRow = NonNullable<GameItem["cards"]>[number];
 
 // Ported from the old renderGameOptionsHTML — a separate, still-string-building copy of that
 // function now lives internally in app/dotto/lib/gamesFlashcardTyperight.ts (Phase 4.4), kept
@@ -15,7 +20,7 @@ import {
 // depend on it for app/dotto/lib/messagingCanvasPreview.ts's mini previews, which build a real
 // HTML string rather than mounting this component (see PHASE2_ROADMAP.md's Game options/cloze
 // entry). Shared by
-// FlashcardCard.jsx and TypeRightCard.jsx, same as the vanilla version was shared by both kinds'
+// FlashcardCard.tsx and TypeRightCard.tsx, same as the vanilla version was shared by both kinds'
 // own render functions.
 //
 // cellContentType/colHasAnyCloze/normalizeGameSlot/setGameColumnSlot/addGameColumnSlot/
@@ -23,7 +28,13 @@ import {
 // implementation (app/dotto/lib/gamesFlashcardTyperight.ts) live in the same app/dotto/ tree — the
 // window.__cellContentType/etc bridges these previously went through (cards-misc.js established
 // the pattern) still exist too, only because still-vanilla callers elsewhere need them.
-function optionsForSlot(it, colCount, headers, slot) {
+//
+// `it`'s prop type across this file is GameItem — gamesFlashcardTyperight.ts's own local,
+// unexported Item interface, inferred via Parameters<typeof fn>[0] rather than exporting/importing
+// it by name — every field this component reads is already declared on the shared, looser Item
+// type (messagingCanvasPreview.ts) too, so callers pass a plain Item straight through with no cast
+// needed at the JSX call site (see FlashcardCard.tsx/TypeRightCard.tsx).
+function optionsForSlot(it: GameItem, colCount: number, headers: string[], slot: GameSlot) {
   const options = [];
   for (let i = 0; i < colCount; i++) {
     const name = headers[i] || `Column ${i + 1}`;
@@ -44,7 +55,23 @@ function optionsForSlot(it, colCount, headers, slot) {
   return options;
 }
 
-function GameOptionsSide({ it, label, side, slots, colCount, headers, sampleRow }) {
+function GameOptionsSide({
+  it,
+  label,
+  side,
+  slots,
+  colCount,
+  headers,
+  sampleRow,
+}: {
+  it: GameItem;
+  label: string;
+  side: "front" | "back";
+  slots: GameSlot[];
+  colCount: number;
+  headers: string[];
+  sampleRow: CardRow | undefined;
+}) {
   return (
     <div className="game-options-side">
       <div className="game-options-side-label">{label}</div>
@@ -95,9 +122,10 @@ function GameOptionsSide({ it, label, side, slots, colCount, headers, sampleRow 
   );
 }
 
-export default function GameOptionsPanel({ it }) {
-  const headers = it.gameHeaders || [];
-  const sampleRow = it.cards && it.cards[0];
+export default function GameOptionsPanel({ it }: { it: Item }) {
+  const gameIt = it as unknown as GameItem;
+  const headers = gameIt.gameHeaders || [];
+  const sampleRow = gameIt.cards && gameIt.cards[0];
   const colCount = headers.length || (sampleRow && sampleRow.cells ? sampleRow.cells.length : 0);
 
   if (!colCount) {
@@ -109,14 +137,14 @@ export default function GameOptionsPanel({ it }) {
     );
   }
 
-  const cfg = it.gameConfig || {};
+  const cfg = gameIt.gameConfig || ({} as NonNullable<GameItem["gameConfig"]>);
   const frontCols = (
-    cfg.frontCols && cfg.frontCols.length ? cfg.frontCols : [{ col: 0, mode: "plain" }]
+    cfg.frontCols && cfg.frontCols.length ? cfg.frontCols : [{ col: 0, mode: "plain" as const }]
   ).map(normalizeGameSlot);
   const backCols = (
     cfg.backCols && cfg.backCols.length
       ? cfg.backCols
-      : [{ col: colCount > 1 ? 1 : 0, mode: "plain" }]
+      : [{ col: colCount > 1 ? 1 : 0, mode: "plain" as const }]
   ).map(normalizeGameSlot);
 
   return (
@@ -124,7 +152,7 @@ export default function GameOptionsPanel({ it }) {
       <div className="game-options-head">Options</div>
       <div className="game-options-body">
         <GameOptionsSide
-          it={it}
+          it={gameIt}
           label="Front"
           side="front"
           slots={frontCols}
@@ -133,7 +161,7 @@ export default function GameOptionsPanel({ it }) {
           sampleRow={sampleRow}
         />
         <GameOptionsSide
-          it={it}
+          it={gameIt}
           label="Back"
           side="back"
           slots={backCols}

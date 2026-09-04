@@ -3,6 +3,7 @@
 import { useLayoutEffect, useRef } from "react";
 import { setupResizing } from "./canvasItemBehavior";
 import { buildEpubViewer, buildPdfViewer, renderMediaHTML } from "./lib/mediaPdfEpub";
+import type { Item } from "./lib/messagingCanvasPreview";
 
 // Ported from the old inline media branch in renderLegacyCardBody (public/dotto/waypoints-render-
 // loop.js, logic itself now in app/dotto/lib/mediaPdfEpub.ts, Phase 4.4 — reached here as real ES
@@ -25,24 +26,32 @@ import { buildEpubViewer, buildPdfViewer, renderMediaHTML } from "./lib/mediaPdf
 // describe WHAT to render change, not on every unrelated render() call (same reasoning as the
 // Shelf/stopwatch-tick fix — without this, a running Stopwatch elsewhere on the canvas would tear
 // down and rebuild every PDF card once a second).
-export default function MediaCard({ it, paneId }) {
-  const mountRef = useRef(null);
+//
+// buildPdfViewer/buildEpubViewer/renderMediaHTML take mediaPdfEpub.ts's own local (unexported)
+// Item interface — every field it declares is already on the shared, looser Item type
+// (messagingCanvasPreview.ts) too, so `it` is cast once via Parameters<typeof fn>[0] rather than
+// per call.
+type MediaItem = Parameters<typeof renderMediaHTML>[0];
+
+export default function MediaCard({ it, paneId }: { it: Item; paneId?: number }) {
+  const mountRef = useRef<HTMLDivElement>(null);
+  const mediaIt = it as unknown as MediaItem;
 
   useLayoutEffect(() => {
     const mount = mountRef.current;
     if (!mount) return;
     mount.innerHTML = "";
     if (it.mediaSrc && it.mediaType === "pdf") {
-      mount.appendChild(buildPdfViewer(it));
+      mount.appendChild(buildPdfViewer(mediaIt));
     } else if (it.mediaSrc && it.mediaType === "epub") {
-      mount.appendChild(buildEpubViewer(it));
+      mount.appendChild(buildEpubViewer(mediaIt));
     } else {
-      mount.innerHTML = renderMediaHTML(it);
+      mount.innerHTML = renderMediaHTML(mediaIt);
       // A no-op until there's real content to resize (the empty/uploading states have no .resize
       // handle yet — see setupResizing's own early return). `el`, not `mount` — setupResizing
       // reads/writes el.style.width/height and el.offsetWidth/Height directly, so it needs the
       // actual sized .item wrapper, not this unstyled mount point.
-      const el = window.__findItemEl(it.id, paneId);
+      const el = window.__findItemEl!(it.id, paneId);
       if (el) setupResizing(el, it);
     }
     // `it` itself (not just the fields below) is deliberately left out of the deps list — this

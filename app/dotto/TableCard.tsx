@@ -12,6 +12,7 @@ import {
 } from "./lib/sourceTable";
 import { placeCaretEnd } from "./lib/canvasPresence";
 import { setupTableGridResizing } from "./lib/tableGridResize";
+import type { Item } from "./lib/messagingCanvasPreview";
 
 // Ported from the old renderTableHTML (now app/dotto/lib/sourceTable.ts, Phase 4.4 — reached here
 // as real ES imports since both files live in the same app/dotto/ tree; the window bridges/plain
@@ -46,13 +47,13 @@ import { setupTableGridResizing } from "./lib/tableGridResize";
 // drag that starts with a same-tick setTimeout race never re-focuses the cell right after the
 // blur above already fired.
 const TABLE_CELL_DRAG_THRESHOLD_PX = 4;
-function handleCellMouseDown(e) {
+function handleCellMouseDown(e: React.MouseEvent<HTMLTableCellElement>) {
   const el = e.currentTarget;
   const wasFocused = document.activeElement === el;
   const downX = e.clientX,
     downY = e.clientY;
   let dragDetected = false;
-  const onMove = (me) => {
+  const onMove = (me: MouseEvent) => {
     if (dragDetected) return;
     if (Math.hypot(me.clientX - downX, me.clientY - downY) > TABLE_CELL_DRAG_THRESHOLD_PX) {
       dragDetected = true;
@@ -73,13 +74,26 @@ function handleCellMouseDown(e) {
   }
 }
 
+interface MergeRegion {
+  r1: number;
+  c1: number;
+  r2: number;
+  c2: number;
+}
+
 // it.mergedCells is a flat list of {r1,c1,r2,c2} rectangular regions (see mergeTableCells,
 // app/dotto/lib/sourceTable.ts) — a plain, still-unmerged cell has no entry of its own here at all. Builds a
 // full numRows x numCols lookup, one entry per grid position pointing at whichever region (real
 // or, for an unmerged cell, the trivial 1x1 region matching just itself) actually covers it, so
 // the render loop below never has to re-search the list per cell.
-function computeMergeGrid(mergedCells, numRows, numCols) {
-  const grid = Array.from({ length: numRows }, () => new Array(numCols).fill(null));
+function computeMergeGrid(
+  mergedCells: MergeRegion[] | undefined,
+  numRows: number,
+  numCols: number,
+): MergeRegion[][] {
+  const grid: (MergeRegion | null)[][] = Array.from({ length: numRows }, () =>
+    new Array(numCols).fill(null),
+  );
   (mergedCells || []).forEach((region) => {
     for (let r = region.r1; r <= region.r2; r++) {
       for (let c = region.c1; c <= region.c2; c++) {
@@ -92,26 +106,34 @@ function computeMergeGrid(mergedCells, numRows, numCols) {
       if (!grid[r][c]) grid[r][c] = { r1: r, c1: c, r2: r, c2: c };
     }
   }
-  return grid;
+  return grid as MergeRegion[][];
 }
+
+// distributeTableSizing/setupTableGridResizing take sourceTable.ts's/tableGridResize.ts's own
+// local Item/TableItem interfaces — every field they declare is already on the shared, looser
+// Item type too, so `it` is cast once via Parameters<typeof fn>[0] at each of their two call
+// sites below.
+type SourceTableItem = Parameters<typeof distributeTableSizing>[0];
+type GridResizeTableItem = Parameters<typeof setupTableGridResizing>[1];
 
 // userSized's wrapper class + distributeTableSizing, and setupResizing/setupTableGridResizing,
 // all need the wrapper element this component doesn't itself own — reached via
 // window.__findItemEl(it.id, paneId) each render, same technique TitleCard/NoteCard use.
-export default function TableCard({ it, paneId }) {
+export default function TableCard({ it, paneId }: { it: Item; paneId?: number }) {
   useLayoutEffect(() => {
-    const el = window.__findItemEl(it.id, paneId);
+    const el = window.__findItemEl!(it.id, paneId);
     if (!el) return;
     if (it.userSized) {
       el.classList.add("sized");
-      requestAnimationFrame(() => distributeTableSizing(it, el));
+      requestAnimationFrame(() => distributeTableSizing(it as unknown as SourceTableItem, el));
     }
     setupResizing(el, it);
-    setupTableGridResizing(el, it);
+    setupTableGridResizing(el, it as unknown as GridResizeTableItem);
   });
 
-  const numCols = it.tableData[0].length;
-  const numRows = it.tableData.length;
+  const tableData = it.tableData!;
+  const numCols = tableData[0].length;
+  const numRows = tableData.length;
   // Falls back to an even split whenever there's no real per-column customization yet, or the
   // column count has since changed (adding/removing a column just resets the split rather than
   // trying to preserve old customization across it) — same fallback shape distributeTableSizing
@@ -131,9 +153,9 @@ export default function TableCard({ it, paneId }) {
   // divider, one fewer than the column/row count since the very last column/row has no divider
   // of its own past its trailing edge.
   let colAcc = 0;
-  const colDividerLefts = colWidths.slice(0, -1).map((w) => (colAcc += w));
+  const colDividerLefts = colWidths.slice(0, -1).map((w: number) => (colAcc += w));
   let rowAcc = 0;
-  const rowDividerTops = rowHeights.slice(0, -1).map((h) => (rowAcc += h));
+  const rowDividerTops = rowHeights.slice(0, -1).map((h: number) => (rowAcc += h));
   const mergeGrid = computeMergeGrid(it.mergedCells, numRows, numCols);
   // colLefts[i]/rowTops[i] is the left/top edge of column/row i as a % of the table's own box
   // (colLefts[numCols]/rowTops[numRows] is the table's own right/bottom edge, 100) — a superset
@@ -149,8 +171,14 @@ export default function TableCard({ it, paneId }) {
   // computeMergeGrid). Merge-edge overlays (rendered as siblings of <table> further below, same
   // reasoning as the divider handles) are collected into this flat list as a side effect of the
   // same pass, rather than a second walk over the grid.
-  const mergeEdges = [];
-  const rows = it.tableData.map((row, ri) => (
+  interface MergeEdge {
+    key: string;
+    className: string;
+    style: React.CSSProperties;
+    onClick: () => void;
+  }
+  const mergeEdges: MergeEdge[] = [];
+  const rows = tableData.map((row, ri) => (
     <tr key={ri}>
       {row.map((cell, ci) => {
         const region = mergeGrid[ri][ci];
@@ -197,14 +225,14 @@ export default function TableCard({ it, paneId }) {
             colSpan={colSpan > 1 ? colSpan : undefined}
             onMouseDown={handleCellMouseDown}
             onInput={(e) => updateTableCell(it.id, ri, ci, e.currentTarget)}
-            onKeyDown={(e) => handleTableKeydown(e, it.id, ri, ci)}
+            onKeyDown={(e) => handleTableKeydown(e.nativeEvent, it.id, ri, ci)}
             onFocus={() =>
-              window.broadcastEditingState(
+              window.broadcastEditingState!(
                 true,
-                `#${window.__itemElId(it.id, paneId)} td[data-r="${ri}"][data-c="${ci}"]`,
+                `#${window.__itemElId!(it.id, paneId)} td[data-r="${ri}"][data-c="${ci}"]`,
               )
             }
-            onBlur={() => window.broadcastEditingState(false)}
+            onBlur={() => window.broadcastEditingState!(false)}
             dangerouslySetInnerHTML={{ __html: cell }}
           />
         );
@@ -214,13 +242,16 @@ export default function TableCard({ it, paneId }) {
 
   return (
     <>
-      <div className="static-table-wrap" style={{ "--cell-align": it.textAlign || "left" }}>
+      <div
+        className="static-table-wrap"
+        style={{ ["--cell-align" as string]: it.textAlign || "left" } as React.CSSProperties}
+      >
         <div className="static-table-row">
           <div className="table-rounded">
             <table className="item-table">
               {it.userSized && (
                 <colgroup>
-                  {it.tableData[0].map((_, ci) => (
+                  {tableData[0].map((_, ci) => (
                     <col key={ci} style={{ width: colWidths[ci] + "%" }} />
                   ))}
                 </colgroup>
@@ -252,7 +283,7 @@ export default function TableCard({ it, paneId }) {
                 which still resizes the WHOLE table. Wired up in the effect above
                 (setupTableGridResizing), not inline here, same split as .resize itself. */}
             {it.userSized &&
-              colDividerLefts.map((leftPct, i) => (
+              colDividerLefts.map((leftPct: number, i: number) => (
                 <div
                   key={"cd" + i}
                   className="table-col-resize-handle"
@@ -260,7 +291,7 @@ export default function TableCard({ it, paneId }) {
                 />
               ))}
             {it.userSized &&
-              rowDividerTops.map((topPct, i) => (
+              rowDividerTops.map((topPct: number, i: number) => (
                 <div
                   key={"rd" + i}
                   className="table-row-resize-handle"

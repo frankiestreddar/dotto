@@ -12,6 +12,7 @@ import {
   renderGameFaceBlocksHTML,
   resolveGameFace,
 } from "./lib/gamesFlashcardTyperight";
+import type { Item } from "./lib/messagingCanvasPreview";
 
 // Ported from the old renderFlashcardHTML — the underlying game logic + SM-2 scoring
 // (fcFlip/fcRate/fcToggleMode/fcPlayableCards/etc.) now lives in
@@ -34,8 +35,15 @@ import {
 // diffing instead — it still works correctly (mutate it.fcFlipped in place, any later real render
 // reads the current value, same reasoning as the rest of this migration), and changing it isn't
 // this PR's job.
-export default function FlashcardCard({ it }) {
-  const ref = useRef(null);
+//
+// `it` is cast to fcPlayableCards' own inferred Item type (gamesFlashcardTyperight.ts's local,
+// unexported interface) once at the top — every field this component reads is already declared on
+// the shared, looser Item type too.
+type GameItem = Parameters<typeof fcPlayableCards>[0];
+
+export default function FlashcardCard({ it }: { it: Item }) {
+  const ref = useRef<HTMLDivElement>(null);
+  const gameIt = it as unknown as GameItem;
 
   useLayoutEffect(() => {
     if (ref.current) setupResizing(ref.current, it);
@@ -43,7 +51,7 @@ export default function FlashcardCard({ it }) {
 
   const title = "Flashcards";
 
-  if (!it.cards || !it.cards.length) {
+  if (!it.cards || !(it.cards as unknown[]).length) {
     return (
       <>
         <div className="item-face">
@@ -59,7 +67,7 @@ export default function FlashcardCard({ it }) {
     );
   }
 
-  const playable = fcPlayableCards(it);
+  const playable = fcPlayableCards(gameIt);
   if (!playable.length) {
     return (
       <>
@@ -76,13 +84,13 @@ export default function FlashcardCard({ it }) {
     );
   }
 
-  const row = fcCurrentRow(it, playable);
+  const row = fcCurrentRow(gameIt, playable);
   const front = row
-    ? renderGameFaceBlocksHTML(resolveGameFace(it, row, "front"))
+    ? renderGameFaceBlocksHTML(resolveGameFace(gameIt, row, "front"))
     : "(no data rows)";
-  const back = row ? renderGameFaceBlocksHTML(resolveGameFace(it, row, "back")) : "";
-  const total = it.fcOrder.length;
-  const pos = total ? it.fcIndex + 1 : 0;
+  const back = row ? renderGameFaceBlocksHTML(resolveGameFace(gameIt, row, "back")) : "";
+  const total = it.fcOrder!.length;
+  const pos = total ? it.fcIndex! + 1 : 0;
 
   return (
     <>

@@ -14,6 +14,7 @@ import {
   trToggleMode,
   trUpdateInput,
 } from "./lib/gamesFlashcardTyperight";
+import type { Item } from "./lib/messagingCanvasPreview";
 
 // Ported from the old renderTypeRightHTML (now app/dotto/lib/gamesFlashcardTyperight.ts, Phase
 // 4.4 — app/dotto/lib/messagingCanvasPreview.ts's mini previews still call it, now via
@@ -21,7 +22,7 @@ import {
 // both files living in the same app/dotto/ tree). window.broadcastEditingState/window.__itemElId
 // below are unrelated to this port — both now belong to app/dotto/lib/canvasPresence.ts and
 // app/dotto/lib/coreState.ts respectively (Phase 4.5). See
-// FlashcardCard.jsx for the general pattern (setupResizing
+// FlashcardCard.tsx for the general pattern (setupResizing
 // (canvasItemBehavior.js) owns the resize handle from this component's own layout effect, safe to
 // call on every render() call — no dependency array, matching every converted kind — because of
 // the AbortController fix that function has).
@@ -32,14 +33,17 @@ import {
 // clear on the same persistent input node. Typing itself never calls render() (trUpdateInput only
 // schedules an autosave, to avoid a render mid-keystroke) — safe either way, per the same "mutate
 // in place, next real render reads current data" reasoning as the rest of this migration.
-export default function TypeRightCard({ it, paneId }) {
-  const ref = useRef(null);
+type GameItem = Parameters<typeof trPlayableCards>[0];
+
+export default function TypeRightCard({ it, paneId }: { it: Item; paneId?: number }) {
+  const ref = useRef<HTMLDivElement>(null);
+  const gameIt = it as unknown as GameItem;
 
   useLayoutEffect(() => {
     if (ref.current) setupResizing(ref.current, it);
   });
 
-  if (!it.cards || !it.cards.length) {
+  if (!it.cards || !(it.cards as unknown[]).length) {
     return (
       <>
         <div className="item-face">
@@ -55,7 +59,7 @@ export default function TypeRightCard({ it, paneId }) {
     );
   }
 
-  const playable = trPlayableCards(it);
+  const playable = trPlayableCards(gameIt);
   if (!playable.length) {
     return (
       <>
@@ -72,13 +76,13 @@ export default function TypeRightCard({ it, paneId }) {
     );
   }
 
-  const card = trCurrentCard(it, playable);
-  const promptHTML = card ? renderGameFaceBlocksHTML(resolveGameFace(it, card, "front")) : "";
-  const total = it.trOrder.length;
-  const pos = total ? it.trIndex + 1 : 0;
+  const card = trCurrentCard(gameIt, playable);
+  const promptHTML = card ? renderGameFaceBlocksHTML(resolveGameFace(gameIt, card, "front")) : "";
+  const total = it.trOrder!.length;
+  const pos = total ? it.trIndex! + 1 : 0;
   const checked = !!it.trChecked;
   const correctAnswer = card
-    ? resolveGameFace(it, card, "back")
+    ? resolveGameFace(gameIt, card, "back")
         .map((b) => b.text)
         .join(" ")
     : "";
@@ -124,9 +128,9 @@ export default function TypeRightCard({ it, paneId }) {
               }
             }}
             onFocus={() =>
-              window.broadcastEditingState(true, `#${window.__itemElId(it.id, paneId)} .tr-input`)
+              window.broadcastEditingState!(true, `#${window.__itemElId!(it.id, paneId)} .tr-input`)
             }
-            onBlur={() => window.broadcastEditingState(false)}
+            onBlur={() => window.broadcastEditingState!(false)}
             disabled={checked}
           />
           {checked ? (
