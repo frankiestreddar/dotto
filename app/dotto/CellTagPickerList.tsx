@@ -3,6 +3,7 @@
 import { useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
 import { useCellTagPickerListStore } from "./lib/cellTagPickerListStore";
+import type { CellTagPickerRow } from "./lib/cellTagPickerListStore";
 import {
   commitTagRename,
   handleTagRenameKeydown,
@@ -11,8 +12,8 @@ import {
 } from "./lib/sourceTagsAi";
 import usePortalNode from "./usePortalNode";
 
-function TagRow({ row, id, r }) {
-  const inputRef = useRef(null);
+function TagRow({ row, id, r }: { row: CellTagPickerRow; id: number | null; r: number | null }) {
+  const inputRef = useRef<HTMLInputElement>(null);
   useEffect(() => {
     if (row.renaming && inputRef.current) {
       inputRef.current.focus();
@@ -44,8 +45,8 @@ function TagRow({ row, id, r }) {
     <div
       className={"cell-tag-picker-row" + (row.selected ? " selected" : "")}
       data-tag-id={row.tagId}
-      onClick={() => toggleCellTag(id, r, row.tagId)}
-      onContextMenu={(e) => openTagContextMenu(e, row.tagId)}
+      onClick={() => toggleCellTag(id!, r!, row.tagId)}
+      onContextMenu={(e) => openTagContextMenu(e.nativeEvent, row.tagId)}
     >
       <span className="tag-swatch" style={{ background: row.color }} />
       <span className="tag-picker-name">{row.name}</span>
