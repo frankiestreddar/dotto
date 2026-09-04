@@ -1400,11 +1400,111 @@
   specifically to prove the redesigned pane-keyed factory produces genuinely independent per-pane
   state. Regression-checked every earlier batch's own verify script whenever a later batch touched
   a shared producer file. Zero console/page errors across all 10 batches.
-- **Phase 4.7 — final cleanup & professionalization close-out: not started.**
+- **Phase 4.7 — final cleanup & professionalization close-out: DONE.** 33 batches, the closing
+  phase of the whole Phase 4 effort — see `foamy-greeting-puddle.md`'s own research/approach
+  sections for the full pre-work (the measured `.jsx`/`.js` inventory, the strictness-gap
+  measurements, the e2e curation rationale) that scoped this phase before it started.
+
+  **Foundation track (batches 1-6, 25 files)**: every remaining repo-root `lib/`/Next.js-special
+  file converted to real `.ts`/`.tsx` — Supabase client setup (`lib/supabase/{client,server}.ts`)
+  plus a real generated `lib/supabase/database.types.ts` (unlocking real query types for every
+  Supabase-touching file converted after it); auth core (`lib/auth.ts`, `proxy.ts`, the
+  `(auth)`/`auth/callback` routes); the Dotbot backend (`lib/{groq,huggingface,edgeTts,dotbot}.ts`
+  and every `app/api/dotbot/*/route.ts`, `orchestrate` isolated on its own given its size);
+  `lib/leveling.ts` + root pages (`app/page.tsx`, `app/layout.tsx`); `app/avatar-setup/page.tsx`.
+
+  **`app/dotto/` component track (batches 7-24, 78 files)**: every remaining `.jsx` component plus
+  `usePortalNode.ts` and `canvasItemBehavior.ts` converted, sequenced by risk/dependency (leaf
+  primitives and markup shells first, mirroring the earlier Zustand migration's own batch order
+  where the subsystems overlapped) — foundational primitives and markup shells; `Avatar.tsx` early
+  given its 7 later importers; contentEditable field pairs; the overlay/toolbar pair; the 6
+  search-dropdown result panels; the live chat/command/search core; the 6 hamburger list panels;
+  the profile panel; collab/messaging; marketplace/blocks/extensions; the cell tag picker; all 18
+  canvas card kinds across 3 risk tiers, `CanvasItemsLayer.tsx` converted last within that arc once
+  every card it dispatches to was already real TypeScript; `PaneTopBar.tsx`/`PaneZoomBar.tsx`;
+  `canvasItemBehavior.ts` (1,251 lines, the single largest file in the migration); and, as the
+  batch-24 finale (highest risk in the whole component track, mirroring the earlier Zustand
+  migration's own final batch), `PaneGrid.tsx`/`PaneCanvasArea.tsx`/`TabsBar.tsx` (575 lines) and
+  `dotto-app.tsx` (648 lines, the root — converted absolute last). Every conversion preserved logic
+  byte-for-byte; the one real, confirmed pre-existing behavior noted along the way (not fixed, out
+  of scope for a typing pass) was `dotto-app.tsx`'s own `document.title` effect genuinely firing
+  but Next.js App Router's metadata-managed `<title>` reconciling over it — byte-identical to the
+  original file, not a regression.
+
+  **Batch 25 — `checkJs` + a strict subset + `ARCHITECTURE.md`**: `checkJs`, `strictNullChecks`,
+  and `noImplicitAny` enabled (a deliberate subset of full `strict: true` — the plan's own
+  measurement found the gap to full strict was concentrated in ~51 mechanical
+  `strictFunctionTypes` cases across `vanillaBridges.d.ts`'s bridge signatures, not worth bundling
+  into this phase's own close-out). Measured 19 real errors with the flags on — fixed individually,
+  no suppressions: a `.find()`/`.some()` pair simplified to one optional-chained read; two Supabase
+  RPC params narrowed from `null` to `undefined` at their call sites; a bridge's `paneId` param
+  correctly made non-optional to match its only real caller; two getter bridges' return values
+  correctly asserted non-null (their own guaranteed-mounted-by-call-time invariant, not the
+  function's own existence, which the original single `!` only covered); two structurally-
+  identical local `Item` interfaces reconciled (`w`/`h` widened to `number | null` to match the
+  more permissive, correct one); a stale bridge return type corrected to match its real
+  implementation; a `noImplicitAny` self-referencing loop variable given an explicit annotation;
+  two optional fields defaulted/asserted at their one real call site; a stored nullable value
+  converted to `undefined` at its one real consumer (previously a latent crash risk for a literal
+  `null` input, now a safe no-op); a prop cast at its one real construction site (Supabase's own
+  `User.email` typed optional for phone-only auth this app doesn't use). `ARCHITECTURE.md` added,
+  describing the codebase's final shape without duplicating `CONTRIBUTING.md`'s own conventions.
+
+  **Batches 26-31 — 6 curated e2e batches, 14 new permanent specs**: `.claude-testing/`'s 54
+  gitignored ad-hoc scripts curated down to the evergreen core flows worth promoting to
+  `e2e/authenticated/*.spec.ts` with real hard assertions (`e2e/authenticated/helpers.ts` factors
+  out the shared setup every spec needs — `goToRoot`/`waitForAppReady`/`panToFreshSpace`/
+  `placeItem`/`removeItem`/`getAppState`). Batch A: canvas core (drag/resize/connections). Batch B:
+  navigation (the outline panel, the permanent rail's shared open/close contract). Batch C: the
+  source table's hover-zone geometry + add-row/column click-through, plus draw-toolbar/zoom-track
+  shortcuts. Batch D: the Dotbot search UI's CI-safe slice (slash commands, "Add to..." — live
+  AI-suggestion and real-Enter-submission checks deliberately excluded, since CI's own e2e job runs
+  with `GROQ_API_KEY`/`HUGGINGFACE_API_KEY` set to the literal string `"placeholder"`). Batch E:
+  marketplace (purchase excluded — real Supabase writes) and media (a real image Link-flow, a real
+  PNG upload, and a real PDF upload through Supabase Storage into a real pdf.js render, using two
+  new committed fixture files since the original scripts' own fixture paths pointed at
+  now-deleted, session-scoped scratchpads). Batch F: the redesigned pane-keyed Zustand factory with
+  a genuinely independent second pane, and the single-account-testable slice of the friends/
+  collaboration UI (the real cross-account friend-request/presence/AFK flow excluded — CI only has
+  secrets for one test account, and promoting it would need a second dedicated account provisioned
+  on the same test project plus new CI secrets, real infrastructure work outside a code change).
+
+  Converting these from "run and eyeball the console output" to real hard assertions surfaced
+  genuine, previously-uncaught bugs the old scripts' looser style had papered over: (1) a quick tap
+  of the D key stuck cursor mode to `"pen"` instead of `"data"` (`sourceButtonsCursorMode.ts`) —
+  every other key's tap-to-stick target matched its own hold-override target except this one; (2)
+  the outline panel's `preserveState` was dead code on every real user-facing path — both real call
+  sites (`panelsHamburger.ts`'s rail-icon wiring and `outlineTree.ts`'s keyboard-shortcut path)
+  silently dropped the `pin` parameter `openRailView` passes them; (3) `#search-command-palette`
+  (`globals.css`) never actually grew its parent dropdown open on screen — its own `overflow-y:
+  auto` gave it an automatic flex `min-height: 0`, so the dropdown's `scrollHeight`-based
+  grow-transition measurement always read it as 0-height even though its rows existed correctly in
+  the DOM, fixed with `flex-shrink: 0`. Also fixed: a stale `__renderCollabPill` bridge type
+  (declared with zero params; its real implementation takes an optional `paneId`); a Playwright
+  config gap where the project's own viewport silently fell back to `devices["Desktop Chrome"]`'s
+  1280×720 default instead of the 1440×900 this app's whole migration history was actually verified
+  against (narrow enough that the mode-toolbar visually overlapped and intercepted rail-icon
+  clicks); and a real cross-spec race, since every `e2e/authenticated/` spec shares one persisted
+  backend account — `workers` is now unconditionally 1, not CI-only. Also discovered, and
+  explicitly left alone as out-of-scope infrastructure rather than "fixed" via a code change: the
+  dedicated `dotto-test` Supabase project is missing `GRANT SELECT/INSERT/UPDATE` on
+  `public.workspaces`/`public.friendships`/`public.canvas_collaborations` for the `authenticated`
+  role, which silently no-ops workspace persistence on that project (Storage's own permission model
+  is unaffected — the real PDF-upload-to-Storage flow in batch E worked correctly).
+
+  **Batch 32 — `QA_CHECKLIST.md` disposition**: its stale "CI catches nothing on this list" framing
+  corrected (CI now runs the full 47-test e2e suite above, plus lint/typecheck/format/Vitest/build)
+  without retiring the document — every line with genuine, substantial e2e coverage annotated with
+  which spec covers it and, just as importantly, what it still doesn't, rather than being checked
+  off or trimmed (an automated spec passing isn't the same claim as a human having walked the full
+  feature).
+
+  **Batch 33 — this entry**: `PHASE2_ROADMAP.md` archived to `docs/archive/`, its cross-references
+  fixed in `QA_CHECKLIST.md`'s header, this section, and the "Decisions locked in" section below.
 
 ## Why this phase exists
 
-Phases 1-3 (see `PHASE2_ROADMAP.md`, archived once this phase completes) deliberately left a
+Phases 1-3 (see `docs/archive/PHASE2_ROADMAP.md`) deliberately left a
 hybrid architecture in place: `public/dotto/*.js` (43 vanilla ES modules, ~16,200 lines) bridged to
 `app/dotto/*.jsx` (63 React components, ~4,800 lines) via a hand-rolled `window.__*` global-bridge
 convention (`app/dotto/bridges.js`'s `createStore()`). `CONTRIBUTING.md` always described this as
@@ -1446,9 +1546,9 @@ phase below leaves the app fully working and shippable at every commit boundary 
   `e2e/*.spec.ts` as part of whichever later phase covers that subsystem. `QA_CHECKLIST.md` gets
   trimmed continuously as e2e coverage lands per line; final disposition decided in Phase 4.7.
 - **Docs**: this file is the live tracker. `ARCHITECTURE.md`, `.env.example` (done, see below),
-  `lib/supabase/database.types.ts` get added. `PHASE2_ROADMAP.md` archives to `docs/archive/` once
-  this phase closes. `INLINE_HANDLER_CHECKLIST.md` deletes once `window-bridge.js` is gone (4.6).
-  `CONTRIBUTING.md`/`README.md` architecture sections rewritten as the closing task of 4.6.
+  `lib/supabase/database.types.ts` get added (both done, 4.7). `PHASE2_ROADMAP.md` archived to
+  `docs/archive/` (4.7). `INLINE_HANDLER_CHECKLIST.md` deletes once `window-bridge.js` is gone
+  (4.6). `CONTRIBUTING.md`/`README.md` architecture sections rewritten as the closing task of 4.6.
 - Prettier + `eslint-config-prettier` added for consistent formatting (Phase 4.0).
 
 ## Phase 4.0 checklist

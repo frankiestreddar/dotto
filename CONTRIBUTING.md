@@ -11,7 +11,7 @@ The app is one cohesive React + TypeScript codebase under `app/dotto/`:
 - **`app/dotto/lib/*.ts`** — plain TypeScript modules holding the app's behavior and logic: canvas
   rendering, drag/resize/select, connections, live collaboration, the Source database page, and
   more. `app/dotto/lib/coreState.ts` owns the `appState` singleton these mostly read/mutate.
-- **`app/dotto/*.jsx`** — real React components, one per subsystem (overlays, dropdown panels,
+- **`app/dotto/*.tsx`** — real React components, one per subsystem (overlays, dropdown panels,
   list panels, every canvas card kind). Most portal into an *existing* static DOM node from
   `content/fragments/*.html` rather than owning new markup — a holdover from when that markup was
   hand-authored HTML the vanilla layer built around, kept because it still works and there's no
@@ -38,7 +38,7 @@ hub-accessor and inline-`onclick`-target categories are not** — see "A note on
 itself" below.
 
 Practically, today:
-- **When adding a new same-tree caller** (an `app/dotto/lib/*.ts` or `app/dotto/*.jsx` file that
+- **When adding a new same-tree caller** (an `app/dotto/lib/*.ts` or `app/dotto/*.tsx` file that
   needs something from another file in the same tree, with no real circularity), **import it
   directly.** Don't reach for a new `window.__*` bridge just because that used to be the pattern —
   a plain `import` is simpler, type-checked, and the standing direction of travel. If you're
@@ -90,7 +90,7 @@ in this codebase — see `PHASE4_ROADMAP.md`):
   behaves.
 - **Continuous pointer-driven pixel math** (drag, resize, connection-dragging, hover-zone
   geometry) — already lives as component-local imperative code with ref-based escape hatches
-  (`canvasItemBehavior.js` is the reference example, see below) — extending it in place, not
+  (`canvasItemBehavior.ts` is the reference example, see below) — extending it in place, not
   bridging it further apart, is the right move here.
 - **No natural content-parameter boundary** (the hamburger menu's Outline panel was the standing
   example before its own Phase 4.4 port) — needs an actual design pass for what its owned state
@@ -98,10 +98,10 @@ in this codebase — see `PHASE4_ROADMAP.md`):
 
 ## Writing imperative canvas code safely
 
-`setupDraggingAndClicking`/`setupResizing` (`app/dotto/canvasItemBehavior.js`) are the reference
+`setupDraggingAndClicking`/`setupResizing` (`app/dotto/canvasItemBehavior.ts`) are the reference
 example for writing imperative code that operates on React-owned DOM nodes safely: they use
 `AbortController`-based idempotent re-registration (`el.__dragListenerAbort = new
-AbortController()`) so `CanvasItemsLayer.jsx`'s layout effect can safely re-run them on every
+AbortController()`) so `CanvasItemsLayer.tsx`'s layout effect can safely re-run them on every
 render without leaking listeners. Copy that pattern if you're wiring new imperative behavior onto
 `#items-layer`'s cards.
 
