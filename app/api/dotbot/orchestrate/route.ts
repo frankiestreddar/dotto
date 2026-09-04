@@ -417,9 +417,7 @@ function buildPanels(
   // sanitizeInlineMarkers.
   const markerContext: MarkerContext = {
     dictEntryCount: entries.length,
-    exampleCount: panels.some((p) => p.type === "examples")
-      ? panels.find((p) => p.type === "examples").sentences.length
-      : 0,
+    exampleCount: panels.find((p) => p.type === "examples")?.sentences.length ?? 0,
     hasTranslation: panels.some((p) => p.type === "translation"),
   };
 
@@ -690,10 +688,10 @@ export async function POST(request: NextRequest) {
       p_title: query.trim().slice(0, 80),
       p_user_content: { query: query.trim() },
       p_assistant_content: panels,
-      p_conversation_summary: conversationSummary,
+      p_conversation_summary: conversationSummary ?? undefined,
     }),
     isProOrPolyglot && userMemoryUpdate && userMemoryUpdate !== existingMemory
-      ? supabase.rpc("update_dotbot_memory", { p_memory: userMemoryUpdate })
+      ? supabase.rpc("update_dotbot_memory", { p_memory: userMemoryUpdate ?? undefined })
       : Promise.resolve({ error: null }),
   ]);
   if (persistError) {

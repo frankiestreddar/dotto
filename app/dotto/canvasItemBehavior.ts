@@ -60,8 +60,8 @@ interface Item {
   kind: string;
   x: number;
   y: number;
-  w?: number;
-  h?: number;
+  w?: number | null;
+  h?: number | null;
   folderId?: string;
   zIndex?: number;
   userSized?: boolean;
@@ -319,8 +319,8 @@ export function setupDraggingAndClicking(el: HTMLElement, it: Item): void {
     "pointerdown",
     (e: PointerEvent) => {
       const appState = getAppState();
-      const canvas = window.__getCanvasEl!();
-      const world = window.__getWorldEl!();
+      const canvas = window.__getCanvasEl!()!;
+      const world = window.__getWorldEl!()!;
       const target = e.target as HTMLElement;
       // The game-options panel's own controls (esp. the column-picker <select>s) must never
       // start a card drag — the .game-options-row/.game-options-slot elements' own
@@ -798,8 +798,8 @@ export function renderConnectionsLayer(folderObj: FolderObj, currentItems: Item[
 function startConnectionDrag(e: PointerEvent, it: Item, el: HTMLElement): void {
   saveSnapshot();
   const appState = getAppState();
-  const canvas = window.__getCanvasEl!();
-  const world = window.__getWorldEl!();
+  const canvas = window.__getCanvasEl!()!;
+  const world = window.__getWorldEl!()!;
   const downX = e.clientX,
     downY = e.clientY;
   let moved = false;

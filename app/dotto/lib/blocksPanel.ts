@@ -452,7 +452,7 @@ export function setupContentItemDrag(div: HTMLElement, row: ContentItemRow): () 
         ue.clientY >= canvasRect.top &&
         ue.clientY <= canvasRect.bottom;
       if (overCanvas) {
-        window.__importSharedCardsAtScreenPoint?.(item.nodes, ue.clientX, ue.clientY);
+        window.__importSharedCardsAtScreenPoint?.(item.nodes ?? [], ue.clientX, ue.clientY);
         window.__closeRailView?.();
       }
     };

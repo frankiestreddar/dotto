@@ -57,7 +57,7 @@ function buildAncestorChain(folderId: string): string[] {
   const chain = [folderId];
   let id: string | undefined = folderId;
   while (true) {
-    const parent = window.__findParentFolderId?.(id as string);
+    const parent: string | null | undefined = window.__findParentFolderId?.(id as string);
     if (!parent) break;
     chain.unshift(parent);
     id = parent;

@@ -38,7 +38,7 @@ export default function SearchSuggestionsPanel() {
       case "mnemonic-result": {
         const card = buildMnemonicResultCard();
         el.appendChild(card);
-        startMnemonicResultReveal(card, state.content, state.options);
+        startMnemonicResultReveal(card, state.content, state.options ?? undefined);
         break;
       }
       case "mnemonic-loading":

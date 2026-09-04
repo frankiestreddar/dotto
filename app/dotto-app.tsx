@@ -265,7 +265,7 @@ if (typeof window !== "undefined") {
   // body-building happens in a useLayoutEffect (synchronous, pre-paint), flushSync flushes that
   // too, before this returns. `true` (replace) as setState's second argument — array-shaped state,
   // see useCanvasItemsStore's own comment for why the default merge would silently corrupt it.
-  window.__renderCanvasItems = (items: Record<string, unknown>[], paneId?: number) =>
+  window.__renderCanvasItems = (items: Record<string, unknown>[], paneId: number) =>
     flushSync(() => useCanvasItemsStore.storeFor(paneId).setState(items, true));
   // Pane layout (split-screen Stage 4+, see app/dotto/PaneGrid.tsx) — the tree itself, plus the
   // split/close operations on it (Stage 6 — see usePaneLayoutStore's own comment,

@@ -75,7 +75,10 @@ export default async function Home() {
 
   const currentUser = {
     id: user.id,
-    username: profile?.username ?? user.email,
+    // Supabase's User.email is typed optional (its own SDK also supports phone-only auth), but
+    // this app's own auth flow (email/password + OAuth, see (auth)/login) always populates it —
+    // cast rather than adding a fallback string that would silently rename a real user.
+    username: (profile?.username ?? user.email) as string,
     displayName: profile?.display_name ?? profile?.username ?? user.email,
     avatarUrl: profile?.avatar_url ?? null,
     avatarId: profile?.avatar_id ?? 0,

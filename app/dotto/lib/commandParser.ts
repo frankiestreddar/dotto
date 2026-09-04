@@ -48,5 +48,11 @@ export function parseCommandInput(value: string): ParsedCommand | null {
   if (vm[2]) return { stage: "target", kind, targetRaw, verb: "set", arg: vm[2].toLowerCase() };
   if (vm[3]) return { stage: "target", kind, targetRaw, verb: "invite", arg: vm[3] };
   if (vm[4]) return { stage: "target", kind, targetRaw, verb: "remove", arg: vm[4] };
-  return { stage: "target", kind, targetRaw, verb: vm[1].toLowerCase() as "place" | "copy", arg: null };
+  return {
+    stage: "target",
+    kind,
+    targetRaw,
+    verb: vm[1].toLowerCase() as "place" | "copy",
+    arg: null,
+  };
 }

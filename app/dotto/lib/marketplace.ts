@@ -295,7 +295,7 @@ export function packageSelectedAsTemplate(targetIt: Item): void {
     const it = window.__findItemById?.(id);
     if (it)
       itemsToPackage.push(
-        window.__sanitizeFlashcardSnapshot?.(window.__snapshotItem?.(it), gestureIds),
+        window.__sanitizeFlashcardSnapshot?.(window.__snapshotItem!(it), gestureIds),
       );
   });
 

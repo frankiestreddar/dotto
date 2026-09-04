@@ -129,7 +129,7 @@ declare global {
     __openFolder?: (folderId: string) => Promise<void>;
     // app/dotto/lib/aiAssistantSuggestions.ts — structural (real canvas hierarchy) parent lookup,
     // used by app/dotto/lib/tabManagement.ts's buildAncestorChain.
-    __findParentFolderId?: (folderId: string) => string | undefined;
+    __findParentFolderId?: (folderId: string) => string | null;
     // app/dotto/lib/sharedAndPublicCanvasLoading.ts — leaves a live-shared/public canvas tree
     // and lands on the user's own real root, used by app/dotto/lib/tabManagement.ts's
     // breadcrumbMapRowClick for its synthetic Root row.
