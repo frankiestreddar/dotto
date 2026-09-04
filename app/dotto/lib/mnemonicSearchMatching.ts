@@ -926,7 +926,7 @@ function buildDotbotAnswerContainerEl(): HTMLElement {
   textEl.className = "dotbot-answer-text dotbot-result-card";
   return textEl;
 }
-interface TurnPanel {
+export interface TurnPanel {
   type: string;
   text?: string;
   entries?: DictionaryEntry[];

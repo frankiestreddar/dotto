@@ -2,7 +2,7 @@
 
 import { useLayoutEffect, useRef } from "react";
 import { createPortal } from "react-dom";
-import { useChatThreadStore } from "./lib/chatThreadStore";
+import { useChatThreadStore, type ChatTurn as ChatTurnData } from "./lib/chatThreadStore";
 import usePortalNode from "./usePortalNode";
 import { updateChatThread } from "./lib/aiAssistantSuggestions";
 import {
@@ -14,12 +14,17 @@ import {
   buildTranslationCard,
   startSequencedTurnReveal,
   stripInlineMarkers,
+  type AnswerBlocksPanelData,
+  type DictionaryPanelData,
+  type ExamplesPanelData,
+  type RecommendedPanelData,
+  type TurnPanel,
 } from "./lib/mnemonicSearchMatching";
 
 // One turn = the user's own query (rendered here for the first time ever — previously the input's
 // value was just cleared after sending, never shown as a message anywhere) + that turn's assistant
 // panels, built into its own DOM subtree using the SAME vanilla builder functions the six now-
-// inert single-owner panel components (DotbotAnswerPanel.jsx and friends) already used — see each
+// inert single-owner panel components (DotbotAnswerPanel.tsx and friends) already used — see each
 // of their own files for why every builder stays vanilla (small self-contained widgets with their
 // own internal cycling/drag/TTS state, not worth rewriting as JSX). Visual order mirrors the old
 // fixed #search-dotbot-answer/#search-translation/#search-dictionary/#search-examples/
@@ -37,8 +42,13 @@ import {
 // never for turns restored from history (the sidebar reopen flow, app/dotto/lib/hamburgerCollab.ts's
 // openSavedChat), which render with `fresh` false/omitted so they show fully settled immediately
 // instead of re-typewriter-ing text that was already delivered in a past session.
-function ChatTurn({ turn }) {
-  const assistantRef = useRef(null);
+//
+// turn.panels is typed `unknown` in chatThreadStore.ts (it's the orchestrate route's raw response,
+// persisted/consumed verbatim without a fixed shape — see that file's own comment); cast to
+// mnemonicSearchMatching.ts's own TurnPanel here (exported from that file for this use), the same
+// loosely-typed shape startSequencedTurnReveal already dispatches on there.
+function ChatTurn({ turn }: { turn: ChatTurnData }) {
+  const assistantRef = useRef<HTMLDivElement>(null);
 
   useLayoutEffect(() => {
     const el = assistantRef.current;
@@ -49,12 +59,12 @@ function ChatTurn({ turn }) {
     // the second run would append a full second copy of every panel on top of the first (exactly
     // what showed up as a "doubled up response" — the whole answer, translation, dictionary, and
     // example cards each appearing twice). Matches the same defensive `el.innerHTML = ""` every
-    // single-owner panel component (DotbotAnswerPanel.jsx and friends) already does at the top of
+    // single-owner panel component (DotbotAnswerPanel.tsx and friends) already does at the top of
     // its own effect, for the same reason. Any in-flight typewriter reveal from a first run whose
     // textEl gets cleared out here stops itself on its own very next tick — typewriterReveal
     // already checks `el.isConnected` before continuing.
     el.innerHTML = "";
-    const panels = turn.panels || [];
+    const panels = (turn.panels as TurnPanel[]) || [];
     const textPanel = panels.find((p) => p.type === "dotbot_text");
     const dictPanel = panels.find((p) => p.type === "dictionary") || null;
     const examplesPanel = panels.find((p) => p.type === "examples") || null;
@@ -88,20 +98,23 @@ function ChatTurn({ turn }) {
         const textEl = buildDotbotAnswerTextEl(cleanText);
         el.appendChild(textEl);
         textEl.textContent = cleanText;
-        const blocksWrap = buildAnswerBlocksWrap(answerBlocksPanel, answerLanguage);
+        const blocksWrap = buildAnswerBlocksWrap(
+          answerBlocksPanel as AnswerBlocksPanelData | null,
+          answerLanguage,
+        );
         if (blocksWrap) el.appendChild(blocksWrap);
       }
       if (translationPanel && translationPanel.sourceWord && translationPanel.targetWord) {
         el.appendChild(buildTranslationCard(translationPanel));
       }
       if (dictPanel && dictPanel.entries && dictPanel.entries.length) {
-        el.appendChild(buildDictionaryCard(dictPanel));
+        el.appendChild(buildDictionaryCard(dictPanel as DictionaryPanelData));
       }
       if (examplesPanel) {
-        el.appendChild(buildExamplesCard(examplesPanel));
+        el.appendChild(buildExamplesCard(examplesPanel as ExamplesPanelData));
       }
       if (recommendedPanel && recommendedPanel.queries && recommendedPanel.queries.length) {
-        el.appendChild(buildRecommendedSearchesRows(recommendedPanel));
+        el.appendChild(buildRecommendedSearchesRows(recommendedPanel as RecommendedPanelData));
       }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps -- deliberately mount-once, see comment above
@@ -117,8 +130,8 @@ function ChatTurn({ turn }) {
 
 // Portals into #search-chat-thread (content/fragments/search-overlay.html) — see
 // useChatThreadStore's own comment (app/dotto/lib/chatThreadStore.ts) for the full architecture.
-// A genuine JSX list (real turn identity, keyed by turn.id) like CommandPalette.jsx, not a
-// single-owner side-effect component like DotbotAnswerPanel.jsx and friends, which this retires
+// A genuine JSX list (real turn identity, keyed by turn.id) like CommandPalette.tsx, not a
+// single-owner side-effect component like DotbotAnswerPanel.tsx and friends, which this retires
 // for AI content.
 export default function ChatThread() {
   const turns = useChatThreadStore();

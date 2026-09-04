@@ -5,12 +5,13 @@ import { createPortal } from "react-dom";
 import { useCommandPaletteStore } from "./lib/commandPaletteStore";
 import usePortalNode from "./usePortalNode";
 import { selectCommandRow } from "./lib/commandPalette";
+import type { CommandRow as CommandRowData } from "./lib/commandPalette";
 
 // One suggestion row — kind autocomplete ("/source", "/canvas"), an id lookup, or an own-tree
 // name match (see app/dotto/lib/commandPalette.ts's buildOwnCommandRows for the three row
 // shapes). data-index drives the existing keyboard-nav technique (querySelectorAll + classList,
 // app/dotto/lib/searchOrchestrationSelection.ts's setCommandActive).
-function CommandRow({ row, index }) {
+function CommandRow({ row, index }: { row: CommandRowData; index: number }) {
   return (
     <div
       className="command-palette-row"
