@@ -261,8 +261,8 @@ function doWire(appState: AppState): void {
   wireRailIcon("snippets2", appState.btnSnippets2, appState.snippets2Panel, null);
   wireRailIcon("servers", appState.btnServers, appState.serversPanel, null);
   wireRailIcon("ai", appState.railBtnAi, appState.aiPanel, () => window.__refreshAiPanel?.());
-  wireRailIcon("outline", appState.hamburgerBtn, appState.outlineMenu, () =>
-    window.__buildOutline?.(),
+  wireRailIcon("outline", appState.hamburgerBtn, appState.outlineMenu, (pin) =>
+    window.__buildOutline?.(pin),
   );
   wireRailIcon("waypoints", appState.railBtnWaypoints, appState.waypointsPanel, () =>
     window.__renderWaypointsList?.(""),

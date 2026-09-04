@@ -550,8 +550,8 @@ export function toggleHamburgerMenu(): void {
       "outline",
       appState.outlineMenu,
       appState.hamburgerBtn,
-      () => {
-        buildOutline();
+      (pin) => {
+        buildOutline(pin);
         setOutlineActive(0);
       },
       true,

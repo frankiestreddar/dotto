@@ -24,6 +24,16 @@ export default defineConfig({
     baseURL,
     trace: "on-first-retry",
   },
+  // devices["Desktop Chrome"]'s own default viewport (1280x720) is narrow enough that the
+  // permanent rail's icons and the floating mode-toolbar visually overlap (confirmed directly — a
+  // real click on #btn-sources got intercepted by the mode-toolbar's "normal" button sitting on
+  // top of it at that width), something no manual verification ever hit because every
+  // .claude-testing/*.js script and this app's whole migration history was checked against
+  // 1440x900 (open-app.js's own explicit viewport) instead. VIEWPORT below is spread into each
+  // project's own `use` AFTER `...devices["Desktop Chrome"]` (not set at the top level here) —
+  // devices["Desktop Chrome"] carries its own viewport key, and Playwright merges a project's own
+  // `use` over the top-level one wholesale, so a top-level-only viewport gets silently shadowed by
+  // whatever the spread devices preset already set.
   // e2e/global-setup.ts logs in once (using E2E_TEST_EMAIL/E2E_TEST_PASSWORD against the
   // dedicated "dotto-test" Supabase project) and saves the session to e2e/.auth/user.json — the
   // "authenticated" project below reuses that for every spec under e2e/authenticated/, the same
@@ -36,7 +46,11 @@ export default defineConfig({
     {
       name: "chromium",
       testIgnore: "**/authenticated/**",
-      use: { ...devices["Desktop Chrome"], channel: "chrome" },
+      use: {
+        ...devices["Desktop Chrome"],
+        channel: "chrome",
+        viewport: { width: 1440, height: 900 },
+      },
     },
     {
       name: "authenticated",
@@ -45,6 +59,7 @@ export default defineConfig({
         ...devices["Desktop Chrome"],
         channel: "chrome",
         storageState: "./e2e/.auth/user.json",
+        viewport: { width: 1440, height: 900 },
       },
     },
   ],
