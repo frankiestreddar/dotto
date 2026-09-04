@@ -54,7 +54,7 @@ export default function ItemDetailFooter() {
   }
 
   return createPortal(
-    <button className="btn-buy" onClick={() => window.__deployPurchasedTemplate(state.itemId)}>
+    <button className="btn-buy" onClick={() => window.__deployPurchasedTemplate!(state.itemId)}>
       Deploy
     </button>,
     portalNode,

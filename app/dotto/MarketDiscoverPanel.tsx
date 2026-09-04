@@ -2,11 +2,12 @@
 
 import { createPortal } from "react-dom";
 import { useMarketDiscoverStore } from "./lib/marketDiscoverStore";
+import type { MarketplaceItem } from "./lib/marketplace";
 import usePortalNode from "./usePortalNode";
 
-function MarketItemRow({ item }) {
+function MarketItemRow({ item }: { item: MarketplaceItem }) {
   return (
-    <div className="market-item-row" onClick={() => window.__openMarketDetail(item)}>
+    <div className="market-item-row" onClick={() => window.__openMarketDetail!(item)}>
       <div className="market-item-header">
         <div className="market-item-title">{item.title}</div>
         <div className="market-item-price">{item.price}</div>

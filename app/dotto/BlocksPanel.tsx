@@ -3,6 +3,7 @@
 import { useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
 import { useBlocksViewStore } from "./lib/blocksViewStore";
+import type { BlocksRow } from "./lib/blocksPanel";
 import {
   createBlocksFolder,
   deleteBlockContentItem,
@@ -13,6 +14,10 @@ import {
 } from "./lib/blocksPanel";
 import RowActions from "./RowActions";
 import usePortalNode from "./usePortalNode";
+
+type FolderRow = Extract<BlocksRow, { rowKind: "folder" }>;
+type BlockItemRow = Extract<BlocksRow, { rowKind: "block-item" }>;
+type ContentItemRow = Extract<BlocksRow, { rowKind: "content-item" }>;
 
 // Folder row — Essentials/Purchased/My Creations/user-created folders, all always shown at once
 // (no drill-down navigation the way Library's old folder-picker/items views worked — see
@@ -27,7 +32,7 @@ import usePortalNode from "./usePortalNode";
 // (row.count > 0, an empty folder has nothing to collapse). The toggle button sits in the exact
 // same spot as folder.png and only shows on row hover, swapping places with the icon via CSS
 // (.has-children:hover) rather than being a permanently-visible extra control.
-function BlockFolderRow({ row }) {
+function BlockFolderRow({ row }: { row: FolderRow }) {
   const hasChildren = row.count > 0;
   return (
     <div
@@ -58,14 +63,19 @@ function BlockFolderRow({ row }) {
 // Essentials item — a block type (or the Canvas/Source entries folded in ahead of them, explicit
 // request) you can add to the canvas. Plain click, no hover actions, not draggable — these are
 // spawner types, not owned objects, unlike a content-item row below.
-function BlockEssentialsRow({ row }) {
+function BlockEssentialsRow({ row }: { row: BlockItemRow }) {
   return (
     <div
       className="blocks-item"
-      style={{ "--blocks-indent": "16px" }}
+      style={{ ["--blocks-indent" as string]: "16px" } as React.CSSProperties}
       onClick={() => handleBlockItemClick(row.kind, row.statKind)}
     >
-      <img className="blocks-item-icon" src={row.icon} alt="" onError={(e) => e.target.remove()} />
+      <img
+        className="blocks-item-icon"
+        src={row.icon}
+        alt=""
+        onError={(e) => (e.target as HTMLImageElement).remove()}
+      />
       <span className="blocks-item-label">{row.label}</span>
     </div>
   );
@@ -76,8 +86,8 @@ function BlockEssentialsRow({ row }) {
 // item detail view itself on a release that never crossed the drag threshold, same as the old
 // LibraryItemRow's draft rows did — generalized here to every content-item row, not just drafts,
 // since drag-into-folder (explicit request) now needs to work for all of them.
-function BlockContentRow({ row }) {
-  const ref = useRef(null);
+function BlockContentRow({ row }: { row: ContentItemRow }) {
+  const ref = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (!row.draggable || !ref.current) return;
@@ -92,11 +102,18 @@ function BlockContentRow({ row }) {
     <div
       ref={ref}
       className="blocks-item blocks-content-item"
-      style={{ "--blocks-indent": "16px", cursor: row.draggable ? "grab" : "pointer" }}
+      style={
+        {
+          ["--blocks-indent" as string]: "16px",
+          cursor: row.draggable ? "grab" : "pointer",
+        } as React.CSSProperties
+      }
     >
       <div className="blocks-item-meta">
         <div className="blocks-item-title">{row.item.title}</div>
-        <div className="blocks-item-count">{row.item.count || 0} cards packaged</div>
+        <div className="blocks-item-count">
+          {(row.item.count as number | undefined) || 0} cards packaged
+        </div>
       </div>
       {row.deletable && <RowActions onDelete={() => deleteBlockContentItem(row)} />}
     </div>
@@ -112,7 +129,7 @@ function BlockNewFolderRow() {
   );
 }
 
-function BlockRow({ row }) {
+function BlockRow({ row }: { row: BlocksRow }) {
   if (row.rowKind === "folder") return <BlockFolderRow row={row} />;
   if (row.rowKind === "block-item") return <BlockEssentialsRow row={row} />;
   if (row.rowKind === "content-item") return <BlockContentRow row={row} />;

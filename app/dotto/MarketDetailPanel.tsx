@@ -3,6 +3,7 @@
 import { useLayoutEffect, useRef } from "react";
 import { createPortal } from "react-dom";
 import { useMarketDetailStore } from "./lib/marketDetailStore";
+import type { MarketplaceItem } from "./lib/marketplace";
 import { renderInlineCanvas } from "./lib/messagingCanvasPreview";
 import usePortalNode from "./usePortalNode";
 
@@ -10,13 +11,13 @@ import usePortalNode from "./usePortalNode";
 // function builds live DOM, React just mounts it" pattern as CanvasCard's buildFolderInlineCanvas.
 // Keyed by the item itself in the parent (see below) so a different item mounts a fresh preview
 // rather than reusing a stale one.
-function InlineCanvasPreview({ item }) {
-  const ref = useRef(null);
+function InlineCanvasPreview({ item }: { item: MarketplaceItem }) {
+  const ref = useRef<HTMLDivElement>(null);
   useLayoutEffect(() => {
     const mount = ref.current;
     if (!mount || !item.canvasSnapshot || !item.canvasSnapshot.length) return;
     // Preview only — draggableOut=false so this can't be dragged onto the user's own canvas.
-    mount.appendChild(renderInlineCanvas(item.canvasSnapshot, false));
+    mount.appendChild(renderInlineCanvas(item.canvasSnapshot as never[], false));
   }, [item]);
 
   return <div ref={ref} />;
