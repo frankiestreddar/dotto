@@ -6006,11 +6006,21 @@ body:has(#collab-panel.open) .pane-collab-bubble:hover .collab-tooltip {
   gap: 2px;
 }
 /* Rows use the .active hover/keyboard-selection convention shared across this dropdown's other
-       row lists, see command-palette.js's setCommandActive. */
+       row lists, see command-palette.js's setCommandActive. flex-shrink:0 is load-bearing, not
+       cosmetic: #search-dropdown (its flex-column parent) grows/shrinks by animating from
+       height:0 (createHeightTransitionController, ai-assistant-suggestions.js), and this panel's
+       own overflow-y:auto gives it an automatic flex min-height of 0 per the flexbox spec (any
+       flex item whose own `overflow` isn't `visible` drops its content-based minimum) — without
+       flex-shrink:0, the dropdown's own #search-dropdown.scrollHeight measurement (taken while it
+       is still 0-height, mid-transition) reads this child as 0 too, since a flex-shrunk child's
+       own collapsed box, not its internal scrollHeight, is what a parent's scrollHeight actually
+       counts. Net effect confirmed directly: without this, "/"-command results never visibly grow
+       the dropdown open at all, even though the rows are correctly in the DOM. */
 #search-command-palette {
   display: none;
   max-height: 300px;
   overflow-y: auto;
+  flex-shrink: 0;
 }
 .command-palette-row {
   padding: 12px 14px;
