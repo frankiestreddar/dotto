@@ -48,6 +48,13 @@ export interface Item {
   userSized?: boolean;
   snapshotChildren?: Item[];
   snapshotTitle?: string;
+  // SentenceCard.tsx's drag-from-Dotbot read-only sentence card fields.
+  text?: string;
+  translit?: string;
+  translation?: string;
+  // StatcardCard.tsx's linked-game/stopwatch/shelf aggregate — same shape as cardsMisc.ts's own
+  // local Item interface's streamCache field, kept in sync since both read the same real data.
+  streamCache?: Record<string, { delta?: { seen?: number; ratings?: Record<string, number> } }>;
   [key: string]: unknown;
 }
 interface FolderObj {

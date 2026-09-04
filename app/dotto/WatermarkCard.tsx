@@ -2,6 +2,7 @@
 
 import { useLayoutEffect, useRef } from "react";
 import { attachWatermarkBody } from "./lib/waypointsRenderLoop";
+import type { Item } from "./lib/messagingCanvasPreview";
 
 // Ported from the old inline watermark branch in renderLegacyCardBody (app/dotto/lib/
 // waypointsRenderLoop.ts) — see EmbedCard.jsx for the general pattern this follows. Unlike Embed/Checklist,
@@ -9,11 +10,11 @@ import { attachWatermarkBody } from "./lib/waypointsRenderLoop";
 // exit) stays vanilla — see attachWatermarkBody's own comment for why: it's coupled to
 // appState.currentEditingEl/broadcastEditingState, shared state with other still-unconverted
 // click-to-edit kinds (title, note), not something safe to peel off in isolation here.
-export default function WatermarkCard({ it, paneId }) {
-  const ref = useRef(null);
+export default function WatermarkCard({ it, paneId }: { it: Item; paneId?: number }) {
+  const ref = useRef<HTMLDivElement>(null);
 
   useLayoutEffect(() => {
-    const el = window.__findItemEl(it.id, paneId);
+    const el = window.__findItemEl!(it.id, paneId);
     if (el && ref.current) attachWatermarkBody(el, ref.current, it, paneId);
   });
 

@@ -2,6 +2,7 @@
 
 import { useLayoutEffect } from "react";
 import { attachWaypointCardBody } from "./lib/waypointsRenderLoop";
+import type { Item } from "./lib/messagingCanvasPreview";
 
 // Ported from the old inline waypoint branch in renderLegacyCardBody (app/dotto/lib/
 // waypointsRenderLoop.ts). The expand/collapse-on-hover/click/drag animation and the name's click-to-edit
@@ -13,15 +14,15 @@ import { attachWaypointCardBody } from "./lib/waypointsRenderLoop";
 // same reasoning as WatermarkCard's dangerouslySetInnerHTML: it's mutated in place by
 // attachWaypointCardBody's handlers, and since its JSX-declared children never change render to
 // render, React never has anything to diff/fight it with.
-export default function WaypointCard({ it, paneId }) {
+export default function WaypointCard({ it, paneId }: { it: Item; paneId?: number }) {
   // `el` is WaypointCard's own wrapper, passed in explicitly — see attachFolderCardClick's comment
   // in app/dotto/lib/waypointsRenderLoop.ts for why (closest('.item') breaks on first mount).
   useLayoutEffect(() => {
-    const el = window.__findItemEl(it.id, paneId);
+    const el = window.__findItemEl!(it.id, paneId);
     if (el) attachWaypointCardBody(el, it);
   });
 
-  const iconUrl = `/assets/icons/${window.__kindIconFile("waypoint")}`;
+  const iconUrl = `/assets/icons/${window.__kindIconFile!("waypoint")}`;
 
   return (
     <>

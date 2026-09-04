@@ -1,12 +1,14 @@
 "use client";
 
+import type { Item } from "./lib/messagingCanvasPreview";
+
 // Ported from the old renderStatcardHTML (public/dotto/cards-misc.js, now
 // app/dotto/lib/cardsMisc.ts — kept there, not inlined here: app/dotto/lib/messagingCanvasPreview.ts's
 // mini inline-canvas previews still call it directly for their own simplified rendering, same as
 // ChecklistCard's note). See EmbedCard.jsx for the general pattern. The
 // simplest conversion yet — a pure function of `it`, no event handlers, no appState coupling, no
 // vanilla bridge needed at all.
-export default function StatcardCard({ it }) {
+export default function StatcardCard({ it }: { it: Item }) {
   const label =
     it.statKind === "progress"
       ? "Progress"

@@ -1,5 +1,7 @@
 "use client";
 
+import type { Item } from "./lib/messagingCanvasPreview";
+import type { StopwatchItem } from "./lib/stopwatch";
 import { swCurrentElapsedMs, swFormatTime, swTogglePause, swToggleRun } from "./lib/stopwatch";
 
 // Ported from the old renderStopwatchHTML (public/dotto/stopwatch.js, Phase 4.3 split of
@@ -15,7 +17,12 @@ import { swCurrentElapsedMs, swFormatTime, swTogglePause, swToggleRun } from "./
 // sometimes patching this card's .sw-time text directly instead of going through render(), which
 // is safe against a React-rendered node for the same "mutate in place, next real render reads
 // current data" reason as the rest of this migration).
-export default function StopwatchCard({ it }) {
+//
+// `it`'s prop type is the shared, loosely-typed Item (every field optional past id/kind/x/y) —
+// stopwatch.ts's own StopwatchItem is a stricter, non-optional shape for its own internal
+// bookkeeping, so `it` is cast at the one call site that needs it rather than widening Item's
+// swElapsedMs/swRunning/swPaused/swLastResumeAt to required for every other card kind.
+export default function StopwatchCard({ it }: { it: Item }) {
   return (
     <div className="sw-row" onMouseDown={(e) => e.stopPropagation()}>
       <button
@@ -33,7 +40,9 @@ export default function StopwatchCard({ it }) {
       >
         {it.swPaused ? "▶" : "⏸"}
       </button>
-      <div className="sw-time">{swFormatTime(swCurrentElapsedMs(it))}</div>
+      <div className="sw-time">
+        {swFormatTime(swCurrentElapsedMs(it as unknown as StopwatchItem))}
+      </div>
     </div>
   );
 }

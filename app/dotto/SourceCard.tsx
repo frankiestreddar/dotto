@@ -3,6 +3,7 @@
 import { useLayoutEffect, useRef } from "react";
 import { attachSourceCardClick, folderTitle } from "./lib/waypointsRenderLoop";
 import { countSourceEntries } from "./lib/aiAssistantSuggestions";
+import type { Item } from "./lib/messagingCanvasPreview";
 
 // Ported from the old inline source branch in renderLegacyCardBody (app/dotto/lib/
 // waypointsRenderLoop.ts) — this is the "Source" card kind (kind:'source'), a database block storing entries for
@@ -13,18 +14,18 @@ import { countSourceEntries } from "./lib/aiAssistantSuggestions";
 // not present in the original flat markup (icon span and .source-card-info are direct siblings) —
 // kindIconFile (just the icon-filename lookup) is bridged instead so the same table stays the single
 // source of truth.
-export default function SourceCard({ it, paneId }) {
-  const titleRef = useRef(null);
+export default function SourceCard({ it, paneId }: { it: Item; paneId?: number }) {
+  const titleRef = useRef<HTMLSpanElement>(null);
 
   // `el` is SourceCard's own wrapper, passed in explicitly — see CanvasCard.jsx's identical comment.
   useLayoutEffect(() => {
-    const el = window.__findItemEl(it.id, paneId);
+    const el = window.__findItemEl!(it.id, paneId);
     if (el && titleRef.current) attachSourceCardClick(el, it, titleRef.current);
   });
 
-  const liveTitle = folderTitle(it.folderId);
-  const nestedCount = countSourceEntries(it.folderId);
-  const iconUrl = `/assets/icons/${window.__kindIconFile("source")}`;
+  const liveTitle = folderTitle(it.folderId!);
+  const nestedCount = countSourceEntries(it.folderId!);
+  const iconUrl = `/assets/icons/${window.__kindIconFile!("source")}`;
 
   return (
     <>
