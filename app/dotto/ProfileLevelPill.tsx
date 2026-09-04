@@ -9,7 +9,7 @@ import usePortalNode from "./usePortalNode";
 // inner .profile-level-pill-text span was removed from the static markup so this doesn't
 // duplicate it). The pill's background/color are set via a plain effect on the portal target
 // itself, not JSX props — createPortal only ever owns the target's CHILDREN, never its own
-// attributes, same as CommandPalette.jsx's #search-command-palette style.display handling.
+// attributes, same as CommandPalette.tsx's #search-command-palette style.display handling.
 export default function ProfileLevelPill() {
   const level = useProfileLevelStore();
   const portalNode = usePortalNode("profile-level-pill");

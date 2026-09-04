@@ -2,6 +2,7 @@
 
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { useNotificationsStore } from "./lib/notificationsStore";
+import type { NotificationEntry } from "./lib/notificationsStore";
 
 const GAP_PX = 10;
 const BOTTOM_PX = 20;
@@ -32,8 +33,18 @@ const EXIT_MS = 320;
 // here; this card's own React instance is the SAME one carried over from when it was a normal list
 // entry (React matches it by key across NotificationBar's re-render, see the `exiting` map there),
 // so its slide-in already happened and won't replay.
-function NotificationCard({ entry, bottom, exiting, onMeasure }) {
-  const ref = useRef(null);
+function NotificationCard({
+  entry,
+  bottom,
+  exiting,
+  onMeasure,
+}: {
+  entry: NotificationEntry;
+  bottom: number;
+  exiting?: boolean;
+  onMeasure: (id: number, h: number) => void;
+}) {
+  const ref = useRef<HTMLDivElement>(null);
   const [entered, setEntered] = useState(false);
   const dismissNotification = useNotificationsStore((s) => s.dismissNotification);
   const runNotificationAction = useNotificationsStore((s) => s.runNotificationAction);
@@ -90,6 +101,11 @@ function NotificationCard({ entry, bottom, exiting, onMeasure }) {
   );
 }
 
+interface ExitingEntry {
+  entry: NotificationEntry;
+  bottom: number;
+}
+
 // Notification stack, bottom-left — explicit redesign (was a single top-center pill, one at a
 // time, swapping places with #top-bar-center — see notificationsStore.ts's own comment for
 // the full "before" picture and why; briefly a top-right stack sliding in from the right
@@ -107,7 +123,7 @@ function NotificationCard({ entry, bottom, exiting, onMeasure }) {
 // an assumed fixed row height, which would either clip content or leave uneven gaps.
 export default function NotificationBar() {
   const list = useNotificationsStore((s) => s.visibleNotifications);
-  const [heights, setHeights] = useState({});
+  const [heights, setHeights] = useState<Record<number, number>>({});
   // Entries that have already left `list` (evicted past NOTIFICATION_MAX_VISIBLE, dismissed, or
   // auto-expired — the reason doesn't matter, they all exit the same way) but are still playing
   // their exit animation — {id, entry, bottom}[], `bottom` frozen at wherever that card was sitting
@@ -116,10 +132,10 @@ export default function NotificationBar() {
   // JSX below), so React treats it as the same component instance rather than a fresh mount — see
   // NotificationCard's own comment on why that's what makes `exiting` reuse the entrance
   // transition in reverse for free.
-  const [exitingEntries, setExitingEntries] = useState([]);
-  const prevListRef = useRef([]);
-  const lastBottomsRef = useRef({});
-  const exitTimersRef = useRef({});
+  const [exitingEntries, setExitingEntries] = useState<ExitingEntry[]>([]);
+  const prevListRef = useRef<NotificationEntry[]>([]);
+  const lastBottomsRef = useRef<Record<number, number>>({});
+  const exitTimersRef = useRef<Record<number, ReturnType<typeof setTimeout>>>({});
 
   // Diffs the incoming store list against the previous one to find whatever just fell off (however
   // it left — see exitingEntries' own comment) and hands each one a one-shot exit slot.
@@ -152,7 +168,7 @@ export default function NotificationBar() {
     [],
   );
 
-  const handleMeasure = (id, h) => {
+  const handleMeasure = (id: number, h: number) => {
     setHeights((prev) => (prev[id] === h ? prev : { ...prev, [id]: h }));
   };
 
@@ -163,7 +179,7 @@ export default function NotificationBar() {
   // there's nothing to show) so the ref-sync effect right after it stays an unconditional hook
   // call too — this component only ever returns null AFTER every hook above has run.
   let cumulative = BOTTOM_PX;
-  const bottoms = {};
+  const bottoms: Record<number, number> = {};
   list.forEach((entry) => {
     bottoms[entry.id] = cumulative;
     cumulative += (heights[entry.id] || 0) + GAP_PX;

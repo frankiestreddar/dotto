@@ -11,7 +11,15 @@ import usePortalNode from "./usePortalNode";
 // always shows the shared unknown-sprite.png regardless of any state. A cell whose image 404s
 // just shows its empty placeholder space (same as the original's img.onerror = () => img.remove())
 // rather than a broken-image icon.
-function SpriteCell({ index, achievements, unlockedSet }) {
+function SpriteCell({
+  index,
+  achievements,
+  unlockedSet,
+}: {
+  index: number;
+  achievements: { id: string }[];
+  unlockedSet: Set<string>;
+}) {
   const [broken, setBroken] = useState(false);
   const hasAchievement = index <= achievements.length;
   const src = !hasAchievement
