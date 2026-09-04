@@ -3,17 +3,18 @@
 import { useLayoutEffect } from "react";
 import { createPortal } from "react-dom";
 import { useOutlineStore } from "./lib/outlineStore";
+import type { OutlineRow as OutlineRowData } from "./lib/outlineTree";
 import RowActions from "./RowActions";
 import usePortalNode from "./usePortalNode";
 
 // Same mask-image icon shape kindIconHTML (app/dotto/lib/outlineTree.ts) already builds for every
 // other outline-icon use — window.__kindIconFile resolves the kind(+level)->filename mapping,
-// bridged since several other React components (HubCollabListPanel.jsx/SourceCard.jsx/
-// WaypointsListPanel.jsx/WaypointCard.jsx) also call it this same way, despite all now living in
+// bridged since several other React components (HubCollabListPanel.tsx/SourceCard.jsx/
+// WaypointsListPanel.tsx/WaypointCard.jsx) also call it this same way, despite all now living in
 // the same app/dotto/ tree as outlineTree.ts itself — a real ES import would work for all of them
 // too, just not yet done.
-function OutlineIcon({ kind, level }) {
-  const url = `/assets/icons/${window.__kindIconFile(kind, level)}`;
+function OutlineIcon({ kind, level }: { kind: string; level?: number }) {
+  const url = `/assets/icons/${window.__kindIconFile!(kind, level)}`;
   return (
     <span
       className="outline-icon icon-mask"
@@ -27,14 +28,14 @@ function OutlineIcon({ kind, level }) {
 // app/dotto/lib/outlineTree.ts: a grouped item OR a child heading). Sits in the same slot as
 // OutlineIcon and only shows on row hover, swapping places with it via CSS (.has-children:hover) —
 // same mechanism/reasoning as the Blocks panel's own folder-collapse toggle, BlocksPanel.jsx.
-function OutlineCollapseToggle({ id, collapsed }) {
+function OutlineCollapseToggle({ id, collapsed }: { id: number | string; collapsed?: boolean }) {
   return (
     <button
       type="button"
       className={"outline-collapse-toggle" + (collapsed ? " collapsed" : "")}
       onClick={(e) => {
         e.stopPropagation();
-        window.__toggleOutlineCollapse(id);
+        window.__toggleOutlineCollapse!(id as number);
       }}
       title={collapsed ? "Expand" : "Collapse"}
     >
@@ -42,6 +43,13 @@ function OutlineCollapseToggle({ id, collapsed }) {
     </button>
   );
 }
+
+// computeSourceOutlineRows (app/dotto/lib/outlineTree.ts) builds a "sourceRow" row with extra
+// fields (number/tableItemId) not declared on OutlineRow itself — that file's own construction
+// already bridges the gap with an `as unknown as OutlineRow` cast rather than widening the
+// interface, so this mirrors the same cast on the READ side instead of "fixing" that shared type
+// as a drive-by.
+type SourceOutlineRow = OutlineRowData & { number: number; tableItemId: number };
 
 // Three row shapes, computed by computeOutlineRows/computeSourceOutlineRows
 // (app/dotto/lib/outlineTree.ts) — see their own comments for the full field meanings:
@@ -54,18 +62,19 @@ function OutlineCollapseToggle({ id, collapsed }) {
 //     first cell in the live table (window.__goToOutlineSourceRow) instead of panning a canvas.
 // No --outline-indent style on a sourceRow row — .outline-item's own CSS falls back to 0px, same
 // as the old rowEl never setting it for these rows either.
-function OutlineRow({ r }) {
-  if (r.rowKind === "sourceRow") {
+function OutlineRow({ r }: { r: OutlineRowData }) {
+  if ((r.rowKind as string) === "sourceRow") {
+    const sr = r as unknown as SourceOutlineRow;
     return (
       <div
         className="outline-item"
         onClick={(e) => {
           e.stopPropagation();
-          window.__goToOutlineSourceRow(r.tableItemId, r.number);
+          window.__goToOutlineSourceRow!(sr.tableItemId, sr.number);
         }}
       >
-        <span className="outline-item-number">{r.number}</span>
-        <span className="outline-label">{r.label}</span>
+        <span className="outline-item-number">{sr.number}</span>
+        <span className="outline-label">{sr.label}</span>
         <RowActions />
       </div>
     );
@@ -73,11 +82,11 @@ function OutlineRow({ r }) {
   return (
     <div
       className={"outline-item" + (r.hasChildren ? " has-children" : "")}
-      style={{ "--outline-indent": r.indent + "px" }}
+      style={{ ["--outline-indent" as string]: r.indent + "px" } as React.CSSProperties}
       onClick={(e) => {
         e.stopPropagation();
-        if (r.rowKind === "source") window.__goToOutlineSource(r.targetFolderId);
-        else window.__goToOutlineItem(r.parentFolderId, r.id);
+        if (r.rowKind === "source") window.__goToOutlineSource!(r.targetFolderId!);
+        else window.__goToOutlineItem!(r.parentFolderId, r.id as number);
       }}
     >
       <OutlineIcon kind={r.itemKind} level={r.level} />
@@ -92,7 +101,7 @@ function OutlineRow({ r }) {
 // flex-item container, safe to portal into directly, no wrapper needed. Visibility of the panel
 // itself stays a vanilla classList toggle (openRailView/wireRailIcon, app/dotto/lib/panelsHamburger.ts),
 // unrelated to this — this component only owns the row list, same division of ownership every
-// other converted sidebar list panel already uses (SourcesListPanel.jsx and friends).
+// other converted sidebar list panel already uses (SourcesListPanel.tsx and friends).
 //
 // The useLayoutEffect below is this panel's one real difference from those: app/dotto/lib/srsConnectionsCore.ts's
 // existing ArrowUp/ArrowDown/Enter keyboard-nav block reads real DOM nodes out of

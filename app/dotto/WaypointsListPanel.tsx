@@ -3,17 +3,18 @@
 import { createPortal } from "react-dom";
 import { useWaypointsListStore } from "./lib/waypointsListStore";
 import { useListPanelSelectionStore } from "./lib/listPanelSelectionStore";
+import type { WaypointRow as WaypointRowData } from "./lib/hamburgerCollab";
 import RowActions from "./RowActions";
 import usePortalNode from "./usePortalNode";
 import { goToWaypointCard } from "./lib/hamburgerCollab";
 
-const EMPTY_IDS = new Set();
+const EMPTY_IDS: Set<string> = new Set();
 
 // Same `${owner_id}-${folder_id}-${item_id}` key used as this row's React `key` below AND as the
 // shift-click selection id (see app/dotto/lib/hamburgerCollab.ts's waypointRowKey, which must stay
 // identical to this) — vanilla can't reverse-parse it (owner_id is a UUID full of hyphens) but
 // re-deriving the same string per candidate row and comparing works fine.
-function waypointRowKey(r) {
+function waypointRowKey(r: WaypointRowData): string {
   return `${r.owner_id}-${r.folder_id}-${r.item_id}`;
 }
 
@@ -23,8 +24,16 @@ function waypointRowKey(r) {
 // per explicit request; row 11+ gets none. The actual key handling lives in srs-connections-
 // core.js's keydown handler, gated on the Waypoints panel being open — this component only draws
 // the indicator, matching whatever that handler will actually respond to.
-function WaypointRow({ r, selected, index }) {
-  const iconUrl = `/assets/icons/${window.__kindIconFile("waypoint")}`;
+function WaypointRow({
+  r,
+  selected,
+  index,
+}: {
+  r: WaypointRowData;
+  selected: boolean;
+  index: number;
+}) {
+  const iconUrl = `/assets/icons/${window.__kindIconFile!("waypoint")}`;
   const shortcutKey = index === 9 ? "0" : index < 9 ? String(index + 1) : null;
   return (
     <div

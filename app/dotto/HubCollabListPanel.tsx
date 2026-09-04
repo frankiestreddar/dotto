@@ -4,6 +4,7 @@ import { createPortal } from "react-dom";
 import Avatar from "./Avatar";
 import { useHubCollabListStore } from "./lib/hubCollabListStore";
 import { useListPanelSelectionStore } from "./lib/listPanelSelectionStore";
+import type { IncomingCanvasRequest, OwnedCanvasCollab } from "./lib/hamburgerCollab";
 import RowActions from "./RowActions";
 import usePortalNode from "./usePortalNode";
 import {
@@ -13,14 +14,14 @@ import {
   respondToHubCollabRequest,
 } from "./lib/hamburgerCollab";
 
-const EMPTY_IDS = new Set();
+const EMPTY_IDS: Set<string> = new Set();
 
-function folderIconStyle() {
-  const url = `/assets/icons/${window.__kindIconFile("folder")}`;
-  return { maskImage: `url(${url})`, WebkitMaskImage: `url(${url})` };
+function folderIconStyle(): React.CSSProperties {
+  const url = `/assets/icons/${window.__kindIconFile!("folder")}`;
+  return { maskImage: `url(${url})`, WebkitMaskImage: `url(${url})` } as React.CSSProperties;
 }
 
-function RequestsRow({ count }) {
+function RequestsRow({ count }: { count: number }) {
   return (
     <div
       className="outline-item requests-row"
@@ -35,6 +36,9 @@ function RequestsRow({ count }) {
   );
 }
 
+type OwnedRowData = OwnedCanvasCollab & { liveTitle: string };
+type SharedRowData = IncomingCanvasRequest & { liveTitle: string };
+
 // Own canvas that has collaborators — up to 3 avatars (same convention as the per-canvas collab
 // bubble), hover shows the exact count via .hub-collab-avatars-tooltip, clicking navigates there
 // AND opens its collaborator panel (managing it is the obvious next step from here). Selection id
@@ -43,7 +47,7 @@ function RequestsRow({ count }) {
 // id spaces), and lets the delete dispatcher (dispatchListPanelDelete, app/dotto/lib/hamburgerCollab.ts) tell
 // the two apart with no extra lookup — deleting an "owned:" id removes every collaborator via
 // deleteCanvasCollabsForFolder; a "shared:" id leaves that canvas via leave_canvas_collaboration.
-function OwnedCanvasRow({ c, selected }) {
+function OwnedCanvasRow({ c, selected }: { c: OwnedRowData; selected: boolean }) {
   const shown = c.collaborators.slice(0, 3);
   return (
     <div
@@ -90,7 +94,7 @@ function OwnedCanvasRow({ c, selected }) {
 
 // Canvas someone else shared with this user — single avatar (the owner). Selection id prefixed
 // "shared:" — see OwnedCanvasRow's own comment.
-function SharedCanvasRow({ c, selected }) {
+function SharedCanvasRow({ c, selected }: { c: SharedRowData; selected: boolean }) {
   return (
     <div
       className={"outline-item hub-collab-canvas-row" + (selected ? " outline-item-selected" : "")}
@@ -102,7 +106,7 @@ function SharedCanvasRow({ c, selected }) {
         // listening on the stable #hub-collab-list container rather than here — this guard just
         // stops a shift+click from ALSO running the normal row-click action below.
         if (e.shiftKey) return;
-        window.__openSharedCanvas(c.ownerId, c.folderId, c.folderTitle, c.ownerName);
+        window.__openSharedCanvas!(c.ownerId, c.folderId, c.folderTitle, c.ownerName);
       }}
     >
       <span className="outline-icon icon-mask" style={folderIconStyle()} />
@@ -137,7 +141,7 @@ function BackRow() {
   );
 }
 
-function RequestRow({ req }) {
+function RequestRow({ req }: { req: IncomingCanvasRequest }) {
   return (
     <div className="msg-add-row">
       <div className="msg-chat-meta">

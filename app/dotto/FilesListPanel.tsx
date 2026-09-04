@@ -4,6 +4,7 @@ import { useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { computePaneRects, usePaneLayoutStore } from "./lib/paneLayoutStore";
 import { useFilesListStore } from "./lib/filesListStore";
+import type { FileListRow } from "./lib/filesListStore";
 import { findItemById } from "./lib/canvasPresence";
 import { spawnMediaItemAt } from "./lib/waypointsRenderLoop";
 import RowActions from "./RowActions";
@@ -42,7 +43,15 @@ function clearDropHighlights() {
     .forEach((el) => el.classList.remove("file-drop-target-canvas"));
 }
 
-// Structural copy of SourcesListPanel.jsx's own SourceRow, per explicit request ("copy the sources
+interface DragState {
+  startX: number;
+  startY: number;
+  dragging: boolean;
+  targetPaneId: number | null;
+  targetKind: "tab" | "canvas" | null;
+}
+
+// Structural copy of SourcesListPanel.tsx's own SourceRow, per explicit request ("copy the sources
 // panel to the files panel so it's consistent") — same .outline-item/.outline-label/.panel-
 // history-list row shape every other sidebar list already shares, same RowActions hover-overlay
 // share button. Trimmed of the things that don't apply to a file row: no double-click-to-rename (a
@@ -81,14 +90,14 @@ function clearDropHighlights() {
 // media-viewer tab there) or elsewhere within that pane's own canvas box (drop → spawn a real copy
 // of the file as a new card at that point, spawnMediaItemAt). Released outside any pane
 // (or on a row with no mediaSrc yet — an unfinished upload) just cancels, no drop.
-function FileRow({ r }) {
+function FileRow({ r }: { r: FileListRow }) {
   const suppressClickRef = useRef(false);
-  const dragRef = useRef(null); // { startX, startY, dragging, targetPaneId, targetKind }
-  const [drag, setDrag] = useState(null); // { clientX, clientY } while a real drag is in progress
+  const dragRef = useRef<DragState | null>(null);
+  const [drag, setDrag] = useState<{ clientX: number; clientY: number } | null>(null);
 
-  const handlePointerDown = (e) => {
+  const handlePointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
     if (e.button !== 0 || !r.mediaSrc) return;
-    if (e.target.closest(".outline-item-actions")) return;
+    if ((e.target as HTMLElement).closest(".outline-item-actions")) return;
     e.currentTarget.setPointerCapture(e.pointerId);
     suppressClickRef.current = false;
     dragRef.current = {
@@ -100,15 +109,15 @@ function FileRow({ r }) {
     };
   };
 
-  const handlePointerMove = (e) => {
+  const handlePointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
     const d = dragRef.current;
     if (!d) return;
     if (!d.dragging) {
       if (Math.hypot(e.clientX - d.startX, e.clientY - d.startY) < DRAG_THRESHOLD_PX) return;
       d.dragging = true;
     }
-    let targetPaneId = null,
-      targetKind = null;
+    let targetPaneId: number | null = null,
+      targetKind: "tab" | "canvas" | null = null;
     for (const p of getPaneRectsPx()) {
       if (
         e.clientX < p.x ||
@@ -144,7 +153,7 @@ function FileRow({ r }) {
     setDrag({ clientX: e.clientX, clientY: e.clientY });
   };
 
-  const handlePointerUp = (e) => {
+  const handlePointerUp = (e: React.PointerEvent<HTMLDivElement>) => {
     e.currentTarget.releasePointerCapture(e.pointerId);
     const d = dragRef.current;
     dragRef.current = null;
@@ -152,20 +161,20 @@ function FileRow({ r }) {
     if (d && d.dragging) {
       suppressClickRef.current = true;
       const item = findItemById(r.itemId);
-      if (item && d.targetKind === "tab") window.__openMediaViewerTab(item, d.targetPaneId);
+      if (item && d.targetKind === "tab") window.__openMediaViewerTab!(item, d.targetPaneId!);
       else if (item && d.targetKind === "canvas")
-        spawnMediaItemAt(item, e.clientX, e.clientY, d.targetPaneId);
+        spawnMediaItemAt(item, e.clientX, e.clientY, d.targetPaneId!);
     }
     setDrag(null);
   };
 
-  const handleClick = (e) => {
+  const handleClick = (e: React.MouseEvent<HTMLDivElement>) => {
     e.stopPropagation();
     if (suppressClickRef.current) {
       suppressClickRef.current = false;
       return;
     }
-    window.__goToOutlineItem(r.folderId, r.itemId);
+    window.__goToOutlineItem!(r.folderId, r.itemId);
   };
 
   return (
@@ -179,7 +188,9 @@ function FileRow({ r }) {
       <img className="search-history-icon" src="/assets/icons/files.png" alt="" />
       <span className="outline-label">{r.title}</span>
       <RowActions
-        onOpen={r.mediaSrc ? () => window.__openMediaViewerTab(findItemById(r.itemId)) : undefined}
+        onOpen={
+          r.mediaSrc ? () => window.__openMediaViewerTab!(findItemById(r.itemId)!) : undefined
+        }
       />
       {drag &&
         createPortal(

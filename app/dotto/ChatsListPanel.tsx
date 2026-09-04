@@ -2,14 +2,15 @@
 
 import { createPortal } from "react-dom";
 import { useChatsListStore } from "./lib/chatsListStore";
+import type { ChatListRow } from "./lib/chatsListStore";
 import { useListPanelSelectionStore } from "./lib/listPanelSelectionStore";
 import RowActions from "./RowActions";
 import usePortalNode from "./usePortalNode";
 import { openSavedChat } from "./lib/hamburgerCollab";
 
-const EMPTY_IDS = new Set();
+const EMPTY_IDS: Set<string> = new Set();
 
-function ChatRow({ r, selected }) {
+function ChatRow({ r, selected }: { r: ChatListRow; selected: boolean }) {
   return (
     <div
       className={"outline-item" + (selected ? " outline-item-selected" : "")}
@@ -37,7 +38,7 @@ function ChatRow({ r, selected }) {
 }
 
 // Portals into #chats-list (content/fragments/hamburger-stack.html) — structurally identical to
-// WaypointsListPanel.jsx (a plain flex-item container, safe to portal into directly), minus the
+// WaypointsListPanel.tsx (a plain flex-item container, safe to portal into directly), minus the
 // query-dependent empty-state message since this panel has no search box for v1.
 export default function ChatsListPanel() {
   const rows = useChatsListStore();

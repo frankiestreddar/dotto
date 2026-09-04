@@ -3,12 +3,13 @@
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useSourcesListStore } from "./lib/sourcesListStore";
+import type { SourceListRow } from "./lib/sourcesListStore";
 import { openFolder, startRenameFolderCardTitle } from "./lib/waypointsRenderLoop";
 import RowActions from "./RowActions";
 import usePortalNode from "./usePortalNode";
 
 // .outline-item/.search-history-icon/.outline-label — the same row structure #chats-list's rows
-// and #search-panel-content's rows use (ChatsListPanel.jsx/app/dotto/lib/searchPanelHistory.ts), both sharing
+// and #search-panel-content's rows use (ChatsListPanel.tsx/app/dotto/lib/searchPanelHistory.ts), both sharing
 // .panel-history-list's own row override — matches this panel too, since #sources-panel-content
 // carries that same class (see hamburger-stack.html). source.png reused from SourceCard.jsx/the
 // old rail icon. No shift-click multi-select (unlike Waypoints/Collaborations/Chats) — deleting a
@@ -41,9 +42,9 @@ import usePortalNode from "./usePortalNode";
 // THIS label a grey underline on hover — per explicit request, a visual hint that it's the
 // double-clickable rename target — without adding that hover styling to every other, non-renameable
 // use of the shared .outline-label class elsewhere (Outline/Waypoints/Chats rows, etc).
-function SourceRow({ r, altHeld }) {
-  const labelRef = useRef(null);
-  const clickTimerRef = useRef(null);
+function SourceRow({ r, altHeld }: { r: SourceListRow; altHeld: boolean }) {
+  const labelRef = useRef<HTMLSpanElement>(null);
+  const clickTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   return (
     <div
@@ -68,7 +69,7 @@ function SourceRow({ r, altHeld }) {
         onDoubleClick={(e) => {
           e.stopPropagation();
           startRenameFolderCardTitle(
-            labelRef.current,
+            labelRef.current!,
             { folderId: r.folderId },
             "outline-label",
             true,
@@ -105,10 +106,10 @@ export default function SourcesListPanel() {
   const [altHeld, setAltHeld] = useState(false);
 
   useEffect(() => {
-    const onKeyDown = (e) => {
+    const onKeyDown = (e: KeyboardEvent) => {
       if (e.key === "Alt") setAltHeld(true);
     };
-    const onKeyUp = (e) => {
+    const onKeyUp = (e: KeyboardEvent) => {
       if (e.key === "Alt") setAltHeld(false);
     };
     const onBlur = () => setAltHeld(false);
