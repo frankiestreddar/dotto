@@ -2,6 +2,7 @@
 
 import { useLayoutEffect } from "react";
 import { attachNoteBody, syncNoteFormatButtons } from "./lib/waypointsRenderLoop";
+import type { Item } from "./lib/messagingCanvasPreview";
 
 // Ported from the old default/untyped branch in renderLegacyCardBody (app/dotto/lib/
 // waypointsRenderLoop.ts) — the most common card kind on any canvas. Format-bar (bold/italic/
@@ -24,19 +25,19 @@ import { attachNoteBody, syncNoteFormatButtons } from "./lib/waypointsRenderLoop
 // (called here directly after execCommand, and from attachNoteBody's own onfocus/keyup/click
 // alongside syncColorPicker) is what reflects each button's current on/off state via .active — the
 // same "sync UI to live editor state" job syncColorPicker already does for the color swatch.
-export default function NoteCard({ it, paneId }) {
+export default function NoteCard({ it, paneId }: { it: Item; paneId?: number }) {
   useLayoutEffect(() => {
-    const el = window.__findItemEl(it.id, paneId);
+    const el = window.__findItemEl!(it.id, paneId);
     if (el) attachNoteBody(el, it, paneId);
   });
 
-  const runFormatCommand = (cmd) => (e) => {
+  const runFormatCommand = (cmd: string) => (e: React.MouseEvent<HTMLButtonElement>) => {
     e.preventDefault();
     document.execCommand(cmd);
-    const el = window.__findItemEl(it.id, paneId);
+    const el = window.__findItemEl!(it.id, paneId);
     const body = el && el.querySelector(".body");
     if (!body) return;
-    syncNoteFormatButtons(body);
+    syncNoteFormatButtons(body as HTMLElement);
     // With an actual text selection, queryCommandState reflects the just-applied toggle
     // synchronously (the call above already covers that case). With a collapsed selection (just a
     // caret, nothing selected — toggling on/off what the NEXT typed character will look like),
@@ -44,7 +45,7 @@ export default function NoteCard({ it, paneId }) {
     // off then read back as still "on" until some later event (e.g. a keypress) happened to
     // re-sync it. This is a correction pass for exactly that case, cheap and invisible (runs
     // before the next paint) when the immediate call above was already correct.
-    requestAnimationFrame(() => syncNoteFormatButtons(body));
+    requestAnimationFrame(() => syncNoteFormatButtons(body as HTMLElement));
   };
 
   return (
@@ -89,7 +90,7 @@ export default function NoteCard({ it, paneId }) {
         <input
           type="color"
           className="text-color-swatch"
-          onInput={(e) => document.execCommand("foreColor", false, e.target.value)}
+          onInput={(e) => document.execCommand("foreColor", false, e.currentTarget.value)}
         />
       </div>
       <div

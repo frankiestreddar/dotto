@@ -1,6 +1,7 @@
 "use client";
 
 import { applyFilterToRows, collectAvailableFilterTags } from "./lib/srsConnectionsCore";
+import type { Item } from "./lib/messagingCanvasPreview";
 
 // Ported from the old renderFilterHTML (app/dotto/lib/shelfSearch.ts — kept
 // there, not deleted: it's still exported alongside its siblings and cheap to leave). setFilterMode/
@@ -9,7 +10,7 @@ import { applyFilterToRows, collectAvailableFilterTags } from "./lib/srsConnecti
 // filtering logic, not boilerplate — real ES imports now (Phase 4.5 port, same-tree — the
 // window.__applyFilterToRows/__collectAvailableFilterTags bridges stay set from that file too,
 // for still-vanilla callers).
-export default function FilterCard({ it }) {
+export default function FilterCard({ it }: { it: Item }) {
   const rows = it.incomingRows || [];
   if (!rows.length) {
     return (
@@ -37,7 +38,7 @@ export default function FilterCard({ it }) {
             className={"filter-mode-btn" + (mode === "or" ? " active" : "")}
             onClick={(e) => {
               e.stopPropagation();
-              window.setFilterMode(it.id, "or");
+              window.setFilterMode!(it.id, "or");
             }}
           >
             OR
@@ -47,7 +48,7 @@ export default function FilterCard({ it }) {
             className={"filter-mode-btn" + (mode === "and" ? " active" : "")}
             onClick={(e) => {
               e.stopPropagation();
-              window.setFilterMode(it.id, "and");
+              window.setFilterMode!(it.id, "and");
             }}
           >
             AND
@@ -60,11 +61,16 @@ export default function FilterCard({ it }) {
             <span
               key={t.id}
               className={"filter-tag-chip" + (selected.has(t.id) ? " selected" : "")}
-              style={{ "--chip-color": t.color }}
+              style={{ ["--chip-color" as string]: t.color } as React.CSSProperties}
               onMouseDown={(e) => e.stopPropagation()}
               onClick={(e) => {
                 e.stopPropagation();
-                window.toggleFilterTag(it.id, t.id);
+                // toggleFilterTag (shelfSearch.ts) declares tagId as string, but
+                // collectAvailableFilterTags/applyFilterToRows (srsConnectionsCore.ts) both treat
+                // tag ids as number — a real, pre-existing inconsistency between those two
+                // already-converted files, out of this batch's scope to resolve. Cast here to
+                // preserve the exact same runtime value that was always passed, unchanged.
+                window.toggleFilterTag!(it.id, t.id as unknown as string);
               }}
             >
               {t.name}

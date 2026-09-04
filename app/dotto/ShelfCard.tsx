@@ -11,18 +11,20 @@
 // going through React — deliberately unchanged: it doesn't touch `it` at all (purely ephemeral UI
 // state), so there's nothing for a later real render to reconcile against or fight.
 import { folderTitleForConnectedSource } from "./lib/drawingConnections";
+import type { Item } from "./lib/messagingCanvasPreview";
 
-export default function ShelfCard({ it }) {
+export default function ShelfCard({ it }: { it: Item }) {
   const sessions = it.shelfSessions || [];
-  const sourceEntries = Object.keys(it.stackSourceRows || {}).map((sid) => ({
+  const stackSourceRows = it.stackSourceRows || {};
+  const sourceEntries = Object.keys(stackSourceRows).map((sid) => ({
     sourceItemId: Number(sid),
     title: folderTitleForConnectedSource(Number(sid)),
-    count: (it.stackSourceRows[sid] || []).length,
+    count: (stackSourceRows[sid] || []).length,
   }));
 
-  const startRenameName = (e) => {
+  const startRenameName = (e: React.MouseEvent<HTMLDivElement>) => {
     e.stopPropagation();
-    window.startRenameShelfName(e.currentTarget, it.id);
+    window.startRenameShelfName!(e.currentTarget, it.id);
   };
   const nameEl = it.shelfName ? (
     <div className="shelf-header" onClick={startRenameName}>
@@ -50,7 +52,7 @@ export default function ShelfCard({ it }) {
           e.stopPropagation();
           e.currentTarget.focus();
         }}
-        onInput={(e) => window.filterShelfRows(e.currentTarget)}
+        onInput={(e) => window.filterShelfRows!(e.currentTarget)}
       />
     ) : null;
 
@@ -62,7 +64,7 @@ export default function ShelfCard({ it }) {
           key={s.sourceItemId}
           onClick={(e) => {
             e.stopPropagation();
-            window.handleShelfSourceRowClick(e.currentTarget, s.sourceItemId);
+            window.handleShelfSourceRowClick!(e.currentTarget, s.sourceItemId);
           }}
         >
           <span
@@ -70,7 +72,7 @@ export default function ShelfCard({ it }) {
             data-source-id={s.sourceItemId}
             onDoubleClick={(e) => {
               e.stopPropagation();
-              window.startRenameShelfSourceRow(e.currentTarget, s.sourceItemId);
+              window.startRenameShelfSourceRow!(e.currentTarget, s.sourceItemId);
             }}
             title="Double-click to rename"
           >
@@ -123,7 +125,7 @@ export default function ShelfCard({ it }) {
               className={"shelf-row" + (selected ? " selected" : "")}
               key={s.sessionId}
               onMouseDown={(e) => e.stopPropagation()}
-              onClick={() => window.shelfSelectSession(it.id, s.sessionId)}
+              onClick={() => window.shelfSelectSession!(it.id, s.sessionId)}
             >
               <span className="shelf-row-label">{s.label}</span>
               <span className="shelf-row-meta">{totalSeen} seen</span>

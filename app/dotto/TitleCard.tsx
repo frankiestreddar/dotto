@@ -2,6 +2,7 @@
 
 import { useLayoutEffect, useRef } from "react";
 import { setTitleLevel, titleFontSize } from "./lib/messagingCanvasPreview";
+import type { Item } from "./lib/messagingCanvasPreview";
 import { attachTitleBody } from "./lib/waypointsRenderLoop";
 
 // Ported from the old inline title branch in renderLegacyCardBody (app/dotto/lib/
@@ -25,11 +26,11 @@ import { attachTitleBody } from "./lib/waypointsRenderLoop";
 // this problem — the wrapper <div> itself already exists in the DOM by the time ANY layout effect
 // runs (React commits DOM mutations before firing effects), only its className is what's not set
 // yet.
-export default function TitleCard({ it, paneId }) {
-  const bodyRef = useRef(null);
+export default function TitleCard({ it, paneId }: { it: Item; paneId?: number }) {
+  const bodyRef = useRef<HTMLDivElement>(null);
 
   useLayoutEffect(() => {
-    const el = window.__findItemEl(it.id, paneId);
+    const el = window.__findItemEl!(it.id, paneId);
     if (el) el.style.fontSize = titleFontSize(it.level || 1) + "px";
     if (el && bodyRef.current) attachTitleBody(el, bodyRef.current, it, paneId);
   });
@@ -55,7 +56,7 @@ export default function TitleCard({ it, paneId }) {
         <input
           type="color"
           className="text-color-swatch"
-          onInput={(e) => document.execCommand("foreColor", false, e.target.value)}
+          onInput={(e) => document.execCommand("foreColor", false, e.currentTarget.value)}
         />
       </div>
       <div

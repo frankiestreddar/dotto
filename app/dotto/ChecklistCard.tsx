@@ -7,6 +7,7 @@ import {
   updateTaskDeadline,
   updateTaskText,
 } from "./lib/cardsMisc";
+import type { Item } from "./lib/messagingCanvasPreview";
 
 // Ported from the old renderChecklistHTML (public/dotto/cards-misc.js, now
 // app/dotto/lib/cardsMisc.ts) — see EmbedCard.jsx for the pattern this follows
@@ -15,9 +16,10 @@ import {
 // renderChecklistHTML's own generated HTML string (mini inline-canvas previews elsewhere), so
 // cardsMisc.ts keeps them as plain window.* globals too — imported here directly since this is
 // the same app/dotto/ tree.
-export default function ChecklistCard({ it }) {
-  const total = it.tasks.length;
-  const done = it.tasks.filter((t) => t.done).length;
+export default function ChecklistCard({ it }: { it: Item }) {
+  const tasks = it.tasks!;
+  const total = tasks.length;
+  const done = tasks.filter((t) => t.done).length;
   const pct = total ? Math.round((done / total) * 100) : 0;
 
   return (
@@ -26,7 +28,7 @@ export default function ChecklistCard({ it }) {
         <div className="checklist-fill" style={{ width: pct + "%" }} />
       </div>
       <div className="checklist-rows">
-        {it.tasks.map((t) => (
+        {tasks.map((t) => (
           <div className="checklist-row" key={t.id}>
             <input
               type="checkbox"

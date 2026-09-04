@@ -28,7 +28,7 @@ export interface Item {
   html?: string;
   level?: number;
   tableData?: string[][];
-  tasks?: { text: string; done: boolean }[];
+  tasks?: { id: number; text: string; done: boolean; deadline?: string }[];
   embedUrl?: string;
   mediaSrc?: string;
   mediaType?: string;
@@ -55,6 +55,31 @@ export interface Item {
   // StatcardCard.tsx's linked-game/stopwatch/shelf aggregate — same shape as cardsMisc.ts's own
   // local Item interface's streamCache field, kept in sync since both read the same real data.
   streamCache?: Record<string, { delta?: { seen?: number; ratings?: Record<string, number> } }>;
+  // FilterCard.tsx — see applyFilterToRows/collectAvailableFilterTags (srsConnectionsCore.ts) and
+  // toggleFilterTag (shelfSearch.ts): a real, pre-existing type inconsistency between those two
+  // already-converted files (one treats tag ids as number, the other as string) that FilterCard.tsx
+  // casts around at its one call site rather than resolving here, out of this batch's scope.
+  incomingRows?: Record<string, unknown>[];
+  filterTagIds?: number[];
+  filterMode?: string;
+  // ReferenceCard.tsx — set once at creation by placeTarget (commandVerbs.ts), never changed after.
+  refOwnerId?: string;
+  refFolderId?: string;
+  refKind?: string;
+  refTitle?: string;
+  refGlobalId?: string | null;
+  // ShelfCard.tsx — shelfSessions/stackSourceRows have no canonical typed shape anywhere yet (even
+  // srsConnectionsCore.ts's own producers cast through `unknown`/`Record<string, unknown>` at each
+  // write site) — kept loosely typed here to match that same real looseness rather than asserting
+  // a stricter shape this codebase doesn't actually guarantee.
+  shelfSessions?: {
+    sessionId: string;
+    label: string;
+    payloads: { delta?: { seen?: number } }[];
+  }[];
+  stackSourceRows?: Record<string, unknown[]>;
+  shelfName?: string;
+  shelfSelectedId?: string;
   [key: string]: unknown;
 }
 interface FolderObj {

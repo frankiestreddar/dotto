@@ -1,6 +1,7 @@
 "use client";
 
 import { editEmbed, shortUrl, toEmbeddableUrl } from "./lib/cardsMisc";
+import type { Item } from "./lib/messagingCanvasPreview";
 
 // First card kind converted to a real Component (canvas-items-react plan, PHASE2_ROADMAP.md) —
 // see CanvasItemsLayer.jsx's CARD_KIND_COMPONENTS. Ported from the old renderEmbedHTML
@@ -8,7 +9,7 @@ import { editEmbed, shortUrl, toEmbeddableUrl } from "./lib/cardsMisc";
 // JSX instead of a template string. editEmbed is called from other places too (renderChecklistHTML
 // has no relation to this, but the same file also backs a real inline onclick target elsewhere),
 // so it stays a real export here rather than being inlined.
-export default function EmbedCard({ it }) {
+export default function EmbedCard({ it }: { it: Item }) {
   if (!it.embedUrl) {
     return (
       <div

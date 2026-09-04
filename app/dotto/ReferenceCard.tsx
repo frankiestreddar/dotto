@@ -2,6 +2,7 @@
 
 import { useLayoutEffect, useRef, useState } from "react";
 import { buildFolderInlineCanvas } from "./lib/waypointsRenderLoop";
+import type { Item } from "./lib/messagingCanvasPreview";
 
 // Read-only live reference to another canvas/source (see the "/source|canvas ... place" command,
 // app/dotto/lib/commandVerbs.ts) — reuses the exact same inline-preview rendering CanvasCard.jsx uses for its
@@ -13,17 +14,17 @@ import { buildFolderInlineCanvas } from "./lib/waypointsRenderLoop";
 // unmounts/remounts this card along with the rest of that canvas's items (see CanvasItemsLayer.jsx).
 // No click-to-open-and-edit of its own (attachFolderCardClick isn't wired here) — genuinely
 // read-only, matching the command's own spec.
-export default function ReferenceCard({ it }) {
-  const previewWrapRef = useRef(null);
+export default function ReferenceCard({ it }: { it: Item }) {
+  const previewWrapRef = useRef<HTMLDivElement>(null);
   // Starts "loading" and only ever moves forward to 'unavailable'/'loaded' below — refOwnerId/
   // refFolderId are fixed at creation time for a given card (see placeTarget, app/dotto/lib/commandVerbs.ts),
   // so this effect's dependency array never actually changes for an existing card in practice;
   // there's no real "go back to loading" transition to handle, just the one resolution per mount.
-  const [status, setStatus] = useState("loading"); // 'loading' | 'unavailable' | 'loaded'
+  const [status, setStatus] = useState<"loading" | "unavailable" | "loaded">("loading");
 
   useLayoutEffect(() => {
     let cancelled = false;
-    window.__resolveReferenceFolderKey(it.refOwnerId, it.refFolderId).then((localKey) => {
+    window.__resolveReferenceFolderKey!(it.refOwnerId!, it.refFolderId!).then((localKey) => {
       if (cancelled) return;
       if (!localKey) {
         setStatus("unavailable");
