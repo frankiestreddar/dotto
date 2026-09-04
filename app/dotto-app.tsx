@@ -13,6 +13,7 @@ import {
   listPaneIds,
   splitLeafInTree,
   usePaneLayoutStore,
+  type PaneTree,
 } from "./dotto/lib/paneLayoutStore";
 import { useTabsStore } from "./dotto/lib/tabsStore";
 import AchievementsGrid from "./dotto/AchievementsGrid";
@@ -47,7 +48,7 @@ import { wireExtensionsPanel } from "./dotto/lib/extensionsPanel";
 import { wireUploadPopup } from "./dotto/lib/uploadPopup";
 import { wireBlocksPanel } from "./dotto/lib/blocksPanel";
 // Side-effect only — sets this module's own bridges (__buildMnemonicErrorEl/etc) at module-eval
-// time. Every real consumer (SearchSuggestionsPanel.jsx, app/dotto/lib/searchOrchestrationSelection.ts)
+// time. Every real consumer (SearchSuggestionsPanel.tsx, app/dotto/lib/searchOrchestrationSelection.ts)
 // now real-imports what it needs directly instead, same app/dotto tree — this bare import may be
 // fully redundant at this point, kept rather than risk a subtle evaluation-order regression
 // without a dedicated pass to verify it. No wireX() of its own (every top-level statement here is
@@ -56,29 +57,29 @@ import "./dotto/lib/mnemonicSearchMatching";
 import { ensureCoreState } from "./dotto/lib/coreState";
 // Side-effect only, same reasoning as splitPaneManagement/tabManagement above — sets
 // window.__openGameOptionsPanel/fcFlip/etc at module-eval time for the 5 still-vanilla callers
-// that used to import these directly, plus the React->vanilla bridges FlashcardCard.jsx/
-// TypeRightCard.jsx/GameOptionsPanel.jsx already called before this port.
+// that used to import these directly, plus the React->vanilla bridges FlashcardCard.tsx/
+// TypeRightCard.tsx/GameOptionsPanel.tsx already called before this port.
 import "./dotto/lib/gamesFlashcardTyperight";
 // Side-effect only, same reasoning as splitPaneManagement/tabManagement above — sets
 // window.__renderMediaHTML/setMediaFromLink/etc at module-eval time for the 3 still-vanilla
-// callers that used to import these directly, plus the React->vanilla bridges MediaCard.jsx
+// callers that used to import these directly, plus the React->vanilla bridges MediaCard.tsx
 // itself now imports directly instead (app/dotto/lib/messagingCanvasPreview.ts's mini previews
 // still need the bridges).
 import "./dotto/lib/mediaPdfEpub";
 // Side-effect only, same reasoning as splitPaneManagement/tabManagement above — sets
 // window.__renderTableHTML/updateTableCell/etc at module-eval time for the 5 still-vanilla
-// callers that used to import these directly, plus the React->vanilla bridges TableCard.jsx
+// callers that used to import these directly, plus the React->vanilla bridges TableCard.tsx
 // itself now imports directly instead (app/dotto/lib/messagingCanvasPreview.ts's mini previews
-// and canvasItemBehavior.js's Source-page renderer still need the bridges).
+// and canvasItemBehavior.ts's Source-page renderer still need the bridges).
 import "./dotto/lib/sourceTable";
 // Side-effect only — sets window.__splitPaneWithTab/__closePane at module-eval time (no wireX()
 // needed, unlike the two imports above: nothing here needs a live DOM/appState read at wire time,
 // just the bridge assignment itself). Imported here, not from any specific component, since
-// TabsBar.jsx/PaneTopBar.jsx are bridge CONSUMERS (call window.__splitPaneWithTab/__closePane),
+// TabsBar.tsx/PaneTopBar.tsx are bridge CONSUMERS (call window.__splitPaneWithTab/__closePane),
 // not producers — this needs to run unconditionally, same as bridges.js's own pane helpers below.
 import "./dotto/lib/splitPaneManagement";
 // Side-effect only, same reasoning as splitPaneManagement above — sets window.__addTab/__switchTab/
-// etc at module-eval time; TabsBar.jsx/PaneTopBar.jsx are bridge consumers, not producers.
+// etc at module-eval time; TabsBar.tsx/PaneTopBar.tsx are bridge consumers, not producers.
 import "./dotto/lib/tabManagement";
 // Side-effect only, same reasoning as splitPaneManagement/tabManagement above — sets
 // window.__openSharedCanvas/__ensureSharedFolderLoaded/etc at module-eval time for the 6
@@ -90,19 +91,19 @@ import "./dotto/lib/sharedAndPublicCanvasLoading";
 import "./dotto/lib/shelfSearch";
 // Side-effect only, same reasoning as splitPaneManagement/tabManagement above — sets
 // window.__buildOutline/__kindIconFile/etc at module-eval time for the 7 still-vanilla callers
-// that used to import these directly, plus the React->vanilla bridges OutlinePanel.jsx/
-// FilesListPanel.jsx already called before this port.
+// that used to import these directly, plus the React->vanilla bridges OutlinePanel.tsx/
+// FilesListPanel.tsx already called before this port.
 import "./dotto/lib/outlineTree";
 // Side-effect only, same reasoning as outlineTree/splitPaneManagement/tabManagement above — sets
 // window.__render/__openFolder/__attachNoteBody/etc at module-eval time for the 10 still-vanilla
 // callers that used to import these directly, plus the many React->vanilla bridges
-// CanvasItemsLayer.jsx/CanvasCard.jsx/etc already called before this port. Unlike every wireX()
+// CanvasItemsLayer.tsx/CanvasCard.tsx/etc already called before this port. Unlike every wireX()
 // port, this file has no real DOM-listener wiring to defer — every interactive piece is attached
 // per-item from a React layout effect or invoked directly by a caller — so a plain side-effect
 // import is enough, no useEffect/wireX() call needed here.
 import "./dotto/lib/waypointsRenderLoop";
 // Side-effect only — sets window.__shortUrl/__toEmbeddableUrl/__renderChecklistHTML/
-// __renderStatcardHTML/editEmbed/addTask/etc at module-eval time; EmbedCard.jsx/ChecklistCard.jsx
+// __renderStatcardHTML/editEmbed/addTask/etc at module-eval time; EmbedCard.tsx/ChecklistCard.tsx
 // import the real functions directly instead (same app/dotto/ tree), but the plain-global names
 // still need to exist for renderChecklistHTML's own generated inline onclick/onchange/oninput
 // attributes and for outlineTree.ts/messagingCanvasPreview.ts's bridge reads.
@@ -110,8 +111,8 @@ import "./dotto/lib/cardsMisc";
 // Side-effect only — sets window.__openItemDetail/__deleteMyCreationItem/onItemDetailFieldChange/
 // confirmPublishFlow at module-eval time for app/dotto/lib/blocksPanel.ts (kept as a bridge
 // deliberately — see that file's own header comment for why a direct import would be circular)
-// and content/fragments/hamburger-stack.html's inline oninput/onclick targets; ItemDetailTitle.jsx/
-// PublishFlowName.jsx/ItemDetailFooter.jsx import the real functions directly instead (same
+// and content/fragments/hamburger-stack.html's inline oninput/onclick targets; ItemDetailTitle.tsx/
+// PublishFlowName.tsx/ItemDetailFooter.tsx import the real functions directly instead (same
 // app/dotto/ tree).
 import "./dotto/lib/libraryPublish";
 // Side-effect only — sets window.__calculateSM2/__defaultSrsState/__diffRatings at module-eval
@@ -119,12 +120,12 @@ import "./dotto/lib/libraryPublish";
 // srs-algorithm.js already established.
 import "./dotto/lib/srsAlgorithm";
 // Side-effect only — sets window.__dispatchSelectedToChat at module-eval time; its only real
-// caller (app/dotto/canvasItemBehavior.js) is a plain .js file, not same-tree.
+// caller (app/dotto/canvasItemBehavior.ts) is a plain .ts file, not same-tree.
 import "./dotto/lib/dragDropChat";
 // Side-effect only — sets window.__openRowTagPicker/__tagPillsHTML/__closeCellTagPicker plus the
 // real inline-HTML plain globals (closeCellTagPicker/closeTagContextMenu/createTagFromCellPicker/
 // deleteActiveTag/startRenameActiveTag/triggerSourceUpload) at module-eval time;
-// CellTagPickerList.jsx imports the real functions directly instead (same app/dotto/ tree) for its
+// CellTagPickerList.tsx imports the real functions directly instead (same app/dotto/ tree) for its
 // own TagRow handlers.
 import "./dotto/lib/sourceTagsAi";
 import BlocksPanel from "./dotto/BlocksPanel";
@@ -220,11 +221,11 @@ if (typeof window !== "undefined" && !window.__dottoSupabase) {
 
 // Phase 3 of the vanilla->React consolidation: setupResizing/setupDraggingAndClicking/
 // renderConnectionsLayer/renderStaticTableHTML/attachStaticTableHoverZones/
-// layoutSourceTableColumns now live in app/dotto/canvasItemBehavior.js instead of
+// layoutSourceTableColumns now live in app/dotto/canvasItemBehavior.ts instead of
 // public/dotto/resize-shortcuts-init.js, public/dotto/drag-drop-chat.js,
 // public/dotto/srs-connections-core.js, and app/dotto/lib/sourceTable.ts — every already-React
-// card component that owns a resize handle (TableCard.jsx, FlashcardCard.jsx, MediaCard.jsx,
-// TypeRightCard.jsx) imports setupResizing directly now, no bridge needed, and as of
+// card component that owns a resize handle (TableCard.tsx, FlashcardCard.tsx, MediaCard.tsx,
+// TypeRightCard.tsx) imports setupResizing directly now, no bridge needed, and as of
 // app/dotto/lib/waypointsRenderLoop.ts's own Phase 4.5 port, so does that file (render()'s own
 // calls to renderConnectionsLayer/renderStaticTableHTML/attachStaticTableHoverZones/
 // layoutSourceTableColumns, attachNoteBody's own call to setupResizing,
@@ -247,16 +248,16 @@ if (typeof window !== "undefined") {
 
 // pricingOverlayStore and selectionToolbarStore (Phase 2 increments 1-2) were the first two
 // subsystems converted to real React state — both migrated to real Zustand since (Zustand
-// migration plan, batch 1, see PHASE4_ROADMAP.md): PricingOverlay.jsx/SelectionToolbar.jsx and
+// migration plan, batch 1, see PHASE4_ROADMAP.md): PricingOverlay.tsx/SelectionToolbar.tsx and
 // their respective producers (app/dotto/lib/profileAchievementsPricing.ts,
 // app/dotto/lib/searchOrchestrationSelection.ts) now import usePricingOverlayStore/
 // useSelectionToolbarStore directly, no bridge needed.
 if (typeof window !== "undefined") {
-  // Canvas items layer (see app/dotto/CanvasItemsLayer.jsx, PHASE2_ROADMAP.md's canvas-items-react
+  // Canvas items layer (see app/dotto/CanvasItemsLayer.tsx, PHASE2_ROADMAP.md's canvas-items-react
   // plan) — render() (app/dotto/lib/waypointsRenderLoop.ts) calls this in place of its old world.innerHTML=''
   // rebuild, passing appState.activePaneId explicitly (split-screen Stage 4 — useCanvasItemsStore
   // is pane-keyed, see app/dotto/lib/canvasItemsStore.ts: each pane shows its own folder's items
-  // independently). MUST commit synchronously: at least one caller (canvasItemBehavior.js's
+  // independently). MUST commit synchronously: at least one caller (canvasItemBehavior.ts's
   // alt-duplicate-drag) does `render(); findItemEl(id)` immediately afterward and depends on that
   // node already existing. A plain setState(...) here would only schedule the update (React 18+
   // batches/defers updates triggered outside of React's own event handlers to a microtask), so
@@ -264,9 +265,9 @@ if (typeof window !== "undefined") {
   // body-building happens in a useLayoutEffect (synchronous, pre-paint), flushSync flushes that
   // too, before this returns. `true` (replace) as setState's second argument — array-shaped state,
   // see useCanvasItemsStore's own comment for why the default merge would silently corrupt it.
-  window.__renderCanvasItems = (items, paneId) =>
+  window.__renderCanvasItems = (items: Record<string, unknown>[], paneId?: number) =>
     flushSync(() => useCanvasItemsStore.storeFor(paneId).setState(items, true));
-  // Pane layout (split-screen Stage 4+, see app/dotto/PaneGrid.jsx) — the tree itself, plus the
+  // Pane layout (split-screen Stage 4+, see app/dotto/PaneGrid.tsx) — the tree itself, plus the
   // split/close operations on it (Stage 6 — see usePaneLayoutStore's own comment,
   // app/dotto/lib/paneLayoutStore.ts, for why this became a real tree instead of a flat rect
   // list). All flushSync'd for the same reason __renderCanvasItems is: a caller that splits or
@@ -279,7 +280,8 @@ if (typeof window !== "undefined") {
   // tree) across the transition — same class of bug as the array-shaped stores, just for objects
   // with varying keys instead (see hubCollabListStore.ts/msgListStore.ts's own comments for the
   // batch-4/6 precedent).
-  window.__setPaneLayout = (tree) => flushSync(() => usePaneLayoutStore.setState(tree, true));
+  window.__setPaneLayout = (tree) =>
+    flushSync(() => usePaneLayoutStore.setState(tree as unknown as PaneTree, true));
   window.__getPaneLayout = () => usePaneLayoutStore.getState();
   window.__listPaneIds = () => listPaneIds(usePaneLayoutStore.getState());
   window.__countPanes = () => listPaneIds(usePaneLayoutStore.getState()).length;
@@ -292,7 +294,7 @@ if (typeof window !== "undefined") {
     );
   window.__closePaneInLayout = (paneId) =>
     flushSync(() =>
-      usePaneLayoutStore.setState(closeLeafInTree(usePaneLayoutStore.getState(), paneId), true),
+      usePaneLayoutStore.setState(closeLeafInTree(usePaneLayoutStore.getState(), paneId)!, true),
     );
   // Drops a closed pane's own items/tabs/breadcrumb stores (see app/dotto/lib/paneKeyedStore.ts's
   // own comment) so they don't just leak forever once closePane
@@ -312,12 +314,12 @@ if (typeof window !== "undefined") {
   // window.__initializeNewPane. Still useful post-Stage-6 as a quick manual smoke-test trigger, so
   // kept rather than removed.
   window.__debugSplitPane = () => {
-    const appState = window.__getAppState();
-    if (appState.activePaneId !== 0) window.__switchActivePane(0);
-    window.__splitPaneInLayout(0, 1, "right");
-    window.__switchActivePane(1);
-    window.__initializeNewPane(1, "root");
-    window.__render();
+    const appState = window.__getAppState!();
+    if (appState.activePaneId !== 0) window.__switchActivePane!(0);
+    window.__splitPaneInLayout!(0, 1, "right");
+    window.__switchActivePane!(1);
+    window.__initializeNewPane!(1, "root");
+    window.__render!();
   };
   // The six search-dropdown result panels (translationPanelStore/dictionaryPanelStore/
   // examplesPanelStore/recommendedSearchesStore/dotbotAnswerStore/imageResultStore) all migrated
@@ -326,9 +328,9 @@ if (typeof window !== "undefined") {
   // still wrapped in flushSync there for the same reason these bridges used to need it:
   // updateSearchDropdown (app/dotto/lib/aiAssistantSuggestions.ts) reads each panel's real DOM
   // node's style.display synchronously right after.
-  // #search-chat-thread (ChatThread.jsx), #search-command-palette (CommandPalette.jsx),
-  // #search-suggestions (SearchSuggestionsPanel.jsx), and the add-to-source popup
-  // (AddToSourcePopup.jsx) all migrated to real Zustand (Zustand migration plan, batch 3, see
+  // #search-chat-thread (ChatThread.tsx), #search-command-palette (CommandPalette.tsx),
+  // #search-suggestions (SearchSuggestionsPanel.tsx), and the add-to-source popup
+  // (AddToSourcePopup.tsx) all migrated to real Zustand (Zustand migration plan, batch 3, see
   // PHASE4_ROADMAP.md) — see app/dotto/lib/chatThreadStore.ts, commandPaletteStore.ts,
   // searchSuggestionsStore.ts, and addToSourcePopupStore.ts for each store's own comment on why
   // its producers still wrap every setState call in flushSync.
@@ -337,12 +339,12 @@ if (typeof window !== "undefined") {
   // batch 4, see PHASE4_ROADMAP.md) — see app/dotto/lib/outlineStore.ts, waypointsListStore.ts,
   // sourcesListStore.ts, filesListStore.ts, chatsListStore.ts, hubCollabListStore.ts, and
   // listPanelSelectionStore.ts for each store's own comment on flushSync requirements.
-  // Profile panel's level pill and achievement spritebook (see app/dotto/ProfileLevelPill.jsx/
-  // AchievementsGrid.jsx) both migrated to real Zustand (Zustand migration plan, batch 5, see
+  // Profile panel's level pill and achievement spritebook (see app/dotto/ProfileLevelPill.tsx/
+  // AchievementsGrid.tsx) both migrated to real Zustand (Zustand migration plan, batch 5, see
   // PHASE4_ROADMAP.md) — see app/dotto/lib/profileLevelStore.ts/achievementsStore.ts.
-  // Messages panel's list (MessagesListPanel.jsx), the per-canvas Collaborations flyout
-  // (CollabListPanel.jsx), the open conversation thread (MsgConvo.jsx), and the Shared Card
-  // preview modal (SharedCanvasModalBody.jsx) all migrated to real Zustand (Zustand migration
+  // Messages panel's list (MessagesListPanel.tsx), the per-canvas Collaborations flyout
+  // (CollabListPanel.tsx), the open conversation thread (MsgConvo.tsx), and the Shared Card
+  // preview modal (SharedCanvasModalBody.tsx) all migrated to real Zustand (Zustand migration
   // plan, batch 6, see PHASE4_ROADMAP.md) — see app/dotto/lib/msgListStore.ts, collabListStore.ts,
   // msgConvoStore.ts, and sharedCanvasModalStore.ts.
   // Marketplace Discover/Detail panels, the Blocks panel, the Extensions panel, and the Item
@@ -354,12 +356,31 @@ if (typeof window !== "undefined") {
   // batch 9, see PHASE4_ROADMAP.md) — see app/dotto/lib/collabPillStore.ts, navHistoryStore.ts,
   // activePaneIdStore.ts, mediaViewerZoomStore.ts, breadcrumbMapStore.ts, and tabsStore.ts (the
   // pane-keyed ones now built on app/dotto/lib/paneKeyedStore.ts's redesigned factory).
-  // Cell tag picker dropdown (see app/dotto/CellTagPickerList.jsx,
+  // Cell tag picker dropdown (see app/dotto/CellTagPickerList.tsx,
   // app/dotto/lib/sourceTagsAi.ts's renderCellTagPickerList) migrated to real Zustand (Zustand
   // migration plan, batch 8, see PHASE4_ROADMAP.md) — see app/dotto/lib/cellTagPickerListStore.ts.
 }
 
-export default function DottoApp({ sections, currentUser }) {
+interface DottoAppUser {
+  id: string | null;
+  username: string;
+  displayName?: string;
+  avatarUrl?: string | null;
+  avatarId?: number;
+  totalScore?: number;
+  loginStreak?: number;
+  joinedAt?: string | null;
+  unlockedAchievementIds?: string[];
+  [key: string]: unknown;
+}
+
+export default function DottoApp({
+  sections,
+  currentUser,
+}: {
+  sections: Record<string, string>;
+  currentUser: DottoAppUser;
+}) {
   // A raw <script> rendered via JSX/dangerouslySetInnerHTML is never executed
   // by the browser on the client (same rule as innerHTML) — it silently did
   // nothing here. Setting it directly during render is what actually runs,
@@ -383,7 +404,7 @@ export default function DottoApp({ sections, currentUser }) {
     ensureCoreState();
   }
 
-  // Overwrites app/layout.js's static "Dotto" fallback title once the logged-in user is known —
+  // Overwrites app/layout.tsx's static "Dotto" fallback title once the logged-in user is known —
   // per explicit request, replacing the old "Dotter v0.1.3" placeholder with "Dotto | @username".
   // A real effect (not inline during render like window.__DOTTO_USER__ above) since nothing else
   // depends on document.title being set before some other script runs.

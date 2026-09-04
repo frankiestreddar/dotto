@@ -86,6 +86,9 @@ declare global {
     __closePaneInLayout?: (paneId: number) => void;
     __removePaneItemsStore?: (paneId: number) => void;
     __removePaneTabsStore?: (paneId: number) => void;
+    // app/dotto-app.tsx — dev-only manual trigger for a real second pane ahead of the actual
+    // drag-to-split UI; see its own comment for why it's still kept post-launch.
+    __debugSplitPane?: () => void;
     // app/dotto/lib/splitPaneManagement.ts (Phase 4.4 port — was split-pane-management.js) —
     // vanilla -> React bridges: TabsBar.jsx's drag-to-split gesture and PaneTopBar.jsx's close
     // button already called these as globals before the port.
@@ -336,12 +339,28 @@ declare global {
     // app/dotto/lib/coreState.ts — resolves the cursor mode actually in effect right now (accounting for a
     // temporary D/Escape/Shift keyboard override on top of the persistent cardMode).
     __effectiveMode?: () => string;
-    // app/dotto/canvasItemBehavior.js (via app/dotto-app.jsx) — recomputes a source table's column
+    // app/dotto/canvasItemBehavior.ts (via app/dotto-app.tsx) — recomputes a source table's column
     // widths/scroll affordance against its container's current rendered width.
     __layoutSourceTableColumns?: (
       it: Record<string, unknown>,
       el: HTMLElement,
       reserve?: number,
+    ) => void;
+    // app/dotto/canvasItemBehavior.ts (via app/dotto-app.tsx) — the other five bridges that file
+    // sets alongside __layoutSourceTableColumns above. No real reader anywhere in app/ or public/
+    // any more (every card component that used to reach these through window now imports the real
+    // function directly, same tree) — kept assigned only because the original dotto-app.jsx did,
+    // and this is a typing pass, not a behavior change.
+    __setupResizing?: (el: HTMLElement, it: Record<string, unknown>) => void;
+    __setupDraggingAndClicking?: (el: HTMLElement, it: Record<string, unknown>) => void;
+    __renderConnectionsLayer?: (
+      folderObj: Record<string, unknown>,
+      currentItems: Record<string, unknown>[],
+    ) => SVGSVGElement;
+    __renderStaticTableHTML?: (it: Record<string, unknown>, folderId?: string) => string;
+    __attachStaticTableHoverZones?: (
+      container: HTMLElement,
+      tableItem: Record<string, unknown>,
     ) => void;
     // app/dotto/lib/friendsPresence.ts
     __closeCollabPanel?: () => void;

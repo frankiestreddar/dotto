@@ -16,11 +16,11 @@ import PaneCanvasArea from "./PaneCanvasArea";
 // correctly, since every synchronous gesture function elsewhere (setupDraggingAndClicking,
 // startConnectionDrag, resize handles, ...) still just reads canvas/world/appState.tx and friends
 // ambiently, assuming whichever pane is "active" is already correct by the time it runs.
-export default function PaneGrid({ html }) {
+export default function PaneGrid({ html }: { html: string }) {
   // Zustand's own getInitialState() (what useStore's SSR snapshot reads) already matches the
   // store's real initial value ({type:"leaf",paneId:0}) — no separate module-level fallback
   // constant needed the way the old useSyncExternalStore call required (see
-  // ProfileLevelPill.jsx/SelectionToolbar.jsx's identical comment for the server/client hydration
+  // ProfileLevelPill.tsx/SelectionToolbar.tsx's identical comment for the server/client hydration
   // mismatch this avoids).
   // The store itself holds a split TREE, not a flat rect list (Stage 6 — see usePaneLayoutStore's
   // own comment, app/dotto/lib/paneLayoutStore.ts). computePaneRects walks it fresh on every
@@ -30,12 +30,12 @@ export default function PaneGrid({ html }) {
   const panes = computePaneRects(tree);
   const dividers = computeSplitDividers(tree);
 
-  const handlePointerDownCapture = (e) => {
-    const paneEl = e.target.closest("[data-pane-id]");
+  const handlePointerDownCapture = (e: React.PointerEvent<HTMLDivElement>) => {
+    const paneEl = (e.target as HTMLElement).closest<HTMLElement>("[data-pane-id]");
     if (!paneEl) return;
     const paneId = Number(paneEl.dataset.paneId);
-    if (Number.isNaN(paneId) || paneId === window.__getAppState().activePaneId) return;
-    window.__switchActivePane(paneId);
+    if (Number.isNaN(paneId) || paneId === window.__getAppState!().activePaneId) return;
+    window.__switchActivePane!(paneId);
   };
 
   return (
@@ -77,7 +77,7 @@ export default function PaneGrid({ html }) {
             style={{ top: (rect.y + rect.h) * 100 + "%", left: rect.x * 100 + "%" }}
             onClick={(e) => {
               e.stopPropagation();
-              window.__closePane(paneId);
+              window.__closePane!(paneId);
             }}
           >
             ×

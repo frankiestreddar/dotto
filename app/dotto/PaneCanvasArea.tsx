@@ -4,6 +4,7 @@ import { useLayoutEffect, useMemo } from "react";
 import CanvasItemsLayer from "./CanvasItemsLayer";
 import PaneTopBar from "./PaneTopBar";
 import PaneZoomBar from "./PaneZoomBar";
+import type { PaneRect } from "./lib/paneLayoutStore";
 
 // Split-screen Stage 4 (see the split-screen plan). Renders one pane's own copy of
 // content/fragments/canvas-area.html — the exact same static markup CanvasArea.jsx/MarkupSection
@@ -20,7 +21,7 @@ import PaneZoomBar from "./PaneZoomBar";
 // pane-canvas/pane-world/pane-dot-layer/pane-cursor-overlay class — globals.css's relevant rules
 // were extended (never replaced) to also match those classes, so qualified panes get identical
 // styling without a duplicate rule set of their own.
-const PANE_MARKUP_IDS = [
+const PANE_MARKUP_IDS: { staticId: string; cls: string | null }[] = [
   { staticId: "canvas", cls: "pane-canvas" },
   { staticId: "world", cls: "pane-world" },
   { staticId: "dot-layer", cls: "pane-dot-layer" },
@@ -31,10 +32,10 @@ const PANE_MARKUP_IDS = [
 ];
 
 // data-pane-id is added to the #canvas/#canvas-{paneId} element itself (rather than an extra
-// wrapper div around it) — PaneGrid.jsx's capture-phase pointerdown router uses it to identify
+// wrapper div around it) — PaneGrid.tsx's capture-phase pointerdown router uses it to identify
 // which pane was clicked via a plain e.target.closest("[data-pane-id]"), with no additional DOM
 // nesting beyond what content/fragments/canvas-area.html already has.
-function paneQualifyHtml(html, paneId) {
+function paneQualifyHtml(html: string, paneId: number): string {
   if (paneId === 0) {
     // Pane 0: ids stay exactly as they are — only add the shared classes (+ data-pane-id).
     let out = html;
@@ -67,7 +68,15 @@ function paneQualifyHtml(html, paneId) {
 // custom-property based --rail-width/--hmenu-width math #canvas's own base rule uses) is
 // intentional for this stage — Stage 4 only needs a fixed, non-animated split to prove the core
 // mechanism; an animated drag-to-split gesture is Stage 5+ scope.
-export default function PaneCanvasArea({ html, paneId, rect }) {
+export default function PaneCanvasArea({
+  html,
+  paneId,
+  rect,
+}: {
+  html: string;
+  paneId: number;
+  rect: PaneRect;
+}) {
   const qualifiedHtml = paneQualifyHtml(html, paneId);
   const canvasId = paneId === 0 ? "canvas" : `canvas-${paneId}`;
   // Memoized so the dangerouslySetInnerHTML PROP OBJECT keeps the same reference across renders
@@ -102,13 +111,13 @@ export default function PaneCanvasArea({ html, paneId, rect }) {
       <CanvasItemsLayer paneId={paneId} />
       {/* This pane's own FULL top-bar pill — nav-arrows, tab row, collaborator bubble, and add-tab
           button together (split-screen Stage 8, explicit correction — Stage 7 only made the tab
-          row itself per-pane; see PaneTopBar.jsx's own comment for the full story). Centered over
+          row itself per-pane; see PaneTopBar.tsx's own comment for the full story). Centered over
           THIS pane's own box via the same fractional rect every other per-pane element here uses —
           for a single unsplit pane (rect the full viewport) this lands at exactly the same screen
           position the old single global #top-bar-center always did, so nothing visually changes
           until a pane actually exists to need its own. */}
       <PaneTopBar paneId={paneId} rect={rect} />
-      {/* This pane's own media-viewer zoom bar (PaneZoomBar.jsx — explicit request/spec) — only
+      {/* This pane's own media-viewer zoom bar (PaneZoomBar.tsx — explicit request/spec) — only
           renders any actual DOM once this pane is both the active one AND its current tab is a
           media-viewer, so it costs nothing extra for the common (non-media-viewer) case. */}
       <PaneZoomBar paneId={paneId} rect={rect} />

@@ -4,7 +4,9 @@ import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { allowedEdgesForPane, computePaneRects, usePaneLayoutStore } from "./lib/paneLayoutStore";
 import { useBreadcrumbMapStore } from "./lib/breadcrumbMapStore";
+import type { BreadcrumbMapState } from "./lib/breadcrumbMapStore";
 import { useTabsStore } from "./lib/tabsStore";
+import type { TabInfo } from "./lib/tabsStore";
 import { startRenameFolderCardTitle } from "./lib/waypointsRenderLoop";
 import usePortalNode from "./usePortalNode";
 
@@ -41,13 +43,18 @@ function getPaneRectsPx() {
   }));
 }
 
+type PaneRectPx = ReturnType<typeof getPaneRectsPx>[number];
+
 // The drop-zone rectangle for a given pane+edge: half of that pane's own box on the dropped side,
 // inset OUTER px from the pane's true boundary and INNER px from the (future) split line — same
 // "padding off the true edges" shape the original ask/Stage 5 both used, just computed generically
 // against any pane's own box now instead of two hardcoded viewport-half CSS variants.
 const DROPZONE_OUTER_PX = 16;
 const DROPZONE_INNER_PX = 8;
-function computeDropzoneRect(pane, edge) {
+function computeDropzoneRect(
+  pane: PaneRectPx,
+  edge: "left" | "right" | "top" | "bottom",
+): { left: number; top: number; width: number; height: number } {
   const o = DROPZONE_OUTER_PX,
     i = DROPZONE_INNER_PX;
   if (edge === "left" || edge === "right") {
@@ -99,21 +106,21 @@ const RESIZE_MS = 250;
 // clicking any of these segments would silently fire the pill's own onClick instead (undefined
 // for the active tab, since it isn't itself clickable — see TabRow's own comment), never reaching
 // the handlers below at all.
-function ActiveTabTrail({ bc, paneId }) {
-  const currentRef = useRef(null);
+function ActiveTabTrail({ bc, paneId }: { bc: BreadcrumbMapState; paneId: number }) {
+  const currentRef = useRef<HTMLSpanElement>(null);
 
   if (!bc.current) return null;
 
   return (
     <>
-      {bc.hasMore && (
+      {bc.hasMore && bc.root && (
         <>
           <span
             className="breadcrumb-pill-ellipsis"
             onPointerDown={(e) => e.stopPropagation()}
             onClick={(e) => {
               e.stopPropagation();
-              window.__breadcrumbMapRowClick(bc.root.folderId, bc.root.isSyntheticRoot, paneId);
+              window.__breadcrumbMapRowClick!(bc.root!.folderId, bc.root!.isSyntheticRoot, paneId);
             }}
           >
             …
@@ -128,7 +135,11 @@ function ActiveTabTrail({ bc, paneId }) {
             onPointerDown={(e) => e.stopPropagation()}
             onClick={(e) => {
               e.stopPropagation();
-              window.__breadcrumbMapRowClick(bc.parent.folderId, bc.parent.isSyntheticRoot, paneId);
+              window.__breadcrumbMapRowClick!(
+                bc.parent!.folderId,
+                bc.parent!.isSyntheticRoot,
+                paneId,
+              );
             }}
           >
             {bc.parent.label}
@@ -143,8 +154,8 @@ function ActiveTabTrail({ bc, paneId }) {
         onClick={(e) => {
           e.stopPropagation();
           startRenameFolderCardTitle(
-            currentRef.current,
-            { folderId: bc.current.folderId },
+            currentRef.current!,
+            { folderId: bc.current!.folderId },
             "breadcrumb-pill-current",
           );
         }}
@@ -187,6 +198,8 @@ function ActiveTabTrail({ bc, paneId }) {
 // the resize phase starts), so the OLD content is still on screen (and able to fly out) for the
 // first beat, and the box has already resized to fit the NEW content before it flies in for the
 // last; for the shrinking direction it flips immediately, alongside everything else.
+type TabPhase = "idle" | "fly-out" | "resize" | "fly-in";
+
 function TabRow({
   tab,
   paneId,
@@ -199,6 +212,18 @@ function TabRow({
   onDragStart,
   onDragMove,
   onDragEnd,
+}: {
+  tab: TabInfo;
+  paneId: number;
+  isActive: boolean;
+  canClose: boolean;
+  dragX: number;
+  isDragging: boolean;
+  isEscaped: boolean;
+  tabRef: (el: HTMLDivElement | null) => void;
+  onDragStart: (id: string, clientX: number, clientY: number) => void;
+  onDragMove: (id: string, clientX: number, clientY: number) => void;
+  onDragEnd: (id: string, clientX: number, clientY: number) => boolean;
 }) {
   const suppressClickRef = useRef(false);
   // This pane's own breadcrumb store slot (split-screen Stage 7 — breadcrumbMapStore is pane-keyed
@@ -219,7 +244,7 @@ function TabRow({
   const [lastOwnBc, setLastOwnBc] = useState(bc);
   if (isActive && bc !== lastOwnBc) setLastOwnBc(bc);
 
-  const [phase, setPhase] = useState("idle");
+  const [phase, setPhase] = useState<TabPhase>("idle");
   const [showTrail, setShowTrail] = useState(isActive);
   const prevIsActiveRef = useRef(isActive);
 
@@ -242,7 +267,7 @@ function TabRow({
     prevIsActiveRef.current = isActive;
     if (!isActive) return; // instant shrink already handled during render, above
     let cancelled = false;
-    const timers = [];
+    const timers: ReturnType<typeof setTimeout>[] = [];
     timers.push(
       setTimeout(() => {
         if (cancelled) return;
@@ -314,7 +339,7 @@ function TabRow({
                 suppressClickRef.current = false;
                 return;
               }
-              window.__switchTab(tab.id, paneId);
+              window.__switchTab!(tab.id, paneId);
             }
       }
     >
@@ -333,7 +358,7 @@ function TabRow({
           onPointerDown={(e) => e.stopPropagation()}
           onClick={(e) => {
             e.stopPropagation();
-            window.__closeTab(tab.id, paneId);
+            window.__closeTab!(tab.id, paneId);
           }}
         >
           ×
@@ -343,10 +368,31 @@ function TabRow({
   );
 }
 
+interface DragState {
+  id: string | null;
+  x: number;
+  y: number;
+  escaped: boolean;
+  edge: "left" | "right" | "top" | "bottom" | null;
+  targetPaneId: number | null;
+  zoneRect: { left: number; top: number; width: number; height: number } | null;
+  clientX: number;
+  clientY: number;
+}
+
+interface DragRefState {
+  id: string;
+  startX: number;
+  startY: number;
+  escaped: boolean;
+  edge: "left" | "right" | "top" | "bottom" | null;
+  targetPaneId: number | null;
+}
+
 // One TabsBar instance PER PANE now (split-screen Stage 7, explicit request — was a single global
 // instance tied to whichever pane happened to be active). Portals into that pane's own
 // #pane-tabs-{paneId} anchor — the middle grid column of that pane's own FULL top-bar pill
-// (PaneTopBar.jsx, split-screen Stage 8 — nav-arrows/tab row/collab bubble/add-tab button together,
+// (PaneTopBar.tsx, split-screen Stage 8 — nav-arrows/tab row/collab bubble/add-tab button together,
 // each independently hover-expanding, was just the tab row alone in Stage 7's
 // #pane-breadcrumb-pill-{paneId}) instead of the single static #breadcrumb-pill — used to portal a
 // single breadcrumb trail directly (BreadcrumbPill.jsx, now folded into ActiveTabTrail above), then
@@ -354,7 +400,7 @@ function TabRow({
 // tab is currently active in THIS pane (see addTab's own comment, app/dotto/lib/tabManagement.ts) —
 // this component has no say in where a new tab starts, it just renders whatever this pane's own
 // tabsStore slot already reflects.
-export default function TabsBar({ paneId }) {
+export default function TabsBar({ paneId }: { paneId: number }) {
   // This pane's own tabs store slot (split-screen Stage 7 — tabsStore is pane-keyed now, one slot
   // per pane, not a single shared store). .storeFor(paneId) is stable across renders (see
   // app/dotto/lib/paneKeyedStore.ts's own comment), safe to call directly in render.
@@ -373,9 +419,9 @@ export default function TabsBar({ paneId }) {
   // window.__splitPaneWithTab; releasing outside one (still escaped) just cancels — the tab snaps
   // back into the row with no reorder and no split, same as a real browser tab you drag out and
   // drop back onto its own bar.
-  const tabRefs = useRef({});
-  const dragRef = useRef(null); // { id, startX, startY, escaped, edge, targetPaneId }
-  const [drag, setDrag] = useState({
+  const tabRefs = useRef<Record<string, HTMLDivElement | null>>({});
+  const dragRef = useRef<DragRefState | null>(null);
+  const [drag, setDrag] = useState<DragState>({
     id: null,
     x: 0,
     y: 0,
@@ -387,7 +433,7 @@ export default function TabsBar({ paneId }) {
     clientY: 0,
   });
 
-  const handleDragStart = (id, clientX, clientY) => {
+  const handleDragStart = (id: string, clientX: number, clientY: number) => {
     dragRef.current = {
       id,
       startX: clientX,
@@ -397,7 +443,7 @@ export default function TabsBar({ paneId }) {
       targetPaneId: null,
     };
   };
-  const handleDragMove = (id, clientX, clientY) => {
+  const handleDragMove = (id: string, clientX: number, clientY: number) => {
     const d = dragRef.current;
     if (!d || d.id !== id) return;
     const dx = clientX - d.startX,
@@ -440,10 +486,10 @@ export default function TabsBar({ paneId }) {
     // avoids showing a drop-zone that a drop would immediately be rejected against) — redundant
     // with allowedEdgesForPane's own depth-2 case in practice (a clean 2x2 always hits 4 panes
     // exactly when every leaf is at depth 2), kept as an explicit belt-and-suspenders check.
-    let edge = null,
-      targetPaneId = null,
-      zoneRect = null;
-    if (window.__countPanes() < 4) {
+    let edge: "left" | "right" | "top" | "bottom" | null = null,
+      targetPaneId: number | null = null,
+      zoneRect: { left: number; top: number; width: number; height: number } | null = null;
+    if (window.__countPanes!() < 4) {
       const panes = getPaneRectsPx();
       const hovered =
         panes.find(
@@ -453,7 +499,7 @@ export default function TabsBar({ paneId }) {
             clientY >= p.y &&
             clientY <= p.y + p.height,
         ) ||
-        panes.reduce((best, p) => {
+        panes.reduce<(PaneRectPx & { dist: number }) | null>((best, p) => {
           const cx = Math.max(p.x, Math.min(clientX, p.x + p.width));
           const cy = Math.max(p.y, Math.min(clientY, p.y + p.height));
           const dist = Math.hypot(clientX - cx, clientY - cy);
@@ -461,13 +507,13 @@ export default function TabsBar({ paneId }) {
         }, null);
       if (hovered) {
         const allowed = allowedEdgesForPane(usePaneLayoutStore.getState(), hovered.paneId);
-        const distances = {
+        const distances: Record<"left" | "right" | "top" | "bottom", number> = {
           left: clientX - hovered.x,
           right: hovered.x + hovered.width - clientX,
           top: clientY - hovered.y,
           bottom: hovered.y + hovered.height - clientY,
         };
-        let bestEdge = null,
+        let bestEdge: "left" | "right" | "top" | "bottom" | null = null,
           bestDist = Infinity;
         allowed.forEach((e) => {
           if (distances[e] < bestDist) {
@@ -488,12 +534,12 @@ export default function TabsBar({ paneId }) {
   };
   // Returns true if this release should suppress the pill's own onClick (i.e. it was a real drag,
   // not a plain click) — TabRow reads this back into its own suppressClickRef.
-  const handleDragEnd = (id, clientX) => {
+  const handleDragEnd = (id: string, clientX: number): boolean => {
     const d = dragRef.current;
     const wasDragging =
       !!d && d.id === id && (d.escaped || Math.abs(clientX - d.startX) >= DRAG_THRESHOLD_PX);
     if (d && d.id === id && d.escaped) {
-      if (d.edge) window.__splitPaneWithTab(id, d.targetPaneId, d.edge, paneId);
+      if (d.edge) window.__splitPaneWithTab!(id, d.targetPaneId!, d.edge, paneId);
       // else: cancelled — the tab just snaps back into the row below, no reorder/split.
     } else if (wasDragging) {
       // Final drop index: the position of the LAST (rightmost, in left-to-right tab order) other
@@ -507,7 +553,7 @@ export default function TabsBar({ paneId }) {
         const rect = el.getBoundingClientRect();
         if (clientX > rect.left + rect.width / 2) toIndex = i;
       });
-      window.__reorderTab(id, toIndex, paneId);
+      window.__reorderTab!(id, toIndex, paneId);
     }
     dragRef.current = null;
     setDrag({
