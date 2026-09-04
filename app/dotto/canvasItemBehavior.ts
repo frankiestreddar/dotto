@@ -49,6 +49,66 @@ import { colgroupHTML } from "./lib/sourceTable";
 // comment, in the public/dotto/*.js file it actually lives in) since public/dotto/*.js isn't
 // reachable from app/dotto/ the other way.
 
+// Local Item/FolderObj/Connection/AppState interfaces, same "each file defines its own minimal
+// shape tailored to what it actually reads/writes" convention every other lib/*.ts file in this
+// codebase already follows (e.g. waypointsRenderLoop.ts/drawingConnections.ts/
+// srsConnectionsCore.ts's own local Item interfaces) — structurally compatible with all of them
+// via the shared id/kind/x/y/w/h/folderId fields plus an index signature, so passing an Item
+// between this file and any of those needs no cast.
+interface Item {
+  id: number;
+  kind: string;
+  x: number;
+  y: number;
+  w?: number;
+  h?: number;
+  folderId?: string;
+  zIndex?: number;
+  userSized?: boolean;
+  colWidths?: number[];
+  rowHeights?: number[];
+  tableData?: string[][];
+  textAlign?: string;
+  docAspectRatio?: number;
+  [key: string]: unknown;
+}
+interface Connection {
+  id: string;
+  fromId: number;
+  toId: number;
+}
+interface FolderObj {
+  id: string;
+  items: Item[];
+  isSource?: boolean;
+  connections?: Connection[];
+  [key: string]: unknown;
+}
+interface AppState {
+  scale: number;
+  tx: number;
+  ty: number;
+  currentFolderId: string;
+  folders: Record<string, FolderObj>;
+  selectedCardIds: number[];
+  undoStack: unknown[];
+  topCardZIndex: number;
+  messagesPanel: HTMLElement;
+  aiPanel: HTMLElement;
+  activeTagRow: { id: number } | null;
+  STATIC_TABLE_VISIBLE_COLS: number;
+  STATIC_HEADER_PILL_GAP: number;
+  STATIC_TABLE_UPLOAD_BTN_RESERVE: number;
+  STATIC_TABLE_PAGE_PADDING_TOP: number;
+  STATIC_TABLE_PAGE_PADDING_BOTTOM: number;
+  STATIC_TABLE_BOTTOM_MARGIN: number;
+  STATIC_TABLE_ROW_GAP: number;
+  [key: string]: unknown;
+}
+function getAppState(): AppState {
+  return window.__getAppState!() as unknown as AppState;
+}
+
 // Correct minimum for one axis (width or height) of a table whose column/row split might be
 // UNEVEN — dragging one divider rewrites the WHOLE colWidths/rowHeights array (see
 // startTableColResize/startTableRowResize, app/dotto/lib/tableGridResize.ts), and a freshly added
@@ -63,7 +123,11 @@ import { colgroupHTML } from "./lib/sourceTable";
 // unitMinPx" for axisTotal gives the true floor: whatever axisTotal makes the SMALLEST-share entry
 // exactly hit its own minimum is the binding constraint for the whole axis, since every other
 // (larger-share) entry is automatically well above its own minimum at that same total.
-function tableAxisMinPx(percentages, count, unitMinPx) {
+function tableAxisMinPx(
+  percentages: number[] | undefined,
+  count: number,
+  unitMinPx: number,
+): number {
   if (!count) return unitMinPx;
   const arr =
     Array.isArray(percentages) && percentages.length === count
@@ -73,6 +137,8 @@ function tableAxisMinPx(percentages, count, unitMinPx) {
   return minPct > 0 ? (unitMinPx * 100) / minPct : count * unitMinPx;
 }
 
+type ResizeHandleEl = HTMLElement & { __resizeListenerAbort?: AbortController };
+
 // ---------- Element Resize System ----------
 // Called every time a card's body is (re)built — including, for a Component-owned kind (see
 // CARD_KIND_COMPONENTS, CanvasItemsLayer.jsx), on every render() call, since that kind's own
@@ -80,14 +146,14 @@ function tableAxisMinPx(percentages, count, unitMinPx) {
 // plain addEventListener would stack a duplicate pointerdown listener on the same persistent
 // .resize handle each time instead of replacing it — same fix as setupDraggingAndClicking below:
 // abort the previous listener before attaching a fresh one, a no-op on first call.
-export function setupResizing(el, it) {
-  const handle = el.querySelector(".resize");
+export function setupResizing(el: HTMLElement, it: Item): void {
+  const handle = el.querySelector<ResizeHandleEl>(".resize");
   if (!handle) return;
   handle.__resizeListenerAbort?.abort();
   const { signal } = (handle.__resizeListenerAbort = new AbortController());
   handle.addEventListener(
     "pointerdown",
-    (e) => {
+    (e: PointerEvent) => {
       e.stopPropagation();
       // stopPropagation alone only stops the drag system's own listener from firing — it does
       // nothing to the browser's own native default action for a mousedown-and-drag, which for a
@@ -96,7 +162,7 @@ export function setupResizing(el, it) {
       // outright, so dragging this handle is only ever a resize.
       e.preventDefault();
       saveSnapshot();
-      const appState = window.__getAppState();
+      const appState = getAppState();
       if (it.kind === "table" && !it.userSized) {
         it.w = el.offsetWidth;
         it.h = el.offsetHeight;
@@ -104,14 +170,14 @@ export function setupResizing(el, it) {
         el.classList.add("sized");
         el.style.width = it.w + "px";
         el.style.height = it.h + "px";
-        el.innerHTML = window.__renderTableHTML(it);
+        el.innerHTML = window.__renderTableHTML!(it);
         setupResizing(el, it);
-        window.__distributeTableSizing(it, el);
+        window.__distributeTableSizing!(it, el);
       }
-      let sx = e.clientX,
+      const sx = e.clientX,
         sy = e.clientY,
-        sw = it.w,
-        sh = it.h;
+        sw = it.w!,
+        sh = it.h!;
       const minSize = it.kind === "table" ? 56 : 112;
       // A table's real minimum width/height isn't a flat constant the way every other kind's is
       // — it depends on how many columns/rows it actually has (every column needs at least
@@ -130,11 +196,15 @@ export function setupResizing(el, it) {
       // left for it to clip.
       const tableMinW =
         it.kind === "table"
-          ? tableAxisMinPx(it.colWidths, (it.tableData[0] || []).length, window.__TABLE_COL_MIN_PX)
+          ? tableAxisMinPx(
+              it.colWidths,
+              (it.tableData?.[0] || []).length,
+              window.__TABLE_COL_MIN_PX!,
+            )
           : minSize;
       const tableMinH =
         it.kind === "table"
-          ? tableAxisMinPx(it.rowHeights, (it.tableData || []).length, window.__TABLE_ROW_MIN_PX)
+          ? tableAxisMinPx(it.rowHeights, (it.tableData || []).length, window.__TABLE_ROW_MIN_PX!)
           : minSize;
       // Media cards (image/video/PDF/EPUB) resize proportionally, preserving their content's real
       // aspect ratio, instead of each axis independently the way table/flashcard do (or
@@ -144,7 +214,7 @@ export function setupResizing(el, it) {
       // the media's own natural dimensions; an arbitrary starting point for EPUB, which has no
       // fixed "page" shape to lock to, but still scales proportionally from wherever it starts).
       const aspectRatio = it.kind === "media" ? it.docAspectRatio || sw / sh : null;
-      const move = (me) => {
+      const move = (me: PointerEvent) => {
         const dx = (me.clientX - sx) / appState.scale,
           dy = (me.clientY - sy) / appState.scale;
         if (aspectRatio) {
@@ -162,7 +232,7 @@ export function setupResizing(el, it) {
           it.h = Math.max(minSize, Math.round(newH / 28) * 28);
           el.style.width = it.w + "px";
           el.style.height = it.h + "px";
-          window.__mirrorItemToSiblingPanes(it.id, (siblingEl) => {
+          window.__mirrorItemToSiblingPanes!(it.id, (siblingEl: HTMLElement) => {
             siblingEl.style.width = it.w + "px";
             siblingEl.style.height = it.h + "px";
           });
@@ -175,7 +245,7 @@ export function setupResizing(el, it) {
           // CSS auto-sizing too, so setting only their width is enough to reflow them correctly.
           it.w = Math.max(minSize, Math.round((sw + dx) / 28) * 28);
           el.style.width = it.w + "px";
-          window.__mirrorItemToSiblingPanes(it.id, (siblingEl) => {
+          window.__mirrorItemToSiblingPanes!(it.id, (siblingEl: HTMLElement) => {
             siblingEl.style.width = it.w + "px";
           });
         } else {
@@ -183,15 +253,15 @@ export function setupResizing(el, it) {
           it.h = Math.max(tableMinH, Math.round((sh + dy) / 28) * 28);
           el.style.width = it.w + "px";
           el.style.height = it.h + "px";
-          window.__mirrorItemToSiblingPanes(it.id, (siblingEl) => {
+          window.__mirrorItemToSiblingPanes!(it.id, (siblingEl: HTMLElement) => {
             siblingEl.style.width = it.w + "px";
             siblingEl.style.height = it.h + "px";
           });
         }
         if (it.kind === "table") {
-          window.__distributeTableSizing(it, el);
-          window.__mirrorItemToSiblingPanes(it.id, (siblingEl) =>
-            window.__distributeTableSizing(it, siblingEl),
+          window.__distributeTableSizing!(it, el);
+          window.__mirrorItemToSiblingPanes!(it.id, (siblingEl: HTMLElement) =>
+            window.__distributeTableSizing!(it, siblingEl),
           );
         }
         // Live visual streaming while dragging — see handleRemoteItemResize/broadcastItemResize.
@@ -199,22 +269,24 @@ export function setupResizing(el, it) {
         // once scheduleWorkspaceSave below runs on release. For notes, it.h at this point is
         // whatever attachNoteBody's ResizeObserver last measured — close enough mid-drag, and it
         // settles exactly once that observer's next callback fires.
-        window.__broadcastItemResize(it.id, it.w, it.h);
+        window.__broadcastItemResize!(it.id, it.w!, it.h!);
       };
       // Previously never called scheduleWorkspaceSave() at all — a resize wasn't synced live to
       // collaborators OR promptly persisted; it only ever reached the DB once some unrelated
       // later action happened to trigger a save.
       const up = () => {
-        window.removeEventListener("pointermove", move);
+        window.removeEventListener("pointermove", move as EventListener);
         window.removeEventListener("pointerup", up);
         scheduleWorkspaceSave();
       };
-      window.addEventListener("pointermove", move);
+      window.addEventListener("pointermove", move as EventListener);
       window.addEventListener("pointerup", up);
     },
     { signal },
   );
 }
+
+type DragEl = HTMLElement & { __dragListenerAbort?: AbortController };
 
 // ---------- Element Drag and Drop System ----------
 // Moved here from public/dotto/drag-drop-chat.js — Phase 3's second relocated piece, following
@@ -239,15 +311,17 @@ export function setupResizing(el, it) {
 // accumulated duplicate, silently making selection look broken. AbortController is what makes
 // repeat calls idempotent: each call aborts the previous listener (a no-op on first mount, when
 // there isn't one yet) before attaching a fresh one closing over the current `it`.
-export function setupDraggingAndClicking(el, it) {
-  el.__dragListenerAbort?.abort();
-  const { signal } = (el.__dragListenerAbort = new AbortController());
+export function setupDraggingAndClicking(el: HTMLElement, it: Item): void {
+  const dragEl = el as DragEl;
+  dragEl.__dragListenerAbort?.abort();
+  const { signal } = (dragEl.__dragListenerAbort = new AbortController());
   el.addEventListener(
     "pointerdown",
-    (e) => {
-      const appState = window.__getAppState();
-      const canvas = window.__getCanvasEl();
-      const world = window.__getWorldEl();
+    (e: PointerEvent) => {
+      const appState = getAppState();
+      const canvas = window.__getCanvasEl!();
+      const world = window.__getWorldEl!();
+      const target = e.target as HTMLElement;
       // The game-options panel's own controls (esp. the column-picker <select>s) must never
       // start a card drag — the .game-options-row/.game-options-slot elements' own
       // onmousedown="event.stopPropagation()" only stops the separate 'mousedown' event, not
@@ -255,10 +329,10 @@ export function setupDraggingAndClicking(el, it) {
       // matching window 'pointerup' back to end() the drag afterward — so without this check,
       // picking an option left the card permanently glued to the cursor with no pointerup ever
       // arriving to release it. Same exemption pattern already used for '.resize' just above.
-      if (e.target.closest(".item-options")) return;
+      if (target.closest(".item-options")) return;
       if (
-        e.target.classList.contains("resize") ||
-        (appState.currentEditingEl === el && e.target !== el)
+        target.classList.contains("resize") ||
+        (appState.currentEditingEl === el && target !== el)
       )
         return;
       // Table cell-merge edges (see TableCard.jsx/mergeTableCells, app/dotto/lib/sourceTable.ts) — same
@@ -268,16 +342,16 @@ export function setupDraggingAndClicking(el, it) {
       // synthetic handlers get a chance to run at all. Only ever the actual e.target while it's
       // genuinely visible/interactive (CSS makes it display:none, and therefore un-hit-testable,
       // whenever body.option-held isn't set), so this check is safe unconditionally.
-      if (e.target.closest(".table-merge-edge")) return;
+      if (target.closest(".table-merge-edge")) return;
       // The PDF viewer's own page/text-layer (see buildPdfViewer) — click-dragging there has to
       // be native text selection, never a card move. The rest of that card (the bottom nav bar)
       // is deliberately NOT exempted, so it's still draggable.
-      if (e.target.closest(".pdf-viewer-page")) return;
+      if (target.closest(".pdf-viewer-page")) return;
 
-      window.__bringCardToFront(it, el);
+      window.__bringCardToFront!(it, el);
 
       // Selection logic happens with Shift Key, or persistently while in Select mode
-      if (e.shiftKey || window.__effectiveMode() === "select") {
+      if (e.shiftKey || window.__effectiveMode!() === "select") {
         e.stopPropagation();
         e.preventDefault();
         if (appState.selectedCardIds.includes(it.id)) {
@@ -285,11 +359,11 @@ export function setupDraggingAndClicking(el, it) {
         } else {
           appState.selectedCardIds.push(it.id);
         }
-        window.__renderSelectedOutlines();
+        window.__renderSelectedOutlines!();
         // Prevent this same interaction from also opening folders/sources, focusing
         // contenteditable bodies, or otherwise "activating" the card - shift-click should ONLY
         // toggle selection.
-        const suppressShiftClick = (ce) => {
+        const suppressShiftClick = (ce: Event) => {
           ce.stopPropagation();
           ce.preventDefault();
           el.removeEventListener("click", suppressShiftClick, true);
@@ -300,7 +374,7 @@ export function setupDraggingAndClicking(el, it) {
 
       // Data mode: drag from this card to another to link them. Cards are not otherwise
       // clickable/openable/editable while in this mode.
-      if (window.__effectiveMode() === "data") {
+      if (window.__effectiveMode!() === "data") {
         if (
           appState.folders[appState.currentFolderId] &&
           appState.folders[appState.currentFolderId].isSource
@@ -308,7 +382,7 @@ export function setupDraggingAndClicking(el, it) {
           return;
         e.stopPropagation();
         e.preventDefault();
-        const suppressDataClick = (ce) => {
+        const suppressDataClick = (ce: Event) => {
           ce.stopPropagation();
           ce.preventDefault();
           el.removeEventListener("click", suppressDataClick, true);
@@ -318,7 +392,7 @@ export function setupDraggingAndClicking(el, it) {
         return;
       }
 
-      if (window.__effectiveMode() === "pen") {
+      if (window.__effectiveMode!() === "pen") {
         if (
           appState.folders[appState.currentFolderId] &&
           appState.folders[appState.currentFolderId].isSource
@@ -343,7 +417,7 @@ export function setupDraggingAndClicking(el, it) {
 
       let targetEl = el,
         targetIt = it;
-      const startPositions = [];
+      const startPositions: { id: number; x: number; y: number }[] = [];
       const isAltDuplicate =
         e.altKey &&
         !(
@@ -354,16 +428,20 @@ export function setupDraggingAndClicking(el, it) {
       if (isAltDuplicate) {
         // Option/Alt held: duplicate the card(s) first, then drag the duplicate(s) away — the
         // original(s) stay exactly where they were.
-        const idMap = {};
+        const idMap: Record<number, number> = {};
         gestureIds.forEach((srcId) => {
-          const src = window.__findItemById(srcId);
+          const src = window.__findItemById!(srcId) as unknown as Item | undefined;
           if (!src) return;
-          const clone = deepCloneItem(src);
+          const clone = deepCloneItem(src as never);
           appState.topCardZIndex++;
-          clone.zIndex = appState.topCardZIndex;
-          appState.folders[appState.currentFolderId].items.push(clone);
-          idMap[srcId] = clone.id;
-          startPositions.push({ id: clone.id, x: clone.x, y: clone.y });
+          (clone as unknown as Item).zIndex = appState.topCardZIndex;
+          appState.folders[appState.currentFolderId].items.push(clone as unknown as Item);
+          idMap[srcId] = (clone as unknown as Item).id;
+          startPositions.push({
+            id: (clone as unknown as Item).id,
+            x: (clone as unknown as Item).x,
+            y: (clone as unknown as Item).y,
+          });
         });
         if (!startPositions.length) {
           appState.undoStack.pop();
@@ -372,37 +450,37 @@ export function setupDraggingAndClicking(el, it) {
         appState.selectedCardIds = isTargetSelected
           ? gestureIds.map((gid) => idMap[gid]).filter((gid) => gid != null)
           : [];
-        window.__render();
+        window.__render!();
         const newTargetId = idMap[it.id];
-        targetIt = window.__findItemById(newTargetId);
-        targetEl = window.__findItemEl(newTargetId);
+        targetIt = window.__findItemById!(newTargetId) as unknown as Item;
+        targetEl = window.__findItemEl!(newTargetId)!;
         if (!targetIt || !targetEl) {
           const cloneIdSet = new Set(startPositions.map((p) => p.id));
           appState.folders[appState.currentFolderId].items
             .filter((i) => cloneIdSet.has(i.id))
-            .forEach(deleteClonedItemFolders);
+            .forEach((i) => deleteClonedItemFolders(i as never));
           appState.folders[appState.currentFolderId].items = appState.folders[
             appState.currentFolderId
           ].items.filter((i) => !cloneIdSet.has(i.id));
           appState.selectedCardIds = preDuplicateSelection;
           appState.undoStack.pop();
-          window.__render();
+          window.__render!();
           return;
         }
-        window.__bringCardToFront(targetIt, targetEl);
+        window.__bringCardToFront!(targetIt, targetEl);
       } else {
         // Cache starting positions of moved cards.
         // If dragging a card that is selected, drag all selected ones. Otherwise, drag only this single card!
         gestureIds.forEach((selId) => {
-          const item = window.__findItemById(selId);
+          const item = window.__findItemById!(selId) as unknown as Item | undefined;
           if (item) startPositions.push({ id: selId, x: item.x, y: item.y });
         });
       }
 
       document.body.classList.add("dragging");
-      let sx = e.clientX,
-        sy = e.clientY,
-        hovered = null;
+      const sx = e.clientX,
+        sy = e.clientY;
+      let hovered: HTMLElement | null = null;
       let lastClientX = e.clientX,
         lastClientY = e.clientY;
       // Auto-pan-driven displacement, tracked separately from startPositions' own x/y — see
@@ -411,7 +489,7 @@ export function setupDraggingAndClicking(el, it) {
       // coordinates to restore.
       let autoPanAccumX = 0,
         autoPanAccumY = 0;
-      const suppressClick = (ce) => {
+      const suppressClick = (ce: Event) => {
         ce.stopPropagation();
         ce.preventDefault();
         targetEl.removeEventListener("click", suppressClick, true);
@@ -428,20 +506,20 @@ export function setupDraggingAndClicking(el, it) {
         const dx = (lastClientX - sx) / appState.scale + autoPanAccumX;
         const dy = (lastClientY - sy) / appState.scale + autoPanAccumY;
         startPositions.forEach((pos) => {
-          const selItem = window.__findItemById(pos.id);
-          const selEl = window.__findItemEl(pos.id);
+          const selItem = window.__findItemById!(pos.id) as unknown as Item | undefined;
+          const selEl = window.__findItemEl!(pos.id);
           if (selItem && selEl) {
             selItem.x = Math.round((pos.x + dx) / 28) * 28;
             selItem.y = Math.round((pos.y + dy) / 28) * 28;
             selEl.style.left = selItem.x + "px";
             selEl.style.top = selItem.y + "px";
-            window.__mirrorItemToSiblingPanes(pos.id, (el) => {
+            window.__mirrorItemToSiblingPanes!(pos.id, (el: HTMLElement) => {
               el.style.left = selItem.x + "px";
               el.style.top = selItem.y + "px";
             });
           }
         });
-        window.__broadcastItemDragPositions(startPositions);
+        window.__broadcastItemDragPositions!(startPositions);
       };
 
       const checkDropTargets = () => {
@@ -450,7 +528,7 @@ export function setupDraggingAndClicking(el, it) {
         // "browse your own library content" moved there from Library (now Plugins). #add-menu
         // looked up directly (not via appState), same as #library-dropzone-overlay just below —
         // addMenu is a plain module-level const in app/dotto/lib/coreState.ts, not an appState field.
-        const blocksPanelEl = document.getElementById("add-menu");
+        const blocksPanelEl = document.getElementById("add-menu")!;
         if (blocksPanelEl.classList.contains("open")) {
           const blocksRect = blocksPanelEl.getBoundingClientRect();
           const overBlocks =
@@ -459,28 +537,29 @@ export function setupDraggingAndClicking(el, it) {
             lastClientY >= blocksRect.top &&
             lastClientY <= blocksRect.bottom;
           document
-            .getElementById("library-dropzone-overlay")
+            .getElementById("library-dropzone-overlay")!
             .classList.toggle("active", overBlocks);
         }
 
         // Detect merging folder highlights
         const r1 = targetEl.getBoundingClientRect();
-        let newH = null;
+        let newH: HTMLElement | null = null;
         for (const sib of Array.from(world.children)) {
-          if (sib === targetEl || !sib.classList.contains("item")) continue;
-          const sibId = window.__parseItemId(sib);
+          const sibEl = sib as HTMLElement;
+          if (sibEl === targetEl || !sibEl.classList.contains("item")) continue;
+          const sibId = window.__parseItemId!(sibEl);
           const sibItem = appState.folders[appState.currentFolderId].items.find(
             (i) => i.id === sibId,
           );
           if (!sibItem || sibItem.kind !== "folder") continue;
-          const r2 = sib.getBoundingClientRect();
+          const r2 = sibEl.getBoundingClientRect();
           if (!(
             r1.right < r2.left ||
             r1.left > r2.right ||
             r1.bottom < r2.top ||
             r1.top > r2.bottom
           )) {
-            newH = sib;
+            newH = sibEl;
             break;
           }
         }
@@ -504,9 +583,9 @@ export function setupDraggingAndClicking(el, it) {
       // while the cursor itself is dead still.
       const EDGE_MARGIN = 60,
         EDGE_MAX_SPEED = 900; // px screen-space from edge / px per second right at the edge
-      let autoPanLastT = null,
-        autoPanRAFId = null;
-      const autoPanTick = (now) => {
+      let autoPanLastT: number | null = null,
+        autoPanRAFId = 0;
+      const autoPanTick = (now: number) => {
         if (autoPanLastT == null) autoPanLastT = now;
         const dt = Math.min((now - autoPanLastT) / 1000, 0.1);
         autoPanLastT = now;
@@ -549,7 +628,7 @@ export function setupDraggingAndClicking(el, it) {
       };
       autoPanRAFId = requestAnimationFrame(autoPanTick);
 
-      const move = (me) => {
+      const move = (me: PointerEvent) => {
         if (Math.abs(me.clientX - downX) > 3 || Math.abs(me.clientY - downY) > 3) moved = true;
         lastClientX = me.clientX;
         lastClientY = me.clientY;
@@ -557,11 +636,11 @@ export function setupDraggingAndClicking(el, it) {
         checkDropTargets();
       };
 
-      const up = (me) => {
+      const up = (me: PointerEvent) => {
         cancelAnimationFrame(autoPanRAFId);
         document.body.classList.remove("dragging");
-        window.removeEventListener("pointermove", move);
-        window.removeEventListener("pointerup", up);
+        window.removeEventListener("pointermove", move as EventListener);
+        window.removeEventListener("pointerup", up as EventListener);
         if (moved) targetEl.addEventListener("click", suppressClick, true);
         if (!moved) {
           if (isAltDuplicate) {
@@ -570,13 +649,13 @@ export function setupDraggingAndClicking(el, it) {
             const cloneIdSet = new Set(startPositions.map((p) => p.id));
             appState.folders[appState.currentFolderId].items
               .filter((i) => cloneIdSet.has(i.id))
-              .forEach(deleteClonedItemFolders);
+              .forEach((i) => deleteClonedItemFolders(i as never));
             appState.folders[appState.currentFolderId].items = appState.folders[
               appState.currentFolderId
             ].items.filter((i) => !cloneIdSet.has(i.id));
             appState.selectedCardIds = preDuplicateSelection;
             appState.undoStack.pop();
-            window.__render();
+            window.__render!();
             return;
           }
           if (!hovered) {
@@ -585,7 +664,7 @@ export function setupDraggingAndClicking(el, it) {
         }
 
         // Hide dragover templates dropbox overlay
-        document.getElementById("library-dropzone-overlay").classList.remove("active");
+        document.getElementById("library-dropzone-overlay")!.classList.remove("active");
 
         // Check Drop zones intersects
         const mX = me.clientX;
@@ -596,18 +675,18 @@ export function setupDraggingAndClicking(el, it) {
         if (appState.messagesPanel.classList.contains("open")) {
           const rect = appState.messagesPanel.getBoundingClientRect();
           if (mX >= rect.left && mX <= rect.right && mY >= rect.top && mY <= rect.bottom) {
-            window.__dispatchSelectedToChat(targetIt);
+            window.__dispatchSelectedToChat!(targetIt);
             droppedOnTarget = true;
           }
         }
 
         // 2. Drop into Blocks Dropbox (packages the dragged card(s) as a new draft, in My Creations)
         {
-          const blocksPanelEl = document.getElementById("add-menu");
+          const blocksPanelEl = document.getElementById("add-menu")!;
           if (blocksPanelEl.classList.contains("open")) {
             const rect = blocksPanelEl.getBoundingClientRect();
             if (mX >= rect.left && mX <= rect.right && mY >= rect.top && mY <= rect.bottom) {
-              window.__packageSelectedAsTemplate(targetIt);
+              window.__packageSelectedAsTemplate!(targetIt);
               droppedOnTarget = true;
             }
           }
@@ -617,7 +696,7 @@ export function setupDraggingAndClicking(el, it) {
         if (!droppedOnTarget && appState.aiPanel.classList.contains("open")) {
           const rect = appState.aiPanel.getBoundingClientRect();
           if (mX >= rect.left && mX <= rect.right && mY >= rect.top && mY <= rect.bottom) {
-            window.__addCardsToSearchContext(gestureIds);
+            window.__addCardsToSearchContext!(gestureIds);
             droppedOnTarget = true;
           }
         }
@@ -625,23 +704,23 @@ export function setupDraggingAndClicking(el, it) {
         if (droppedOnTarget) {
           // Restore original positions! Cards fly back to original coordinates
           startPositions.forEach((pos) => {
-            const selItem = window.__findItemById(pos.id);
+            const selItem = window.__findItemById!(pos.id) as unknown as Item | undefined;
             if (selItem) {
               selItem.x = pos.x;
               selItem.y = pos.y;
             }
           });
-          window.__render();
+          window.__render!();
         } else {
           if (hovered) {
-            window.__performMerge(targetIt, hovered);
+            window.__performMerge!(targetIt, hovered);
           } else if (moved) {
-            window.__render();
+            window.__render!();
           }
         }
       };
-      window.addEventListener("pointermove", move);
-      window.addEventListener("pointerup", up);
+      window.addEventListener("pointermove", move as EventListener);
+      window.addEventListener("pointerup", up as EventListener);
     },
     { signal },
   );
@@ -664,11 +743,11 @@ export function setupDraggingAndClicking(el, it) {
 // state, not per-item), unlike setupResizing/setupDraggingAndClicking's per-item idempotent
 // listener pattern; there's nothing to make idempotent here since a stale layer is always fully
 // discarded by render()'s own wipe before this is even called again.
-export function renderConnectionsLayer(folderObj, currentItems) {
+export function renderConnectionsLayer(folderObj: FolderObj, currentItems: Item[]): SVGSVGElement {
   const layer = makeLayerSVG(1);
   layer.classList.add("connections-layer");
   const validIds = new Set(currentItems.map((i) => i.id));
-  const conns = ensureConnections(folderObj);
+  const conns = ensureConnections(folderObj as never) as unknown as Connection[];
   folderObj.connections = conns.filter((c) => validIds.has(c.fromId) && validIds.has(c.toId));
   folderObj.connections.forEach((c) => {
     const fromItem = currentItems.find((i) => i.id === c.fromId);
@@ -676,8 +755,8 @@ export function renderConnectionsLayer(folderObj, currentItems) {
     if (!fromItem || !toItem) return;
     const obstacles = currentItems
       .filter((i) => i.id !== fromItem.id && i.id !== toItem.id)
-      .map(itemRect);
-    const points = computeConnectorPoints(fromItem, toItem, true, obstacles);
+      .map((i) => itemRect(i as never));
+    const points = computeConnectorPoints(fromItem as never, toItem as never, true, obstacles);
     const d = pointsToLinePath(points);
 
     const visible = document.createElementNS("http://www.w3.org/2000/svg", "path");
@@ -702,8 +781,8 @@ export function renderConnectionsLayer(folderObj, currentItems) {
     hit.addEventListener("click", (e) => {
       e.stopPropagation();
       saveSnapshot();
-      folderObj.connections = folderObj.connections.filter((x) => x.id !== c.id);
-      window.__render();
+      folderObj.connections = folderObj.connections!.filter((x) => x.id !== c.id);
+      window.__render!();
     });
 
     layer.appendChild(visible);
@@ -716,11 +795,11 @@ export function renderConnectionsLayer(folderObj, currentItems) {
 // the pointer; dropping on another card creates a persistent connection between them. Its only
 // caller is setupDraggingAndClicking's own 'data' mode branch above — a plain function call now
 // that both live in this same file, no bridge needed for that direction at all anymore.
-function startConnectionDrag(e, it, el) {
+function startConnectionDrag(e: PointerEvent, it: Item, el: HTMLElement): void {
   saveSnapshot();
-  const appState = window.__getAppState();
-  const canvas = window.__getCanvasEl();
-  const world = window.__getWorldEl();
+  const appState = getAppState();
+  const canvas = window.__getCanvasEl!();
+  const world = window.__getWorldEl!();
   const downX = e.clientX,
     downY = e.clientY;
   let moved = false;
@@ -736,29 +815,29 @@ function startConnectionDrag(e, it, el) {
   previewSvg.appendChild(previewPath);
   world.appendChild(previewSvg);
 
-  let hoveredTarget = null;
+  let hoveredTarget: number | null = null;
   const allItems = appState.folders[appState.currentFolderId]
     ? appState.folders[appState.currentFolderId].items
     : [];
-  const updatePreview = (clientX, clientY) => {
+  const updatePreview = (clientX: number, clientY: number) => {
     const wx = (clientX - rect.left - appState.tx) / appState.scale,
       wy = (clientY - rect.top - appState.ty) / appState.scale;
     const obstacles = allItems
       .filter((i) => i.id !== it.id && i.id !== hoveredTarget)
-      .map(itemRect);
-    const points = computeConnectorPoints(it, { x: wx, y: wy }, false, obstacles);
+      .map((i) => itemRect(i as never));
+    const points = computeConnectorPoints(it as never, { x: wx, y: wy }, false, obstacles);
     previewPath.setAttribute("d", pointsToLinePath(points));
   };
   updatePreview(e.clientX, e.clientY);
 
-  const move = (me) => {
+  const move = (me: PointerEvent) => {
     if (Math.abs(me.clientX - downX) > 3 || Math.abs(me.clientY - downY) > 3) moved = true;
     document
       .querySelectorAll(".item.link-target-hover, .item.link-target-invalid")
       .forEach((x) => x.classList.remove("link-target-hover", "link-target-invalid"));
     const under = document.elementFromPoint(me.clientX, me.clientY);
-    const cardEl = under && under.closest && under.closest(".item");
-    const id = cardEl ? window.__parseItemId(cardEl) : NaN;
+    const cardEl = under && under.closest ? (under.closest(".item") as HTMLElement | null) : null;
+    const id = cardEl ? window.__parseItemId!(cardEl) : NaN;
     const candidate = !isNaN(id) && id !== it.id ? id : null;
     // Only ever treat a hovered card as a droppable target if the link would actually be allowed
     // (rules 1-3 in isValidConnection); otherwise flag it so the user gets live feedback that
@@ -769,16 +848,18 @@ function startConnectionDrag(e, it, el) {
     updatePreview(me.clientX, me.clientY);
   };
   const up = () => {
-    window.removeEventListener("pointermove", move);
+    window.removeEventListener("pointermove", move as EventListener);
     window.removeEventListener("pointerup", up);
     previewSvg.remove();
     document
       .querySelectorAll(".item.link-target-hover, .item.link-target-invalid")
       .forEach((x) => x.classList.remove("link-target-hover", "link-target-invalid"));
     if (hoveredTarget != null && isValidConnection(it.id, hoveredTarget)) {
-      const conns = ensureConnections(appState.folders[appState.currentFolderId]);
-      createConnection(conns, it.id, hoveredTarget);
-      window.__render();
+      const conns = ensureConnections(
+        appState.folders[appState.currentFolderId] as never,
+      ) as unknown as Connection[];
+      createConnection(conns as never, it.id, hoveredTarget);
+      window.__render!();
     } else if (!moved) {
       // No real drag happened — this was a plain click, so hand off to the click-to-link flow
       // instead of just discarding the gesture (see handleDataModeClick). The speculative
@@ -786,12 +867,12 @@ function startConnectionDrag(e, it, el) {
       // happen; handleDataModeClick takes its own snapshot, only at the moment it actually
       // creates a connection.
       appState.undoStack.pop();
-      handleDataModeClick(it, el);
+      handleDataModeClick(it as never, el);
     } else {
       appState.undoStack.pop();
     }
   };
-  window.addEventListener("pointermove", move);
+  window.addEventListener("pointermove", move as EventListener);
   window.addEventListener("pointerup", up);
 }
 
@@ -815,7 +896,7 @@ function startConnectionDrag(e, it, el) {
 // regardless of which module built the string — moving the STRING BUILDER doesn't touch how the
 // resulting HTML behaves once parsed, which is what makes this piece markedly lower-risk than
 // setupDraggingAndClicking despite being comparable in size.
-function cellActionsHTML(itemId, r, c) {
+function cellActionsHTML(itemId: number, r: number, c: number): string {
   return `<div class="cell-actions" onmousedown="event.stopPropagation()">
                             <button class="cell-icon-btn cell-add-btn" onclick="event.stopPropagation(); openCellAddMenu(${itemId}, ${r}, ${c}, this)" title="Add image or audio"><img src="assets/icons/add-btn.png" alt=""></button>
                         </div>`;
@@ -823,7 +904,10 @@ function cellActionsHTML(itemId, r, c) {
 
 // Renders a source table's column-name pill row (`colOptsFn(ci)` returns
 // `{ oninput, onkeydown? }` for column `ci`).
-function buildHeaderPillsHTML(colNames, colOptsFn) {
+function buildHeaderPillsHTML(
+  colNames: string[],
+  colOptsFn: (ci: number) => { oninput: string; onkeydown?: string },
+): string {
   return colNames
     .map((name, ci) => {
       const { oninput, onkeydown = "" } = colOptsFn(ci);
@@ -837,8 +921,18 @@ function buildHeaderPillsHTML(colNames, colOptsFn) {
     .join("");
 }
 
+interface TableCellOpts {
+  originTableId: number;
+  oninput: string;
+  onkeydown?: string;
+  onfocus?: string;
+  onblur?: string;
+  oncontextmenu?: string;
+  tagsAndActionsHTML?: string;
+}
+
 // Renders one plain-text source-table cell (cell-inner/cell-text/cell-tags-actions-wrap).
-function tableCellHTML(cell, r, c, opts) {
+function tableCellHTML(cell: string, r: number, c: number, opts: TableCellOpts): string {
   const {
     originTableId,
     oninput,
@@ -859,14 +953,16 @@ function tableCellHTML(cell, r, c, opts) {
 // `folderId` param kept for callers, though nothing in here needs it anymore now that
 // source-to-source merging is gone — a source's rows only ever aggregate elsewhere now, via a
 // Stack card (see CardStreamIO.shelf) reading its 'sourceRows' output.
-export function renderStaticTableHTML(it, folderId) {
-  const numCols = it.tableData[0].length;
+export function renderStaticTableHTML(it: Item, folderId?: string): string {
+  void folderId;
+  const tableData = it.tableData!;
+  const numCols = tableData[0].length;
   const cg = colgroupHTML(numCols);
-  const headerPills = buildHeaderPillsHTML(it.tableData[0], (ci) => ({
+  const headerPills = buildHeaderPillsHTML(tableData[0], (ci) => ({
     oninput: `renameTableColumn(${it.id}, ${ci}, this.value)`,
     onkeydown: `handleColNameKeydown(event, ${it.id}, ${ci})`,
   }));
-  const rows = it.tableData
+  const rows = tableData
     .slice(1)
     .map((row, dataIdx) => {
       const ri = dataIdx + 1;
@@ -876,12 +972,12 @@ export function renderStaticTableHTML(it, folderId) {
             originTableId: it.id,
             oninput: `updateTableCell(${it.id}, ${ri}, ${ci}, this)`,
             onkeydown: `handleTableKeydown(event, ${it.id}, ${ri}, ${ci})`,
-            onfocus: `setLastFocusedCell(${it.id}, ${ri}, ${ci}); broadcastEditingState(true, '#${window.__itemElId(it.id)} .cell-text[data-r=&quot;${ri}&quot;][data-c=&quot;${ci}&quot;]')`,
+            onfocus: `setLastFocusedCell(${it.id}, ${ri}, ${ci}); broadcastEditingState(true, '#${window.__itemElId!(it.id)} .cell-text[data-r=&quot;${ri}&quot;][data-c=&quot;${ci}&quot;]')`,
             onblur: `broadcastEditingState(false)`,
             oncontextmenu: `openTableCellContextMenu(event, ${it.id}, ${ri}, ${ci})`,
             tagsAndActionsHTML:
               ci === 0
-                ? `<div class="cell-tags-actions-wrap"><div class="cell-tags">${window.__tagPillsHTML(it, ri)}</div>${cellActionsHTML(it.id, ri, ci)}</div>`
+                ? `<div class="cell-tags-actions-wrap"><div class="cell-tags">${window.__tagPillsHTML!(it, ri)}</div>${cellActionsHTML(it.id, ri, ci)}</div>`
                 : cellActionsHTML(it.id, ri, ci),
           }),
         )
@@ -926,18 +1022,18 @@ export function renderStaticTableHTML(it, folderId) {
 // slot is simply drawn narrower (by GAP px) than its slot, which is what creates the gap between
 // pills without ever touching their positions. This also sizes and shows/hides the fixed
 // upload-button overlay and its fade-out.
-export function layoutSourceTableColumns(it, el, reserve) {
-  const appState = window.__getAppState();
-  const wrap = el.querySelector(".static-table-wrap");
-  const table = el.querySelector(".item-table");
-  const tableRounded = el.querySelector(".table-rounded");
-  const headerTrack = el.querySelector(".static-table-header-track");
-  const headerOverlay = el.querySelector(".static-table-header-overlay");
-  const headerFade = el.querySelector(".static-table-header-fade");
-  const colStripWrap = el.querySelector(".static-table-col-strip-wrap");
-  const rowTagStripWrap = el.querySelector(".static-table-row-tag-strip-wrap");
+export function layoutSourceTableColumns(it: Item, el: HTMLElement, reserve?: number): void {
+  const appState = getAppState();
+  const wrap = el.querySelector<HTMLElement>(".static-table-wrap");
+  const table = el.querySelector<HTMLElement>(".item-table");
+  const tableRounded = el.querySelector<HTMLElement>(".table-rounded");
+  const headerTrack = el.querySelector<HTMLElement>(".static-table-header-track");
+  const headerOverlay = el.querySelector<HTMLElement>(".static-table-header-overlay");
+  const headerFade = el.querySelector<HTMLElement>(".static-table-header-fade");
+  const colStripWrap = el.querySelector<HTMLElement>(".static-table-col-strip-wrap");
+  const rowTagStripWrap = el.querySelector<HTMLElement>(".static-table-row-tag-strip-wrap");
   if (!wrap || !table || !headerTrack) return;
-  const numCols = (it.tableData[0] || []).length;
+  const numCols = (it.tableData?.[0] || []).length;
   if (!numCols) return;
   const fullContainerWidth = wrap.clientWidth;
   if (!fullContainerWidth || fullContainerWidth <= 0) return;
@@ -950,7 +1046,7 @@ export function layoutSourceTableColumns(it, el, reserve) {
     fullContainerWidth / (overflowing ? appState.STATIC_TABLE_VISIBLE_COLS : numCols);
   const headerTotalWidth = headerColWidth * numCols;
   headerTrack.style.width = headerTotalWidth + "px";
-  const headerSlots = headerTrack.querySelectorAll(".col-name-slot");
+  const headerSlots = headerTrack.querySelectorAll<HTMLElement>(".col-name-slot");
   headerSlots.forEach((slot, i) => {
     // The slot itself always stays exactly the width of its table column (for alignment) — only
     // the *visible pill* inside it is drawn narrower, both for the normal inter-pill gap and, on
@@ -958,7 +1054,7 @@ export function layoutSourceTableColumns(it, el, reserve) {
     // on top of its text.
     slot.style.width = headerColWidth + "px";
     const isLast = i === headerSlots.length - 1;
-    const pill = slot.querySelector(".col-name-pill");
+    const pill = slot.querySelector<HTMLElement>(".col-name-pill");
     if (pill)
       pill.style.width =
         Math.max(
@@ -982,7 +1078,7 @@ export function layoutSourceTableColumns(it, el, reserve) {
   const totalWidth = colWidth * numCols;
   const shrink = reserve || 0;
   table.style.width = totalWidth - shrink + "px";
-  const cols = table.querySelectorAll(":scope > colgroup > col");
+  const cols = table.querySelectorAll<HTMLElement>(":scope > colgroup > col");
   cols.forEach((col, i) => {
     const isLast = i === cols.length - 1;
     col.style.width = (isLast ? Math.max(colWidth - shrink, 24) : colWidth) + "px";
@@ -1024,17 +1120,24 @@ export function layoutSourceTableColumns(it, el, reserve) {
     rowTagStripWrap.style.top = headerTrack.offsetHeight + appState.STATIC_TABLE_ROW_GAP + "px";
 }
 
-export function attachStaticTableHoverZones(container, tableItem) {
-  const appState = window.__getAppState();
-  const wrap = container.querySelector(".static-table-wrap");
-  const rowStrip = container.querySelector(".add-row-strip");
-  const tableRounded = container.querySelector(".table-rounded");
-  const colStripWrap = container.querySelector(".static-table-col-strip-wrap");
-  const colBtn = container.querySelector(".add-col-strip");
-  const rowBtn = container.querySelector(".add-row-btn");
-  const hscroll = container.querySelector(".static-table-hscroll");
-  const rowTagStripWrap = container.querySelector(".static-table-row-tag-strip-wrap");
-  const rowTagBtn = container.querySelector(".row-tag-strip");
+type StaticTableContainer = HTMLElement & { _resetRowTagHover?: () => void };
+
+export function attachStaticTableHoverZones(
+  container: StaticTableContainer,
+  tableItem: Item,
+): void {
+  const appState = getAppState();
+  const wrap = container.querySelector<HTMLElement>(".static-table-wrap");
+  const rowStrip = container.querySelector<HTMLElement>(".add-row-strip");
+  const tableRounded = container.querySelector<HTMLElement>(".table-rounded");
+  const colStripWrap = container.querySelector<HTMLElement>(".static-table-col-strip-wrap");
+  const colBtn = container.querySelector<HTMLElement>(".add-col-strip");
+  const rowBtn = container.querySelector<HTMLElement>(".add-row-btn");
+  const hscroll = container.querySelector<HTMLElement>(".static-table-hscroll");
+  const rowTagStripWrap = container.querySelector<HTMLElement>(".static-table-row-tag-strip-wrap");
+  const rowTagBtn = container.querySelector<
+    HTMLElement & { onclick: ((ev: MouseEvent) => void) | null }
+  >(".row-tag-strip");
   if (!wrap || !rowStrip || !tableRounded) return;
   const THRESH = 60;
   const BTN_SIZE = 28;
@@ -1046,11 +1149,11 @@ export function attachStaticTableHoverZones(container, tableItem) {
   // row-tag button's position is only ever recomputed when this reference changes (a different
   // row is now under the cursor), never on every mousemove tick, which is what keeps it "static"
   // rather than continuously trailing the cursor like the add-column button does.
-  let hoveredRowEl = null;
+  let hoveredRowEl: HTMLElement | null = null;
   // The one `.cell-inner` (first cell of whichever row) currently shifted to make room for the
   // tag button, if any — tracked so it can be un-shifted the moment the hovered row changes or
   // the table scrolls away from its left edge.
-  let indentedInner = null;
+  let indentedInner: HTMLElement | null = null;
   const updateRowTagBtnPos = () => {
     if (!hoveredRowEl || !rowTagBtn || !rowTagStripWrap) return;
     const rRect = hoveredRowEl.getBoundingClientRect();
@@ -1092,14 +1195,14 @@ export function attachStaticTableHoverZones(container, tableItem) {
     }
     if (hoveredRowEl && isScrolledToLeftEdge()) {
       const firstCell = hoveredRowEl.querySelector('td[data-c="0"]');
-      const inner = firstCell && firstCell.querySelector(".cell-inner");
+      const inner = firstCell && firstCell.querySelector<HTMLElement>(".cell-inner");
       if (inner) {
         inner.classList.add("row-tag-shift");
         indentedInner = inner;
       }
     }
   };
-  const onMove = (e) => {
+  const onMove = (e: MouseEvent) => {
     // Frozen entirely while ANY row-tag picker on this page is open — the tagged row's
     // button/indent must stay exactly as they were until the picker closes, not chase the cursor
     // onto whatever other row it happens to pass over in the meantime.
@@ -1118,7 +1221,7 @@ export function attachStaticTableHoverZones(container, tableItem) {
     // "still in the zone" regardless — otherwise it'd vanish the instant you tried to reach it.
     const wRect = wrap.getBoundingClientRect();
     const tRect = tableRounded.getBoundingClientRect();
-    const hoveredEl = document.elementFromPoint(e.clientX, e.clientY);
+    const hoveredEl = document.elementFromPoint(e.clientX, e.clientY) as HTMLElement | null;
     const overColStrip = !!(hoveredEl && colStripWrap && colStripWrap.contains(hoveredEl));
     const strictlyPastRightEdge =
       e.clientY >= tRect.top &&
@@ -1173,21 +1276,24 @@ export function attachStaticTableHoverZones(container, tableItem) {
     // check that read as "cursor left every row" and hid the button out from under itself the
     // instant you tried to reach it. Treat hovering the strip/button as "still on whichever row
     // was last active" instead of re-deriving anything from it.
-    const onRowTagStrip = hoveredEl && rowTagStripWrap && rowTagStripWrap.contains(hoveredEl);
+    const onRowTagStrip = !!(hoveredEl && rowTagStripWrap && rowTagStripWrap.contains(hoveredEl));
     if (!onRowTagStrip) {
-      const rowTd = hoveredEl && hoveredEl.closest ? hoveredEl.closest("td[data-r]") : null;
+      const rowTd =
+        hoveredEl && hoveredEl.closest
+          ? (hoveredEl.closest("td[data-r]") as HTMLElement | null)
+          : null;
       const rowEl = rowTd && tableRounded.contains(rowTd) ? rowTd.closest("tr") : null;
       if (rowEl !== hoveredRowEl) {
         hoveredRowEl = rowEl;
         wrap.classList.toggle("show-row-tag", !!rowEl);
         if (rowEl && rowTagBtn) {
-          const r = Number(rowTd.dataset.r);
-          const originTableId = rowTd.dataset.originTable
-            ? Number(rowTd.dataset.originTable)
+          const r = Number(rowTd!.dataset.r);
+          const originTableId = rowTd!.dataset.originTable
+            ? Number(rowTd!.dataset.originTable)
             : tableItem.id;
-          rowTagBtn.onclick = (ev) => {
+          rowTagBtn.onclick = (ev: MouseEvent) => {
             ev.stopPropagation();
-            window.__openRowTagPicker(originTableId, r, rowTagBtn);
+            window.__openRowTagPicker!(originTableId, r, rowTagBtn);
           };
           updateRowTagBtnPos();
         }
