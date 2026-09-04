@@ -744,7 +744,7 @@ declare global {
     __renderCanvasItems?: (items: Record<string, unknown>[], paneId: number) => void;
     // app/dotto/lib/friendsPresence.ts
     __refreshCanvasCollabForCurrentFolder?: () => Promise<void>;
-    __renderCollabPill?: () => void;
+    __renderCollabPill?: (paneId?: number) => void;
     // app/dotto/lib/cardShortcuts.ts
     __findNextFreeSlot?: (folderId: string) => number;
     // waypointsRenderLoop.ts's own outbound bridges (Phase 4.5 port — was
