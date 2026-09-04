@@ -10,7 +10,15 @@ export default defineConfig({
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,
-  workers: process.env.CI ? 1 : undefined,
+  // Every spec under e2e/authenticated/ shares ONE real, persisted backend account (workspace
+  // state — folders/items/camera/cursor-mode — is saved to the real dotto-test Supabase project
+  // and reloaded on the next page load) rather than an isolated per-test fixture. Two specs
+  // mutating that shared state from different worker processes at once is a real cross-test race,
+  // not just theoretical — confirmed directly while writing the Phase 4.7 canvas-core specs (one
+  // spec's cursor-mode change leaking into another's assertion). CI already ran serially; this
+  // just makes local runs match that same real constraint instead of defaulting to
+  // hardware-parallel and occasionally flaking on exactly this.
+  workers: 1,
   reporter: "list",
   use: {
     baseURL,

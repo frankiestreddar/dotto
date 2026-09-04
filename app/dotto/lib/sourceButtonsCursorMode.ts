@@ -338,7 +338,7 @@ function doWire(appState: AppState): void {
     const state = getAppState();
     if (!state) return;
     if (e.key === "Shift") endModeOverride(state, "shift", "select");
-    else if (e.key === "d" || e.key === "D") endModeOverride(state, "d", "pen");
+    else if (e.key === "d" || e.key === "D") endModeOverride(state, "d", "data");
     else if (e.key === "Escape") endModeOverride(state, "escape", "normal");
   });
   window.addEventListener("blur", () => {
